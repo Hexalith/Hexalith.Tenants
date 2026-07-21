@@ -13,19 +13,22 @@ runtime/freshness blockers. It complements — it does not replace — the prese
 | SDK | .NET `10.0.302`, `rollForward=latestPatch`, target `net10.0` |
 | Fluent UI Blazor pin | `5.0.0-rc.4-26180.1` (deliberate v5 prerelease; not upgraded) |
 | FrontComposer package baseline | `4.0.1`; source `e13368a2` (unchanged — not modified) |
-| Memories submodule | `3b1ae857` (unchanged) |
+| Memories submodule | `3b1ae857` → `ae591ce7` (bumped in this commit — see below) |
 | PolymorphicSerializations / Commons / AI.Tools | `a5dd24f5` / `ea1fc455` / `991e8ea1` (unchanged) |
 
-### Submodule pointer drift observed during the session (EXTERNAL — not part of this story, preserved)
+### Submodule pointer bumps committed with the story (intentional — 2026-07-21 code-review decision)
 
 `git status` was clean apart from `references/Hexalith.Builds` + `sprint-status.yaml` at story start.
-During the session two submodule working trees moved externally (the recurring
-"submodules drift externally mid-work" pattern). These were **not** touched, reset, or committed here:
+During the session the submodule working trees moved (the recurring "submodules drift externally
+mid-work" pattern) and were **committed together with the story work in commit `41e047e`** — not left
+out of the commit. Per the 2026-07-21 code-review decision these bumps are kept as intentional; all three
+targets are reachable on their `origin/main`, so the parent gitlinks stay clone-/CI-reachable:
 
-| Submodule | Story frontmatter | Observed at completion | Note |
+| Submodule | Story frontmatter | Committed in `41e047e` | Note |
 |---|---|---|---|
-| `references/Hexalith.Builds` | `7708256e` | `dfb2f3fd` | Already `M` at story start; drifted further externally. |
-| `references/Hexalith.EventStore` | `41f5ed0f` | `4245f0f8` | Became `M` during the session (external). Release build below is coherent with `4245f0f8`. |
+| `references/Hexalith.Builds` | `7708256e` | `dfb2f3fd` | Already `M` at story start; committed with the story. |
+| `references/Hexalith.EventStore` | `41f5ed0f` | `4245f0f8` | Became `M` during the session; Release build below is coherent with `4245f0f8`. |
+| `references/Hexalith.Memories` | `3b1ae857` | `ae591ce7` | Committed with the story (previously mis-recorded here as unchanged). |
 
 ## Validation commands and results
 

@@ -17,7 +17,7 @@ prerequisite_stories:
 
 # Story 1.4: My Tenants Self-Audit
 
-Status: review
+Status: done
 
 <!-- Reverify-and-harden story. The self-audit surface already exists and is well-tested; historical `[x]` completion and a green suite are evidence to reverify, not a readiness waiver. The real work is AC5 (shared-detail drill-in + full scope=mine return-context restore) and AC7 (broken return-focus anchor). -->
 
@@ -305,7 +305,7 @@ claude-opus-4-8 (Claude Code, bmad-dev-story workflow)
 
 **Set-but-unread `IsAuthorizationScopedEmpty`:** kept intentionally unused; the UI's authorization-safe-empty contract is `SurfaceKind is Empty` + copy, not the boolean.
 
-**Blockers (recorded, not closed):** runtime browser evidence stays gated by **PLATFORM-OPS-1** (no live AppHost this session; only Dapr infra containers up). The direct-read/freshness-provenance items (**PLAT-FRESH-1 / HOST-REF-1 / UI-READ-1**) remain platform-owned; the surface renders freshness honestly. External submodule drift (`references/Hexalith.EventStore` `41f5ed0f→4245f0f8`, `references/Hexalith.Builds` `7708256e→dfb2f3fd`) was left untouched.
+**Blockers (recorded, not closed):** runtime browser evidence stays gated by **PLATFORM-OPS-1** (no live AppHost this session; only Dapr infra containers up). The direct-read/freshness-provenance items (**PLAT-FRESH-1 / HOST-REF-1 / UI-READ-1**) remain platform-owned; the surface renders freshness honestly. Submodule gitlinks (`references/Hexalith.Builds` `7708256e→dfb2f3fd`, `references/Hexalith.EventStore` `41f5ed0f→4245f0f8`, `references/Hexalith.Memories` `3b1ae857→ae591ce7`) were committed together with this story in `41e047e` and, per the 2026-07-21 code-review decision, are kept as intentional (all three reachable on `origin/main`).
 
 ### File List
 
@@ -327,10 +327,37 @@ Evidence / tracking (NEW, non-source):
 - `_bmad-output/implementation-artifacts/story-1-4-my-tenants-self-audit-evidence-2026-07-21.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — `1-4-my-tenants-self-audit: in-progress → review`.
 
-Preserved / not modified by this story (external drift): `references/Hexalith.EventStore`, `references/Hexalith.Builds` gitlinks; `_bmad-output/implementation-artifacts/1-4-my-tenants-self-audit-view.md` (historical evidence).
+Submodule gitlinks bumped in this commit (intentional, per the 2026-07-21 review decision): `references/Hexalith.Builds` (`7708256e→dfb2f3fd`), `references/Hexalith.EventStore` (`41f5ed0f→4245f0f8`), `references/Hexalith.Memories` (`3b1ae857→ae591ce7`). Preserved / not modified: `_bmad-output/implementation-artifacts/1-4-my-tenants-self-audit-view.md` (historical evidence).
 
 ## Change Log
 
 | Date | Change |
 |---|---|
 | 2026-07-21 | Story 1.4 reverify-and-harden: closed AC5 (shared-detail drill-in from self-audit rows + full scope=mine return-context restore of selection/cursor/scroll via the scope=all mechanism) and AC7 (added the missing row `id` so the `ReturnFocus` anchor resolves). Verified AC1–AC4/AC6/AC8/AC9 against source + green focused suite. UI.Tests 948/948, Contracts.Tests 112/112, `.slnx` Release `-warnaserror` 0/0. Runtime gated by PLATFORM-OPS-1 (recorded). |
+
+## Review Findings — BMAD Code Review (2026-07-21)
+
+_Adversarial review over committed diff `21a3ce5..41e047e`: Blind Hunter + Edge Case Hunter + Acceptance Auditor (all Opus 4.8). 16 raw findings → **2 decision-needed, 1 patch, 1 deferred, 6 dismissed**. Core AC5/AC7 code changes verified sound and honest; the highest-severity item is an evidence-integrity/scope contradiction, not a code defect._
+
+### Decision-needed
+
+- [ ] [Review][Decision] Commit bumps three `references/*` submodule gitlinks while the story record asserts they were "untouched" — Commit `41e047e` changes `references/Hexalith.Builds` (`7708256e→dfb2f3fd`), `references/Hexalith.EventStore` (`41f5ed0f→4245f0f8`), and `references/Hexalith.Memories` (`3b1ae857→ae591ce7`), yet the File List says "Preserved / not modified by this story" and `story-1-4-my-tenants-self-audit-evidence-2026-07-21.md` (L16/L23) records them as "unchanged"/"not touched, reset, or committed here." Contradicts project-context L135, the story's own Git Intelligence instruction, CLAUDE.md dependency-preservation, and AC9 evidence integrity. Mitigation: all three targets are reachable on `origin/main`, so no cloneability/CI break (yet). Related evidence gap: the File List also omits the route-smoke test and `tests/test-summary.md` that the completed evidence task required. **Decide:** (a) revert the three gitlinks to the story baseline so the commit matches its record, or (b) keep the bumps as intentional and correct the evidence report + File List (and reconcile the omitted test artifacts). — **RESOLVED 2026-07-21 (Administrator): (b) keep the bumps as intentional; correct the record. → converted to the documentation patch below.**
+- [x] [Review][Decision] AC5 "same list components" + "restore cursor/scroll" met by scope=all parity, not literal restore — The self-audit surface keeps the Role-augmented `MyTenantsDataGrid` (not the literal `TenantDataGrid`), and detail-return resets to the authorized first page + heading focus (`FocusHeadingAsync`) + return-context banner + selection state — mirroring the accepted scope=all pattern — rather than literally restoring cursor position and scroll. Both are documented (Open Product Question + Completion Notes) and are honest, not silent regressions. **Decide/sign off:** confirm the scope=all-parity interpretation closes AC5's "same list components" and "cursor context / scroll position" clauses (recommended — it is the already-accepted Story 1.2/1.3 behavior), or require deeper grid unification / literal cursor+scroll restore. [`src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:41`; `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:400-405`] — **RESOLVED 2026-07-21 (Administrator): scope=all-parity interpretation ACCEPTED; the Role-augmented grid + reset-to-first-page/heading-focus/banner restore satisfy AC5. AC5 stands as met; no further dev work.**
+
+### Patch
+
+- [x] [Review][Patch] Correct the evidence record for the intentional submodule bumps (from resolved decision above) — Update the File List and `story-1-4-my-tenants-self-audit-evidence-2026-07-21.md` to state that `references/Hexalith.Builds`, `references/Hexalith.EventStore`, and `references/Hexalith.Memories` gitlinks were **intentionally updated** in this commit, replacing the current "Preserved / not modified"/"unchanged"/"not touched, reset, or committed here" wording so the record matches commit `41e047e`. — **APPLIED 2026-07-21**: File List + Completion Notes + evidence-report submodule section corrected (all three gitlinks now recorded as committed with the story, Memories included).
+- [x] [Review][Patch] `NormalizeContextValue` has no length bound — unbounded `selected`/`anchor` [`src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:348`] — **APPLIED 2026-07-21**: added `MaximumContextValueLength = 512` bound to `NormalizeContextValue`. Build `0/0`; UI suite `948/948`. — Unlike `NormalizeUserId` (256) and `NormalizeOpaque` (4096), the `selected`/`anchor` query values are accepted at any length and then flow into the row element `id`, the return-context banner text node, and the canonical URL. The Story 1.2 review rule rejects id-like URL-derived values whose `Length > 256`. Add a length cap to `NormalizeContextValue` (this diff newly routes the scope=mine branch through the normalizer; the fix also hardens the pre-existing scope=all path).
+
+### Deferred
+
+- [x] [Review][Defer] Degenerate/exotic tenant ids on the shared detail-nav path [`src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:36`; `src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor:17`] — deferred, near-unreachable + shared pre-existing pattern. (a) `ToDetailUrl(row)` now delegates to the `(string,string)` overload whose `ArgumentException.ThrowIfNullOrWhiteSpace(tenantId)` throws on a blank tenant id where the pre-change inline body produced a silent link — a render-time throw inside the grid template would tear down the surface; (b) a tenant id containing whitespace or CSS-significant chars yields an invalid HTML `id` and a non-resolving return-focus anchor. Both require a blank/exotic tenant id (the id is the validated non-blank aggregate id; ids are slug-like), and both share the pre-existing scope=all `TenantDataGrid` `id="tenant-row-{TenantId}"` pattern — fix as cross-surface id-safety hardening, not a My-Tenants-only divergence.
+
+### Dismissed (with rationale)
+
+- **Row `id` "dead / competing focus target"** (Blind Hunter) — the added row `id` feeds the `AuditEvidenceEntryPoint ReturnFocus` (the actual AC7 anchor that was previously dangling); detail-return uses heading focus. Two distinct navigation paths, not competing; the `id` is genuinely consumed.
+- **Return-context banner `Color.Lightweight` "inverted white / unreadable"** (Blind Hunter) — identical token/size to the shipped, reviewed scope=all banner (`TenantsWorkspace.razor:111`); intentional muted-secondary text, parity not regression.
+- **Banner missing `role`/`aria-live`** (Blind Hunter) — parity with the shipped scope=all banner; on return, focus lands on the heading via `FocusHeadingAsync()`, so the banner (in `HeaderMetadata`) is encountered by AT, not silently missed.
+- **Banner "over-claims restoration vs. neutral scope=all copy"** (Edge Case Hunter) — false premise: the scope=all `Tenants.List.ReturnContext` uses the same "…restored on the authorized first page" assertion; the scope=mine copy is parallel/softer.
+- **Round-trip encoding untested for reserved characters** (Blind Hunter) — `AppendQuery` escapes both key and value with `Uri.EscapeDataString` and `ToDetailUrl` double-escapes `returnUrl`; the encoding path is correct. Adding a reserved-char round-trip test is a nicety, not a defect.
+- **Non-unique `data-testid="{prefix}-row"` alongside the unique `id`** (Blind Hunter) — by design: the row-template `data-testid` is intentionally constant; the per-row `id` distinguishes rows and tests assert via `.Id`.

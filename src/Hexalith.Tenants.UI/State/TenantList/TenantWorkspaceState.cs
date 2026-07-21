@@ -34,6 +34,10 @@ public sealed record TenantWorkspaceState(
 
     private const int MaximumUserIdLength = 256;
 
+    // Bounds the URL-supplied return-context values (selection id + focus anchor). Gives headroom for an
+    // anchor prefix over a maximum-length identifier while still rejecting an unbounded crafted value.
+    private const int MaximumContextValueLength = 512;
+
     /// <summary>Identifies the tenant list and self-audit tab.</summary>
     public const string TenantsTab = "tenants";
 
@@ -346,9 +350,18 @@ public sealed record TenantWorkspaceState(
         => bool.TryParse(value, out bool parsed) && parsed;
 
     private static string? NormalizeContextValue(string? value)
-        => string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl)
-            ? null
-            : value.Trim();
+    {
+        // Keep the value literal (the return-context selection id and its focus anchor) but trim
+        // surrounding whitespace, reject control characters, and bound the length so a crafted URL cannot
+        // push an unbounded string into the row element id, the return-context banner, or the canonical URL.
+        if (string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl))
+        {
+            return null;
+        }
+
+        string trimmed = value.Trim();
+        return trimmed.Length > MaximumContextValueLength ? null : trimmed;
+    }
 
     private static string? NormalizeOpaque(string? value)
         => string.IsNullOrWhiteSpace(value)
