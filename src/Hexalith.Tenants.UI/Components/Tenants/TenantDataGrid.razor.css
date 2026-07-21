@@ -35,8 +35,9 @@
     color: LinkText;
     min-width: 0;
     overflow: hidden;
+    overflow-wrap: anywhere;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: break-spaces;
 }
 
 .tenant-data-grid__detail-link:focus-visible {

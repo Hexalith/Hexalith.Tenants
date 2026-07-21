@@ -1686,23 +1686,26 @@
   <data name="Tenants.Copy.Feedback.Copied" xml:space="preserve">
     <value>Copied.</value>
   </data>
+  <data name="Tenants.Copy.Feedback.Canceled" xml:space="preserve">
+    <value>Copy was canceled. Select the value and copy it manually.</value>
+  </data>
   <data name="Tenants.Copy.Feedback.Disconnected" xml:space="preserve">
-    <value>Clipboard disconnected. Copy was not completed.</value>
+    <value>Clipboard disconnected. Copy was not completed. Select the value and copy it manually.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Empty" xml:space="preserve">
     <value>Nothing is available to copy.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Failed" xml:space="preserve">
-    <value>Copy failed.</value>
+    <value>Copy failed. Select the value and copy it manually.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Insecure" xml:space="preserve">
-    <value>Clipboard is unavailable in this browser context.</value>
+    <value>Clipboard is unavailable in this browser context. Select the value and copy it manually.</value>
   </data>
   <data name="Tenants.Copy.Feedback.PermissionDenied" xml:space="preserve">
-    <value>Clipboard permission was not granted.</value>
+    <value>Clipboard permission was not granted. Select the value and copy it manually.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Unavailable" xml:space="preserve">
-    <value>Clipboard unavailable.</value>
+    <value>Clipboard unavailable. Select the value and copy it manually.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>This value is not support-safe to copy.</value>

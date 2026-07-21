@@ -61,6 +61,24 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Set_configuration_preview_preserves_a_legacy_safe_current_value()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("paid");
+
+        cut.Find("[data-testid='tenants-config-set-preview-current-state']").TextContent.ShouldContain("trial");
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Namespace_scope_must_be_proven_from_authorized_projection_before_gateway_submission()
     {
         StubTenantCommandGateway gateway = new();

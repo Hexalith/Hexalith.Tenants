@@ -146,6 +146,29 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
     }
 
+    [Fact]
+    public void User_lookup_activates_copy_for_the_authorized_projection_literal_only()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant/%2F?x=é", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            targetUserId: "target.user"));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "tenant/%2F?x=é").SetVoidResult();
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+
+        cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldBe("tenant/%2F?x=é");
+
+        cut.Find("[data-surface-testid='tenants-user-copy-reference']").Click();
+
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe("tenant/%2F?x=é");
+        cut.FindAll("[data-testid='tenants-user-copy-reference']").Count.ShouldBe(1);
+    }
+
     [Theory]
     [InlineData(UserTenantMembershipSurfaceKind.Unauthorized, "tenants-user-error", "alert", "User membership lookup is unauthorized")]
     [InlineData(UserTenantMembershipSurfaceKind.Unavailable, "tenants-user-error", "alert", "User membership lookup is unavailable")]
@@ -311,6 +334,13 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             "Components",
             "Users",
             "UserMembershipLookupPanel.razor.css"));
+        string gridStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Users",
+            "MyTenantsDataGrid.razor.css"));
 
         panel.ShouldContain("<FluentGrid");
         panel.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"5\">");
@@ -318,6 +348,8 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         styles.ShouldNotContain("grid-template-columns");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");
+        gridStyles.ShouldContain("overflow-wrap: anywhere");
+        gridStyles.ShouldContain("white-space: break-spaces");
     }
 
     private ITenantQueryGateway RegisterServices(UserTenantMembershipSnapshot snapshot)

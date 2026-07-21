@@ -7,6 +7,10 @@ baseline_commit: bcb1911
 
 Status: done
 
+> Superseded for current Story 1.8 verification by
+> `story-1-8-support-safe-identifier-copy-and-read-experience-evidence-2026-07-21.md`.
+> This historical June 2026 artifact and its original counts are retained as history, not current proof.
+
 <!-- Note: Created by the BMAD create-story workflow for Story 1.8. -->
 
 ## Story

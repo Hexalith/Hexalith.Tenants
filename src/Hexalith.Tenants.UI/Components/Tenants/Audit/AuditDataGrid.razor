@@ -58,12 +58,19 @@
                         ColumnId="audit-reference"
                         Class="tenants-audit-critical tenants-audit-critical--reference"
                         Width="260px">
+            @{
+                string? supportSafeEventReference = TenantAuditSupportSafety.SafeApprovedReference(context.EventReference);
+            }
             <div class="audit-data-grid__reference" data-testid="tenants-audit-row-reference">
                 <span class="audit-data-grid__wrap">@ReferenceLabel(context)</span>
-                <SupportSafeCopyButton Value="@context.EventReference"
-                                       ValueKind="SupportSafeCopyValueKind.ApprovedReference"
-                                       AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", context.EventReference]"
-                                       TestId="tenants-audit-copy-reference" />
+                @if (supportSafeEventReference is not null)
+                {
+                    <SupportSafeCopyButton Value="@supportSafeEventReference"
+                                           ValueKind="SupportSafeCopyValueKind.ApprovedReference"
+                                           IsApproved="true"
+                                           AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", supportSafeEventReference]"
+                                           TestId="tenants-audit-copy-reference" />
+                }
             </div>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Receipt"]"

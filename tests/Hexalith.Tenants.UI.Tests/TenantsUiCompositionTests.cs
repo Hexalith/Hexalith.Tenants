@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Resources;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 using Hexalith.FrontComposer.Contracts.Registration;
@@ -253,6 +254,107 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Platform area unavailable");
         manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Zone plateforme indisponible");
+    }
+
+    [Fact]
+    public void Clipboard_feedback_is_complete_polite_recovery_copy_in_english_and_french()
+    {
+        ResourceManager manager = new(typeof(TenantsResources));
+        Dictionary<string, (string English, string French)> expected = new(StringComparer.Ordinal)
+        {
+            ["Tenants.Copy.Feedback.Copied"] = ("Copied.", "Copié."),
+            ["Tenants.Copy.Feedback.Canceled"] = (
+                "Copy was canceled. Select the value and copy it manually.",
+                "La copie a été annulée. Sélectionnez la valeur et copiez-la manuellement."),
+            ["Tenants.Copy.Feedback.Disconnected"] = (
+                "Clipboard disconnected. Copy was not completed. Select the value and copy it manually.",
+                "Presse-papiers déconnecté. La copie n'a pas été effectuée. Sélectionnez la valeur et copiez-la manuellement."),
+            ["Tenants.Copy.Feedback.Failed"] = (
+                "Copy failed. Select the value and copy it manually.",
+                "La copie a échoué. Sélectionnez la valeur et copiez-la manuellement."),
+            ["Tenants.Copy.Feedback.Insecure"] = (
+                "Clipboard is unavailable in this browser context. Select the value and copy it manually.",
+                "Le presse-papiers est indisponible dans ce contexte de navigateur. Sélectionnez la valeur et copiez-la manuellement."),
+            ["Tenants.Copy.Feedback.PermissionDenied"] = (
+                "Clipboard permission was not granted. Select the value and copy it manually.",
+                "L'autorisation du presse-papiers n'a pas été accordée. Sélectionnez la valeur et copiez-la manuellement."),
+            ["Tenants.Copy.Feedback.Unavailable"] = (
+                "Clipboard unavailable. Select the value and copy it manually.",
+                "Presse-papiers indisponible. Sélectionnez la valeur et copiez-la manuellement."),
+        };
+
+        foreach ((string key, (string english, string french)) in expected)
+        {
+            manager.GetString(key, CultureInfo.InvariantCulture).ShouldBe(english);
+            manager.GetString(key, CultureInfo.GetCultureInfo("fr")).ShouldBe(french);
+        }
+    }
+
+    [Fact]
+    public void Every_shared_copy_consumer_declares_explicit_approval_and_configuration_fails_closed()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        string[] razorFiles = Directory.GetFiles(componentsRoot, "*.razor", SearchOption.AllDirectories);
+        List<string> implicitConsumers = [];
+        int consumerCount = 0;
+        int inspectedConsumerCount = 0;
+
+        foreach (string file in razorFiles)
+        {
+            string source = File.ReadAllText(file);
+            consumerCount += Regex.Matches(
+                source,
+                "<SupportSafeCopyButton\\b",
+                RegexOptions.CultureInvariant).Count;
+            foreach (Match match in Regex.Matches(
+                source,
+                "<SupportSafeCopyButton\\b(?<attributes>[^>]*)>",
+                RegexOptions.CultureInvariant | RegexOptions.Singleline))
+            {
+                inspectedConsumerCount++;
+                if (!match.Groups["attributes"].Value.Contains("IsApproved=\"true\"", StringComparison.Ordinal))
+                {
+                    implicitConsumers.Add(Path.GetRelativePath(componentsRoot, file));
+                }
+            }
+        }
+
+        implicitConsumers.ShouldBeEmpty(
+            $"Every shared copy control must receive explicit outer-surface approval: {string.Join(", ", implicitConsumers)}");
+        inspectedConsumerCount.ShouldBe(consumerCount, "Every opening copy-control tag must be inspected, including paired tags.");
+
+        string configuration = File.ReadAllText(Path.Combine(
+            componentsRoot,
+            "Tenants",
+            "TenantConfigurationView.razor"));
+        configuration.ShouldNotContain("<SupportSafeCopyButton");
+        configuration.ShouldNotContain("tenants-config-copy-reference");
+    }
+
+    [Fact]
+    public void Story_1_8_evidence_dependencies_record_owner_consequence_and_reopen_trigger()
+    {
+        string report = File.ReadAllText(Path.Combine(
+            ProjectRoot(),
+            "_bmad-output",
+            "implementation-artifacts",
+            "story-1-8-support-safe-identifier-copy-and-read-experience-evidence-2026-07-21.md"));
+
+        foreach (string blocker in new[] { "CFG-1.6-SAFE-MODEL", "BROWSER-COPY-1.8", "AT-NVDA-1.8" })
+        {
+            int blockerStart = report.IndexOf(blocker, StringComparison.Ordinal);
+            blockerStart.ShouldBeGreaterThanOrEqualTo(0);
+            string blockerRecord = report[blockerStart..];
+            int nextRecord = blockerRecord.IndexOf("\n- **", 1, StringComparison.Ordinal);
+            if (nextRecord >= 0)
+            {
+                blockerRecord = blockerRecord[..nextRecord];
+            }
+
+            blockerRecord.ShouldContain("owner:");
+            blockerRecord.ShouldContain("Consequence:");
+            blockerRecord.ShouldContain("Reopen trigger:");
+        }
     }
 
     [Fact]

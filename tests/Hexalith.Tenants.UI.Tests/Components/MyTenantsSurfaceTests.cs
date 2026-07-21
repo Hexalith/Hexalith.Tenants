@@ -33,6 +33,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ],
             nextCursor: "next",
             hasMore: true));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "tenant.alpha").SetVoidResult();
 
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
         cut.WaitForElement("[data-testid='tenants-my-list']");
@@ -52,6 +54,10 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
         cut.Markup.ShouldNotContain("command", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+
+        cut.Find("[data-surface-testid='tenants-my-copy-reference']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe("tenant.alpha");
     }
 
     [Fact]
@@ -297,6 +303,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         styles.ShouldContain("overflow-x: auto");
         styles.ShouldContain("min-width:");
         styles.ShouldContain("white-space: nowrap");
+        styles.ShouldContain("white-space: break-spaces");
         styles.ShouldContain("tenants-my-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }

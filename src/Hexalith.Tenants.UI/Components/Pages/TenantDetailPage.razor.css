@@ -26,6 +26,7 @@
 .tenant-detail__literal {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
     overflow-wrap: anywhere;
+    white-space: break-spaces;
 }
 
 /* fc-css-exception: content-sized two-column row (value/copy-button) with grid-template-columns;

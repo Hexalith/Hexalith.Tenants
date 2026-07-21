@@ -28,6 +28,7 @@
 .my-tenants-grid__identity strong,
 .my-tenants-grid__identity span {
     overflow-wrap: anywhere;
+    white-space: break-spaces;
 }
 
 /* identity id link: single line, clipped with an ellipsis so it can never overrun the copy
@@ -37,7 +38,7 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: break-spaces;
 }
 
 .my-tenants-grid__detail-link:focus-visible {

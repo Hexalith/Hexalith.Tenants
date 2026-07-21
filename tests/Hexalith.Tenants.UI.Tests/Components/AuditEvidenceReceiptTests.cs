@@ -45,17 +45,15 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
-    public void Receipt_component_blocks_copy_when_partial_receipt_has_no_safe_reference()
+    public void Receipt_component_omits_copy_when_partial_receipt_has_no_safe_reference()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row(eventReference: string.Empty));
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, receipt));
 
-        cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
-
-        cut.Find("[data-testid='tenants-audit-receipt-copy-feedback']").TextContent.ShouldContain("Nothing safe to copy");
-        cut.Find("[data-testid='tenants-audit-receipt-copy-feedback']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt-copy-feedback']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
     }
 

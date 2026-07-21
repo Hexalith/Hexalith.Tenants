@@ -56,6 +56,20 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Remove_configuration_preview_preserves_a_legacy_safe_current_value()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent.ShouldContain("trial");
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Missing_or_hidden_target_blocks_submission_without_gateway_call_or_success_state()
     {
         StubTenantCommandGateway gateway = new();

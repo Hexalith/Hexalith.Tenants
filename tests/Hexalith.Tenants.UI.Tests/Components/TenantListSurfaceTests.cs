@@ -37,6 +37,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             nextCursor: "next-cursor",
             hasMore: true);
         RegisterServices(snapshot);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "tenant.alpha").SetVoidResult();
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
@@ -53,6 +55,10 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
+
+        cut.Find("[data-surface-testid='tenants-list-copy-reference']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe("tenant.alpha");
     }
 
     [Fact]
@@ -804,6 +810,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+        styles.ShouldContain("overflow-wrap: anywhere");
+        styles.ShouldContain("white-space: break-spaces");
         styles.ShouldNotContain("animation:", Case.Insensitive);
         styles.ShouldNotContain("transition:", Case.Insensitive);
     }

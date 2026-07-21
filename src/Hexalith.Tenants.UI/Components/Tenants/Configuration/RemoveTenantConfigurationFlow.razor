@@ -272,7 +272,7 @@
                 (Localizer["Tenants.Configuration.Remove.Preview.Tenant"], Detail.TenantId, "tenants-config-remove-tenant-id"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Namespace"], namespaceValue, "tenants-config-remove-preview-namespace"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Key"], request.Key, "tenants-config-remove-preview-key"),
-                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], SafeConfigurationDisplay(Detail.Configuration[request.Key]), "tenants-config-remove-preview-current-state"),
+                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], SafeConfigurationDisplay(request.Key, Detail.Configuration[request.Key]), "tenants-config-remove-preview-current-state"),
                 (Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"], "tenants-config-remove-preview-effect"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Localizer[$"Tenants.Configuration.Remove.Freshness.{Freshness}"], "tenants-config-remove-preview-freshness"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Authorization"], Localizer["Tenants.Configuration.Remove.Preview.Authorization.Value"], "tenants-config-remove-preview-authorization"),
@@ -574,8 +574,8 @@
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
-    private string SafeConfigurationDisplay(string value)
-        => SupportSafeCopyClassifier.IsAllowed(value, SupportSafeCopyValueKind.SafeConfigurationValue)
+    private string SafeConfigurationDisplay(string key, string value)
+        => LegacyConfigurationDisplaySanitizer.IsDisplayable(key, value)
             ? value
             : Localizer["Tenants.Configuration.Value.Unavailable"];
 
