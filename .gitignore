@@ -431,3 +431,7 @@ FodyWeavers.xsd
 # Local race-on-write snapshots with absolute paths; not useful in shared history.
 _bmad-output/process-notes/predev-preflight-*.json
 .agents/.story-automator-active
+_bmad/config.user.yaml
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml
