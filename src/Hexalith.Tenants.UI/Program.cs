@@ -7,6 +7,7 @@ using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 
@@ -24,6 +25,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddFluentUIComponents();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection();
+builder.Services.AddTenantConfigurationReadPolicy(builder.Configuration);
 builder.Services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
 builder.Services.TryAddScoped<TenantSearchPagingState>();
 

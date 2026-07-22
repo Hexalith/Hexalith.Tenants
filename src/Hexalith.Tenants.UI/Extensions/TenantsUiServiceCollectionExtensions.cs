@@ -5,6 +5,7 @@ using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 
@@ -36,6 +37,7 @@ public static class TenantsUiServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         _ = services.AddDataProtection();
+        services.AddTenantConfigurationReadPolicy(configuration);
         services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
         services.TryAddScoped<TenantSearchPagingState>();
 

@@ -6,8 +6,10 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.Memories.Client.Rest;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -24,7 +26,8 @@ internal sealed class TenantQueryGateway(
     IEventStoreGatewayClient queryClient,
     IUserContextAccessor userContextAccessor,
     MemoriesClient memoriesClient,
-    ITenantSearchCursorCodec searchCursorCodec) : ITenantQueryGateway {
+    ITenantSearchCursorCodec searchCursorCodec,
+    ITenantsBffComposition? bffComposition = null) : ITenantQueryGateway {
     private const string SystemTenant = "system";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
@@ -50,38 +53,98 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
-                if (previous?.Detail is null) {
-                    return TenantDetailSnapshot.Degraded(null, "Tenant detail was unchanged, but no cached server snapshot is available.", result.ETag);
-                }
-
-                // A 304 means the cached snapshot is unchanged, not that a degraded/stale
-                // snapshot recovered. Only an explicit freshness header can change truth state.
-                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
-                return previous with {
-                    Kind = ResolveDetailKindForFreshness(previous.Kind, notModifiedFreshness),
-                    Freshness = notModifiedFreshness,
-                    ETag = result.ETag ?? previous.ETag,
-                };
+                result = await queryClient
+                    .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), ifNoneMatch: null, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
-            if (result.Payload is null) {
-                return TenantDetailSnapshot.Unknown("Tenant detail projection returned no payload.", result.ETag);
+            if (result.IsNotModified || result.Payload is null) {
+                return await RetainPreviousTenantDetailAsync(
+                    request.TenantId,
+                    previous,
+                    "Tenant detail could not be refreshed from current projection evidence.",
+                    result.ETag,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!string.Equals(result.Payload.TenantId, request.TenantId, StringComparison.Ordinal)) {
+                return await RetainPreviousTenantDetailAsync(
+                    request.TenantId,
+                    previous,
+                    "Tenant detail projection identity did not match the requested tenant.",
+                    result.ETag,
+                    cancellationToken).ConfigureAwait(false);
             }
 
             ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             if (result.Metadata?.IsDegraded == true) {
-                return TenantDetailSnapshot.Degraded(result.Payload, "Tenant detail projection is degraded.", result.ETag);
+                return await RetainPreviousTenantDetailAsync(
+                    request.TenantId,
+                    previous,
+                    "Tenant detail projection is degraded.",
+                    result.ETag,
+                    cancellationToken).ConfigureAwait(false);
             }
 
+            TenantConfigurationComposition composition = await ComposeTenantDetailAsync(result.Payload, cancellationToken)
+                .ConfigureAwait(false);
             if (freshness is ReadModelFreshnessState.Stale) {
-                return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
+                return TenantDetailSnapshot.Stale(composition, result.ETag);
             }
 
-            return TenantDetailSnapshot.Ready(result.Payload, result.ETag, freshness);
+            return TenantDetailSnapshot.Ready(composition, result.ETag, freshness);
+        }
+        catch (OperationCanceledException) {
+            throw;
         }
         catch (EventStoreGatewayException ex) {
+            if (ex.StatusCode != (int)HttpStatusCode.Unauthorized
+                && ex.StatusCode != (int)HttpStatusCode.Forbidden
+                && ex.StatusCode != (int)HttpStatusCode.NotFound
+                && ex.StatusCode != (int)HttpStatusCode.BadRequest
+                && HasSameTenantDetail(previous, request.TenantId)) {
+                return await RetainPreviousTenantDetailAsync(
+                    request.TenantId,
+                    previous,
+                    "Tenant detail query gateway returned a safe degraded state.",
+                    previous?.ETag,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             return MapDetailException(request.TenantId, ex);
         }
+        catch (Exception) {
+            return await RetainPreviousTenantDetailAsync(
+                request.TenantId,
+                previous,
+                "Tenant detail query gateway returned a safe degraded state.",
+                previous?.ETag,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+        SetTenantConfiguration request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        return GetConfigurationProjectionProofAsync(
+            request.TenantId,
+            request.Key,
+            request.Value,
+            isRemove: false,
+            cancellationToken);
+    }
+
+    public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        RemoveTenantConfiguration request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        return GetConfigurationProjectionProofAsync(
+            request.TenantId,
+            request.Key,
+            expectedValue: null,
+            isRemove: true,
+            cancellationToken);
     }
 
     public async Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
@@ -947,6 +1010,84 @@ internal sealed class TenantQueryGateway(
 
         return result.Payload;
     }
+
+    private async Task<TenantConfigurationProjectionProof> GetConfigurationProjectionProofAsync(
+        string tenantId,
+        string key,
+        string? expectedValue,
+        bool isRemove,
+        CancellationToken cancellationToken) {
+        try {
+            EventStoreQueryResult<TenantDetail> result = await queryClient
+                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
+                .ConfigureAwait(false);
+            TenantDetail? detail = result.Payload;
+            if (result.IsNotModified
+                || detail is null
+                || !string.Equals(detail.TenantId, tenantId, StringComparison.Ordinal)
+                || ResolveFreshness(result.Metadata) is not ReadModelFreshnessState.Current) {
+                return TenantConfigurationProjectionProof.Unavailable(tenantId);
+            }
+
+            bool contains = detail.Configuration.TryGetValue(key, out string? currentValue);
+            TenantConfigurationProjectionProofKind kind = isRemove
+                ? contains
+                    ? TenantConfigurationProjectionProofKind.RemoveNotConfirmed
+                    : TenantConfigurationProjectionProofKind.RemoveConfirmed
+                : contains && string.Equals(currentValue, expectedValue, StringComparison.Ordinal)
+                    ? TenantConfigurationProjectionProofKind.SetConfirmed
+                    : TenantConfigurationProjectionProofKind.SetNotConfirmed;
+            return TenantConfigurationProjectionProof.Create(tenantId, kind);
+        }
+        catch (OperationCanceledException) {
+            throw;
+        }
+        catch (Exception) {
+            return TenantConfigurationProjectionProof.Unavailable(tenantId);
+        }
+    }
+
+    private async ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
+        TenantDetail detail,
+        CancellationToken cancellationToken) {
+        if (bffComposition is not null) {
+            return await bffComposition.ComposeTenantDetailAsync(detail, cancellationToken).ConfigureAwait(false);
+        }
+
+        TenantDetail sanitized = TenantConfigurationSafeComposer.SanitizeDetail(detail);
+        return new(
+            sanitized,
+            TenantConfigurationSafeModel.Unavailable(detail.TenantId),
+            TenantConfigurationManagementContext.Unavailable(detail.TenantId, detail.Status));
+    }
+
+    private async Task<TenantDetailSnapshot> RetainPreviousTenantDetailAsync(
+        string tenantId,
+        TenantDetailSnapshot? previous,
+        string message,
+        string? eTag,
+        CancellationToken cancellationToken) {
+        if (!HasSameTenantDetail(previous, tenantId)) {
+            return TenantDetailSnapshot.Degraded(null, message, eTag);
+        }
+
+        TenantConfigurationComposition composition = bffComposition is null
+            ? new(
+                TenantConfigurationSafeComposer.SanitizeDetail(previous!.Detail!),
+                TenantConfigurationSafeModel.Unavailable(tenantId),
+                TenantConfigurationManagementContext.Unavailable(tenantId, previous.Detail!.Status))
+            : await bffComposition.ReauthorizeTenantDetailAsync(
+                previous!.Detail!,
+                previous.Configuration,
+                degraded: true,
+                cancellationToken).ConfigureAwait(false);
+        return TenantDetailSnapshot.DegradedFromComposition(composition, message, eTag ?? previous.ETag);
+    }
+
+    private static bool HasSameTenantDetail(TenantDetailSnapshot? previous, string tenantId)
+        => previous?.Detail is not null
+            && string.Equals(previous.Detail.TenantId, tenantId, StringComparison.Ordinal)
+            && string.Equals(previous.Configuration.TenantId, tenantId, StringComparison.Ordinal);
 
     private static SubmitQueryRequest CreateDetailRequest(string tenantId)
         => new(
