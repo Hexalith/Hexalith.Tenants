@@ -73,22 +73,6 @@
     padding: 0.35rem 0.75rem;
 }
 
-/* fc-css-exception: control affordance padding on the remove FluentButton; this is the control box model,
-   not page layout spacing. */
-.tenant-config__remove {
-    border: 1px solid CanvasText;
-    border-radius: 6px;
-    min-block-size: 2.25rem;
-    padding: 0.35rem 0.75rem;
-}
-
-/* fc-css-exception: compact block-start spacing + readability measure on the inline remove-reason
-   note; no Fluent layout primitive expresses this single-element top gap and max-inline-size. */
-.tenant-config__remove-reason {
-    margin-block-start: 0.35rem;
-    max-inline-size: 18rem;
-}
-
 .tenant-config__table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -115,31 +99,14 @@
     width: 100%;
 }
 
-/* fc-css-exception: content-sized literal/value row grid (code/value + copy affordance); FluentGrid
-   cannot express content-sized columns. */
-.tenant-config__literal-row {
-    align-items: start;
-    display: grid;
-    gap: 0.35rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-width: 0;
-}
-
 .tenant-config code,
 .tenant-config__value {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
     overflow-wrap: anywhere;
 }
 
-/* fc-css-exception: emphasis weight on the unavailable-value <span>; no Fluent typography primitive
-   wraps this inline semantic value. */
-.tenant-config__value--unavailable {
-    font-weight: 600;
-}
-
 .tenant-config__filter:focus-visible,
 .tenant-config__clear:focus-visible,
-.tenant-config__remove:focus-visible,
 .tenant-config__table-wrap [tabindex]:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
@@ -177,15 +144,13 @@
 @media (forced-colors: active) {
     .tenant-config,
     .tenant-config__filter,
-    .tenant-config__clear,
-    .tenant-config__remove {
+    .tenant-config__clear {
         border-color: CanvasText;
         color: CanvasText;
     }
 
     .tenant-config__filter:focus-visible,
     .tenant-config__clear:focus-visible,
-    .tenant-config__remove:focus-visible,
     .tenant-config__table-wrap [tabindex]:focus-visible {
         outline-color: Highlight;
     }

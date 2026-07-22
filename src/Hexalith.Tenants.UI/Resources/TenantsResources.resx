@@ -558,6 +558,9 @@
   <data name="Tenants.Detail.Configuration.Empty" xml:space="preserve">
     <value>No configuration keys are available in this detail projection.</value>
   </data>
+  <data name="Tenants.Detail.Configuration.Unavailable" xml:space="preserve">
+    <value>Configuration unavailable</value>
+  </data>
   <data name="Tenants.Detail.Configuration.Summary" xml:space="preserve">
     <value>{0} configuration keys across {1} safe groups.</value>
   </data>
@@ -1000,7 +1003,25 @@
     <value>Full configuration key {0}</value>
   </data>
   <data name="Tenants.Configuration.ScopeNotice" xml:space="preserve">
-    <value>Visible configuration only. Prefix ownership cannot be verified in this read model.</value>
+    <value>Only configuration approved by the current namespace and display policy is shown.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Loading" xml:space="preserve">
+    <value>Configuration evidence is loading.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Loading.Title" xml:space="preserve">
+    <value>Configuration loading</value>
+  </data>
+  <data name="Tenants.Configuration.State.Ready" xml:space="preserve">
+    <value>Configuration evidence is current.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Ready.Title" xml:space="preserve">
+    <value>Configuration current</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unknown" xml:space="preserve">
+    <value>Configuration evidence cannot be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unknown.Title" xml:space="preserve">
+    <value>Configuration evidence unknown</value>
   </data>
   <data name="Tenants.Configuration.State.Degraded" xml:space="preserve">
     <value>Configuration evidence is degraded.</value>
@@ -1041,6 +1062,36 @@
   <data name="Tenants.Configuration.Table.Caption" xml:space="preserve">
     <value>Visible tenant configuration grouped by namespace</value>
   </data>
+  <data name="Tenants.Configuration.Table.AccessibleLabel" xml:space="preserve">
+    <value>Authorized tenant configuration values</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Title" xml:space="preserve">
+    <value>Configuration management</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Description" xml:space="preserve">
+    <value>Set configuration within current authorized prefixes or remove a current safe target.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.Policy" xml:space="preserve">
+    <value>Configuration management is unavailable because current authorization policy cannot be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.ProjectionState" xml:space="preserve">
+    <value>Refresh available tenant detail before managing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before managing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow configuration management.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Empty" xml:space="preserve">
+    <value>No current safe configuration targets are available for removal. Setting within an authorized prefix remains available.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.TargetsAccessibleLabel" xml:space="preserve">
+    <value>Configuration keys available for removal</value>
+  </data>
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Visible configuration</value>
   </data>
@@ -1075,10 +1126,10 @@
     <value>Use a visible authorized namespace prefix without the trailing dot.</value>
   </data>
   <data name="Tenants.Configuration.Set.Key.Label" xml:space="preserve">
-    <value>Key</value>
+    <value>Full configuration key</value>
   </data>
   <data name="Tenants.Configuration.Set.Key.Help" xml:space="preserve">
-    <value>Use the key segment after the namespace prefix.</value>
+    <value>Enter the exact literal full key within a current authorized prefix.</value>
   </data>
   <data name="Tenants.Configuration.Set.Value.Label" xml:space="preserve">
     <value>Value</value>
@@ -1160,6 +1211,9 @@
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState" xml:space="preserve">
     <value>Current known state</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve">
     <value>No current value is visible for this key.</value>
@@ -1322,6 +1376,9 @@
   </data>
   <data name="Tenants.Configuration.Remove.Open" xml:space="preserve">
     <value>Remove</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.OpenAccessible" xml:space="preserve">
+    <value>Remove configuration key {0}</value>
   </data>
   <data name="Tenants.Configuration.Remove.Submit" xml:space="preserve">
     <value>Confirm removal</value>

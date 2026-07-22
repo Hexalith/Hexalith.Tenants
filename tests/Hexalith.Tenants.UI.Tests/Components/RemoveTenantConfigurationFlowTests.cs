@@ -6,7 +6,6 @@ using Bunit;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -25,12 +24,12 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
-    public void Remove_configuration_flow_renders_complete_preview_with_stable_selectors_and_redacts_sensitive_value()
+    public void Remove_configuration_flow_excludes_unsafe_target_without_rendering_sensitive_value()
     {
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string>
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
                 ["billing.endpoint"] = "Bearer raw-token",
             }))
@@ -41,15 +40,11 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-remove-flow']");
         cut.Find("[data-testid='tenants-config-remove-focus-start']");
         cut.Find("[data-testid='tenants-config-remove-focus-end']");
-        cut.Find("[data-testid='tenants-config-remove-preview']");
-        cut.FindAll("[data-testid='tenants-config-remove-preview-item']").Count.ShouldBe(11);
-        cut.Find("[data-testid='tenants-config-remove-preview-namespace']").TextContent.ShouldBe("billing");
-        cut.Find("[data-testid='tenants-config-remove-preview-key']").TextContent.ShouldContain("billing.endpoint");
-        cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent.ShouldContain("Unavailable");
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.endpoint");
-        cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldBeNull();
+        cut.FindAll("[data-testid='tenants-config-remove-preview']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-config-remove-preview-blocked']").TextContent.ShouldContain("not visible", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-config-remove-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("[data-testid='tenants-config-remove-preview']").TextContent.ShouldNotContain("raw-token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
         cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
         cut.Markup.ShouldNotContain("receipt", Case.Insensitive);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
@@ -60,7 +55,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -70,17 +65,18 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Remove_configuration_preview_redacts_a_safe_value_when_its_key_is_sensitive()
+    public void Remove_configuration_preview_excludes_a_sensitive_key_from_safe_targets()
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
             .Add(p => p.TargetKey, "billing.password")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent.ShouldContain("Unavailable");
-        cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent.ShouldNotContain("trial");
+        cut.FindAll("[data-testid='tenants-config-remove-preview-current-state']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-config-remove-preview-blocked']").TextContent.ShouldContain("not visible", Case.Insensitive);
+        cut.Markup.ShouldNotContain("trial");
         cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
     }
 
@@ -91,7 +87,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "security.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -116,7 +112,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -144,12 +140,13 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { ["billing.other"] = "kept" }))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveConfirmed))));
 
         cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
@@ -174,13 +171,14 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         List<bool> commandActivity = [];
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
             .Add(p => p.OnCommandActivityChanged, isActive => commandActivity.Add(isActive))
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = "trial" }))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveNotConfirmed))));
 
         cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
@@ -194,28 +192,51 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Submission_time_policy_revocation_blocks_remove_before_gateway_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context(
+                "tenant.alpha",
+                new Dictionary<string, string> { ["security.mode"] = "enabled" }))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        gateway.RemoveConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Find("[data-testid='tenants-config-remove-state']").TextContent.ShouldContain("Unable to verify", Case.Insensitive);
+    }
+
+    [Fact]
     public void Gateway_unavailable_status_refresh_releases_configuration_command_activity_lock()
     {
         RegisterServices();
         List<bool> commandActivity = [];
-        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" });
+        TenantConfigurationManagementContext context = Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" });
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, detail)
+            .Add(p => p.Context, context)
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCommandActivityChanged, active => commandActivity.Add(active)));
 
         TenantRemoveConfigurationCommandSnapshot tracked = TenantRemoveConfigurationCommandSnapshot
-            .Idle(detail)
-            .Previewed(new RemoveTenantConfiguration("tenant.alpha", "billing.mode"), detail)
+            .Idle()
+            .Previewed(new RemoveTenantConfiguration("tenant.alpha", "billing.mode"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"));
         SetPrivateField(cut.Instance, "_snapshot", tracked);
         SetPrivateField(cut.Instance, "_hasRaisedCommandActivity", true);
         cut.Render(parameters => parameters
-            .Add(p => p.Detail, detail)
+            .Add(p => p.Context, context)
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -241,12 +262,13 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string>()))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveConfirmed))));
 
         cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
@@ -267,7 +289,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         int closeCount = 0;
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -318,15 +340,41 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         field.SetValue(component, value);
     }
 
-    private static TenantDetail Detail(string tenantId, Dictionary<string, string> configuration)
-        => new(
+    private static TenantConfigurationManagementContext Context(
+        string tenantId,
+        IReadOnlyDictionary<string, string> configuration)
+    {
+        string[] authorizedPrefixes = configuration.Keys
+            .Select(Namespace)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        TenantConfigurationSafeRow[] rows = configuration
+            .Where(static item => IsSafeForTestContext(item.Key, item.Value))
+            .Select(item => new TenantConfigurationSafeRow(Namespace(item.Key), item.Key, item.Value))
+            .ToArray();
+        return TenantConfigurationManagementContext.Available(
             tenantId,
-            "Alpha",
-            "Tenant alpha description",
             TenantStatus.Active,
-            [new TenantMember("owner-user", TenantRole.TenantOwner)],
-            configuration,
-            DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
+            false,
+            authorizedPrefixes,
+            rows);
+    }
+
+    private static string Namespace(string key)
+    {
+        int separator = key.IndexOf('.', StringComparison.Ordinal);
+        return separator > 0 ? key[..separator] : key;
+    }
+
+    private static bool IsSafeForTestContext(string key, string value)
+        => !key.Contains("password", StringComparison.OrdinalIgnoreCase)
+        && !value.Contains("token", StringComparison.OrdinalIgnoreCase)
+        && !value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
+
+    private static TenantConfigurationProjectionProof Proof(
+        string tenantId,
+        TenantConfigurationProjectionProofKind kind)
+        => TenantConfigurationProjectionProof.Create(tenantId, kind);
 
     private static string ProjectRoot()
     {

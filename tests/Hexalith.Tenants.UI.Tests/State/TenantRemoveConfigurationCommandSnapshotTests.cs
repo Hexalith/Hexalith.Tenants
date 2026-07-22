@@ -1,8 +1,7 @@
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
-using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Shouldly;
 
@@ -11,42 +10,33 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantRemoveConfigurationCommandSnapshotTests
 {
     [Fact]
-    public void Configuration_remove_confirms_only_when_projection_no_longer_contains_literal_key()
+    public void Configuration_remove_confirms_only_from_matching_tenant_proof()
     {
-        var intent = new RemoveTenantConfiguration("tenant.alpha", "billing.mode");
-        TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
-            .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .Previewed(intent, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        TenantRemoveConfigurationCommandSnapshot snapshot = Pending();
 
-        TenantRemoveConfigurationCommandSnapshot keyStillVisible = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
-
-        keyStillVisible.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        keyStillVisible.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-        keyStillVisible.LastConfirmedConfigurationProjection.ShouldNotBeNull()
-            .Configuration.ContainsKey("billing.mode").ShouldBeTrue();
-
+        TenantRemoveConfigurationCommandSnapshot stillVisible = snapshot.ConfirmProjection(
+            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.RemoveNotConfirmed));
+        TenantRemoveConfigurationCommandSnapshot wrongTenant = snapshot.ConfirmProjection(
+            Proof("tenant.beta", TenantConfigurationProjectionProofKind.RemoveConfirmed));
         TenantRemoveConfigurationCommandSnapshot confirmed = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.other"] = "kept" }));
+            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.RemoveConfirmed));
 
+        stillVisible.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        stillVisible.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        stillVisible.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.RemoveNotConfirmed);
+        wrongTenant.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        wrongTenant.LastConfigurationProof.ShouldBeNull();
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
-        confirmed.LastConfirmedConfigurationProjection.ShouldNotBeNull()
-            .Configuration.ContainsKey("billing.mode").ShouldBeFalse();
-        confirmed.LastConfirmedConfigurationProjection.Configuration["billing.other"].ShouldBe("kept");
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        confirmed.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.RemoveConfirmed);
     }
 
     [Fact]
-    public void Configuration_key_not_found_stays_rejected_even_when_projection_later_lacks_key()
+    public void Rejected_removal_stays_rejected_even_when_proof_later_reports_absence()
     {
-        var intent = new RemoveTenantConfiguration("tenant.alpha", "billing.mode");
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
-            .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .Previewed(intent, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Idle()
+            .Previewed(Intent())
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(
@@ -54,23 +44,20 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
                 "The configuration key was not found.",
                 "ConfigurationKeyNotFound"));
 
-        TenantRemoveConfigurationCommandSnapshot withAbsentProjection = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", new Dictionary<string, string>()));
+        TenantRemoveConfigurationCommandSnapshot withProof = snapshot.ConfirmProjection(
+            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.RemoveConfirmed));
 
-        withAbsentProjection.State.ShouldBe(TenantCommandLifecycleState.Rejected);
-        withAbsentProjection.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-        withAbsentProjection.RejectionCode.ShouldBe("ConfigurationKeyNotFound");
-        withAbsentProjection.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        withProof.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        withProof.RejectionCode.ShouldBe("ConfigurationKeyNotFound");
+        withProof.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.RemoveConfirmed);
     }
 
     [Fact]
-    public void Signalr_nudge_never_removes_configuration_without_projection_evidence()
+    public void Signalr_nudge_never_removes_configuration_without_projection_proof()
     {
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
-            .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .Previewed(
-                new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
-                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Idle()
+            .Previewed(Intent())
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
@@ -78,9 +65,7 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
 
         nudged.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         nudged.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-        nudged.LastConfirmedConfigurationProjection.ShouldNotBeNull()
-            .Configuration["billing.mode"].ShouldBe("trial");
-        nudged.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        nudged.LastConfigurationProof.ShouldBeNull();
     }
 
     [Theory]
@@ -99,29 +84,31 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
         TenantCommandLiveRegionPoliteness expectedPoliteness)
     {
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
-            .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .Previewed(
-                new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
-                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Idle()
+            .Previewed(Intent())
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe configuration status message.", "ConfigurationKeyNotFound"));
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe status.", "ConfigurationKeyNotFound"));
 
         snapshot.State.ShouldBe(expectedState);
         snapshot.AuditState.ShouldBe(expectedAudit);
         snapshot.LiveRegionPoliteness.ShouldBe(expectedPoliteness);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-        snapshot.LastConfirmedConfigurationProjection.ShouldNotBeNull()
-            .Configuration["billing.mode"].ShouldBe("trial");
     }
 
-    private static TenantDetail Detail(string tenantId, Dictionary<string, string> configuration)
-        => new(
-            tenantId,
-            "Alpha",
-            "Tenant alpha description",
-            TenantStatus.Active,
-            [new TenantMember("owner-user", TenantRole.TenantOwner)],
-            configuration,
-            DateTimeOffset.Parse("2026-06-01T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+    private static TenantRemoveConfigurationCommandSnapshot Pending()
+        => TenantRemoveConfigurationCommandSnapshot
+            .Idle()
+            .Previewed(Intent())
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+    private static RemoveTenantConfiguration Intent()
+        => new("tenant.alpha", "billing.mode");
+
+    private static TenantConfigurationProjectionProof Proof(
+        string tenantId,
+        TenantConfigurationProjectionProofKind kind)
+        => TenantConfigurationProjectionProof.Create(tenantId, kind);
 }

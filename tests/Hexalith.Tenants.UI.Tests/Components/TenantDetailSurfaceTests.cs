@@ -13,8 +13,10 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Components.Tenants;
+using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -51,7 +53,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterServices(call =>
         {
             requests.Add(call.ArgAt<TenantDetailRequest>(0));
-            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"etag\"", ReadModelFreshnessState.Current));
+            return Task.FromResult(ReadyWithSafeConfiguration(detail));
         });
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
         JSRuntimeInvocationHandler tenantWrite = module.SetupVoid("writeText", tenantId).SetVoidResult();
@@ -77,8 +79,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
-        cut.Find("[data-testid='tenants-config-set-flow']");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Find(".tenant-detail__literal").GetAttribute("aria-label").ShouldBe($"Full tenant identifier {tenantId}");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
 
@@ -97,7 +98,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // cc-2026-06-21 extraction guard: the detail page reuses FcAggregateDetailPage<TItem> (the shared
         // FC-DTL chrome) and maps its ready snapshot onto the constrained-measure wrapper instead of a
         // Tenants-local detail page shell. Keeps the rebase from silently regressing.
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -228,205 +229,209 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Configuration_view_preserves_legacy_safe_display_but_omits_copy_without_a_positive_safe_model()
+    public void Configuration_read_contract_accepts_only_the_safe_model_and_read_state()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
-        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
-        {
-            ["billing.mode"] = "trial",
-            ["billing.endpoint"] = "Bearer raw-token",
-            ["billing.connectionString"] = "Server=secret-host;Password=hidden",
-            ["feature"] = "enabled",
-        });
+        Type component = typeof(TenantConfigurationView);
+
+        component.GetProperty("Model").ShouldNotBeNull();
+        component.GetProperty("Detail").ShouldBeNull();
+        component.GetProperty("ProjectionEvidenceProvider").ShouldBeNull();
+        component.GetProperty("RemoveProjectionEvidenceProvider").ShouldBeNull();
+        component.GetProperty("OnCommandActivityChanged").ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(typeof(SetTenantConfigurationFlow))]
+    [InlineData(typeof(RemoveTenantConfigurationFlow))]
+    public void Configuration_management_flows_accept_only_safe_context_and_proof_contracts(Type component)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+        component.GetProperty("Context").ShouldNotBeNull();
+        component.GetProperty("Detail").ShouldBeNull();
+        component.GetProperty("ProjectionEvidenceProvider").ShouldNotBeNull();
+        component.GetProperty("ReauthorizeProvider").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Configuration_read_view_renders_only_positive_safe_rows_without_mutation_or_copy_affordances()
+    {
+        RegisterComponentServices();
+        TenantConfigurationSafeModel model = SafeConfiguration(
+            ("billing", "billing.mode", "trial"),
+            ("feature", "feature", "enabled"));
 
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, detail)
+            .Add(view => view.Model, model)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
-        cut.FindAll("[data-testid='tenants-config-group']").Count.ShouldBe(2);
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("feature");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Other");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Unavailable");
-        cut.Markup.ShouldContain("data-testid=\"tenants-config-key\"");
-        cut.Markup.ShouldContain("data-testid=\"tenants-config-value-state\"");
-        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
-        cut.FindAll("[data-copy-kind='ConfigurationKey']").ShouldBeEmpty();
-        cut.FindAll("[data-copy-kind='SafeConfigurationValue']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-read-group']").Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("trial");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("feature");
         cut.Markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
         cut.Markup.ShouldContain("aria-label=\"Visible configuration value trial\"");
-        cut.Markup.ShouldContain("trial");
-        cut.Markup.ShouldNotContain("secret-host");
-        cut.Markup.ShouldNotContain("Password=hidden");
-        cut.Markup.ShouldNotContain("raw-token");
-        cut.Find("[data-testid='tenants-config-set-flow']");
-        cut.FindAll("[data-testid='tenants-config-remove-open']").Count.ShouldBe(4);
-        cut.FindAll("[data-testid='tenants-config-remove-open']")
-            .ShouldAllBe(static action => action.NodeName == "FLUENT-BUTTON");
-        cut.Markup.ShouldNotContain("tenants-config-remove-flow");
+        cut.Markup.ShouldNotContain("tenants-config-set-flow");
+        cut.Markup.ShouldNotContain("tenants-config-remove");
+        cut.Markup.ShouldNotContain("<form", Case.Insensitive);
+        cut.FindAll("[data-copy-kind='ConfigurationKey']").ShouldBeEmpty();
+        cut.FindAll("[data-copy-kind='SafeConfigurationValue']").ShouldBeEmpty();
     }
 
     [Fact]
-    public void Configuration_view_launches_remove_flow_from_visible_rows_without_hiding_read_or_set_context()
+    public void Configuration_read_view_keeps_valid_empty_policy_unavailable_and_filtered_empty_distinct()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
-        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
-        {
-            ["billing.mode"] = "trial",
-            ["identity.region"] = "eu",
-        });
-
-        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, detail)
+        RegisterComponentServices();
+        IRenderedComponent<TenantConfigurationView> unavailable = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, TenantConfigurationSafeModel.Unavailable("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
-        cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
+        unavailable.Find("[data-testid='tenants-config-read-state']").TextContent.ShouldContain("unavailable", Case.Insensitive);
+        unavailable.Markup.ShouldNotContain("tenants-config-read-empty");
+        unavailable.Markup.ShouldNotContain("visible configuration entries", Case.Insensitive);
 
-        cut.Find("[data-testid='tenants-config-remove-flow']");
-        cut.Find("[data-testid='tenants-config-remove-preview']").TextContent.ShouldContain("billing.mode");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("identity.region");
-        cut.Find("[data-testid='tenants-config-set-flow']");
-    }
-
-    [Fact]
-    public void Configuration_view_returns_focus_to_launching_remove_control_on_cancel()
-    {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
-        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
-        {
-            ["billing.mode"] = "trial",
-            ["identity.region"] = "eu",
-        });
-
-        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
-
-        cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
-        cut.Find("[data-testid='tenants-config-remove-flow']");
-        int focusInvocationCount = JSInterop.Invocations.Count(static invocation =>
-            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
-
-        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
-
-        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
-        cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
-            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
-    }
-
-    [Fact]
-    public void Configuration_view_redacts_backend_error_metadata_correlation_ids_tokens_stack_traces_and_pii()
-    {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
-        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
-        {
-            ["billing.mode"] = "trial",
-            ["diagnostics.metadata"] = "EventStore metadata page=raw-cursor",
-            ["diagnostics.correlation"] = "correlation-123",
-            ["diagnostics.failure"] = "System.InvalidOperationException: stack trace with internal frame",
-            ["identity.contact"] = "jane.doe@example.test",
-            ["security.jwt"] = "eyJhbGciOiJIUzI1NiJ9.raw.payload",
-        });
-
-        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
-
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("trial");
-        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-config-value-state']").Count(item => item.TextContent.Contains("Unavailable", StringComparison.Ordinal)).ShouldBe(5);
-        cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
-        cut.Markup.ShouldNotContain("raw-cursor", Case.Insensitive);
-        cut.Markup.ShouldNotContain("correlation-123", Case.Insensitive);
-        cut.Markup.ShouldNotContain("InvalidOperationException", Case.Insensitive);
-        cut.Markup.ShouldNotContain("stack trace", Case.Insensitive);
-        cut.Markup.ShouldNotContain("jane.doe@example.test", Case.Insensitive);
-        cut.Markup.ShouldNotContain("eyJhbGciOiJIUzI1NiJ9", Case.Insensitive);
-    }
-
-    [Fact]
-    public void Configuration_view_keeps_empty_and_filtered_empty_states_distinct()
-    {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         IRenderedComponent<TenantConfigurationView> empty = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>()))
+            .Add(view => view.Model, SafeConfiguration())
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
-        empty.Find("[data-testid='tenants-config-empty']").TextContent.ShouldContain("No visible configuration");
-        empty.Markup.ShouldNotContain("tenants-config-filtered-empty");
+        empty.Find("[data-testid='tenants-config-read-empty']").TextContent.ShouldContain("No visible configuration");
+        empty.Markup.ShouldNotContain("tenants-config-read-filtered-empty");
 
         IRenderedComponent<TenantConfigurationView> filtered = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(view => view.Model, SafeConfiguration(("billing", "billing.mode", "trial")))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
-        filtered.Find("[data-testid='tenants-config-filter']").Change("missing");
+        filtered.Find("[data-testid='tenants-config-read-filter']").Change("missing");
 
-        filtered.Find("[data-testid='tenants-config-filtered-empty']").TextContent.ShouldContain("No visible configuration matches");
-        filtered.Find("[data-testid='tenants-config-announcer']").TextContent.ShouldContain("0 visible configuration entries");
-        filtered.Find("[data-testid='tenants-config-clear-filter']").Click();
-        filtered.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        filtered.Find("[data-testid='tenants-config-read-filtered-empty']").TextContent.ShouldContain("No visible configuration matches");
+        filtered.Find("[data-testid='tenants-config-read-announcer']").TextContent.ShouldContain("0 visible configuration entries");
+        filtered.Find("[data-testid='tenants-config-read-clear-filter']").Click();
+        filtered.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
     }
 
     [Fact]
-    public void Configuration_view_preserves_namespace_context_scope_freshness_and_keyboard_semantics_while_filtering()
+    public void Configuration_read_view_preserves_literal_namespace_unicode_accessibility_and_responsive_overflow()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
+        RegisterComponentServices();
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>
-            {
-                ["billing.mode"] = "trial",
-                ["identity.region"] = "eu",
-            }))
+            .Add(view => view.Model, SafeConfiguration(
+                ("billing..Α", "billing..Α.<script>\u202E", "値🙂<literal>"),
+                ("identity", "identity.region", "eu")))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-config-filter']").Change("billing");
+        cut.Find("[data-testid='tenants-config-read-filter']").Change("billing");
 
-        cut.FindAll("[data-testid='tenants-config-group']").Count.ShouldBe(1);
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Namespace billing");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldNotContain("identity.region");
-        cut.Find("[data-testid='tenants-config-truth-state']").TextContent.ShouldContain("Current");
-        cut.Find(".tenant-config__scope").TextContent.ShouldContain("Prefix ownership cannot be verified");
-        cut.Find("[data-testid='tenants-config-announcer']").TextContent.ShouldContain("1 visible configuration entries");
-        cut.Find("[data-testid='tenants-config-filter']").GetAttribute("aria-describedby").ShouldBe("tenants-config-filter-help");
-        cut.Find("[data-testid='tenants-config-clear-filter']").NodeName.ShouldBe("FLUENT-BUTTON");
-        cut.Find("[data-testid='tenants-config-row']").GetAttribute("tabindex").ShouldBe("0");
+        cut.FindAll("[data-testid='tenants-config-read-group']").Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("Namespace billing..Α");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing..Α.<script>\u202E");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("値🙂<literal>");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldNotContain("identity.region");
+        cut.Find("[data-testid='tenants-config-read-truth-state']").TextContent.ShouldContain("Current");
+        cut.Find(".tenant-config__scope").TextContent.ShouldContain("approved by the current namespace and display policy");
+        cut.Find("[data-testid='tenants-config-read-announcer']").TextContent.ShouldContain("1 visible configuration entries");
+        cut.Find("[data-testid='tenants-config-read-filter']").GetAttribute("aria-describedby").ShouldBe("tenants-config-read-filter-help");
+        cut.Find("[data-testid='tenants-config-read-clear-filter']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("tabindex").ShouldBe("0");
+        cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
     }
 
     [Theory]
     [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "stale")]
     [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "degraded")]
     [InlineData(TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Unknown, "Unknown")]
-    public void Configuration_view_surfaces_non_current_truth_without_collapsing_to_success(
+    public void Configuration_read_view_surfaces_non_current_truth_without_collapsing_to_success(
         TenantDetailSurfaceKind kind,
         ReadModelFreshnessState freshness,
         string expectedText)
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
+        RegisterComponentServices();
 
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
-            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.Model, SafeConfiguration(("billing", "billing.mode", "trial")))
             .Add(view => view.SurfaceKind, kind)
             .Add(view => view.Freshness, freshness));
 
-        cut.Find("[data-testid='tenants-config-truth-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
-        cut.Find("[data-testid='tenants-config-command-unavailable']").TextContent.ShouldContain("unavailable", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-read-truth-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
         cut.Markup.ShouldNotContain("Success");
+    }
+
+    [Fact]
+    public void Configuration_management_is_a_sibling_landmark_with_safe_targets_and_target_specific_actions()
+    {
+        RegisterComponentServices();
+        TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            [row]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, context)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-section']");
+        cut.Find("[data-testid='tenants-config-set-flow']");
+        cut.Find("[data-testid='tenants-config-management-targets']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
+        IElement removeAction = cut.Find("[data-testid='tenants-config-management-remove-open']");
+        string accessibleName = removeAction.GetAttribute("aria-label") ?? string.Empty;
+        accessibleName.ShouldContain("billing.mode");
+
+        removeAction.Click();
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Configuration_management_keeps_valid_empty_and_unavailable_states_mutually_exclusive()
+    {
+        RegisterComponentServices();
+        TenantConfigurationManagementContext empty = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            []);
+
+        IRenderedComponent<TenantConfigurationManagement> validEmpty = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, empty)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        validEmpty.Find("[data-testid='tenants-config-management-empty']");
+        validEmpty.Find("[data-testid='tenants-config-set-flow']");
+        validEmpty.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
+
+        IRenderedComponent<TenantConfigurationManagement> policyUnavailable = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, TenantConfigurationManagementContext.Unavailable("tenant.alpha"))
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        policyUnavailable.Find("[data-testid='tenants-config-management-unavailable']");
+        policyUnavailable.FindAll("[data-testid='tenants-config-management-empty']").ShouldBeEmpty();
+        policyUnavailable.FindAll("[data-testid='tenants-config-set-flow']").ShouldBeEmpty();
+
+        IRenderedComponent<TenantConfigurationManagement> stale = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, empty)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Stale)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Stale));
+
+        stale.Find("[data-testid='tenants-config-management-unavailable']");
+        stale.FindAll("[data-testid='tenants-config-management-empty']").ShouldBeEmpty();
+        stale.FindAll("[data-testid='tenants-config-set-flow']").ShouldBeEmpty();
     }
 
     [Fact]
     public void Detail_page_composes_member_access_review_without_replacing_existing_surfaces()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -435,7 +440,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain("Member access review");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
-        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Markup.ShouldContain("data-testid=\"tenants-member-truth-badge\"");
         cut.Markup.ShouldNotContain("tenants-list-truth-state");
     }
@@ -1271,6 +1276,35 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["billing.mode"] = "trial",
         });
 
+    private static TenantConfigurationSafeModel SafeConfiguration(
+        params (string Namespace, string Key, string Value)[] rows)
+        => TenantConfigurationSafeModel.Available(
+            "tenant.alpha",
+            rows.Select(static row => new TenantConfigurationSafeRow(row.Namespace, row.Key, row.Value)));
+
+    private static TenantDetailSnapshot ReadyWithSafeConfiguration(TenantDetail detail)
+    {
+        TenantConfigurationSafeRow[] rows = detail.Configuration
+            .Select(static item => new TenantConfigurationSafeRow(NamespaceFrom(item.Key), item.Key, item.Value))
+            .ToArray();
+        TenantConfigurationComposition composition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(detail),
+            TenantConfigurationSafeModel.Available(detail.TenantId, rows),
+            TenantConfigurationManagementContext.Available(
+                detail.TenantId,
+                detail.Status,
+                isGlobalAdministrator: false,
+                rows.Select(static row => row.Namespace).Distinct(StringComparer.Ordinal),
+                rows));
+        return TenantDetailSnapshot.Ready(composition, "\"etag\"", ReadModelFreshnessState.Current);
+    }
+
+    private static string NamespaceFrom(string key)
+    {
+        int separator = key.IndexOf('.', StringComparison.Ordinal);
+        return separator > 0 ? key[..separator] : key;
+    }
+
     private static TenantDetail Detail(string tenantId, IReadOnlyDictionary<string, string> configuration)
         => Detail(
             tenantId,
@@ -1387,7 +1421,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Header.Value"] = "Value",
             ["Tenants.Configuration.Header.Actions"] = "Actions",
             ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
-            ["Tenants.Configuration.ScopeNotice"] = "Visible configuration only. Prefix ownership cannot be verified in this read model.",
+            ["Tenants.Configuration.ScopeNotice"] = "Only configuration approved by the current namespace and display policy is shown.",
+            ["Tenants.Configuration.State.Loading"] = "Configuration evidence is loading.",
+            ["Tenants.Configuration.State.Loading.Title"] = "Configuration loading",
+            ["Tenants.Configuration.State.Ready"] = "Configuration evidence is current.",
+            ["Tenants.Configuration.State.Ready.Title"] = "Configuration current",
+            ["Tenants.Configuration.State.Unknown"] = "Configuration evidence cannot be verified.",
+            ["Tenants.Configuration.State.Unknown.Title"] = "Configuration evidence unknown",
             ["Tenants.Configuration.State.Degraded"] = "Configuration evidence is degraded.",
             ["Tenants.Configuration.State.Empty"] = "No visible configuration is available in this tenant detail projection.",
             ["Tenants.Configuration.State.Empty.Title"] = "No visible configuration",
@@ -1395,13 +1435,24 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.State.FilteredEmpty.Title"] = "No matching configuration",
             ["Tenants.Configuration.State.Stale"] = "Configuration evidence is stale.",
             ["Tenants.Configuration.Table.Caption"] = "Visible tenant configuration grouped by namespace",
+            ["Tenants.Configuration.Table.AccessibleLabel"] = "Authorized tenant configuration values",
             ["Tenants.Configuration.Title"] = "Visible configuration",
             ["Tenants.Configuration.UnscopedNamespace"] = "Other",
             ["Tenants.Configuration.Value.Safe"] = "Visible",
             ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
             ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
+            ["Tenants.Configuration.Management.Title"] = "Configuration management",
+            ["Tenants.Configuration.Management.Description"] = "Set configuration within current authorized prefixes or remove a current safe target.",
+            ["Tenants.Configuration.Management.Unavailable.Policy"] = "Configuration management is unavailable because current authorization policy cannot be verified.",
+            ["Tenants.Configuration.Management.Unavailable.ProjectionState"] = "Refresh available tenant detail before managing configuration.",
+            ["Tenants.Configuration.Management.Unavailable.Freshness"] = "Refresh current tenant detail before managing configuration.",
+            ["Tenants.Configuration.Management.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration management.",
+            ["Tenants.Configuration.Management.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
+            ["Tenants.Configuration.Management.Empty"] = "No current safe configuration targets are available for removal.",
+            ["Tenants.Configuration.Management.TargetsAccessibleLabel"] = "Configuration keys available for removal",
             ["Tenants.Configuration.Remove.Open"] = "Remove",
+            ["Tenants.Configuration.Remove.OpenAccessible"] = "Remove configuration key {0}",
             ["Tenants.Configuration.Remove.Title"] = "Remove configuration",
             ["Tenants.Configuration.Remove.Description"] = "Remove tenant {0} configuration.",
             ["Tenants.Configuration.Remove.Submit"] = "Confirm removal",

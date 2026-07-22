@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 
+using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 
 using Microsoft.AspNetCore.Components.Authorization;
@@ -12,7 +13,8 @@ namespace Hexalith.Tenants.UI.Services.Configuration;
 /// </summary>
 internal sealed class TenantConfigurationPrincipalResolver(
     IHttpContextAccessor httpContextAccessor,
-    CircuitServicesAccessor circuitServicesAccessor) : ITenantConfigurationPrincipalResolver
+    CircuitServicesAccessor circuitServicesAccessor,
+    IUserContextAccessor userContextAccessor) : ITenantConfigurationPrincipalResolver
 {
     private static readonly string[] AdministratorRoleValues =
     [
@@ -38,7 +40,7 @@ internal sealed class TenantConfigurationPrincipalResolver(
         return Resolve(principal);
     }
 
-    private static TenantConfigurationPrincipalEvidence Resolve(ClaimsPrincipal? principal)
+    private TenantConfigurationPrincipalEvidence Resolve(ClaimsPrincipal? principal)
     {
         if (principal is null)
         {
@@ -62,6 +64,13 @@ internal sealed class TenantConfigurationPrincipalResolver(
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
+        string? authenticatedSubject = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(authenticatedSubject)
+            || !string.Equals(authenticatedSubject, subjects[0].Value, StringComparison.Ordinal))
+        {
+            return TenantConfigurationPrincipalEvidence.Indeterminate();
+        }
+
         bool? administrator = ResolveAdministratorEvidence(identity);
         if (administrator is null)
         {
@@ -78,10 +87,10 @@ internal sealed class TenantConfigurationPrincipalResolver(
                 return TenantConfigurationPrincipalEvidence.Indeterminate();
             }
 
-            return TenantConfigurationPrincipalEvidence.GlobalAdministrator(subjects[0].Value);
+            return TenantConfigurationPrincipalEvidence.GlobalAdministrator(authenticatedSubject);
         }
 
-        return TenantConfigurationPrincipalEvidence.NonAdministrator(subjects[0].Value);
+        return TenantConfigurationPrincipalEvidence.NonAdministrator(authenticatedSubject);
     }
 
     private static bool HasRelevantClaimsOnOtherIdentity(ClaimsPrincipal principal, ClaimsIdentity authenticated)

@@ -79,17 +79,18 @@ authoritative current-source results.
 | Tenant detail (Stories 1.3/1.8) | `verified` — authorized detail projection; `tenants-detail-*` | `verified` — exact visible tenant literal | `component verified`; browser focus `blocked` | CSS/conformance `verified`; browser/AT `blocked` | DOM/source scans `verified` |
 | My Tenants (Stories 1.4/1.8) | `verified` — authenticated self-membership projection; `tenants-my-*` | `verified` — exact row tenant literal | `component verified`; browser focus `blocked` | CSS/conformance `verified`; browser/AT `blocked` | No browser target id/token/backend path; source scans `verified` |
 | User lookup (Stories 1.5/1.8) | `verified` — authorization-scoped result projection; `tenants-user-*` | `verified` — exact `tenant/%2F?x=é`, not decoded/alternate route text | `component verified`; browser focus `blocked` | CSS/conformance `verified`; browser/AT `blocked` | Hidden membership and browser client/storage guards `verified` |
-| Configuration (Stories 1.6/1.8) | Story 1.6 positive model `blocked` | `blocked` by design — no copy affordance | No copy announcement/state `verified` | Existing CSS/conformance `verified`; browser/AT `blocked` | Raw dictionary is never approved for copy; dependency blocker below |
+| Configuration (Stories 1.6/1.8) | Story 1.6 positive safe model `verified` — deployment policy plus exact-key `DisplaySafe` approval | `blocked` by design — no copy affordance or certification was added | No copy announcement/state `verified` | CSS/conformance `verified`; browser/AT `blocked` | Raw dictionary is removed before Razor state; clipboard certification remains separate |
 | Member review (Stories 1.7/1.8) | `verified` — authorized member projection; `tenants-member-*` | `verified` — exact `owner-user` JS argument | `component verified`; browser focus `blocked` | Row/reason/CSS conformance `verified`; browser/AT `blocked` | Existing fail-closed action reasons and no mutation success regression `verified` |
 
 ## External evidence blockers
 
-- **CFG-1.6-SAFE-MODEL — owner: Tenant UI/BFF configuration-policy implementer — OPEN.** The
-  revised Story 1.6 typed policy registry and positively approved component-facing safe model do not
-  exist at baseline `c0451de`. Consequence: configuration key/value copy cannot be offered or certified;
-  this story fails closed by omitting it. Reopen trigger: Story 1.6 is implemented and its focused
-  `TenantDetailSurfaceTests` plus `TenantQueryGatewayTests` pass with an exact-key `DisplaySafe` model;
-  then add configuration outer-surface clipboard activation to this matrix.
+- **CFG-1.6-SAFE-MODEL — owner: Tenant UI/BFF configuration-policy implementer — CLOSED 2026-07-22.**
+  Story 1.6 now proves the typed deployment policy, authenticated-subject prefix grants, exact-key
+  `DisplaySafe` approval, raw-response sanitization before snapshot/Razor state, and safe-only read and
+  management DTOs. Focused policy, gateway, bUnit, command-flow, accessibility, localization, Fluent
+  conformance, and authenticated outer-boundary tests pass. This closes only the safe-model dependency;
+  configuration clipboard activation and certification remain intentionally absent and require a
+  separate explicit approval/evidence change.
 - **BROWSER-COPY-1.8 — owner: Tenant UI QA — OPEN.** No dated authenticated EN/FR browser session was
   available for this run. Consequence: real Clipboard API success/failure, focus before/after, clean
   browser console/logs, and layout at 320/375/430/768/1024/1366/1440 px are not claimed. Reopen trigger:

@@ -27,7 +27,7 @@ internal static class TenantConfigurationServiceCollectionExtensions
         _ = services.AddHttpContextAccessor();
         services.TryAddSingleton<CircuitServicesAccessor>();
         services.TryAddScoped<ITenantConfigurationPrincipalResolver, TenantConfigurationPrincipalResolver>();
-        services.TryAddSingleton<TenantConfigurationReadPolicyProvider>();
+        services.TryAddSingleton(_ => new TenantConfigurationReadPolicyProvider(configuration));
         return services;
     }
 }

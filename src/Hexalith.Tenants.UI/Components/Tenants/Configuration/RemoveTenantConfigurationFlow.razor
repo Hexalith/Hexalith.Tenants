@@ -20,7 +20,7 @@
     <header class="tenants-config-remove__header">
         <div>
             <h3 id="tenants-config-remove-heading">@Localizer["Tenants.Configuration.Remove.Title"]</h3>
-            <p>@Localizer["Tenants.Configuration.Remove.Description", Detail.TenantId]</p>
+            <p>@Localizer["Tenants.Configuration.Remove.Description", Context.TenantId]</p>
         </div>
     </header>
 
@@ -132,11 +132,11 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         OnRefresh="RefreshStatusAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                        <AuditEvidenceEntryPoint TenantId="@Context.TenantId"
                                                  SourceKind="command-result"
                                                  SourceTestId="tenants-command-audit-entrypoint"
                                                  Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Context.TenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-config-remove-lifecycle"
                                                  AvailabilityText="@AuditText"
@@ -181,7 +181,7 @@
     private ElementReference _lifecycleElement;
 
     [Parameter]
-    public TenantDetail Detail { get; set; } = default!;
+    public TenantConfigurationManagementContext Context { get; set; } = default!;
 
     [Parameter]
     public string TargetKey { get; set; } = string.Empty;
@@ -208,26 +208,31 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<RemoveTenantConfiguration, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<RemoveTenantConfiguration, Task<TenantConfigurationProjectionProof>>? ProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<Task<TenantConfigurationManagementContext>>? ReauthorizeProvider { get; set; }
 
     internal TenantRemoveConfigurationCommandSnapshot Snapshot => _snapshot;
 
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Remove.Unavailable.Authorization"].Value
+            : Context?.IsAvailable != true
+                ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Freshness"].Value
-                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.Configuration.Remove.Unavailable.InFlight"].Value
-                            : string.IsNullOrWhiteSpace(Detail.TenantId)
+                            : string.IsNullOrWhiteSpace(Context.TenantId)
                                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Identity"].Value
-                                : string.IsNullOrWhiteSpace(TargetKey) || !Detail.Configuration.ContainsKey(TargetKey)
+                                : string.IsNullOrWhiteSpace(TargetKey) || Context.FindRemovableRow(TargetKey) is null
                                     ? Localizer["Tenants.Configuration.Remove.Unavailable.Target"].Value
                                     : string.IsNullOrWhiteSpace(NamespacePrefix(TargetKey))
                                         ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
@@ -269,10 +274,10 @@
             string namespaceValue = NamespacePrefix(request.Key);
             return
             [
-                (Localizer["Tenants.Configuration.Remove.Preview.Tenant"], Detail.TenantId, "tenants-config-remove-tenant-id"),
+                (Localizer["Tenants.Configuration.Remove.Preview.Tenant"], Context.TenantId, "tenants-config-remove-tenant-id"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Namespace"], namespaceValue, "tenants-config-remove-preview-namespace"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Key"], request.Key, "tenants-config-remove-preview-key"),
-                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], SafeConfigurationDisplay(request.Key, Detail.Configuration[request.Key]), "tenants-config-remove-preview-current-state"),
+                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], Context.FindRemovableRow(request.Key)!.Value, "tenants-config-remove-preview-current-state"),
                 (Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"], "tenants-config-remove-preview-effect"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Localizer[$"Tenants.Configuration.Remove.Freshness.{Freshness}"], "tenants-config-remove-preview-freshness"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Authorization"], Localizer["Tenants.Configuration.Remove.Preview.Authorization.Value"], "tenants-config-remove-preview-authorization"),
@@ -317,7 +322,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.Configuration.Remove.Recovery.{_snapshot.State}"];
@@ -348,14 +353,14 @@
     {
         if (_snapshot.State is TenantCommandLifecycleState.Idle)
         {
-            _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle(Detail);
+            _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle();
         }
 
         if (_snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
             && TryBuildRequest(out RemoveTenantConfiguration? request, showValidation: false)
             && request is not null)
         {
-            _snapshot = _snapshot.Previewed(request, Detail);
+            _snapshot = _snapshot.Previewed(request);
             _focusConfirmationPending = true;
         }
     }
@@ -414,8 +419,8 @@
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
-    internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail);
+    internal void ApplyProjectionEvidence(TenantConfigurationProjectionProof? proof)
+        => _snapshot = _snapshot.ConfirmProjection(proof);
 
     private void OnConfirmationInput(string? value)
         => _confirmationText = value;
@@ -453,7 +458,19 @@
             return;
         }
 
-        _snapshot = _snapshot.Previewed(request, Detail).RequestSent();
+        TenantConfigurationManagementContext currentContext = ReauthorizeProvider is null
+            ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
+            : await ReauthorizeProvider().ConfigureAwait(false);
+        if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)
+            || currentContext.FindRemovableRow(request.Key) is null)
+        {
+            SetSnapshot(TenantRemoveConfigurationCommandSnapshot.Blocked(
+                Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        _snapshot = _snapshot.Previewed(request).RequestSent();
         _isSubmitting = true;
         await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
@@ -525,8 +542,8 @@
         await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (ProjectionEvidenceProvider is not null)
         {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+            TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(proof));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
@@ -542,7 +559,7 @@
             return false;
         }
 
-        if (!Detail.Configuration.ContainsKey(TargetKey))
+        if (Context.FindRemovableRow(TargetKey) is null)
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Remove.Validation.KeyVisible"]);
             return false;
@@ -554,7 +571,7 @@
             return false;
         }
 
-        request = new RemoveTenantConfiguration(Detail.TenantId, TargetKey);
+        request = new RemoveTenantConfiguration(Context.TenantId, TargetKey);
         return true;
     }
 
@@ -573,11 +590,6 @@
         _focusCancelPending = true;
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
-
-    private string SafeConfigurationDisplay(string key, string value)
-        => LegacyConfigurationDisplaySanitizer.IsDisplayable(key, value)
-            ? value
-            : Localizer["Tenants.Configuration.Value.Unavailable"];
 
     private static string NamespacePrefix(string key)
     {

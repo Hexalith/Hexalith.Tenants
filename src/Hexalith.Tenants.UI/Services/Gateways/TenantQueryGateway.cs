@@ -68,6 +68,10 @@ internal sealed class TenantQueryGateway(
             }
 
             if (!string.Equals(result.Payload.TenantId, request.TenantId, StringComparison.Ordinal)) {
+                if (!HasSameTenantDetail(previous, request.TenantId)) {
+                    return TenantDetailSnapshot.Unavailable("Tenant detail identity could not be verified.");
+                }
+
                 return await RetainPreviousTenantDetailAsync(
                     request.TenantId,
                     previous,
@@ -86,8 +90,22 @@ internal sealed class TenantQueryGateway(
                     cancellationToken).ConfigureAwait(false);
             }
 
-            TenantConfigurationComposition composition = await ComposeTenantDetailAsync(result.Payload, cancellationToken)
-                .ConfigureAwait(false);
+            TenantConfigurationComposition composition;
+            try {
+                composition = await ComposeTenantDetailAsync(result.Payload, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) {
+                throw;
+            }
+            catch (Exception) {
+                return HasSameTenantDetail(previous, request.TenantId)
+                    ? TenantDetailSnapshot.Degraded(
+                        previous!.Detail,
+                        "Tenant configuration authorization could not be refreshed.",
+                        previous.ETag)
+                    : TenantDetailSnapshot.Unavailable("Tenant configuration read is unavailable.");
+            }
             if (freshness is ReadModelFreshnessState.Stale) {
                 return TenantDetailSnapshot.Stale(composition, result.ETag);
             }
@@ -114,12 +132,16 @@ internal sealed class TenantQueryGateway(
             return MapDetailException(request.TenantId, ex);
         }
         catch (Exception) {
-            return await RetainPreviousTenantDetailAsync(
-                request.TenantId,
-                previous,
-                "Tenant detail query gateway returned a safe degraded state.",
-                previous?.ETag,
-                cancellationToken).ConfigureAwait(false);
+            if (HasSameTenantDetail(previous, request.TenantId)) {
+                return await RetainPreviousTenantDetailAsync(
+                    request.TenantId,
+                    previous,
+                    "Tenant detail query gateway returned a safe degraded state.",
+                    previous?.ETag,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable.");
         }
     }
 
@@ -1017,6 +1039,10 @@ internal sealed class TenantQueryGateway(
         string? expectedValue,
         bool isRemove,
         CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantConfigurationProjectionProof.Unavailable(tenantId);
+        }
+
         try {
             EventStoreQueryResult<TenantDetail> result = await queryClient
                 .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
@@ -1071,16 +1097,29 @@ internal sealed class TenantQueryGateway(
             return TenantDetailSnapshot.Degraded(null, message, eTag);
         }
 
-        TenantConfigurationComposition composition = bffComposition is null
-            ? new(
-                TenantConfigurationSafeComposer.SanitizeDetail(previous!.Detail!),
-                TenantConfigurationSafeModel.Unavailable(tenantId),
-                TenantConfigurationManagementContext.Unavailable(tenantId, previous.Detail!.Status))
-            : await bffComposition.ReauthorizeTenantDetailAsync(
-                previous!.Detail!,
-                previous.Configuration,
-                degraded: true,
-                cancellationToken).ConfigureAwait(false);
+        TenantConfigurationComposition composition;
+        try {
+            composition = bffComposition is null
+                ? new(
+                    TenantConfigurationSafeComposer.SanitizeDetail(previous!.Detail!),
+                    TenantConfigurationSafeModel.Unavailable(tenantId),
+                    TenantConfigurationManagementContext.Unavailable(tenantId, previous.Detail!.Status))
+                : await bffComposition.ReauthorizeTenantDetailAsync(
+                    previous!.Detail!,
+                    previous.Configuration,
+                    degraded: true,
+                    cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) {
+            throw;
+        }
+        catch (Exception) {
+            return TenantDetailSnapshot.Degraded(
+                previous!.Detail,
+                "Tenant configuration authorization could not be refreshed.",
+                eTag ?? previous.ETag);
+        }
+
         return TenantDetailSnapshot.DegradedFromComposition(composition, message, eTag ?? previous.ETag);
     }
 

@@ -12,6 +12,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -21,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -82,6 +84,27 @@ public sealed class TenantsUiCompositionTests
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Configuration_policy_services_are_idempotent_and_do_not_make_missing_policy_startup_fatal()
+    {
+        ServiceCollection services = new();
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        services.Count(descriptor => descriptor.ServiceType == typeof(ITenantConfigurationPrincipalResolver)).ShouldBe(1);
+        services.Count(descriptor => descriptor.ServiceType == typeof(TenantConfigurationReadPolicyProvider)).ShouldBe(1);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        TenantConfigurationReadPolicyProvider policyProvider = provider.GetRequiredService<TenantConfigurationReadPolicyProvider>();
+        TenantConfigurationReadPolicyResolution resolution = policyProvider.Resolve(
+            "tenant.alpha",
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
+
+        resolution.IsAvailable.ShouldBeFalse();
     }
 
     [Fact]
@@ -332,7 +355,7 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void Story_1_8_evidence_dependencies_record_owner_consequence_and_reopen_trigger()
+    public void Story_1_8_evidence_tracks_closed_safe_model_separately_from_open_external_blockers()
     {
         string report = File.ReadAllText(Path.Combine(
             ProjectRoot(),
@@ -340,21 +363,27 @@ public sealed class TenantsUiCompositionTests
             "implementation-artifacts",
             "story-1-8-support-safe-identifier-copy-and-read-experience-evidence-2026-07-21.md"));
 
-        foreach (string blocker in new[] { "CFG-1.6-SAFE-MODEL", "BROWSER-COPY-1.8", "AT-NVDA-1.8" })
-        {
-            int blockerStart = report.IndexOf(blocker, StringComparison.Ordinal);
-            blockerStart.ShouldBeGreaterThanOrEqualTo(0);
-            string blockerRecord = report[blockerStart..];
-            int nextRecord = blockerRecord.IndexOf("\n- **", 1, StringComparison.Ordinal);
-            if (nextRecord >= 0)
-            {
-                blockerRecord = blockerRecord[..nextRecord];
-            }
+        string configurationRecord = EvidenceRecord(report, "CFG-1.6-SAFE-MODEL");
+        configurationRecord.ShouldContain("owner:");
+        configurationRecord.ShouldContain("CLOSED 2026-07-22");
+        configurationRecord.ShouldContain("clipboard activation and certification remain intentionally absent");
 
+        foreach (string blocker in new[] { "BROWSER-COPY-1.8", "AT-NVDA-1.8" })
+        {
+            string blockerRecord = EvidenceRecord(report, blocker);
             blockerRecord.ShouldContain("owner:");
             blockerRecord.ShouldContain("Consequence:");
             blockerRecord.ShouldContain("Reopen trigger:");
         }
+    }
+
+    private static string EvidenceRecord(string report, string recordId)
+    {
+        int recordStart = report.IndexOf(recordId, StringComparison.Ordinal);
+        recordStart.ShouldBeGreaterThanOrEqualTo(0);
+        string record = report[recordStart..];
+        int nextRecord = record.IndexOf("\n- **", 1, StringComparison.Ordinal);
+        return nextRecord >= 0 ? record[..nextRecord] : record;
     }
 
     [Fact]

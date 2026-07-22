@@ -1,0 +1,175 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<section class="tenant-config-management"
+         aria-labelledby="tenants-config-management-heading"
+         data-testid="tenants-config-management-section">
+    <header class="tenant-config-management__header">
+        <h2 id="tenants-config-management-heading">@Localizer["Tenants.Configuration.Management.Title"]</h2>
+        <p>@Localizer["Tenants.Configuration.Management.Description"]</p>
+    </header>
+
+    @if (!HasPolicyScope)
+    {
+        <p id="tenants-config-management-unavailable"
+           data-testid="tenants-config-management-unavailable"
+           role="status">
+            @Localizer["Tenants.Configuration.Management.Unavailable.Policy"]
+        </p>
+    }
+    else if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p id="tenants-config-management-unavailable"
+           data-testid="tenants-config-management-unavailable"
+           role="status">
+            @UnavailableReason
+        </p>
+    }
+    else
+    {
+
+        <SetTenantConfigurationFlow Context="@Context"
+                                    SurfaceKind="@SurfaceKind"
+                                    Freshness="@Freshness"
+                                    IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                    OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    ProjectionEvidenceProvider="@SetProjectionEvidenceProvider"
+                                    ReauthorizeProvider="@ReauthorizeProvider" />
+
+        @if (Context.RemovableRows.Count == 0)
+        {
+            <p data-testid="tenants-config-management-empty">
+                @Localizer["Tenants.Configuration.Management.Empty"]
+            </p>
+        }
+        else
+        {
+            <div class="tenant-config-management__targets"
+                 role="region"
+                 tabindex="0"
+                 aria-label="@Localizer["Tenants.Configuration.Management.TargetsAccessibleLabel"]"
+                 data-testid="tenants-config-management-targets">
+                <FluentDataGrid Items="@Context.RemovableRows.AsQueryable()"
+                                ResizableColumns="true"
+                                ReorderableColumns="false"
+                                GenerateHeader="DataGridGeneratedHeaderType.Sticky">
+                    <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Namespace"]"
+                                    ColumnId="configuration-management-namespace"
+                                    Width="180px">
+                        <code>@context.Namespace</code>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Key"]"
+                                    ColumnId="configuration-management-key"
+                                    Width="320px">
+                        <code data-testid="tenants-config-management-key">@context.Key</code>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Actions"]"
+                                    ColumnId="configuration-management-actions"
+                                    Width="220px">
+                        <span tabindex="-1" @ref="_removeLaunchElements[context.Key]">
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-config-management-remove-open"
+                                          aria-label="@Localizer["Tenants.Configuration.Remove.OpenAccessible", context.Key]"
+                                          OnClick="() => OpenRemoveFlow(context.Key)">
+                                @Localizer["Tenants.Configuration.Remove.Open"]
+                            </FluentButton>
+                        </span>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_removeKey))
+        {
+            <RemoveTenantConfigurationFlow Context="@Context"
+                                           TargetKey="@_removeKey"
+                                           SurfaceKind="@SurfaceKind"
+                                           Freshness="@Freshness"
+                                           IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                           OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                           OnCommandActivityChanged="@OnCommandActivityChanged"
+                                           OnCloseRequested="@CloseRemoveFlowAsync"
+                                           ProjectionEvidenceProvider="@RemoveProjectionEvidenceProvider"
+                                           ReauthorizeProvider="@ReauthorizeProvider" />
+        }
+    }
+</section>
+
+@code {
+    private readonly Dictionary<string, ElementReference> _removeLaunchElements = new(StringComparer.Ordinal);
+    private string? _removeKey;
+    private string? _focusRemoveLaunchKey;
+
+    [Parameter]
+    public TenantConfigurationManagementContext Context { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<SetTenantConfiguration, Task<TenantConfigurationProjectionProof>>? SetProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<RemoveTenantConfiguration, Task<TenantConfigurationProjectionProof>>? RemoveProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<Task<TenantConfigurationManagementContext>>? ReauthorizeProvider { get; set; }
+
+    private bool HasPolicyScope
+        => Context?.IsAvailable == true
+        && (Context.IsGlobalAdministrator || Context.AuthorizedPrefixes.Count > 0);
+
+    private string? UnavailableReason
+        => SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+            ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionState"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
+                ? Localizer["Tenants.Configuration.Management.Unavailable.Freshness"].Value
+                : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.Configuration.Management.Unavailable.TenantLifecycle"].Value
+                    : !IsCommandSurfaceAvailable
+                        ? Localizer["Tenants.Configuration.Management.Unavailable.CommandSurface"].Value
+                        : null;
+
+    protected override void OnParametersSet()
+    {
+        if (_removeKey is not null && Context.FindRemovableRow(_removeKey) is null)
+        {
+            _removeKey = null;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusRemoveLaunchKey is not null
+            && _removeLaunchElements.TryGetValue(_focusRemoveLaunchKey, out ElementReference launchElement))
+        {
+            _focusRemoveLaunchKey = null;
+            await launchElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void OpenRemoveFlow(string key)
+        => _removeKey = key;
+
+    private async Task CloseRemoveFlowAsync()
+    {
+        _focusRemoveLaunchKey = _removeKey;
+        _removeKey = null;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+}

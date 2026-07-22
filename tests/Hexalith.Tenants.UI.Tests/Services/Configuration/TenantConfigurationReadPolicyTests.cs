@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 
+using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -11,6 +12,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -62,6 +65,24 @@ public sealed class TenantConfigurationReadPolicyTests
         malformed.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         crossIdentity.Subject.ShouldBeNull();
         malformed.Subject.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Resolver_requires_user_context_subject_to_match_the_authenticated_identity()
+    {
+        ClaimsPrincipal principal = Principal(new Claim("sub", "operator.alpha"));
+
+        TenantConfigurationPrincipalEvidence missing = await Resolver(
+            httpPrincipal: principal,
+            supplyUserContext: false).ResolveAsync();
+        TenantConfigurationPrincipalEvidence mismatched = await Resolver(
+            httpPrincipal: principal,
+            userContextSubject: "operator.beta").ResolveAsync();
+
+        missing.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        mismatched.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        missing.Subject.ShouldBeNull();
+        mismatched.Subject.ShouldBeNull();
     }
 
     [Theory]
@@ -214,7 +235,9 @@ public sealed class TenantConfigurationReadPolicyTests
 
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? httpPrincipal = null,
-        ClaimsPrincipal? circuitPrincipal = null)
+        ClaimsPrincipal? circuitPrincipal = null,
+        bool supplyUserContext = true,
+        string? userContextSubject = null)
     {
         HttpContextAccessor http = new()
         {
@@ -228,8 +251,15 @@ public sealed class TenantConfigurationReadPolicyTests
                 .BuildServiceProvider();
         }
 
-        return new TenantConfigurationPrincipalResolver(http, circuit);
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(supplyUserContext
+            ? userContextSubject ?? SubjectFrom(httpPrincipal) ?? SubjectFrom(circuitPrincipal)
+            : null);
+        return new TenantConfigurationPrincipalResolver(http, circuit, userContext);
     }
+
+    private static string? SubjectFrom(ClaimsPrincipal? principal)
+        => principal?.Claims.SingleOrDefault(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))?.Value;
 
     private static ClaimsPrincipal Principal(params Claim[] claims)
         => new(new ClaimsIdentity(claims, "test"));

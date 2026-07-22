@@ -558,6 +558,9 @@
   <data name="Tenants.Detail.Configuration.Empty" xml:space="preserve">
     <value>Aucune clé de configuration n'est disponible dans cette projection de détail.</value>
   </data>
+  <data name="Tenants.Detail.Configuration.Unavailable" xml:space="preserve">
+    <value>Configuration indisponible</value>
+  </data>
   <data name="Tenants.Detail.Configuration.Summary" xml:space="preserve">
     <value>{0} clés de configuration dans {1} groupes sûrs.</value>
   </data>
@@ -1000,7 +1003,25 @@
     <value>Clé de configuration complète {0}</value>
   </data>
   <data name="Tenants.Configuration.ScopeNotice" xml:space="preserve">
-    <value>Configuration visible uniquement. La propriété d'un préfixe ne peut pas être vérifiée dans ce modèle de lecture.</value>
+    <value>Seule la configuration approuvée par la stratégie actuelle d'espace de noms et d'affichage est présentée.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Loading" xml:space="preserve">
+    <value>Les preuves de configuration sont en cours de chargement.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Loading.Title" xml:space="preserve">
+    <value>Chargement de la configuration</value>
+  </data>
+  <data name="Tenants.Configuration.State.Ready" xml:space="preserve">
+    <value>Les preuves de configuration sont actuelles.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Ready.Title" xml:space="preserve">
+    <value>Configuration actuelle</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unknown" xml:space="preserve">
+    <value>Les preuves de configuration ne peuvent pas être vérifiées.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unknown.Title" xml:space="preserve">
+    <value>Preuves de configuration inconnues</value>
   </data>
   <data name="Tenants.Configuration.State.Degraded" xml:space="preserve">
     <value>Les preuves de configuration sont dégradées.</value>
@@ -1041,6 +1062,36 @@
   <data name="Tenants.Configuration.Table.Caption" xml:space="preserve">
     <value>Configuration visible du locataire groupée par espace de noms</value>
   </data>
+  <data name="Tenants.Configuration.Table.AccessibleLabel" xml:space="preserve">
+    <value>Valeurs de configuration autorisées du locataire</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Title" xml:space="preserve">
+    <value>Gestion de la configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Description" xml:space="preserve">
+    <value>Définissez la configuration dans les préfixes actuellement autorisés ou supprimez une cible sûre actuelle.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.Policy" xml:space="preserve">
+    <value>La gestion de la configuration est indisponible car la stratégie d'autorisation actuelle ne peut pas être vérifiée.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.ProjectionState" xml:space="preserve">
+    <value>Actualisez un détail de locataire disponible avant de gérer la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le détail actuel du locataire avant de gérer la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>L'état de cycle de vie de ce locataire ne permet pas la gestion de la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Empty" xml:space="preserve">
+    <value>Aucune cible de configuration sûre actuelle n'est disponible pour la suppression. La définition dans un préfixe autorisé reste disponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.TargetsAccessibleLabel" xml:space="preserve">
+    <value>Clés de configuration disponibles pour la suppression</value>
+  </data>
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Configuration visible</value>
   </data>
@@ -1075,10 +1126,10 @@
     <value>Utilisez un préfixe d'espace de noms autorisé visible, sans point final.</value>
   </data>
   <data name="Tenants.Configuration.Set.Key.Label" xml:space="preserve">
-    <value>Clé</value>
+    <value>Clé de configuration complète</value>
   </data>
   <data name="Tenants.Configuration.Set.Key.Help" xml:space="preserve">
-    <value>Utilisez le segment de clé après le préfixe d'espace de noms.</value>
+    <value>Entrez la clé complète littérale exacte dans un préfixe actuellement autorisé.</value>
   </data>
   <data name="Tenants.Configuration.Set.Value.Label" xml:space="preserve">
     <value>Valeur</value>
@@ -1160,6 +1211,9 @@
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState" xml:space="preserve">
     <value>État connu actuel</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Unavailable" xml:space="preserve">
+    <value>Indisponible</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve">
     <value>Aucune valeur actuelle n'est visible pour cette clé.</value>
@@ -1322,6 +1376,9 @@
   </data>
   <data name="Tenants.Configuration.Remove.Open" xml:space="preserve">
     <value>Supprimer</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.OpenAccessible" xml:space="preserve">
+    <value>Supprimer la clé de configuration {0}</value>
   </data>
   <data name="Tenants.Configuration.Remove.Submit" xml:space="preserve">
     <value>Confirmer la suppression</value>

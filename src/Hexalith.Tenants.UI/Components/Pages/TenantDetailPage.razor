@@ -1,6 +1,7 @@
 @page "/tenants/{TenantId}"
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Components.Tenants.Configuration
 @using Hexalith.Tenants.UI.Components.Tenants.Lifecycle
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
@@ -174,17 +175,22 @@
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail__accordion-body">
                         <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
                             <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
-                            <p>@ConfigurationSummary(Detail)</p>
+                            <p>@ConfigurationSummary(_snapshot.Configuration)</p>
                         </section>
 
-                        <TenantConfigurationView Detail="@Detail"
+                        <TenantConfigurationView Model="@_snapshot.Configuration"
                                                  SurfaceKind="@_snapshot.Kind"
-                                                 Freshness="@_snapshot.Freshness"
-                                                 IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                                 OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                 OnCommandActivityChanged="@SetCommandActivityAsync"
-                                                 ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
-                                                 RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync" />
+                                                 Freshness="@_snapshot.Freshness" />
+
+                        <TenantConfigurationManagement Context="@_snapshot.ConfigurationManagement"
+                                                       SurfaceKind="@_snapshot.Kind"
+                                                       Freshness="@_snapshot.Freshness"
+                                                       IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                                       OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                                       OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                       SetProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
+                                                       RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync"
+                                                       ReauthorizeProvider="@ReauthorizeConfigurationManagementAsync" />
                     </FluentStack>
                 </FluentAccordionItem>
             </FluentAccordion>
@@ -269,17 +275,18 @@
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)
-        => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)
+        => QueryGateway.GetSetConfigurationProjectionProofAsync(request, CancellationToken.None);
 
-    private Task<TenantDetail?> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfiguration request)
-        => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfiguration request)
+        => QueryGateway.GetRemoveConfigurationProjectionProofAsync(request, CancellationToken.None);
+
+    private Task<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync()
+        => BffComposition.ReauthorizeConfigurationManagementAsync(
+            Detail.TenantId,
+            Detail.Status,
+            _snapshot.Configuration,
+            CancellationToken.None).AsTask();
 
     private Task<TenantDetail?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
         => Task.FromResult(
@@ -293,23 +300,18 @@
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private string ConfigurationSummary(TenantDetail detail)
-        => detail.Configuration.Count == 0
+    private string ConfigurationSummary(TenantConfigurationSafeModel configuration)
+        => !configuration.IsAvailable
+            ? Localizer["Tenants.Detail.Configuration.Unavailable"]
+            : configuration.Rows.Count == 0
             ? Localizer["Tenants.Detail.Configuration.Empty"]
-            : Localizer["Tenants.Detail.Configuration.Summary", detail.Configuration.Count, GroupedConfigurationPrefixCount(detail)];
+            : Localizer[
+                "Tenants.Detail.Configuration.Summary",
+                configuration.Rows.Count,
+                configuration.Rows.Select(static row => row.Namespace).Distinct(StringComparer.Ordinal).Count()];
 
     private static int OwnerCount(TenantDetail detail)
         => detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
-
-    private static int GroupedConfigurationPrefixCount(TenantDetail detail)
-        => detail.Configuration.Keys
-            .Select(static key =>
-            {
-                int separator = key.IndexOf('.', StringComparison.Ordinal);
-                return separator > 0 ? key[..separator] : key;
-            })
-            .Distinct(StringComparer.Ordinal)
-            .Count();
 
     private string StatusLabel(TenantStatus status)
         => Localizer[$"Tenants.Detail.Status.{status}"];

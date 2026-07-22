@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -9,8 +10,10 @@ using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
@@ -20,6 +23,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -131,7 +135,7 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_uses_previous_snapshot_for_not_modified_response()
+    public async Task Get_tenant_not_modified_refetches_without_etag_before_composing_current_state()
     {
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
@@ -139,6 +143,7 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"");
+        client.EnqueueQueryResult(Detail("tenant.alpha"), eTag: "\"known\"");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -148,6 +153,8 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.ETag.ShouldBe("\"known\"");
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
     }
 
     [Fact]
@@ -159,6 +166,10 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"", isStale: true);
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            metadata: ProjectionBackedMetadata(isStale: true));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -190,6 +201,10 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"", isStale, lifecycle);
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -201,7 +216,290 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_without_previous_snapshot_reports_degraded_not_modified_state()
+    public async Task Get_tenant_filters_raw_configuration_before_constructing_snapshot_state()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["billing.mode"] = "visible",
+                ["billing.secret"] = "hidden-undefined",
+                ["private.mode"] = "hidden-namespace",
+            }));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(
+                """
+                {
+                  "Tenants": {
+                    "ConfigurationReadPolicy": {
+                      "PrefixGrants": [
+                        { "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "billing" }
+                      ],
+                      "DisplaySafe": ["billing.mode", "private.mode"]
+                    }
+                  }
+                }
+                """));
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
+        TenantConfigurationSafeRow row = snapshot.Configuration.Rows.ShouldHaveSingleItem();
+        row.Key.ShouldBe("billing.mode");
+        row.Value.ShouldBe("visible");
+        snapshot.ConfigurationManagement.RemovableRows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+        string snapshotText = snapshot.ToString().ShouldNotBeNull();
+        snapshotText.ShouldNotContain("hidden-undefined", Case.Sensitive);
+        snapshotText.ShouldNotContain("hidden-namespace", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_initial_composition_failure_is_unavailable_without_raw_fallback()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new InvalidOperationException("raw secret policy details")));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("raw secret policy details", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_never_reuses_previous_safe_state_from_a_different_literal_tenant()
+    {
+        TenantConfigurationSafeRow priorRow = new("billing", "billing.mode", "prior-visible");
+        TenantConfigurationComposition priorComposition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(Detail("tenant.other")),
+            TenantConfigurationSafeModel.Available("tenant.other", [priorRow]),
+            TenantConfigurationManagementContext.Available(
+                "tenant.other",
+                TenantStatus.Active,
+                false,
+                ["billing"],
+                [priorRow]));
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            priorComposition,
+            "\"prior\"",
+            ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new InvalidOperationException("gateway unavailable"));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        (snapshot.ToString() ?? string.Empty).ShouldNotContain("prior-visible", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_wrong_tenant_payload_without_same_tenant_prior_is_unavailable()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail(
+            "tenant.other",
+            new Dictionary<string, string> { ["billing.mode"] = "wrong-tenant-value" }));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        (snapshot.ToString() ?? string.Empty).ShouldNotContain("wrong-tenant-value", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_degraded_payload_retains_only_reauthorized_same_tenant_safe_rows()
+    {
+        TenantConfigurationSafeRow priorRow = new("billing", "billing.mode", "prior-visible");
+        TenantConfigurationComposition priorComposition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(Detail("tenant.alpha")),
+            TenantConfigurationSafeModel.Available("tenant.alpha", [priorRow]),
+            TenantConfigurationManagementContext.Available(
+                "tenant.alpha",
+                TenantStatus.Active,
+                false,
+                ["billing"],
+                [priorRow]));
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            priorComposition,
+            "\"prior\"",
+            ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
+            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(
+                """
+                {
+                  "Tenants": {
+                    "ConfigurationReadPolicy": {
+                      "PrefixGrants": [
+                        { "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "billing" }
+                      ],
+                      "DisplaySafe": ["billing.mode"]
+                    }
+                  }
+                }
+                """));
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Configuration.IsDegraded.ShouldBeTrue();
+        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
+        (snapshot.ToString() ?? string.Empty).ShouldNotContain("new-raw-secret", Case.Sensitive);
+    }
+
+    [Theory]
+    [InlineData("trial", TenantConfigurationProjectionProofKind.SetConfirmed)]
+    [InlineData("different", TenantConfigurationProjectionProofKind.SetNotConfirmed)]
+    public async Task Set_configuration_projection_proof_uses_current_matching_tenant_detail_only(
+        string expectedValue,
+        TenantConfigurationProjectionProofKind expectedKind)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", expectedValue),
+            CancellationToken.None);
+
+        proof.TenantId.ShouldBe("tenant.alpha");
+        proof.Kind.ShouldBe(expectedKind);
+        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
+        query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
+        query.Request.AggregateId.ShouldBe("tenant.alpha");
+        query.IfNoneMatch.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(true, TenantConfigurationProjectionProofKind.RemoveNotConfirmed)]
+    [InlineData(false, TenantConfigurationProjectionProofKind.RemoveConfirmed)]
+    public async Task Remove_configuration_projection_proof_reports_only_key_presence(bool containsTarget, TenantConfigurationProjectionProofKind expectedKind)
+    {
+        CapturingGatewayClient client = new();
+        IReadOnlyDictionary<string, string> configuration = containsTarget
+            ? new Dictionary<string, string> { ["billing.mode"] = "trial" }
+            : new Dictionary<string, string> { ["billing.other"] = "kept" };
+        client.EnqueueQueryResult(Detail("tenant.alpha", configuration));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(
+            new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(expectedKind);
+        string proofText = proof.ToString() ?? string.Empty;
+        proofText.ShouldNotContain("trial", Case.Sensitive);
+        proofText.ShouldNotContain("billing.mode", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_rejects_wrong_tenant_payload()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.other", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        proof.TenantId.ShouldBe("tenant.alpha");
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("not-modified")]
+    [InlineData("stale")]
+    [InlineData("degraded")]
+    [InlineData("unknown")]
+    [InlineData("exception")]
+    public async Task Configuration_projection_proof_fails_closed_without_current_payload(string outcome)
+    {
+        CapturingGatewayClient client = new();
+        switch (outcome)
+        {
+            case "missing":
+                client.EnqueueDetailResult(null, ProjectionBackedMetadata(isStale: false));
+                break;
+            case "not-modified":
+                client.EnqueueDetailNotModified("\"etag\"");
+                break;
+            case "stale":
+                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: true));
+                break;
+            case "degraded":
+                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+                break;
+            case "unknown":
+                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: new QueryResponseMetadata(IsStale: false));
+                break;
+            case "exception":
+                client.EnqueueException(new InvalidOperationException("raw projection secret"));
+                break;
+        }
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        string proofText = proof.ToString() ?? string.Empty;
+        proofText.ShouldNotContain("raw projection secret", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_without_authenticated_user_does_not_query()
+    {
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client, userId: null);
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_tenant_without_previous_snapshot_reports_unavailable_when_unconditional_refetch_fails()
     {
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"");
@@ -211,7 +509,7 @@ public sealed class TenantQueryGatewayTests
         TenantDetailSnapshot snapshot = await gateway
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
 
-        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
@@ -280,7 +578,14 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Freshness.ShouldBe(expectedFreshness);
-        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        if (isDegraded)
+        {
+            snapshot.Detail.ShouldBeNull();
+        }
+        else
+        {
+            snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        }
     }
 
     [Theory]
@@ -1699,14 +2004,16 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client,
         string? userId = "operator-user",
         StubMemoriesClient? memoriesClient = null,
-        ITenantSearchCursorCodec? searchCursorCodec = null)
-        => CreateGateway((IEventStoreGatewayClient)client, userId, memoriesClient, searchCursorCodec);
+        ITenantSearchCursorCodec? searchCursorCodec = null,
+        ITenantsBffComposition? bffComposition = null)
+        => CreateGateway((IEventStoreGatewayClient)client, userId, memoriesClient, searchCursorCodec, bffComposition);
 
     private static TenantQueryGateway CreateGateway(
         IEventStoreGatewayClient client,
         string? userId = "operator-user",
         StubMemoriesClient? memoriesClient = null,
-        ITenantSearchCursorCodec? searchCursorCodec = null)
+        ITenantSearchCursorCodec? searchCursorCodec = null,
+        ITenantsBffComposition? bffComposition = null)
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
@@ -1716,7 +2023,21 @@ public sealed class TenantQueryGatewayTests
             client,
             userContext,
             memoriesClient ?? new StubMemoriesClient(),
-            searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
+            searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()),
+            bffComposition);
+    }
+
+    private static ITenantsBffComposition ConfigurationComposition(string json)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
+            .Build();
+        ITenantConfigurationPrincipalResolver principalResolver = new StubConfigurationPrincipalResolver(
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
+        return new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: principalResolver,
+            policyProvider: new TenantConfigurationReadPolicyProvider(configuration));
     }
 
     private static QueryResponseMetadata ProjectionBackedMetadata(
@@ -1832,6 +2153,16 @@ public sealed class TenantQueryGatewayTests
                     lifecycle: lifecycle),
             });
 
+        public void EnqueueDetailResult(TenantDetail? payload, QueryResponseMetadata? metadata = null)
+            => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
+                "correlation",
+                payload,
+                IsNotModified: false,
+                ETag: metadata?.ETag)
+            {
+                Metadata = metadata,
+            });
+
         public void EnqueueUserTenantsNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<UserTenantMembership>>(
                 null,
@@ -1904,9 +2235,25 @@ public sealed class TenantQueryGatewayTests
         }
     }
 
+    private sealed class StubConfigurationPrincipalResolver(TenantConfigurationPrincipalEvidence evidence)
+        : ITenantConfigurationPrincipalResolver
+    {
+        public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(evidence);
+    }
+
     private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
 
     private static TenantDetail Detail(string tenantId)
+        => Detail(
+            tenantId,
+            new Dictionary<string, string>
+            {
+                ["billing.mode"] = "trial",
+            });
+
+    private static TenantDetail Detail(string tenantId, IReadOnlyDictionary<string, string> configuration)
         => new(
             tenantId,
             "Alpha",
@@ -1916,10 +2263,7 @@ public sealed class TenantQueryGatewayTests
                 new TenantMember("owner-user", TenantRole.TenantOwner),
                 new TenantMember("reader-user", TenantRole.TenantReader),
             ],
-            new Dictionary<string, string>
-            {
-                ["billing.mode"] = "trial",
-            },
+            configuration,
             DateTimeOffset.UtcNow);
 
     private static TenantAuditEntry AuditEntry(string eventId, AuditEventCategory category)

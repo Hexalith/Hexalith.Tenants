@@ -1,0 +1,58 @@
+/* fc-css-exception: management is a semantic sibling landmark whose compact card chrome is not
+   represented by a Fluent component without introducing an extra non-semantic wrapper. */
+.tenant-config-management {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+/* fc-css-exception: reset semantic heading and paragraph margins inside the compact landmark. */
+.tenant-config-management h2,
+.tenant-config-management p {
+    margin: 0;
+}
+
+/* fc-css-exception: semantic landmark header requires compact vertical grouping without an extra wrapper. */
+.tenant-config-management__header {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.tenant-config-management__targets {
+    min-inline-size: 0;
+    overflow-x: auto;
+}
+
+.tenant-config-management__targets code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    overflow-wrap: anywhere;
+}
+
+.tenant-config-management__targets:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    /* fc-css-exception: narrow layout reduces landmark inset while preserving the bordered safety boundary. */
+    .tenant-config-management {
+        padding: 0.75rem;
+    }
+
+    .tenant-config-management__targets {
+        display: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-config-management {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenant-config-management__targets:focus-visible {
+        outline-color: Highlight;
+    }
+}

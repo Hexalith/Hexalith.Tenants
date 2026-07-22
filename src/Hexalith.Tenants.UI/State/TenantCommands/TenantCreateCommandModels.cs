@@ -926,7 +926,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
 public sealed record TenantSetConfigurationCommandSnapshot(
     TenantCommandLifecycleState State,
     SetTenantConfiguration? Intent = null,
-    TenantDetailProjection? LastConfirmedConfigurationProjection = null,
+    TenantConfigurationProjectionProof? LastConfigurationProof = null,
     bool IsPreviewComplete = false,
     bool CompletedWithoutEvents = false,
     string? MessageId = null,
@@ -936,8 +936,8 @@ public sealed record TenantSetConfigurationCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
-    public static TenantSetConfigurationCommandSnapshot Idle(TenantDetailProjection? lastConfirmedConfigurationProjection = null)
-        => new(TenantCommandLifecycleState.Idle, LastConfirmedConfigurationProjection: lastConfirmedConfigurationProjection);
+    public static TenantSetConfigurationCommandSnapshot Idle(TenantConfigurationProjectionProof? lastConfigurationProof = null)
+        => new(TenantCommandLifecycleState.Idle, LastConfigurationProof: lastConfigurationProof);
 
     public static TenantSetConfigurationCommandSnapshot Blocked(string safeMessage, TenantCommandFocusTarget focusTarget)
         => new(
@@ -947,13 +947,11 @@ public sealed record TenantSetConfigurationCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantSetConfigurationCommandSnapshot Previewed(
-        SetTenantConfiguration intent,
-        TenantDetailProjection lastConfirmedConfigurationProjection)
+    public TenantSetConfigurationCommandSnapshot Previewed(SetTenantConfiguration intent)
         => this with {
             State = TenantCommandLifecycleState.Previewed,
             Intent = intent,
-            LastConfirmedConfigurationProjection = lastConfirmedConfigurationProjection,
+            LastConfigurationProof = null,
             IsPreviewComplete = true,
             CompletedWithoutEvents = false,
             SafeMessage = null,
@@ -965,12 +963,11 @@ public sealed record TenantSetConfigurationCommandSnapshot(
 
     public TenantSetConfigurationCommandSnapshot AlreadyApplied(
         SetTenantConfiguration intent,
-        TenantDetailProjection lastConfirmedConfigurationProjection,
         string safeMessage)
         => this with {
             State = TenantCommandLifecycleState.AlreadyApplied,
             Intent = intent,
-            LastConfirmedConfigurationProjection = lastConfirmedConfigurationProjection,
+            LastConfigurationProof = null,
             IsPreviewComplete = true,
             CompletedWithoutEvents = true,
             SafeMessage = safeMessage,
@@ -1081,21 +1078,19 @@ public sealed record TenantSetConfigurationCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantSetConfigurationCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantSetConfigurationCommandSnapshot ConfirmProjection(TenantConfigurationProjectionProof? proof) {
         if (Intent is null) {
             return this;
         }
 
-        bool tenantMatches = string.Equals(detailEvidence?.TenantId, Intent.TenantId, StringComparison.Ordinal);
+        bool tenantMatches = string.Equals(proof?.TenantId, Intent.TenantId, StringComparison.Ordinal);
         if (!tenantMatches) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
-        bool valueMatches = detailEvidence!.Configuration.TryGetValue(Intent.Key, out string? value)
-            && string.Equals(value, Intent.Value, StringComparison.Ordinal);
-        if (!valueMatches) {
+        if (proof!.Kind is not TenantConfigurationProjectionProofKind.SetConfirmed) {
             return this with {
-                LastConfirmedConfigurationProjection = detailEvidence,
+                LastConfigurationProof = proof,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
             };
         }
@@ -1103,7 +1098,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
         if (State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending) {
             return this with {
                 State = CompletedWithoutEvents ? TenantCommandLifecycleState.AlreadyApplied : TenantCommandLifecycleState.Confirmed,
-                LastConfirmedConfigurationProjection = detailEvidence,
+                LastConfigurationProof = proof,
                 SafeMessage = CompletedWithoutEvents
                     ? "Projection evidence confirms this configuration was already applied; no configuration-set success is asserted."
                     : null,
@@ -1114,14 +1109,14 @@ public sealed record TenantSetConfigurationCommandSnapshot(
             };
         }
 
-        return this with { LastConfirmedConfigurationProjection = detailEvidence };
+        return this with { LastConfigurationProof = proof };
     }
 }
 
 public sealed record TenantRemoveConfigurationCommandSnapshot(
     TenantCommandLifecycleState State,
     RemoveTenantConfiguration? Intent = null,
-    TenantDetailProjection? LastConfirmedConfigurationProjection = null,
+    TenantConfigurationProjectionProof? LastConfigurationProof = null,
     bool IsPreviewComplete = false,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -1130,8 +1125,8 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
-    public static TenantRemoveConfigurationCommandSnapshot Idle(TenantDetailProjection? lastConfirmedConfigurationProjection = null)
-        => new(TenantCommandLifecycleState.Idle, LastConfirmedConfigurationProjection: lastConfirmedConfigurationProjection);
+    public static TenantRemoveConfigurationCommandSnapshot Idle(TenantConfigurationProjectionProof? lastConfigurationProof = null)
+        => new(TenantCommandLifecycleState.Idle, LastConfigurationProof: lastConfigurationProof);
 
     public static TenantRemoveConfigurationCommandSnapshot Blocked(string safeMessage, TenantCommandFocusTarget focusTarget)
         => new(
@@ -1141,13 +1136,11 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantRemoveConfigurationCommandSnapshot Previewed(
-        RemoveTenantConfiguration intent,
-        TenantDetailProjection lastConfirmedConfigurationProjection)
+    public TenantRemoveConfigurationCommandSnapshot Previewed(RemoveTenantConfiguration intent)
         => this with {
             State = TenantCommandLifecycleState.Previewed,
             Intent = intent,
-            LastConfirmedConfigurationProjection = lastConfirmedConfigurationProjection,
+            LastConfigurationProof = null,
             IsPreviewComplete = true,
             SafeMessage = null,
             RejectionCode = null,
@@ -1255,20 +1248,19 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantRemoveConfigurationCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantRemoveConfigurationCommandSnapshot ConfirmProjection(TenantConfigurationProjectionProof? proof) {
         if (Intent is null) {
             return this;
         }
 
-        bool tenantMatches = string.Equals(detailEvidence?.TenantId, Intent.TenantId, StringComparison.Ordinal);
+        bool tenantMatches = string.Equals(proof?.TenantId, Intent.TenantId, StringComparison.Ordinal);
         if (!tenantMatches) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
-        bool keyStillVisible = detailEvidence!.Configuration.ContainsKey(Intent.Key);
-        if (keyStillVisible) {
+        if (proof!.Kind is not TenantConfigurationProjectionProofKind.RemoveConfirmed) {
             return this with {
-                LastConfirmedConfigurationProjection = detailEvidence,
+                LastConfigurationProof = proof,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
             };
         }
@@ -1276,7 +1268,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
         if (State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending) {
             return this with {
                 State = TenantCommandLifecycleState.Confirmed,
-                LastConfirmedConfigurationProjection = detailEvidence,
+                LastConfigurationProof = proof,
                 SafeMessage = null,
                 RejectionCode = null,
                 AuditState = TenantCommandAuditState.AuditPending,
@@ -1285,7 +1277,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             };
         }
 
-        return this with { LastConfirmedConfigurationProjection = detailEvidence };
+        return this with { LastConfigurationProof = proof };
     }
 }
 

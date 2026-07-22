@@ -5,7 +5,6 @@ using Bunit;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -29,7 +28,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string>
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
                 ["billing.endpoint"] = "Bearer raw-token",
             }))
@@ -37,8 +36,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("endpoint");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.endpoint");
         cut.Find("[data-testid='tenants-config-set-value']").Change("new-safe-value");
 
         cut.Find("[data-testid='tenants-config-set-flow']");
@@ -48,10 +46,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-preview-key']").TextContent.ShouldContain("billing.endpoint");
         cut.Find("[data-testid='tenants-config-set-preview-current-state']").TextContent.ShouldContain("Unavailable");
         cut.Find("[data-testid='tenants-config-set-submit']").GetAttribute("disabled").ShouldBeNull();
-        string namespaceDescription = cut.Find("[data-testid='tenants-config-set-namespace']")
+        string keyDescription = cut.Find("[data-testid='tenants-config-set-key']")
             .GetAttribute("aria-describedby")
             .ShouldNotBeNull();
-        namespaceDescription.ShouldNotContain("tenants-config-set-preview-blocked", Case.Insensitive);
+        keyDescription.ShouldNotContain("tenants-config-set-preview-blocked", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find("[data-testid='tenants-config-set-preview']").TextContent.ShouldNotContain("raw-token", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").TextContent.ShouldNotContain("new-safe-value", Case.Insensitive);
@@ -65,13 +63,12 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("paid");
 
         cut.Find("[data-testid='tenants-config-set-preview-current-state']").TextContent.ShouldContain("trial");
@@ -83,13 +80,12 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("password");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.password");
         cut.Find("[data-testid='tenants-config-set-value']").Change("paid");
 
         cut.Find("[data-testid='tenants-config-set-preview-current-state']").TextContent.ShouldContain("Unavailable");
@@ -104,13 +100,12 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("security");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("security.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enabled");
         cut.Find("form").Submit();
 
@@ -120,18 +115,60 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Exact_prefix_key_is_accepted_literally_without_appending_or_normalizing_segments()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
+
+        cut.Find("[data-testid='tenants-config-set-preview-key']").TextContent.ShouldBe("billing");
+        cut.Find("[data-testid='tenants-config-set-preview-namespace']").TextContent.ShouldBe("billing");
+        cut.Find("[data-testid='tenants-config-set-submit']").GetAttribute("disabled").ShouldBeNull();
+    }
+
+    [Fact]
+    public void Submission_time_policy_revocation_blocks_set_before_gateway_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context(
+                "tenant.alpha",
+                new Dictionary<string, string> { ["security.mode"] = "enabled" }))));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Find("[data-testid='tenants-config-set-state']").TextContent.ShouldContain("Unable to verify", Case.Insensitive);
+    }
+
+    [Fact]
     public void Editing_valid_preview_back_to_invalid_clears_stale_preview_lifecycle_state()
     {
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Previewed);
@@ -145,11 +182,9 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData("", "mode", "enabled", "namespace")]
-    [InlineData("billing", "", "enabled", "key")]
-    [InlineData("billing", "mode", "", "value")]
-    public void Required_namespace_key_and_value_block_submission_with_field_safe_messages(
-        string namespaceValue,
+    [InlineData("", "enabled", "key")]
+    [InlineData("billing.mode", "", "value")]
+    public void Required_full_key_and_value_block_submission_with_field_safe_messages(
         string key,
         string value,
         string expectedText)
@@ -158,12 +193,11 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change(namespaceValue);
         cut.Find("[data-testid='tenants-config-set-key']").Change(key);
         cut.Find("[data-testid='tenants-config-set-value']").Change(value);
         cut.Find("form").Submit();
@@ -182,20 +216,19 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change(new string('k', 260));
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing." + new string('k', 250));
         cut.Find("[data-testid='tenants-config-set-value']").Change("enabled");
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
         cut.Find("[data-testid='tenants-config-set-validation']").TextContent.ShouldContain("256");
 
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change(new string('v', 1025));
         cut.Find("form").Submit();
 
@@ -210,13 +243,12 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("trial");
         cut.Find("form").Submit();
 
@@ -237,15 +269,15 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.SetConfirmed))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -269,16 +301,18 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
-                ? Detail(request.TenantId, new Dictionary<string, string> { ["billing.mode"] = "trial" })
-                : Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(Proof(
+                request.TenantId,
+                ++projectionCalls == 1
+                    ? TenantConfigurationProjectionProofKind.SetNotConfirmed
+                    : TenantConfigurationProjectionProofKind.SetConfirmed))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -308,15 +342,15 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.SetConfirmed))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -344,15 +378,15 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.SetConfirmed))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -380,7 +414,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }) with { Status = status })
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }, status))
             .Add(p => p.SurfaceKind, surfaceKind)
             .Add(p => p.Freshness, freshness));
 
@@ -395,7 +429,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> unauthorized = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsAuthorized, false));
@@ -405,7 +439,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         unauthorized.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
 
         IRenderedComponent<SetTenantConfigurationFlow> missingScope = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string>()))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>()))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -423,18 +457,18 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-cancel']").Click();
-        cut.FindAll("[data-testid='tenants-config-set-namespace']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-set-key']").ShouldBeEmpty();
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-flow']").KeyDown("Escape");
-        cut.FindAll("[data-testid='tenants-config-set-namespace']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-set-key']").ShouldBeEmpty();
 
         closeCount.ShouldBe(2);
         gateway.SetConfigurationCallCount.ShouldBe(0);
@@ -472,14 +506,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => activity.ShouldContain(true));
@@ -502,16 +536,19 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = projectedValue }))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(Proof(
+                request.TenantId,
+                string.Equals(projectedValue, request.Value, StringComparison.Ordinal)
+                    ? TenantConfigurationProjectionProofKind.SetConfirmed
+                    : TenantConfigurationProjectionProofKind.SetNotConfirmed))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -537,14 +574,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
             .Add(p => p.IsCommandSurfaceAvailable, true));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
@@ -567,15 +604,42 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
     }
 
-    private static TenantDetail Detail(string tenantId, IReadOnlyDictionary<string, string> configuration)
-        => new(
+    private static TenantConfigurationManagementContext Context(
+        string tenantId,
+        IReadOnlyDictionary<string, string> configuration,
+        TenantStatus status = TenantStatus.Active)
+    {
+        string[] authorizedPrefixes = configuration.Keys
+            .Select(Namespace)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        TenantConfigurationSafeRow[] rows = configuration
+            .Where(static item => IsSafeForTestContext(item.Key, item.Value))
+            .Select(item => new TenantConfigurationSafeRow(Namespace(item.Key), item.Key, item.Value))
+            .ToArray();
+        return TenantConfigurationManagementContext.Available(
             tenantId,
-            "Alpha",
-            "Tenant alpha description",
-            TenantStatus.Active,
-            [new TenantMember("owner-user", TenantRole.TenantOwner)],
-            configuration,
-            DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
+            status,
+            false,
+            authorizedPrefixes,
+            rows);
+    }
+
+    private static string Namespace(string key)
+    {
+        int separator = key.IndexOf('.', StringComparison.Ordinal);
+        return separator > 0 ? key[..separator] : key;
+    }
+
+    private static bool IsSafeForTestContext(string key, string value)
+        => !key.Contains("password", StringComparison.OrdinalIgnoreCase)
+        && !value.Contains("token", StringComparison.OrdinalIgnoreCase)
+        && !value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
+
+    private static TenantConfigurationProjectionProof Proof(
+        string tenantId,
+        TenantConfigurationProjectionProofKind kind)
+        => TenantConfigurationProjectionProof.Create(tenantId, kind);
 
     private static string ProjectRoot()
     {

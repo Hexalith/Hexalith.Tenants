@@ -13,7 +13,7 @@
     <header class="tenants-config-set__header">
         <div>
             <h3 id="tenants-config-set-heading">@Localizer["Tenants.Configuration.Set.Title"]</h3>
-            <p>@Localizer["Tenants.Configuration.Set.Description", Detail.TenantId]</p>
+            <p>@Localizer["Tenants.Configuration.Set.Description", Context.TenantId]</p>
         </div>
         @if (CanOpen)
         {
@@ -50,18 +50,6 @@
                   id="tenants-config-set-editor"
                   class="tenants-config-set__form"
                   OnSubmit="SubmitAsync">
-            <div class="tenants-config-set__field">
-                <FluentTextInput Id="tenants-config-set-namespace"
-                                 @ref="_namespaceElement"
-                                 name="configuration-namespace"
-                                 Label="@Localizer["Tenants.Configuration.Set.Namespace.Label"]"
-                                 Value="@_namespace"
-                                 ValueChanged="OnNamespaceInput"
-                                 data-testid="tenants-config-set-namespace"
-                                 aria-describedby="@NamespaceDescribedBy" />
-                <span id="tenants-config-set-namespace-help">@Localizer["Tenants.Configuration.Set.Namespace.Help"]</span>
-            </div>
-
             <div class="tenants-config-set__field">
                 <FluentTextInput Id="tenants-config-set-key"
                                  @ref="_keyElement"
@@ -161,11 +149,11 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         OnRefresh="RefreshStatusAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                        <AuditEvidenceEntryPoint TenantId="@Context.TenantId"
                                                  SourceKind="command-result"
                                                  SourceTestId="tenants-command-audit-entrypoint"
                                                  Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Context.TenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-config-set-lifecycle"
                                                  AvailabilityText="@AuditText"
@@ -194,7 +182,6 @@
 
     private readonly object _formModel = new();
     private TenantSetConfigurationCommandSnapshot _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
-    private string? _namespace;
     private string? _key;
     private string? _value;
     private string? _validationMessage;
@@ -202,18 +189,16 @@
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
-    private FluentTextInput _namespaceElement = default!;
     private FluentTextInput _keyElement = default!;
     private FluentTextArea _valueElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusOpenPending;
-    private bool _focusNamespacePending;
     private bool _focusKeyPending;
     private bool _focusValuePending;
     private bool _focusLifecyclePending;
 
     [Parameter]
-    public TenantDetail Detail { get; set; } = default!;
+    public TenantConfigurationManagementContext Context { get; set; } = default!;
 
     [Parameter]
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
@@ -237,32 +222,36 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<SetTenantConfiguration, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<SetTenantConfiguration, Task<TenantConfigurationProjectionProof>>? ProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<Task<TenantConfigurationManagementContext>>? ReauthorizeProvider { get; set; }
 
     internal TenantSetConfigurationCommandSnapshot Snapshot => _snapshot;
 
     private IReadOnlySet<string> AuthorizedNamespaces
-        => Detail.Configuration.Keys
-            .Select(NamespacePrefix)
-            .Where(static value => !string.IsNullOrWhiteSpace(value))
+        => Context.AuthorizedPrefixes
+            .Where(static value => !string.Equals(value, "*", StringComparison.Ordinal))
             .ToHashSet(StringComparer.Ordinal);
 
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
+            : Context?.IsAvailable != true
+                ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Freshness"].Value
-                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Set.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.Configuration.Set.Unavailable.InFlight"].Value
-                            : string.IsNullOrWhiteSpace(Detail.TenantId)
+                            : string.IsNullOrWhiteSpace(Context.TenantId)
                                 ? Localizer["Tenants.Configuration.Set.Unavailable.Identity"].Value
-                                : AuthorizedNamespaces.Count == 0
+                                : !Context.IsGlobalAdministrator && AuthorizedNamespaces.Count == 0
                                     ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
                                     : null;
 
@@ -296,21 +285,20 @@
     {
         get
         {
-            if (!TryBuildRequest(out SetTenantConfiguration? request, out string? normalizedNamespace, showValidation: false)
+            if (!TryBuildRequest(out SetTenantConfiguration? request, out string? authorizedNamespace, showValidation: false)
                 || request is null
-                || normalizedNamespace is null)
+                || authorizedNamespace is null)
             {
                 return [];
             }
 
-            bool currentExists = Detail.Configuration.TryGetValue(request.Key, out string? currentValue);
-            string currentState = currentExists
-                ? SafeConfigurationDisplay(request.Key, currentValue!)
-                : Localizer["Tenants.Configuration.Set.Preview.CurrentState.Absent"];
+            TenantConfigurationSafeRow? current = Context.FindRemovableRow(request.Key);
+            string currentState = current?.Value
+                ?? Localizer["Tenants.Configuration.Set.Preview.CurrentState.Unavailable"];
             return
             [
-                (Localizer["Tenants.Configuration.Set.Preview.Tenant"], Detail.TenantId, "tenants-config-set-tenant-id"),
-                (Localizer["Tenants.Configuration.Set.Preview.Namespace"], normalizedNamespace, "tenants-config-set-preview-namespace"),
+                (Localizer["Tenants.Configuration.Set.Preview.Tenant"], Context.TenantId, "tenants-config-set-tenant-id"),
+                (Localizer["Tenants.Configuration.Set.Preview.Namespace"], authorizedNamespace, "tenants-config-set-preview-namespace"),
                 (Localizer["Tenants.Configuration.Set.Preview.Key"], request.Key, "tenants-config-set-preview-key"),
                 (Localizer["Tenants.Configuration.Set.Preview.CurrentState"], currentState, "tenants-config-set-preview-current-state"),
                 (Localizer["Tenants.Configuration.Set.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Set.Preview.IntendedEffect.Value"], "tenants-config-set-preview-effect"),
@@ -357,16 +345,13 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.Configuration.Set.Recovery.{_snapshot.State}"];
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
-
-    private string NamespaceDescribedBy
-        => DescribedBy("tenants-config-set-namespace-help");
 
     private string KeyDescribedBy
         => DescribedBy("tenants-config-set-key-help");
@@ -378,7 +363,7 @@
     {
         if (_snapshot.State is TenantCommandLifecycleState.Idle)
         {
-            _snapshot = TenantSetConfigurationCommandSnapshot.Idle(Detail);
+            _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
         }
     }
 
@@ -388,12 +373,6 @@
         {
             _focusOpenPending = false;
             await _openElement.FocusAsync().ConfigureAwait(false);
-        }
-
-        if (_focusNamespacePending)
-        {
-            _focusNamespacePending = false;
-            await _namespaceElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusKeyPending)
@@ -442,17 +421,16 @@
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
-    internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail);
+    internal void ApplyProjectionEvidence(TenantConfigurationProjectionProof? proof)
+        => _snapshot = _snapshot.ConfirmProjection(proof);
 
     private async Task OpenEditorAsync()
     {
         _validationMessage = null;
-        _namespace = AuthorizedNamespaces.OrderBy(static item => item, StringComparer.Ordinal).FirstOrDefault();
         _key = null;
         _value = null;
         _isOpen = true;
-        _focusNamespacePending = true;
+        _focusKeyPending = true;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -462,12 +440,6 @@
         _validationMessage = null;
         _focusOpenPending = true;
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
-    }
-
-    private void OnNamespaceInput(string? value)
-    {
-        _namespace = value;
-        ClearValidationAndPreview();
     }
 
     private void OnKeyInput(string? value)
@@ -487,7 +459,7 @@
         _validationMessage = null;
         if (TryBuildRequest(out SetTenantConfiguration? request, out _, showValidation: false) && request is not null)
         {
-            _snapshot = _snapshot.Previewed(request, Detail);
+            _snapshot = _snapshot.Previewed(request);
             return;
         }
 
@@ -533,14 +505,25 @@
             return;
         }
 
-        _snapshot = _snapshot.Previewed(request, Detail);
-        if (Detail.Configuration.TryGetValue(request.Key, out string? currentValue)
-            && string.Equals(currentValue, request.Value, StringComparison.Ordinal))
+        _snapshot = _snapshot.Previewed(request);
+        if (Context.FindRemovableRow(request.Key) is { } current
+            && string.Equals(current.Value, request.Value, StringComparison.Ordinal))
         {
             SetSnapshot(_snapshot.AlreadyApplied(
                 request,
-                Detail,
                 Localizer["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"].Value));
+            return;
+        }
+
+        TenantConfigurationManagementContext currentContext = ReauthorizeProvider is null
+            ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
+            : await ReauthorizeProvider().ConfigureAwait(false);
+        if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)
+            || !currentContext.IsKeyAuthorized(request.Key))
+        {
+            SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value,
+                TenantCommandFocusTarget.Submit));
             return;
         }
 
@@ -614,8 +597,8 @@
         await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (ProjectionEvidenceProvider is not null)
         {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+            TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(proof));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
@@ -623,34 +606,26 @@
 
     private bool TryBuildRequest(
         out SetTenantConfiguration? request,
-        out string? normalizedNamespace,
+        out string? authorizedNamespace,
         bool showValidation)
     {
         request = null;
-        normalizedNamespace = null;
+        authorizedNamespace = null;
 
-        string? namespaceValue = NormalizeNamespace(_namespace);
-        if (string.IsNullOrWhiteSpace(namespaceValue))
-        {
-            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceRequired"], TenantCommandFocusTarget.Namespace);
-            return false;
-        }
-
-        if (!AuthorizedNamespaces.Contains(namespaceValue))
-        {
-            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceScope"], TenantCommandFocusTarget.Namespace);
-            return false;
-        }
-
-        string keyValue = _key?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(keyValue))
+        string keyValue = _key ?? string.Empty;
+        if (keyValue.Length == 0)
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyRequired"], TenantCommandFocusTarget.Key);
             return false;
         }
 
-        string fullKey = $"{namespaceValue}.{keyValue}";
-        if (fullKey.Length > MaxConfigurationKeyLength)
+        if (!Context.IsKeyAuthorized(keyValue))
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceScope"], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
+        if (keyValue.Length > MaxConfigurationKeyLength)
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLength", MaxConfigurationKeyLength], TenantCommandFocusTarget.Key);
             return false;
@@ -669,8 +644,14 @@
             return false;
         }
 
-        normalizedNamespace = namespaceValue;
-        request = new SetTenantConfiguration(Detail.TenantId, fullKey, value);
+        authorizedNamespace = ResolveAuthorizedNamespace(keyValue);
+        if (authorizedNamespace is null)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceScope"], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
+        request = new SetTenantConfiguration(Context.TenantId, keyValue, value);
         return true;
     }
 
@@ -706,23 +687,23 @@
 
     private void QueueValidationFocus(TenantCommandFocusTarget focusTarget)
     {
-        _focusNamespacePending = focusTarget is TenantCommandFocusTarget.Namespace;
         _focusKeyPending = focusTarget is TenantCommandFocusTarget.Key;
         _focusValuePending = focusTarget is TenantCommandFocusTarget.Value;
     }
 
-    private string SafeConfigurationDisplay(string key, string value)
-        => LegacyConfigurationDisplaySanitizer.IsDisplayable(key, value)
-            ? value
-            : Localizer["Tenants.Configuration.Value.Unavailable"];
-
-    private static string? NormalizeNamespace(string? value)
-        => value?.Trim().Trim('.');
-
-    private static string NamespacePrefix(string key)
+    private string? ResolveAuthorizedNamespace(string key)
     {
-        int separator = key.IndexOf('.', StringComparison.Ordinal);
-        return separator > 0 ? key[..separator] : string.Empty;
+        if (Context.IsGlobalAdministrator)
+        {
+            int separator = key.IndexOf('.', StringComparison.Ordinal);
+            return separator > 0 ? key[..separator] : key;
+        }
+
+        return AuthorizedNamespaces
+            .Where(prefix => TenantConfigurationManagementContext.IsPrefixMatch(prefix, key))
+            .OrderByDescending(static prefix => prefix.Length)
+            .ThenBy(static prefix => prefix, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)
