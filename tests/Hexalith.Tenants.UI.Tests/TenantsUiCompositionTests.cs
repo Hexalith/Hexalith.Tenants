@@ -1,7 +1,9 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Globalization;
+using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
 using System.Text.Json;
@@ -24,7 +26,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
@@ -41,6 +43,8 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class TenantsUiCompositionTests
 {
+    private static readonly TimeSpan DependencyResolutionTimeout = TimeSpan.FromMinutes(3);
+
     [Fact]
     public void FrontComposer_registration_exposes_tenants_nav_entries_and_minimal_manifest()
     {
@@ -351,15 +355,22 @@ public sealed class TenantsUiCompositionTests
         globalAdministratorsQuery.ShouldContain("RestQueryBindingSource.Constant, \"global-administrators\"");
     }
 
-    [Fact]
-    public async Task TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost(bool useProjectReferences)
     {
         string uiRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI");
         string uiProjectPath = Path.Combine(uiRoot, "Hexalith.Tenants.UI.csproj");
-        List<string> dependencies = [];
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: true));
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: false));
 
+        // Each resolved dependency mode is asserted on its own. Unioning the two modes let a
+        // non-empty result from one satisfy the positive assertion for both, and let every negative
+        // assertion pass vacuously whenever a mode returned nothing at all.
+        string[] dependencies = await ReadResolvedDependencyValuesAsync(uiProjectPath, useProjectReferences);
+
+        dependencies.ShouldNotBeEmpty(
+            $"MSBuild resolution returned no dependency items for UseHexalithProjectReferences={useProjectReferences}; "
+            + "every assertion below would pass vacuously.");
         dependencies.ShouldContain(
             static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants.Client"),
             "Interactive Tenants UI must consume the approved typed Tenants client seam.");
@@ -371,19 +382,58 @@ public sealed class TenantsUiCompositionTests
             .ShouldBeEmpty("Interactive Tenants UI must not reference the Tenants domain-service host.");
     }
 
+    /// <summary>
+    /// Complements the resolved dependency-closure test with compiled-artifact assertions: the REST
+    /// generator is opt-in on an assembly-level <c>RestApi</c> attribute, and the referenced-assembly
+    /// set proves which client and contract seams the compiled UI actually binds to.
+    /// </summary>
+    [Fact]
+    public void TenantsUiAssembly_BindsTypedClientSeamAndCarriesNoRestApiOptIn()
+    {
+        Assembly uiAssembly = typeof(TenantsUiServiceCollectionExtensions).Assembly;
+        string[] referenced = uiAssembly
+            .GetReferencedAssemblies()
+            .Select(static name => name.Name ?? string.Empty)
+            .ToArray();
+
+        referenced.ShouldNotBeEmpty("Referenced-assembly metadata is required for the assertions below.");
+        referenced.ShouldContain(
+            "Hexalith.EventStore.Client",
+            "Interactive Tenants UI must bind the EventStore typed query client; this is the seam AC1 "
+            + "requires and it reaches the UI transitively, so only the compiled assembly can prove it.");
+        referenced.ShouldContain(
+            "Hexalith.Tenants.Contracts",
+            "Interactive Tenants UI must bind the shared Tenants contracts through the typed client seam.");
+
+        foreach (string forbidden in new[] { "Hexalith.Tenants.Api", "Hexalith.Tenants", "Hexalith.EventStore.RestApi.Generators" })
+        {
+            referenced.ShouldNotContain(
+                forbidden,
+                $"Interactive Tenants UI must not directly bind {forbidden}; the resolved MSBuild closure test covers transitive acquisition.");
+        }
+
+        uiAssembly.GetCustomAttributesData()
+            .Where(static attribute => string.Equals(
+                attribute.AttributeType.FullName,
+                "Hexalith.EventStore.Contracts.Rest.RestApiAttribute",
+                StringComparison.Ordinal))
+            .ShouldBeEmpty(
+                "Interactive Tenants UI must not declare the generated-REST assembly opt-in. The generator "
+                + "emits controllers only for assemblies carrying this attribute, so its absence keeps the "
+                + "generator inert even if it were acquired transitively.");
+    }
+
     [Fact]
     public void TenantsUiAssembly_DoesNotContainMvcControllers()
     {
-        Type[] controllers = typeof(TenantsUiServiceCollectionExtensions)
-            .Assembly
-            .GetTypes()
-            .Where(static type => !type.IsAbstract
-                && (typeof(Controller).IsAssignableFrom(type)
-                    || typeof(ControllerBase).IsAssignableFrom(type)
-                    || type.Name.EndsWith("Controller", StringComparison.Ordinal)))
-            .ToArray();
+        var manager = new ApplicationPartManager();
+        manager.ApplicationParts.Add(new AssemblyPart(typeof(TenantsUiServiceCollectionExtensions).Assembly));
+        manager.FeatureProviders.Add(new ControllerFeatureProvider());
+        var controllers = new ControllerFeature();
+        manager.PopulateFeature(controllers);
 
-        controllers.ShouldBeEmpty("Interactive Tenants UI must not compile generated or hand-written MVC controllers.");
+        controllers.Controllers.ShouldBeEmpty(
+            "Interactive Tenants UI must not compile any MVC-discoverable controller, including POCO types marked [Controller].");
     }
 
     [Fact]
@@ -395,6 +445,12 @@ public sealed class TenantsUiCompositionTests
             .SelectMany(static source => source.Endpoints)
             .ToArray();
 
+        // Positive control. Without it the negative assertion below would pass for the wrong reason
+        // if the reduced test host ever stopped producing endpoints at all.
+        endpoints.ShouldNotBeEmpty(
+            "The Tenants UI test host produced no endpoints, so the forbidden-endpoint assertion "
+            + "below would pass vacuously rather than because the host is clean.");
+
         string[] forbiddenEndpoints = endpoints
             .Where(static endpoint => endpoint.Metadata.GetMetadata<ControllerActionDescriptor>() is not null
                 || endpoint is RouteEndpoint route && IsTenantManagementApiRoute(route.RoutePattern.RawText))
@@ -403,6 +459,16 @@ public sealed class TenantsUiCompositionTests
 
         forbiddenEndpoints.ShouldBeEmpty(
             "Interactive Tenants UI must not expose MVC controllers or tenant-management API routes.");
+    }
+
+    [Theory]
+    [InlineData("api/tenants")]
+    [InlineData("api/v1/tenants/{tenantId}")]
+    [InlineData("tenant-gateway/api/v12/users/{userId}/tenants")]
+    [InlineData("{deploymentPrefix}/api/global-administrators")]
+    public void Tenant_management_route_detection_is_prefix_and_version_independent(string routePattern)
+    {
+        IsTenantManagementApiRoute(routePattern).ShouldBeTrue();
     }
 
     [Fact]
@@ -751,7 +817,7 @@ public sealed class TenantsUiCompositionTests
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
-    private static async Task<string[]> ReadEvaluatedDependencyValuesAsync(
+    private static async Task<string[]> ReadResolvedDependencyValuesAsync(
         string projectPath,
         bool useProjectReferences)
     {
@@ -762,39 +828,109 @@ public sealed class TenantsUiCompositionTests
             RedirectStandardError = true,
             UseShellExecute = false,
         };
-        startInfo.ArgumentList.Add("msbuild");
+        startInfo.ArgumentList.Add("restore");
         startInfo.ArgumentList.Add(projectPath);
-        startInfo.ArgumentList.Add("-nologo");
-        startInfo.ArgumentList.Add("-verbosity:quiet");
-        startInfo.ArgumentList.Add("-getItem:ProjectReference,PackageReference,Reference,Analyzer");
-        startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
+        startInfo.ArgumentList.Add("--force-evaluate");
+        startInfo.ArgumentList.Add("-nodeReuse:false");
 
-        using Process process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Could not start dotnet msbuild for UI dependency evaluation.");
+        // NuGet's assets file is the resolved project/package closure. It includes transitive packages
+        // (including analyzers when they actually flow to the UI) and transitive project libraries,
+        // without compiling shared outputs or relying on direct evaluation-only items.
+        startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
+        startInfo.ArgumentList.Add($"-property:Configuration={(useProjectReferences ? "Debug" : "Release")}");
+        startInfo.ArgumentList.Add("-property:HexalithMemoriesFromSource=false");
+        startInfo.ArgumentList.Add("-property:HexalithCommonsFromSource=false");
+
+        Process? started;
+        try
+        {
+            started = Process.Start(startInfo);
+        }
+        catch (Win32Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Could not launch 'dotnet' for UI dependency resolution. The .NET SDK must be on PATH "
+                + "for this test to have any authority; a missing SDK must fail loudly rather than "
+                + "silently skip the generated-REST governance assertions.",
+                ex);
+        }
+
+        using Process process = started
+            ?? throw new InvalidOperationException("Could not start dotnet restore for UI dependency resolution.");
         Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
         Task<string> standardError = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        using var timeout = new CancellationTokenSource(DependencyResolutionTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+                // The process exited between the timeout firing and the kill request.
+            }
+
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            _ = await standardOutput.ConfigureAwait(false);
+            _ = await standardError.ConfigureAwait(false);
+
+            throw new TimeoutException(
+                $"dotnet restore dependency resolution for '{projectPath}' did not exit within "
+                + $"{DependencyResolutionTimeout.TotalSeconds:F0}s and was terminated.");
+        }
+
         string output = await standardOutput.ConfigureAwait(false);
         string error = await standardError.ConfigureAwait(false);
 
-        process.ExitCode.ShouldBe(0, $"dotnet msbuild dependency evaluation failed: {error}");
+        process.ExitCode.ShouldBe(0, $"dotnet restore dependency resolution failed: {error}{Environment.NewLine}{output}");
 
-        using JsonDocument document = JsonDocument.Parse(output);
-        var values = new List<string>();
-        foreach (JsonProperty itemType in document.RootElement.GetProperty("Items").EnumerateObject())
+        string assetsPath = Path.Combine(
+            Path.GetDirectoryName(projectPath)
+                ?? throw new InvalidOperationException($"Project path '{projectPath}' has no parent directory."),
+            "obj",
+            "project.assets.json");
+        File.Exists(assetsPath).ShouldBeTrue(
+            $"dotnet restore succeeded but did not produce the expected assets closure at '{assetsPath}'.");
+
+        JsonDocument document;
+        try
         {
-            foreach (JsonElement item in itemType.Value.EnumerateArray())
-            {
-                foreach (string propertyName in new[] { "Identity", "FullPath", "HintPath", "NuGetPackageId", "Filename" })
-                {
-                    if (item.TryGetProperty(propertyName, out JsonElement value)
-                        && value.ValueKind == JsonValueKind.String
-                        && !string.IsNullOrWhiteSpace(value.GetString()))
-                    {
-                        values.Add(value.GetString()!);
-                    }
-                }
-            }
+            document = JsonDocument.Parse(await File.ReadAllTextAsync(assetsPath).ConfigureAwait(false));
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"NuGet assets file '{assetsPath}' is not valid JSON, so the UI dependency closure could not be inspected.",
+                ex);
+        }
+
+        using (document)
+        {
+            return ReadDependencyValues(document);
+        }
+    }
+
+    private static string[] ReadDependencyValues(JsonDocument document)
+    {
+        if (!document.RootElement.TryGetProperty("libraries", out JsonElement libraries)
+            || libraries.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException(
+                "NuGet assets output contained no 'libraries' object. The resolution contract changed, "
+                + "and every dependency assertion built on it would pass vacuously.");
+        }
+
+        var values = new List<string>();
+        foreach (JsonProperty library in libraries.EnumerateObject())
+        {
+            int versionSeparator = library.Name.IndexOf('/', StringComparison.Ordinal);
+            values.Add(versionSeparator < 0 ? library.Name : library.Name[..versionSeparator]);
         }
 
         return values.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -812,14 +948,39 @@ public sealed class TenantsUiCompositionTests
 
     private static bool IsTenantManagementApiRoute(string? routePattern)
     {
-        string normalized = routePattern?.Trim().TrimStart('/') ?? string.Empty;
-        return normalized.Equals("api/tenants", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("api/tenants/", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("api/users", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("api/users/", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("api/global-administrators", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("api/global-administrators/", StringComparison.OrdinalIgnoreCase);
+        string[] segments = (routePattern ?? string.Empty)
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        for (int index = 0; index < segments.Length; index++)
+        {
+            if (!string.Equals(segments[index], "api", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            int resourceIndex = index + 1;
+            if (resourceIndex < segments.Length && IsApiVersionSegment(segments[resourceIndex]))
+            {
+                resourceIndex++;
+            }
+
+            if (resourceIndex < segments.Length
+                && segments[resourceIndex] is string resource
+                && (resource.Equals("tenants", StringComparison.OrdinalIgnoreCase)
+                    || resource.Equals("users", StringComparison.OrdinalIgnoreCase)
+                    || resource.Equals("global-administrators", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
+
+    private static bool IsApiVersionSegment(string segment)
+        => segment.Length > 1
+            && (segment[0] is 'v' or 'V')
+            && segment[1..].All(char.IsDigit);
 
     private static HashSet<string> ReadResourceKeys(string path, string[] prefixes)
         => XDocument

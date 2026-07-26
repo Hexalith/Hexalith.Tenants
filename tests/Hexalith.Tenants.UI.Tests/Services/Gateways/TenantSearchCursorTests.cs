@@ -101,7 +101,7 @@ public sealed class TenantSearchCursorTests {
             "TenantListRequest { PageSize = 20, HasSearch = True, Status = , SortColumn = tenantId, "
             + "SortDescending = False, HasETag = True }");
         snapshot.ToString().ShouldBe(
-            "TenantListSnapshot { Kind = Ready, RowCount = 0, HasMore = True, Freshness = Unknown, "
+            "TenantListSnapshot { Kind = Ready, RowCount = 0, HasMore = True, Freshness = Unknown, Lifecycle = Unknown, "
             + "IsDegraded = False, IsAuthorizationScopedEmpty = False, Reason = None, Notice = None, "
             + "IsAuthoritativeSearch = False, PagingRecovered = False, FallbackPagingRecovered = False, "
             + "PagingNotice = None }");

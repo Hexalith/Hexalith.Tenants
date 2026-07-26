@@ -87,6 +87,18 @@
   <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
+  <data name="Tenants.ProjectionLifecycle.Rebuilding" xml:space="preserve">
+    <value>Rebuilding</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Degraded" xml:space="preserve">
+    <value>Degraded</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.LocalOnly" xml:space="preserve">
+    <value>Local only</value>
+  </data>
   <data name="Tenants.List.DetailLinkLabel" xml:space="preserve">
     <value>Open tenant details for {0}</value>
   </data>
@@ -740,6 +752,9 @@
   </data>
   <data name="Tenants.Lifecycle.Unavailable.Mobile" xml:space="preserve">
     <value>{1} is unavailable for tenant {0} because this viewport cannot preserve the full high-impact safety context. Continue read-only on this view.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because the projection lifecycle is not current. Continue read-only and refresh projection evidence.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.StaleFreshness" xml:space="preserve">
     <value>{1} is unavailable for tenant {0} because tenant freshness is stale or unknown. Refresh before considering lifecycle action availability.</value>

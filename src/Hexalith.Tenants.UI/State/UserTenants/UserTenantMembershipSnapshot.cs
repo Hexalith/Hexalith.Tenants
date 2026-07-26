@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
@@ -11,7 +12,8 @@ public sealed record UserTenantMembershipSnapshot(
     ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     UserTenantMembershipReason Reason,
-    string? TargetUserId = null) {
+    string? TargetUserId = null,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

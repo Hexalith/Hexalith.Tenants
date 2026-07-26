@@ -16,6 +16,7 @@
         </div>
         <div class="tenant-members__truth" data-testid="tenants-member-truth-state">
             <TruthStateBadge Freshness="@Freshness"
+                             Lifecycle="@Lifecycle"
                              TestId="tenants-member-truth-badge"
                              ResourcePrefix="Tenants.Members" />
             @if (SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded)
@@ -112,6 +113,7 @@
                                 ColumnId="member-freshness"
                                 Width="170px">
                     <TruthStateBadge Freshness="@Freshness"
+                                     Lifecycle="@Lifecycle"
                                      TestId="tenants-member-row-freshness"
                                      ResourcePrefix="Tenants.Members" />
                 </TemplateColumn>
@@ -255,6 +257,9 @@
 
     [Parameter]
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
+
+    [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
     [Parameter]
     public bool IsAddMemberAuthorized { get; set; } = true;

@@ -1,6 +1,7 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -37,8 +38,13 @@ public sealed record TenantLifecycleAvailabilityInput(
     bool IsCommandSurfaceConnected,
     TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
     TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
-    bool IsNarrowSafetyContext = false) {
+    bool IsNarrowSafetyContext = false,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
+        if (Lifecycle is not ProjectionLifecycleState.Unknown and not ProjectionLifecycleState.Current) {
+            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.ProjectionLifecycle", TenantCommandFocusTarget.Refresh);
+        }
+
         if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale or ReadModelFreshnessState.Unknown) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
         }

@@ -1,7 +1,9 @@
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Shouldly;
 
@@ -89,6 +91,32 @@ public sealed class TenantLifecycleAvailabilityTests
         availability.IsUnavailable.ShouldBeTrue();
         availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.StaleData);
         availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.StaleFreshness");
+    }
+
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.LocalOnly)]
+    public void Non_current_operational_lifecycle_blocks_actions_even_when_legacy_freshness_is_current(
+        ProjectionLifecycleState lifecycle)
+    {
+        TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
+                "tenant.alpha",
+                TenantStatus.Active,
+                ReadModelFreshnessState.Current,
+                TenantDetailSurfaceKind.Ready,
+                IsCommandSurfaceConnected: true,
+                TenantLifecycleGovernanceReadiness.Ready,
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: lifecycle)
+            .Evaluate(TenantLifecycleOperation.DisableTenant);
+
+        availability.IsUnavailable.ShouldBeTrue();
+        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.StaleData);
+        availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.ProjectionLifecycle");
+        availability.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
     }
 
     [Fact]
