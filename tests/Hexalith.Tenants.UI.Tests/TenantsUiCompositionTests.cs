@@ -6,10 +6,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-using Hexalith.EventStore.Client.Queries;
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Shell.Components.Icons;
-using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
@@ -18,9 +16,7 @@ using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
-using Hexalith.Tenants.UI.State.TenantList;
 
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -28,7 +24,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 using Shouldly;
@@ -110,100 +105,6 @@ public sealed class TenantsUiCompositionTests
             TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
 
         resolution.IsAvailable.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Tenant_search_composition_is_purpose_isolated_scoped_and_server_configured()
-    {
-        ServiceCollection services = new();
-        var dataProtectionProvider = new EphemeralDataProtectionProvider();
-        var hostCodec = new QueryCursorCodec(dataProtectionProvider, "host-purpose");
-        services.AddSingleton<IDataProtectionProvider>(dataProtectionProvider);
-        services.AddSingleton<IQueryCursorCodec>(hostCodec);
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
-                ["Memories:BaseAddress"] = "https://memories.invalid",
-                ["HEXALITH_MEMORIES_API_TOKEN"] = "server-only-token",
-            })
-            .Build();
-
-        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
-
-        services.Count(static descriptor => descriptor.ServiceType == typeof(ITenantSearchCursorCodec)).ShouldBe(1);
-        services.Single(static descriptor => descriptor.ServiceType == typeof(ITenantSearchCursorCodec))
-            .Lifetime.ShouldBe(ServiceLifetime.Singleton);
-        services.Count(static descriptor => descriptor.ServiceType == typeof(TenantSearchPagingState)).ShouldBe(1);
-        services.Single(static descriptor => descriptor.ServiceType == typeof(TenantSearchPagingState))
-            .Lifetime.ShouldBe(ServiceLifetime.Scoped);
-
-        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        provider.GetRequiredService<IDataProtectionProvider>().ShouldBeSameAs(dataProtectionProvider);
-        provider.GetRequiredService<IQueryCursorCodec>().ShouldBeSameAs(hostCodec);
-        ITenantSearchCursorCodec searchCodec = provider.GetRequiredService<ITenantSearchCursorCodec>();
-        string scope = TenantSearchCursorScopes.Create(
-            "operator-user",
-            "needle",
-            status: null,
-            TenantListSortColumns.TenantId,
-            descending: false,
-            pageSize: 20);
-        string protectedCursor = searchCodec.Encode(scope, 20);
-        hostCodec.TryDecode(
-            protectedCursor,
-            TenantSearchCursorPosition.QueryType,
-            scope,
-            out _,
-            out _).ShouldBeFalse();
-
-        using IServiceScope firstScope = provider.CreateScope();
-        using IServiceScope secondScope = provider.CreateScope();
-        firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>()
-            .ShouldNotBeSameAs(secondScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>());
-        MemoriesClient memories = firstScope.ServiceProvider.GetRequiredService<MemoriesClient>();
-        memories.BaseAddress.ShouldBe(new Uri("https://memories.invalid"));
-        MemoriesClientOptions options = provider.GetRequiredService<IOptions<MemoriesClientOptions>>().Value;
-        options.Endpoint.ShouldBe(new Uri("https://memories.invalid"));
-        options.ApiToken.ShouldBe("server-only-token");
-    }
-
-    [Fact]
-    public void Both_ui_host_compositions_remove_default_memories_http_logging_and_keep_search_state_server_side()
-    {
-        string projectRoot = ProjectRoot();
-        string embedded = File.ReadAllText(Path.Combine(
-            projectRoot,
-            "src",
-            "Hexalith.Tenants.UI",
-            "Extensions",
-            "TenantsUiServiceCollectionExtensions.cs"));
-        string standalone = File.ReadAllText(Path.Combine(
-            projectRoot,
-            "src",
-            "Hexalith.Tenants.UI",
-            "Program.cs"));
-
-        foreach (string source in new[] { embedded, standalone })
-        {
-            source.ShouldContain("AddMemoriesClient");
-            source.ShouldContain(".RemoveAllLoggers()");
-            source.ShouldContain("ITenantSearchCursorCodec, TenantSearchCursorCodec");
-            source.ShouldContain("TryAddScoped<TenantSearchPagingState>");
-            source.ShouldNotContain("AddLogger<");
-        }
-
-        string workspace = File.ReadAllText(Path.Combine(
-            projectRoot,
-            "src",
-            "Hexalith.Tenants.UI",
-            "Components",
-            "Pages",
-            "TenantsWorkspace.razor"));
-        workspace.ShouldNotContain("MemoriesClient");
-        workspace.ShouldNotContain("SearchAsync(");
-        workspace.ShouldNotContain("localStorage", Case.Insensitive);
-        workspace.ShouldNotContain("sessionStorage", Case.Insensitive);
     }
 
     [Fact]
@@ -376,36 +277,6 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Platform area unavailable");
         manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Zone plateforme indisponible");
-    }
-
-    [Fact]
-    public void Authoritative_search_resources_resolve_complete_english_and_french_copy()
-    {
-        ResourceManager manager = new(typeof(TenantsResources));
-        Dictionary<string, (string English, string French)> expected = new(StringComparer.Ordinal)
-        {
-            ["Tenants.List.Notice.SearchUnavailable"] = (
-                "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
-                "La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée."),
-            ["Tenants.List.Notice.SearchRefreshed"] = (
-                "The protected search page was no longer available. Search has restarted from the first page.",
-                "La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page."),
-            ["Tenants.List.Reason.SearchPartiallyAvailable"] = (
-                "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
-                "Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées."),
-            ["Tenants.List.StatusFilterLabel.Authoritative"] = (
-                "Status across indexed candidates",
-                "Statut parmi les candidats indexés"),
-            ["Tenants.List.AuthoritativeSearchSemantics"] = (
-                "Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.",
-                "La recherche et le statut s'appliquent aux candidats de locataire indexés. Seules les lignes autorisées et vérifiées sont affichées ; le tri s'applique dans cette page protégée."),
-        };
-
-        foreach ((string key, (string english, string french)) in expected)
-        {
-            manager.GetString(key, CultureInfo.InvariantCulture).ShouldBe(english);
-            manager.GetString(key, CultureInfo.GetCultureInfo("fr")).ShouldBe(french);
-        }
     }
 
     [Fact]

@@ -154,13 +154,6 @@
                               Title="@NoticeMessage"
                               data-testid="@NoticeTestId" />
         }
-        @if (IsTenantListView && HasPagingNotice)
-        {
-            <FluentMessageBar Intent="MessageBarIntent.Info"
-                              AriaLive="AriaLive.Polite"
-                              Title="@PagingNoticeMessage"
-                              data-testid="@PagingNoticeTestId" />
-        }
         @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
@@ -219,7 +212,7 @@
         }
     </Body>
     <Pager>
-        @if (ShowPager)
+        @if (IsTenantListView && ShowList)
         {
             <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
@@ -283,8 +276,6 @@
     private bool _focusHeadingPending;
     private bool _initialized;
     private bool _disposed;
-    private bool _restoreSearchPagingContextPending = true;
-    private string? _searchPagingRecoveryNoticeScope;
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
     private TenantSearchPagingState? _searchPaging;
@@ -350,12 +341,6 @@
     private bool HasActiveSearch
         => !string.IsNullOrWhiteSpace(_search);
 
-    private bool HasValidatedTenantDetailReturnContext
-        => !string.IsNullOrWhiteSpace(_selectedTenantId)
-            && string.Equals(QuerySelectedTenantId, _selectedTenantId, StringComparison.Ordinal)
-            && string.Equals(QueryAnchor, _returnAnchor, StringComparison.Ordinal)
-            && string.Equals(_returnAnchor, $"tenant-row-{_selectedTenantId}", StringComparison.Ordinal);
-
     private bool HasPreviousPage
         => HasActiveSearch
             ? SearchPaging.HasPrevious(_snapshot.IsAuthoritativeSearch)
@@ -383,26 +368,8 @@
                 or TenantListSurfaceKind.Error
                 or TenantListSurfaceKind.Unauthorized);
 
-    private bool ShowPager
-        => IsTenantListView
-            && _snapshot.Kind is not (TenantListSurfaceKind.Loading
-                or TenantListSurfaceKind.Error
-                or TenantListSurfaceKind.Unauthorized)
-            && (ShowList || HasPreviousPage || _snapshot.HasMore);
-
     private string NoticeMessage
-        => NoticeMessageFor(_snapshot.Notice);
-
-    private string PagingNoticeMessage
-        => NoticeMessageFor(_snapshot.PagingNotice);
-
-    private bool HasPagingNotice
-        => _snapshot.PagingNotice != _snapshot.Notice
-            && !string.IsNullOrEmpty(PagingNoticeMessage)
-            && !string.IsNullOrEmpty(PagingNoticeTestId);
-
-    private string NoticeMessageFor(TenantListReason reason)
-        => reason switch
+        => _snapshot.Notice switch
         {
             TenantListReason.ListRefreshed => Localizer["Tenants.List.Notice.ListRefreshed"],
             TenantListReason.SearchRefreshed => Localizer["Tenants.List.Notice.SearchRefreshed"],
@@ -411,18 +378,12 @@
         };
 
     private string NoticeTestId
-        => NoticeTestIdFor(_snapshot.Notice);
-
-    private string PagingNoticeTestId
-        => NoticeTestIdFor(_snapshot.PagingNotice);
-
-    private static string NoticeTestIdFor(TenantListReason reason)
-        => reason switch
+        => _snapshot.Notice switch
         {
             TenantListReason.ListRefreshed => "tenants-list-refreshed-notice",
             TenantListReason.SearchRefreshed => "tenants-list-search-refreshed-notice",
             TenantListReason.SearchUnavailable => "tenants-list-search-unavailable-notice",
-            _ => string.Empty,
+            _ => "tenants-list-notice",
         };
 
     protected override async Task OnInitializedAsync()
@@ -476,11 +437,6 @@
     private async Task LoadAsync(bool reuseETag)
     {
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
-        if (_loadCancellation is not null)
-        {
-            _searchPagingRecoveryNoticeScope = null;
-        }
-
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
         _loadCancellation = new CancellationTokenSource();
@@ -490,47 +446,9 @@
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
-        string? authenticatedUserId = AuthenticatedUserId;
-        bool restoreSearchPagingContext = _restoreSearchPagingContextPending;
-        bool eligibleDetailReturn = HasValidatedTenantDetailReturnContext
-            && HasActiveSearch
-            && !string.IsNullOrWhiteSpace(authenticatedUserId);
-        bool retainedPagingMatched = false;
-        if (restoreSearchPagingContext)
-        {
-            if (eligibleDetailReturn)
-            {
-                foreach (int retainedPageSize in _pageSizes)
-                {
-                    string retainedScope = TenantSearchCursorScopes.Create(
-                        authenticatedUserId!,
-                        _search!,
-                        status?.ToString(),
-                        _sortColumn,
-                        _sortDescending,
-                        retainedPageSize);
-                    if (!SearchPaging.MatchesScope(retainedScope))
-                    {
-                        continue;
-                    }
-
-                    _pageSize = retainedPageSize;
-                    retainedPagingMatched = true;
-                    break;
-                }
-            }
-
-            if (!eligibleDetailReturn)
-            {
-                SearchPaging.Reset();
-            }
-
-            _restoreSearchPagingContextPending = false;
-        }
-
-        string? searchScope = HasActiveSearch && !string.IsNullOrWhiteSpace(authenticatedUserId)
+        string? searchScope = HasActiveSearch && !string.IsNullOrWhiteSpace(AuthenticatedUserId)
             ? TenantSearchCursorScopes.Create(
-                authenticatedUserId!,
+                AuthenticatedUserId!,
                 _search!,
                 status?.ToString(),
                 _sortColumn,
@@ -538,13 +456,6 @@
                 _pageSize)
             : null;
         SearchPaging.EnsureScope(searchScope);
-        _searchPagingRecoveryNoticeScope = restoreSearchPagingContext
-            && eligibleDetailReturn
-            && searchScope is not null
-            && !retainedPagingMatched
-                ? searchScope
-                : null;
-        string? recoveryNoticeScopeForLoad = _searchPagingRecoveryNoticeScope;
         TenantListRequest request = new(
             Cursor: HasActiveSearch ? SearchPaging.FallbackCursor : _currentCursor,
             PageSize: _pageSize,
@@ -562,7 +473,6 @@
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            ClearSearchPagingRecoveryNotice(recoveryNoticeScopeForLoad);
             return;
         }
 
@@ -571,24 +481,6 @@
             if (loadVersion != _loadVersion)
             {
                 return;
-            }
-
-            if (snapshot.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
-            {
-                ClearSearchPagingRecoveryNotice(recoveryNoticeScopeForLoad);
-            }
-            else if (recoveryNoticeScopeForLoad is not null
-                && string.Equals(_searchPagingRecoveryNoticeScope, recoveryNoticeScopeForLoad, StringComparison.Ordinal)
-                && string.Equals(searchScope, recoveryNoticeScopeForLoad, StringComparison.Ordinal))
-            {
-                snapshot = snapshot with
-                {
-                    PagingRecovered = true,
-                    PagingNotice = snapshot.PagingNotice is TenantListReason.None
-                        ? TenantListReason.SearchRefreshed
-                        : snapshot.PagingNotice,
-                };
-                ClearSearchPagingRecoveryNotice(recoveryNoticeScopeForLoad);
             }
 
             _snapshot = snapshot;
@@ -600,18 +492,7 @@
             {
                 _lastConfirmedSnapshot = snapshot;
             }
-            if (snapshot.PagingRecovered)
-            {
-                if (!snapshot.IsAuthoritativeSearch && snapshot.PagingNotice == TenantListReason.ListRefreshed)
-                {
-                    SearchPaging.RecoverFallback();
-                }
-                else
-                {
-                    SearchPaging.RecoverSearch();
-                }
-            }
-            else if (snapshot.Notice == TenantListReason.SearchRefreshed)
+            if (snapshot.PagingRecovered || snapshot.Notice == TenantListReason.SearchRefreshed)
             {
                 SearchPaging.RecoverSearch();
             }
@@ -628,15 +509,6 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true);
-
-    private void ClearSearchPagingRecoveryNotice(string? scope)
-    {
-        if (scope is not null
-            && string.Equals(_searchPagingRecoveryNoticeScope, scope, StringComparison.Ordinal))
-        {
-            _searchPagingRecoveryNoticeScope = null;
-        }
-    }
 
     private async Task<TenantSummary?> FindTenantProjectionEvidenceAsync(string tenantId)
     {
@@ -895,7 +767,6 @@
         _activeTabId = state.Tab;
         if (clearCursorHistory)
         {
-            _searchPagingRecoveryNoticeScope = null;
             _cursorHistory.Clear();
             if (state.Tab == TenantsTabId && !string.IsNullOrWhiteSpace(state.Cursor))
             {
@@ -957,7 +828,6 @@
     public void Dispose()
     {
         _disposed = true;
-        _searchPagingRecoveryNoticeScope = null;
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
     }

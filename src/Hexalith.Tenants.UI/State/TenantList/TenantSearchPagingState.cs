@@ -12,10 +12,6 @@ internal sealed class TenantSearchPagingState {
     /// <summary>Gets the current ordinary-list fallback cursor.</summary>
     public string? FallbackCursor { get; private set; }
 
-    /// <summary>Gets whether the retained state belongs to the exact protected search scope.</summary>
-    public bool MatchesScope(string? scope)
-        => string.Equals(_scope, scope, StringComparison.Ordinal);
-
     /// <summary>Resets paging when the exact search identity changes.</summary>
     public void EnsureScope(string? scope) {
         if (string.Equals(_scope, scope, StringComparison.Ordinal)) {
@@ -65,21 +61,11 @@ internal sealed class TenantSearchPagingState {
         SearchCursor = null;
     }
 
-    /// <summary>Clears invalidated ordinary-list fallback paging while retaining its search identity.</summary>
-    public void RecoverFallback() {
-        _fallbackHistory.Clear();
-        FallbackCursor = null;
-    }
-
     /// <summary>Clears all server-held paging state.</summary>
     public void Reset() {
         _scope = null;
         ResetPositions();
     }
-
-    /// <summary>Returns support-safe paging diagnostics without scope or cursor material.</summary>
-    public override string ToString()
-        => $"{nameof(TenantSearchPagingState)} {{ HasScope = {_scope is not null}, HasSearchCursor = {SearchCursor is not null}, HasFallbackCursor = {FallbackCursor is not null}, HasSearchHistory = {_searchHistory.Count > 0}, HasFallbackHistory = {_fallbackHistory.Count > 0} }}";
 
     private void ResetPositions() {
         _searchHistory.Clear();
