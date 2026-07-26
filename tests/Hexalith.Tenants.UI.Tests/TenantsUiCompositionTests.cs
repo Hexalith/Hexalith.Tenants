@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
 using System.Text.Json;
@@ -32,6 +34,8 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class TenantsUiCompositionTests
 {
+    private static readonly TimeSpan MsBuildEvaluationTimeout = TimeSpan.FromMinutes(3);
+
     [Fact]
     public void FrontComposer_registration_exposes_tenants_nav_entries_and_minimal_manifest()
     {
@@ -186,15 +190,22 @@ public sealed class TenantsUiCompositionTests
         globalAdministratorsQuery.ShouldContain("RestQueryBindingSource.Constant, \"global-administrators\"");
     }
 
-    [Fact]
-    public async Task TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost(bool useProjectReferences)
     {
         string uiRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI");
         string uiProjectPath = Path.Combine(uiRoot, "Hexalith.Tenants.UI.csproj");
-        List<string> dependencies = [];
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: true));
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: false));
 
+        // Each dependency-resolution mode is asserted on its own. Unioning the two modes let a
+        // non-empty result from one satisfy the positive assertion for both, and let every negative
+        // assertion pass vacuously whenever a mode returned nothing at all.
+        string[] dependencies = await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences);
+
+        dependencies.ShouldNotBeEmpty(
+            $"MSBuild evaluation returned no dependency items for UseHexalithProjectReferences={useProjectReferences}; "
+            + "every assertion below would pass vacuously.");
         dependencies.ShouldContain(
             static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants.Client"),
             "Interactive Tenants UI must consume the approved typed Tenants client seam.");
@@ -204,6 +215,50 @@ public sealed class TenantsUiCompositionTests
             .ShouldBeEmpty("Generated REST analyzers belong only in Hexalith.Tenants.Api.");
         dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants"))
             .ShouldBeEmpty("Interactive Tenants UI must not reference the Tenants domain-service host.");
+    }
+
+    /// <summary>
+    /// Closes the transitive blind spot in the MSBuild-evaluation test above, which can only observe
+    /// dependencies the UI project declares itself. A REST generator acquired through
+    /// <c>Hexalith.Tenants.Client</c> would be invisible there. Two compiled-artifact guards cover it:
+    /// the generator is opt-in on an assembly-level <c>RestApi</c> attribute, so its absence makes the
+    /// generator inert however it arrived; and the referenced-assembly set proves which client seam the
+    /// compiled UI actually binds to, which evaluation-time item lists cannot show.
+    /// </summary>
+    [Fact]
+    public void TenantsUiAssembly_BindsTypedClientSeamAndCarriesNoRestApiOptIn()
+    {
+        Assembly uiAssembly = typeof(TenantsUiServiceCollectionExtensions).Assembly;
+        string[] referenced = uiAssembly
+            .GetReferencedAssemblies()
+            .Select(static name => name.Name ?? string.Empty)
+            .ToArray();
+
+        referenced.ShouldNotBeEmpty("Referenced-assembly metadata is required for the assertions below.");
+        referenced.ShouldContain(
+            "Hexalith.EventStore.Client",
+            "Interactive Tenants UI must bind the EventStore typed query client; this is the seam AC1 "
+            + "requires and it reaches the UI transitively, so only the compiled assembly can prove it.");
+        referenced.ShouldContain(
+            "Hexalith.Tenants.Contracts",
+            "Interactive Tenants UI must bind the shared Tenants contracts through the typed client seam.");
+
+        foreach (string forbidden in new[] { "Hexalith.Tenants.Api", "Hexalith.Tenants", "Hexalith.EventStore.RestApi.Generators" })
+        {
+            referenced.ShouldNotContain(
+                forbidden,
+                $"Interactive Tenants UI must not bind {forbidden}, directly or transitively.");
+        }
+
+        uiAssembly.GetCustomAttributesData()
+            .Where(static attribute => string.Equals(
+                attribute.AttributeType.FullName,
+                "Hexalith.EventStore.Contracts.Rest.RestApiAttribute",
+                StringComparison.Ordinal))
+            .ShouldBeEmpty(
+                "Interactive Tenants UI must not declare the generated-REST assembly opt-in. The generator "
+                + "emits controllers only for assemblies carrying this attribute, so its absence keeps the "
+                + "generator inert even if it were acquired transitively.");
     }
 
     [Fact]
@@ -229,6 +284,12 @@ public sealed class TenantsUiCompositionTests
             .GetServices<EndpointDataSource>()
             .SelectMany(static source => source.Endpoints)
             .ToArray();
+
+        // Positive control. Without it the negative assertion below would pass for the wrong reason
+        // if the reduced test host ever stopped producing endpoints at all.
+        endpoints.ShouldNotBeEmpty(
+            "The Tenants UI test host produced no endpoints, so the forbidden-endpoint assertion "
+            + "below would pass vacuously rather than because the host is clean.");
 
         string[] forbiddenEndpoints = endpoints
             .Where(static endpoint => endpoint.Metadata.GetMetadata<ControllerActionDescriptor>() is not null
@@ -512,26 +573,101 @@ public sealed class TenantsUiCompositionTests
         startInfo.ArgumentList.Add(projectPath);
         startInfo.ArgumentList.Add("-nologo");
         startInfo.ArgumentList.Add("-verbosity:quiet");
-        startInfo.ArgumentList.Add("-getItem:ProjectReference,PackageReference,Reference,Analyzer");
+        startInfo.ArgumentList.Add("-nodeReuse:false");
+
+        // Only ProjectReference and PackageReference carry signal here. `-getItem` is evaluation-only,
+        // so `Reference` always resolves empty and `Analyzer` always returns the same SDK-implicit set
+        // regardless of the project under test — including for Hexalith.Tenants.Api, which genuinely
+        // carries the REST generator. Asserting over them gave the negatives false authority.
+        // TenantsUiAssembly_BindsTypedClientSeamAndCarriesNoRestApiOptIn covers what they appeared to.
+        startInfo.ArgumentList.Add("-getItem:ProjectReference,PackageReference");
         startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
 
-        using Process process = Process.Start(startInfo)
+        Process? started;
+        try
+        {
+            started = Process.Start(startInfo);
+        }
+        catch (Win32Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Could not launch 'dotnet' for UI dependency evaluation. The .NET SDK must be on PATH "
+                + "for this test to have any authority; a missing SDK must fail loudly rather than "
+                + "silently skip the generated-REST governance assertions.",
+                ex);
+        }
+
+        using Process process = started
             ?? throw new InvalidOperationException("Could not start dotnet msbuild for UI dependency evaluation.");
         Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
         Task<string> standardError = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        using var timeout = new CancellationTokenSource(MsBuildEvaluationTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+                // The process exited between the timeout firing and the kill request.
+            }
+
+            throw new TimeoutException(
+                $"dotnet msbuild dependency evaluation for '{projectPath}' did not exit within "
+                + $"{MsBuildEvaluationTimeout.TotalSeconds:F0}s and was terminated.");
+        }
+
         string output = await standardOutput.ConfigureAwait(false);
         string error = await standardError.ConfigureAwait(false);
 
         process.ExitCode.ShouldBe(0, $"dotnet msbuild dependency evaluation failed: {error}");
 
-        using JsonDocument document = JsonDocument.Parse(output);
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(output);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException(
+                "dotnet msbuild returned output that is not valid JSON, so the UI dependency graph "
+                + $"could not be evaluated. First 500 characters:{Environment.NewLine}"
+                + output[..Math.Min(output.Length, 500)],
+                ex);
+        }
+
+        using (document)
+        {
+            return ReadDependencyValues(document);
+        }
+    }
+
+    private static string[] ReadDependencyValues(JsonDocument document)
+    {
+        if (!document.RootElement.TryGetProperty("Items", out JsonElement items))
+        {
+            throw new InvalidOperationException(
+                "dotnet msbuild output contained no 'Items' object. The evaluation contract changed, "
+                + "and every dependency assertion built on it would pass vacuously.");
+        }
+
         var values = new List<string>();
-        foreach (JsonProperty itemType in document.RootElement.GetProperty("Items").EnumerateObject())
+        foreach (JsonProperty itemType in items.EnumerateObject())
         {
             foreach (JsonElement item in itemType.Value.EnumerateArray())
             {
-                foreach (string propertyName in new[] { "Identity", "FullPath", "HintPath", "NuGetPackageId", "Filename" })
+                // "Filename" is deliberately excluded. MSBuild splits an item identity at its LAST dot,
+                // so a package-mode `Hexalith.Tenants.Client` carries Filename="Hexalith.Tenants" and
+                // would trip the "must not reference the Tenants domain-service host" assertion. The
+                // remaining metadata identify a dependency exactly; .csproj and .dll paths are matched
+                // by suffix in MatchesDependencyIdentity.
+                foreach (string propertyName in new[] { "Identity", "FullPath", "HintPath", "NuGetPackageId" })
                 {
                     if (item.TryGetProperty(propertyName, out JsonElement value)
                         && value.ValueKind == JsonValueKind.String
