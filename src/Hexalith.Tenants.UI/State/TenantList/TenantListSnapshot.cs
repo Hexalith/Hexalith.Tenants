@@ -14,10 +14,12 @@ public sealed record TenantListSnapshot(
     TenantListReason Reason = TenantListReason.None,
     TenantListReason Notice = TenantListReason.None,
     bool IsAuthoritativeSearch = false,
-    bool PagingRecovered = false) {
+    bool PagingRecovered = false,
+    bool FallbackPagingRecovered = false,
+    TenantListReason PagingNotice = TenantListReason.None) {
     /// <summary>Returns a support-safe description that omits cursor, ETag, and indexed material.</summary>
     public override string ToString()
-        => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered} }}";
+        => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered}, FallbackPagingRecovered = {FallbackPagingRecovered}, PagingNotice = {PagingNotice} }}";
 
     public static TenantListSnapshot Loading()
         => new(

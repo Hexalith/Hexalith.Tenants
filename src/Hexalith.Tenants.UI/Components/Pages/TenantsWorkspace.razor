@@ -3,6 +3,7 @@
 @implements IDisposable
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.UI.Components.Users
+@using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
@@ -147,13 +148,32 @@
         }
     </Commands>
     <States>
-        @if (IsTenantListView && _snapshot.Notice is not TenantListReason.None)
-        {
-            <FluentMessageBar Intent="MessageBarIntent.Info"
-                              AriaLive="AriaLive.Polite"
-                              Title="@NoticeMessage"
-                              data-testid="@NoticeTestId" />
-        }
+        @* Both notices share exactly one polite live region. Two sibling live regions announcing together
+           are routinely coalesced or dropped by screen readers, so the region wraps the bars instead. The
+           region itself renders unconditionally -- including across a workspace tab round trip, which must
+           not re-insert it together with an already-populated notice -- because a live region inserted in
+           the same render that first populates it is routinely not announced. Only the bars inside are
+           conditional. *@
+        <FluentStack Orientation="Orientation.Vertical"
+                     VerticalGap="8px"
+                     Width="100%"
+                     role="status"
+                     aria-live="polite"
+                     aria-atomic="true"
+                     data-testid="tenants-list-notices">
+            @if (HasPrimaryNotice)
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Info"
+                                  Title="@NoticeMessage"
+                                  data-testid="@NoticeTestId" />
+            }
+            @if (HasSecondaryNotice)
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Info"
+                                  Title="@PagingNoticeMessage"
+                                  data-testid="@PagingNoticeTestId" />
+            }
+        </FluentStack>
         @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
@@ -165,6 +185,15 @@
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+        }
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
+        {
+            @* No filter-reset affordance here: this surface tells the operator that later pages of the same
+               search may still hold results, so it must not also offer an action that ends that search. The
+               status filter and Reset control remain available in the toolbar above. *@
+            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty"
+                               Reason="@_snapshot.Reason"
+                               HasMore="@_snapshot.HasMore" />
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
         {
@@ -212,7 +241,7 @@
         }
     </Body>
     <Pager>
-        @if (IsTenantListView && ShowList)
+        @if (ShowPager)
         {
             <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
@@ -276,6 +305,7 @@
     private bool _focusHeadingPending;
     private bool _initialized;
     private bool _disposed;
+    private bool _restoreSearchPagingContextPending = true;
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
     private TenantSearchPagingState? _searchPaging;
@@ -341,14 +371,28 @@
     private bool HasActiveSearch
         => !string.IsNullOrWhiteSpace(_search);
 
+    // The scoped paging service resolved on a non-interactive (static SSR / prerender) render pass belongs
+    // to that request's scope, not to the interactive circuit, so retained protected paging must neither be
+    // restored nor reported from it. The cascading HttpContext cannot carry this signal: it does not cross
+    // render-mode boundaries and is null on both passes of an InteractiveServer component.
+    private bool IsInteractiveCircuit
+        => RendererInfo.IsInteractive;
+
+    private bool HasValidatedTenantDetailReturnContext
+        => !string.IsNullOrWhiteSpace(_selectedTenantId)
+            && string.Equals(QuerySelectedTenantId, _selectedTenantId, StringComparison.Ordinal)
+            && string.Equals(QueryAnchor, _returnAnchor, StringComparison.Ordinal)
+            && string.Equals(_returnAnchor, $"tenant-row-{_selectedTenantId}", StringComparison.Ordinal);
+
     private bool HasPreviousPage
         => HasActiveSearch
             ? SearchPaging.HasPrevious(_snapshot.IsAuthoritativeSearch)
             : _cursorHistory.Count > 0;
 
+    // Resolved as a required service so a dropped registration fails loudly instead of silently degrading
+    // to per-component paging that cannot survive tenant-detail navigation.
     private TenantSearchPagingState SearchPaging
-        => _searchPaging ??= (TenantSearchPagingState?)Services.GetService(typeof(TenantSearchPagingState))
-            ?? new TenantSearchPagingState();
+        => _searchPaging ??= Services.GetRequiredService<TenantSearchPagingState>();
 
     private string? AuthenticatedUserId
         => (Services.GetService(typeof(IUserContextAccessor)) as IUserContextAccessor)?.UserId;
@@ -364,26 +408,63 @@
         => _snapshot.Kind is not TenantListSurfaceKind.Loading
             && !(_visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
             && _snapshot.Kind is not (TenantListSurfaceKind.FilteredEmpty
+                or TenantListSurfaceKind.SearchPageEmpty
                 or TenantListSurfaceKind.Empty
                 or TenantListSurfaceKind.Error
                 or TenantListSurfaceKind.Unauthorized);
 
+    private bool ShowPager
+        => IsTenantListView
+            && _snapshot.Kind is not (TenantListSurfaceKind.Loading
+                or TenantListSurfaceKind.Error
+                or TenantListSurfaceKind.Unauthorized)
+            && (ShowList || HasPreviousPage || _snapshot.HasMore);
+
     private string NoticeMessage
-        => _snapshot.Notice switch
+        => NoticeMessageFor(_snapshot.Notice);
+
+    private string PagingNoticeMessage
+        => NoticeMessageFor(_snapshot.PagingNotice);
+
+    private string NoticeTestId
+        => NoticeTestIdFor(_snapshot.Notice);
+
+    private string PagingNoticeTestId
+        => NoticeTestIdFor(_snapshot.PagingNotice);
+
+    // Neither notice bar may render without a mapped localized message and a stable non-empty test id, so
+    // no reason can produce a blank titled message bar or an unaddressable selector.
+    private bool HasPrimaryNotice
+        => IsTenantListView
+            && _snapshot.Notice is not TenantListReason.None
+            && !string.IsNullOrEmpty(NoticeMessage)
+            && !string.IsNullOrEmpty(NoticeTestId);
+
+    private bool HasSecondaryNotice
+        => IsTenantListView
+            && _snapshot.PagingNotice is not TenantListReason.None
+            && _snapshot.PagingNotice != _snapshot.Notice
+            && !string.IsNullOrEmpty(PagingNoticeMessage)
+            && !string.IsNullOrEmpty(PagingNoticeTestId);
+
+    private string NoticeMessageFor(TenantListReason reason)
+        => reason switch
         {
             TenantListReason.ListRefreshed => Localizer["Tenants.List.Notice.ListRefreshed"],
             TenantListReason.SearchRefreshed => Localizer["Tenants.List.Notice.SearchRefreshed"],
             TenantListReason.SearchUnavailable => Localizer["Tenants.List.Notice.SearchUnavailable"],
+            TenantListReason.SearchPagingRestarted => Localizer["Tenants.List.Notice.SearchPagingRestarted"],
             _ => string.Empty,
         };
 
-    private string NoticeTestId
-        => _snapshot.Notice switch
+    private static string NoticeTestIdFor(TenantListReason reason)
+        => reason switch
         {
             TenantListReason.ListRefreshed => "tenants-list-refreshed-notice",
             TenantListReason.SearchRefreshed => "tenants-list-search-refreshed-notice",
             TenantListReason.SearchUnavailable => "tenants-list-search-unavailable-notice",
-            _ => "tenants-list-notice",
+            TenantListReason.SearchPagingRestarted => "tenants-list-search-paging-restarted-notice",
+            _ => string.Empty,
         };
 
     protected override async Task OnInitializedAsync()
@@ -405,7 +486,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!_initialized)
+        if (!_initialized || _disposed)
         {
             return;
         }
@@ -436,6 +517,14 @@
 
     private async Task LoadAsync(bool reuseETag)
     {
+        // A disposed component must never issue another load: it would keep consuming and mutating the
+        // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
+        // clear protected history behind a surface that no operator can see.
+        if (_disposed)
+        {
+            return;
+        }
+
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
@@ -446,25 +535,94 @@
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
-        string? searchScope = HasActiveSearch && !string.IsNullOrWhiteSpace(AuthenticatedUserId)
+        string? authenticatedUserId = AuthenticatedUserId;
+        bool interactiveCircuit = IsInteractiveCircuit;
+        bool restoreSearchPagingContext = interactiveCircuit && _restoreSearchPagingContextPending;
+        bool eligibleDetailReturn = HasValidatedTenantDetailReturnContext
+            && HasActiveSearch
+            && !string.IsNullOrWhiteSpace(authenticatedUserId);
+        bool retainedPagingMatched = false;
+        if (restoreSearchPagingContext)
+        {
+            if (eligibleDetailReturn)
+            {
+                // The retained page size is server-held, so the exact retained scope is identified by
+                // probing the supported page sizes instead of trusting anything from the URL.
+                foreach (int retainedPageSize in _pageSizes)
+                {
+                    string retainedScope = TenantSearchCursorScopes.Create(
+                        authenticatedUserId!,
+                        _search!,
+                        status?.ToString(),
+                        _sortColumn,
+                        _sortDescending,
+                        retainedPageSize);
+                    if (!SearchPaging.MatchesScope(retainedScope))
+                    {
+                        continue;
+                    }
+
+                    _pageSize = retainedPageSize;
+                    retainedPagingMatched = true;
+                    break;
+                }
+            }
+
+            if (!eligibleDetailReturn)
+            {
+                SearchPaging.Reset();
+            }
+
+            _restoreSearchPagingContextPending = false;
+        }
+
+        string? searchScope = HasActiveSearch && !string.IsNullOrWhiteSpace(authenticatedUserId)
             ? TenantSearchCursorScopes.Create(
-                AuthenticatedUserId!,
+                authenticatedUserId!,
                 _search!,
                 status?.ToString(),
                 _sortColumn,
                 _sortDescending,
                 _pageSize)
             : null;
-        SearchPaging.EnsureScope(searchScope);
+        if (interactiveCircuit)
+        {
+            SearchPaging.EnsureScope(searchScope);
+        }
+
+        if (restoreSearchPagingContext
+            && eligibleDetailReturn
+            && searchScope is not null
+            && !retainedPagingMatched)
+        {
+            // Retained protected paging could not be validated. The honest page-one recovery notice stays
+            // pending until a load for this exact scope actually resolves, so a superseding load cannot
+            // silently discard it. The decision lives in the circuit-scoped paging service beside the
+            // cursors it governs, never in a component field.
+            SearchPaging.SetPendingRecoveryScope(searchScope);
+        }
+
+        string? recoveryScopeForLoad = interactiveCircuit ? SearchPaging.PendingRecoveryScope : null;
+
+        // The authoritative/fallback crossing is resolved before the outgoing request is built: only the
+        // currently active paging mode may contribute a retained cursor. If this load crosses the boundary,
+        // the mode it enters therefore starts at its own first page instead of resuming the stale cursor it
+        // left behind, which is what makes the "paging restarted from the first page" notice honest about
+        // the very load that carried it. A null mode means no load has resolved yet, so nothing is retained.
+        bool? activeMode = interactiveCircuit ? SearchPaging.ActiveModeAuthoritative : null;
         TenantListRequest request = new(
-            Cursor: HasActiveSearch ? SearchPaging.FallbackCursor : _currentCursor,
+            Cursor: HasActiveSearch
+                ? activeMode is false ? SearchPaging.FallbackCursor : null
+                : _currentCursor,
             PageSize: _pageSize,
             Search: _search,
             Status: status,
             SortColumn: _sortColumn,
             SortDescending: _sortDescending,
             ETag: reuseETag ? previous.ETag : null,
-            SearchCursor: HasActiveSearch ? SearchPaging.SearchCursor : null);
+            SearchCursor: HasActiveSearch && interactiveCircuit && activeMode is not false
+                ? SearchPaging.SearchCursor
+                : null);
 
         TenantListSnapshot snapshot;
         try
@@ -478,24 +636,47 @@
 
         await InvokeAsync(() =>
         {
-            if (loadVersion != _loadVersion)
+            // The disposal guard covers the post-await apply block as well as the load entry: a load that
+            // returns after disposal must mutate no paging state, or it could retire a paging mode and
+            // clear protected history behind a surface no operator can see.
+            if (_disposed || loadVersion != _loadVersion)
             {
                 return;
+            }
+
+            // The pending decision is consumed only when the notice is actually applied. A transient error
+            // on the detail-return load must not silently swallow it: the next same-scope load reports it.
+            if (recoveryScopeForLoad is not null
+                && snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
+                && string.Equals(searchScope, recoveryScopeForLoad, StringComparison.Ordinal)
+                && string.Equals(SearchPaging.PendingRecoveryScope, recoveryScopeForLoad, StringComparison.Ordinal))
+            {
+                SearchPaging.ClearPendingRecoveryScope();
+                snapshot = snapshot with
+                {
+                    PagingRecovered = true,
+                    PagingNotice = snapshot.PagingNotice is TenantListReason.None
+                        ? TenantListReason.SearchRefreshed
+                        : snapshot.PagingNotice,
+                };
+            }
+
+            if (interactiveCircuit)
+            {
+                snapshot = ReconcileSearchPaging(snapshot);
             }
 
             _snapshot = snapshot;
             if (snapshot.Kind is TenantListSurfaceKind.Ready
                 or TenantListSurfaceKind.Empty
                 or TenantListSurfaceKind.FilteredEmpty
+                or TenantListSurfaceKind.SearchPageEmpty
                 or TenantListSurfaceKind.Stale
                 or TenantListSurfaceKind.Degraded)
             {
                 _lastConfirmedSnapshot = snapshot;
             }
-            if (snapshot.PagingRecovered || snapshot.Notice == TenantListReason.SearchRefreshed)
-            {
-                SearchPaging.RecoverSearch();
-            }
+
             if (snapshot.Notice == TenantListReason.ListRefreshed)
             {
                 TenantWorkspaceState recovered = CurrentWorkspaceState() with { Cursor = null };
@@ -509,6 +690,73 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true);
+
+    // Reconciles the two search paging modes. Crossing the authoritative/fallback boundary retires the
+    // mode that is no longer active, so its Previous affordance cannot offer unreachable pages and a
+    // retained protected cursor can never silently reactivate on a later recovery. Retiring a mode is
+    // never silent: in both directions the operator gets a mapped, localized paging notice explaining why
+    // paging jumped back to the first page, and the crossing notice yields its slot only to copy that
+    // already explains a search restart. The mode itself lives in the circuit-scoped paging service, so
+    // the crossing is still detected after a tenant-detail return recreates this component.
+    private TenantListSnapshot ReconcileSearchPaging(TenantListSnapshot snapshot)
+    {
+        if (!HasActiveSearch)
+        {
+            SearchPaging.ClearActiveMode();
+            return snapshot;
+        }
+
+        bool renderable = snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized);
+        if (renderable)
+        {
+            bool authoritative = snapshot.IsAuthoritativeSearch;
+            if (SearchPaging.ActiveModeAuthoritative is bool previousMode && previousMode != authoritative)
+            {
+                if (authoritative)
+                {
+                    SearchPaging.RecoverFallback();
+                }
+                else
+                {
+                    SearchPaging.RecoverSearch();
+                }
+
+                if (!ExplainsSearchRestart(snapshot.PagingNotice))
+                {
+                    snapshot = snapshot with { PagingNotice = TenantListReason.SearchPagingRestarted };
+                }
+            }
+
+            SearchPaging.SetActiveMode(authoritative);
+        }
+
+        // Protected paging history is cleared on the very load that reports the invalidation, terminal
+        // surfaces included: both bars render from the notice reasons alone and never consult Kind, so an
+        // Error/Unauthorized surface still carries the copy that explains the clearing. No deferred or
+        // pending mechanism exists, and none may be reintroduced -- a decision that outlives a load would
+        // have to live in the circuit-scoped paging service, never in a component field a tenant-detail
+        // return discards.
+        if (snapshot.PagingRecovered || snapshot.Notice == TenantListReason.SearchRefreshed)
+        {
+            SearchPaging.RecoverSearch();
+            if (!ExplainsSearchRestart(snapshot.Notice) && !ExplainsSearchRestart(snapshot.PagingNotice))
+            {
+                snapshot = snapshot with { PagingNotice = TenantListReason.SearchRefreshed };
+            }
+        }
+
+        if (snapshot.FallbackPagingRecovered)
+        {
+            SearchPaging.RecoverFallback();
+        }
+
+        return snapshot;
+    }
+
+    // Copy that tells the operator protected search paging restarted from the first page. A load that
+    // clears protected search history must always render one of these, in whichever slot carries it.
+    private static bool ExplainsSearchRestart(TenantListReason reason)
+        => reason is TenantListReason.SearchRefreshed or TenantListReason.SearchPagingRestarted;
 
     private async Task<TenantSummary?> FindTenantProjectionEvidenceAsync(string tenantId)
     {
@@ -670,7 +918,7 @@
 
     private async Task OnActiveTabChanged(string? activeTabId)
     {
-        if (!RendererInfo.IsInteractive || _disposed || string.IsNullOrWhiteSpace(activeTabId))
+        if (!IsInteractiveCircuit || _disposed || string.IsNullOrWhiteSpace(activeTabId))
         {
             return;
         }
@@ -767,6 +1015,7 @@
         _activeTabId = state.Tab;
         if (clearCursorHistory)
         {
+            _searchPaging?.ClearPendingRecoveryScope();
             _cursorHistory.Clear();
             if (state.Tab == TenantsTabId && !string.IsNullOrWhiteSpace(state.Cursor))
             {
@@ -828,6 +1077,7 @@
     public void Dispose()
     {
         _disposed = true;
+        _searchPaging?.ClearPendingRecoveryScope();
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
     }

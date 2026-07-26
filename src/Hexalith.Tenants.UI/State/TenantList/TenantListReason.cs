@@ -31,4 +31,10 @@ public enum TenantListReason
 
     /// <summary>Protected search paging was invalidated and restarted from the first raw page.</summary>
     SearchRefreshed,
+
+    /// <summary>
+    /// The active result source changed between whole-set search and the ordinary list, so the retired
+    /// paging mode was cleared and paging restarted from the first page of the incoming mode.
+    /// </summary>
+    SearchPagingRestarted,
 }

@@ -70,6 +70,47 @@ public sealed class TenantWorkspaceStateTests
     }
 
     [Fact]
+    public void Active_search_rejects_any_incoming_cursor_and_keeps_it_out_of_the_canonical_url()
+    {
+        // Search paging is protected and server-held; the canonical URL owns only ordinary-list cursors.
+        TenantWorkspaceState state = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: "needle",
+            status: TenantStatus.Active.ToString(),
+            sort: TenantListSortColumns.Name,
+            sortDescending: "true",
+            cursor: "opaque-ordinary-cursor",
+            selectedTenantId: "tenant.alpha",
+            anchor: "tenant-row-tenant.alpha");
+
+        state.Search.ShouldBe("needle");
+        state.Cursor.ShouldBeNull();
+
+        string canonicalUrl = state.ToCanonicalUrl();
+        canonicalUrl.ShouldContain("search=needle");
+        canonicalUrl.ShouldNotContain("cursor", Case.Insensitive);
+        canonicalUrl.ShouldNotContain("opaque-ordinary-cursor", Case.Sensitive);
+
+        // Clearing the search term restores ordinary cursor retention for the same surface.
+        TenantWorkspaceState ordinary = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: null,
+            status: TenantStatus.Active.ToString(),
+            sort: TenantListSortColumns.Name,
+            sortDescending: "true",
+            cursor: "opaque-ordinary-cursor",
+            selectedTenantId: null,
+            anchor: null);
+
+        ordinary.Cursor.ShouldBe("opaque-ordinary-cursor");
+        ordinary.ToCanonicalUrl().ShouldContain("cursor=opaque-ordinary-cursor");
+    }
+
+    [Fact]
     public void State_transitions_reset_cursor_when_query_identity_changes()
     {
         TenantWorkspaceState state = TenantWorkspaceState.FromQuery(

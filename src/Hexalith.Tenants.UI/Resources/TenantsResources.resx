@@ -129,6 +129,9 @@
   <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
     <value>The protected search page was no longer available. Search has restarted from the first page.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchPagingRestarted" xml:space="preserve">
+    <value>The available tenant source changed. Paging restarted from the first page.</value>
+  </data>
   <data name="Tenants.List.Reason.GatewayUnavailable" xml:space="preserve">
     <value>The authorized tenant list could not be loaded. Try again later.</value>
   </data>
@@ -179,6 +182,15 @@
   </data>
   <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
     <value>No tenants match filters</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.FinalMessage" xml:space="preserve">
+    <value>No authorized tenants were verified on this page of the search, and no further pages remain for this search.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.Message" xml:space="preserve">
+    <value>No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
+    <value>No visible tenants on this search page</value>
   </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Tenant data is loading from the server-side query gateway.</value>

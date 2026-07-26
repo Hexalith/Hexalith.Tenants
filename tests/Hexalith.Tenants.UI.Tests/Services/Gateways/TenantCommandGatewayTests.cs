@@ -1242,7 +1242,7 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         handler.RequestUri.ShouldNotBeNull().ToString().ShouldEndWith("/api/v1/commands/status/correlation-123");
-        handler.RequestUri.ToString().ShouldNotContain("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        handler.RequestUri.ShouldNotBeNull().AbsoluteUri.ShouldNotContain("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.Status.ShouldBe(CommandStatus.Completed);
     }
 

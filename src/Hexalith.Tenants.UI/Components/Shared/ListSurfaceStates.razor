@@ -7,6 +7,9 @@
          data-testid="@TestId">
     <h2>@Localizer[$"Tenants.List.State.{ResourceName}.Title"]</h2>
     <p>@Message</p>
+    @* The reset affordance belongs to the filtered-empty verdict only. An empty authoritative search page
+       whose own copy says later pages may still hold results must never offer an action that ends that
+       search. *@
     @if (Kind is TenantListSurfaceKind.FilteredEmpty)
     {
         <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-state-reset" OnClick="OnReset">
@@ -28,6 +31,13 @@
     [Parameter]
     public TenantListReason Reason { get; set; }
 
+    /// <summary>
+    /// Whether the surface can still reach a later page. An empty authoritative search page may only
+    /// promise later results while paging has not ended.
+    /// </summary>
+    [Parameter]
+    public bool HasMore { get; set; }
+
     [Parameter]
     public EventCallback OnReset { get; set; }
 
@@ -39,6 +49,7 @@
         TenantListSurfaceKind.Loading => "Loading",
         TenantListSurfaceKind.Empty => "Empty",
         TenantListSurfaceKind.FilteredEmpty => "FilteredEmpty",
+        TenantListSurfaceKind.SearchPageEmpty => "SearchPageEmpty",
         TenantListSurfaceKind.Error => "Error",
         TenantListSurfaceKind.Unauthorized => "Unauthorized",
         TenantListSurfaceKind.Stale => "Stale",
@@ -51,6 +62,7 @@
         TenantListSurfaceKind.Loading => "tenants-list-loading",
         TenantListSurfaceKind.Empty => "tenants-list-empty",
         TenantListSurfaceKind.FilteredEmpty => "tenants-list-filtered-empty",
+        TenantListSurfaceKind.SearchPageEmpty => "tenants-list-search-page-empty",
         TenantListSurfaceKind.Error => "tenants-list-error",
         TenantListSurfaceKind.Unauthorized => "tenants-list-unauthorized",
         TenantListSurfaceKind.Stale => "tenants-list-stale",
@@ -64,7 +76,9 @@
 
     private string AriaLive => Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Degraded ? "assertive" : "polite";
 
-    private string Message => Reason is TenantListReason.None
-        ? Localizer[$"Tenants.List.State.{ResourceName}.Message"]
-        : Localizer[$"Tenants.List.Reason.{Reason}"];
+    private string Message => Reason is not TenantListReason.None
+        ? Localizer[$"Tenants.List.Reason.{Reason}"]
+        : Kind is TenantListSurfaceKind.SearchPageEmpty && !HasMore
+            ? Localizer["Tenants.List.State.SearchPageEmpty.FinalMessage"]
+            : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
 }

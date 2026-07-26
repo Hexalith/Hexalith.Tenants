@@ -54,7 +54,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-preview']").TextContent.ShouldNotContain("raw-token", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").TextContent.ShouldNotContain("new-safe-value", Case.Insensitive);
         cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
-        cut.Markup.ShouldNotContain("receipt", Case.Insensitive);
+        cut.Markup.ShouldNotContain("View receipt", Case.Insensitive);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
     }
 
@@ -204,8 +204,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
         cut.Find("[data-testid='tenants-config-set-validation']").TextContent.ShouldContain(expectedText, Case.Insensitive);
-        cut.Markup.ShouldNotContain("payload", Case.Insensitive);
-        cut.Markup.ShouldNotContain("token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("\"payload\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
     }
 
@@ -394,8 +396,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
         cut.Markup.ShouldNotContain("correlation-config", Case.Insensitive);
-        cut.Markup.ShouldNotContain("payload", Case.Insensitive);
-        cut.Markup.ShouldNotContain("token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("\"payload\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
@@ -705,14 +709,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         {
             ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.Set.Title"] = "Set configuration",
-            ["Tenants.Configuration.Set.Description"] = "Set tenant {0} configuration.",
+            ["Tenants.Configuration.Set.Description"] = "Prepare a scoped configuration change for tenant {0} with projection confirmation.",
             ["Tenants.Configuration.Set.Open"] = "Set configuration",
             ["Tenants.Configuration.Set.Namespace.Label"] = "Namespace prefix",
-            ["Tenants.Configuration.Set.Namespace.Help"] = "Use a visible authorized namespace prefix.",
-            ["Tenants.Configuration.Set.Key.Label"] = "Key",
-            ["Tenants.Configuration.Set.Key.Help"] = "Use the key segment.",
+            ["Tenants.Configuration.Set.Namespace.Help"] = "Use a visible authorized namespace prefix without the trailing dot.",
+            ["Tenants.Configuration.Set.Key.Label"] = "Full configuration key",
+            ["Tenants.Configuration.Set.Key.Help"] = "Enter the exact literal full key within a current authorized prefix.",
             ["Tenants.Configuration.Set.Value.Label"] = "Value",
-            ["Tenants.Configuration.Set.Value.Help"] = "Value is required.",
+            ["Tenants.Configuration.Set.Value.Help"] = "Value is required and is not echoed in lifecycle messages.",
             ["Tenants.Configuration.Set.Submit"] = "Submit configuration change",
             ["Tenants.Configuration.Set.Refresh"] = "Refresh status",
             ["Tenants.Configuration.Set.Cancel"] = "Cancel",
@@ -723,41 +727,41 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Set.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration changes.",
             ["Tenants.Configuration.Set.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.Configuration.Set.Unavailable.InFlight"] = "A tenant command is already in progress.",
-            ["Tenants.Configuration.Set.Unavailable.Identity"] = "Tenant identity is unavailable.",
-            ["Tenants.Configuration.Set.Unavailable.Scope"] = "No authorized namespace prefix evidence is available.",
-            ["Tenants.Configuration.Set.Unavailable.Narrow"] = "Configuration changes are unavailable on narrow layouts.",
-            ["Tenants.Configuration.Set.Validation.NamespaceRequired"] = "Enter an authorized namespace prefix before previewing.",
+            ["Tenants.Configuration.Set.Unavailable.Identity"] = "Tenant identity is unavailable, so configuration changes fail closed.",
+            ["Tenants.Configuration.Set.Unavailable.Scope"] = "No authorized namespace prefix evidence is available from the current projection.",
+            ["Tenants.Configuration.Set.Unavailable.Narrow"] = "Configuration changes are unavailable on narrow layouts because preview, tenant identity, freshness, and confirmed configuration context must remain visible together.",
+            ["Tenants.Configuration.Set.Validation.NamespaceRequired"] = "Enter an authorized namespace prefix before previewing the configuration change.",
             ["Tenants.Configuration.Set.Validation.NamespaceScope"] = "The namespace prefix cannot be proven from the current authorized projection.",
-            ["Tenants.Configuration.Set.Validation.KeyRequired"] = "Enter a configuration key before previewing.",
+            ["Tenants.Configuration.Set.Validation.KeyRequired"] = "Enter a configuration key before previewing the configuration change.",
             ["Tenants.Configuration.Set.Validation.KeyLength"] = "The full configuration key must be {0} characters or fewer.",
-            ["Tenants.Configuration.Set.Validation.ValueRequired"] = "Enter a configuration value before previewing.",
+            ["Tenants.Configuration.Set.Validation.ValueRequired"] = "Enter a configuration value before previewing the configuration change.",
             ["Tenants.Configuration.Set.Validation.ValueLength"] = "The configuration value must be {0} characters or fewer.",
             ["Tenants.Configuration.Set.Preview.Title"] = "Consequence preview",
-            ["Tenants.Configuration.Set.Preview.Blocked.Required"] = "Complete required preview inputs.",
+            ["Tenants.Configuration.Set.Preview.Blocked.Required"] = "Complete tenant identity, namespace, key, value, freshness, authorization, and scope evidence before submitting.",
             ["Tenants.Configuration.Set.Preview.Tenant"] = "Tenant",
             ["Tenants.Configuration.Set.Preview.Namespace"] = "Namespace",
             ["Tenants.Configuration.Set.Preview.Key"] = "Full key",
             ["Tenants.Configuration.Set.Preview.CurrentState"] = "Current known state",
             ["Tenants.Configuration.Set.Preview.CurrentState.Absent"] = "No current value is visible for this key.",
             ["Tenants.Configuration.Set.Preview.IntendedEffect"] = "Intended effect",
-            ["Tenants.Configuration.Set.Preview.IntendedEffect.Value"] = "The selected configuration key will be set after projection proof.",
+            ["Tenants.Configuration.Set.Preview.IntendedEffect.Value"] = "The selected configuration key will be set after command acceptance and projection proof.",
             ["Tenants.Configuration.Set.Preview.Freshness"] = "Freshness evidence",
             ["Tenants.Configuration.Set.Preview.Authorization"] = "Authorization and scope evidence",
-            ["Tenants.Configuration.Set.Preview.Authorization.Value"] = "The namespace prefix is visible in the authorized projection.",
+            ["Tenants.Configuration.Set.Preview.Authorization.Value"] = "The namespace prefix is visible in the authorized tenant projection; backend authorization still enforces the command.",
             ["Tenants.Configuration.Set.Preview.KnownConsequences"] = "Known consequences",
-            ["Tenants.Configuration.Set.Preview.KnownConsequences.Value"] = "Consumers may react after projection catches up.",
+            ["Tenants.Configuration.Set.Preview.KnownConsequences.Value"] = "Consumers that own this prefix may react after projection catches up.",
             ["Tenants.Configuration.Set.Preview.KnownUnknowns"] = "Known unknowns",
-            ["Tenants.Configuration.Set.Preview.KnownUnknowns.Value"] = "Downstream impact is not proven.",
+            ["Tenants.Configuration.Set.Preview.KnownUnknowns.Value"] = "This UI cannot prove downstream consumer impact or audit receipt availability.",
             ["Tenants.Configuration.Set.Preview.AuditExpectation"] = "Audit expectation",
-            ["Tenants.Configuration.Set.Preview.AuditExpectation.Value"] = "Audit evidence is pending.",
+            ["Tenants.Configuration.Set.Preview.AuditExpectation.Value"] = "Audit evidence is pending until the Epic 5 evidence source exists.",
             ["Tenants.Configuration.Set.Preview.RecoveryPath"] = "Recovery path",
-            ["Tenants.Configuration.Set.Preview.RecoveryPath.Value"] = "Refresh tenant detail or submit a forward correction.",
+            ["Tenants.Configuration.Set.Preview.RecoveryPath.Value"] = "Refresh tenant detail, retry only from current projection proof, or submit a forward correction.",
             ["Tenants.Configuration.Set.Freshness.Current"] = "Current",
             ["Tenants.Configuration.Set.Freshness.Aging"] = "Aging",
             ["Tenants.Configuration.Set.Freshness.Refreshing"] = "Refreshing",
             ["Tenants.Configuration.Set.Freshness.Stale"] = "Stale",
             ["Tenants.Configuration.Set.Freshness.Unknown"] = "Unknown",
-            ["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"] = "The submitted key and value are already applied.",
+            ["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"] = "The submitted key and value are already applied in the last confirmed projection.",
             ["Tenants.Configuration.Set.DuplicatePrevented.Message"] = "A configuration command is already in progress.",
             ["Tenants.Configuration.Set.State.Idle"] = "No configuration command submitted.",
             ["Tenants.Configuration.Set.State.Previewed"] = "Configuration change preview ready.",
@@ -769,46 +773,46 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Set.State.AlreadyApplied"] = "Already applied.",
             ["Tenants.Configuration.Set.State.DuplicatePrevented"] = "Duplicate configuration submission prevented.",
             ["Tenants.Configuration.Set.State.Failed"] = "Configuration command submission failed.",
-            ["Tenants.Configuration.Set.State.Degraded"] = "Configuration command result is degraded.",
+            ["Tenants.Configuration.Set.State.Degraded"] = "Configuration command result is degraded and needs review.",
             ["Tenants.Configuration.Set.State.UnableToVerify"] = "Unable to verify the configuration command result.",
             ["Tenants.Configuration.Set.Audit.NotStarted"] = "Audit evidence not started.",
             ["Tenants.Configuration.Set.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.Configuration.Set.Audit.AuditDelayed"] = "Audit evidence delayed.",
             ["Tenants.Configuration.Set.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.Configuration.Set.Audit.MissingSupport"] = "Audit evidence support is missing.",
+            ["Tenants.Configuration.Set.Audit.MissingSupport"] = "Audit evidence support is missing until Epic 5 implements the evidence source.",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.CommandReason"] = "Open the tenant audit list and use the visible audit state.",
+            ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
-            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required.",
-            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit delayed; retry status lookup or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Missing implementation support; continue read-only or escalate.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit pending; wait, retry status lookup, or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit unavailable; continue read-only, retry status lookup, or escalate.",
+            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
+            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
+            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
+            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
             ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "Continue read-only or escalate using support-safe information.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Continue read-only, retry status lookup, or escalate without raw diagnostics.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
-            ["Tenants.Configuration.Set.Recovery.Idle"] = "Open the form when projection evidence is available.",
+            ["Tenants.Configuration.Set.Recovery.Idle"] = "Open the form when current projection evidence and namespace scope are available.",
             ["Tenants.Configuration.Set.Recovery.Previewed"] = "Submit, cancel, or continue read-only.",
             ["Tenants.Configuration.Set.Recovery.RequestSent"] = "Wait for command status and projection refresh.",
-            ["Tenants.Configuration.Set.Recovery.Accepted"] = "Wait, refresh status, or continue read-only.",
-            ["Tenants.Configuration.Set.Recovery.ProjectionPending"] = "Refresh tenant detail; do not display success until confirmed.",
-            ["Tenants.Configuration.Set.Recovery.Confirmed"] = "Continue read-only or inspect audit later.",
+            ["Tenants.Configuration.Set.Recovery.Accepted"] = "Wait, refresh status, or continue read-only until projection confirms the configuration.",
+            ["Tenants.Configuration.Set.Recovery.ProjectionPending"] = "Refresh tenant detail; do not display success until the submitted key and value are confirmed.",
+            ["Tenants.Configuration.Set.Recovery.Confirmed"] = "Continue read-only or inspect audit when evidence becomes available.",
             ["Tenants.Configuration.Set.Recovery.Rejected"] = "Refresh projection evidence, request permission, start correction, or escalate.",
-            ["Tenants.Configuration.Set.Recovery.AlreadyApplied"] = "Continue read-only or submit a forward correction.",
-            ["Tenants.Configuration.Set.Recovery.DuplicatePrevented"] = "Wait for the in-flight command.",
-            ["Tenants.Configuration.Set.Recovery.Failed"] = "Retry after checking projection evidence.",
-            ["Tenants.Configuration.Set.Recovery.Degraded"] = "Wait, retry status lookup, or escalate.",
-            ["Tenants.Configuration.Set.Recovery.UnableToVerify"] = "Refresh, retry status lookup, or escalate.",
+            ["Tenants.Configuration.Set.Recovery.AlreadyApplied"] = "Continue read-only or submit a forward correction if the intended configuration differs.",
+            ["Tenants.Configuration.Set.Recovery.DuplicatePrevented"] = "Wait for the in-flight command, retry status lookup, or continue read-only.",
+            ["Tenants.Configuration.Set.Recovery.Failed"] = "Retry after checking current projection evidence or escalate.",
+            ["Tenants.Configuration.Set.Recovery.Degraded"] = "Wait, retry status lookup, inspect audit when available, or escalate.",
+            ["Tenants.Configuration.Set.Recovery.UnableToVerify"] = "Refresh, retry status lookup, continue read-only, or escalate.",
         };
 
         public LocalizedString this[string name]

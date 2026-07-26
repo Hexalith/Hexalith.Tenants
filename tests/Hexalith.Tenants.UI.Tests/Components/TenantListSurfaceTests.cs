@@ -15,8 +15,10 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 using NSubstitute;
@@ -330,7 +332,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
         cut.Markup.ShouldContain("tenant.alpha");
-        cut.Find("[data-testid='tenants-list-refreshed-notice']").GetAttribute("aria-live").ShouldBe("polite");
+        AssertSingleNoticeLiveRegion(cut);
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         navigation.Uri.ShouldBe("http://localhost/tenants");
         cut.Markup.ShouldNotContain("expired-protected-cursor", Case.Insensitive);
@@ -508,14 +510,16 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public async Task Search_returning_no_matches_renders_filtered_empty_surface()
+    public async Task Search_returning_no_matches_renders_the_search_page_empty_surface()
     {
+        // The production gateway no longer emits FilteredEmpty for a search page, so this scenario is
+        // exercised through the surface state it actually ships.
         RegisterServices(call =>
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
                 ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
-                : TenantListSnapshot.FilteredEmpty());
+                : SearchPageEmptySnapshot(hasMore: false));
         });
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
@@ -523,8 +527,39 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         await ChangeSearchAsync(cut, "nomatch");
 
-        cut.WaitForElement("[data-testid='tenants-list-filtered-empty']");
-        cut.Find("[data-testid='tenants-list-filtered-empty']").GetAttribute("role").ShouldNotBeNull();
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+        cut.Find("[data-testid='tenants-list-search-page-empty']").GetAttribute("role").ShouldBe("status");
+        cut.FindAll("[data-testid='tenants-list-filtered-empty']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Empty_search_page_copy_promises_later_results_only_while_paging_continues()
+    {
+        bool hasMore = true;
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
+                : SearchPageEmptySnapshot(hasMore));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        await ChangeSearchAsync(cut, "nomatch");
+
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+        cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent
+            .ShouldBe("No visible tenants on this search page");
+        cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent
+            .ShouldBe("No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.");
+
+        // On a final page nothing further is reachable, so the copy may not promise later results.
+        hasMore = false;
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent
+            .ShouldBe("No authorized tenants were verified on this page of the search, and no further pages remain for this search."));
     }
 
     [Fact]
@@ -574,6 +609,794 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Authoritative_search_next_and_previous_use_only_server_held_search_cursors()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.SearchCursor == "protected-page-two"
+                ? AuthoritativeSnapshot(
+                    [Row("tenant.two", "Two", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)])
+                : AuthoritativeSnapshot(
+                    [Row("tenant.one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: "protected-page-two",
+                    hasMore: true));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.two"));
+
+        requests[^1].SearchCursor.ShouldBe("protected-page-two");
+        requests[^1].Cursor.ShouldBeNull();
+        navigation.Uri.ShouldNotContain("cursor=", Case.Insensitive);
+        cut.Markup.ShouldNotContain("protected-page-two", Case.Sensitive);
+
+        cut.Find("[data-testid='tenants-list-previous']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.one"));
+
+        requests[^1].SearchCursor.ShouldBeNull();
+        requests[^1].Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Search_fallback_next_and_previous_use_only_the_server_held_ordinary_cursor()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            TenantListSnapshot page = request.Cursor == "ordinary-page-two"
+                ? ReadySnapshot([Row("fallback.two", "Two", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)])
+                : ReadySnapshot(
+                    [Row("fallback.one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)],
+                    nextCursor: "ordinary-page-two",
+                    hasMore: true);
+            return Task.FromResult(page with { Notice = TenantListReason.SearchUnavailable });
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("fallback.two"));
+
+        requests[^1].Cursor.ShouldBe("ordinary-page-two");
+        requests[^1].SearchCursor.ShouldBeNull();
+        navigation.Uri.ShouldNotContain("cursor=", Case.Insensitive);
+        cut.Markup.ShouldNotContain("ordinary-page-two", Case.Sensitive);
+
+        cut.Find("[data-testid='tenants-list-previous']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("fallback.one"));
+
+        requests[^1].Cursor.ShouldBeNull();
+        requests[^1].SearchCursor.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Crossing_the_authoritative_fallback_boundary_leaves_an_honest_previous_affordance(bool startAuthoritative)
+    {
+        int callCount = 0;
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<TenantListRequest>(0));
+            callCount++;
+
+            // Loads 1-2 run in the starting mode, load 3 crosses the boundary, and load 4 crosses back, so a
+            // retained cursor from the first mode cannot silently reactivate on the LATER recovery.
+            bool authoritative = callCount switch
+            {
+                <= 2 => startAuthoritative,
+                3 => !startAuthoritative,
+                _ => startAuthoritative,
+            };
+            TenantListRow row = Row(
+                $"tenant.page-{callCount}",
+                "Row",
+                TenantStatus.Active,
+                ReadModelFreshnessState.Unknown,
+                authoritative ? TenantPendingState.Unknown : TenantPendingState.None);
+            return Task.FromResult(authoritative
+                ? AuthoritativeSnapshot([row], nextCursor: "protected-next", hasMore: true)
+                : ReadySnapshot([row], nextCursor: "ordinary-next", hasMore: true) with
+                {
+                    Notice = TenantListReason.SearchUnavailable,
+                });
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+
+        // Page two in the starting mode establishes retained history and a cursor for that mode only.
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeFalse();
+        (startAuthoritative ? paging.SearchCursor : paging.FallbackCursor).ShouldNotBeNull();
+        (startAuthoritative ? paging.FallbackCursor : paging.SearchCursor).ShouldBeNull();
+
+        // Load three crosses the boundary; the incoming mode starts from its own first page and the retired
+        // mode is cleared, with a mapped localized explanation rather than a silent jump backwards.
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(3));
+
+        // A load that reports "paging restarted from the first page" must itself have been issued for the
+        // first page: the crossing request may not carry the incoming mode's retained cursor.
+        (startAuthoritative ? requests[2].Cursor : requests[2].SearchCursor).ShouldBeNull();
+
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        paging.SearchCursor.ShouldBeNull();
+        paging.FallbackCursor.ShouldBeNull();
+        cut.Find("[data-testid='tenants-list-search-paging-restarted-notice']").TextContent.ShouldContain(
+            "The available tenant source changed. Paging restarted from the first page.");
+        AssertSingleNoticeLiveRegion(cut);
+
+        // Crossing back later must not resurrect the original mode's retained cursor: the request that
+        // returns to it carries no cursor for that mode, so the operator cannot be teleported to a stale page.
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(4));
+
+        (startAuthoritative ? requests[^1].SearchCursor : requests[^1].Cursor).ShouldBeNull();
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        paging.SearchCursor.ShouldBeNull();
+        paging.FallbackCursor.ShouldBeNull();
+        paging.HasPrevious(authoritative: true).ShouldBeFalse();
+        paging.HasPrevious(authoritative: false).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Search_query_identity_change_after_page_two_clears_protected_history()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row(request.SearchCursor is null ? "tenant.one" : "tenant.two", "Tenant", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                nextCursor: request.SearchCursor is null ? "protected-page-two" : null,
+                hasMore: request.SearchCursor is null));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=before");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => requests[^1].SearchCursor.ShouldBe("protected-page-two"));
+
+        await ChangeSearchAsync(cut, "after");
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].Search.ShouldBe("after");
+            requests[^1].SearchCursor.ShouldBeNull();
+            requests[^1].Cursor.ShouldBeNull();
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+    }
+
+    [Fact]
+    public void Sparse_authoritative_search_page_keeps_next_paging_available_without_backfill()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.SearchCursor == "protected-page-two"
+                ? AuthoritativeSnapshot(
+                    [Row("tenant.visible", "Visible", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)])
+                : SearchPageEmptySnapshot(hasMore: true, nextCursor: "protected-page-two"));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+
+        cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.visible"));
+        requests[^1].SearchCursor.ShouldBe("protected-page-two");
+    }
+
+    [Fact]
+    public void Empty_final_authoritative_page_keeps_previous_only_paging_available()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.SearchCursor == "protected-final-page"
+                ? SearchPageEmptySnapshot(hasMore: false)
+                : AuthoritativeSnapshot(
+                    [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: "protected-final-page",
+                    hasMore: true));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-list-previous']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.page-one"));
+        requests[^1].SearchCursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Detail_round_trip_restores_protected_search_page_history_and_server_held_page_size()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            bool pageTwo = request.SearchCursor == "protected-page-two";
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row(pageTwo ? "tenant.page-two" : "tenant.page-one", pageTwo ? "Two" : "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                nextCursor: pageTwo ? null : "protected-page-two",
+                hasMore: !pageTwo));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> first = Render<TenantsWorkspace>();
+        first.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangePageSizeAsync(first, 50);
+        first.Find("[data-testid='tenants-list-next']").Click();
+        first.WaitForAssertion(() => requests[^1].SearchCursor.ShouldBe("protected-page-two"));
+        first.Dispose();
+
+        navigation.NavigateTo(
+            "/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-tenant.page-two");
+        IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
+        returned.WaitForElement("[data-testid='tenants-list-grid']");
+
+        requests[^1].PageSize.ShouldBe(50);
+        requests[^1].SearchCursor.ShouldBe("protected-page-two");
+        returned.Markup.ShouldContain("tenant.page-two");
+        returned.Markup.ShouldNotContain("protected-page-two", Case.Sensitive);
+        navigation.Uri.ShouldNotContain("pageSize", Case.Insensitive);
+        navigation.Uri.ShouldNotContain("cursor=", Case.Insensitive);
+        returned.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeFalse();
+
+        returned.Find("[data-testid='tenants-list-previous']").Click();
+        returned.WaitForAssertion(() => returned.Markup.ShouldContain("tenant.page-one"));
+        requests[^1].SearchCursor.ShouldBeNull();
+        requests[^1].PageSize.ShouldBe(50);
+    }
+
+    [Fact]
+    public async Task Crossing_is_still_detected_after_a_detail_return_recreates_the_workspace_component()
+    {
+        // The circuit-scoped paging service survives the tenant-detail round trip while the component does
+        // not. If the active paging mode lived on the component it would be lost exactly here, the crossing
+        // would be undetectable, and the retained protected cursor would resume a deep page under a notice
+        // claiming a restart.
+        List<TenantListRequest> requests = [];
+        bool authoritative = true;
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            bool pageTwo = request.SearchCursor == "protected-page-two";
+            return Task.FromResult(authoritative
+                ? AuthoritativeSnapshot(
+                    [Row(pageTwo ? "tenant.page-two" : "tenant.page-one", "Row", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: pageTwo ? null : "protected-page-two",
+                    hasMore: !pageTwo)
+                : ReadySnapshot(
+                    [Row("tenant.fallback", "Fallback", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+                {
+                    Notice = TenantListReason.SearchUnavailable,
+                });
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> first = Render<TenantsWorkspace>();
+        first.WaitForElement("[data-testid='tenants-list-grid']");
+        first.Find("[data-testid='tenants-list-next']").Click();
+        first.WaitForAssertion(() => requests[^1].SearchCursor.ShouldBe("protected-page-two"));
+
+        // Navigating to tenant detail disposes the workspace component while the circuit -- and the scoped
+        // paging service with it -- survives.
+        await DisposeComponentsAsync();
+
+        // The operator opened tenant detail and came back; meanwhile Memories was lost.
+        authoritative = false;
+        navigation.NavigateTo("/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-tenant.page-two");
+        IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
+        returned.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
+
+        // The crossing load itself was issued against the retained protected cursor's mode, not the mode it
+        // entered, so the restart notice is honest about the load that carried it.
+        requests[^1].Cursor.ShouldBeNull();
+        returned.Find("[data-testid='tenants-list-search-paging-restarted-notice']").ShouldNotBeNull();
+        returned.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.SearchCursor.ShouldBeNull();
+
+        // ... and when search recovers, the retired protected cursor cannot resume the deep page.
+        authoritative = true;
+        await returned.InvokeAsync(() => returned.Find("[data-testid='tenants-list-refresh']").Click());
+
+        returned.WaitForAssertion(() => returned.Markup.ShouldContain("tenant.page-one"));
+        requests[^1].SearchCursor.ShouldBeNull();
+        returned.Markup.ShouldNotContain("tenant.page-two");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("&selected=tenant.page-two&anchor=unrelated-row")]
+    public void Search_visit_without_a_valid_detail_return_context_does_not_restore_retained_protected_paging(
+        string returnContextQuery)
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            bool pageTwo = request.SearchCursor == "protected-page-two";
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row(pageTwo ? "tenant.page-two" : "tenant.page-one", pageTwo ? "Two" : "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                nextCursor: pageTwo ? null : "protected-page-two",
+                hasMore: !pageTwo));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> first = Render<TenantsWorkspace>();
+        first.WaitForElement("[data-testid='tenants-list-grid']");
+        first.Find("[data-testid='tenants-list-next']").Click();
+        first.WaitForAssertion(() => requests[^1].SearchCursor.ShouldBe("protected-page-two"));
+        first.Dispose();
+
+        navigation.NavigateTo($"/tenants?search=needle{returnContextQuery}");
+        IRenderedComponent<TenantsWorkspace> fresh = Render<TenantsWorkspace>();
+        fresh.WaitForElement("[data-testid='tenants-list-grid']");
+
+        requests[^1].SearchCursor.ShouldBeNull();
+        fresh.Markup.ShouldContain("tenant.page-one");
+        fresh.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        fresh.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Non_interactive_prerender_pass_neither_restores_nor_reports_retained_protected_paging()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<TenantListRequest>(0));
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+
+        // The scoped paging service resolved on a non-interactive render pass belongs to that request's
+        // scope, not the circuit, so a retained protected position must be neither consumed nor cleared nor
+        // reported there. The signal is the renderer's own interactivity, not a cascading HttpContext: that
+        // value does not cross render-mode boundaries and is absent on both passes of this component.
+        SetRendererInfo(new RendererInfo("Static", isInteractive: false));
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.EnsureScope("retained-scope");
+        paging.MoveNext(authoritative: true, "protected-page-two");
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        requests.ShouldNotBeEmpty();
+        requests.ShouldAllBe(static request => request.SearchCursor == null);
+        requests.ShouldAllBe(static request => request.Cursor == null);
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+        paging.MatchesScope("retained-scope").ShouldBeTrue();
+        paging.SearchCursor.ShouldBe("protected-page-two");
+    }
+
+    [Fact]
+    public void Missing_retained_search_page_on_detail_return_restarts_page_one_with_polite_notice()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<TenantListRequest>(0));
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        cut.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
+        requests.ShouldHaveSingleItem().SearchCursor.ShouldBeNull();
+        AssertSingleNoticeLiveRegion(cut);
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Pending_recovery_notice_survives_a_superseding_load_for_the_same_search_scope()
+    {
+        int callCount = 0;
+        RegisterServices(call =>
+        {
+            callCount++;
+            CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
+            if (callCount == 1)
+            {
+                var pending = new TaskCompletionSource<TenantListSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _ = cancellationToken.Register(() => pending.TrySetCanceled(cancellationToken));
+                return pending.Task;
+            }
+
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForAssertion(() => callCount.ShouldBe(1));
+
+        // The decision was made by the first (superseded) load; it must still be reported by the load that
+        // actually resolves for the same protected search scope.
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Invalidation_on_a_terminal_surface_clears_protected_history_and_renders_its_notice()
+    {
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            return Task.FromResult(callCount == 1
+                ? TenantListSnapshot.Error()
+                : TenantListSnapshot.Error() with
+                {
+                    PagingRecovered = true,
+                    PagingNotice = TenantListReason.SearchRefreshed,
+                });
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+
+        // Seeded as if the circuit still held a protected page when the terminal load resolves.
+        paging.MoveNext(authoritative: true, "protected-page-two");
+
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+
+        // The bars render from the notice reasons alone and never consult Kind, so the terminal surface
+        // carries the explanation together with the clearing. No deferred/pending mechanism is involved.
+        cut.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
+        cut.Find("[data-testid='tenants-list-error']").ShouldNotBeNull();
+        cut.WaitForAssertion(() =>
+        {
+            paging.SearchCursor.ShouldBeNull();
+            paging.HasPrevious(authoritative: true).ShouldBeFalse();
+        });
+        callCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_load_returning_after_disposal_mutates_no_paging_state()
+    {
+        TaskCompletionSource<TenantListSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            return callCount == 1
+                ? Task.FromResult(AuthoritativeSnapshot(
+                    [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: "protected-page-two",
+                    hasMore: true))
+                : pending.Task;
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.ActiveModeAuthoritative.ShouldBe(true);
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+
+        cut.Instance.Dispose();
+
+        // The in-flight load now returns. Its post-await apply block must retire no paging mode and clear
+        // no protected history behind a surface no operator can see.
+        pending.SetResult(TenantListSnapshot.Error() with
+        {
+            PagingRecovered = true,
+            PagingNotice = TenantListReason.SearchRefreshed,
+        });
+        await pending.Task;
+        await Task.Delay(200);
+
+        paging.SearchCursor.ShouldBe("protected-page-two");
+        paging.HasPrevious(authoritative: true).ShouldBeTrue();
+        paging.ActiveModeAuthoritative.ShouldBe(true);
+    }
+
+    [Fact]
+    public void Transient_error_on_a_detail_return_still_reports_recovery_on_the_same_scope_retry()
+    {
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            return Task.FromResult(callCount == 1
+                ? TenantListSnapshot.Error()
+                : AuthoritativeSnapshot(
+                    [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+
+        // Same search scope, retried after a transient failure: the pending decision must not have been
+        // consumed by the error, so the operator still learns that paging restarted at page one.
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
+        callCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Failed_detail_return_does_not_defer_its_recovery_notice_to_a_later_search()
+    {
+        int callCount = 0;
+        RegisterServices(call =>
+        {
+            callCount++;
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            return Task.FromResult(callCount == 1
+                ? TenantListSnapshot.Error()
+                : AuthoritativeSnapshot(
+                    [Row($"tenant.{request.Search}", "Later", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=before&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+
+        await ChangeSearchAsync(cut, "after");
+
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Markup.ShouldContain("tenant.after");
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Search_fallback_cursor_recovery_renders_both_non_blocking_support_safe_notices()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+        {
+            Notice = TenantListReason.SearchUnavailable,
+            PagingNotice = TenantListReason.ListRefreshed,
+            FallbackPagingRecovered = true,
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        cut.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
+        cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
+        AssertSingleNoticeLiveRegion(cut);
+        cut.Markup.ShouldNotContain("cursor", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Recovery_clears_only_the_applicable_search_paging_history(bool recoverAuthoritative)
+    {
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            TenantListRow row = Row("tenant.row", "Row", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown);
+            if (callCount == 1)
+            {
+                return Task.FromResult(recoverAuthoritative
+                    ? AuthoritativeSnapshot([row])
+                    : ReadySnapshot([row]) with { Notice = TenantListReason.SearchUnavailable });
+            }
+
+            return Task.FromResult(recoverAuthoritative
+                ? AuthoritativeSnapshot([row]) with
+                {
+                    Notice = TenantListReason.SearchRefreshed,
+                    PagingRecovered = true,
+                }
+                : ReadySnapshot([row]) with
+                {
+                    Notice = TenantListReason.SearchUnavailable,
+                    PagingNotice = TenantListReason.ListRefreshed,
+                    FallbackPagingRecovered = true,
+                });
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.MoveNext(authoritative: true, "protected-two");
+        paging.MoveNext(authoritative: false, "ordinary-two");
+
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+
+        cut.WaitForAssertion(() =>
+        {
+            paging.HasPrevious(recoverAuthoritative).ShouldBeFalse();
+            (recoverAuthoritative ? paging.SearchCursor : paging.FallbackCursor).ShouldBeNull();
+            paging.HasPrevious(!recoverAuthoritative).ShouldBeTrue();
+            (recoverAuthoritative ? paging.FallbackCursor : paging.SearchCursor).ShouldNotBeNull();
+        });
+    }
+
+    [Theory]
+    [InlineData(TenantListReason.GatewayUnavailable)]
+    [InlineData(TenantListReason.SearchPartiallyAvailable)]
+    [InlineData(TenantListReason.ProjectionDegraded)]
+    public void Unmapped_notice_reasons_never_render_a_blank_or_unaddressable_message_bar(TenantListReason unmapped)
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+        {
+            Notice = unmapped,
+            PagingNotice = unmapped,
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        cut.FindComponents<FluentMessageBar>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-list-notice']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Notice_live_region_exists_before_any_notice_populates_it()
+    {
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            TenantListSnapshot ready = ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]);
+            return Task.FromResult(callCount == 1
+                ? ready
+                : ready with { Notice = TenantListReason.SearchUnavailable });
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        // A live region inserted in the same render that first populates it is routinely not announced, so
+        // the region must already be in the DOM while it is still empty.
+        AssertSingleNoticeLiveRegion(cut);
+        cut.FindAll("[data-testid='tenants-list-notices'] [data-testid$='-notice']").ShouldBeEmpty();
+
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-list-notices'] [data-testid='tenants-list-search-unavailable-notice']");
+        AssertSingleNoticeLiveRegion(cut);
+    }
+
+    [Fact]
+    public void Secondary_notice_equal_to_primary_renders_only_one_live_announcement()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+        {
+            Notice = TenantListReason.SearchUnavailable,
+            PagingNotice = TenantListReason.SearchUnavailable,
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
+
+        cut.FindAll("[data-testid='tenants-list-search-unavailable-notice']").Count.ShouldBe(1);
+        cut.FindComponents<FluentMessageBar>().Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Partial_authoritative_search_keeps_verified_rows_and_whole_set_semantics()
+    {
+        RegisterServices(TenantListSnapshot.Degraded(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+            TenantListReason.SearchPartiallyAvailable) with
+        {
+            IsAuthoritativeSearch = true,
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.Find("[data-testid='tenants-list-degraded']").TextContent.ShouldContain(
+            "Some search results could not be verified. Only authorized tenant rows that were verified are shown.");
+        cut.Find("[data-testid='tenants-list-page-local-semantics']").TextContent.ShouldContain(
+            "Search and status apply across indexed tenant candidates.");
+        cut.FindComponents<FluentSelect<string, string>>()
+            .Select(static component => component.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? value)
+                && string.Equals(value as string, "tenants-list-status-filter", StringComparison.Ordinal))
+            .Label.ShouldBe("Status across indexed candidates");
+        cut.Markup.ShouldContain("Pending state unknown");
+    }
+
+    [Fact]
+    public async Task Rapid_search_change_cancels_obsolete_load_and_only_renders_the_latest_result()
+    {
+        var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool firstCanceled = false;
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
+            if (request.Search == "first")
+            {
+                var pending = new TaskCompletionSource<TenantListSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _ = cancellationToken.Register(() =>
+                {
+                    firstCanceled = true;
+                    pending.TrySetCanceled(cancellationToken);
+                });
+                firstStarted.TrySetResult();
+                return pending.Task;
+            }
+
+            return Task.FromResult(request.Search == "second"
+                ? AuthoritativeSnapshot(
+                    [Row("tenant.second", "Second", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)])
+                : ReadySnapshot(
+                    [Row("tenant.initial", "Initial", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]));
+        });
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        Task firstChange = ChangeSearchAsync(cut, "first");
+        await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task secondChange = ChangeSearchAsync(cut, "second");
+        await Task.WhenAll(firstChange, secondChange).WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.WaitForAssertion(() =>
+        {
+            firstCanceled.ShouldBeTrue();
+            cut.Markup.ShouldContain("tenant.second");
+            cut.Markup.ShouldNotContain("tenant.initial");
+        });
+    }
+
+    [Fact]
     public void Cursor_paging_passes_opaque_cursor_and_preserves_markers()
     {
         TenantListSnapshot firstPage = ReadySnapshot(
@@ -617,10 +1440,11 @@ public sealed class TenantListSurfaceTests : BunitContext
     [InlineData(TenantListSurfaceKind.Loading, "tenants-list-loading", "status", "polite")]
     [InlineData(TenantListSurfaceKind.Empty, "tenants-list-empty", "status", "polite")]
     [InlineData(TenantListSurfaceKind.FilteredEmpty, "tenants-list-filtered-empty", "status", "polite")]
+    [InlineData(TenantListSurfaceKind.SearchPageEmpty, "tenants-list-search-page-empty", "status", "polite")]
     [InlineData(TenantListSurfaceKind.Error, "tenants-list-error", "alert", "assertive")]
     [InlineData(TenantListSurfaceKind.Stale, "tenants-list-stale", "status", "polite")]
     [InlineData(TenantListSurfaceKind.Degraded, "tenants-list-degraded", "alert", "assertive")]
-    public void Workspace_renders_distinct_six_list_states(
+    public void Workspace_renders_each_distinct_list_state(
         TenantListSurfaceKind kind,
         string selector,
         string expectedRole,
@@ -631,6 +1455,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             TenantListSurfaceKind.Loading => TenantListSnapshot.Loading(),
             TenantListSurfaceKind.Empty => TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown),
             TenantListSurfaceKind.FilteredEmpty => TenantListSnapshot.FilteredEmpty(),
+            TenantListSurfaceKind.SearchPageEmpty => SearchPageEmptySnapshot(hasMore: true),
             TenantListSurfaceKind.Error => TenantListSnapshot.Error(),
             TenantListSurfaceKind.Stale => TenantListSnapshot.Stale(
                 [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
@@ -653,6 +1478,18 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
         }
+        else if (kind is TenantListSurfaceKind.SearchPageEmpty)
+        {
+            // This surface tells the operator that later pages of the same search may still hold results,
+            // so it must not also offer an action that ends that search.
+            cut.Find($"[data-testid='{selector}'] h2").TextContent
+                .ShouldBe("No visible tenants on this search page");
+            cut.Find($"[data-testid='{selector}'] p").TextContent
+                .ShouldBe(
+                    "No authorized tenants were verified on this page of the search. "
+                    + "Later pages of the same search may still contain results.");
+            cut.FindAll("[data-testid='tenants-list-state-reset']").ShouldBeEmpty();
+        }
         else if (kind is TenantListSurfaceKind.Stale)
         {
             cut.Find("[data-testid='tenants-list-state-refresh']").ShouldNotBeNull();
@@ -670,7 +1507,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-error']");
-        cut.Markup.ShouldContain("No confirmed server snapshot is available.");
+        cut.Markup.ShouldContain("no confirmed server snapshot is available.");
         cut.Markup.ShouldNotContain(nameof(TenantListReason.NotModifiedWithoutSnapshot));
     }
 
@@ -750,9 +1587,67 @@ public sealed class TenantListSurfaceTests : BunitContext
         grid.ShouldNotContain("Cursor", Case.Insensitive);
         grid.ShouldNotContain("ETag", Case.Insensitive);
         navigation.Split("Cursor = null", StringSplitOptions.None).Length.ShouldBe(3);
-        gateway.ShouldNotContain("ILogger<TenantQueryGateway>");
         gateway.ShouldNotContain("Activity.Current");
         gateway.ShouldNotContain("SetTag(");
+
+        // Story 1.9 replaces the blanket logger ban with reason-code-only diagnostics. Whether that channel
+        // ever discloses protected material is proven at runtime through a capturing logger, not by a source
+        // pattern that cannot see LoggerMessage delegates or source-generated partials:
+        // TenantQueryGatewayTests.Search_diagnostics_only_ever_emit_support_safe_reason_codes.
+    }
+
+    [Fact]
+    public async Task Search_paging_never_reaches_browser_storage_and_never_puts_cursors_in_interop_or_the_url()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.SearchCursor == "protected-page-two"
+                ? AuthoritativeSnapshot(
+                    [Row("tenant.two", "Two", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)])
+                : AuthoritativeSnapshot(
+                    [Row("tenant.one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: "protected-page-two",
+                    hasMore: true));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => requests[^1].SearchCursor.ShouldBe("protected-page-two"));
+        cut.Find("[data-testid='tenants-list-previous']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.one"));
+
+        // Runtime proof rather than a source scan: every JS interop call the surface actually made is
+        // inspected for storage sinks and for the protected cursor value.
+        JSInterop.Invocations.ShouldAllBe(static invocation
+            => !invocation.Identifier.Contains("localStorage", StringComparison.OrdinalIgnoreCase)
+            && !invocation.Identifier.Contains("sessionStorage", StringComparison.OrdinalIgnoreCase)
+            && !invocation.Identifier.Contains("cookie", StringComparison.OrdinalIgnoreCase));
+        JSInterop.Invocations
+            .SelectMany(static invocation => invocation.Arguments)
+            .Select(static argument => argument?.ToString() ?? string.Empty)
+            .ShouldAllBe(static argument => !argument.Contains("protected-page-two", StringComparison.Ordinal));
+        cut.Markup.ShouldNotContain("protected-page-two", Case.Sensitive);
+        navigation.Uri.ShouldNotContain("cursor", Case.Insensitive);
+        navigation.Uri.ShouldNotContain("protected-page-two", Case.Sensitive);
+
+        // Control cases: each of the three channels above genuinely does carry values that are present, so
+        // the non-disclosure assertions are proven capable of failing rather than passing vacuously.
+        cut.Markup.ShouldContain("tenant.one", Case.Sensitive);
+        navigation.Uri.ShouldContain("search=needle", Case.Sensitive);
+        await cut.InvokeAsync(() => Services
+            .GetRequiredService<IJSRuntime>()
+            .InvokeVoidAsync("tenantsListControlChannel", "control-sentinel-value")
+            .AsTask());
+        JSInterop.Invocations
+            .SelectMany(static invocation => invocation.Arguments)
+            .Select(static argument => argument?.ToString() ?? string.Empty)
+            .ShouldContain("control-sentinel-value");
     }
 
     [Fact]
@@ -943,6 +1838,10 @@ public sealed class TenantListSurfaceTests : BunitContext
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(resultFactory);
         Services.AddSingleton(gateway);
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns("operator-user");
+        Services.AddSingleton(userContext);
+        Services.AddScoped<TenantSearchPagingState>();
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
@@ -961,6 +1860,44 @@ public sealed class TenantListSurfaceTests : BunitContext
                 ? ReadModelFreshnessState.Stale
                 : ReadModelFreshnessState.Current,
             isDegraded: false);
+
+    // Both notices share exactly one polite live region: two sibling regions announcing together are
+    // routinely coalesced or dropped by screen readers.
+    private static void AssertSingleNoticeLiveRegion(IRenderedComponent<TenantsWorkspace> cut)
+    {
+        var region = cut.FindAll("[data-testid='tenants-list-notices']").ShouldHaveSingleItem();
+        region.GetAttribute("aria-live").ShouldBe("polite");
+        region.GetAttribute("role").ShouldBe("status");
+        region.GetAttribute("aria-atomic").ShouldBe("true");
+
+        // Every rendered notice bar must live inside that one region, so the announcement is made once.
+        // Only rendered markup is inspected: a Fluent component's shadow root is never produced by bUnit,
+        // so asserting attributes that live there could not fail and would certify nothing.
+        cut.FindAll("[data-testid$='-notice']").Count
+            .ShouldBe(cut.FindAll("[data-testid='tenants-list-notices'] [data-testid$='-notice']").Count);
+    }
+
+    private static TenantListSnapshot AuthoritativeSnapshot(
+        IReadOnlyList<TenantListRow> rows,
+        string? nextCursor = null,
+        bool hasMore = false)
+        => ReadySnapshot(rows, nextCursor, hasMore) with
+        {
+            IsAuthoritativeSearch = true,
+        };
+
+    /// <summary>Mirrors what the gateway emits for an authoritative search page with no visible rows.</summary>
+    private static TenantListSnapshot SearchPageEmptySnapshot(bool hasMore, string? nextCursor = null)
+        => new(
+            TenantListSurfaceKind.SearchPageEmpty,
+            [],
+            nextCursor,
+            hasMore,
+            ETag: null,
+            ReadModelFreshnessState.Unknown,
+            IsDegraded: false,
+            IsAuthorizationScopedEmpty: true,
+            IsAuthoritativeSearch: true);
 
     private static TenantListRow Row(
         string tenantId,
@@ -1005,13 +1942,6 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Status.Active"] = "Active",
             ["Tenants.List.Status.Disabled"] = "Disabled",
             ["Tenants.List.Status.Unknown"] = "Unknown",
-            ["Tenants.List.SortLabel"] = "Sort",
-            ["Tenants.List.Sort.TenantId"] = "Tenant id",
-            ["Tenants.List.Sort.Name"] = "Name",
-            ["Tenants.List.Sort.Status"] = "Status",
-            ["Tenants.List.SortDirectionLabel"] = "Sort direction",
-            ["Tenants.List.SortDirection.Ascending"] = "Ascending",
-            ["Tenants.List.SortDirection.Descending"] = "Descending",
             ["Tenants.List.Refresh"] = "Refresh",
             ["Tenants.List.Reset"] = "Reset filters",
             ["Tenants.List.Previous"] = "Previous",
@@ -1033,29 +1963,37 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Freshness.Unknown"] = "Unknown",
             ["Tenants.List.Notice.ListRefreshed"] = "The requested page was no longer available. The authorized first page has been refreshed.",
             ["Tenants.List.Notice.SearchUnavailable"] = "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
+            ["Tenants.List.Notice.SearchRefreshed"] = "The protected search page was no longer available. Search has restarted from the first page.",
+            ["Tenants.List.Notice.SearchPagingRestarted"] = "The available tenant source changed. Paging restarted from the first page.",
+            ["Tenants.List.State.SearchPageEmpty.Title"] = "No visible tenants on this search page",
+            ["Tenants.List.State.SearchPageEmpty.Message"] = "No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.",
+            ["Tenants.List.State.SearchPageEmpty.FinalMessage"] = "No authorized tenants were verified on this page of the search, and no further pages remain for this search.",
+            ["Tenants.List.StatusFilterLabel.Authoritative"] = "Status across indexed candidates",
+            ["Tenants.List.AuthoritativeSearchSemantics"] = "Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.",
             ["Tenants.List.State.Loading.Title"] = "Loading tenants",
-            ["Tenants.List.State.Loading.Message"] = "Tenant data is loading.",
+            ["Tenants.List.State.Loading.Message"] = "Tenant data is loading from the server-side query gateway.",
             ["Tenants.List.State.Empty.Title"] = "No visible tenants",
-            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator.",
+            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator. This is an authorized empty result, not a failure.",
             ["Tenants.List.State.FilteredEmpty.Title"] = "No tenants match filters",
-            ["Tenants.List.State.FilteredEmpty.Message"] = "Reset filters to see visible tenants.",
+            ["Tenants.List.State.FilteredEmpty.Message"] = "No visible tenants on the current authorized page match the active filters.",
             ["Tenants.List.State.Error.Title"] = "Tenants unavailable",
-            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded.",
+            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded. The list is unavailable until the server-side query gateway is reachable.",
             ["Tenants.List.State.Stale.Title"] = "Tenant data is stale",
-            ["Tenants.List.State.Stale.Message"] = "Refresh to check the latest projection.",
+            ["Tenants.List.State.Stale.Message"] = "The latest freshness evidence says this list is stale. Refresh to check the projection again.",
             ["Tenants.List.State.Degraded.Title"] = "Tenant data is degraded",
-            ["Tenants.List.State.Degraded.Message"] = "Some tenant evidence is unavailable.",
+            ["Tenants.List.State.Degraded.Message"] = "Some tenant evidence is unavailable. Visible tenant identity, lifecycle, pending, and truth-state columns remain shown.",
             ["Tenants.List.Reason.GatewayUnavailable"] = "The authorized tenant list could not be loaded. Try again later.",
-            ["Tenants.List.Reason.NotModifiedWithoutSnapshot"] = "No confirmed server snapshot is available. Refresh to try again.",
-            ["Tenants.List.Reason.ProjectionDegraded"] = "Projection freshness is unavailable. Authorized tenant rows remain usable.",
+            ["Tenants.List.Reason.NotModifiedWithoutSnapshot"] = "The list could not be verified because no confirmed server snapshot is available. Refresh to try again.",
+            ["Tenants.List.Reason.ProjectionDegraded"] = "Projection freshness is unavailable. Authorized tenant rows that could be verified remain usable.",
             ["Tenants.List.Reason.RowEnrichmentUnavailable"] = "Member or owner counts are unavailable. Authorized tenant identity and lifecycle state remain usable.",
+            ["Tenants.List.Reason.SearchPartiallyAvailable"] = "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
-            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed. Select the value and copy it manually.",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
-            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
-            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed. Select the value and copy it manually.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable. Select the value and copy it manually.",
             ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
         };
     }

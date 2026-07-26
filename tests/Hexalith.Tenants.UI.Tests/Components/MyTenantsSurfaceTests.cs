@@ -23,6 +23,11 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class MyTenantsSurfaceTests : BunitContext
 {
+    // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
+    public MyTenantsSurfaceTests()
+    {
+        Services.AddScoped<TenantSearchPagingState>();    }
+
     [Fact]
     public void My_tenants_route_renders_memberships_stable_selectors_and_no_mutation_controls()
     {
@@ -72,6 +77,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         Services.AddFluentUIComponents();
         // The workspace now renders Fluent UI v5 components that import JS modules on first render.
         JSInterop.Mode = JSRuntimeMode.Loose;
+
+        // The workspace only restores retained protected paging on an interactive render pass.
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-refresh']");
@@ -321,6 +329,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
+
+        // The workspace only restores retained protected paging on an interactive render pass.
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
     private static UserTenantMembershipSnapshot ReadySnapshot(
@@ -375,18 +386,11 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.List.Reset"] = "Reset filters",
             ["Tenants.List.SearchLabel"] = "Search tenants",
             ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
-            ["Tenants.List.Sort.Name"] = "Name",
-            ["Tenants.List.Sort.Status"] = "Status",
-            ["Tenants.List.Sort.TenantId"] = "Tenant id",
-            ["Tenants.List.SortDirection.Ascending"] = "Ascending",
-            ["Tenants.List.SortDirection.Descending"] = "Descending",
-            ["Tenants.List.SortDirectionLabel"] = "Sort direction",
-            ["Tenants.List.SortLabel"] = "Sort",
             ["Tenants.List.StatusFilter.Active"] = "Active",
             ["Tenants.List.StatusFilter.All"] = "All statuses",
             ["Tenants.List.StatusFilter.Disabled"] = "Disabled",
             ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
-            ["Tenants.List.StatusFilterLabel"] = "Status",
+            ["Tenants.List.StatusFilterLabel"] = "Status on current page",
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.MyTenants.Back"] = "Back to tenants",
             ["Tenants.MyTenants.Column.Freshness"] = "Freshness",
@@ -432,10 +436,10 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
-            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed. Select the value and copy it manually.",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
-            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
-            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed. Select the value and copy it manually.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable. Select the value and copy it manually.",
             ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
         };
     }

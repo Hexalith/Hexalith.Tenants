@@ -26,10 +26,15 @@ namespace Hexalith.Tenants.UI.Tests;
 public sealed class TenantsWorkspaceTests : BunitContext
 {
     public TenantsWorkspaceTests()
+    {
         // The workspace now renders Fluent UI v5 components (FluentSelect/FluentTextInput/FluentButton)
         // which import their JS modules in OnAfterRenderAsync. Loose JSInterop lets bUnit no-op those
         // imports instead of throwing under the default Strict mode.
-        => JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
+        Services.AddScoped<TenantSearchPagingState>();
+    }
 
     [Fact]
     public void Workspace_renders_gateway_error_without_mock_tenant_data()
@@ -43,7 +48,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-list-error']");
 
         cut.Find("[data-testid='tenants-list-error']").GetAttribute("role").ShouldBe("alert");
@@ -65,7 +70,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-list-refresh']");
 
         // Controls are Fluent UI v5 components (no raw HTML controls), so they render as the
@@ -87,7 +92,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-workspace-tabs']");
 
         cut.Find("[data-testid='tenants-workspace-tabs']").TextContent.ShouldContain("Tenants");
@@ -111,7 +116,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddFluentUIComponents();
         Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?tab=unknown");
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-list-refresh']");
 
         cut.Find("[data-testid='tenants-workspace-tabs']").TextContent.ShouldContain("Tenants");
@@ -140,7 +145,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddFluentUIComponents();
         Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?tab=tenants&scope=mine");
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-my-list']");
 
         gateway.DidNotReceive()
@@ -177,7 +182,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.GetRequiredService<NavigationManager>()
             .NavigateTo("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-my-list']");
 
         // The scope=mine return-context banner renders (distinct testid from the scope=all banner) and names
@@ -217,7 +222,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.GetRequiredService<NavigationManager>()
             .NavigateTo($"/tenants?tab=users&userId={Uri.EscapeDataString("USER.Target-01")}&sort=role");
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
         gateway.DidNotReceive()
@@ -240,7 +245,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-create-accordion']");
 
         // The create block is grouped in a FluentAccordion item (the "Page sections" UX rule), and the
@@ -268,7 +273,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-create-submit']");
 
         // Unknown freshness is the empty/first-tenant bootstrap state (an empty index has no persisted
@@ -290,7 +295,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
-        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-create-submit']");
 
         // A definite Stale classification must still gate the create command behind a Refresh.
@@ -301,6 +306,14 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)
         => new(tenantId, name, TenantStatus.Active, role, ReadModelFreshnessState.Current);
+
+    // SetRendererInfo initializes the service provider, so it must run after every registration. The
+    // workspace only restores retained protected paging on an interactive render pass.
+    private IRenderedComponent<TenantsWorkspace> RenderWorkspace()
+    {
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+        return Render<TenantsWorkspace>();
+    }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
@@ -335,26 +348,19 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.List.Previous"] = "Previous",
             ["Tenants.List.Refresh"] = "Refresh",
             ["Tenants.List.Reset"] = "Reset filters",
-            ["Tenants.List.ReturnContext"] = "Returned from tenant {0}. Filters, sort, cursor, and selection were restored before rendering.",
+            ["Tenants.List.ReturnContext"] = "Returned from tenant {0}. Filters, sort, and selection were restored on the authorized first page.",
             ["Tenants.List.Reason.GatewayUnavailable"] = "The authorized tenant list could not be loaded. Try again later.",
             ["Tenants.List.SearchLabel"] = "Search tenants",
             ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
-            ["Tenants.List.Sort.Name"] = "Name",
-            ["Tenants.List.Sort.Status"] = "Status",
-            ["Tenants.List.Sort.TenantId"] = "Tenant id",
-            ["Tenants.List.SortDirection.Ascending"] = "Ascending",
-            ["Tenants.List.SortDirection.Descending"] = "Descending",
-            ["Tenants.List.SortDirectionLabel"] = "Sort direction",
-            ["Tenants.List.SortLabel"] = "Sort",
-            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator.",
+            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator. This is an authorized empty result, not a failure.",
             ["Tenants.List.State.Empty.Title"] = "No visible tenants",
-            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded.",
+            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded. The list is unavailable until the server-side query gateway is reachable.",
             ["Tenants.List.State.Error.Title"] = "Tenants unavailable",
             ["Tenants.List.StatusFilter.Active"] = "Active",
             ["Tenants.List.StatusFilter.All"] = "All statuses",
             ["Tenants.List.StatusFilter.Disabled"] = "Disabled",
             ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
-            ["Tenants.List.StatusFilterLabel"] = "Status",
+            ["Tenants.List.StatusFilterLabel"] = "Status on current page",
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.MyTenants.Column.Freshness"] = "Freshness",
             ["Tenants.MyTenants.Column.Role"] = "Role",
@@ -390,14 +396,14 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.UserLookup.Column.Role"] = "Role",
             ["Tenants.UserLookup.Column.Status"] = "Status",
             ["Tenants.UserLookup.Column.Tenant"] = "Tenant",
-            ["Tenants.UserLookup.Description"] = "Read-only membership lookup for a caller-supplied user identifier.",
+            ["Tenants.UserLookup.Description"] = "Read-only membership lookup for a caller-supplied user identifier. Results only include memberships visible to the signed-in operator.",
             ["Tenants.UserLookup.FormLabel"] = "User membership lookup controls",
             ["Tenants.UserLookup.Freshness.Current"] = "Current",
             ["Tenants.UserLookup.Freshness.Stale"] = "Stale",
             ["Tenants.UserLookup.Freshness.Unknown"] = "Unknown",
             ["Tenants.UserLookup.Initial.Message"] = "Enter a user identifier to run an authorization-scoped membership lookup.",
             ["Tenants.UserLookup.Initial.Title"] = "User membership lookup ready",
-            ["Tenants.UserLookup.InputHelp"] = "Use the exact caller-supplied user identifier.",
+            ["Tenants.UserLookup.InputHelp"] = "Use the exact caller-supplied user identifier. The value is not parsed as a GUID or ULID.",
             ["Tenants.UserLookup.InputLabel"] = "User identifier",
             ["Tenants.UserLookup.Link"] = "User lookup",
             ["Tenants.UserLookup.Next"] = "Next",
@@ -421,7 +427,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.UserLookup.TargetContext"] = "Lookup target: {0}",
             ["Tenants.UserLookup.Title"] = "User membership lookup",
             ["Tenants.Create.Title"] = "Create tenant",
-            ["Tenants.Create.Description"] = "Submit a tenant creation command and wait for projection confirmation.",
+            ["Tenants.Create.Description"] = "Submit a tenant creation command and wait for projection confirmation before treating it as visible.",
             ["Tenants.Create.TenantId.Label"] = "Tenant id",
             ["Tenants.Create.TenantId.Help"] = "Use the exact caller-supplied tenant id.",
             ["Tenants.Create.Name.Label"] = "Name",
@@ -449,12 +455,12 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.Create.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.Create.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.CommandReason"] = "Open the tenant audit list and use the visible audit state.",
+            ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.MyTenants.AuditAccessibleLabel"] = "Open audit evidence for tenant {0}",
             ["Tenants.UserLookup.AuditAccessibleLabel"] = "Open audit evidence for user {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required.",
-            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope.",
+            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
+            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
         };
 
         public LocalizedString this[string name]

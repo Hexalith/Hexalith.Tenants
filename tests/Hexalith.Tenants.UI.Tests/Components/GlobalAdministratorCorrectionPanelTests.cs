@@ -74,7 +74,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         queryGateway.GlobalAdminRequests.Count.ShouldBe(1);
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("system");
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("confirmed", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state", Case.Insensitive);
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
         cut.Find("[data-testid='tenants-correction-proof-link']").TextContent.ShouldContain("2026-06-01 10:05:00 UTC");
         cut.Markup.ShouldNotContain("undone", Case.Insensitive);
@@ -108,7 +108,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         projectionRefreshCount.ShouldBe(1);
         queryGateway.GlobalAdminRequests.ShouldBeEmpty();
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("system");
-        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("confirmed", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state", Case.Insensitive);
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
     }
 
@@ -248,7 +248,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Rejected));
         cut.Instance.Snapshot!.RejectionCode.ShouldBe("LastGlobalAdministrator");
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
-        cut.VisibleText().ShouldNotContain("Projection confirmed", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent
+            .ShouldNotContain("Projection confirms the intended state", Case.Insensitive);
     }
 
     [Fact]
@@ -592,38 +593,38 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present"] = "Present in the current platform authority projection.",
             ["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent"] = "Absent from the current platform authority projection.",
             ["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"] = "Last-administrator impact",
-            ["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"] = "The last global administrator cannot be removed.",
+            ["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"] = "The last global administrator cannot be removed; at least one global administrator must remain.",
             ["Tenants.Correction.GlobalAdmin.Preview.Consequences"] = "Known consequences",
-            ["Tenants.Correction.GlobalAdmin.Preview.Consequence.Restore"] = "A new platform authority grant event may be appended.",
-            ["Tenants.Correction.GlobalAdmin.Preview.Consequence.Revoke"] = "A new platform authority removal event may be appended.",
+            ["Tenants.Correction.GlobalAdmin.Preview.Consequence.Restore"] = "A new platform authority grant event may be appended when the fixed projection confirms the target is absent.",
+            ["Tenants.Correction.GlobalAdmin.Preview.Consequence.Revoke"] = "A new platform authority removal event may be appended when the fixed projection confirms the target is present.",
             ["Tenants.Correction.GlobalAdmin.Preview.Unknowns"] = "Known unknowns",
-            ["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"] = "Live notifications never prove platform authority change.",
+            ["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"] = "Status lookup and live notifications can prompt a re-query but never prove a platform authority change without fixed projection truth.",
             ["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation"] = "Audit expectation",
-            ["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value"] = "Corrective system-scope audit evidence is expected.",
+            ["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value"] = "Corrective system-scope audit evidence is expected after the command is accepted and the fixed projection confirms the intended state.",
             ["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath"] = "Recovery path",
-            ["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value"] = "Retry status lookup, inspect audit, or continue read-only.",
-            ["Tenants.Correction.GlobalAdmin.AlreadyGranted"] = "This user is already a global administrator.",
-            ["Tenants.Correction.GlobalAdmin.AlreadyRemoved"] = "This user is already not a global administrator.",
-            ["Tenants.Correction.GlobalAdmin.LastAdministrator"] = "The last global administrator cannot be removed before another remains.",
-            ["Tenants.Correction.GlobalAdmin.State.AlreadyApplied"] = "The fixed projection already reflects the intended state.",
-            ["Tenants.Correction.GlobalAdmin.State.UnableToVerify"] = "The platform authority correction cannot be verified.",
+            ["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value"] = "Retry status lookup, inspect audit, continue read-only, or escalate using support-safe references.",
+            ["Tenants.Correction.GlobalAdmin.AlreadyGranted"] = "The current platform authority projection already shows this user as a global administrator.",
+            ["Tenants.Correction.GlobalAdmin.AlreadyRemoved"] = "The current platform authority projection already shows this user is not a global administrator.",
+            ["Tenants.Correction.GlobalAdmin.LastAdministrator"] = "The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before starting this correction.",
+            ["Tenants.Correction.GlobalAdmin.State.AlreadyApplied"] = "The fixed projection already reflects the intended platform authority state; no correction success is asserted.",
+            ["Tenants.Correction.GlobalAdmin.State.UnableToVerify"] = "The platform authority correction cannot be verified from current evidence.",
             ["Tenants.Correction.State.Previewed"] = "Preview is ready for deliberate confirmation.",
-            ["Tenants.Correction.State.RequestSent"] = "Correction command was sent.",
+            ["Tenants.Correction.State.RequestSent"] = "Corrective command request was sent.",
             ["Tenants.Correction.State.Accepted"] = "Command accepted; projection confirmation is pending.",
-            ["Tenants.Correction.State.ProjectionPending"] = "Projection confirmation is pending.",
-            ["Tenants.Correction.State.Confirmed"] = "Projection confirmed the correction.",
-            ["Tenants.Correction.State.AlreadyApplied"] = "The intended state is already present.",
-            ["Tenants.Correction.State.Rejected"] = "Correction command was rejected.",
-            ["Tenants.Correction.State.Failed"] = "Correction command failed.",
-            ["Tenants.Correction.State.Degraded"] = "Correction status is degraded.",
+            ["Tenants.Correction.State.ProjectionPending"] = "Command events are stored; projection confirmation is pending.",
+            ["Tenants.Correction.State.Confirmed"] = "Projection confirms the intended state; waiting for corrective audit proof.",
+            ["Tenants.Correction.State.AlreadyApplied"] = "Current projection already shows the intended state.",
+            ["Tenants.Correction.State.Rejected"] = "Corrective command was rejected.",
+            ["Tenants.Correction.State.Failed"] = "Corrective command failed before acceptance.",
+            ["Tenants.Correction.State.Degraded"] = "Command processing is degraded; refresh status or inspect audit evidence.",
             ["Tenants.Correction.State.UnableToVerify"] = "Correction cannot be verified from current evidence.",
             ["Tenants.Correction.Audit.AuditPending"] = "Corrective audit evidence is pending.",
             ["Tenants.Correction.Audit.AuditDelayed"] = "Corrective audit evidence is delayed.",
             ["Tenants.Correction.Audit.AuditUnavailable"] = "Corrective audit evidence is unavailable.",
-            ["Tenants.Correction.Audit.MissingSupport"] = "Corrective audit support is missing.",
-            ["Tenants.Correction.Proof.Link"] = "Corrective evidence linked at {0}.",
+            ["Tenants.Correction.Audit.MissingSupport"] = "Corrective audit support is unavailable.",
+            ["Tenants.Correction.Proof.Link"] = "View corrective proof from {0}",
             ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
-            ["Tenants.Correction.Unavailable.CurrentProjectionUnavailable"] = "Current projection is unavailable.",
+            ["Tenants.Correction.Unavailable.CurrentProjectionUnavailable"] = "Current projection evidence is unavailable.",
         };
     }
 }
