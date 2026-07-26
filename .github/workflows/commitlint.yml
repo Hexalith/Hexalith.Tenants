@@ -5,6 +5,9 @@ name: Commitlint
 on:
   pull_request:
     branches: [main]
+    # `edited` covers a title changed after the pull request was opened, which
+    # would otherwise ship an unvalidated squash-merge subject.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 concurrency:
@@ -15,3 +18,5 @@ permissions:
 jobs:
   commitlint:
     uses: Hexalith/Hexalith.Builds/.github/workflows/commitlint.yml@main
+    with:
+      pull-request-title: ${{ github.event.pull_request.title }}
