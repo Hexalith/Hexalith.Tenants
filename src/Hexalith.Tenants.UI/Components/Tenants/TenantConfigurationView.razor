@@ -12,6 +12,7 @@
         </div>
         <div class="tenant-config__truth" data-testid="tenants-config-read-truth-state">
             <TruthStateBadge Freshness="@EffectiveFreshness"
+                             Lifecycle="@Lifecycle"
                              TestId="tenants-config-read-truth-badge"
                              ResourcePrefix="Tenants.Configuration" />
             @if (HasNonCurrentState)
@@ -125,6 +126,7 @@
                                                     ColumnId="configuration-freshness"
                                                     Width="170px">
                                         <TruthStateBadge Freshness="@EffectiveFreshness"
+                                                         Lifecycle="@Lifecycle"
                                                          TestId="tenants-config-read-row-freshness"
                                                          ResourcePrefix="Tenants.Configuration" />
                                     </TemplateColumn>
@@ -149,6 +151,9 @@
 
     [Parameter]
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
+
+    [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
     private IReadOnlyList<TenantConfigurationSafeRow> Rows
         => Model?.Rows ?? [];

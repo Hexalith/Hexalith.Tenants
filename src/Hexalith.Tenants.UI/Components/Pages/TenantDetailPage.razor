@@ -112,7 +112,7 @@
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Detail.FreshnessLabel"]</dt>
-                    <dd><TruthStateBadge Freshness="@_snapshot.Freshness" TestId="tenants-detail-truth-state" /></dd>
+                    <dd><TruthStateBadge Freshness="@_snapshot.Freshness" Lifecycle="@_snapshot.Lifecycle" TestId="tenants-detail-truth-state" /></dd>
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Detail.CreatedAtLabel"]</dt>
@@ -141,6 +141,7 @@
                                                         CurrentStatus="@Detail.Status"
                                                         SurfaceKind="@_snapshot.Kind"
                                                         Freshness="@_snapshot.Freshness"
+                                                        Lifecycle="@_snapshot.Lifecycle"
                                                         IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
                                                         AuthorizationReflection="@BffComposition.LifecycleAuthorizationReflection"
                                                         GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
@@ -161,6 +162,7 @@
                         <MemberAccessReview Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
+                                            Lifecycle="@_snapshot.Lifecycle"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnCommandActivityChanged="@SetCommandActivityAsync"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
@@ -180,7 +182,8 @@
 
                         <TenantConfigurationView Model="@_snapshot.Configuration"
                                                  SurfaceKind="@_snapshot.Kind"
-                                                 Freshness="@_snapshot.Freshness" />
+                                                 Freshness="@_snapshot.Freshness"
+                                                 Lifecycle="@_snapshot.Lifecycle" />
 
                         <TenantConfigurationManagement Context="@_snapshot.ConfigurationManagement"
                                                        SurfaceKind="@_snapshot.Kind"

@@ -22,7 +22,7 @@
             </div>
             <div data-testid="tenants-lifecycle-freshness">
                 <dt>@Localizer["Tenants.Lifecycle.FreshnessLabel"]</dt>
-                <dd><TruthStateBadge Freshness="@Freshness" ResourcePrefix="Tenants.Lifecycle" TestId="tenants-lifecycle-freshness-badge" /></dd>
+                <dd><TruthStateBadge Freshness="@Freshness" Lifecycle="@Lifecycle" ResourcePrefix="Tenants.Lifecycle" TestId="tenants-lifecycle-freshness-badge" /></dd>
             </div>
             <div data-testid="tenants-lifecycle-governance-gate">
                 <dt>@Localizer["Tenants.Lifecycle.GovernanceGateLabel"]</dt>
@@ -120,6 +120,9 @@
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
 
     [Parameter]
@@ -155,7 +158,8 @@
             IsCommandSurfaceConnected,
             GovernanceReadiness,
             AuthorizationReflection,
-            IsNarrowSafetyContext);
+            IsNarrowSafetyContext,
+            Lifecycle);
 
     private IReadOnlyList<TenantLifecycleAvailability> Availabilities
         =>

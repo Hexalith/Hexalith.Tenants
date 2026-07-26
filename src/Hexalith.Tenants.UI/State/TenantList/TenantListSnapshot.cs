@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantList;
 
@@ -14,10 +15,11 @@ public sealed record TenantListSnapshot(
     TenantListReason Reason = TenantListReason.None,
     TenantListReason Notice = TenantListReason.None,
     bool IsAuthoritativeSearch = false,
-    bool PagingRecovered = false) {
+    bool PagingRecovered = false,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     /// <summary>Returns a support-safe description that omits cursor, ETag, and indexed material.</summary>
     public override string ToString()
-        => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered} }}";
+        => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered} }}";
 
     public static TenantListSnapshot Loading()
         => new(

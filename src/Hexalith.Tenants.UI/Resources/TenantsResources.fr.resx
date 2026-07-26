@@ -87,6 +87,18 @@
   <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
     <value>Inconnu</value>
   </data>
+  <data name="Tenants.ProjectionLifecycle.Rebuilding" xml:space="preserve">
+    <value>Reconstruction en cours</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Degraded" xml:space="preserve">
+    <value>Dégradé</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Unavailable" xml:space="preserve">
+    <value>Indisponible</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.LocalOnly" xml:space="preserve">
+    <value>Local uniquement</value>
+  </data>
   <data name="Tenants.List.DetailLinkLabel" xml:space="preserve">
     <value>Ouvrir les détails du locataire {0}</value>
   </data>
@@ -728,6 +740,9 @@
   </data>
   <data name="Tenants.Lifecycle.Unavailable.Mobile" xml:space="preserve">
     <value>{1} est indisponible pour le locataire {0} car cette vue ne peut pas préserver tout le contexte de sécurité à fort impact. Continuez en lecture seule sur cette vue.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>{1} est indisponible pour le locataire {0} car le cycle de vie de la projection n'est pas actuel. Continuez en lecture seule et actualisez les preuves de projection.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.StaleFreshness" xml:space="preserve">
     <value>{1} est indisponible pour le locataire {0} car la fraîcheur du locataire est périmée ou inconnue. Actualisez avant d'évaluer la disponibilité des actions de cycle de vie.</value>

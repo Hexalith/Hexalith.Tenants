@@ -1,6 +1,7 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -15,7 +16,8 @@ public sealed record TenantAuditRow(
     string Scope,
     string Outcome,
     string ReferenceContext,
-    ReadModelFreshnessState Freshness) {
+    ReadModelFreshnessState Freshness,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     private static readonly string[] ApprovedNarrativeKeys =
     [
         "userId",

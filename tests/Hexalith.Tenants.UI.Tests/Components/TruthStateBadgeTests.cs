@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Shared;
 using Hexalith.Tenants.UI.Resources;
 
@@ -61,6 +62,47 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         badge.GetAttribute("role").ShouldBe("status");
     }
 
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Rebuilding, BadgeColor.Informative, "ArrowClockwise", "Rebuilding")]
+    [InlineData(ProjectionLifecycleState.Degraded, BadgeColor.Warning, "ClockAlarm", "Degraded")]
+    [InlineData(ProjectionLifecycleState.Unavailable, BadgeColor.Severe, "QuestionCircle", "Unavailable")]
+    [InlineData(ProjectionLifecycleState.LocalOnly, BadgeColor.Important, "Clock", "Local only")]
+    public void Operational_lifecycle_states_are_distinct_from_unknown_freshness(
+        ProjectionLifecycleState lifecycle,
+        BadgeColor expectedColor,
+        string expectedIconType,
+        string expectedLabel)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<TruthStateBadge> cut = Render<TruthStateBadge>(parameters => parameters
+            .Add(badge => badge.Freshness, ReadModelFreshnessState.Unknown)
+            .Add(badge => badge.Lifecycle, lifecycle));
+
+        var badge = cut.Find("[data-testid='tenants-list-truth-state']");
+        badge.TextContent.Trim().ShouldBe(expectedLabel);
+        badge.GetAttribute("aria-label").ShouldBe(expectedLabel);
+        (badge.GetAttribute("class") ?? string.Empty).ShouldContain($"truth-state-badge--{lifecycle.ToString().ToLowerInvariant()}");
+        FluentBadge fluentBadge = cut.FindComponent<FluentBadge>().Instance;
+        fluentBadge.Color.ShouldBe(expectedColor);
+        fluentBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIconType);
+        fluentBadge.IconStart.Size.ShouldBe(IconSize.Size20);
+        fluentBadge.IconLabel.ShouldBe(expectedLabel);
+    }
+
+    [Fact]
+    public void Current_lifecycle_preserves_the_more_specific_aging_freshness_treatment()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<TruthStateBadge> cut = Render<TruthStateBadge>(parameters => parameters
+            .Add(badge => badge.Freshness, ReadModelFreshnessState.Aging)
+            .Add(badge => badge.Lifecycle, ProjectionLifecycleState.Current));
+
+        cut.Find("[data-testid='tenants-list-truth-state']").TextContent.Trim().ShouldBe("Aging");
+        cut.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Warning);
+    }
+
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
         private static readonly IReadOnlyDictionary<string, string> Values = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -70,6 +112,10 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
             ["Tenants.List.Freshness.Aging"] = "Aging",
             ["Tenants.List.Freshness.Stale"] = "Stale",
             ["Tenants.List.Freshness.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
         };
 
         public LocalizedString this[string name] => CreateString(name);

@@ -72,6 +72,7 @@
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--freshness")"
                         Width="170px">
             <TruthStateBadge Freshness="@context.Freshness"
+                             Lifecycle="@context.Lifecycle"
                              TestId="@($"{SelectorPrefix}-truth-state")"
                              ResourcePrefix="@ResourcePrefix" />
         </TemplateColumn>

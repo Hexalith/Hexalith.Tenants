@@ -73,7 +73,7 @@
                         Class="tenants-critical tenants-critical--freshness"
                         Width="160px"
                         Pin="DataGridColumnPin.Start">
-            <TruthStateBadge Freshness="@context.Freshness" />
+            <TruthStateBadge Freshness="@context.Freshness" Lifecycle="@context.Lifecycle" />
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Members"]" ColumnId="tenant-members" Width="115px">
             @CountLabel(context.MemberCount)

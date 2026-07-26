@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -14,7 +15,8 @@ public sealed record TenantAuditSnapshot(
     string? TenantId = null,
     DateTimeOffset? From = null,
     DateTimeOffset? To = null,
-    string? Category = null) {
+    string? Category = null,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,

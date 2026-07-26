@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -10,7 +11,8 @@ public sealed record GlobalAdministratorsSnapshot(
     string? ETag,
     ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
-    GlobalAdministratorsReason Reason) {
+    GlobalAdministratorsReason Reason,
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

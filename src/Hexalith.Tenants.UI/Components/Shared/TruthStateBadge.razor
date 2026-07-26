@@ -17,6 +17,9 @@
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
     public bool IsRefreshing { get; set; }
 
     [Parameter]
@@ -25,25 +28,54 @@
     [Parameter]
     public string ResourcePrefix { get; set; } = "Tenants.List";
 
-    private string FreshnessKey => IsRefreshing ? "Refreshing" : Freshness.ToString();
+    private bool HasOperationalLifecycle
+        => !IsRefreshing
+        && Lifecycle is ProjectionLifecycleState.Rebuilding
+            or ProjectionLifecycleState.Degraded
+            or ProjectionLifecycleState.Unavailable
+            or ProjectionLifecycleState.LocalOnly;
 
-    private string Label => Localizer[$"{ResourcePrefix}.Freshness.{FreshnessKey}"];
+    private string StateKey => IsRefreshing
+        ? "Refreshing"
+        : HasOperationalLifecycle ? Lifecycle.ToString() : Freshness.ToString();
 
-    private string CssClass => FreshnessKey.ToLowerInvariant();
+    private string Label => HasOperationalLifecycle
+        ? Localizer[$"Tenants.ProjectionLifecycle.{StateKey}"]
+        : Localizer[$"{ResourcePrefix}.Freshness.{StateKey}"];
 
-    private BadgeColor FreshnessBadgeColor => IsRefreshing ? BadgeColor.Informative : Freshness switch
-    {
-        ReadModelFreshnessState.Current => BadgeColor.Success,
-        ReadModelFreshnessState.Aging => BadgeColor.Warning,
-        ReadModelFreshnessState.Stale => BadgeColor.Severe,
-        _ => BadgeColor.Important,
-    };
+    private string CssClass => StateKey.ToLowerInvariant();
 
-    private Icon StateIcon => IsRefreshing ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise() : Freshness switch
-    {
-        ReadModelFreshnessState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
-        ReadModelFreshnessState.Aging => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
-        ReadModelFreshnessState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
-        _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
-    };
+    private BadgeColor FreshnessBadgeColor => IsRefreshing
+        ? BadgeColor.Informative
+        : Lifecycle switch
+        {
+            ProjectionLifecycleState.Rebuilding => BadgeColor.Informative,
+            ProjectionLifecycleState.Degraded => BadgeColor.Warning,
+            ProjectionLifecycleState.Unavailable => BadgeColor.Severe,
+            ProjectionLifecycleState.LocalOnly => BadgeColor.Important,
+            _ => Freshness switch
+            {
+                ReadModelFreshnessState.Current => BadgeColor.Success,
+                ReadModelFreshnessState.Aging => BadgeColor.Warning,
+                ReadModelFreshnessState.Stale => BadgeColor.Severe,
+                _ => BadgeColor.Important,
+            },
+        };
+
+    private Icon StateIcon => IsRefreshing
+        ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise()
+        : Lifecycle switch
+        {
+            ProjectionLifecycleState.Rebuilding => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise(),
+            ProjectionLifecycleState.Degraded => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+            ProjectionLifecycleState.Unavailable => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
+            ProjectionLifecycleState.LocalOnly => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
+            _ => Freshness switch
+            {
+                ReadModelFreshnessState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
+                ReadModelFreshnessState.Aging => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
+                ReadModelFreshnessState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+                _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
+            },
+        };
 }
