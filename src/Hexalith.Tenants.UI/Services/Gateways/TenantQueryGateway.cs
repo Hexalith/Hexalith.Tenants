@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -509,7 +510,22 @@ internal sealed class TenantQueryGateway(
             canonicalRequest.SortDescending,
             canonicalRequest.PageSize);
 
-        bool cursorRecovered = !searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out int rawOffset);
+        bool decoded;
+        bool cursorRecovered;
+        int rawOffset;
+        try {
+            decoded = searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out rawOffset);
+        }
+        catch (CryptographicException) {
+            decoded = false;
+            rawOffset = 0;
+        }
+
+        cursorRecovered = !decoded;
+        if (!decoded) {
+            rawOffset = 0;
+        }
+
         try {
             MemoriesSearchResult? result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
                 .ConfigureAwait(false);
@@ -518,7 +534,10 @@ internal sealed class TenantQueryGateway(
             }
 
             MemoriesSearchResult validResult = result!;
-            if (rawOffset > validResult.TotalCount) {
+            if (rawOffset > validResult.TotalCount
+                || (rawOffset > 0
+                    && rawOffset == validResult.TotalCount
+                    && validResult.Results.Count == 0)) {
                 rawOffset = 0;
                 cursorRecovered = true;
                 result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken).ConfigureAwait(false);
@@ -620,6 +639,11 @@ internal sealed class TenantQueryGateway(
             return false;
         }
 
+        if (offset <= result.TotalCount
+            && result.Results.Count != Math.Min((long)request.PageSize, result.TotalCount - offset)) {
+            return false;
+        }
+
         foreach (MemoriesScoredResult? hit in result.Results) {
             if (hit is null || !string.Equals(hit.Axis, SearchAxis, StringComparison.Ordinal)) {
                 return false;
@@ -717,7 +741,8 @@ internal sealed class TenantQueryGateway(
                 || result.Metadata?.IsDegraded == true
                 || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)
                 || detail.Name is null
-                || detail.Members is null) {
+                || detail.Members is null
+                || detail.Members.Any(static member => member is null)) {
                 return (candidate.Ordinal, null, true);
             }
 
@@ -764,12 +789,14 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? reusable = previous?.IsAuthoritativeSearch == false ? previous : null;
         TenantListSnapshot fallback = await ListByCursorAsync(fallbackRequest, reusable, cancellationToken)
             .ConfigureAwait(false);
+        bool pagingRecovered = fallback.Notice == TenantListReason.ListRefreshed;
         return fallback.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized
             ? fallback
             : fallback with {
                 Notice = TenantListReason.SearchUnavailable,
                 IsAuthoritativeSearch = false,
-                PagingRecovered = false,
+                PagingRecovered = pagingRecovered,
+                PagingNotice = pagingRecovered ? TenantListReason.ListRefreshed : TenantListReason.None,
             };
     }
 
@@ -806,6 +833,7 @@ internal sealed class TenantQueryGateway(
             or TimeoutException
             or JsonException
             or InvalidOperationException
+            or CryptographicException
             or ArithmeticException
             || exception is OperationCanceledException;
 

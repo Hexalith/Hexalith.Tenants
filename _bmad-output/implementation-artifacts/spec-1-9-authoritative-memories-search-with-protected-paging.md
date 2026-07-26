@@ -2,10 +2,10 @@
 title: 'Story 1.9: Authoritative Memories Search with Protected Paging'
 type: 'feature'
 created: '2026-07-21'
-status: 'in-progress'
-baseline_revision: 'dcbe620156a6f75ff94ac58f77e2002fa724aba6'
+status: 'in-review'
+baseline_revision: '85838fbbb4efcd131a44d4ac4535110b1a9d3217'
 review_loop_iteration: 1
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -118,6 +118,31 @@ warnings:
   - `[medium]` `[bad_spec]` Made fallback semantics depend on authoritative-search state rather than the non-empty query alone.
   - `[high]` `[bad_spec]` Narrowed evidence claims and required runtime-relevant sentinel guards for cursor/index/log/telemetry safety.
 
+### 2026-07-26 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 17: (high 1, medium 11, low 5)
+- defer: 1: (high 0, medium 1, low 0)
+- reject: 6: (high 1, medium 5, low 0)
+- addressed_findings:
+  - `[medium]` `[patch]` Forced every unsuccessful search-cursor decode to raw page zero regardless of the codec's out value.
+  - `[medium]` `[patch]` Recovered the equality boundary when a positive retained offset lands on an empty shrunken result set.
+  - `[medium]` `[patch]` Restricted retained paging restoration to an exact, normalized detail-return context instead of fresh same-scope visits.
+  - `[medium]` `[patch]` Bound pending recovery notices to the active scope and cleared them across cancellation, identity changes, disposal, and terminal results.
+  - `[low]` `[patch]` Suppressed secondary notice rendering when no mapped localized message and stable test id exist.
+  - `[medium]` `[patch]` Suppressed duplicate primary and secondary notice ids and polite announcements.
+  - `[high]` `[patch]` Removed exact search/fallback history counts from support diagnostics because page depth reconstructs protected raw offsets.
+  - `[medium]` `[patch]` Corrected purpose-isolation evidence to use one Data Protection provider and vary only the codec purposes.
+  - `[medium]` `[patch]` Added positive nonzero-cursor coverage for a valid short final Memories page.
+  - `[medium]` `[patch]` Added previous-only pager coverage for an empty final authoritative page.
+  - `[medium]` `[patch]` Added outer workspace coverage proving recovery clears only the applicable paging mode.
+  - `[medium]` `[patch]` Proved protected Previous history survives detail navigation and component recreation.
+  - `[low]` `[patch]` Corrected the evidence inventory to distinguish workflow-owned spec metadata edits from implementation edits.
+  - `[low]` `[patch]` Replaced the inaccurate no-public-contract claim with the exact public UI state-surface addition and unchanged published/backend contracts.
+  - `[low]` `[patch]` Added a separate whitespace check for the untracked evidence artifact.
+  - `[low]` `[patch]` Qualified red-phase history as an implementation-session report rather than an auditable retained artifact.
+  - `[medium]` `[patch]` Added direct-visit and validated return-context tests so retained hidden paging cannot attach to an unrelated navigation.
+
 ## Design Notes
 
 Search state remains canonical in the URL, but search paging state does not. `TenantWorkspaceState.Cursor` continues to serve ordinary list/My Tenants/users paging only; active search owns scoped server-circuit state that survives in-circuit detail navigation and canonicalizes away incoming `cursor=` values. The search wrapper constructs its own `QueryCursorCodec` purpose instead of competing for the host's unkeyed `IQueryCursorCodec`; fixed-size SHA-256 scope values bind unbounded canonical user/search inputs without exposing them or risking oversized cursors. Platform codec rejection covers tampered, mismatched, expired, and invalidated inputs; this story does not invent a wall-clock TTL absent from the platform contract. Hydration uses a named maximum concurrency while retaining the raw candidate ordinal for final stable ordering, and cancellation never becomes a search-unavailable result.
@@ -133,3 +158,50 @@ Search state remains canonical in the URL, but search paging state does not. `Te
 
 **Manual checks (if no CLI):**
 - Retain authenticated EN/FR browser evidence for whole-set next/previous paging, page-one recovery, partial/fallback states, keyboard focus/announcements, narrow widths, forced colors, reduced motion, and clean console/network output; record human NVDA or Memories-runtime proof as blocked unless a dated session is available.
+
+## Auto Run Result
+
+Status: done
+
+### Summary
+
+Implemented authoritative whole-set tenant search using Memories only for ordered candidates, authoritative Tenants hydration for every rendered row, Data Protection-backed server-circuit paging, honest sparse/partial/fallback behavior, deterministic status/sort handling, bounded cancellation-aware hydration, and support-safe EN/FR UI states. The review pass hardened invalid-cursor/index-shrink recovery, detail-return continuity, paging-mode isolation, notice behavior, and diagnostic safety.
+
+### Files Changed
+
+- `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` — workflow state, review triage, verification, and final run result.
+- `_bmad-output/implementation-artifacts/deferred-work.md` — one pre-existing accessible-label mismatch deferred for separate attention.
+- `_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-21.md` — dated acceptance evidence, exact gates, negative proof, and external blockers.
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` — protected paging continuity, cancellation, scoped recovery, honest notices, and sparse pager behavior.
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` — validated Memories search, authoritative hydration, bounded concurrency, sorting, recovery, and ordinary-list fallback.
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs` — separate support-safe paging notice state.
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs` — scoped search/fallback history with mode-specific recovery and non-reconstructable diagnostics.
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` — outer paging, continuity, cancellation, notice, and safety coverage.
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` — full response, hydration, sort, cursor, concurrency, cancellation, and fallback matrix.
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantSearchCursorTests.cs` — scope, purpose, invalidation, and paging-state evidence.
+- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs` — host composition, purpose isolation, logging guards, and EN/FR copy.
+- `tests/test-summary.md` — Story 1.9 test-evidence addendum.
+
+### Review Findings
+
+- Patches applied: 17 (high 1, medium 11, low 5).
+- Items deferred: 1 pre-existing accessible-name mismatch recorded in `deferred-work.md`.
+- Items rejected: 6 duplicate, already-disclosed, or non-actionable findings.
+- Follow-up review recommendation: true. Patch score = `3 × 11 + 1 × 5 = 38`; the pass also contained one high-severity patch.
+
+### Verification
+
+- UI Release build: passed with 0 warnings and 0 errors.
+- Exact seven-class focused UI executable: 349 passed, 0 failed, 0 skipped.
+- Full UI executable: 1,096 passed, 0 failed, 0 skipped.
+- Memories index-handoff lane: 7 passed, 0 failed, 0 skipped after a warning-clean Release build.
+- Full `Hexalith.Tenants.slnx` Release build: passed with 0 warnings and 0 errors.
+- `git diff --check`: passed.
+- Untracked evidence whitespace check: expected content-diff exit 1 with no whitespace diagnostics.
+- Matrix audit: every intent-contract row is covered by an enabled test in the passing focused/full lanes.
+
+### Residual Risks
+
+- Live authenticated AppHost/Memories runtime proof remains blocked by AppHost restore startup timeout and the local untrusted OpenSSL certificate; the evidence report records owner, consequence, logs, and reopen trigger.
+- Authenticated EN/FR browser evidence and human NVDA evidence remain unavailable and are recorded with exact owners and reopen triggers.
+- The pre-existing visible/accessibility status-label mismatch is deferred; it was not introduced by this review-repair diff.

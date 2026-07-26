@@ -122,6 +122,35 @@ public sealed class TenantSearchCursorTests {
         state.HasPrevious(authoritative: false).ShouldBeFalse();
     }
 
+    [Fact]
+    public void Scoped_paging_matches_only_its_exact_server_held_scope_and_recovers_each_mode_independently()
+    {
+        var state = new TenantSearchPagingState();
+        state.EnsureScope("scope-one");
+        state.MoveNext(authoritative: true, "protected-two");
+        state.MoveNext(authoritative: false, "ordinary-two");
+
+        state.MatchesScope("scope-one").ShouldBeTrue();
+        state.MatchesScope("scope-two").ShouldBeFalse();
+
+        state.RecoverFallback();
+
+        state.SearchCursor.ShouldBe("protected-two");
+        state.FallbackCursor.ShouldBeNull();
+        state.HasPrevious(authoritative: true).ShouldBeTrue();
+        state.HasPrevious(authoritative: false).ShouldBeFalse();
+
+        state.RecoverSearch();
+
+        state.SearchCursor.ShouldBeNull();
+        state.HasPrevious(authoritative: true).ShouldBeFalse();
+        state.ToString().ShouldNotContain("scope-one", Case.Sensitive);
+        state.ToString().ShouldNotContain("protected-two", Case.Sensitive);
+        state.ToString().ShouldNotContain("ordinary-two", Case.Sensitive);
+        state.ToString().ShouldNotContain("Count", Case.Sensitive);
+        state.ToString().ShouldNotContain("= 1", Case.Sensitive);
+    }
+
     private static string Scope(
         string user,
         string search,
