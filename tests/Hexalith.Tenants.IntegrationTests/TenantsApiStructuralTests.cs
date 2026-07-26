@@ -28,6 +28,14 @@ public sealed class TenantsApiStructuralTests
         @"\.\s*Map(?:Get|Post|Put|Delete|Patch|Group|Methods|Fallback|FallbackToFile)\s*\(",
         RegexOptions.Compiled);
 
+    private static readonly Regex RoutingHeaderSetterPattern = new(
+        @"\.\s*(?:TryAddWithoutValidation|Add|Append|Set)\s*\(\s*""dapr-(?:app-id|api-token)""",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    private static readonly Regex RoutingHeaderNamePattern = new(
+        @"""dapr-(?:app-id|api-token)""",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     [Fact]
     public async Task TenantsApiProject_UsesContractsClientServiceDefaultsAndGeneratorAnalyzerOnly()
     {
@@ -108,6 +116,7 @@ public sealed class TenantsApiStructuralTests
         programText.ShouldContain("builder.Services.AddAuthorization();");
         programText.ShouldContain("DaprHttpEndpointResolver.Resolve(builder.Configuration)");
         programText.ShouldContain("options.BaseAddress = new Uri(daprHttpEndpoint)");
+        programText.ShouldContain("builder.Configuration[\"DAPR_API_TOKEN\"]");
         programText.ShouldContain(".AddHttpMessageHandler<InboundBearerForwardingHandler>()");
         programText.ShouldContain(".AddEventStoreDaprServiceInvocation(\"eventstore\", daprApiToken)");
         sourceText.ShouldNotContain("DaprAppIdHandler");
@@ -122,6 +131,22 @@ public sealed class TenantsApiStructuralTests
             .ShouldBeLessThan(programText.IndexOf("app.UseAuthorization();", StringComparison.Ordinal));
         programText.IndexOf("app.UseAuthorization();", StringComparison.Ordinal)
             .ShouldBeLessThan(programText.IndexOf("app.MapControllers();", StringComparison.Ordinal));
+
+        // AD-18: the platform DAPR service-invocation handler must be registered last so it is the
+        // innermost delegating handler and has final ownership of the routing headers. Presence
+        // assertions alone cannot catch a reordering, so pin the registration order explicitly.
+        int bearerForwardingIndex = programText.IndexOf(
+            ".AddHttpMessageHandler<InboundBearerForwardingHandler>()",
+            StringComparison.Ordinal);
+        int daprServiceInvocationIndex = programText.IndexOf(
+            ".AddEventStoreDaprServiceInvocation(",
+            StringComparison.Ordinal);
+
+        bearerForwardingIndex.ShouldBeLessThan(
+            daprServiceInvocationIndex,
+            "AD-18 requires AddEventStoreDaprServiceInvocation to be registered after every other outbound handler so it is innermost.");
+        programText.IndexOf(".AddHttpMessageHandler", daprServiceInvocationIndex, StringComparison.Ordinal)
+            .ShouldBe(-1, "No outbound handler may be registered after the platform DAPR service-invocation handler; it must stay innermost.");
 
         MinimalEndpointMappingPattern.IsMatch(sourceText)
             .ShouldBeFalse("Tenants.Api must expose typed generated controllers only, not hand-written minimal API endpoints.");
@@ -150,6 +175,35 @@ public sealed class TenantsApiStructuralTests
         nonControllerRoutes
             .Select(static endpoint => endpoint.RoutePattern.RawText?.Trim().TrimStart('/') ?? string.Empty)
             .ShouldBe(["alive", "health", "ready"], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void TenantsSources_DelegateDaprRoutingHeaderOwnershipToThePlatformHandlerOnly()
+    {
+        // AD-18: only the platform handler in Hexalith.EventStore.Client may own the DAPR routing
+        // headers. EventStore's own guard scans that repository's src/ and samples/ roots, so it
+        // never sees this repository; this is the equivalent guard for the whole Tenants src/ tree.
+        // Whitespace-tolerant and case-insensitive so a reformatted call, a differently-cased header
+        // name, or Headers.Add(...) cannot slip through the way exact literals allow.
+        string[] setterViolations = TenantsSourceFiles()
+            .Where(static file => RoutingHeaderSetterPattern.IsMatch(File.ReadAllText(file.Path)))
+            .Select(static file => file.RelativePath)
+            .ToArray();
+
+        setterViolations.ShouldBeEmpty(
+            "AD-18 permits only the platform DAPR service-invocation handler to set dapr-app-id / dapr-api-token; offending Tenants sources are listed above.");
+
+        // Catches the const-hoisting evasion: a header name lifted into a constant or passed by
+        // reference still has to spell the literal somewhere outside a comment.
+        string[] literalViolations = TenantsSourceFiles()
+            .Where(static file => File.ReadLines(file.Path).Any(static line =>
+                RoutingHeaderNamePattern.IsMatch(line)
+                && !line.TrimStart().StartsWith("//", StringComparison.Ordinal)))
+            .Select(static file => file.RelativePath)
+            .ToArray();
+
+        literalViolations.ShouldBeEmpty(
+            "Tenants sources must not name the DAPR routing headers outside comments; routing-header ownership belongs to the platform handler.");
     }
 
     [Fact]
@@ -320,6 +374,16 @@ public sealed class TenantsApiStructuralTests
         }
 
         throw new DirectoryNotFoundException("Could not find Hexalith.Tenants.slnx from the test output path.");
+    }
+
+    private static (string Path, string RelativePath)[] TenantsSourceFiles()
+    {
+        string root = ProjectRoot();
+        return Directory
+            .EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(static file => !IsBuildArtifact(file))
+            .Select(file => (file, Path.GetRelativePath(root, file).Replace('\\', '/')))
+            .ToArray();
     }
 
     private static string ReadTenantsApiSourceAndProject()
