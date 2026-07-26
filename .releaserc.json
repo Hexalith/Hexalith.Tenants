@@ -4,25 +4,18 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-    "@semantic-release/changelog",
     [
       "@semantic-release/exec",
       {
+        "verifyReleaseCmd": "HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh && bash scripts/validate-publication-preflight.sh ${nextRelease.version} verify >&2",
         "prepareCmd": "dotnet build Hexalith.Tenants.slnx --configuration Release -p:Version=${nextRelease.version} && python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version} && python3 scripts/validate-nuget-packages.py ./nupkgs && python3 scripts/validate-consumer-package-references.py ./nupkgs",
-        "publishCmd": "HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh && dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" --skip-duplicate && ./.hexalith/release/publish-containers.sh ${nextRelease.version}"
+        "publishCmd": "HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh && bash scripts/validate-publication-preflight.sh ${nextRelease.version} publish >&2 && dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" && ./.hexalith/release/publish-containers.sh ${nextRelease.version}"
       }
     ],
     [
       "@semantic-release/github",
       {
         "assets": ["nupkgs/*.nupkg"]
-      }
-    ],
-    [
-      "@semantic-release/git",
-      {
-        "assets": ["CHANGELOG.md"],
-        "message": "chore(release): ${nextRelease.version} [skip ci]"
       }
     ]
   ]

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -291,16 +293,37 @@ public class PackageGovernanceTests {
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
         GetRootSemanticReleaseConfigFiles(repoRoot).ShouldBe([".releaserc.json"], ".releaserc.json is the only live semantic-release config.");
-        workflow.ShouldContain("on:\n  workflow_run:");
-        workflow.ShouldContain("workflows: [CI]");
-        workflow.ShouldContain("types: [completed]");
-        workflow.ShouldContain("branches: [main]");
+
+        // Release is an intentional operator action: an unprotected caller-owned preflight must
+        // prove the dispatch selected the live main tip with exact-SHA green push CI before the
+        // protected release job may request approval or reach publication secrets.
+        workflow.ShouldContain("on:\n  workflow_dispatch:");
+        workflow.ShouldNotContain("workflow_run:");
+        string verifySourceJob = GetYamlJobBlock(workflow, "verify-source");
+        verifySourceJob.ShouldContain("actions: read");
+        verifySourceJob.ShouldContain("refs/heads/main");
+        verifySourceJob.ShouldContain("git/ref/heads/main");
+        verifySourceJob.ShouldContain("actions/workflows/ci.yml/runs");
+        verifySourceJob.ShouldContain("no longer the live main tip");
         string releaseJob = GetYamlJobBlock(workflow, "release");
-        releaseJob.ShouldContain("github.event.workflow_run.conclusion == 'success'");
-        releaseJob.ShouldContain("github.event.workflow_run.event == 'push'");
+        releaseJob.ShouldContain("needs: verify-source");
+        releaseJob.ShouldContain("environment-name: production");
+        releaseJob.ShouldContain("expected-package-count: " + ExpectedPackageIds.Length.ToString(CultureInfo.InvariantCulture));
+        releaseJob.ShouldContain("package-manifest: tools/release-packages.json");
         workflow.ShouldContain("cancel-in-progress: false");
-        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
+
+        // The reusable release workflow validates job.workflow_sha == builds-execution-sha, so the
+        // uses: revision and the input must be the same exact 40-hex Builds commit. A mutable ref
+        // or a mismatch between the two occurrences is a workflow startup_failure at dispatch.
+        (string Action, string Reference)[] releaseWorkflowReferences = [.. GetWorkflowActionReferences(workflow)
+            .Where(action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml", StringComparison.Ordinal))];
+        releaseWorkflowReferences.Length.ShouldBe(1, "The release job must call the shared domain-release workflow exactly once.");
+        string buildsExecutionSha = releaseWorkflowReferences[0].Reference;
+        IsFullCommitSha(buildsExecutionSha)
+            .ShouldBeTrue($"The release workflow must pin an exact 40-hex Hexalith.Builds commit, not '{buildsExecutionSha}'.");
+        workflow.ShouldNotContain("domain-release.yml@main");
+        releaseJob.ShouldContain($"builds-execution-sha: {buildsExecutionSha}");
         YamlBlockContainsKey(releaseJob, "dapr-version").ShouldBeFalse("Release uses the shared domain-release Dapr default instead of overriding it locally.");
         workflow.ShouldContain("publish-containers: true");
         workflow.ShouldContain("container-projects:");
@@ -320,7 +343,10 @@ public class PackageGovernanceTests {
         releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
         workflow.ShouldNotContain("secrets: inherit");
-        foreach (string forbiddenReleaseInput in new string[] { "test-projects", "unit-test-projects", "integration-test-projects" }) {
+        // verify-source already proved this exact head green, so the release path must not rerun
+        // the test tiers. test-projects is declared explicitly and must stay empty.
+        releaseJob.ShouldContain("test-projects: ''");
+        foreach (string forbiddenReleaseInput in new string[] { "unit-test-projects", "integration-test-projects" }) {
             YamlBlockContainsKey(releaseJob, forbiddenReleaseInput).ShouldBeFalse("Release is gated by CI and must not rerun test tiers.");
         }
 
@@ -336,7 +362,23 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
         releaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
         releaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
-        releaseConfig.ShouldContain("--skip-duplicate");
+
+        // Existing package and tag identities are collisions, not something to skip past.
+        releaseConfig.ShouldNotContain("--skip-duplicate");
+
+        // The publication preflight must run before the first NuGet write and again before the
+        // first container write, freezing publication identity at the verify phase.
+        releaseConfig.ShouldContain("bash scripts/validate-publication-preflight.sh ${nextRelease.version} verify");
+        releaseConfig.ShouldContain("bash scripts/validate-publication-preflight.sh ${nextRelease.version} publish");
+        releaseConfig.IndexOf("validate-publication-preflight.sh ${nextRelease.version} publish", StringComparison.Ordinal)
+            .ShouldBeLessThan(releaseConfig.IndexOf("dotnet nuget push ./nupkgs/*.nupkg", StringComparison.Ordinal));
+
+        // @semantic-release/git pushes a CHANGELOG commit to main during prepare, which would make
+        // the publish-phase source proof fail after the tag is pushed and strand the version.
+        // Match the quoted plugin names: "@semantic-release/github" contains "@semantic-release/git".
+        releaseConfig.ShouldNotContain("\"@semantic-release/git\"");
+        releaseConfig.ShouldNotContain("\"@semantic-release/changelog\"");
+        releaseConfig.ShouldContain("\"@semantic-release/github\"");
         releaseConfig.ShouldContain("NUGET_API_KEY");
         releaseConfig.ShouldContain("--api-key \\\"$NUGET_API_KEY\\\"");
         releaseConfig.ShouldContain("\"assets\": [\"nupkgs/*.nupkg\"]");
@@ -380,9 +422,41 @@ public class PackageGovernanceTests {
             releaseConfig.ShouldNotContain(forbiddenFragment);
         }
 
+        // Publication is the deliberate exception to the "latest main" rule for Hexalith.Builds
+        // references: every workflow the release path calls must be pinned to an exact commit.
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main",
-            "The local workflow delegates to the shared Hexalith.Builds workflow; action pinning is enforced there.");
+            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && IsFullCommitSha(action.Reference),
+            "The release workflow must pin every shared Hexalith.Builds workflow to an exact commit SHA.");
+    }
+
+    [Fact]
+    public void Release_package_manifest_matches_every_other_copy_of_the_inventory() {
+        string repoRoot = FindRepoRoot();
+        string manifestPath = Path.Combine(repoRoot, "tools/release-packages.json");
+        File.Exists(manifestPath).ShouldBeTrue("tools/release-packages.json is the authoritative release inventory.");
+
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement[] packages = [.. manifest.RootElement.GetProperty("packages").EnumerateArray()];
+
+        string[] manifestIds = [.. packages.Select(package => package.GetProperty("id").GetString() ?? string.Empty)];
+        string[] manifestProjects = [.. packages.Select(package => package.GetProperty("project").GetString() ?? string.Empty)];
+
+        manifestIds.ShouldBe(ExpectedPackageIds, ignoreOrder: true, "The manifest must enumerate exactly the expected package ids.");
+        manifestProjects.ShouldBe(PublishablePackageProjects, ignoreOrder: true, "The manifest must enumerate exactly the publishable package projects.");
+        manifestIds.Distinct(StringComparer.OrdinalIgnoreCase).Count().ShouldBe(manifestIds.Length, "Manifest package ids must be unique.");
+        manifestProjects.Distinct(StringComparer.OrdinalIgnoreCase).Count().ShouldBe(manifestProjects.Length, "Manifest package projects must be unique.");
+
+        foreach (string project in manifestProjects) {
+            File.Exists(Path.Combine(repoRoot, project)).ShouldBeTrue($"Manifest project {project} must exist.");
+        }
+
+        // The count is declared independently in the release workflow and in the preflight wrapper
+        // so inventory drift fails closed. Those declarations must agree with the manifest.
+        string releaseWorkflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
+        string preflightWrapper = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-publication-preflight.sh"));
+        string expectedCount = manifestIds.Length.ToString(CultureInfo.InvariantCulture);
+        releaseWorkflow.ShouldContain($"expected-package-count: {expectedCount}");
+        preflightWrapper.ShouldContain($"expected_package_count={expectedCount}");
     }
 
     [Fact]
