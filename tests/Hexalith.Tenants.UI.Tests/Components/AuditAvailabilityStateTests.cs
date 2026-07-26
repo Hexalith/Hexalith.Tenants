@@ -17,13 +17,14 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class AuditAvailabilityStateTests : FluentBunitContext
 {
     [Theory]
-    [InlineData(TenantCommandAuditState.AuditPending, "Audit pending", "polite")]
-    [InlineData(TenantCommandAuditState.AuditDelayed, "Audit delayed", "polite")]
-    [InlineData(TenantCommandAuditState.AuditUnavailable, "Audit unavailable", "assertive")]
-    [InlineData(TenantCommandAuditState.MissingSupport, "Missing implementation support", "assertive")]
+    [InlineData(TenantCommandAuditState.AuditPending, "Audit pending", "Audit evidence is pending", "polite")]
+    [InlineData(TenantCommandAuditState.AuditDelayed, "Audit delayed", "Audit evidence is delayed", "polite")]
+    [InlineData(TenantCommandAuditState.AuditUnavailable, "Audit unavailable", "Audit evidence is unavailable", "assertive")]
+    [InlineData(TenantCommandAuditState.MissingSupport, "Missing implementation support", "Audit evidence support is missing", "assertive")]
     public void Availability_control_renders_state_icon_selector_and_live_region(
         TenantCommandAuditState auditState,
-        string expectedText,
+        string expectedStateLabel,
+        string expectedAccessibleDescription,
         string expectedLiveRegion)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -32,8 +33,9 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             .Add(component => component.AuditState, auditState));
 
         cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
-        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("aria-label").ShouldNotBeNull().ShouldContain(expectedText);
-        cut.Find("[data-testid='tenants-audit-availability-state']").TextContent.ShouldContain(expectedText);
+        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("aria-label").ShouldNotBeNull()
+            .ShouldContain(expectedAccessibleDescription);
+        cut.Find("[data-testid='tenants-audit-availability-state']").TextContent.ShouldContain(expectedStateLabel);
         cut.Find(".tenants-audit-availability__icon").TextContent.ShouldNotBeEmpty();
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
         cut.Markup.ShouldNotContain("AuditPending", Case.Insensitive);
@@ -155,18 +157,18 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit delayed; retry status lookup or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Missing implementation support; continue read-only or escalate.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit pending; wait, retry status lookup, or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit unavailable; continue read-only, retry status lookup, or escalate.",
+            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
+            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
             ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "Continue read-only or escalate using support-safe information.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Continue read-only, retry status lookup, or escalate without raw diagnostics.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",

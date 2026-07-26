@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
@@ -8,8 +10,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
+using Hexalith.EventStore.Client.Queries;
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Shell.Components.Icons;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
@@ -18,7 +22,9 @@ using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
+using Hexalith.Tenants.UI.State.TenantList;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -26,6 +32,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 using Shouldly;
@@ -109,6 +118,162 @@ public sealed class TenantsUiCompositionTests
             TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
 
         resolution.IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Tenant_search_composition_is_purpose_isolated_scoped_and_server_configured()
+    {
+        ServiceCollection services = new();
+
+        // Purpose isolation is proven with ONE Data Protection provider so only the codec purposes vary;
+        // two providers would prove key-ring separation instead.
+        var dataProtectionProvider = new EphemeralDataProtectionProvider();
+        var hostCodec = new QueryCursorCodec(dataProtectionProvider, "host-purpose");
+        services.AddSingleton<IDataProtectionProvider>(dataProtectionProvider);
+        services.AddSingleton<IQueryCursorCodec>(hostCodec);
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+                ["Memories:BaseAddress"] = "https://memories.invalid",
+                ["HEXALITH_MEMORIES_API_TOKEN"] = "server-only-token",
+            })
+            .Build();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        provider.GetRequiredService<IDataProtectionProvider>().ShouldBeSameAs(dataProtectionProvider);
+        provider.GetRequiredService<IQueryCursorCodec>().ShouldBeSameAs(hostCodec);
+        ITenantSearchCursorCodec searchCodec = provider.GetRequiredService<ITenantSearchCursorCodec>();
+        provider.GetRequiredService<ITenantSearchCursorCodec>().ShouldBeSameAs(searchCodec);
+        string scope = TenantSearchCursorScopes.Create(
+            "operator-user",
+            "needle",
+            status: null,
+            TenantListSortColumns.TenantId,
+            descending: false,
+            pageSize: 20);
+        string protectedCursor = searchCodec.Encode(scope, 20);
+        hostCodec.TryDecode(
+            protectedCursor,
+            TenantSearchCursorPosition.QueryType,
+            scope,
+            out _,
+            out _).ShouldBeFalse();
+        searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
+        decodedOffset.ShouldBe(20);
+
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantSearchPagingState firstPaging = firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>();
+        firstPaging.ShouldBeSameAs(firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>());
+        firstPaging.ShouldNotBeSameAs(secondScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>());
+
+        MemoriesClient memories = firstScope.ServiceProvider.GetRequiredService<MemoriesClient>();
+        memories.BaseAddress.ShouldBe(new Uri("https://memories.invalid"));
+        MemoriesClientOptions options = provider.GetRequiredService<IOptions<MemoriesClientOptions>>().Value;
+        options.Endpoint.ShouldBe(new Uri("https://memories.invalid"));
+        options.ApiToken.ShouldBe("server-only-token");
+    }
+
+    [Fact]
+    public async Task Embedded_ui_module_emits_no_default_memories_http_logs_that_could_carry_query_or_offset()
+    {
+        CapturingLoggerProvider capture = new();
+        ServiceCollection services = new();
+        services.AddLogging(builder =>
+        {
+            _ = builder.SetMinimumLevel(LogLevel.Trace);
+            _ = builder.AddProvider(capture);
+        });
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Memories:BaseAddress"] = "https://memories.invalid",
+            })
+            .Build();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        AddStubPrimaryHandler(services, MemoriesHttpClientName);
+        AddStubPrimaryHandler(services, ControlHttpClientName);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        await AssertMemoriesHttpLoggingIsSuppressedAsync(provider, capture);
+    }
+
+    [Fact]
+    public async Task Standalone_ui_host_resolves_the_same_server_side_search_composition()
+    {
+        CapturingLoggerProvider capture = new();
+        await using WebApplicationFactory<global::Program> baseFactory = new();
+        using WebApplicationFactory<global::Program> factory = baseFactory.WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services =>
+            {
+                services.AddLogging(logging =>
+                {
+                    _ = logging.SetMinimumLevel(LogLevel.Trace);
+                    _ = logging.AddProvider(capture);
+                });
+                AddStubPrimaryHandler(services, MemoriesHttpClientName);
+                AddStubPrimaryHandler(services, ControlHttpClientName);
+            }));
+
+        ITenantSearchCursorCodec searchCodec = factory.Services.GetRequiredService<ITenantSearchCursorCodec>();
+        searchCodec.ShouldBeSameAs(factory.Services.GetRequiredService<ITenantSearchCursorCodec>());
+
+        using IServiceScope firstScope = factory.Services.CreateScope();
+        using IServiceScope secondScope = factory.Services.CreateScope();
+        firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>()
+            .ShouldNotBeSameAs(secondScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>());
+
+        // The query gateway takes an optional reason-code logger; resolving it proves the added parameter
+        // still satisfies the container's constructor selection in a real host.
+        firstScope.ServiceProvider.GetRequiredService<ITenantQueryGateway>().ShouldNotBeNull();
+
+        await AssertMemoriesHttpLoggingIsSuppressedAsync(factory.Services, capture);
+    }
+
+    [Fact]
+    public void Authoritative_search_resources_resolve_complete_english_and_french_copy()
+    {
+        ResourceManager manager = new(typeof(TenantsResources));
+        Dictionary<string, (string English, string French)> expected = new(StringComparer.Ordinal)
+        {
+            ["Tenants.List.Notice.SearchUnavailable"] = (
+                "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
+                "La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée."),
+            ["Tenants.List.Notice.SearchRefreshed"] = (
+                "The protected search page was no longer available. Search has restarted from the first page.",
+                "La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page."),
+            ["Tenants.List.Notice.SearchPagingRestarted"] = (
+                "The available tenant source changed. Paging restarted from the first page.",
+                "La source de locataires disponible a changé. La pagination a redémarré depuis la première page."),
+            ["Tenants.List.State.SearchPageEmpty.Title"] = (
+                "No visible tenants on this search page",
+                "Aucun locataire visible sur cette page de recherche"),
+            ["Tenants.List.State.SearchPageEmpty.Message"] = (
+                "No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.",
+                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche. Les pages suivantes de la même recherche peuvent encore contenir des résultats."),
+            ["Tenants.List.State.SearchPageEmpty.FinalMessage"] = (
+                "No authorized tenants were verified on this page of the search, and no further pages remain for this search.",
+                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche et aucune page suivante ne reste pour cette recherche."),
+            ["Tenants.List.Reason.SearchPartiallyAvailable"] = (
+                "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
+                "Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées."),
+            ["Tenants.List.StatusFilterLabel.Authoritative"] = (
+                "Status across indexed candidates",
+                "Statut parmi les candidats indexés"),
+            ["Tenants.List.AuthoritativeSearchSemantics"] = (
+                "Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.",
+                "La recherche et le statut s'appliquent aux candidats de locataire indexés. Seules les lignes autorisées et vérifiées sont affichées ; le tri s'applique dans cette page protégée."),
+        };
+
+        foreach ((string key, (string english, string french)) in expected)
+        {
+            manager.GetString(key, CultureInfo.InvariantCulture).ShouldBe(english);
+            manager.GetString(key, CultureInfo.GetCultureInfo("fr")).ShouldBe(french);
+        }
     }
 
     [Fact]
@@ -558,6 +723,95 @@ public sealed class TenantsUiCompositionTests
         globalAdminStyles.ShouldContain("@media (forced-colors: active)");
         globalAdminStyles.ShouldContain(":focus-visible");
         globalAdminStyles.ShouldContain("outline");
+    }
+
+    /// <summary>The typed-client name used by <see cref="MemoriesClient"/> HTTP factory options.</summary>
+    private const string MemoriesHttpClientName = nameof(MemoriesClient);
+
+    /// <summary>A sibling client that keeps default logging so the capture is proven able to observe it.</summary>
+    private const string ControlHttpClientName = "tenants-ui-tests-control-client";
+
+    /// <summary>
+    /// A URL whose query string carries exactly the raw search material that must never be logged. The
+    /// framework already redacts query values in its default request logs, so the channel this closes is the
+    /// remaining per-request record (path, timing, outcome) for the Memories client.
+    /// </summary>
+    private const string RawSearchUrl = "https://memories.invalid/v1/search?query=needle&offset=40";
+
+    private static void AddStubPrimaryHandler(IServiceCollection services, string clientName)
+        => services.AddHttpClient(clientName)
+            .ConfigurePrimaryHttpMessageHandler(static () => new StubPrimaryHandler());
+
+    private static async Task AssertMemoriesHttpLoggingIsSuppressedAsync(
+        IServiceProvider provider,
+        CapturingLoggerProvider capture)
+    {
+        IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
+
+        // Control: the same capture does observe default HttpClient request logging for a sibling client
+        // that keeps its loggers. Without this the suppression assertion below could never fail.
+        using (HttpClient control = factory.CreateClient(ControlHttpClientName))
+        {
+            using HttpResponseMessage controlResponse = await control.GetAsync(new Uri(RawSearchUrl));
+            controlResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        capture.Messages.ShouldContain(static message => message.Contains("/v1/search", StringComparison.Ordinal));
+        capture.Clear();
+
+        using HttpClient memories = factory.CreateClient(MemoriesHttpClientName);
+        using HttpResponseMessage response = await memories.GetAsync(new Uri(RawSearchUrl));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        capture.Messages.ShouldBeEmpty();
+    }
+
+    private sealed class StubPrimaryHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+    }
+
+    private sealed class CapturingLoggerProvider : ILoggerProvider
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<string> _messages = new();
+
+        public IReadOnlyCollection<string> Messages => [.. _messages];
+
+        public void Clear() => _messages.Clear();
+
+        public ILogger CreateLogger(string categoryName)
+            => categoryName.StartsWith("System.Net.Http.HttpClient.", StringComparison.Ordinal)
+                ? new CapturingLogger(_messages, categoryName)
+                : NullLogger.Instance;
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class CapturingLogger(
+            System.Collections.Concurrent.ConcurrentQueue<string> messages,
+            string categoryName) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull
+                => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                ArgumentNullException.ThrowIfNull(formatter);
+                messages.Enqueue($"{categoryName}: {formatter(state, exception)}");
+            }
+        }
     }
 
     private static string ProjectRoot()

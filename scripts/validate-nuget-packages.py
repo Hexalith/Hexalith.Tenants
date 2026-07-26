@@ -19,6 +19,12 @@ EXPECTED_PACKAGE_IDS = frozenset({
     "Hexalith.Tenants.Aspire",
 })
 
+# Microsoft.Extensions.Http.Resilience is upstream-owned: Hexalith.EventStore.Server declares it, and a
+# source-referenced EventStore project flattens its package references into the consuming Tenants package.
+# It arrives by the same path as Microsoft.Extensions.Http and the Microsoft.IdentityModel.* entries below,
+# so it is an expected boundary member rather than unintended growth owned by this repository. It is listed
+# only for Server and Testing: Aspire depends on Hexalith.EventStore.Aspire, not on EventStore.Server, so
+# it never acquires the dependency and listing it there would be reported as missing.
 EXPECTED_DEPENDENCIES = {
     "Hexalith.Tenants.Contracts": frozenset({
         "ByteAether.Ulid",
@@ -55,6 +61,7 @@ EXPECTED_DEPENDENCIES = {
         "Microsoft.Extensions.Diagnostics.Abstractions",
         "Microsoft.Extensions.Hosting.Abstractions",
         "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Http.Resilience",
         "Microsoft.Extensions.Logging.Abstractions",
         "Microsoft.Extensions.Options",
         "Microsoft.Extensions.Options.ConfigurationExtensions",
@@ -85,6 +92,7 @@ EXPECTED_DEPENDENCIES = {
         "Microsoft.Extensions.Diagnostics.Abstractions",
         "Microsoft.Extensions.Hosting.Abstractions",
         "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Http.Resilience",
         "Microsoft.Extensions.Logging.Abstractions",
         "Microsoft.Extensions.Options",
         "Microsoft.Extensions.Options.ConfigurationExtensions",

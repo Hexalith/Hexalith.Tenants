@@ -107,7 +107,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         queryGateway.DetailRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
-        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state");
         cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
             invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
@@ -147,7 +147,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         queryGateway.DetailRequests.ShouldBeEmpty();
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
-        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state");
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
     }
 
@@ -186,7 +186,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
-        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state");
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commandGateway.ChangeRoleRequests[0].NewRole.ShouldBe(TenantRole.TenantReader);
         commandGateway.AddUserRequests.ShouldBeEmpty();
         queryGateway.DetailRequests.ShouldHaveSingleItem();
-        cut.Find("[data-testid='tenants-correction-proof-link']").TextContent.ShouldContain("Corrective evidence linked");
+        cut.Find("[data-testid='tenants-correction-proof-link']").TextContent.ShouldContain("View corrective proof");
     }
 
     [Fact]
@@ -703,40 +703,40 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.PreviewInput.userId"] = "User",
             ["Tenants.Correction.Lifecycle.Title"] = "Correction lifecycle",
             ["Tenants.Correction.Preview.AuditExpectation"] = "Audit expectation",
-            ["Tenants.Correction.Preview.AuditExpectation.Text"] = "Audit evidence is expected after projection confirmation.",
-            ["Tenants.Correction.Preview.Consequence.Membership"] = "A new membership event may be appended.",
-            ["Tenants.Correction.Preview.Consequence.RoleChange"] = "A new role-change event may be appended.",
-            ["Tenants.Correction.Preview.Consequence.Unsupported"] = "No corrective command will be submitted without support.",
+            ["Tenants.Correction.Preview.AuditExpectation.Text"] = "Audit evidence is expected after the command is accepted and projection truth confirms the intended state.",
+            ["Tenants.Correction.Preview.Consequence.Membership"] = "A new membership event may be appended if current projection truth allows it.",
+            ["Tenants.Correction.Preview.Consequence.RoleChange"] = "A new role-change event may be appended if current projection truth allows it.",
+            ["Tenants.Correction.Preview.Consequence.Unsupported"] = "No corrective command will be submitted without reusable support.",
             ["Tenants.Correction.Preview.Consequences"] = "Known consequences",
             ["Tenants.Correction.Preview.CurrentProjectionReady"] = "Current tenant projection is available for {0}.",
             ["Tenants.Correction.Preview.CurrentProjectionUnavailable"] = "Current tenant projection is unavailable.",
             ["Tenants.Correction.Preview.CurrentRole"] = "Current role",
             ["Tenants.Correction.Preview.IntendedRole"] = "Intended role",
             ["Tenants.Correction.Preview.RecoveryPath"] = "Recovery path",
-            ["Tenants.Correction.Preview.RecoveryPath.Text"] = "Refresh status or inspect audit.",
-            ["Tenants.Correction.Preview.Unknown.HistoricalRole"] = "Historical role evidence can be stale.",
-            ["Tenants.Correction.Preview.Unknown.SignalR"] = "SignalR nudges do not prove success.",
-            ["Tenants.Correction.Preview.Unknown.Unsupported"] = "Global administrator support is unavailable.",
+            ["Tenants.Correction.Preview.RecoveryPath.Text"] = "Refresh status, inspect audit evidence, continue read-only, or start a different correction if current projection truth conflicts.",
+            ["Tenants.Correction.Preview.Unknown.HistoricalRole"] = "Historical role evidence can be stale; the selected intended role is authoritative for the new command.",
+            ["Tenants.Correction.Preview.Unknown.SignalR"] = "Live notifications can nudge a refresh but do not prove correction success.",
+            ["Tenants.Correction.Preview.Unknown.Unsupported"] = "Global administrator command support is unavailable in this UI surface.",
             ["Tenants.Correction.Preview.Unknowns"] = "Known unknowns",
-            ["Tenants.Correction.Proof.Link"] = "Corrective evidence linked at {0}.",
+            ["Tenants.Correction.Proof.Link"] = "View corrective proof from {0}",
             ["Tenants.Correction.Role.TenantContributor"] = "Tenant contributor",
             ["Tenants.Correction.Role.TenantOwner"] = "Tenant owner",
             ["Tenants.Correction.Role.TenantReader"] = "Tenant reader",
             ["Tenants.Correction.RoleChoice.Label"] = "Choose intended role",
             ["Tenants.Correction.RoleChoice.Placeholder"] = "Select role",
             ["Tenants.Correction.State.Accepted"] = "Command accepted; projection confirmation is pending.",
-            ["Tenants.Correction.State.AlreadyApplied"] = "The intended state is already present.",
-            ["Tenants.Correction.State.Confirmed"] = "Projection confirmed the correction.",
-            ["Tenants.Correction.State.Degraded"] = "Correction status is degraded.",
-            ["Tenants.Correction.State.Failed"] = "Correction command failed.",
+            ["Tenants.Correction.State.AlreadyApplied"] = "Current projection already shows the intended state.",
+            ["Tenants.Correction.State.Confirmed"] = "Projection confirms the intended state; waiting for corrective audit proof.",
+            ["Tenants.Correction.State.Degraded"] = "Command processing is degraded; refresh status or inspect audit evidence.",
+            ["Tenants.Correction.State.Failed"] = "Corrective command failed before acceptance.",
             ["Tenants.Correction.State.Previewed"] = "Preview is ready for deliberate confirmation.",
-            ["Tenants.Correction.State.ProjectionPending"] = "Projection confirmation is pending.",
-            ["Tenants.Correction.State.Rejected"] = "Correction command was rejected.",
-            ["Tenants.Correction.State.RequestSent"] = "Correction command was sent.",
+            ["Tenants.Correction.State.ProjectionPending"] = "Command events are stored; projection confirmation is pending.",
+            ["Tenants.Correction.State.Rejected"] = "Corrective command was rejected.",
+            ["Tenants.Correction.State.RequestSent"] = "Corrective command request was sent.",
             ["Tenants.Correction.State.UnableToVerify"] = "Correction cannot be verified from current evidence.",
-            ["Tenants.Correction.Unavailable.CommandSupportUnavailable"] = "Tenant correction command support is unavailable.",
+            ["Tenants.Correction.Unavailable.CommandSupportUnavailable"] = "The tenant correction command path is not connected.",
             ["Tenants.Correction.Title"] = "Start correction",
-            ["Tenants.Correction.Unavailable.AlreadyApplied"] = "The current projection already shows the intended state.",
+            ["Tenants.Correction.Unavailable.AlreadyApplied"] = "The current projection already matches the intended state.",
             ["Tenants.Correction.Unavailable.CurrentRoleConflict"] = "Current projection shows this user with a different role; start a role-change correction instead.",
             ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
         };

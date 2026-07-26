@@ -38,6 +38,9 @@ public sealed class PageLayoutDeclarationTests : BunitContext
 
         _ = Services.AddLogging();
         _ = Services.AddFluentUIComponents();
+
+        // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
+        _ = Services.AddScoped<TenantSearchPagingState>();
         _ = Services.AddHexalithFrontComposerQuickstart();
         Services.Replace(ServiceDescriptor.Scoped<IStorageService, InMemoryStorageService>());
         Services.Replace(ServiceDescriptor.Scoped<IUserContextAccessor>(_ => new TestUserContextAccessor()));
@@ -81,13 +84,18 @@ public sealed class PageLayoutDeclarationTests : BunitContext
 
     private IRenderedComponent<FrontComposerShell> RenderPageInShell<TPage>()
         where TPage : IComponent
-        => Render<FrontComposerShell>(parameters => parameters.Add(
+    {
+        // The workspace only restores retained protected paging on an interactive render pass, and
+        // SetRendererInfo initializes the service provider, so it runs after every registration.
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+        return Render<FrontComposerShell>(parameters => parameters.Add(
             shell => shell.ChildContent,
             builder =>
             {
                 builder.OpenComponent<TPage>(0);
                 builder.CloseComponent();
             }));
+    }
 
     private void EnsureStoreInitialized()
     {
@@ -102,14 +110,42 @@ public sealed class PageLayoutDeclarationTests : BunitContext
         public string? UserId => "test-user";
     }
 
+    /// <summary>
+    /// Backed by the shipped <see cref="TenantsResources"/> bundle rather than echoing keys, so the
+    /// suite-wide localizer-parity gate can observe this double instead of being opted out of by an empty
+    /// enumeration, and so its indexer and its enumeration cannot disagree.
+    /// </summary>
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
-        public LocalizedString this[string name] => new(name, name);
+        private static readonly System.Resources.ResourceManager Manager = new(typeof(TenantsResources));
+
+        public LocalizedString this[string name]
+            => new(name, Manager.GetString(name, CultureInfo.InvariantCulture) ?? name);
 
         public LocalizedString this[string name, params object[] arguments]
-            => new(name, string.Format(CultureInfo.InvariantCulture, name, arguments));
+            => new(name, string.Format(
+                CultureInfo.InvariantCulture,
+                Manager.GetString(name, CultureInfo.InvariantCulture) ?? name,
+                arguments));
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
-            => [];
+        {
+            System.Resources.ResourceSet? set = Manager.GetResourceSet(
+                CultureInfo.InvariantCulture,
+                createIfNotExists: true,
+                tryParents: true);
+            if (set is null)
+            {
+                yield break;
+            }
+
+            foreach (System.Collections.DictionaryEntry entry in set)
+            {
+                if (entry.Key is string key && entry.Value is string value)
+                {
+                    yield return new LocalizedString(key, value);
+                }
+            }
+        }
     }
 }

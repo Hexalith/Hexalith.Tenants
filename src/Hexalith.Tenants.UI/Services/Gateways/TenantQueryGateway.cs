@@ -1,4 +1,6 @@
 using System.Net;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -16,6 +18,8 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+using Microsoft.Extensions.Logging;
+
 using MemoriesOmittedReason = Hexalith.Memories.Contracts.V1.OmittedReason;
 using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
 using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
@@ -27,7 +31,29 @@ internal sealed class TenantQueryGateway(
     IUserContextAccessor userContextAccessor,
     MemoriesClient memoriesClient,
     ITenantSearchCursorCodec searchCursorCodec,
-    ITenantsBffComposition? bffComposition = null) : ITenantQueryGateway {
+    ITenantsBffComposition? bffComposition = null,
+    ILogger<TenantQueryGateway>? logger = null) : ITenantQueryGateway {
+    /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
+    internal const int MaximumHydrationConcurrency = 8;
+
+    /// <summary>Reason code recorded when the Memories index call itself could not be completed.</summary>
+    internal const string SearchIndexUnavailableReasonCode = "search-index-unavailable";
+
+    /// <summary>Reason code recorded when the Memories response violated a safety invariant.</summary>
+    internal const string SearchResponseInvalidReasonCode = "search-response-invalid";
+
+    /// <summary>Reason code recorded when the protected search cursor could not be produced.</summary>
+    internal const string SearchCursorProtectionUnavailableReasonCode = "search-cursor-protection-unavailable";
+
+    /// <summary>Reason code recorded when every authoritative hydration read failed operationally.</summary>
+    internal const string SearchHydrationUnavailableReasonCode = "search-hydration-unavailable";
+
+    /// <summary>Identifies the signal raised when authoritative search fell back to a usable ordinary list.</summary>
+    internal static readonly EventId SearchDegradedToOrdinaryListEvent = new(1901, "AuthoritativeTenantSearchDegraded");
+
+    /// <summary>Identifies the signal raised when the ordinary-list fallback was also unavailable.</summary>
+    internal static readonly EventId SearchAndOrdinaryListUnavailableEvent = new(1902, "AuthoritativeTenantSearchAndListUnavailable");
+
     private const string SystemTenant = "system";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
@@ -35,7 +61,6 @@ internal sealed class TenantQueryGateway(
     private const string TenantSourcePrefix = "tenant:";
     private const int DefaultPageSize = 20;
     private const int MaximumPageSize = 100;
-    private const int MaximumHydrationConcurrency = 8;
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -538,39 +563,120 @@ internal sealed class TenantQueryGateway(
             canonicalRequest.SortDescending,
             canonicalRequest.PageSize);
 
-        bool cursorRecovered = !searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out int rawOffset);
+        // Every decode failure is an invalidation that forces raw page zero, and a failed decode's out value
+        // is never trusted because it is not a protected offset. The codec's untrusted-input failure modes
+        // are contained here; fatal conditions and programming defects still surface. No degradation signal
+        // is raised at this point: a contained decode failure whose forced page-zero retry then succeeds
+        // authoritatively did not degrade anything, and only a load that actually resolved to the ordinary
+        // list may emit the signal.
+        bool decoded;
+        int rawOffset;
         try {
-            MemoriesSearchResult? result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
+            decoded = searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out rawOffset);
+        }
+        catch (Exception ex) when (IsContainedCodecFailure(ex)) {
+            decoded = false;
+            rawOffset = 0;
+        }
+
+        // The invalidation is owned by the caller, not by the authoritative attempt, so an index-shrink
+        // recovery discovered inside that attempt survives a later throw and is still reported to the
+        // ordinary-list fallback.
+        StrongBox<bool> cursorRecovered = new(!decoded);
+        if (!decoded) {
+            rawOffset = 0;
+        }
+
+        // Exactly one fallback call per load: every authoritative-search failure records a reason code and
+        // funnels through the single call below, so the support-safe degradation signal can never be emitted
+        // twice for one load, and a failure inside the ordinary-list fallback cannot re-enter the fallback.
+        (TenantListSnapshot? authoritative, string? fallbackReasonCode) = await TrySearchAuthoritativelyAsync(
+            canonicalRequest,
+            rawOffset,
+            scope,
+            cursorRecovered,
+            cancellationToken).ConfigureAwait(false);
+        if (authoritative is not null) {
+            return authoritative;
+        }
+
+        return await FallBackFromSearchAsync(
+            canonicalRequest,
+            previous,
+            cursorRecovered.Value,
+            fallbackReasonCode!,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs the index lookup, the single index-shrink recovery, and authoritative hydration. Returns the
+    /// authoritative snapshot, or a support-safe reason code identifying why the caller must fall back.
+    /// Every reason code names the subsystem that actually failed: the index-unavailable arm wraps only the
+    /// Memories call, so a Tenants read fault or a codec fault can never be reported as an unavailable index.
+    /// </summary>
+    private async Task<(TenantListSnapshot? Snapshot, string? FallbackReasonCode)> TrySearchAuthoritativelyAsync(
+        TenantListRequest canonicalRequest,
+        int rawOffset,
+        string scope,
+        StrongBox<bool> cursorRecovered,
+        CancellationToken cancellationToken) {
+        MemoriesSearchResult? result;
+        try {
+            result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
                 .ConfigureAwait(false);
-            if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: true)) {
-                return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
-            }
-
-            MemoriesSearchResult validResult = result!;
-            if (rawOffset > validResult.TotalCount) {
-                rawOffset = 0;
-                cursorRecovered = true;
-                result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken).ConfigureAwait(false);
-                if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: false)) {
-                    return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
-                }
-
-                validResult = result!;
-            }
-
-            return await BuildAuthoritativeSearchSnapshotAsync(
-                canonicalRequest,
-                validResult,
-                rawOffset,
-                scope,
-                cursorRecovered,
-                cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
         catch (Exception ex) when (IsSearchAvailabilityFailure(ex)) {
-            return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+            return (null, SearchIndexUnavailableReasonCode);
+        }
+
+        if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: true)) {
+            return (null, SearchResponseInvalidReasonCode);
+        }
+
+        MemoriesSearchResult validResult = result!;
+        if (rawOffset > validResult.TotalCount
+            || (rawOffset > 0
+                && rawOffset == validResult.TotalCount
+                && validResult.Results.Count == 0)) {
+            rawOffset = 0;
+            cursorRecovered.Value = true;
+            try {
+                result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                throw;
+            }
+            catch (Exception ex) when (IsSearchAvailabilityFailure(ex)) {
+                return (null, SearchIndexUnavailableReasonCode);
+            }
+
+            if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: false)) {
+                return (null, SearchResponseInvalidReasonCode);
+            }
+
+            validResult = result!;
+        }
+
+        try {
+            return await BuildAuthoritativeSearchSnapshotAsync(
+                canonicalRequest,
+                validResult,
+                rawOffset,
+                scope,
+                cursorRecovered.Value,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        }
+
+        // Hydration is a Tenants read, never the Memories index, so it carries its own reason code.
+        catch (Exception ex) when (!IsSurfacingDefect(ex) && IsHydrationAvailabilityFailure(ex)) {
+            return (null, SearchHydrationUnavailableReasonCode);
         }
     }
 
@@ -618,6 +724,12 @@ internal sealed class TenantQueryGateway(
         return await memoriesClient.SearchAsync(memoriesRequest, cancellationToken).ConfigureAwait(false);
     }
 
+    // Raw-page accounting: the index is authoritative for *which* entries exist at an offset, not for *how
+    // many* it returns. The consumed Memories server omits entries it considers unusable while still
+    // reporting the untrimmed total, so a page carrying fewer hits than the requested window is an ordinary
+    // short page. Only an over-full page (more hits than the requested window) or a page whose hits overflow
+    // the reported total is a contract violation. Rejecting short pages would turn one unusable index entry
+    // into a permanent, silently-misreported loss of whole-set search for that query.
     private static bool IsValidSearchResult(
         MemoriesSearchResult? result,
         TenantListRequest request,
@@ -658,7 +770,7 @@ internal sealed class TenantQueryGateway(
         return true;
     }
 
-    private async Task<TenantListSnapshot> BuildAuthoritativeSearchSnapshotAsync(
+    private async Task<(TenantListSnapshot? Snapshot, string? FallbackReasonCode)> BuildAuthoritativeSearchSnapshotAsync(
         TenantListRequest request,
         MemoriesSearchResult result,
         int rawOffset,
@@ -684,14 +796,19 @@ internal sealed class TenantQueryGateway(
         }
 
         using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
-        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure)>[] hydrationTasks = candidates
+        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)>[] hydrationTasks = candidates
             .Select(candidate => HydrateSearchCandidateAsync(candidate, request.Status, concurrency, cancellationToken))
             .ToArray();
-        (int Ordinal, TenantListRow? Row, bool OperationalFailure)[] outcomes = await Task
+        (int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)[] outcomes = await Task
             .WhenAll(hydrationTasks)
             .ConfigureAwait(false);
 
         bool operationalFailure = outcomes.Any(static outcome => outcome.OperationalFailure);
+
+        // A malformed member collection is an enrichment failure, not an outage: it is carried on its own
+        // flag so it can never trigger the ordinary-list fallback, while still raising exactly the same
+        // operator-visible signal the ordinary list raises for the identical payload.
+        bool enrichmentDegraded = outcomes.Any(static outcome => outcome.EnrichmentDegraded);
         IReadOnlyList<TenantListRow> rows = SortSearchRows(
             outcomes
                 .Where(static outcome => outcome.Row is not null)
@@ -702,37 +819,64 @@ internal sealed class TenantQueryGateway(
             request.SortDescending);
 
         if (operationalFailure && rows.Count == 0) {
-            return await FallBackFromSearchAsync(request, previous: null, cancellationToken).ConfigureAwait(false);
+            return (null, SearchHydrationUnavailableReasonCode);
         }
 
-        int nextOffset = checked(rawOffset + result.Results.Count);
+        // Advance by the requested window bounded to the reported total, never by the returned hit count.
+        // This is the only advancement rule under which consecutive pages neither duplicate nor skip a
+        // candidate when the index legitimately omits one of its own unusable entries.
+        int nextOffset = (int)Math.Min((long)rawOffset + request.PageSize, result.TotalCount);
         bool hasMore = nextOffset < result.TotalCount;
-        string? nextCursor = hasMore ? searchCursorCodec.Encode(scope, nextOffset) : null;
-        ReadModelFreshnessState freshness = AggregateFreshness(rows);
+        string? nextCursor = null;
+        if (hasMore) {
+            try {
+                nextCursor = searchCursorCodec.Encode(scope, nextOffset);
+            }
+
+            // Non-fatal cursor protection failures degrade to the ordinary list, never to the caller.
+            catch (Exception ex) when (IsContainedCodecFailure(ex)) {
+                return (null, SearchCursorProtectionUnavailableReasonCode);
+            }
+        }
+
+        bool degraded = operationalFailure || enrichmentDegraded;
+
+        // The ordinary list reports Unknown freshness whenever it degrades; the search surface mirrors that
+        // exactly so the same payload cannot produce two different freshness claims.
+        ReadModelFreshnessState freshness = degraded
+            ? ReadModelFreshnessState.Unknown
+            : AggregateFreshness(rows);
         ProjectionLifecycleState lifecycle = AggregateLifecycle(rows);
+
+        // A search page with no visible rows is an index/authorization outcome, never a verdict on the
+        // operator's filters, so it gets its own surface state instead of reusing the filtered-empty copy.
         TenantListSurfaceKind kind = rows.Count == 0
-            ? TenantListSurfaceKind.FilteredEmpty
-            : operationalFailure ? TenantListSurfaceKind.Degraded
+            ? TenantListSurfaceKind.SearchPageEmpty
+            : degraded ? TenantListSurfaceKind.Degraded
             : freshness == ReadModelFreshnessState.Stale ? TenantListSurfaceKind.Stale
             : TenantListSurfaceKind.Ready;
 
-        return new TenantListSnapshot(
-            kind,
-            rows,
-            nextCursor,
-            hasMore,
-            ETag: null,
-            freshness,
-            IsDegraded: operationalFailure,
-            IsAuthorizationScopedEmpty: rows.Count == 0,
-            Reason: operationalFailure ? TenantListReason.SearchPartiallyAvailable : TenantListReason.None,
-            Notice: cursorRecovered ? TenantListReason.SearchRefreshed : TenantListReason.None,
-            IsAuthoritativeSearch: true,
-            PagingRecovered: cursorRecovered,
-            Lifecycle: lifecycle);
+        return (
+            new TenantListSnapshot(
+                kind,
+                rows,
+                nextCursor,
+                hasMore,
+                ETag: null,
+                freshness,
+                IsDegraded: degraded,
+                IsAuthorizationScopedEmpty: rows.Count == 0,
+                Reason: operationalFailure
+                    ? TenantListReason.SearchPartiallyAvailable
+                    : enrichmentDegraded ? TenantListReason.RowEnrichmentUnavailable : TenantListReason.None,
+                Notice: cursorRecovered ? TenantListReason.SearchRefreshed : TenantListReason.None,
+                IsAuthoritativeSearch: true,
+                PagingRecovered: cursorRecovered,
+                Lifecycle: lifecycle),
+            null);
     }
 
-    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure)> HydrateSearchCandidateAsync(
+    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)> HydrateSearchCandidateAsync(
         (int Ordinal, string TenantId) candidate,
         TenantStatus? status,
         SemaphoreSlim concurrency,
@@ -747,15 +891,20 @@ internal sealed class TenantQueryGateway(
                 || detail is null
                 || result.Metadata?.IsDegraded == true
                 || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)
-                || detail.Name is null
-                || detail.Members is null) {
-                return (candidate.Ordinal, null, true);
+                || detail.Name is null) {
+                return (candidate.Ordinal, null, true, false);
             }
 
             if (status is not null && detail.Status != status.Value) {
-                return (candidate.Ordinal, null, false);
+                return (candidate.Ordinal, null, false, false);
             }
 
+            // A malformed member collection must degrade exactly like the ordinary list path: the authorized
+            // tenant identity and lifecycle stay visible with unknown counts, and the surface raises the same
+            // IsDegraded / RowEnrichmentUnavailable signal. Dropping the row here would make a tenant that is
+            // visible in the list vanish when the operator searches for it by name, and reusing the
+            // operational-failure flag would send the whole surface to the ordinary-list fallback.
+            bool usableMembers = HasUsableMembers(detail);
             ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
             return (
@@ -764,30 +913,40 @@ internal sealed class TenantQueryGateway(
                     detail.TenantId,
                     detail.Name,
                     detail.Status,
-                    TenantCountValue.Known(detail.Members.Count),
-                    TenantCountValue.Known(detail.Members.Count(static member => member.Role == TenantRole.TenantOwner)),
+                    usableMembers ? TenantCountValue.Known(detail.Members.Count) : TenantCountValue.Unknown,
+                    usableMembers
+                        ? TenantCountValue.Known(detail.Members.Count(static member => member.Role == TenantRole.TenantOwner))
+                        : TenantCountValue.Unknown,
                     TenantPendingState.Unknown,
                     freshness,
                     lifecycle),
-                false);
+                false,
+                !usableMembers);
         }
         catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound) {
-            return (candidate.Ordinal, null, false);
+            return (candidate.Ordinal, null, false, false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
         catch (Exception ex) when (IsHydrationAvailabilityFailure(ex)) {
-            return (candidate.Ordinal, null, true);
+            return (candidate.Ordinal, null, true, false);
         }
         finally {
             _ = concurrency.Release();
         }
     }
 
+    /// <summary>
+    /// Runs the ordinary authorization-safe list after authoritative search degraded. The protected-search
+    /// cursor invalidation is threaded through so search history is still cleared when the same load also
+    /// loses Memories, and the emitted reason code is support-safe: no cursor, offset, query, or tenant id.
+    /// </summary>
     private async Task<TenantListSnapshot> FallBackFromSearchAsync(
         TenantListRequest request,
         TenantListSnapshot? previous,
+        bool searchCursorInvalidated,
+        string reasonCode,
         CancellationToken cancellationToken) {
         TenantListRequest fallbackRequest = request with {
             Search = null,
@@ -797,14 +956,86 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? reusable = previous?.IsAuthoritativeSearch == false ? previous : null;
         TenantListSnapshot fallback = await ListByCursorAsync(fallbackRequest, reusable, cancellationToken)
             .ConfigureAwait(false);
-        return fallback.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized
-            ? fallback
-            : fallback with {
-                Notice = TenantListReason.SearchUnavailable,
-                IsAuthoritativeSearch = false,
-                PagingRecovered = false,
+
+        // The signal is emitted only once the fallback has resolved, so it reports the outcome the operator
+        // actually received rather than claiming a usable ordinary list that never materialized.
+        if (fallback.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized) {
+            SignalSearchUnavailable(reasonCode);
+
+            // The notice bars render from the notice reasons alone and never consult Kind, so a terminal
+            // surface can and does carry the explanation. The clearing and its notice therefore travel
+            // together on this snapshot instead of being deferred to some later renderable load.
+            return fallback with {
+                PagingRecovered = searchCursorInvalidated,
+                PagingNotice = searchCursorInvalidated
+                    ? TenantListReason.SearchRefreshed
+                    : fallback.PagingNotice,
             };
+        }
+
+        SignalSearchDegradation(reasonCode);
+        bool fallbackRecovered = fallback.Notice == TenantListReason.ListRefreshed;
+        return fallback with {
+            Notice = TenantListReason.SearchUnavailable,
+            IsAuthoritativeSearch = false,
+            PagingRecovered = searchCursorInvalidated,
+            FallbackPagingRecovered = fallbackRecovered,
+
+            // Notice collision: when a cursor invalidation and an ordinary-list cursor recovery land on the
+            // same load, only one paging slot is free. The search-invalidation explanation is never the one
+            // dropped, because no load may clear protected search history without copy that explains the
+            // search restarted.
+            PagingNotice = searchCursorInvalidated
+                ? TenantListReason.SearchRefreshed
+                : fallbackRecovered
+                    ? TenantListReason.ListRefreshed
+                    : TenantListReason.None,
+        };
     }
+
+    private void SignalSearchDegradation(string reasonCode)
+        => logger?.LogWarning(
+            SearchDegradedToOrdinaryListEvent,
+            "Authoritative tenant search degraded to the ordinary tenant list. ReasonCode={SearchDegradationReasonCode}",
+            reasonCode);
+
+    private void SignalSearchUnavailable(string reasonCode)
+        => logger?.LogWarning(
+            SearchAndOrdinaryListUnavailableEvent,
+            "Authoritative tenant search degraded and the ordinary tenant list is also unavailable. ReasonCode={SearchDegradationReasonCode}",
+            reasonCode);
+
+    private static bool HasUsableMembers(TenantDetail detail)
+        => detail.Members is not null && !detail.Members.Any(static member => member is null);
+
+    /// <summary>
+    /// The surfacing set: fatal conditions and programming defects. These are enumerated exactly, and they
+    /// are excluded <b>before</b> any base-type match below, because <see cref="ObjectDisposedException"/>
+    /// derives from <see cref="InvalidOperationException"/> and <see cref="ArgumentNullException"/> derives
+    /// from <see cref="ArgumentException"/> -- both of which are contained base types. Without this ordering
+    /// a contained arm would silently swallow the very defects the containment rule promises to re-raise,
+    /// and a torn-down DataProtection provider would be mislabelled as a tampered cursor.
+    /// </summary>
+    private static bool IsSurfacingDefect(Exception exception)
+        => exception is OutOfMemoryException
+            or NullReferenceException
+            or ObjectDisposedException
+            or ArgumentNullException;
+
+    /// <summary>
+    /// The contained set: the codec's untrusted-input failure modes -- cryptographic, format, JSON,
+    /// arithmetic, not-supported, and the argument/state failures the codec contract itself raises for a
+    /// malformed scope or position. The two sets are disjoint by construction.
+    /// </summary>
+    private static bool IsContainedCodecFailure(Exception exception)
+        => !IsSurfacingDefect(exception)
+            && exception is CryptographicException
+                or FormatException
+                or ArgumentException
+                or InvalidOperationException
+                or ArithmeticException
+                or JsonException
+                or NotSupportedException;
 
     private static IReadOnlyList<TenantListRow> SortSearchRows(
         IReadOnlyList<TenantListRow> rows,
@@ -841,14 +1072,18 @@ internal sealed class TenantQueryGateway(
         return lifecycles.Length == 1 ? lifecycles[0] : ProjectionLifecycleState.Unknown;
     }
 
+    // Surfacing defects are excluded first here too: an ObjectDisposedException raised while encoding a
+    // protected cursor must escape the gateway rather than be reported as an unavailable search index.
     private static bool IsSearchAvailabilityFailure(Exception exception)
-        => exception is MemoriesRemoteException
-            or HttpRequestException
-            or TimeoutException
-            or JsonException
-            or InvalidOperationException
-            or ArithmeticException
-            || exception is OperationCanceledException;
+        => !IsSurfacingDefect(exception)
+            && (exception is MemoriesRemoteException
+                or HttpRequestException
+                or TimeoutException
+                or JsonException
+                or InvalidOperationException
+                or CryptographicException
+                or ArithmeticException
+                || exception is OperationCanceledException);
 
     private static bool IsHydrationAvailabilityFailure(Exception exception)
         => exception is EventStoreGatewayException
@@ -1059,12 +1294,19 @@ internal sealed class TenantQueryGateway(
                 TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, cancellationToken)
                     .ConfigureAwait(false);
                 if (detail is not null) {
-                    int memberCount = detail.Members.Count;
-                    int ownerCount = detail.Members.Count(static m => m.Role == TenantRole.TenantOwner);
-                    row = row with {
-                        MemberCount = TenantCountValue.Known(memberCount),
-                        OwnerCount = TenantCountValue.Known(ownerCount),
-                    };
+                    // The ordinary list path dereferences the same detail payload as authoritative search
+                    // hydration, so it applies the identical null-shape rejection instead of throwing.
+                    if (!HasUsableMembers(detail)) {
+                        degraded = true;
+                    }
+                    else {
+                        int memberCount = detail.Members.Count;
+                        int ownerCount = detail.Members.Count(static m => m.Role == TenantRole.TenantOwner);
+                        row = row with {
+                            MemberCount = TenantCountValue.Known(memberCount),
+                            OwnerCount = TenantCountValue.Known(ownerCount),
+                        };
+                    }
                 }
             }
             catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound or (int)HttpStatusCode.ServiceUnavailable) {

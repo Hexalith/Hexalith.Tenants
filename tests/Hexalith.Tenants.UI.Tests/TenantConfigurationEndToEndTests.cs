@@ -169,7 +169,8 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
         };
 
-        public LocalizedString this[string name] => new(name, name);
+        public LocalizedString this[string name]
+            => new(name, Values.TryGetValue(name, out string? value) ? value : name);
 
         public LocalizedString this[string name, params object[] arguments]
             => new(name, string.Format(
@@ -177,6 +178,9 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
                 Values.TryGetValue(name, out string? value) ? value : name,
                 arguments));
 
-        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
+        // Enumerated so the suite-wide localizer-parity gate can verify every stubbed value against the
+        // shipped bundle; an empty enumeration would opt this double out of the gate entirely.
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+            => Values.Select(static entry => new LocalizedString(entry.Key, entry.Value));
     }
 }

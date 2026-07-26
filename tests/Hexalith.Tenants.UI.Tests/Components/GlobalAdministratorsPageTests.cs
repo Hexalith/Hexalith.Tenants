@@ -54,7 +54,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-live-region']").GetAttribute("aria-live").ShouldBeNull();
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
         cut.Markup.ShouldNotContain("/api/users", Case.Insensitive);
-        cut.Markup.ShouldNotContain("tenant ownership", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-authority-scope']").TextContent.ShouldContain("not tenant ownership");
         cut.Markup.ShouldContain("data-testid=\"tenants-global-admins-list\"");
 
         cut.Find("[data-surface-testid='tenants-global-admins-copy-user-id']").Click();
@@ -87,8 +87,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(GlobalAdministratorsSurfaceKind.Stale, ReadModelFreshnessState.Stale, "freshness")]
-    [InlineData(GlobalAdministratorsSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "freshness")]
+    [InlineData(GlobalAdministratorsSurfaceKind.Stale, ReadModelFreshnessState.Stale, "stale")]
+    [InlineData(GlobalAdministratorsSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "degraded")]
     public void Stale_or_degraded_review_surface_keeps_rows_visible_and_actions_unavailable(
         GlobalAdministratorsSurfaceKind kind,
         ReadModelFreshnessState freshness,
@@ -475,7 +475,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
             commandGateway.Requests.ShouldHaveSingleItem().UserId.ShouldBe("target-user");
             queryGateway.GlobalAdministratorCalls.ShouldBe(2);
-            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("Projection confirmed");
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("Projection confirmed the target user", Case.Insensitive);
             cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("polite");
             cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
                 .ShouldContain("target-user");
@@ -592,8 +592,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(CommandStatus.PublishFailed, "degraded", "Audit evidence is delayed.")]
-    [InlineData(CommandStatus.TimedOut, "could not be verified", "Audit evidence is delayed.")]
+    [InlineData(CommandStatus.PublishFailed, "degraded", "Audit evidence is delayed;")]
+    [InlineData(CommandStatus.TimedOut, "could not be verified", "Audit evidence is delayed;")]
     public void Terminal_status_without_projection_confirmation_stays_distinct_and_assertive(
         CommandStatus status,
         string expectedStateText,
@@ -962,7 +962,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Copy.Action"] = "Copy",
-            ["Tenants.Copy.Feedback.Copied"] = "Copied",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied.",
             ["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"] = "Unavailable until projection freshness is current.",
             ["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"] = "Unavailable in this read-only review.",
             ["Tenants.GlobalAdministrators.Aggregate.Domain.Label"] = "Domain",
@@ -981,10 +981,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Freshness.Current"] = "Current",
             ["Tenants.GlobalAdministrators.Freshness.Stale"] = "Stale",
             ["Tenants.GlobalAdministrators.Freshness.Unknown"] = "Unknown",
-            ["Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed"] = "Audit evidence is delayed.",
-            ["Tenants.GlobalAdministrators.Grant.Audit.AuditPending"] = "Audit evidence is pending.",
-            ["Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable"] = "Audit evidence is unavailable.",
-            ["Tenants.GlobalAdministrators.Grant.Audit.MissingSupport"] = "Audit support is not available.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed"] = "Audit evidence is delayed; refresh status or inspect audit before citing proof.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditPending"] = "Audit evidence is pending; do not cite audit proof until it is visible.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable"] = "Audit evidence is unavailable from this flow.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.MissingSupport"] = "Audit support for this flow is not available.",
             ["Tenants.GlobalAdministrators.Grant.Audit.NotStarted"] = "No audit evidence is available before command submission.",
             ["Tenants.GlobalAdministrators.Grant.Available"] = "Grant is available from the confirmed platform authority projection.",
             ["Tenants.GlobalAdministrators.Grant.Cancel"] = "Cancel",
@@ -994,7 +994,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.State.Accepted"] = "Command accepted; projection confirmation is still required.",
             ["Tenants.GlobalAdministrators.Grant.State.AlreadyApplied"] = "Already-applied is not used for global administrator grants.",
             ["Tenants.GlobalAdministrators.Grant.State.Confirmed"] = "Projection confirmed the target user in the fixed global-administrators scope.",
-            ["Tenants.GlobalAdministrators.Grant.State.Degraded"] = "Grant verification is degraded.",
+            ["Tenants.GlobalAdministrators.Grant.State.Degraded"] = "Grant verification is degraded; publication or audit evidence could not be verified.",
             ["Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented"] = "A concurrent grant command was prevented.",
             ["Tenants.GlobalAdministrators.Grant.State.Failed"] = "Grant command failed before it could be verified.",
             ["Tenants.GlobalAdministrators.Grant.State.Idle"] = "No global administrator grant command has been submitted.",
@@ -1014,29 +1014,29 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.UserId.Help"] = "Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.",
             ["Tenants.GlobalAdministrators.Grant.UserId.Label"] = "User id",
             ["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"] = "User id is required before granting global administrator authority.",
-            ["Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed"] = "Audit evidence is delayed.",
-            ["Tenants.GlobalAdministrators.Remove.Audit.AuditPending"] = "Audit evidence is pending.",
-            ["Tenants.GlobalAdministrators.Remove.Audit.AuditUnavailable"] = "Audit evidence is unavailable.",
-            ["Tenants.GlobalAdministrators.Remove.Audit.MissingSupport"] = "Audit support is not available.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed"] = "Audit evidence is delayed; refresh status or inspect audit before citing proof.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditPending"] = "Audit evidence is pending; do not cite audit proof until it is visible.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditUnavailable"] = "Audit evidence is unavailable from this flow.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.MissingSupport"] = "Audit support for this flow is not available.",
             ["Tenants.GlobalAdministrators.Remove.Audit.NotStarted"] = "No audit evidence is available before command submission.",
             ["Tenants.GlobalAdministrators.Remove.Cancel"] = "Cancel",
-            ["Tenants.GlobalAdministrators.Remove.Description"] = "Remove platform authority only when the fixed projection proves it will not remove the last global administrator.",
+            ["Tenants.GlobalAdministrators.Remove.Description"] = "Remove platform authority only when the fixed global-administrators projection proves it will not remove the last global administrator.",
             ["Tenants.GlobalAdministrators.Remove.Launch"] = "Remove global administrator",
             ["Tenants.GlobalAdministrators.Remove.Lifecycle.Title"] = "Remove lifecycle",
             ["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked"] = "Access being revoked",
             ["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value"] = "Platform global-administrator authority is revoked from the target user only after projection confirmation.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Audit"] = "Audit expectation",
-            ["Tenants.GlobalAdministrators.Remove.Preview.Audit.Value"] = "Audit evidence is expected after command acceptance and projection-confirmed removal.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Audit.Value"] = "Audit evidence is expected after command acceptance and projection-confirmed removal; this panel does not fabricate proof.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Count"] = "Current administrator count",
             ["Tenants.GlobalAdministrators.Remove.Preview.Freshness"] = "Projection freshness",
             ["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"] = "Known consequences",
-            ["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value"] = "The target loses platform authority; tenant membership is not changed.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value"] = "The target loses platform authority in the system global-administrators scope; tenant membership is not changed.",
             ["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"] = "Known unknowns",
             ["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value"] = "Session revocation, token invalidation, downstream enforcement timing, and audit proof timing are not proven by command status alone.",
             ["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact"] = "Last administrator impact",
             ["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value"] = "The target is not the last visible global administrator in the current projection.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery"] = "Recovery path",
-            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"] = "Refresh projection truth, inspect audit evidence, or grant global administrator authority again.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"] = "Refresh projection truth, inspect audit evidence, or grant global administrator authority again through the fixed platform-governance flow.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope"] = "Platform authority scope",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"] = "tenant system, domain global-administrators, aggregate global-administrators",
             ["Tenants.GlobalAdministrators.Remove.Preview.Target"] = "Target user id",
@@ -1045,7 +1045,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.State.Accepted"] = "Command accepted; projection confirmation is still required.",
             ["Tenants.GlobalAdministrators.Remove.State.AlreadyApplied"] = "Already-applied is not used for global administrator removal.",
             ["Tenants.GlobalAdministrators.Remove.State.Confirmed"] = "Projection confirmed removal from the fixed global-administrators scope.",
-            ["Tenants.GlobalAdministrators.Remove.State.Degraded"] = "Remove verification is degraded.",
+            ["Tenants.GlobalAdministrators.Remove.State.Degraded"] = "Remove verification is degraded; publication or audit evidence could not be verified.",
             ["Tenants.GlobalAdministrators.Remove.State.DuplicatePrevented"] = "A concurrent remove command was prevented.",
             ["Tenants.GlobalAdministrators.Remove.State.Failed"] = "Remove command failed before it could be verified.",
             ["Tenants.GlobalAdministrators.Remove.State.Idle"] = "No global administrator remove command has been submitted.",
@@ -1070,24 +1070,24 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Previous"] = "Previous",
             ["Tenants.GlobalAdministrators.Refresh"] = "Refresh",
             ["Tenants.GlobalAdministrators.RestrictedTitle"] = "Platform area unavailable",
-            ["Tenants.GlobalAdministrators.Row.Scope"] = "Platform authority, not tenant owner",
+            ["Tenants.GlobalAdministrators.Row.Scope"] = "Platform authority, not tenant ownership",
             ["Tenants.GlobalAdministrators.Scope.Message"] = "This surface uses the singleton platform authority aggregate and never substitutes tenant membership data.",
             ["Tenants.GlobalAdministrators.Scope.Title"] = "Fixed aggregate scope",
-            ["Tenants.GlobalAdministrators.State.Degraded.Message"] = "Projection freshness is degraded. Last confirmed administrators remain visible.",
+            ["Tenants.GlobalAdministrators.State.Degraded.Message"] = "Projection data is degraded. Last confirmed administrators remain visible and actions are unavailable.",
             ["Tenants.GlobalAdministrators.State.Degraded.Title"] = "Global administrator data degraded",
-            ["Tenants.GlobalAdministrators.State.Empty.Message"] = "No global administrators were returned.",
+            ["Tenants.GlobalAdministrators.State.Empty.Message"] = "No global administrators were returned for the authorized fixed scope.",
             ["Tenants.GlobalAdministrators.State.Empty.Title"] = "No global administrators returned",
-            ["Tenants.GlobalAdministrators.State.Invalid.Message"] = "The requested page cursor is invalid.",
+            ["Tenants.GlobalAdministrators.State.Invalid.Message"] = "The requested page cursor is invalid. No administrator data is revealed.",
             ["Tenants.GlobalAdministrators.State.Invalid.Title"] = "Invalid global administrator page",
-            ["Tenants.GlobalAdministrators.State.Loading.Message"] = "Loading global administrators.",
+            ["Tenants.GlobalAdministrators.State.Loading.Message"] = "Loading global administrators from the fixed platform authority scope.",
             ["Tenants.GlobalAdministrators.State.Loading.Title"] = "Loading global administrators",
-            ["Tenants.GlobalAdministrators.State.Ready.Message"] = "Global administrators are loaded.",
+            ["Tenants.GlobalAdministrators.State.Ready.Message"] = "Global administrators are loaded from the fixed platform authority projection.",
             ["Tenants.GlobalAdministrators.State.Ready.Title"] = "Global administrators loaded",
-            ["Tenants.GlobalAdministrators.State.Stale.Message"] = "Projection freshness is stale. Last confirmed administrators remain visible.",
+            ["Tenants.GlobalAdministrators.State.Stale.Message"] = "Projection freshness is stale. Last confirmed administrators remain visible and actions are unavailable.",
             ["Tenants.GlobalAdministrators.State.Stale.Title"] = "Global administrator data stale",
             ["Tenants.GlobalAdministrators.State.Unauthorized.Message"] = "Platform authority was not confirmed. The area fails closed and does not reveal administrator data.",
             ["Tenants.GlobalAdministrators.State.Unauthorized.Title"] = "Platform area unavailable",
-            ["Tenants.GlobalAdministrators.State.Unavailable.Message"] = "The global administrator read surface is unavailable.",
+            ["Tenants.GlobalAdministrators.State.Unavailable.Message"] = "The global administrator read surface is unavailable. No hidden administrator data is shown.",
             ["Tenants.GlobalAdministrators.State.Unavailable.Title"] = "Global administrator data unavailable",
             ["Tenants.GlobalAdministrators.Title"] = "Global Administrators",
         };

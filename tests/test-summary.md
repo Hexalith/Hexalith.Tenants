@@ -273,3 +273,63 @@ build validation and no behavioral coverage. Added a dedicated fixture to close 
 - [x] Set/remove component and reducer suites preserve preview, validation, locking, focus return, cancellation, safe lifecycle/audit/recovery states, proof-only projection confirmation, exact full-key set semantics (including exact grant key `P`), safe-row-only removal, and submission-time policy reauthorization/revocation blocking before gateway dispatch.
 - [x] EN/FR `Tenants.Configuration.*` resource parity, Fluent component/style governance, forced-colors, visible focus, responsive hooks, stable data-independent selectors, and source-level no-copy/no-reveal/no-read-mutation guards pass. `CFG-1.6-SAFE-MODEL` is closed; configuration clipboard activation/certification remains intentionally absent.
 - Validation: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --logger "console;verbosity=minimal"` passed 1031/1031. `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -m:1 --nologo` passed with 0 warnings and 0 errors. `dotnet test Hexalith.Tenants.slnx -c Release --no-build --no-restore --logger "console;verbosity=minimal"` passed Client 50/50, Contracts 112/112, Sample 39/39, Testing 181/181, Server 738/738, UI 1031/1031, and Integration 166 passed / 1 skipped (2317 passed, 1 skipped overall).
+
+## Story 1.9 Authoritative Memories Search Evidence Addendum (2026-07-26)
+
+Re-derived from the amended Story 1.9 spec after commit `a6f5801` rolled back the previous
+review-repair delta.
+
+- [x] `TenantQueryGatewayTests` and `TenantSearchCursorTests` cover exact Memories requests and
+  response invariants; candidate parsing/deduplication; raw-hit accounting without backfill;
+  authorization hydration; status recheck; every sort direction; pending/freshness truth; bounded
+  cancellation-aware concurrency asserted against the production limit constant; cross-user,
+  wrong-scope, invalid, index-shrink (including the equality boundary), and every-codec-exception
+  recovery on both decode and encode; search failure families; ordinary fallback; cursor
+  invalidation surviving a combined outage; and reason-code-only support-safe diagnostics.
+- [x] The raw-page count invariant is an **upper bound only**: a short non-final index page stays
+  authoritative and advances by the requested window bounded to the reported total, so consecutive
+  pages neither repeat nor skip a candidate; only over-full or total-overflowing pages are rejected.
+  Positive short-page, short-page-sequence, and short-final-page coverage is observed passing.
+- [x] Codec-failure containment is two disjoint enumerated sets. The surfacing set
+  (`OutOfMemoryException`, `NullReferenceException`, `ObjectDisposedException`,
+  `ArgumentNullException`) is excluded before any base-type match, because `ObjectDisposedException`
+  derives from `InvalidOperationException` and `ArgumentNullException` from `ArgumentException`.
+  Seven contained types and four surfacing types are each covered on both the decode and encode
+  paths.
+- [x] The support-safe degradation signal is emitted only on a load that actually resolved to the
+  ordinary list, never from the decode catch whose forced page-zero retry then succeeds
+  authoritatively, and never twice for one load: every failure path records a reason code and funnels
+  through a single fallback call.
+- [x] Cursor invalidation landing on a terminal error/unauthorized surface withholds the clearing
+  together with its notice and delivers both on the next renderable load.
+- [x] A malformed member collection raises the identical `IsDegraded` / `RowEnrichmentUnavailable`
+  signal on the search surface and the ordinary list, carried by a distinct enrichment-degraded flag
+  that cannot trigger the ordinary-list fallback.
+- [x] `TenantListSurfaceTests`, `TenantDetailSurfaceTests`, `TenantWorkspaceStateTests`,
+  `TenantsWorkspaceTests`, `TenantsUiCompositionTests`, `LocalizerDoubleParityTests`, and
+  `DomainUiFluentConformanceTests` cover authoritative and fallback Next/Previous,
+  authoritative/fallback boundary reconciliation resolved before the outgoing request is built,
+  crossing detection after a tenant-detail return recreates the component, the active paging mode
+  held in the circuit-scoped paging service, server-only protected state, page-two identity reset,
+  detail-return continuity and missing-retention recovery, prerender suppression of retained-paging
+  restoration, pending recovery notices surviving a superseding same-scope load, rapid-load
+  cancellation, sparse/partial/empty/fallback states, the rendered `SearchPageEmpty` surface with its
+  stable test id and both its non-final and final messages, both notice bars refusing unmapped
+  reasons, a shared polite live region that pre-exists its content, exact EN/FR copy for every new
+  key in an explicitly resolved `fr` culture plus a gate (with a self-test proving it can fail) that
+  every stubbed localizer value equals the shipped `TenantsResources.resx` value, stable selectors,
+  Fluent controls, accessibility hooks confined to rendered markup, responsive rules,
+  provider-resolved host-purpose isolation, and control-client-backed proof that default Memories
+  HTTP logging is suppressed in both host compositions.
+- [x] Support-safety evidence is placed where disclosure is possible — rendered markup, the canonical
+  URL, JS-interop invocations, and the log sink — each with a control case in which the material
+  genuinely appears. Diagnostic surfaces are pinned by equality; no `ToString()` substring check is
+  offered as support-safety evidence.
+- Story 1.9 acceptance criteria: all automated portions are covered. Authenticated AppHost/Memories
+  runtime, responsive browser, and human NVDA evidence remain open with owner, consequence, and
+  reopen trigger in the dated Story 1.9 evidence report.
+- Validation: Release UI test-project build passed with 0 warnings / 0 errors; the exact seven-class
+  focused executable passed 396/396; `TenantDetailSurfaceTests` passed 56/56;
+  `LocalizerDoubleParityTests` passed 2/2; the full UI executable passed 1145/1145;
+  `MemoriesSearchIndexEventPublisherTests` passed 7/7 after a warning-clean sample-test build; the
+  Release solution build passed with 0 warnings / 0 errors; and `git diff --check` passed.

@@ -141,6 +141,9 @@
   <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
     <value>La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchPagingRestarted" xml:space="preserve">
+    <value>La source de locataires disponible a changé. La pagination a redémarré depuis la première page.</value>
+  </data>
   <data name="Tenants.List.Reason.GatewayUnavailable" xml:space="preserve">
     <value>La liste autorisée des locataires n'a pas pu être chargée. Réessayez plus tard.</value>
   </data>
@@ -191,6 +194,15 @@
   </data>
   <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
     <value>Aucun locataire ne correspond aux filtres</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.FinalMessage" xml:space="preserve">
+    <value>Aucun locataire autorisé n'a été vérifié sur cette page de recherche et aucune page suivante ne reste pour cette recherche.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.Message" xml:space="preserve">
+    <value>Aucun locataire autorisé n'a été vérifié sur cette page de recherche. Les pages suivantes de la même recherche peuvent encore contenir des résultats.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
+    <value>Aucun locataire visible sur cette page de recherche</value>
   </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Les données des locataires sont chargées depuis la passerelle de requête côté serveur.</value>

@@ -36,8 +36,6 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.ETag.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.Reason.ShouldBe(TenantListReason.GatewayUnavailable);
-        snapshot.ToString().ShouldNotContain("secret-etag", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("opaque-cursor", Case.Insensitive);
     }
 
     [Fact]

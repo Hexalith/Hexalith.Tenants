@@ -134,8 +134,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-edit-metadata-validation']").TextContent.ShouldContain("complete tenant name");
         cut.Find("[data-testid='tenants-edit-metadata-name']").GetAttribute("aria-describedby")
             .ShouldBe("tenants-edit-metadata-name-help tenants-edit-metadata-validation");
-        cut.Markup.ShouldNotContain("payload", Case.Insensitive);
-        cut.Markup.ShouldNotContain("token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("\"payload\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
     }
 
@@ -266,8 +268,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-edit-metadata-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
         cut.Find("[data-testid='tenants-edit-metadata-live-region']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
         cut.Markup.ShouldNotContain("correlation-update", Case.Insensitive);
-        cut.Markup.ShouldNotContain("payload", Case.Insensitive);
-        cut.Markup.ShouldNotContain("token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("\"payload\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
@@ -295,8 +299,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-edit-metadata-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
             .ShouldContain("Retry from current tenant detail");
-        cut.Markup.ShouldNotContain("payload", Case.Insensitive);
-        cut.Markup.ShouldNotContain("token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("\"payload\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
     }
 
@@ -450,14 +456,14 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.EditMetadata.Title"] = "Tenant metadata",
-            ["Tenants.EditMetadata.Description"] = "Edit tenant {0} metadata.",
+            ["Tenants.EditMetadata.Description"] = "Edit the confirmed metadata for tenant {0} through a command and projection-confirmed refresh.",
             ["Tenants.EditMetadata.Open"] = "Edit metadata",
             ["Tenants.EditMetadata.ConfirmedName.Label"] = "Last confirmed name",
             ["Tenants.EditMetadata.ConfirmedDescription.Label"] = "Last confirmed description",
             ["Tenants.EditMetadata.Name.Label"] = "Name",
-            ["Tenants.EditMetadata.Name.Help"] = "Use the full tenant name.",
+            ["Tenants.EditMetadata.Name.Help"] = "Use the tenant display name to submit with this command.",
             ["Tenants.EditMetadata.Description.Label"] = "Description",
-            ["Tenants.EditMetadata.Description.Help"] = "Leave empty to clear the description.",
+            ["Tenants.EditMetadata.Description.Help"] = "Leave empty to clear the tenant description.",
             ["Tenants.EditMetadata.Description.Empty"] = "No description is confirmed.",
             ["Tenants.EditMetadata.Submit"] = "Submit metadata update",
             ["Tenants.EditMetadata.Refresh"] = "Refresh status",
@@ -482,27 +488,27 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.State.Degraded"] = "Metadata command result is degraded and needs review.",
             ["Tenants.EditMetadata.State.UnableToVerify"] = "Unable to verify the metadata command result.",
             ["Tenants.EditMetadata.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.EditMetadata.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.EditMetadata.Audit.AuditDelayed"] = "Audit evidence delayed.",
-            ["Tenants.EditMetadata.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.EditMetadata.Audit.MissingSupport"] = "Audit evidence support is missing.",
+            ["Tenants.EditMetadata.Audit.AuditPending"] = "Audit evidence pending; no receipt is available in this story.",
+            ["Tenants.EditMetadata.Audit.AuditDelayed"] = "Audit evidence delayed; wait or inspect audit when Epic 5 evidence is available.",
+            ["Tenants.EditMetadata.Audit.AuditUnavailable"] = "Audit evidence unavailable; no proof or receipt is asserted.",
+            ["Tenants.EditMetadata.Audit.MissingSupport"] = "Audit evidence support is missing until Epic 5 implements the evidence source.",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.CommandReason"] = "Open the tenant audit list and use the visible audit state.",
+            ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
-            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required.",
-            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit delayed; retry status lookup or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Missing implementation support; continue read-only or escalate.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit pending; wait, retry status lookup, or inspect audit.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit unavailable; continue read-only, retry status lookup, or escalate.",
+            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
+            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
+            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
+            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
             ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "Continue read-only or escalate using support-safe information.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Continue read-only, retry status lookup, or escalate without raw diagnostics.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
