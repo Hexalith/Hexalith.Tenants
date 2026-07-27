@@ -83,13 +83,13 @@ jobs:
     # job.workflow_sha == builds-execution-sha). A missing or mismatched input is a
     # workflow startup_failure. @main cannot be used: main advances, so job.workflow_sha
     # would drift out of match. Replace both occurrences together.
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@5041efefd95be9c9a539d39c7e312316bbb59a2d
+    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@2eac6955a812465a4308d194ae38fee35b766b05
     with:
       solution: Hexalith.Tenants.slnx
       timeout-minutes: 60
       environment-name: production
       publish-containers: true
-      builds-execution-sha: 5041efefd95be9c9a539d39c7e312316bbb59a2d
+      builds-execution-sha: 2eac6955a812465a4308d194ae38fee35b766b05
       source-branch: main
       source-ci-workflow: ci.yml
       package-manifest: tools/release-packages.json
@@ -103,3 +103,118 @@ jobs:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
       HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+
+  verify-publication:
+    name: Verify exact source was published
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Require published release for exact dispatched source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$DISPATCH_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The dispatched release source must be an exact lowercase commit SHA." >&2
+            exit 1
+          fi
+
+          if ! releases="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" | jq -s '.')"; then
+            echo "The GitHub Releases API could not be queried safely." >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "$releases" | jq -e '
+            type == "array" and
+            all(.[]; type == "array") and
+            all(.[][];
+              type == "object" and
+              (.draft | type == "boolean") and
+              (.tag_name | type == "string") and
+              (.tag_name | length > 0)
+            )
+          ' >/dev/null; then
+            echo "The GitHub Releases response could not be validated safely." >&2
+            exit 1
+          fi
+
+          published_tags="$(printf '%s\n' "$releases" | jq -r '.[][] | select(.draft == false) | .tag_name')"
+          matching_tag=''
+          while IFS= read -r tag_name; do
+            [ -n "$tag_name" ] || continue
+            encoded_tag="$(jq -rn --arg tag "$tag_name" '$tag | @uri')"
+            expected_ref="refs/tags/${tag_name}"
+            if ! tag_ref="$(gh api "repos/${REPOSITORY}/git/ref/tags/${encoded_tag}")"; then
+              echo "The exact tag ref '${expected_ref}' could not be resolved." >&2
+              exit 1
+            fi
+            if ! printf '%s\n' "$tag_ref" | jq -e --arg expected_ref "$expected_ref" '
+              type == "object" and
+              .ref == $expected_ref and
+              (.object | type == "object") and
+              (.object.type | type == "string") and
+              (.object.sha | type == "string")
+            ' >/dev/null; then
+              echo "The exact tag ref '${expected_ref}' response could not be validated safely." >&2
+              exit 1
+            fi
+
+            object_type="$(printf '%s\n' "$tag_ref" | jq -r '.object.type')"
+            object_sha="$(printf '%s\n' "$tag_ref" | jq -r '.object.sha')"
+            if [[ ! "$object_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "The exact tag ref '${expected_ref}' object must have an exact lowercase SHA." >&2
+              exit 1
+            fi
+
+            case "$object_type" in
+              commit)
+                tag_sha="$object_sha"
+                ;;
+              tag)
+                if ! tag_object="$(gh api "repos/${REPOSITORY}/git/tags/${object_sha}")"; then
+                  echo "Annotated tag object '${object_sha}' for '${expected_ref}' could not be peeled." >&2
+                  exit 1
+                fi
+                if ! printf '%s\n' "$tag_object" | jq -e --arg object_sha "$object_sha" '
+                  type == "object" and
+                  .sha == $object_sha and
+                  (.object | type == "object") and
+                  (.object.type | type == "string") and
+                  (.object.sha | type == "string")
+                ' >/dev/null; then
+                  echo "Annotated tag object '${object_sha}' for '${expected_ref}' could not be validated safely." >&2
+                  exit 1
+                fi
+
+                peeled_type="$(printf '%s\n' "$tag_object" | jq -r '.object.type')"
+                tag_sha="$(printf '%s\n' "$tag_object" | jq -r '.object.sha')"
+                if [ "$peeled_type" != "commit" ]; then
+                  echo "The exact tag ref '${expected_ref}' has unsupported peeled object type '${peeled_type}'." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "The exact tag ref '${expected_ref}' has unsupported object type '${object_type}'." >&2
+                exit 1
+                ;;
+            esac
+            if [[ ! "$tag_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "The exact tag ref '${expected_ref}' did not peel to an exact lowercase commit SHA." >&2
+              exit 1
+            fi
+            if [ "$tag_sha" = "$DISPATCH_SHA" ]; then
+              matching_tag="$tag_name"
+              break
+            fi
+          done <<< "$published_tags"
+
+          if [ -z "$matching_tag" ]; then
+            echo "Inspect the Semantic Release output: no published GitHub Release tag resolves to dispatched SHA ${DISPATCH_SHA}." >&2
+            echo "If there were no releasable commits, redispatching will not help. Redispatch only when the source became stale and the new main tip has successful exact-source CI." >&2
+            exit 1
+          fi
+          echo "Published release tag '${matching_tag}' resolves to dispatched SHA ${DISPATCH_SHA}."
