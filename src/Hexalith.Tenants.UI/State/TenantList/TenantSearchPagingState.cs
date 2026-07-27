@@ -2,8 +2,16 @@ namespace Hexalith.Tenants.UI.State.TenantList;
 
 /// <summary>Holds protected search and fallback paging only inside one server-side circuit scope.</summary>
 internal sealed class TenantSearchPagingState {
-    private readonly Stack<string?> _searchHistory = new();
-    private readonly Stack<string?> _fallbackHistory = new();
+    /// <summary>
+    /// Maximum retained back-steps per paging mode. History previously grew one protected cursor per Next
+    /// for the lifetime of the circuit, with nothing to cap it and a diagnostic that deliberately hides the
+    /// count, so the growth was not observable from support output either. Past this depth the oldest
+    /// back-step is dropped: Previous stops short rather than the circuit accumulating without bound.
+    /// </summary>
+    internal const int MaximumRetainedHistoryDepth = 200;
+
+    private readonly List<string?> _searchHistory = [];
+    private readonly List<string?> _fallbackHistory = [];
     private string? _scope;
 
     /// <summary>Gets the current protected authoritative-search cursor.</summary>
@@ -61,30 +69,50 @@ internal sealed class TenantSearchPagingState {
     public bool HasPrevious(bool authoritative)
         => authoritative ? _searchHistory.Count > 0 : _fallbackHistory.Count > 0;
 
-    /// <summary>Moves to the next page in the active paging mode.</summary>
-    public void MoveNext(bool authoritative, string? cursor) {
-        if (authoritative) {
-            _searchHistory.Push(SearchCursor);
-            SearchCursor = cursor;
-            return;
+    /// <summary>
+    /// Moves to the next page in the active paging mode. Advancing without a next cursor is refused:
+    /// recording a back-step and then setting the position to null made Next reload page one while
+    /// simultaneously enabling a Previous that also loaded page one, stranding the operator on a page that
+    /// reported more results with no way forward and no notice.
+    /// </summary>
+    /// <param name="authoritative">Whether the authoritative-search mode is advancing.</param>
+    /// <param name="cursor">The protected cursor for the next page.</param>
+    /// <returns><see langword="true"/> when the position advanced.</returns>
+    public bool MoveNext(bool authoritative, string? cursor) {
+        if (cursor is null) {
+            return false;
         }
 
-        _fallbackHistory.Push(FallbackCursor);
-        FallbackCursor = cursor;
+        List<string?> history = authoritative ? _searchHistory : _fallbackHistory;
+        history.Add(authoritative ? SearchCursor : FallbackCursor);
+        if (history.Count > MaximumRetainedHistoryDepth) {
+            history.RemoveAt(0);
+        }
+
+        if (authoritative) {
+            SearchCursor = cursor;
+        }
+        else {
+            FallbackCursor = cursor;
+        }
+
+        return true;
     }
 
     /// <summary>Moves to the previous page in the active paging mode.</summary>
     public bool TryMovePrevious(bool authoritative) {
-        Stack<string?> history = authoritative ? _searchHistory : _fallbackHistory;
+        List<string?> history = authoritative ? _searchHistory : _fallbackHistory;
         if (history.Count == 0) {
             return false;
         }
 
+        string? previous = history[^1];
+        history.RemoveAt(history.Count - 1);
         if (authoritative) {
-            SearchCursor = history.Pop();
+            SearchCursor = previous;
         }
         else {
-            FallbackCursor = history.Pop();
+            FallbackCursor = previous;
         }
 
         return true;

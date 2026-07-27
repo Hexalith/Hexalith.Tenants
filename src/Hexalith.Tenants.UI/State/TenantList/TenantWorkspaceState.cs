@@ -34,6 +34,12 @@ public sealed record TenantWorkspaceState(
 
     private const int MaximumUserIdLength = 256;
 
+    // The search term is echoed into the canonical URL on every debounced keystroke and into the Memories
+    // query string, and it is one of the seven fields hashed into the protected cursor scope. Left
+    // unbounded a crafted term produced an over-long request line, and left untrimmed "acme " and "acme"
+    // hashed to different scopes, silently restarting paging when a stray space was added.
+    private const int MaximumSearchLength = 256;
+
     // Bounds the URL-supplied return-context values (selection id + focus anchor). Gives headroom for an
     // anchor prefix over a maximum-length identifier while still rejecting an unbounded crafted value.
     private const int MaximumContextValueLength = 512;
@@ -336,7 +342,12 @@ public sealed record TenantWorkspaceState(
         };
 
     private static string? NormalizeSearch(string? value)
-        => NormalizeSafeText(value);
+    {
+        string? trimmed = NormalizeSafeText(value)?.Trim();
+        return string.IsNullOrEmpty(trimmed) || trimmed.Length > MaximumSearchLength
+            ? null
+            : trimmed;
+    }
 
     private static string? NormalizeStatus(string? value)
     {

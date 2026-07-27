@@ -988,7 +988,32 @@ public sealed class TenantListSurfaceTests : BunitContext
         requests[^1].SearchCursor.ShouldBeNull();
         fresh.Markup.ShouldContain("tenant.page-one");
         fresh.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
-        fresh.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+
+        // Discarding retained paging is correct here -- the return context cannot be validated -- but it
+        // must not be silent. Returning by browser Back previously dropped the operator from search page
+        // two to page one with no bar explaining it, because the pending-recovery scope was armed only on
+        // the eligible-return branch. A restart the operator can see is the whole point of the notice.
+        fresh.WaitForAssertion(() =>
+            fresh.Find("[data-testid='tenants-list-search-refreshed-notice']").ShouldNotBeNull());
+    }
+
+    [Fact]
+    public void A_first_search_visit_with_nothing_retained_restarts_nothing_and_says_nothing()
+    {
+        // The complement of the test above: the notice is owed only when a real position was discarded.
+        // Arming it whenever the return context is invalid would put a "paging restarted" bar on an
+        // ordinary first visit, which restarted nothing.
+        RegisterServices(call => Task.FromResult(AuthoritativeSnapshot(
+            [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+            nextCursor: "protected-page-two",
+            hasMore: true)));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-list-search-paging-restarted-notice']").ShouldBeEmpty();
     }
 
     [Fact]

@@ -306,6 +306,11 @@
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
+
+    // Blazor Server does not serialise async event handlers, and a pager button stays live until the
+    // render batch that disables it is acknowledged. Without this guard a second click landed while
+    // _snapshot was the transient Loading() value and mutated the cursor stack of the wrong paging mode.
+    private bool _pagingInFlight;
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
     private TenantSearchPagingState? _searchPaging;
@@ -386,7 +391,7 @@
 
     private bool HasPreviousPage
         => HasActiveSearch
-            ? SearchPaging.HasPrevious(_snapshot.IsAuthoritativeSearch)
+            ? IsInteractiveCircuit && SearchPaging.HasPrevious(ActivePagingModeAuthoritative)
             : _cursorHistory.Count > 0;
 
     // Resolved as a required service so a dropped registration fails loudly instead of silently degrading
@@ -542,6 +547,7 @@
             && HasActiveSearch
             && !string.IsNullOrWhiteSpace(authenticatedUserId);
         bool retainedPagingMatched = false;
+        bool discardedRetainedPosition = false;
         if (restoreSearchPagingContext)
         {
             if (eligibleDetailReturn)
@@ -570,6 +576,16 @@
 
             if (!eligibleDetailReturn)
             {
+                // Returning by browser Back lands on /tenants?search=... with no selected/anchor, so the
+                // return context cannot be validated and retained paging is discarded. That is correct, but
+                // it was silent: the operator who was on search page 4 arrived at page 1 with no bar
+                // explaining why. Only an actual retained position is worth a notice -- a first visit with
+                // nothing retained has restarted nothing.
+                discardedRetainedPosition = SearchPaging.SearchCursor is not null
+                    || SearchPaging.FallbackCursor is not null
+                    || SearchPaging.HasPrevious(authoritative: true)
+                    || SearchPaging.HasPrevious(authoritative: false);
+
                 SearchPaging.Reset();
             }
 
@@ -588,6 +604,13 @@
         if (interactiveCircuit)
         {
             SearchPaging.EnsureScope(searchScope);
+
+            // Armed strictly after EnsureScope: that call resets positions when the scope changes, and a
+            // pending scope set before it would be wiped by the very reset it is meant to explain.
+            if (discardedRetainedPosition && searchScope is not null)
+            {
+                SearchPaging.SetPendingRecoveryScope(searchScope);
+            }
         }
 
         if (restoreSearchPagingContext
@@ -792,38 +815,89 @@
         await LoadAsync(reuseETag: false);
     }
 
+    /// <summary>
+    /// The snapshot paging decisions may be read from. Never <c>_snapshot</c>: that is the transient
+    /// <c>Loading()</c> value for the whole duration of a load, whose IsAuthoritativeSearch is false and
+    /// whose NextCursor is null, so a click arriving mid-load would page the wrong mode from nowhere.
+    /// </summary>
+    private TenantListSnapshot PagingSnapshot => _lastConfirmedSnapshot ?? _snapshot;
+
+    /// <summary>
+    /// The active paging mode, taken from the circuit-scoped service that owns the cursors it describes and
+    /// survives the component recreation a tenant-detail return causes.
+    /// </summary>
+    private bool ActivePagingModeAuthoritative
+        => SearchPaging.ActiveModeAuthoritative ?? PagingSnapshot.IsAuthoritativeSearch;
+
     private async Task NextPageAsync()
     {
-        if (HasActiveSearch)
+        if (_pagingInFlight)
         {
-            SearchPaging.MoveNext(_snapshot.IsAuthoritativeSearch, _snapshot.NextCursor);
-            await LoadAsync(reuseETag: false);
             return;
         }
 
-        _cursorHistory.Push(_currentCursor);
-        ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _snapshot.NextCursor });
-        NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false);
+        _pagingInFlight = true;
+        try
+        {
+            TenantListSnapshot paging = PagingSnapshot;
+            if (HasActiveSearch)
+            {
+                // Refused when there is no next cursor, so Next can never record a back-step it cannot
+                // honour and then enable a Previous that lands on the same page.
+                if (SearchPaging.MoveNext(ActivePagingModeAuthoritative, paging.NextCursor))
+                {
+                    await LoadAsync(reuseETag: false);
+                }
+
+                return;
+            }
+
+            if (paging.NextCursor is null)
+            {
+                return;
+            }
+
+            _cursorHistory.Push(_currentCursor);
+            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = paging.NextCursor });
+            NavigateToCanonicalWorkspace();
+            await LoadAsync(reuseETag: false);
+        }
+        finally
+        {
+            _pagingInFlight = false;
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (HasActiveSearch)
+        if (_pagingInFlight)
         {
-            if (SearchPaging.TryMovePrevious(_snapshot.IsAuthoritativeSearch))
-            {
-                await LoadAsync(reuseETag: false);
-            }
-
             return;
         }
 
-        if (_cursorHistory.Count > 0)
+        _pagingInFlight = true;
+        try
         {
-            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
-            NavigateToCanonicalWorkspace();
-            await LoadAsync(reuseETag: false);
+            if (HasActiveSearch)
+            {
+                if (SearchPaging.TryMovePrevious(ActivePagingModeAuthoritative))
+                {
+                    await LoadAsync(reuseETag: false);
+                }
+
+                return;
+            }
+
+            if (_cursorHistory.Count > 0)
+            {
+                ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
+                NavigateToCanonicalWorkspace();
+                await LoadAsync(reuseETag: false);
+            }
+        }
+        finally
+        {
+            _pagingInFlight = false;
         }
     }
 
@@ -1076,8 +1150,13 @@
 
     public void Dispose()
     {
+        // The pending recovery scope is deliberately NOT cleared here. It is owed copy explaining that
+        // protected paging restarted at page one, it is bound to the exact search scope that owes it, and
+        // it lives in the circuit-scoped service precisely so it survives the component disposal a
+        // tenant-detail navigation causes. Clearing it here destroyed it on the way out and the operator
+        // came back to a silently restarted search with no notice -- the invariant ExplainsSearchRestart
+        // exists to prevent. A later load for a different scope discards it through EnsureScope.
         _disposed = true;
-        _searchPaging?.ClearPendingRecoveryScope();
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
     }

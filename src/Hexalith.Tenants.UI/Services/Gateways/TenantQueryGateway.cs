@@ -36,6 +36,9 @@ internal sealed class TenantQueryGateway(
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
+    /// <summary>Maximum accepted canonical search length; mirrors the workspace URL-state bound.</summary>
+    internal const int MaximumSearchLength = 256;
+
     /// <summary>Reason code recorded when the Memories index call itself could not be completed.</summary>
     internal const string SearchIndexUnavailableReasonCode = "search-index-unavailable";
 
@@ -695,9 +698,14 @@ internal sealed class TenantQueryGateway(
 
     private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
         int pageSize = request.PageSize is >= 1 and <= MaximumPageSize ? request.PageSize : DefaultPageSize;
-        string? search = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
+        // Mirrors TenantWorkspaceState.NormalizeSearch so a direct gateway caller cannot bypass the trim
+        // and length bound that keep the cursor scope stable and the Memories request line finite.
+        string? trimmedSearch = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
             ? null
-            : request.Search;
+            : request.Search.Trim();
+        string? search = string.IsNullOrEmpty(trimmedSearch) || trimmedSearch.Length > MaximumSearchLength
+            ? null
+            : trimmedSearch;
         TenantStatus? status = request.Status is not null && Enum.IsDefined(request.Status.Value)
             ? request.Status
             : null;
