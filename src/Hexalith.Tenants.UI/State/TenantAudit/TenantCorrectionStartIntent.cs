@@ -1,5 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -85,7 +86,14 @@ public sealed record TenantCorrectionStartIntent(
             reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
         }
 
-        if (context.Row.Freshness is not ReadModelFreshnessState.Current) {
+        // Mutation eligibility is owned by the EventStore platform policy, not by the compatibility
+        // freshness view. ResolveFreshness still reports Current through the legacy `IsStale == false`
+        // fall-through when a response carries no authoritative lifecycle evidence — a state
+        // ProjectionLifecyclePolicy.CanMutate denies — so gating on freshness alone would arm a
+        // correction the platform forbids. Both must hold: a Current compatibility view AND
+        // projection-confirmed evidence on the declared route provenance (Story 2.11).
+        if (context.Row.Freshness is not ReadModelFreshnessState.Current
+            || !ProjectionLifecyclePolicy.IsProjectionConfirmed(context.Row.Provenance, context.Row.Lifecycle)) {
             reasons.Add(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
         }
 

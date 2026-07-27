@@ -4,6 +4,7 @@ using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -432,7 +433,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "global-administrators",
             eventType,
             "userId: admin-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private static GlobalAdministratorsSnapshot Projection(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
@@ -463,7 +466,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "global-administrators",
             eventType,
             "userId: admin-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {

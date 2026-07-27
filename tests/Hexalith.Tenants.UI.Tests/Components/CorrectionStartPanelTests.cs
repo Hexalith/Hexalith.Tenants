@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -556,7 +557,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             string.IsNullOrWhiteSpace(referenceContext)
                 ? eventType.StartsWith("GlobalAdministrator", StringComparison.Ordinal) ? "userId: admin-user" : "userId: target-user"
                 : referenceContext,
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {

@@ -13,6 +13,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -579,7 +580,9 @@ public sealed class TenantAuditPageTests : BunitContext
                     "global-administrators",
                     eventType,
                     $"userId: {targetUserId}",
-                    ReadModelFreshnessState.Current),
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    QueryResponseProvenance.ProjectionBacked),
             ],
             nextCursor: null,
             hasMore: false,
@@ -640,7 +643,9 @@ public sealed class TenantAuditPageTests : BunitContext
             "tenant.alpha",
             outcome,
             referenceContext,
-            freshness);
+            freshness,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
     }
 
     private static HashSet<string> ResourceKeys(string path)

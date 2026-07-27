@@ -17,7 +17,8 @@ public sealed record TenantAuditRow(
     string Outcome,
     string ReferenceContext,
     ReadModelFreshnessState Freshness,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
+    QueryResponseProvenance Provenance = QueryResponseProvenance.Unknown) {
     private static readonly string[] ApprovedNarrativeKeys =
     [
         "userId",

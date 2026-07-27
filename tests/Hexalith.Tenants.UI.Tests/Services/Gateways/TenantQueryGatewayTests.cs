@@ -1238,6 +1238,59 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldHaveSingleItem().Lifecycle.ShouldBe(lifecycle);
     }
 
+    [Theory]
+    [InlineData(QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current)]
+    [InlineData(QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Current, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Unknown)]
+    [InlineData(QueryResponseProvenance.Unknown, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Unknown)]
+    public async Task Get_tenant_audit_transports_declared_route_provenance_onto_rows(
+        QueryResponseProvenance provenance,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance expectedProvenance,
+        ProjectionLifecycleState expectedLifecycle)
+    {
+        // Audit rows carry the declared route provenance so a consumer mutation gate can apply
+        // ProjectionLifecyclePolicy against real evidence instead of re-deriving it from freshness.
+        // Lifecycle still normalizes to Unknown off a projection-backed route (Story 2.11).
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantAuditEntry>([AuditEntry("event-provenance", AuditEventCategory.Access)], null, false),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: lifecycle, provenance: provenance));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Provenance.ShouldBe(expectedProvenance);
+        row.Lifecycle.ShouldBe(expectedLifecycle);
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_not_modified_takes_provenance_from_the_current_response()
+    {
+        // A 304 must never inherit provenance from the retained snapshot: the evidence that matters is
+        // what THIS response declared. A non-projection-backed 304 fails closed to Unknown provenance.
+        TenantAuditRequest request = new("tenant.alpha", ETag: "\"known\"");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [
+                TenantAuditRow.FromEntry(AuditEntry("event-retained", AuditEventCategory.Access), ReadModelFreshnessState.Current)
+                    with { Lifecycle = ProjectionLifecycleState.Current, Provenance = QueryResponseProvenance.ProjectionBacked }
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current,
+            request);
+        CapturingGatewayClient client = new();
+        client.EnqueueAuditNotModified("\"known\"", provenance: QueryResponseProvenance.HandlerComputed);
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(request, previous, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
+        row.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+    }
+
     [Fact]
     public async Task Get_tenant_audit_maps_missing_payload_to_safe_degraded_state()
     {

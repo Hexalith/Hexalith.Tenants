@@ -472,13 +472,18 @@ internal sealed class TenantQueryGateway(
 
             ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
             ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+            QueryResponseProvenance notModifiedProvenance = ResolveProvenance(result.Metadata);
             return previous with {
                 ETag = result.ETag ?? previous.ETag,
                 Kind = ResolveTenantAuditKindForFreshness(previous, notModifiedFreshness),
                 Freshness = notModifiedFreshness,
                 Lifecycle = notModifiedLifecycle,
                 Rows = previous.Rows
-                    .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
+                    .Select(row => row with {
+                        Freshness = notModifiedFreshness,
+                        Lifecycle = notModifiedLifecycle,
+                        Provenance = notModifiedProvenance,
+                    })
                     .ToArray(),
                 Reason = ResolveTenantAuditReasonForFreshness(previous, notModifiedFreshness),
             };
@@ -494,7 +499,11 @@ internal sealed class TenantQueryGateway(
                     Freshness = ReadModelFreshnessState.Unknown,
                     Lifecycle = ProjectionLifecycleState.Unknown,
                     Rows = previous.Rows
-                        .Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown, Lifecycle = ProjectionLifecycleState.Unknown })
+                        .Select(static row => row with {
+                            Freshness = ReadModelFreshnessState.Unknown,
+                            Lifecycle = ProjectionLifecycleState.Unknown,
+                            Provenance = QueryResponseProvenance.Unknown,
+                        })
                         .ToArray(),
                 }
                 : TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingPayload, request, result.ETag);
@@ -502,8 +511,12 @@ internal sealed class TenantQueryGateway(
 
         ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
         ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
+        QueryResponseProvenance provenance = ResolveProvenance(result.Metadata);
         IReadOnlyList<TenantAuditRow> rows = payload.Items
-            .Select(entry => TenantAuditRow.FromEntry(entry, freshness) with { Lifecycle = lifecycle })
+            .Select(entry => TenantAuditRow.FromEntry(entry, freshness) with {
+                Lifecycle = lifecycle,
+                Provenance = provenance,
+            })
             .ToArray();
 
         if (result.Metadata?.IsDegraded == true) {
@@ -1459,6 +1472,14 @@ internal sealed class TenantQueryGateway(
         => metadata is null
             ? ProjectionLifecycleState.Unknown
             : ProjectionLifecyclePolicy.Normalize(metadata.Lifecycle, metadata.Provenance);
+
+    // Transported so a consumer mutation gate can apply the EventStore policy against the declared
+    // route provenance instead of re-deriving it from freshness. An absent or out-of-range value fails
+    // closed to Unknown, which every provenance-sensitive consumer treats as "not projection-backed".
+    private static QueryResponseProvenance ResolveProvenance(QueryResponseMetadata? metadata)
+        => metadata is not null && Enum.IsDefined(metadata.Provenance)
+            ? metadata.Provenance
+            : QueryResponseProvenance.Unknown;
 
     private static ReadModelFreshnessState ResolveNotModifiedFreshness(
         QueryResponseMetadata? metadata,

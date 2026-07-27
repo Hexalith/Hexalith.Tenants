@@ -2,6 +2,7 @@ using System.Globalization;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
@@ -408,7 +409,9 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             "global-administrators",
             eventType,
             "userId: admin-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private static TenantAuditRow CorrectiveRow(string eventReference, string eventType)
         => new(
@@ -422,7 +425,9 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             "global-administrators",
             eventType,
             "userId: admin-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private static GlobalAdministratorsSnapshot ProjectionReady(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(

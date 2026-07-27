@@ -8,6 +8,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -96,7 +97,9 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             "tenant.alpha",
             eventType,
             eventType is "TenantConfigurationSet" ? "key: billing.mode" : "userId: target-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {

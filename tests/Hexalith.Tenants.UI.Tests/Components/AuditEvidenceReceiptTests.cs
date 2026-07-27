@@ -9,6 +9,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -226,7 +227,9 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             "tenant.alpha",
             eventType,
             "userId: target-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
