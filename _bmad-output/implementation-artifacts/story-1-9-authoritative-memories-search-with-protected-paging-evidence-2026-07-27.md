@@ -171,6 +171,31 @@ against a revision four commits behind the branch tip, and stating that **21** p
 unapplied when the controlling spec recorded seven. Those numbers, and the parallel sets in
 `spec-1-9-…-paging.md` and `tests/test-summary.md`, are reconciled to the run above.
 
+### Re-run after the 2026-07-27 backlog closure (supersedes the table above)
+
+The seven remaining pass-2 patch findings were applied. Every gate was re-run; these are the current
+numbers, and the table above is retained only as the pre-closure record.
+
+| Command | Result |
+|---|---|
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -p:HexalithEventStoreVersion=3.82.0 -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
+| Focused seven-class UI executable run (same seven classes) | Passed — **486 total, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | Passed — **1,266 total, 0 failed, 0 skipped** |
+| `samples/…/Hexalith.Tenants.Sample.Tests … -class …MemoriesSearchIndexEventPublisherTests` | Passed — **7 total, 0 failed, 0 skipped** |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release -p:HexalithEventStoreVersion=3.82.0 -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
+| `git diff --check` | Passed — no whitespace errors |
+
+Focused 479 → **486**, full 1,256 → **1,266**. The additions are the scope-binding discrimination test, the
+reachable secondary-notice-bar theory (3 rows), the localizer discovery test, and the extra crossing and
+control rows.
+
+**`--no-restore` was replaced by `-p:HexalithEventStoreVersion=3.82.0`.** `references/Hexalith.Builds`
+at gitlink `0e464b5` pins `HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8`, which is not published,
+so package-mode restore fails `NU1102` repository-wide. This arrived with today's
+`fix/release-stale-source-guard` merge (`8e84bf1`) and is not owned by this story — see *Open blockers*.
+For the composition tests that shell out to `dotnet restore` in a subprocess, the same value was also
+supplied as the `HexalithEventStoreVersion` environment variable.
+
 ## Guards proven capable of failing
 
 A passing assertion is not evidence unless it could have failed. The following were repaired in this
@@ -190,6 +215,13 @@ pass because they could not.
 | The pending recovery notice across disposal | Not clearing it in `Dispose` was unpinned — re-adding the clear was green, because no test disposed the component between arming and observing | A test errors the detail-return load, disposes the component, and re-renders on the same scope. **Mutation-verified** |
 | Support-safety scanner, second rule | The stringified-local rule had **no** planted-failure case: the single planted occurrence was a one-line Rule 1 match, so deleting the whole rule and its regex left both gate tests green. The rule was also evaded by `string?`, by assignment to an already-declared local, by a formatter-wrapped chain, by `$"{x}".ShouldNotContain(`, and by `Contains(...).ShouldBeFalse()` | The scan is statement-based, and a seven-row theory plants one occurrence per evadable spelling. A third argument pins *which* rule fired, so a row cannot be silently absorbed by Rule 1. A control case keeps legitimate markup assertions legal |
 | "Components never call Memories" | The scan inspected only `[Inject]` property types and constructor parameters. `TenantsWorkspace` injects `IServiceProvider` and resolves through it, so `Services.GetRequiredService<MemoriesClient>()` in any component passed, as would `Lazy<MemoriesClient>` | A source scan over every component file rejects the token outright. **Mutation-verified**: adding that exact resolution to a component fails the test, naming the file |
+| Crossing the authoritative/fallback boundary | The headline assertion read the *incoming* mode's cursor field, which the request builder can never populate — it is null by construction in both theory rows, so the assertion could not fail either way. Both modes also reused one cursor literal per mode, so no assertion about *which* page a request resumed could discriminate | Every page mints a distinct cursor; assertions moved onto the outgoing mode's own field; loads 5-6 decide the resurrection rule. **Mutation-verified**: dropping retained cursors from the request fails both rows, and passed the old assertions trivially |
+| Log-sink non-disclosure | The sink recorded only `formatter(state, exception)`, which the default formatter renders without the exception. `ShouldNotContain("key ring unavailable")` therefore scanned a channel the text could never reach — the exception being exactly where a raw query, offset or cursor would land | The sink captures the exception; `Disclosures` scans both channels; `ShouldNotDisclose` also asserts no exception object reached the sink at all. **Mutation-verified**: attaching the caught exception fails 10+ tests |
+| Pending-recovery scope binding | The only test drove a superseded load on the **same** scope, which a scope-blind "pending until any load resolves" flag satisfies identically | A counterpart test changes the scope mid-flight; the owed notice must be dropped. **Mutation-verified**: the scope-blind flag fails the new test while still passing the same-scope sibling |
+| Secondary notice bar's own guards | The test put the same unmapped reason in both slots, so the duplicate-reason guard suppressed the bar first and its empty-message/empty-testid guards were never evaluated — they could be deleted and the test stayed green | A theory with a mapped primary reason, so those two guards are the only thing left. **Mutation-verified**: deleting them fails only the new rows |
+| Standalone-host composition | It asserted a singleton codec and a scoped paging state — true of any registration at all — while `Program.cs` hand-duplicated the module's registrations, so the two copies could drift with only one under test | `Program.cs` composes the module; the test asserts a round trip, scope binding, host-provider identity and purpose isolation. **Mutation-verified**: a codec ignoring its injected provider fails it |
+| JS-interop identifier scan | It scanned `JSInterop.Invocations` only. bUnit records module invocations on the module's own handler, so anything issued through the clipboard module — the one JS module this surface imports — was invisible. The identifier channel also had no control case | Both channels are scanned, `indexedDB` is added, and each channel gets an identifier control. **Verified**: a `localStorage.setItem` planted through the module channel is caught |
+| Localizer parity gate | Discovery filtered on a parameterless constructor, so a double taking an argument was never inspected and the gate's own "could not be constructed" failure was dead code. `HiddenIndexerLocalizerDouble` also read its "shipped" value from the same `ResourceManager` the gate compares against, and `FrenchlessLocalizerDouble` was in fact rejected by the neutral-bundle rule, leaving the French rule with no proof | Discovery is constructor-independent; construction failure is a gate failure; the gate returns its findings so each control pins the rule that rejected it; the French check runs before the neutral-bundle `continue`. **Mutation-verified**: restoring the filter fails the discovery test |
 
 ## Open blockers
 
@@ -225,6 +257,19 @@ pass because they could not.
   2026-07-27 and accepted as out of scope for this story; reopen trigger is any requirement that a
   partially hidden window be indistinguishable from a complete one.
 
+- **BUILDS-EVENTSTORE-PIN — owner: `Hexalith.Builds` / EventStore release owner — OPEN, not owned by
+  this story.** `references/Hexalith.Builds` at gitlink `0e464b5` pins
+  `HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8` (`Props/Directory.Packages.props:8`, submodule
+  commit `8f32f12` "pin approved EventStore proof catalog"). That version is not published to nuget.org, so
+  the default package-mode restore fails `NU1102` for every project in this repository, including CI.
+  Release plus source references is not an alternative: `references/Hexalith.Memories/Directory.Build.props:95`
+  rejects `UseHexalithProjectReferences=true` in Release by design. The pin arrived with today's
+  `fix/release-stale-source-guard` merge (`8e84bf1`) and is independent of Story 1.9 — a bare
+  `dotnet restore src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj` fails identically with no Story 1.9
+  file in the restore graph. Every gate in this report was therefore run with
+  `-p:HexalithEventStoreVersion=3.82.0`, the published version matching the EventStore submodule's own tag
+  base (`v3.82.0-60-g737b3e5a`). Reopen trigger: re-run any gate without the override while the pin stands.
+
 ## Outstanding review findings
 
 The pass-3 code review raised its own 32 merged findings over the pass-2 repair delta. Two were decisions
@@ -232,26 +277,32 @@ resolved by the story owner and are recorded in the controlling spec: the window
 only on hidden or absent candidates, so no spec amendment is required) and partial-window disclosure (out
 of scope, recorded as the open risk above). Twenty-six patches were applied and are checked off there.
 
-**The seven pass-2 patch findings that were left unchecked remain unchecked and unapplied.** They were
-not in the pass-3 review's scope — that review examined the repair delta, not the pass-2 backlog — and
-nothing in this pass addressed them. They are, verbatim from the controlling spec:
+**The seven pass-2 patch findings that were left unchecked are now applied and checked off** in the
+controlling spec, under "Backlog closure — 2026-07-27". They were not in the pass-3 review's scope — that
+review examined the repair delta, not the pass-2 backlog. All seven were test-efficacy rather than
+behaviour, and each fix is mutation-verified: a defect was planted in the code the assertion claims to
+guard, the strengthened assertion was shown to fail on it, and the plant was reverted. In four cases the
+prior assertion was additionally shown to pass over the same plant.
 
-- The crossing test's headline assertion cannot fail in either direction.
-- Log-sink non-disclosure assertions are blind to the `Exception` argument.
-- The pending-recovery scope binding is not distinguished from clear-on-state-change. (Pass 3 added a
-  disposal-survival test for the same mechanism, which narrows but does not close this.)
-- The secondary notice bar's message and testid guards are unreachable in their test.
-- The standalone-host composition test asserts no codec identity or round trip, while `Program.cs`
-  hand-duplicates the module registration.
-- The JS-interop identifier scan has no control case and misses module-call spellings.
-- The localizer parity gate silently skips doubles it cannot construct.
+| Finding, verbatim from the controlling spec | Closed by | Mutation that now fails |
+|---|---|---|
+| The crossing test's headline assertion cannot fail in either direction. | Per-page distinct cursors; assertions on the **outgoing** mode's own request field; loads 5-6 decide the resurrection rule | Request builder stops carrying retained cursors — both theory rows fail |
+| Log-sink non-disclosure assertions are blind to the `Exception` argument. | `CapturingLogger` captures the exception; `Disclosures` scans both channels; `ShouldNotDisclose` asserts no exception object reached the sink at all | Attaching the caught exception to `SignalSearchDegradation` — 10+ tests fail |
+| The pending-recovery scope binding is not distinguished from clear-on-state-change. | A counterpart test with the same superseded-load setup but a scope change mid-flight; the owed notice must be dropped, not deferred | A scope-blind pending flag — fails only the new test, still passes the same-scope sibling |
+| The secondary notice bar's message and testid guards are unreachable in their test. | A theory with a **mapped** primary reason, so the duplicate-reason guard cannot fire first | Deleting the bar's empty-message/testid guards — only the new rows fail |
+| The standalone-host composition test asserts no codec identity or round trip, while `Program.cs` hand-duplicates the module registration. | `Program.cs` now calls `AddHexalithTenantsUiModule`; the standalone test asserts round trip, scope binding, host-provider identity and purpose isolation | A codec ignoring its injected provider — the standalone test fails |
+| The JS-interop identifier scan has no control case and misses module-call spellings. | Root **and** module invocation channels scanned; `indexedDB` added; one identifier control per channel | A `localStorage.setItem` planted through the module channel |
+| The localizer parity gate silently skips doubles it cannot construct. | Discovery no longer filters on a parameterless constructor; construction failure is a gate failure; controls pin the exact rule | Restoring the constructor filter — the discovery test fails |
 
-All seven are test-efficacy rather than behaviour, and none is blocked.
+Pinning the controls surfaced two further defects in that gate, fixed in the same session:
+`FrenchlessLocalizerDouble` was being rejected by the neutral-bundle rule rather than the French one (a key
+absent from the neutral bundle short-circuited the French check), and `HiddenIndexerLocalizerDouble` read
+its "shipped" value back from the same `ResourceManager` the gate compares against.
 
-Two items are deferred and recorded in `deferred-work.md`: the pass-2 finding on end-to-end `Lifecycle`
+Two items remain deferred and recorded in `deferred-work.md`: the pass-2 finding on end-to-end `Lifecycle`
 binding coverage, checked off after closing 1 of 13 binding sites (the other 12 belong to other stories'
 surfaces), and the per-page candidate dedup reclassification, which had never entered the ledger at all.
-The story is `in-progress`, not `review`.
+The story is `review`.
 
 No unavailable proof was inferred from Story 1.8 evidence, bUnit, CSS or source scans, or a different
 story's runtime artifacts.

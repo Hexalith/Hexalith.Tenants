@@ -711,7 +711,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             requests.Add(call.ArgAt<TenantListRequest>(0));
             callCount++;
 
-            // Loads 1-2 run in the starting mode, load 3 crosses the boundary, and load 4 crosses back, so a
+            // Loads 1-2 run in the starting mode, load 3 crosses the boundary, and loads 4-6 cross back, so a
             // retained cursor from the first mode cannot silently reactivate on the LATER recovery.
             bool authoritative = callCount switch
             {
@@ -725,9 +725,13 @@ public sealed class TenantListSurfaceTests : BunitContext
                 TenantStatus.Active,
                 ReadModelFreshnessState.Unknown,
                 authoritative ? TenantPendingState.Unknown : TenantPendingState.None);
+
+            // Every page mints its own cursor. While each mode reused one shared literal, no assertion about
+            // WHICH page a later request resumed from could fail, so the resurrection this test exists to
+            // forbid was textually indistinguishable from the correct fresh cursor.
             return Task.FromResult(authoritative
-                ? AuthoritativeSnapshot([row], nextCursor: "protected-next", hasMore: true)
-                : ReadySnapshot([row], nextCursor: "ordinary-next", hasMore: true) with
+                ? AuthoritativeSnapshot([row], nextCursor: $"protected-next-{callCount}", hasMore: true)
+                : ReadySnapshot([row], nextCursor: $"ordinary-next-{callCount}", hasMore: true) with
                 {
                     Notice = TenantListReason.SearchUnavailable,
                 });
@@ -737,11 +741,21 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
 
+        // The request field each mode pages through, and the cursor the given load handed out. Asserting the
+        // starting mode's own field is what makes these checks falsifiable: the field belonging to the mode a
+        // load is NOT running in is null by construction, so asserting only that can never fail.
+        string StartingCursor(int call) => startAuthoritative ? $"protected-next-{call}" : $"ordinary-next-{call}";
+        string CrossedCursor(int call) => startAuthoritative ? $"ordinary-next-{call}" : $"protected-next-{call}";
+        string? StartingField(TenantListRequest request) => startAuthoritative ? request.SearchCursor : request.Cursor;
+        string? CrossedField(TenantListRequest request) => startAuthoritative ? request.Cursor : request.SearchCursor;
+
         // Page two in the starting mode establishes retained history and a cursor for that mode only.
         cut.Find("[data-testid='tenants-list-next']").Click();
         cut.WaitForAssertion(() => callCount.ShouldBe(2));
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeFalse();
-        (startAuthoritative ? paging.SearchCursor : paging.FallbackCursor).ShouldNotBeNull();
+        StartingField(requests[1]).ShouldBe(StartingCursor(1));
+        CrossedField(requests[1]).ShouldBeNull();
+        (startAuthoritative ? paging.SearchCursor : paging.FallbackCursor).ShouldBe(StartingCursor(1));
         (startAuthoritative ? paging.FallbackCursor : paging.SearchCursor).ShouldBeNull();
 
         // Load three crosses the boundary; the incoming mode starts from its own first page and the retired
@@ -749,9 +763,11 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-next']").Click();
         cut.WaitForAssertion(() => callCount.ShouldBe(3));
 
-        // A load that reports "paging restarted from the first page" must itself have been issued for the
-        // first page: the crossing request may not carry the incoming mode's retained cursor.
-        (startAuthoritative ? requests[2].Cursor : requests[2].SearchCursor).ShouldBeNull();
+        // The crossing load is issued in the mode that was still active when the operator asked for it, from
+        // the circuit-scoped cursor that mode owns -- not from a component field a detail return discards,
+        // and not from nowhere. Only that one mode may contribute a cursor to the request.
+        StartingField(requests[2]).ShouldBe(StartingCursor(2));
+        CrossedField(requests[2]).ShouldBeNull();
 
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         paging.SearchCursor.ShouldBeNull();
@@ -760,15 +776,35 @@ public sealed class TenantListSurfaceTests : BunitContext
             "The available tenant source changed. Paging restarted from the first page.");
         AssertSingleNoticeLiveRegion(cut);
 
-        // Crossing back later must not resurrect the original mode's retained cursor: the request that
-        // returns to it carries no cursor for that mode, so the operator cannot be teleported to a stale page.
+        // Load four crosses back. It runs in the mode load three entered, and carries the cursor load three
+        // minted rather than anything the crossing retired.
         cut.Find("[data-testid='tenants-list-next']").Click();
         cut.WaitForAssertion(() => callCount.ShouldBe(4));
 
-        (startAuthoritative ? requests[^1].SearchCursor : requests[^1].Cursor).ShouldBeNull();
+        CrossedField(requests[3]).ShouldBe(CrossedCursor(3));
+        StartingField(requests[3]).ShouldBeNull();
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         paging.SearchCursor.ShouldBeNull();
         paging.FallbackCursor.ShouldBeNull();
+
+        // Load five is where the resurrection rule is actually decided: the starting mode is active again, so
+        // had the crossing merely parked that mode's history instead of retiring it, this request would
+        // resume StartingCursor(2) -- the page the operator left before the boundary. It must carry the
+        // cursor load four handed out instead.
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(5));
+
+        StartingField(requests[4]).ShouldBe(StartingCursor(4));
+        CrossedField(requests[4]).ShouldBeNull();
+
+        // ...and Previous must walk back exactly one step, to page one, rather than into the retained depth
+        // the first pass through this mode accumulated.
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-list-previous']").Click();
+        cut.WaitForAssertion(() => callCount.ShouldBe(6));
+
+        StartingField(requests[5]).ShouldBeNull();
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         paging.HasPrevious(authoritative: true).ShouldBeFalse();
         paging.HasPrevious(authoritative: false).ShouldBeFalse();
     }
@@ -1134,6 +1170,49 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public async Task Pending_recovery_notice_is_bound_to_its_scope_and_is_never_delivered_to_another_one()
+    {
+        // The sibling test above proves the owed notice survives a superseding load for the SAME scope. On
+        // its own that is equally satisfied by a plain "notice pending until any load resolves" flag, which
+        // is not what ships: the decision is bound to the exact protected search scope that owed it. This is
+        // the other half of that pair -- the case a scope-blind flag gets wrong.
+        int callCount = 0;
+        RegisterServices(call =>
+        {
+            callCount++;
+            CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
+            if (callCount == 1)
+            {
+                var pending = new TaskCompletionSource<TenantListSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _ = cancellationToken.Register(() => pending.TrySetCanceled(cancellationToken));
+                return pending.Task;
+            }
+
+            return Task.FromResult(AuthoritativeSnapshot(
+                [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForAssertion(() => callCount.ShouldBe(1));
+
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.PendingRecoveryScope.ShouldNotBeNull();
+
+        // The operator retypes the term before the superseded load resolves. The owed copy says a protected
+        // page of the PREVIOUS search restarted from page one; the new search restarted nothing, so it must
+        // not inherit that statement, and the decision must be dropped rather than deferred to whichever
+        // load resolves next.
+        await ChangeSearchAsync(cut, "after");
+
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        paging.PendingRecoveryScope.ShouldBeNull();
+        cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-list-search-paging-restarted-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Invalidation_on_a_terminal_surface_clears_protected_history_and_renders_its_notice()
     {
         int callCount = 0;
@@ -1352,6 +1431,37 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.FindComponents<FluentMessageBar>().ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-list-notice']").ShouldBeEmpty();
         cut.FindAll("[data-testid='']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(TenantListReason.GatewayUnavailable)]
+    [InlineData(TenantListReason.SearchPartiallyAvailable)]
+    [InlineData(TenantListReason.ProjectionDegraded)]
+    public void An_unmapped_paging_reason_is_stopped_by_the_secondary_bar_s_own_message_and_testid_guards(
+        TenantListReason unmapped)
+    {
+        // The sibling above puts the same unmapped reason in both slots, so the secondary bar is already
+        // suppressed by its duplicate-reason guard and its own empty-message and empty-testid guards are
+        // never evaluated -- they could be deleted and that test would stay green. Here the primary slot
+        // carries a mapped reason, so the duplicate guard cannot fire and those two guards are the only
+        // thing between an unmapped paging reason and a blank, unaddressable second bar.
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+        {
+            Notice = TenantListReason.SearchUnavailable,
+            PagingNotice = unmapped,
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        // Exactly the mapped primary bar, carrying real copy behind a real selector, and nothing beside it.
+        cut.FindComponents<FluentMessageBar>().ShouldHaveSingleItem();
+        cut.Find("[data-testid='tenants-list-search-unavailable-notice']").TextContent.ShouldContain(
+            "Protected whole-set search is temporarily unavailable.");
+        cut.FindAll("[data-testid='']").ShouldBeEmpty();
+        AssertSingleNoticeLiveRegion(cut);
     }
 
     [Fact]
@@ -1690,6 +1800,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         });
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/tenants?search=needle");
+        BunitJSModuleInterop clipboard = JSInterop.SetupModule("./js/tenantsClipboard.js");
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
@@ -1698,13 +1809,24 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-previous']").Click();
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.one"));
 
+        // Exercise the one JS channel this surface genuinely uses, so the module invocation list below is
+        // populated by the surface itself and not only by the control call.
+        cut.Find("[data-surface-testid='tenants-list-copy-reference']").Click();
+        cut.WaitForAssertion(() => clipboard.Invocations.Count.ShouldBeGreaterThan(0));
+
         // Runtime proof rather than a source scan: every JS interop call the surface actually made is
-        // inspected for storage sinks and for the protected cursor value.
-        JSInterop.Invocations.ShouldAllBe(static invocation
+        // inspected for storage sinks and for the protected cursor value. Both channels are scanned. bUnit
+        // records module invocations on the module's own handler, not on the root runtime, so a scan of
+        // JSInterop.Invocations alone was blind to anything issued through the clipboard module this
+        // surface imports -- the only JS module it uses, and therefore the likeliest place for a storage
+        // write or a cursor argument to appear.
+        List<JSRuntimeInvocation> invocations = [.. JSInterop.Invocations, .. clipboard.Invocations];
+        invocations.ShouldAllBe(static invocation
             => !invocation.Identifier.Contains("localStorage", StringComparison.OrdinalIgnoreCase)
             && !invocation.Identifier.Contains("sessionStorage", StringComparison.OrdinalIgnoreCase)
+            && !invocation.Identifier.Contains("indexedDB", StringComparison.OrdinalIgnoreCase)
             && !invocation.Identifier.Contains("cookie", StringComparison.OrdinalIgnoreCase));
-        JSInterop.Invocations
+        invocations
             .SelectMany(static invocation => invocation.Arguments)
             .Select(static argument => argument?.ToString() ?? string.Empty)
             .ShouldAllBe(static argument => !argument.Contains("protected-page-two", StringComparison.Ordinal));
@@ -1712,15 +1834,30 @@ public sealed class TenantListSurfaceTests : BunitContext
         navigation.Uri.ShouldNotContain("cursor", Case.Insensitive);
         navigation.Uri.ShouldNotContain("protected-page-two", Case.Sensitive);
 
-        // Control cases: each of the three channels above genuinely does carry values that are present, so
-        // the non-disclosure assertions are proven capable of failing rather than passing vacuously.
+        // Control cases: each channel above genuinely does carry values that are present, so the
+        // non-disclosure assertions are proven capable of failing rather than passing over an empty or
+        // half-empty collection. The identifier channel gets one per interop route, because a module
+        // identifier reaching the scanned set is exactly what the root-only version could not show.
         cut.Markup.ShouldContain("tenant.one", Case.Sensitive);
         navigation.Uri.ShouldContain("search=needle", Case.Sensitive);
+        IJSObjectReference module = await cut.InvokeAsync(() => Services
+            .GetRequiredService<IJSRuntime>()
+            .InvokeAsync<IJSObjectReference>("import", "./js/tenantsClipboard.js")
+            .AsTask());
+        await cut.InvokeAsync(() => module
+            .InvokeVoidAsync("tenantsListModuleControlChannel", "control-sentinel-value")
+            .AsTask());
         await cut.InvokeAsync(() => Services
             .GetRequiredService<IJSRuntime>()
-            .InvokeVoidAsync("tenantsListControlChannel", "control-sentinel-value")
+            .InvokeVoidAsync("tenantsListRootControlChannel", "control-sentinel-value")
             .AsTask());
-        JSInterop.Invocations
+
+        List<JSRuntimeInvocation> controlled = [.. JSInterop.Invocations, .. clipboard.Invocations];
+        controlled.Select(static invocation => invocation.Identifier)
+            .ShouldContain("tenantsListRootControlChannel");
+        controlled.Select(static invocation => invocation.Identifier)
+            .ShouldContain("tenantsListModuleControlChannel");
+        controlled
             .SelectMany(static invocation => invocation.Arguments)
             .Select(static argument => argument?.ToString() ?? string.Empty)
             .ShouldContain("control-sentinel-value");

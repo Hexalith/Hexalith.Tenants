@@ -374,6 +374,42 @@ the audited component itself uses.
 - Validation on the pass-3 working tree (on top of `5fdbc80`): UI **1,256/1,256**; focused seven-class
   lane **479/479**; Contracts **114/114**; Sample **39/39**; `Hexalith.Tenants.slnx` Release build
   **0 warnings / 0 errors**; `git diff --check` clean.
-- These are the authoritative totals for Story 1.9. Earlier figures in this file, in
-  `spec-1-9-…-paging.md`, and in the withdrawn 2026-07-26 evidence report are historical records of
-  earlier revisions and are marked as superseded where they appear.
+- Earlier figures in this file, in `spec-1-9-…-paging.md`, and in the withdrawn 2026-07-26 evidence
+  report are historical records of earlier revisions and are marked as superseded where they appear.
+  Superseded in turn by the backlog closure below.
+
+## Story 1.9 Backlog Closure (2026-07-27)
+
+The seven pass-2 patch findings that had been left unchecked are applied, so Story 1.9 has no open
+review item. All seven were test-efficacy rather than behaviour: assertions that could not fail, guards
+that were never reached, and a gate that silently skipped what it could not construct.
+
+Each fix is mutation-verified — a defect was planted in the code the assertion claims to guard, the
+strengthened assertion was shown to fail on it, and the plant was reverted. In four cases the prior
+assertion was additionally shown to pass over the same plant, which is the sense in which it certified
+nothing: the crossing test's cursor check, the secondary notice bar's own guards, the pending-recovery
+scope binding, and the standalone-host codec assertions.
+
+The one production change is `src/Hexalith.Tenants.UI/Program.cs`, which now composes
+`AddHexalithTenantsUiModule` instead of hand-duplicating its registrations. The duplication is what let
+the standalone host's search-cursor purpose, circuit-scoped paging state and Memories log suppression
+drift from the module copy that was under test. The registrations were line-for-line identical, so
+composition is unchanged.
+
+Pinning the localizer gate's controls surfaced two further defects, fixed in the same session: the
+control double meant to prove the French-parity rule was in fact being rejected by the neutral-bundle
+rule (a key absent from the neutral bundle short-circuited the French check), and another control read
+its "shipped" value back from the same `ResourceManager` the gate compares it against.
+
+- Validation: UI **1,266/1,266**; focused seven-class lane **486/486**; Sample index-handoff
+  **7/7**; UI Release build **0 warnings / 0 errors**; `Hexalith.Tenants.slnx` Release build
+  **0 warnings / 0 errors**; `git diff --check` clean. These are the authoritative totals for Story 1.9.
+- Counts rose 1,256 → 1,266 and 479 → 486 through the new scope-binding discrimination test, the
+  reachable secondary-notice-bar theory, the localizer discovery test, and additional theory rows.
+- **Gates were run with `-p:HexalithEventStoreVersion=3.82.0`.** `references/Hexalith.Builds` at gitlink
+  `0e464b5` pins `HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8`, which is unpublished, so
+  package-mode restore fails `NU1102` repository-wide; Release with source references is blocked
+  independently by `references/Hexalith.Memories/Directory.Build.props:95`. The pin arrived with the
+  `fix/release-stale-source-guard` merge (`8e84bf1`) and is not owned by Story 1.9 — a bare
+  `dotnet restore` of any project fails identically. Recorded as `BUILDS-EVENTSTORE-PIN` in the dated
+  Story 1.9 evidence report.

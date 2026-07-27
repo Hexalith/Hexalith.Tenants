@@ -1,18 +1,9 @@
-using Hexalith.EventStore.Client.Registration;
-using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
-using Hexalith.FrontComposer.Shell.Options;
-using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
-using Hexalith.Tenants.UI.Services;
-using Hexalith.Tenants.UI.Services.Configuration;
-using Hexalith.Tenants.UI.Services.Gateways;
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.Extensions;
 
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -24,23 +15,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddFluentUIComponents();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddDataProtection();
-builder.Services.AddTenantConfigurationReadPolicy(builder.Configuration);
-builder.Services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
-builder.Services.TryAddScoped<TenantSearchPagingState>();
 
 builder.Services.AddHexalithFrontComposerQuickstart(
     o => o.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
 builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
-
-// Gate Global Administrators surfaces on the same server-side global-administrator principal shape the BFF
-// composition reflects. Registered unconditionally so the policy resolves whether or not interactive OIDC
-// sign-in is wired.
-builder.Services.AddAuthorizationCore(options =>
-    options.AddPolicy(
-        TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
-        policy => policy.RequireAssertion(context =>
-            TenantsGlobalAdministratorClaims.IsGlobalAdministrator(context.User))));
 
 // Interactive per-user sign-in: when an OIDC provider is configured (AppHost supplies Keycloak
 // authority/client), wire authorization-code login and relay the signed-in user's access token to
@@ -68,41 +46,16 @@ if (authEnabled) {
         userClaimType: "sub"));
 }
 
-if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
-    _ = builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
-
-    // TenantCommandGateway submits commands through IEventStoreGatewayClient (the EventStore.Client
-    // typed HTTP client). AddHexalithEventStore wires the Shell's own command/query clients but not
-    // this gateway abstraction, so register it explicitly and relay the signed-in user's token the
-    // same way the status client does when auth is enabled.
-    IHttpClientBuilder eventStoreGatewayClient = builder.Services.AddEventStoreGatewayClient(o => o.BaseAddress = eventStoreBaseAddress);
-    IHttpClientBuilder commandGatewayClient = builder.Services.AddHttpClient<TenantCommandGateway>(client => client.BaseAddress = eventStoreBaseAddress);
-    if (authEnabled) {
-        _ = eventStoreGatewayClient.AddFrontComposerGatewayAuthorization();
-        _ = commandGatewayClient.AddFrontComposerGatewayAuthorization();
-    }
-
-    builder.Services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
-    builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
-}
-else {
-    builder.Services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
-    builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
-}
-
-_ = builder.Services.AddMemoriesClient(o => {
-    if (Uri.TryCreate(builder.Configuration["Memories:BaseAddress"], UriKind.Absolute, out Uri? memoriesBaseAddress)) {
-        o.Endpoint = memoriesBaseAddress;
-    }
-
-    o.ApiToken = builder.Configuration["HEXALITH_MEMORIES_API_TOKEN"];
-}).RemoveAllLoggers();
-
+// The standalone host composes exactly the module an embedding host composes. These registrations used to
+// be duplicated here line for line, which let the two copies drift silently while only the module's copy
+// was under test -- and what they register is security-relevant: the dedicated search cursor purpose, the
+// circuit-scoped paging state, and the suppression of default HttpClient logging that would otherwise carry
+// raw Memories queries and offsets.
+//
 // IUserContextAccessor is provided by the FrontComposer authentication bridge
 // (ClaimsPrincipalUserContextAccessor), configured above with the eventstore:tenant / sub claim
 // mapping. No tenant-specific accessor override is needed.
-builder.Services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
-builder.Services.Configure<FcShellOptions>(builder.Configuration.GetSection("Hexalith:Shell"));
+builder.Services.AddHexalithTenantsUiModule(builder.Configuration, authEnabled);
 
 WebApplication app = builder.Build();
 

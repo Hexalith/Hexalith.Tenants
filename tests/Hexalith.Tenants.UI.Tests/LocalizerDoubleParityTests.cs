@@ -28,43 +28,96 @@ public sealed class LocalizerDoubleParityTests
 
         doubles.ShouldNotBeEmpty("The parity gate must actually find the localizer doubles it guards.");
 
-        RunParityGate(doubles);
+        AssertParityGatePasses(doubles);
     }
 
     [Fact]
     public void Localizer_double_parity_gate_can_fail()
     {
-        // Guards the gate itself. Each control case drives the REAL gate and asserts that it throws, rather
-        // than asserting that a divergent double happens to be excluded from it.
-        _ = Should.Throw<ShouldAssertException>(
-            () => RunParityGate([typeof(DivergentLocalizerDouble)]),
-            "A double that ships copy the product does not must fail the parity gate.");
+        // Guards the gate itself. Each control drives the REAL gate and pins BOTH that the gate rejects the
+        // double and which rule rejected it. Asserting only that the gate throws let a control pass on any
+        // failure at all -- and one of them was doing exactly that: the double meant to prove the French
+        // rule was being rejected by the neutral-bundle rule instead, so the French rule had no proof.
+        AssertGateRejects<DivergentLocalizerDouble>("but the shipped value is");
+        AssertGateRejects<EmptyLocalizerDouble>("enumerates no keys");
+        AssertGateRejects<HiddenIndexerLocalizerDouble>("indexer returns");
+        AssertGateRejects<FrenchlessLocalizerDouble>("has no French value");
+        AssertGateRejects<UnconstructableLocalizerDouble>("could not be constructed");
+    }
 
-        _ = Should.Throw<ShouldAssertException>(
-            () => RunParityGate([typeof(EmptyLocalizerDouble)]),
-            "A double that enumerates no keys must fail the parity gate, never silently skip it.");
-
-        _ = Should.Throw<ShouldAssertException>(
-            () => RunParityGate([typeof(HiddenIndexerLocalizerDouble)]),
-            "A double whose indexer disagrees with its own GetAllStrings must fail the parity gate.");
-
-        _ = Should.Throw<ShouldAssertException>(
-            () => RunParityGate([typeof(FrenchlessLocalizerDouble)]),
-            "A key with no French value must fail the parity gate.");
+    [Fact]
+    public void Localizer_double_discovery_does_not_require_a_parameterless_constructor()
+    {
+        // Discovery previously filtered on a parameterless constructor, so a double taking one argument was
+        // never inspected and the gate's own "could not be constructed" failure was unreachable. Discovery
+        // must now find such a type, and the gate must fail on it rather than pass over it.
+        LocalizerDoubleTypes(excludeControls: false).ShouldContain(typeof(UnconstructableLocalizerDouble));
+        LocalizerDoubleTypes().ShouldNotContain(typeof(UnconstructableLocalizerDouble));
     }
 
     /// <summary>
-    /// Runs the real parity gate over the given doubles. Throws a Shouldly assertion failure describing every
-    /// violation, so both the suite-wide gate and its own can-fail proof exercise exactly this code.
+    /// Asserts the real parity gate passes over the given doubles, reporting every violation it found.
     /// </summary>
-    private static void RunParityGate(IReadOnlyList<Type> doubles)
+    private static void AssertParityGatePasses(IReadOnlyList<Type> doubles)
+    {
+        ParityGateResult result = RunParityGate(doubles);
+
+        // Failures are reported before the coverage guard: a double that enumerates nothing, or that cannot
+        // be constructed, also leaves AssertedKeys at zero, and reporting the coverage guard first replaced
+        // its specific diagnosis with a generic one.
+        result.Failures.ShouldBeEmpty(string.Join(Environment.NewLine, result.Failures));
+        result.AssertedKeys.ShouldBeGreaterThan(0, "The parity gate must inspect at least one stubbed key.");
+    }
+
+    /// <summary>
+    /// Drives the real gate over one deliberately broken double and pins both that the gate rejects it and
+    /// which rule rejected it.
+    /// </summary>
+    /// <typeparam name="TDouble">The deliberately broken double.</typeparam>
+    /// <param name="expectedRule">Text from the failure message the planted defect must produce.</param>
+    private static void AssertGateRejects<TDouble>(string expectedRule)
+        where TDouble : IStringLocalizer<TenantsResources>
+    {
+        IReadOnlyList<string> failures = RunParityGate([typeof(TDouble)]).Failures;
+        failures.ShouldContain(
+            failure => failure.Contains(expectedRule, StringComparison.Ordinal),
+            $"{typeof(TDouble).Name} must be rejected by the '{expectedRule}' rule, but the gate reported: "
+                + string.Join(" | ", failures));
+        _ = Should.Throw<ShouldAssertException>(() => AssertParityGatePasses([typeof(TDouble)]));
+    }
+
+    /// <summary>The outcome of one parity-gate run: every violation found, and how many keys were inspected.</summary>
+    /// <param name="Failures">Every violation, one message per rule per key.</param>
+    /// <param name="AssertedKeys">The number of stubbed keys inspected.</param>
+    private sealed record ParityGateResult(IReadOnlyList<string> Failures, int AssertedKeys);
+
+    /// <summary>
+    /// Runs the real parity gate over the given doubles and returns what it found, so both the suite-wide
+    /// gate and its own can-fail proof exercise exactly this code and can each assert on the exact rule.
+    /// Returning the findings rather than asserting inline is deliberate: Shouldly elides long collection
+    /// and string renderings, and the elided text is precisely what names the violated rule.
+    /// </summary>
+    private static ParityGateResult RunParityGate(IReadOnlyList<Type> doubles)
     {
         ResourceManager manager = new(typeof(TenantsResources));
         List<string> failures = [];
         int assertedKeys = 0;
         foreach (Type type in doubles)
         {
-            if (Activator.CreateInstance(type, nonPublic: true) is not IStringLocalizer<TenantsResources> localizer)
+            object? instance;
+            try
+            {
+                instance = Activator.CreateInstance(type, nonPublic: true);
+            }
+            catch (Exception exception) when (exception is MissingMethodException or TargetInvocationException)
+            {
+                // A double the gate cannot construct is a failure, not a skip. Discovery used to require a
+                // parameterless constructor, so any double that took one argument was never inspected at
+                // all -- the quietest way there is to opt out of a gate that exists to be inescapable.
+                instance = null;
+            }
+
+            if (instance is not IStringLocalizer<TenantsResources> localizer)
             {
                 failures.Add($"{type.FullName}: could not be constructed for parity inspection.");
                 continue;
@@ -89,6 +142,17 @@ public sealed class LocalizerDoubleParityTests
                         $"{type.FullName}: indexer returns \"{indexed}\" for '{stubbed.Name}' but GetAllStrings reports \"{stubbed.Value}\".");
                 }
 
+                // Invariant parity alone proves EN only; it cannot observe a missing or fallback French
+                // value, so every stubbed key is also resolved in an explicit `fr` culture that does not
+                // fall back to its parents. Checked BEFORE the neutral-bundle verdict: a key missing from
+                // the neutral bundle used to short-circuit this check, so the gate under-reported, and the
+                // control double meant to exercise this rule was in fact being rejected by the other one.
+                if (!FrenchKeys.Value.Contains(stubbed.Name))
+                {
+                    failures.Add(
+                        $"{type.FullName}: '{stubbed.Name}' has no French value in TenantsResources.fr.resx.");
+                }
+
                 string? shipped = manager.GetString(stubbed.Name, CultureInfo.InvariantCulture);
                 if (shipped is null)
                 {
@@ -101,20 +165,10 @@ public sealed class LocalizerDoubleParityTests
                     failures.Add(
                         $"{type.FullName}: '{stubbed.Name}' stubs \"{stubbed.Value}\" but the shipped value is \"{shipped}\".");
                 }
-
-                // Invariant parity alone proves EN only; it cannot observe a missing or fallback French
-                // value, so every stubbed key is also resolved in an explicit `fr` culture that does not
-                // fall back to its parents.
-                if (!FrenchKeys.Value.Contains(stubbed.Name))
-                {
-                    failures.Add(
-                        $"{type.FullName}: '{stubbed.Name}' has no French value in TenantsResources.fr.resx.");
-                }
             }
         }
 
-        assertedKeys.ShouldBeGreaterThan(0, "The parity gate must inspect at least one stubbed key.");
-        failures.ShouldBeEmpty(string.Join(Environment.NewLine, failures));
+        return new ParityGateResult(failures, assertedKeys);
     }
 
     /// <summary>
@@ -145,19 +199,20 @@ public sealed class LocalizerDoubleParityTests
         return keys;
     });
 
-    private static IReadOnlyList<Type> LocalizerDoubleTypes()
+    /// <summary>
+    /// Every localizer double in this assembly. Constructability is deliberately NOT a discovery filter:
+    /// filtering on it silently excluded exactly the doubles the gate could not verify, turning the gate's
+    /// own construction failure into dead code. A double that cannot be constructed is now discovered and
+    /// reported as a failure.
+    /// </summary>
+    private static IReadOnlyList<Type> LocalizerDoubleTypes(bool excludeControls = true)
         => [.. typeof(LocalizerDoubleParityTests).Assembly
             .GetTypes()
-            .Where(static type => !type.IsAbstract
+            .Where(type => !type.IsAbstract
                 && !type.IsInterface
                 && !type.IsGenericTypeDefinition
-                && !ControlDoubles.Contains(type)
-                && typeof(IStringLocalizer<TenantsResources>).IsAssignableFrom(type)
-                && type.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                    binder: null,
-                    Type.EmptyTypes,
-                    modifiers: null) is not null)
+                && (!excludeControls || !ControlDoubles.Contains(type))
+                && typeof(IStringLocalizer<TenantsResources>).IsAssignableFrom(type))
             .OrderBy(static type => type.FullName, StringComparer.Ordinal)];
 
     /// <summary>The deliberately broken doubles that exist only to drive the gate to failure.</summary>
@@ -167,6 +222,7 @@ public sealed class LocalizerDoubleParityTests
         typeof(EmptyLocalizerDouble),
         typeof(HiddenIndexerLocalizerDouble),
         typeof(FrenchlessLocalizerDouble),
+        typeof(UnconstructableLocalizerDouble),
     ];
 
     /// <summary>A deliberately divergent double used only to prove the parity gate can fail.</summary>
@@ -197,13 +253,30 @@ public sealed class LocalizerDoubleParityTests
     {
         private const string Key = "Tenants.List.Title";
 
+        // The literal shipped value, not a ResourceManager read-back. Reading the value from the same
+        // ResourceManager the gate compares it against made that half of the control tautological: it agreed
+        // with the shipped bundle by construction, whatever the bundle said. Written out, this double
+        // reaches the gate with a value that is genuinely correct, so the only defect it plants -- and the
+        // only reason the gate may reject it -- is the indexer disagreeing with its own enumeration.
+        private const string ShippedValue = "Tenants";
+
         public LocalizedString this[string name] => new(name, "Copy the product does not ship");
 
         public LocalizedString this[string name, params object[] arguments] => this[name];
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
-            => [new LocalizedString(Key, new ResourceManager(typeof(TenantsResources))
-                .GetString(Key, CultureInfo.InvariantCulture)!)];
+            => [new LocalizedString(Key, ShippedValue)];
+    }
+
+    /// <summary>A double with no parameterless constructor, used to prove discovery cannot drop one.</summary>
+    private sealed class UnconstructableLocalizerDouble(string copy) : IStringLocalizer<TenantsResources>
+    {
+        public LocalizedString this[string name] => new(name, copy);
+
+        public LocalizedString this[string name, params object[] arguments] => this[name];
+
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+            => [new LocalizedString("Tenants.List.Title", copy)];
     }
 
     /// <summary>A double stubbing a key that no French bundle ships.</summary>

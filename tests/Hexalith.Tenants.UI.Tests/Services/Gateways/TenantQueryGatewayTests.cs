@@ -2991,8 +2991,7 @@ public sealed class TenantQueryGatewayTests
         // A dead key ring must stay distinguishable from an unhealthy index, without disclosing anything.
         string message = logger.Messages.ShouldHaveSingleItem();
         message.ShouldContain(TenantQueryGateway.SearchIndexUnavailableReasonCode);
-        message.ShouldNotContain("needle", Case.Sensitive);
-        message.ShouldNotContain(exception.Message, Case.Sensitive);
+        ShouldNotDisclose(logger, "needle", exception.Message);
     }
 
     [Fact]
@@ -3225,9 +3224,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.NextCursor.ShouldBeNull();
         string message = logger.Messages.ShouldHaveSingleItem();
         message.ShouldContain(TenantQueryGateway.SearchCursorProtectionUnavailableReasonCode);
-        message.ShouldNotContain("needle", Case.Sensitive);
-        message.ShouldNotContain("alpha", Case.Sensitive);
-        message.ShouldNotContain("key ring unavailable", Case.Sensitive);
+        ShouldNotDisclose(logger, "needle", "alpha", "key ring unavailable");
     }
 
     [Fact]
@@ -3312,13 +3309,10 @@ public sealed class TenantQueryGatewayTests
         logger.Messages.ShouldContain(static message
             => message.Contains(TenantQueryGateway.SearchCursorProtectionUnavailableReasonCode, StringComparison.Ordinal));
 
-        foreach (string message in logger.Messages)
+        ShouldNotDisclose(logger, query, tenantId, "protected-cursor-value", "key ring unavailable");
+        foreach (string disclosure in logger.Disclosures)
         {
-            message.ShouldNotContain(query, Case.Sensitive);
-            message.ShouldNotContain(tenantId, Case.Sensitive);
-            message.ShouldNotContain("protected-cursor-value", Case.Sensitive);
-            message.ShouldNotContain("offset", Case.Insensitive);
-            message.ShouldNotContain("key ring unavailable", Case.Sensitive);
+            disclosure.ShouldNotContain("offset", Case.Insensitive);
         }
 
         logger.Events.ShouldAllBe(static id
@@ -4134,12 +4128,47 @@ public sealed class TenantQueryGatewayTests
         }
     }
 
+    /// <summary>
+    /// Asserts no captured diagnostic discloses <paramref name="forbidden"/> over any channel a support-facing
+    /// sink renders. The sink must additionally have received no exception object at all: the gateway's
+    /// diagnostics are reason codes by design, and the raw query, offset and cursor material this story
+    /// forbids lives in the messages of the exceptions it catches, so attaching one is how the guarantee gets
+    /// undone. Asserting only over <c>Messages</c> could not observe that, because the default message
+    /// formatter drops the exception argument.
+    /// </summary>
+    private static void ShouldNotDisclose(CapturingLogger logger, params string[] forbidden)
+    {
+        logger.Exceptions.ShouldAllBe(static exception => exception == null);
+        foreach (string disclosure in logger.Disclosures)
+        {
+            foreach (string secret in forbidden)
+            {
+                disclosure.ShouldNotContain(secret, Case.Sensitive);
+            }
+        }
+    }
+
     /// <summary>Captures the gateway's structured diagnostics so disclosure is actually observable.</summary>
     private sealed class CapturingLogger : ILogger<TenantQueryGateway>
     {
         public List<string> Messages { get; } = [];
 
         public List<EventId> Events { get; } = [];
+
+        /// <summary>Gets the exception argument of each captured entry, including the nulls.</summary>
+        public List<Exception?> Exceptions { get; } = [];
+
+        /// <summary>
+        /// Gets every string a support-facing sink renders for the captured entries. The formatted message is
+        /// only one of them: the default message formatter ignores the exception argument entirely, so a
+        /// non-disclosure assertion made against <see cref="Messages"/> alone cannot observe a raw query,
+        /// offset or cursor that reached the sink inside an exception -- which is precisely where such a
+        /// regression lands, because attaching the caught exception reads like better logging.
+        /// </summary>
+        public IEnumerable<string> Disclosures
+            => Messages.Concat(Exceptions
+                .Where(static exception => exception is not null)
+                .Select(static exception => exception!.ToString()));
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
@@ -4157,6 +4186,7 @@ public sealed class TenantQueryGatewayTests
             ArgumentNullException.ThrowIfNull(formatter);
             Events.Add(eventId);
             Messages.Add(formatter(state, exception));
+            Exceptions.Add(exception);
         }
     }
 

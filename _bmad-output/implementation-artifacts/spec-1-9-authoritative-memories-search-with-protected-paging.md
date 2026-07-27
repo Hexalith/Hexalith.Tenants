@@ -2,7 +2,7 @@
 title: 'Story 1.9: Authoritative Memories Search with Protected Paging'
 type: 'feature'
 created: '2026-07-21'
-status: 'in-progress'
+status: 'review'
 baseline_revision: '85838fbbb4efcd131a44d4ac4535110b1a9d3217'
 final_revision: '7d4007638612eef4a74f067e45f40bdd53a653b3'
 review_loop_iteration: 3
@@ -183,6 +183,11 @@ Implemented authoritative whole-set tenant search using Memories only for ordere
 - `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs` — host composition, purpose isolation, logging guards, and EN/FR copy.
 - `tests/test-summary.md` — Story 1.9 test-evidence addendum.
 
+Changed additionally by the 2026-07-27 backlog-closure session (see "Backlog closure — 2026-07-27"):
+
+- `src/Hexalith.Tenants.UI/Program.cs` — standalone host composes `AddHexalithTenantsUiModule` instead of hand-duplicating its registrations.
+- `tests/Hexalith.Tenants.UI.Tests/LocalizerDoubleParityTests.cs` — constructor-independent discovery, rule-pinned controls, French check ordering.
+
 ### Review Findings
 
 - Patches applied: 17 (high 1, medium 11, low 5).
@@ -234,7 +239,7 @@ Resolved during review: the controlling spec was restored to this path from `1af
 - [x] [Review][Patch] Hydration concurrency bound asserted against itself; literal 8 pinned nowhere [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:2981]
 - [x] [Review][Patch] Support-safety gate evaded four times inside the directory it scans [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:17]
 - [x] [Review][Patch] Purpose-isolation test observes the container's provider, never the codec's [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:146]
-- [ ] [Review][Patch] Crossing test's headline assertion cannot fail in either direction [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:735]
+- [x] [Review][Patch] Crossing test's headline assertion cannot fail in either direction [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:735]
 - [x] [Review][Patch] D2 resolved fail-closed: report HasMore=false when an authoritative page yields zero authorized rows [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:829]
 - [x] [Review][Patch] D3 resolved: narrow the no-telemetry guarantee to caller-side HttpClient suppression; record server-log and OTel-span channels as owned open risks [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
 - [x] [Review][Patch] Search term neither trimmed nor length-bounded, unlike every peer normalizer [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:338]
@@ -248,18 +253,18 @@ Resolved during review: the controlling spec was restored to this path from `1af
 - [x] [Review][Patch] Browser Back from a detail page silently discards protected paging with no notice [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:571]
 - [x] [Review][Patch] Search-path Lifecycle aggregation and per-row stamp have zero assertions [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:849]
 - [x] [Review][Patch] Seven new Lifecycle bindings unverified end-to-end on any real surface [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:76]
-- [ ] [Review][Patch] Log-sink non-disclosure assertions are blind to the Exception argument [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:3750]
+- [x] [Review][Patch] Log-sink non-disclosure assertions are blind to the Exception argument [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:3750]
 - [x] [Review][Patch] HasUsableMembers null-collection branch untested on both hydration paths [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1008]
 - [x] [Review][Patch] Required-service resolution asserted only by a code comment [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:392]
-- [ ] [Review][Patch] Pending-recovery scope binding indistinguishable from clear-on-state-change [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1032]
-- [ ] [Review][Patch] Secondary notice bar's message and testid guards are unreachable in the test [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1266]
+- [x] [Review][Patch] Pending-recovery scope binding indistinguishable from clear-on-state-change [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1032]
+- [x] [Review][Patch] Secondary notice bar's message and testid guards are unreachable in the test [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1266]
 - [x] [Review][Patch] "Components never call Memories" has no enforcing test [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:390]
-- [ ] [Review][Patch] Standalone-host composition test asserts nothing meaningful; Program.cs hand-duplicates the module registration [src/Hexalith.Tenants.UI/Program.cs:93]
+- [x] [Review][Patch] Standalone-host composition test asserts nothing meaningful; Program.cs hand-duplicates the module registration [src/Hexalith.Tenants.UI/Program.cs:93]
 - [x] [Review][Patch] NextPageAsync advances paging history even with no next cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:799]
 - [x] [Review][Patch] Fallback never reports search failure when the ordinary list is also terminal [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
 - [x] [Review][Patch] ShowPager reads the circuit-scoped service on the prerender pass it is forbidden on [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:387]
-- [ ] [Review][Patch] JS-interop identifier scan has no control case and misses module-call spellings [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1627]
-- [ ] [Review][Patch] Localizer parity gate silently skips doubles it cannot construct; one double asserts ResourceManager against itself [tests/Hexalith.Tenants.UI.Tests/LocalizerDoubleParityTests.cs:148]
+- [x] [Review][Patch] JS-interop identifier scan has no control case and misses module-call spellings [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1627]
+- [x] [Review][Patch] Localizer parity gate silently skips doubles it cannot construct; one double asserts ResourceManager against itself [tests/Hexalith.Tenants.UI.Tests/LocalizerDoubleParityTests.cs:148]
 - [x] [Review][Patch] Protected search cursor history grows without bound inside the circuit [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:65]
 - [x] [Review][Patch] Delete the two reverted-attempt patch archives (976 KB) from implementation artifacts [_bmad-output/implementation-artifacts/spec-1-9-review-repair-3-reverted-attempt.patch:1]
 
@@ -331,7 +336,9 @@ Three guards were mutation-verified rather than assumed: the codec provider-iden
 self-built provider now fails), the grid lifecycle binding (deleting it fails all four theory rows),
 and the tightened support-safety scanner (which found three evading sites the review had not).
 
-**Seven patch findings remain unchecked above**, all test-efficacy rather than behaviour:
+**Seven patch findings remained unchecked above** at the time of writing, all test-efficacy rather than
+behaviour. They were closed in the 2026-07-27 backlog-closure session recorded below; the list is kept
+here as the record of what was outstanding.
 
 - The crossing test's headline assertion still cannot fail in either direction.
 - Log-sink assertions still do not capture the `Exception` argument, where a realistic disclosure
@@ -343,7 +350,76 @@ and the tightened support-safety scanner (which found three evading sites the re
 - The JS-interop identifier scan still has no control case and misses module-call spellings.
 - The localizer parity gate still silently skips doubles it cannot construct.
 
-None is blocked; the work was stopped for session capacity. The story stays `in-progress`.
+None was blocked; the work was stopped for session capacity.
+
+## Backlog closure — 2026-07-27 (test-efficacy findings)
+
+All **seven** remaining pass-2 patch findings are applied and checked off above. Every one is a
+test-efficacy defect, so each fix was **mutation-verified**: a defect was planted in the code the
+assertion claims to guard, the strengthened assertion was shown to fail on it, and the plant was
+reverted. In four cases the pre-existing assertion was additionally shown to pass over the same plant,
+which is the precise sense in which it certified nothing.
+
+| Finding | Fix | Mutation that now fails (and previously passed) |
+|---|---|---|
+| Crossing test's headline assertion | Every page mints a distinct cursor; assertions moved onto the **outgoing** mode's own request field, plus loads 5-6 that decide the resurrection rule | Request builder stops carrying retained cursors — both theory rows fail; the old `.ShouldBeNull()` on the other mode's field passed trivially |
+| Log-sink blind to `Exception` | `CapturingLogger` records the exception argument; new `Disclosures` channel and a shared `ShouldNotDisclose` helper that also asserts **no exception object reached the sink at all** | Attaching the caught exception to `SignalSearchDegradation` — 10+ tests fail; previously invisible because the default formatter drops it |
+| Pending-recovery scope binding | New counterpart test: same superseded-load setup, scope changed mid-flight, owed notice must be **dropped** not deferred | A scope-blind `_recoveryPending` flag — fails only the new test, still passes the same-scope sibling |
+| Secondary notice bar guards | New theory with a **mapped** primary reason so the duplicate-reason guard cannot fire and the bar's own empty-message/testid guards are the only thing left | Deleting those two guards — only the new rows fail; the original three stay green |
+| Standalone host vs `Program.cs` | `Program.cs` now calls `AddHexalithTenantsUiModule`, deleting ~35 lines of duplicated registration; the standalone test asserts a real round trip, scope binding, host-provider identity and purpose isolation | Codec ignoring its injected provider — the standalone test fails; lifetime-only assertions did not |
+| JS-interop scan | Scans root **and module** invocation channels, adds `indexedDB`, and adds an identifier control per channel | A `localStorage.setItem` planted through the **module** — caught; the root-only scan could not see module calls at all |
+| Localizer parity gate | Discovery no longer filters on a parameterless constructor; construction failure is a gate failure; the gate returns its findings so controls pin the exact rule | Restoring the constructor filter — the new discovery test fails |
+
+Two further defects surfaced while pinning the controls, and are fixed here:
+
+- `FrenchlessLocalizerDouble` was being rejected by the **neutral-bundle** rule, not the French one: a key
+  absent from `TenantsResources.resx` short-circuited the French check via `continue`. The French check now
+  runs first, so the gate no longer under-reports and the control proves the rule it names.
+- `HiddenIndexerLocalizerDouble` read its "shipped" value back from the same `ResourceManager` the gate
+  compares against, making that half of the control tautological. It now carries the literal value.
+
+The two `[Review][Decision]` checkboxes under "Original decision detail" are checked as well: both were
+resolved during the pass-3 review and carried into that pass's Patch list as its first two items, which
+are applied. They were left unchecked as historical text and were a further source of the count
+mismatch this file has repeatedly had to correct.
+
+### Verification — 2026-07-27 backlog closure
+
+| Gate | Result |
+|---|---|
+| UI Release build, `-warnaserror` | **0 warnings / 0 errors** |
+| Full UI executable | **1266 / 1266** passed, 0 failed, 0 skipped |
+| Focused seven-class lane | **486 / 486** passed, 0 failed, 0 skipped |
+| Memories index-handoff lane (`MemoriesSearchIndexEventPublisherTests`) | **7 / 7** passed |
+| `Hexalith.Tenants.slnx` Release build, `-warnaserror` | **0 warnings / 0 errors** |
+| `git diff --check` | clean (exit 0) |
+
+Counts rose from 1231 to 1266 (+35) and the focused lane from 461 to 486 (+25): the new discrimination
+test, the reachable secondary-bar theory, the localizer discovery test, and the extra theory rows.
+
+### Blocker — repository-wide, not owned by this story
+
+`references/Hexalith.Builds` at gitlink `0e464b5` pins
+`HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8` (`Props/Directory.Packages.props:8`, submodule
+commit `8f32f12` "pin approved EventStore proof catalog"). That version is not published to nuget.org, so
+the default package-mode restore fails `NU1102` for every project in this repository. It arrived with
+today's `fix/release-stale-source-guard` merge (`8e84bf1`) and is unrelated to Story 1.9 — a bare
+`dotnet restore src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj` fails identically with no Story 1.9
+file involved in the restore graph.
+
+Release + source references is not an escape either: `references/Hexalith.Memories/Directory.Build.props:95`
+rejects `UseHexalithProjectReferences=true` in Release by design.
+
+**Every gate above was therefore run with `-p:HexalithEventStoreVersion=3.82.0`** — the published version
+matching the EventStore submodule's own tag base (`v3.82.0-60-g737b3e5a`) — supplied as an MSBuild property
+and, for the tests that shell out to `dotnet restore` in a subprocess, as the `HexalithEventStoreVersion`
+environment variable. Without it,
+`TenantsUiCompositionTests.TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost(useProjectReferences: False)`
+fails on the subprocess restore, for the pin and nothing else.
+
+- **Owner:** the `Hexalith.Builds` / EventStore release owner.
+- **Consequence:** CI restore fails repository-wide until the pin resolves or the gitlink is corrected.
+- **Reopen trigger:** re-run any gate above without the override; it fails `NU1102` while the pin stands.
 
 ## Review Findings — code review 2026-07-27 (pass 3)
 
@@ -376,8 +452,8 @@ below as the first two items.
 
 ### Original decision detail
 
-- [ ] [Review][Decision] The fail-closed `HasMore` rule contradicts an unamended acceptance criterion, and collapses on empties that are not authorization — `TenantQueryGateway.cs:864` ships `rows.Count > 0 && nextOffset < result.TotalCount`. The `<intent-contract>` still says verbatim "Count every raw hit toward the next offset", the *Sparse raw page* matrix row still says "protect the raw next offset", and AC1 still says "all raw hits advance paging without backfill"; there is no 2026-07-27 Spec Change Log entry. Worse, `rows.Count == 0` at that line has four causes, only one of which is authorization: the operator's own status recheck (`:942`), a dropped null-`Name` row (`:938`), malformed/duplicate hits (`:809`), and per-tenant 403/404 (`:970`). With `TotalCount=30`, `PageSize=20` and the first 20 dropped by the status recheck, accessible matching tenants at offsets 20-29 become unreachable while the surface asserts "No tenants you can access match this search" — and on a mid-set page it makes that global claim with Previous still enabled and four pages of matches just displayed. Options: (a) restrict the collapse to authorization/absence drops and keep advancing otherwise; (b) keep the collapse and record a spec amendment accepting unreachability; (c) revert to `TotalCount`-derived `HasMore` and close the disclosure elsewhere. Also resolves the now-unreachable `SearchPageEmptySnapshot(hasMore: true)` fixture at `TenantListSurfaceTests.cs:1531`.
-- [ ] [Review][Decision] The disclosure the fail-closed change cites is still fully open for partial windows — `TenantQueryGatewayTests.cs:2996` asserts, as intended behaviour, `HasMore = true` with a minted cursor at offset 6 after 5 of 6 candidates were dropped (forbidden, not-found, null detail, id mismatch, degraded). One row plus a live Next discloses exactly the "existence and page-granular count" that `TenantQueryGateway.cs:857-863` claims to have closed. The change therefore trades reachability away without closing the leak. Same axis as the finding above: decide whether partial-window disclosure is in scope, out of scope, or accepted with a recorded rationale.
+- [x] [Review][Decision] The fail-closed `HasMore` rule contradicts an unamended acceptance criterion, and collapses on empties that are not authorization — `TenantQueryGateway.cs:864` ships `rows.Count > 0 && nextOffset < result.TotalCount`. The `<intent-contract>` still says verbatim "Count every raw hit toward the next offset", the *Sparse raw page* matrix row still says "protect the raw next offset", and AC1 still says "all raw hits advance paging without backfill"; there is no 2026-07-27 Spec Change Log entry. Worse, `rows.Count == 0` at that line has four causes, only one of which is authorization: the operator's own status recheck (`:942`), a dropped null-`Name` row (`:938`), malformed/duplicate hits (`:809`), and per-tenant 403/404 (`:970`). With `TotalCount=30`, `PageSize=20` and the first 20 dropped by the status recheck, accessible matching tenants at offsets 20-29 become unreachable while the surface asserts "No tenants you can access match this search" — and on a mid-set page it makes that global claim with Previous still enabled and four pages of matches just displayed. Options: (a) restrict the collapse to authorization/absence drops and keep advancing otherwise; (b) keep the collapse and record a spec amendment accepting unreachability; (c) revert to `TotalCount`-derived `HasMore` and close the disclosure elsewhere. Also resolves the now-unreachable `SearchPageEmptySnapshot(hasMore: true)` fixture at `TenantListSurfaceTests.cs:1531`.
+- [x] [Review][Decision] The disclosure the fail-closed change cites is still fully open for partial windows — `TenantQueryGatewayTests.cs:2996` asserts, as intended behaviour, `HasMore = true` with a minted cursor at offset 6 after 5 of 6 candidates were dropped (forbidden, not-found, null detail, id mismatch, degraded). One row plus a live Next discloses exactly the "existence and page-granular count" that `TenantQueryGateway.cs:857-863` claims to have closed. The change therefore trades reachability away without closing the leak. Same axis as the finding above: decide whether partial-window disclosure is in scope, out of scope, or accepted with a recorded rationale.
 
 ### Patch
 

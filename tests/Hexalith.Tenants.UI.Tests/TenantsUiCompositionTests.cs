@@ -245,6 +245,35 @@ public sealed class TenantsUiCompositionTests
         // still satisfies the container's constructor selection in a real host.
         firstScope.ServiceProvider.GetRequiredService<ITenantQueryGateway>().ShouldNotBeNull();
 
+        // Lifetimes alone hold for any registration whatsoever. The standalone host protects real cursors,
+        // so the substance the embedded-module test proves is proven here too, against the real host: a
+        // round trip, scope binding, protection by the host's own Data Protection provider rather than one
+        // the codec built for itself, and a search purpose that is not interchangeable with the generic
+        // query-cursor purpose.
+        string scope = TenantSearchCursorScopes.Create(
+            "operator-user",
+            "needle",
+            status: null,
+            TenantListSortColumns.TenantId,
+            descending: false,
+            pageSize: 20);
+        string protectedCursor = searchCodec.Encode(scope, 20);
+        searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
+        decodedOffset.ShouldBe(20);
+        searchCodec.TryDecode(protectedCursor, scope + "-other", out _).ShouldBeFalse();
+
+        IDataProtectionProvider hostProvider = factory.Services.GetRequiredService<IDataProtectionProvider>();
+        new TenantSearchCursorCodec(hostProvider)
+            .TryDecode(protectedCursor, scope, out int hostProviderOffset)
+            .ShouldBeTrue("the registered codec must protect with the host's provider, not one it constructed");
+        hostProviderOffset.ShouldBe(20);
+        new TenantSearchCursorCodec(new EphemeralDataProtectionProvider())
+            .TryDecode(protectedCursor, scope, out _)
+            .ShouldBeFalse();
+        new QueryCursorCodec(hostProvider, "host-purpose")
+            .TryDecode(protectedCursor, TenantSearchCursorPosition.QueryType, scope, out _, out _)
+            .ShouldBeFalse();
+
         await AssertMemoriesHttpLoggingIsSuppressedAsync(factory.Services, capture);
     }
 
