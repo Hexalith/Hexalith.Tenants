@@ -300,8 +300,11 @@ review-repair delta.
   ordinary list, never from the decode catch whose forced page-zero retry then succeeds
   authoritatively, and never twice for one load: every failure path records a reason code and funnels
   through a single fallback call.
-- [x] Cursor invalidation landing on a terminal error/unauthorized surface withholds the clearing
-  together with its notice and delivers both on the next renderable load.
+- [ ] ~~Cursor invalidation landing on a terminal error/unauthorized surface withholds the clearing
+  together with its notice and delivers both on the next renderable load.~~ **False — retracted.** The
+  shipped code clears on the load that reports it, which is the opposite. The correction is stated in
+  the Evidence Correction section below; this line is left in place, unchecked and struck through, so the
+  contradiction cannot be read as a live claim.
 - [x] A malformed member collection raises the identical `IsDegraded` / `RowEnrichmentUnavailable`
   signal on the search surface and the ordinary list, carried by a distinct enrichment-degraded flag
   that cannot trigger the ordinary-list fallback.
@@ -328,11 +331,12 @@ review-repair delta.
 - Story 1.9 acceptance criteria: all automated portions are covered. Authenticated AppHost/Memories
   runtime, responsive browser, and human NVDA evidence remain open with owner, consequence, and
   reopen trigger in the dated Story 1.9 evidence report.
-- Validation: Release UI test-project build passed with 0 warnings / 0 errors; the exact seven-class
-  focused executable passed 396/396; `TenantDetailSurfaceTests` passed 56/56;
-  `LocalizerDoubleParityTests` passed 2/2; the full UI executable passed 1145/1145;
-  `MemoriesSearchIndexEventPublisherTests` passed 7/7 after a warning-clean sample-test build; the
-  Release solution build passed with 0 warnings / 0 errors; and `git diff --check` passed.
+- Validation **as of the 2026-07-26 pass-2 record, superseded** — retained as history only: Release UI
+  test-project build passed with 0 warnings / 0 errors; the exact seven-class focused executable passed
+  396/396; `TenantDetailSurfaceTests` passed 56/56; `LocalizerDoubleParityTests` passed 2/2; the full UI
+  executable passed 1145/1145; `MemoriesSearchIndexEventPublisherTests` passed 7/7 after a warning-clean
+  sample-test build; the Release solution build passed with 0 warnings / 0 errors; and `git diff --check`
+  passed. For the current totals see the 2026-07-27 pass-3 entry at the end of this section.
 
 ## Story 1.9 Evidence Correction (2026-07-27)
 
@@ -346,5 +350,30 @@ same-statement and stringified-local spellings. It described a `SearchPageEmpty`
 `HasMore`; that split is gone, because an authoritative window yielding no authorized row now ends
 paging and both causes must render identically.
 
-- Validation at `d59dd59`: UI 1,222/1,222; focused seven-class lane 452/452; Contracts 114/114;
-  Sample index-handoff 7/7; `Hexalith.Tenants.slnx` Release build 0 warnings / 0 errors.
+- Validation at `d59dd59` (**superseded** — four commits behind the branch tip when written): UI
+  1,222/1,222; focused seven-class lane 452/452; Contracts 114/114; Sample index-handoff 7/7;
+  `Hexalith.Tenants.slnx` Release build 0 warnings / 0 errors.
+
+## Story 1.9 Code Review Pass 3 (2026-07-27)
+
+A third four-layer review over the pass-2 repair delta produced 32 merged findings: two decisions
+resolved by the story owner, 26 patches applied, one deferred, five dismissed. The behavioural changes
+are the window-collapse rule (paging now ends only when every hydrated candidate was hidden or absent,
+not on any empty window), a distinct `SearchAndListUnavailable` notice for terminal fallback surfaces, a
+reported rather than silently dropped over-length search term, Next enablement tied to the paging cursor,
+and a history cap that keeps page one reachable. The reset control on the empty-search surface was wired
+— it had been rendered with an unset `EventCallback` and did nothing.
+
+Six new guards were mutation-verified rather than assumed: the wired reset button, the mid-load pager
+guard, Next enablement, the window-collapse rule, the pending recovery notice surviving disposal, and the
+prerender guard on Previous. Two existing guards were rebuilt because they could not fail: the
+support-safety scanner's stringified-local rule had no planted-failure case and was evaded by five
+spellings, and the "components never call Memories" scan was blind to the `IServiceProvider` resolution
+the audited component itself uses.
+
+- Validation on the pass-3 working tree (on top of `5fdbc80`): UI **1,256/1,256**; focused seven-class
+  lane **479/479**; Contracts **114/114**; Sample **39/39**; `Hexalith.Tenants.slnx` Release build
+  **0 warnings / 0 errors**; `git diff --check` clean.
+- These are the authoritative totals for Story 1.9. Earlier figures in this file, in
+  `spec-1-9-…-paging.md`, and in the withdrawn 2026-07-26 evidence report are historical records of
+  earlier revisions and are marked as superseded where they appear.

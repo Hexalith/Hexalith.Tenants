@@ -138,8 +138,14 @@
   <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
     <value>Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchAndListUnavailable" xml:space="preserve">
+    <value>Protected whole-set search is temporarily unavailable, and the authorized tenant list could not be loaded either. Try again later.</value>
+  </data>
+  <data name="Tenants.List.Notice.SearchTermTooLong" xml:space="preserve">
+    <value>The search term was too long to apply, so the full authorized tenant list is shown. Shorten the term and search again.</value>
+  </data>
   <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
-    <value>The protected search page was no longer available. Search has restarted from the first page.</value>
+    <value>Protected search paging could not be restored. Search has restarted from the first page.</value>
   </data>
   <data name="Tenants.List.Notice.SearchPagingRestarted" xml:space="preserve">
     <value>The available tenant source changed. Paging restarted from the first page.</value>

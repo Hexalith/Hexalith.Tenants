@@ -5,8 +5,9 @@ internal sealed class TenantSearchPagingState {
     /// <summary>
     /// Maximum retained back-steps per paging mode. History previously grew one protected cursor per Next
     /// for the lifetime of the circuit, with nothing to cap it and a diagnostic that deliberately hides the
-    /// count, so the growth was not observable from support output either. Past this depth the oldest
-    /// back-step is dropped: Previous stops short rather than the circuit accumulating without bound.
+    /// count, so the growth was not observable from support output either. Past this depth a retired middle
+    /// back-step is dropped, never the page-one sentinel: Previous skips the retired steps rather than the
+    /// circuit accumulating without bound, and page one stays reachable.
     /// </summary>
     internal const int MaximumRetainedHistoryDepth = 200;
 
@@ -39,14 +40,30 @@ internal sealed class TenantSearchPagingState {
     /// </summary>
     public string? PendingRecoveryScope { get; private set; }
 
+    /// <summary>
+    /// Gets whether the discarded position that owes the pending notice belonged to authoritative whole-set
+    /// search. The owed copy differs: only a protected-search discard may be explained as protected search
+    /// paging restarting, and an ordinary-list discard explained with that copy asserts a protected search
+    /// page that never existed. <see langword="null"/> when no notice is owed.
+    /// </summary>
+    public bool? PendingRecoveryAuthoritative { get; private set; }
+
     /// <summary>Records the paging mode that produced the retained cursors.</summary>
     public void SetActiveMode(bool authoritative) => ActiveModeAuthoritative = authoritative;
 
     /// <summary>Records that a page-one recovery notice is owed for the given protected search scope.</summary>
-    public void SetPendingRecoveryScope(string? scope) => PendingRecoveryScope = scope;
+    /// <param name="scope">The exact protected search scope the notice is owed for.</param>
+    /// <param name="authoritative">Whether the discarded position belonged to authoritative search.</param>
+    public void SetPendingRecoveryScope(string? scope, bool authoritative = true) {
+        PendingRecoveryScope = scope;
+        PendingRecoveryAuthoritative = scope is null ? null : authoritative;
+    }
 
     /// <summary>Drops an owed page-one recovery notice.</summary>
-    public void ClearPendingRecoveryScope() => PendingRecoveryScope = null;
+    public void ClearPendingRecoveryScope() {
+        PendingRecoveryScope = null;
+        PendingRecoveryAuthoritative = null;
+    }
 
     /// <summary>Forgets the active paging mode without discarding the retained query identity.</summary>
     public void ClearActiveMode() => ActiveModeAuthoritative = null;
@@ -86,7 +103,13 @@ internal sealed class TenantSearchPagingState {
         List<string?> history = authoritative ? _searchHistory : _fallbackHistory;
         history.Add(authoritative ? SearchCursor : FallbackCursor);
         if (history.Count > MaximumRetainedHistoryDepth) {
-            history.RemoveAt(0);
+            // Index 1, never index 0. History is a stack popped from the end, so index 0 is the page-one
+            // sentinel (a null cursor). Dropping the oldest entry discarded that sentinel, and Previous then
+            // walked back only as far as page two before reporting HasPrevious == false -- the same signal
+            // that everywhere else means "you are on page one" -- leaving page one unreachable without
+            // retyping the search. Dropping the second-oldest keeps page one reachable; the cost is that a
+            // walk back past the cap skips the retired middle steps and lands on page one.
+            history.RemoveAt(1);
         }
 
         if (authoritative) {
@@ -150,5 +173,6 @@ internal sealed class TenantSearchPagingState {
         FallbackCursor = null;
         ActiveModeAuthoritative = null;
         PendingRecoveryScope = null;
+        PendingRecoveryAuthoritative = null;
     }
 }

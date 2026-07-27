@@ -7,9 +7,9 @@
          data-testid="@TestId">
     <h2>@Localizer[$"Tenants.List.State.{ResourceName}.Title"]</h2>
     <p>@Message</p>
-    @* An authoritative search page can no longer promise later results: a window that yields no authorized
-       row now ends paging, so this surface is terminal for the current search and must offer the same way
-       out as the filtered-empty verdict. Without it the operator who simply mistyped reaches a dead end. *@
+    @* The empty-search page offers the same way out as the filtered-empty verdict: without it the operator
+       who simply mistyped the term reaches a dead end. Callers that render SearchPageEmpty must supply
+       OnReset -- an unset EventCallback renders a button that silently does nothing. *@
     @if (Kind is TenantListSurfaceKind.FilteredEmpty or TenantListSurfaceKind.SearchPageEmpty)
     {
         <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-state-reset" OnClick="OnReset">
@@ -30,14 +30,6 @@
 
     [Parameter]
     public TenantListReason Reason { get; set; }
-
-    /// <summary>
-    /// Whether the surface can still reach a later page. Retained for callers and layout decisions; the
-    /// empty-search-page copy no longer branches on it, because an authoritative page that yields no
-    /// authorized row now always ends paging.
-    /// </summary>
-    [Parameter]
-    public bool HasMore { get; set; }
 
     [Parameter]
     public EventCallback OnReset { get; set; }

@@ -16,6 +16,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -1924,7 +1925,213 @@ public sealed class TenantListSurfaceTests : BunitContext
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
 
         // Deliberately no AddScoped<TenantSearchPagingState>().
-        Should.Throw<InvalidOperationException>(() => Render<TenantsWorkspace>());
+        // The message is asserted, not just the type: this hand-rolled fixture throws
+        // InvalidOperationException for many unrelated reasons (a missing Fluent registration, a missing
+        // localizer, a strict-mode interop failure), so a bare type assertion could pass while proving
+        // nothing about the paging service.
+        Should.Throw<InvalidOperationException>(() => Render<TenantsWorkspace>())
+            .Message.ShouldContain(nameof(TenantSearchPagingState));
+    }
+
+    [Fact]
+    public async Task Empty_search_page_reset_button_actually_clears_the_search()
+    {
+        // The button was rendered with OnClick="OnReset" while the only SearchPageEmpty call site never
+        // passed OnReset, so it bound an unset EventCallback and every click was a silent no-op. Both prior
+        // tests only asserted the element existed, which Find() already guarantees.
+        List<string?> searches = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            searches.Add(request.Search);
+            return Task.FromResult(request.Search is null
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
+                : SearchPageEmptySnapshot(hasMore: false));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        await ChangeSearchAsync(cut, "nomatch");
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+        searches.ShouldContain("nomatch");
+
+        cut.Find("[data-testid='tenants-list-search-page-empty'] [data-testid='tenants-list-state-reset']").Click();
+
+        // The operator is returned to the full authorized list, and the term is gone from state and URL.
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        searches[^1].ShouldBeNull();
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldNotContain("search=");
+    }
+
+    [Fact]
+    public async Task A_second_pager_click_during_an_in_flight_load_is_refused()
+    {
+        // The in-flight guard was asserted only by its own comment: every pager interaction in this file is
+        // followed by a WaitForAssertion before the next one, so nothing drove the double click the guard
+        // exists for. Without it the second click recorded a second back-step against a stale cursor.
+        TaskCompletionSource<TenantListSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            return callCount == 1
+                ? Task.FromResult(AuthoritativeSnapshot(
+                    [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)],
+                    nextCursor: "protected-page-two",
+                    hasMore: true))
+                : pending.Task;
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+
+        // The pager unmounts for the duration of a load, so the callback is captured while it is still
+        // mounted and then invoked twice. The first invocation blocks on the outstanding load; the second is
+        // delivered while _pagingInFlight is set, which is exactly the race the guard exists for.
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-list-next", StringComparison.Ordinal))
+            .OnClick;
+
+        Task first = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+
+        // Deliberately not awaited: a refused click returns immediately, but an accepted one blocks on the
+        // still-outstanding load. Awaiting it would turn the regression into a hang instead of a failure.
+        Task second = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        await Task.Delay(200);
+
+        callCount.ShouldBe(2, "the second click must be refused while a load is in flight");
+        second.IsCompleted.ShouldBeTrue("a refused click returns without starting a load");
+        paging.SearchCursor.ShouldBe("protected-page-two");
+
+        pending.SetResult(AuthoritativeSnapshot(
+            [Row("tenant.page-two", "Two", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        await first;
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+
+        // Exactly one back-step was recorded, so Previous returns to page one rather than to page two.
+        paging.TryMovePrevious(authoritative: true).ShouldBeTrue();
+        paging.SearchCursor.ShouldBeNull();
+        paging.HasPrevious(authoritative: true).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Next_is_disabled_when_the_list_reports_more_results_without_a_cursor()
+    {
+        // The ordinary list path passes the server's HasMore and Cursor through independently with no
+        // consistency check, and enablement read HasMore alone while the handler requires a cursor. The
+        // result was a live Next whose every click did nothing: no load, no re-render, no notice.
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+            nextCursor: null,
+            hasMore: true));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task An_over_long_search_term_is_reported_instead_of_silently_dropped()
+    {
+        // Normalization returns null past the bound, so the term was dropped, the input the operator was
+        // typing into was blanked, the canonical URL lost the parameter and the unfiltered list loaded --
+        // with no notice, the only silent degradation in this feature.
+        List<string?> searches = [];
+        RegisterServices(call =>
+        {
+            searches.Add(call.ArgAt<TenantListRequest>(0).Search);
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, new string('a', 257));
+
+        cut.WaitForElement("[data-testid='tenants-list-search-term-too-long-notice']");
+        searches[^1].ShouldBeNull();
+
+        // A term inside the bound is applied and carries no notice.
+        await ChangeSearchAsync(cut, new string('a', 256));
+        cut.WaitForAssertion(() => searches[^1].ShouldBe(new string('a', 256)));
+        cut.FindAll("[data-testid='tenants-list-search-term-too-long-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void The_search_input_bounds_its_own_length_so_the_rejection_is_unreachable_by_typing()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        FluentTextInput search = cut.FindComponents<FluentTextInput>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-list-search", StringComparison.Ordinal));
+
+        search.MaxLength.ShouldBe(256);
+    }
+
+    [Fact]
+    public void Prerender_offers_no_previous_page_from_another_requests_retained_history()
+    {
+        // Retained protected paging belongs to the interactive circuit. The prerender pass must not offer a
+        // Previous control backed by it: the guard was added but the one static-render test asserted only
+        // requests and cursors, never the button's disabled state, so deleting the guard failed nothing.
+        RegisterServices(AuthoritativeSnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.MoveNext(authoritative: true, "protected-page-two").ShouldBeTrue();
+        SetRendererInfo(new RendererInfo("Static", isInteractive: false));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_pending_recovery_notice_survives_the_disposal_a_detail_navigation_causes()
+    {
+        // Dispose deliberately stopped clearing the pending scope, but nothing pinned that: re-adding the
+        // clear was green. The regression it guards is real -- notice armed, load fails, operator opens a
+        // tenant and returns, and the search has silently restarted at page one with no explanation.
+        int callCount = 0;
+        RegisterServices(_ =>
+        {
+            callCount++;
+            return Task.FromResult(callCount == 1
+                ? TenantListSnapshot.Error()
+                : AuthoritativeSnapshot(
+                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
+        TenantSearchPagingState paging = Services.GetRequiredService<TenantSearchPagingState>();
+        paging.PendingRecoveryScope.ShouldNotBeNull();
+
+        // The component is destroyed exactly as a tenant-detail navigation destroys it.
+        await DisposeComponentsAsync();
+        paging.PendingRecoveryScope.ShouldNotBeNull();
+
+        // A fresh instance on the same scope must still deliver the owed copy.
+        IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
+        returned.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
     }
 
     private void RegisterServices(TenantListSnapshot snapshot)
@@ -2062,7 +2269,9 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Freshness.Unknown"] = "Unknown",
             ["Tenants.List.Notice.ListRefreshed"] = "The requested page was no longer available. The authorized first page has been refreshed.",
             ["Tenants.List.Notice.SearchUnavailable"] = "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
-            ["Tenants.List.Notice.SearchRefreshed"] = "The protected search page was no longer available. Search has restarted from the first page.",
+            ["Tenants.List.Notice.SearchRefreshed"] = "Protected search paging could not be restored. Search has restarted from the first page.",
+            ["Tenants.List.Notice.SearchAndListUnavailable"] = "Protected whole-set search is temporarily unavailable, and the authorized tenant list could not be loaded either. Try again later.",
+            ["Tenants.List.Notice.SearchTermTooLong"] = "The search term was too long to apply, so the full authorized tenant list is shown. Shorten the term and search again.",
             ["Tenants.List.Notice.SearchPagingRestarted"] = "The available tenant source changed. Paging restarted from the first page.",
             ["Tenants.List.State.SearchPageEmpty.Title"] = "No tenants match this search",
             ["Tenants.List.State.SearchPageEmpty.Message"] = "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",

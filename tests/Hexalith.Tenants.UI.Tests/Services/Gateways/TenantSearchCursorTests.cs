@@ -153,6 +153,80 @@ public sealed class TenantSearchCursorTests {
     }
 
     [Fact]
+    public void Scoped_paging_refuses_to_advance_without_a_next_cursor() {
+        // Every existing call site discarded MoveNext's bool and always passed a non-null cursor, so the
+        // refusal was asserted only by its own doc comment. Recording a back-step and then setting the
+        // position to null made Next reload page one while enabling a Previous that also loaded page one.
+        var state = new TenantSearchPagingState();
+        state.EnsureScope("scope-one");
+
+        state.MoveNext(authoritative: true, cursor: null).ShouldBeFalse();
+
+        state.SearchCursor.ShouldBeNull();
+        state.HasPrevious(authoritative: true).ShouldBeFalse();
+
+        state.MoveNext(authoritative: true, "protected-two").ShouldBeTrue();
+        state.SearchCursor.ShouldBe("protected-two");
+        state.HasPrevious(authoritative: true).ShouldBeTrue();
+
+        // A refusal from a deeper page must not disturb the position already held either.
+        state.MoveNext(authoritative: true, cursor: null).ShouldBeFalse();
+        state.SearchCursor.ShouldBe("protected-two");
+    }
+
+    [Fact]
+    public void Scoped_paging_caps_retained_history_but_keeps_page_one_reachable() {
+        // The cap dropped the oldest back-step, which is the page-one sentinel. Previous then walked back
+        // only as far as page two and reported HasPrevious == false -- the signal that everywhere else means
+        // "you are on page one" -- leaving page one unreachable without retyping the search.
+        var state = new TenantSearchPagingState();
+        state.EnsureScope("scope-one");
+        int steps = TenantSearchPagingState.MaximumRetainedHistoryDepth + 5;
+        for (int index = 0; index < steps; index++) {
+            state.MoveNext(authoritative: true, $"protected-{index + 2}").ShouldBeTrue();
+        }
+
+        // Walk all the way back. The retained depth is bounded, so this terminates well before `steps`.
+        int backSteps = 0;
+        while (state.TryMovePrevious(authoritative: true)) {
+            backSteps++;
+            backSteps.ShouldBeLessThanOrEqualTo(TenantSearchPagingState.MaximumRetainedHistoryDepth);
+        }
+
+        // History is bounded...
+        backSteps.ShouldBe(TenantSearchPagingState.MaximumRetainedHistoryDepth);
+
+        // ...and the walk ends on page one, not on a deep page with Previous mysteriously disabled.
+        state.SearchCursor.ShouldBeNull();
+        state.HasPrevious(authoritative: true).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Scoped_paging_records_which_mode_owes_a_recovery_notice() {
+        // The owed copy differs by mode: explaining an ordinary-list discard as protected search paging
+        // restarting asserts a protected search page that never existed.
+        var state = new TenantSearchPagingState();
+        state.EnsureScope("scope-one");
+        state.PendingRecoveryAuthoritative.ShouldBeNull();
+
+        state.SetPendingRecoveryScope("scope-one", authoritative: false);
+        state.PendingRecoveryScope.ShouldBe("scope-one");
+        state.PendingRecoveryAuthoritative.ShouldBe(false);
+
+        state.SetPendingRecoveryScope("scope-one");
+        state.PendingRecoveryAuthoritative.ShouldBe(true);
+
+        state.ClearPendingRecoveryScope();
+        state.PendingRecoveryScope.ShouldBeNull();
+        state.PendingRecoveryAuthoritative.ShouldBeNull();
+
+        // A scope change resets the owed mode with the position it described.
+        state.SetPendingRecoveryScope("scope-one", authoritative: false);
+        state.EnsureScope("scope-two");
+        state.PendingRecoveryAuthoritative.ShouldBeNull();
+    }
+
+    [Fact]
     public void Scoped_paging_diagnostics_omit_scope_cursor_and_reconstructable_page_depth() {
         var state = new TenantSearchPagingState();
         state.EnsureScope("scope-one");

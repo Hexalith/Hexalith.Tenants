@@ -257,9 +257,18 @@ public sealed class TenantsUiCompositionTests
             ["Tenants.List.Notice.SearchUnavailable"] = (
                 "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
                 "La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée."),
+            // Not "the page was no longer available": the browser-Back path discards a position that was
+            // still perfectly available, because the return context could not be validated. The copy has to
+            // be true of every trigger that raises it.
             ["Tenants.List.Notice.SearchRefreshed"] = (
-                "The protected search page was no longer available. Search has restarted from the first page.",
-                "La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page."),
+                "Protected search paging could not be restored. Search has restarted from the first page.",
+                "La pagination de recherche protégée n'a pas pu être restaurée. La recherche a redémarré depuis la première page."),
+            ["Tenants.List.Notice.SearchAndListUnavailable"] = (
+                "Protected whole-set search is temporarily unavailable, and the authorized tenant list could not be loaded either. Try again later.",
+                "La recherche protégée sur l'ensemble des locataires est temporairement indisponible, et la liste autorisée n'a pas pu être chargée non plus. Réessayez plus tard."),
+            ["Tenants.List.Notice.SearchTermTooLong"] = (
+                "The search term was too long to apply, so the full authorized tenant list is shown. Shorten the term and search again.",
+                "Le terme recherché était trop long pour être appliqué, la liste autorisée complète est donc affichée. Raccourcissez le terme et relancez la recherche."),
             ["Tenants.List.Notice.SearchPagingRestarted"] = (
                 "The available tenant source changed. Paging restarted from the first page.",
                 "La source de locataires disponible a changé. La pagination a redémarré depuis la première page."),
@@ -453,6 +462,35 @@ public sealed class TenantsUiCompositionTests
                         $"{componentType.FullName} must reach Memories through the server-side gateway, never directly.");
             }
         }
+
+        // The declared-injection scan above is necessary but not sufficient, and on its own it was blind to
+        // the idiom this codebase actually writes: TenantsWorkspace injects IServiceProvider and resolves
+        // through it, so Services.GetRequiredService<MemoriesClient>() inside any component satisfied every
+        // assertion above. IServiceProvider is not a Hexalith.Memories type, and Lazy<MemoriesClient> reports
+        // System.Lazy. A source scan closes the service-locator route that reflection over declared
+        // dependencies cannot see.
+        string componentsRoot = Path.Combine(UiProjectRoot(), "Components");
+        Directory.Exists(componentsRoot).ShouldBeTrue($"the component source scan must find {componentsRoot}");
+        string[] componentSources = Directory
+            .EnumerateFiles(componentsRoot, "*.*", SearchOption.AllDirectories)
+            .Where(static path => path.EndsWith(".razor", StringComparison.Ordinal)
+                || path.EndsWith(".cs", StringComparison.Ordinal))
+            .ToArray();
+        componentSources.Length.ShouldBeGreaterThan(10, "the source scan must observe real component files");
+
+        List<string> memoriesReferences = [];
+        foreach (string path in componentSources)
+        {
+            if (File.ReadAllText(path).Contains("Memories", StringComparison.Ordinal))
+            {
+                memoriesReferences.Add(Path.GetRelativePath(componentsRoot, path));
+            }
+        }
+
+        memoriesReferences.ShouldBeEmpty(
+            "No Tenants UI component may name Memories at all -- not by injection, not through "
+            + "IServiceProvider, not through a wrapper. The index is reached only by the server-side gateway. "
+            + "Offending files: " + string.Join(", ", memoriesReferences));
 
         uiAssembly.GetCustomAttributesData()
             .Where(static attribute => string.Equals(
@@ -1116,5 +1154,26 @@ public sealed class TenantsUiCompositionTests
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
+    }
+
+    /// <summary>
+    /// Locates the shipped Tenants UI project directory by walking up from the test binary to the repository
+    /// layout. Used by the component source scan, which reflection over declared dependencies cannot replace.
+    /// </summary>
+    private static string UiProjectRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null
+            && !File.Exists(Path.Combine(directory.FullName, "Hexalith.Tenants.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        string root = Path.Combine(
+            directory.ShouldNotBeNull("The repository root must be discoverable for the component source scan.").FullName,
+            "src",
+            "Hexalith.Tenants.UI");
+        Directory.Exists(root).ShouldBeTrue($"The Tenants UI project source must be discoverable at {root}.");
+        return root;
     }
 }

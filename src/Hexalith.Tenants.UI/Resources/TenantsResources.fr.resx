@@ -138,8 +138,14 @@
   <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
     <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchAndListUnavailable" xml:space="preserve">
+    <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible, et la liste autorisée n'a pas pu être chargée non plus. Réessayez plus tard.</value>
+  </data>
+  <data name="Tenants.List.Notice.SearchTermTooLong" xml:space="preserve">
+    <value>Le terme recherché était trop long pour être appliqué, la liste autorisée complète est donc affichée. Raccourcissez le terme et relancez la recherche.</value>
+  </data>
   <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
-    <value>La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page.</value>
+    <value>La pagination de recherche protégée n'a pas pu être restaurée. La recherche a redémarré depuis la première page.</value>
   </data>
   <data name="Tenants.List.Notice.SearchPagingRestarted" xml:space="preserve">
     <value>La source de locataires disponible a changé. La pagination a redémarré depuis la première page.</value>

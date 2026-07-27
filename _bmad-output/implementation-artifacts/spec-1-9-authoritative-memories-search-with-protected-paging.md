@@ -5,7 +5,7 @@ created: '2026-07-21'
 status: 'in-progress'
 baseline_revision: '85838fbbb4efcd131a44d4ac4535110b1a9d3217'
 final_revision: '7d4007638612eef4a74f067e45f40bdd53a653b3'
-review_loop_iteration: 2
+review_loop_iteration: 3
 followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -190,7 +190,14 @@ Implemented authoritative whole-set tenant search using Memories only for ordere
 - Items rejected: 6 duplicate, already-disclosed, or non-actionable findings.
 - Follow-up review recommendation: true. Patch score = `3 × 11 + 1 × 5 = 38`; the pass also contained one high-severity patch.
 
-### Verification
+> **Superseded counts.** The figures in this block and the Verification block below are the 2026-07-26
+> pass-2 record and are retained as history only. They are **not** the current state: this story has
+> since been through a third review pass. The authoritative counts are in
+> "Review Findings — code review 2026-07-27 (pass 3)" at the end of this file and in
+> `story-1-9-…-evidence-2026-07-27.md`. Four documents previously carried four different test totals for
+> the same work; that is what this note exists to stop.
+
+### Verification (2026-07-26 pass-2 record — superseded)
 
 - UI Release build: passed with 0 warnings and 0 errors.
 - Exact seven-class focused UI executable: 349 passed, 0 failed, 0 skipped.
@@ -306,6 +313,14 @@ blocker found in them.
 
 ### Final application status — 2026-07-27
 
+> **Corrected accounting (pass-3 review, 2026-07-27).** The counts in this section do not match the
+> checklist above it. The Patch list holds **36** items — **29 `[x]`** and **7 `[ ]`** — not 32, and two of
+> the 29 checked (the unparseable-index-query dismissal and the per-page dedup deferral) were
+> reclassified rather than applied, so **27 were genuinely applied** at the time of writing. The header's
+> "52 raw findings, 43 after merge" also does not match the 36 + 8 + 1 = **45** items actually listed.
+> The 7 remaining unchecked items below are **still unchecked**: the pass-3 review examined the pass-2
+> repair delta, not this backlog, so nothing in that pass addressed them.
+
 **25 of 32 patch findings applied**, plus both reclassifications, across commits `fd16df3`,
 `332e26f`, `de2ded0`, `fe84d51`, `feb71e0`, `dc2094c`, `ff759c7`, `acfb22c`.
 
@@ -329,3 +344,90 @@ and the tightened support-safety scanner (which found three evading sites the re
 - The localizer parity gate still silently skips doubles it cannot construct.
 
 None is blocked; the work was stopped for session capacity. The story stays `in-progress`.
+
+## Review Findings — code review 2026-07-27 (pass 3)
+
+Four blind review layers (adversarial, edge-case, verification-gap, acceptance-audit) over
+`main...docs/restore-story-1-9-spec` restricted to `src/Hexalith.Tenants.UI` and
+`tests/Hexalith.Tenants.UI.Tests` — 1,203 lines, 14 files, 603 insertions / 114 deletions. This is
+the repair delta for the 2026-07-27 pass-2 review and had not been reviewed before. 64 raw findings,
+32 after merge. Severities re-rated against the shipped source at `5fdbc80`; every anchor below was
+opened and read. Gates re-run at HEAD: UI Release build 0 warnings / 0 errors, full UI executable
+**1231/1231**, focused seven-class lane **461/461**.
+
+Scope note: commits `332e26f`, `de2ded0` and `feb71e0` carry unrelated release/packaging work
+(`.github/workflows/release.yml`, `PackageGovernanceTests.cs`, `spec-gh-actions-*`) and two
+`references/` gitlink bumps under story-1.9 subjects. That work is outside this review's scope.
+
+### Decision — resolved 2026-07-27
+
+Both decisions were resolved by the story owner during this review and are carried into the Patch list
+below as the first two items.
+
+- **Fail-closed `HasMore` → option A: collapse only on hidden/absent.** The drop reason is threaded out
+  of hydration and paging stops only when every candidate was forbidden or not-found. Status-filtered,
+  null-`Name` and malformed-hit windows keep advancing, so reachability and AC1 both hold and **no spec
+  amendment is required** — the `Always` clause, the Sparse-raw-page matrix row and AC1 stay as written.
+  Accepted residual: a mixed window still advertises that something was excluded, without a count.
+- **Partial-window disclosure → out of scope, accept and record.** The behaviour at
+  `TenantQueryGatewayTests.cs:2996` stands. The `TenantQueryGateway.cs:857-863` comment must stop
+  claiming the disclosure is closed and say that only the all-hidden case is, and the partial-window
+  channel is recorded as an open risk beside TELEMETRY-SEARCH-1.9.
+
+### Original decision detail
+
+- [ ] [Review][Decision] The fail-closed `HasMore` rule contradicts an unamended acceptance criterion, and collapses on empties that are not authorization — `TenantQueryGateway.cs:864` ships `rows.Count > 0 && nextOffset < result.TotalCount`. The `<intent-contract>` still says verbatim "Count every raw hit toward the next offset", the *Sparse raw page* matrix row still says "protect the raw next offset", and AC1 still says "all raw hits advance paging without backfill"; there is no 2026-07-27 Spec Change Log entry. Worse, `rows.Count == 0` at that line has four causes, only one of which is authorization: the operator's own status recheck (`:942`), a dropped null-`Name` row (`:938`), malformed/duplicate hits (`:809`), and per-tenant 403/404 (`:970`). With `TotalCount=30`, `PageSize=20` and the first 20 dropped by the status recheck, accessible matching tenants at offsets 20-29 become unreachable while the surface asserts "No tenants you can access match this search" — and on a mid-set page it makes that global claim with Previous still enabled and four pages of matches just displayed. Options: (a) restrict the collapse to authorization/absence drops and keep advancing otherwise; (b) keep the collapse and record a spec amendment accepting unreachability; (c) revert to `TotalCount`-derived `HasMore` and close the disclosure elsewhere. Also resolves the now-unreachable `SearchPageEmptySnapshot(hasMore: true)` fixture at `TenantListSurfaceTests.cs:1531`.
+- [ ] [Review][Decision] The disclosure the fail-closed change cites is still fully open for partial windows — `TenantQueryGatewayTests.cs:2996` asserts, as intended behaviour, `HasMore = true` with a minted cursor at offset 6 after 5 of 6 candidates were dropped (forbidden, not-found, null detail, id mismatch, degraded). One row plus a live Next discloses exactly the "existence and page-granular count" that `TenantQueryGateway.cs:857-863` claims to have closed. The change therefore trades reachability away without closing the leak. Same axis as the finding above: decide whether partial-window disclosure is in scope, out of scope, or accepted with a recorded rationale.
+
+### Patch
+
+- [x] [Review][Patch] Collapse paging only when every candidate was hidden or absent: thread the drop reason out of hydration so status-filtered, null-`Name` and malformed-hit windows keep advancing [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:864]
+- [x] [Review][Patch] Stop claiming the page-granular disclosure is closed: only the all-hidden case is, and the partial-window channel must be recorded as an open risk [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:857]
+- [x] [Review][Patch] The reset button added to the empty-search surface is wired to nothing and clicking it does nothing [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:194]
+- [x] [Review][Patch] Neither fail-closed test drives an actually-hidden window; the evidence report cites the wrong pair as proof of the central non-disclosure equivalence [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:3412]
+- [x] [Review][Patch] Evidence report's immutable source pins are wrong at HEAD, and the commit that added the report bumped the two gitlinks it pins [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-27.md:18]
+- [x] [Review][Patch] Evidence report is materially stale: describes `d59dd59` and none of the four commits after it (452/1222/21-unapplied against 461/1231/7) [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-27.md:16]
+- [x] [Review][Patch] `Reason` overrides the new single-cause copy, re-distinguishing a dropped-candidate window from a genuine no-match [src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor:80]
+- [x] [Review][Patch] `status=Unknown`: dropping the index push-down does not deliver the claimed cross-surface agreement because the authoritative recheck still filters it out [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:942]
+- [x] [Review][Patch] Terminal Error/Unauthorized surface carries "You can continue browsing the authorized tenant list" over a list that just failed [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1016]
+- [x] [Review][Patch] A search term over 256 characters is silently discarded, the input is blanked mid-typing, and the unfiltered list loads with no notice [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:347]
+- [x] [Review][Patch] Next stays enabled while `NextPageAsync` silently refuses: enablement reads `_snapshot.HasMore`, the handler requires a cursor, and the ordinary path passes both through unchecked [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:251]
+- [x] [Review][Patch] The history cap drops the page-one sentinel, stranding the operator on page two with Previous disabled and no notice [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:89]
+- [x] [Review][Patch] Support-safety gate Rule 2 has no failure proof and is evaded by `string?`, bare assignment, line-wrapped chains, and `$"{x}"` interpolation [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:124]
+- [x] [Review][Patch] The "components never call Memories" guard misses the service-locator idiom `TenantsWorkspace` itself uses [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:440]
+- [x] [Review][Patch] `_pagingInFlight` has zero coverage and guards only pager-initiated loads, narrower than the race its own comment describes [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:313]
+- [x] [Review][Patch] `MoveNext`'s null-cursor refusal and `MaximumRetainedHistoryDepth` are asserted only by prose; every call site discards the new bool [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:82]
+- [x] [Review][Patch] The `detail.Name is null` reclassification has zero coverage; `TenantDetail.Name` is non-nullable and no test constructs `Name = null!` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:938]
+- [x] [Review][Patch] Pending-recovery scope: the `Dispose` removal is unpinned, the surviving clear is a guaranteed no-op on the path that needs it, and the pass-2 reversal is unrecorded [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1092]
+- [x] [Review][Patch] Verification and finding-count bookkeeping is inconsistent four ways and the checklist totals do not match the claims [_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md:309]
+- [x] [Review][Patch] The per-page dedup reclassification was recorded as deferred in the spec but never entered the deferred-work ledger [_bmad-output/implementation-artifacts/deferred-work.md:421]
+- [x] [Review][Patch] The two 256-character search bounds are an unenforced "mirror": neither constant is pinned, the 257 boundary is untested, and nothing ties them [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:40]
+- [x] [Review][Patch] The browser-Back discard notice claims a protected search page was unavailable when it was available, and uses that copy for fallback-mode discards too [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:584]
+- [x] [Review][Patch] `ListSurfaceStates.HasMore` is read by nothing but documented as retained for callers and layout decisions, and is still computed and passed [src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor:39]
+- [x] [Review][Patch] Misplaced XML doc block: the new `ToString()` took over the `Unavailable` factory's documentation, leaving duplicate tags, a `<param>` for a nonexistent parameter, and an undocumented public factory [src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationProjectionProof.cs:26]
+- [x] [Review][Patch] `Workspace_refuses_to_render_without_the_circuit_scoped_paging_service` accepts any `InvalidOperationException`, so an unrelated fixture failure keeps it green [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1907]
+- [x] [Review][Patch] The new `IsInteractiveCircuit` prerender guard on `HasPreviousPage` is unverified; the one static-render test never asserts the button's disabled state [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:394]
+
+### Defer
+
+- [x] [Review][Defer] `[x]` "Seven new Lifecycle bindings unverified end-to-end" is closed for 1 of 13 binding sites [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:76] — deferred, the other 12 sites belong to other stories' surfaces; the pass-2 checkbox should be corrected to reflect partial closure
+
+### Dismissed
+
+- Support-safety Rule 1 "over-blocks genuine record evidence" (`TenantListRow` and other `sealed record`
+  types whose compiler-generated `ToString` does print every property): the gate's stated policy is that a
+  `ToString` substring check is never acceptable evidence regardless of type, and must be replaced by an
+  assertion on a real disclosure surface. Deliberate, not a defect.
+- `stringifiedLocals` is tracked per file rather than per method, so a local named `text` can flag an
+  unrelated later test: fails closed — it can only ever produce extra findings, never miss one, and the
+  gate is green today.
+- The gate's self-exemption matches on bare file name, so any file anywhere named
+  `SupportSafetyEvidenceGateTests.cs` would be exempt: theoretical, no second such file exists and the
+  planted-file test writes to a temp directory outside the scan root.
+- "Degraded search page keeps per-row Current badges": already dismissed as a false positive in the
+  pass-2 review for the same reason (the two tenant-list paths are symmetric).
+- The three items the verification-gap layer explicitly checked and cleared — the `wholeCollectionNull`
+  theory case at `TenantQueryGatewayTests.cs:2542`, the `MaximumHydrationConcurrency` independent-literal
+  pin, and the foreign-provider codec assertions at `TenantsUiCompositionTests.cs:173-181` — are genuine
+  strengthenings that now fail on the mutations they name. Not defects; recorded so they are not
+  re-litigated.
