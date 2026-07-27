@@ -56,6 +56,21 @@ public sealed class TenantDetailSnapshot
     /// <summary>Gets non-sensitive command scope and safe remove targets.</summary>
     public TenantConfigurationManagementContext ConfigurationManagement { get; }
 
+    /// <summary>
+    /// Returns a support-safe description that omits tenant identity, configuration keys and values, ETag,
+    /// and every other reconstructable field.
+    /// </summary>
+    /// <remarks>
+    /// This type is a class, so without an override it rendered as its own type name. Absence assertions
+    /// written against that string could never fail and therefore certified nothing. A fixed shape that
+    /// emits only enums, bools, and counts makes the diagnostic pinnable by equality, which is what turns
+    /// it into evidence.
+    /// </remarks>
+    /// <returns>A fixed-shape diagnostic string carrying no disclosable material.</returns>
+    public override string ToString()
+        => $"{nameof(TenantDetailSnapshot)} {{ Kind = {Kind}, HasDetail = {Detail is not null}, "
+            + $"Freshness = {Freshness}, Lifecycle = {Lifecycle}, HasErrorMessage = {ErrorMessage is not null} }}";
+
     internal static TenantDetailSnapshot Loading()
         => Empty(TenantDetailSurfaceKind.Loading, null);
 

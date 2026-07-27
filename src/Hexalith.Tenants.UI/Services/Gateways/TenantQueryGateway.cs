@@ -36,6 +36,13 @@ internal sealed class TenantQueryGateway(
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
+    /// <summary>
+    /// Maximum accepted canonical search length. This is the workspace URL-state bound itself, not a copy of
+    /// it: a second literal could drift, and a gateway that rejected a term the workspace accepted would
+    /// leave the surface reporting an active search while serving the ordinary list.
+    /// </summary>
+    internal const int MaximumSearchLength = TenantWorkspaceState.MaximumSearchLength;
+
     /// <summary>Reason code recorded when the Memories index call itself could not be completed.</summary>
     internal const string SearchIndexUnavailableReasonCode = "search-index-unavailable";
 
@@ -695,9 +702,14 @@ internal sealed class TenantQueryGateway(
 
     private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
         int pageSize = request.PageSize is >= 1 and <= MaximumPageSize ? request.PageSize : DefaultPageSize;
-        string? search = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
+        // Mirrors TenantWorkspaceState.NormalizeSearch so a direct gateway caller cannot bypass the trim
+        // and length bound that keep the cursor scope stable and the Memories request line finite.
+        string? trimmedSearch = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
             ? null
-            : request.Search;
+            : request.Search.Trim();
+        string? search = string.IsNullOrEmpty(trimmedSearch) || trimmedSearch.Length > MaximumSearchLength
+            ? null
+            : trimmedSearch;
         TenantStatus? status = request.Status is not null && Enum.IsDefined(request.Status.Value)
             ? request.Status
             : null;
@@ -720,7 +732,18 @@ internal sealed class TenantQueryGateway(
         TenantListRequest request,
         int offset,
         CancellationToken cancellationToken) {
-        IReadOnlyDictionary<string, string>? filters = request.Status is null
+        // Only statuses the index actually records may be pushed down as an attribute filter. The index
+        // publisher coerces TenantStatus.Unknown to the event's concrete fallback and never writes
+        // status=Unknown, so forwarding it matched nothing and made "status: Unknown" plus any search term
+        // report zero tenants while the same filter on the ordinary list listed them. The authoritative
+        // recheck against the hydrated detail enforces the filter either way, so dropping the push-down
+        // costs a wider candidate window and keeps both surfaces in agreement.
+        //
+        // Agreement only actually holds because a window emptied by that recheck keeps advancing: Unknown is
+        // the rare sentinel, so its matches usually sit well past the first raw window. Collapsing paging on
+        // any empty window would have reinstated the same confident zero-result answer through the other
+        // door -- see the window-collapse rule in BuildAuthoritativeSearchSnapshotAsync.
+        IReadOnlyDictionary<string, string>? filters = request.Status is null or TenantStatus.Unknown
             ? null
             : new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["status"] = request.Status.Value.ToString(),
@@ -809,10 +832,10 @@ internal sealed class TenantQueryGateway(
         }
 
         using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
-        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)>[] hydrationTasks = candidates
+        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)>[] hydrationTasks = candidates
             .Select(candidate => HydrateSearchCandidateAsync(candidate, request.Status, concurrency, cancellationToken))
             .ToArray();
-        (int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)[] outcomes = await Task
+        (int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)[] outcomes = await Task
             .WhenAll(hydrationTasks)
             .ConfigureAwait(false);
 
@@ -839,7 +862,25 @@ internal sealed class TenantQueryGateway(
         // This is the only advancement rule under which consecutive pages neither duplicate nor skip a
         // candidate when the index legitimately omits one of its own unusable entries.
         int nextOffset = (int)Math.Min((long)rawOffset + request.PageSize, result.TotalCount);
-        bool hasMore = nextOffset < result.TotalCount;
+
+        // Fail closed only when the window was emptied by hiding. TotalCount is the raw pre-authorization
+        // index total, so deriving HasMore from it alone made an all-unauthorized page distinguishable from
+        // a genuine no-match: the former offered a live Next control, the latter did not, which disclosed
+        // both the existence and a page-granular count of tenants the caller is not allowed to see.
+        //
+        // Collapsing on any empty window instead was wrong in the other direction. A window is also emptied
+        // by the operator's own status recheck, by a dropped unrenderable record, and by malformed or
+        // duplicate index hits -- none of which is a secret. Ending paging there made accessible matches
+        // past the window unreachable while the surface claimed nothing matched at all. So the emptiness
+        // must be attributable to hiding before it ends paging.
+        //
+        // This closes the fully hidden window only. A partially hidden window still shows surviving rows
+        // beside a live Next, which continues to advertise that the window held more than it rendered. That
+        // channel is out of scope for this story and is recorded as an open risk in the evidence report.
+        bool windowHiddenOnly = rows.Count == 0
+            && outcomes.Length > 0
+            && outcomes.All(static outcome => outcome.HiddenOrAbsent);
+        bool hasMore = !windowHiddenOnly && nextOffset < result.TotalCount;
         string? nextCursor = null;
         if (hasMore) {
             try {
@@ -889,7 +930,13 @@ internal sealed class TenantQueryGateway(
             null);
     }
 
-    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)> HydrateSearchCandidateAsync(
+    /// <summary>
+    /// Hydrates one index candidate through the authorized Tenants detail seam. <c>HiddenOrAbsent</c>
+    /// distinguishes a candidate the caller may not see from one dropped for a reason that is not a secret,
+    /// because only the former may end paging: see the window-collapse rule in
+    /// <see cref="BuildAuthoritativeSearchSnapshotAsync"/>.
+    /// </summary>
+    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)> HydrateSearchCandidateAsync(
         (int Ordinal, string TenantId) candidate,
         TenantStatus? status,
         SemaphoreSlim concurrency,
@@ -903,13 +950,24 @@ internal sealed class TenantQueryGateway(
             if (result.IsNotModified
                 || detail is null
                 || result.Metadata?.IsDegraded == true
-                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)
-                || detail.Name is null) {
-                return (candidate.Ordinal, null, true, false);
+                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)) {
+                return (candidate.Ordinal, null, true, false, false);
             }
 
+            // A successfully read projection whose Name is null is one malformed record, not a Tenants
+            // outage. Classifying it as an operational failure meant a single bad row could take down
+            // whole-set search for the query that matched it and replace the result with the entire
+            // unfiltered tenant list under a misleading "search unavailable" notice. Drop the unrenderable
+            // row and raise the ordinary enrichment-degraded signal instead, which never reaches the
+            // fallback path.
+            if (detail.Name is null) {
+                return (candidate.Ordinal, null, false, true, false);
+            }
+
+            // Not hidden: the operator asked for this filter, so a window emptied by it must keep advancing
+            // rather than reporting that nothing matched the search at all.
             if (status is not null && detail.Status != status.Value) {
-                return (candidate.Ordinal, null, false, false);
+                return (candidate.Ordinal, null, false, false, false);
             }
 
             // A malformed member collection must degrade exactly like the ordinary list path: the authorized
@@ -934,16 +992,20 @@ internal sealed class TenantQueryGateway(
                     freshness,
                     lifecycle),
                 false,
-                !usableMembers);
+                !usableMembers,
+                false);
         }
+
+        // The only drop that may end paging: the caller is not permitted to see this candidate, or it no
+        // longer exists. Both are silent and indistinguishable from absence by contract.
         catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound) {
-            return (candidate.Ordinal, null, false, false);
+            return (candidate.Ordinal, null, false, false, true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
         catch (Exception ex) when (IsHydrationAvailabilityFailure(ex)) {
-            return (candidate.Ordinal, null, true, false);
+            return (candidate.Ordinal, null, true, false, false);
         }
         finally {
             _ = concurrency.Release();
@@ -978,7 +1040,14 @@ internal sealed class TenantQueryGateway(
             // The notice bars render from the notice reasons alone and never consult Kind, so a terminal
             // surface can and does carry the explanation. The clearing and its notice therefore travel
             // together on this snapshot instead of being deferred to some later renderable load.
+            // A search-unavailable signal travels here too: the terminal Error/Unauthorized copy only
+            // explains that the ordinary list failed, so without it the operator is never told that
+            // whole-set search failed independently -- which is the one thing the reason codes exist for.
+            // It must not be the ordinary SearchUnavailable notice, whose copy invites the operator to keep
+            // browsing the authorized list. On this path that list is exactly what did not load, and on the
+            // Unauthorized surface it would sit under "Sign in required" telling them to browse anyway.
             return fallback with {
+                Notice = TenantListReason.SearchAndListUnavailable,
                 PagingRecovered = searchCursorInvalidated,
                 PagingNotice = searchCursorInvalidated
                     ? TenantListReason.SearchRefreshed

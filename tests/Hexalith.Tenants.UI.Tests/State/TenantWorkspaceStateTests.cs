@@ -147,7 +147,7 @@ public sealed class TenantWorkspaceStateTests
     }
 
     [Fact]
-    public void Safe_text_is_unbounded_but_opaque_cursors_honor_the_authoritative_limit()
+    public void Search_and_identifier_text_are_bounded_and_trimmed_like_opaque_cursors()
     {
         string search = new('s', 512);
         string cursor = new('c', 4096);
@@ -166,7 +166,10 @@ public sealed class TenantWorkspaceStateTests
             selectedTenantId,
             anchor);
 
-        state.Search.ShouldBe(search);
+        // The search term is no longer unbounded. It reaches the canonical URL on every debounced
+        // keystroke, the Memories query string, and the hashed cursor scope, so a 512-char term is
+        // rejected exactly as an over-long user id or cursor is.
+        state.Search.ShouldBeNull();
         state.Cursor.ShouldBeNull();
         state.SelectedTenantId.ShouldBe(selectedTenantId);
         state.Anchor.ShouldBe(anchor);
@@ -191,6 +194,33 @@ public sealed class TenantWorkspaceStateTests
         TenantWorkspaceState.NormalizeUserId(new string('u', 257)).ShouldBeNull();
 
         TenantWorkspaceState.NormalizeCursor(new string('c', 4097)).ShouldBeNull();
+
+        // Trimming matters beyond tidiness: the term is one of the seven fields hashed into the protected
+        // cursor scope, so an untrimmed trailing space minted a different scope and silently restarted
+        // paging at page one.
+        TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: "  acme  ",
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: null,
+            anchor: null).Search.ShouldBe("acme");
+
+        TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: new string('s', 256),
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: null,
+            anchor: null).Search.ShouldNotBeNull();
     }
 
     [Fact]

@@ -276,9 +276,11 @@ public sealed class TenantQueryGatewayTests
         row.Key.ShouldBe("billing.mode");
         row.Value.ShouldBe("visible");
         snapshot.ConfigurationManagement.RemovableRows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
-        string snapshotText = snapshot.ToString().ShouldNotBeNull();
-        snapshotText.ShouldNotContain("hidden-undefined", Case.Sensitive);
-        snapshotText.ShouldNotContain("hidden-namespace", Case.Sensitive);
+        // Pinned by equality. The absence pair that stood here ran against this type's default class
+        // ToString(), which emitted only the type name, so it could not have failed for any payload.
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Ready, HasDetail = True, Freshness = Current, "
+            + "Lifecycle = Unknown, HasErrorMessage = False }");
     }
 
     [Fact]
@@ -333,7 +335,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("prior-visible", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Unavailable, HasDetail = False, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Fact]
@@ -353,7 +357,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("wrong-tenant-value", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Unavailable, HasDetail = False, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Fact]
@@ -402,7 +408,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Configuration.IsDegraded.ShouldBeTrue();
         snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("new-raw-secret", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Degraded, HasDetail = True, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Theory]
@@ -445,9 +453,9 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(expectedKind);
-        string proofText = proof.ToString() ?? string.Empty;
-        proofText.ShouldNotContain("trial", Case.Sensitive);
-        proofText.ShouldNotContain("billing.mode", Case.Sensitive);
+        // Also pinned: this type is a class too, so the absence pair ran against its type name.
+        proof.ToString().ShouldBe(
+            $"TenantConfigurationProjectionProof {{ Kind = {expectedKind}, HasTenantId = True }}");
     }
 
     [Fact]
@@ -503,8 +511,8 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        string proofText = proof.ToString() ?? string.Empty;
-        proofText.ShouldNotContain("raw projection secret", Case.Sensitive);
+        proof.ToString().ShouldBe(
+            "TenantConfigurationProjectionProof { Kind = Unavailable, HasTenantId = True }");
     }
 
     [Fact]
@@ -2564,13 +2572,22 @@ public sealed class TenantQueryGatewayTests
         snapshot.Notice.ShouldBe(TenantListReason.None);
     }
 
-    [Fact]
-    public async Task Malformed_member_collection_degrades_identically_on_both_hydration_paths()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Malformed_member_collection_degrades_identically_on_both_hydration_paths(bool wholeCollectionNull)
     {
+        // Driven with BOTH shapes. Every case previously used [null!] -- a non-null list holding a null
+        // element -- so the wholly-null branch of HasUsableMembers was never exercised. Reverting that
+        // guard to !detail.Members.Any(m => m is null) throws a NullReferenceException, which
+        // IsSurfacingDefect deliberately re-raises and which would take down the whole list page, and no
+        // test failed.
+        IReadOnlyList<TenantMember> malformedMembers = wholeCollectionNull ? null! : [null!];
+
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("alpha", 1, Hit("tenant:alpha")));
         CapturingGatewayClient searchClient = new();
-        searchClient.EnqueueQueryResult(Detail("alpha") with { Members = [null!] });
+        searchClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot searchSnapshot = await CreateGateway(searchClient, memoriesClient: memories)
             .ListTenantsAsync(new TenantListRequest(Search: "alpha", PageSize: 1), previous: null, CancellationToken.None);
 
@@ -2579,7 +2596,7 @@ public sealed class TenantQueryGatewayTests
             [new TenantSummary("alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        listClient.EnqueueQueryResult(Detail("alpha") with { Members = [null!] });
+        listClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot listSnapshot = await CreateGateway(listClient)
             .ListTenantsAsync(new TenantListRequest(PageSize: 1), previous: null, CancellationToken.None);
 
@@ -3067,8 +3084,14 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             timeout.Token);
 
-        maximum.ShouldBeLessThanOrEqualTo(TenantQueryGateway.MaximumHydrationConcurrency);
-        maximum.ShouldBeGreaterThan(TenantQueryGateway.MaximumHydrationConcurrency / 2);
+        // Pinned to an independent literal. Comparing the observed maximum only against the production
+        // constant moved both sides together: raising it to the 100 page-size ceiling -- i.e. removing the
+        // bound entirely -- satisfied "<= constant" and "> constant / 2" just as well, so the guard could
+        // not fail. The bound exists to stop a 100-hit search becoming 100 concurrent authorized reads.
+        const int expectedBound = 8;
+        TenantQueryGateway.MaximumHydrationConcurrency.ShouldBe(expectedBound);
+        maximum.ShouldBeLessThanOrEqualTo(expectedBound);
+        maximum.ShouldBeGreaterThan(expectedBound / 2);
         snapshot.Rows.Count.ShouldBe(candidateCount);
         snapshot.Rows.Select(static row => row.TenantId).ShouldBe(
             Enumerable.Range(0, candidateCount).Select(static index => $"tenant-{index:D3}"));
@@ -3356,7 +3379,36 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
         snapshot.PagingRecovered.ShouldBeTrue();
         snapshot.PagingNotice.ShouldBe(TenantListReason.SearchRefreshed);
-        snapshot.Notice.ShouldBe(TenantListReason.None);
+
+        // The terminal copy explains only that the ordinary list failed. Without this the operator is
+        // never told that whole-set search failed independently. It must not be the ordinary
+        // SearchUnavailable reason, whose copy invites the operator to keep browsing the authorized list --
+        // on this path that list is exactly what did not load.
+        snapshot.Notice.ShouldBe(TenantListReason.SearchAndListUnavailable);
+    }
+
+    [Fact]
+    public async Task List_search_does_not_invite_browsing_the_list_on_an_unauthorized_terminal_surface()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(new HttpRequestException("Memories unavailable."));
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            (int)HttpStatusCode.Unauthorized,
+            "Bearer token expired."));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle"),
+            previous: null,
+            CancellationToken.None);
+
+        // The Unauthorized surface renders "Sign in required". Carrying SearchUnavailable here put "you can
+        // continue browsing the authorized tenant list" directly under it, which is a contradiction: the
+        // notice bars render from the reason alone and never consult Kind.
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Unauthorized);
+        snapshot.Notice.ShouldBe(TenantListReason.SearchAndListUnavailable);
+        snapshot.Notice.ShouldNotBe(TenantListReason.SearchUnavailable);
     }
 
     [Fact]
@@ -3411,17 +3463,222 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldBeEmpty();
         client.SubmittedQueries.ShouldBeEmpty();
 
-        // Traversal is preserved: the next window is still reachable.
+        // The index omitted its own unusable entries: no candidate was hidden from this operator, so paging
+        // must keep advancing. Collapsing here would strand accessible matches sitting past this window
+        // behind a surface claiming nothing matched at all. Only a window emptied by hiding ends paging --
+        // see List_search_ends_paging_when_every_candidate_is_hidden.
         snapshot.HasMore.ShouldBeTrue();
-        string scope = TenantSearchCursorScopes.Create(
-            "operator-user",
+        snapshot.NextCursor.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task List_search_ends_paging_when_every_candidate_is_hidden()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(
             "needle",
-            status: null,
-            TenantListSortColumns.TenantId,
-            descending: false,
-            pageSize: 10);
-        codec.TryDecode(snapshot.NextCursor, scope, out int nextOffset).ShouldBeTrue();
-        nextOffset.ShouldBe(10);
+            totalCount: 30,
+            Hit("tenant:tenant.alpha"),
+            Hit("tenant:tenant.beta")));
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.NotFound, "Absent."));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        // Both candidates were hydrated and both were hidden or absent, so TotalCount = 30 is entirely
+        // pre-authorization knowledge. Advertising a further page would disclose the existence and a
+        // page-granular count of tenants this operator is not permitted to see.
+        client.SubmittedQueries.Count.ShouldBe(2);
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeFalse();
+        snapshot.NextCursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task List_search_keeps_paging_when_the_operators_own_status_filter_empties_the_window()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(
+            "needle",
+            totalCount: 30,
+            Hit("tenant:tenant.alpha"),
+            Hit("tenant:tenant.beta")));
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailResult(Detail("tenant.alpha"), ProjectionBackedMetadata());
+        client.EnqueueDetailResult(Detail("tenant.beta"), ProjectionBackedMetadata());
+
+        // Both hydrate as Active; the operator asked for Disabled, so the authoritative recheck drops both.
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10, Status: TenantStatus.Disabled),
+            previous: null,
+            CancellationToken.None);
+
+        // Nothing here is a secret: the operator applied this filter themselves and both candidates were
+        // readable. Ending paging would report that nothing matched the search while matching, accessible
+        // tenants sat past the window.
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.NextCursor.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task List_search_keeps_paging_when_an_unrenderable_record_empties_the_window()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 30, Hit("tenant:tenant.alpha")));
+        CapturingGatewayClient client = new();
+
+        // Name is non-nullable on the contract, so only a malformed projection can produce this.
+        client.EnqueueDetailResult(
+            Detail("tenant.alpha") with { Name = null! },
+            ProjectionBackedMetadata());
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        // One malformed record is not an outage and not a hidden tenant. It raises the ordinary
+        // enrichment-degraded signal -- which can never reach the fallback path -- and paging still advances.
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.Reason.ShouldBe(TenantListReason.RowEnrichmentUnavailable);
+        snapshot.Reason.ShouldNotBe(TenantListReason.SearchPartiallyAvailable);
+        snapshot.IsAuthoritativeSearch.ShouldBeTrue();
+        snapshot.HasMore.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task List_search_with_the_unknown_status_filter_pushes_down_no_attribute_and_keeps_paging()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 30, Hit("tenant:tenant.alpha")));
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailResult(Detail("tenant.alpha"), ProjectionBackedMetadata());
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10, Status: TenantStatus.Unknown),
+            previous: null,
+            CancellationToken.None);
+
+        // The index publisher coerces Unknown to a concrete fallback and never writes status=Unknown, so
+        // pushing it down matched nothing. Dropping the push-down only agrees with the ordinary list because
+        // the window the recheck then empties keeps advancing: Unknown is the rare sentinel, so its matches
+        // almost never sit in the first raw window.
+        memories.SearchRequests.ShouldHaveSingleItem().AttributeFilters.ShouldBeNull();
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(256, true)]
+    [InlineData(257, false)]
+    public async Task List_search_applies_the_shared_length_bound_at_its_exact_boundary(int length, bool applied)
+    {
+        // Pins the boundary itself, not a value far past it: asserting only that 512 is rejected and 256 is
+        // accepted left every bound in [256, 511] passing. The gateway constant is the workspace constant, so
+        // a direct gateway caller cannot be held to a different limit than the URL surface.
+        TenantQueryGateway.MaximumSearchLength.ShouldBe(256);
+        string term = new('a', length);
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(term, totalCount: 0));
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        _ = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: term),
+            previous: null,
+            CancellationToken.None);
+
+        if (applied)
+        {
+            memories.SearchRequests.ShouldHaveSingleItem().Query.ShouldBe(term);
+        }
+        else
+        {
+            // Rejected terms must reach neither Memories nor the request line that would carry them.
+            memories.SearchRequests.ShouldBeEmpty();
+        }
+    }
+
+    [Fact]
+    public async Task List_search_trims_the_term_before_applying_the_length_bound()
+    {
+        // Untrimmed, "acme " and "acme" hash to different cursor scopes and silently restart paging.
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 0));
+        TenantQueryGateway gateway = CreateGateway(new CapturingGatewayClient(), memoriesClient: memories);
+
+        _ = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "  needle  "),
+            previous: null,
+            CancellationToken.None);
+
+        memories.SearchRequests.ShouldHaveSingleItem().Query.ShouldBe("needle");
+    }
+
+    [Fact]
+    public async Task List_search_renders_a_fully_hidden_window_identically_to_a_genuine_no_match()
+    {
+        // The disclosure this guards is a *difference*, so one payload is not evidence. Both causes are
+        // driven through the same gateway and every operator-visible field is compared field by field.
+        //
+        // The hidden arm must really hydrate and really be refused. Feeding a zero-hit page and calling it
+        // "hidden" compared "the index omitted this window" against "nothing matched" -- neither of which is
+        // an authorization outcome -- so it could not have caught the leak it was written for.
+        async Task<TenantListSnapshot> LoadAsync(int totalCount, bool withHiddenCandidates)
+        {
+            StubMemoriesClient memories = new();
+            memories.Enqueue(withHiddenCandidates
+                ? SearchResult(
+                    "needle",
+                    totalCount: totalCount,
+                    Hit("tenant:tenant.alpha"),
+                    Hit("tenant:tenant.beta"))
+                : SearchResult("needle", totalCount: totalCount));
+            CapturingGatewayClient client = new();
+            if (withHiddenCandidates)
+            {
+                client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
+                client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.NotFound, "Absent."));
+            }
+
+            return await CreateGateway(
+                    client,
+                    memoriesClient: memories,
+                    searchCursorCodec: new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()))
+                .ListTenantsAsync(
+                    new TenantListRequest(Search: "needle", PageSize: 10),
+                    previous: null,
+                    CancellationToken.None);
+        }
+
+        // 30 matching tenants exist in the index; every candidate in this window is refused to this caller.
+        TenantListSnapshot hidden = await LoadAsync(totalCount: 30, withHiddenCandidates: true);
+        TenantListSnapshot noMatch = await LoadAsync(totalCount: 0, withHiddenCandidates: false);
+
+        hidden.Kind.ShouldBe(noMatch.Kind);
+        hidden.HasMore.ShouldBe(noMatch.HasMore);
+        hidden.NextCursor.ShouldBe(noMatch.NextCursor);
+        hidden.Reason.ShouldBe(noMatch.Reason);
+        hidden.Notice.ShouldBe(noMatch.Notice);
+        hidden.Rows.Count.ShouldBe(noMatch.Rows.Count);
+        hidden.IsDegraded.ShouldBe(noMatch.IsDegraded);
+        hidden.IsAuthorizationScopedEmpty.ShouldBe(noMatch.IsAuthorizationScopedEmpty);
+        hidden.Freshness.ShouldBe(noMatch.Freshness);
+
+        // The pinned diagnostic is a disclosure channel too, so it must not separate the two either.
+        hidden.ToString().ShouldBe(noMatch.ToString());
     }
 
     [Fact]
@@ -3541,6 +3798,60 @@ public sealed class TenantQueryGatewayTests
             new UnavailableTenantCommandGateway(),
             principalResolver: principalResolver,
             policyProvider: new TenantConfigurationReadPolicyProvider(configuration));
+    }
+
+    [Fact]
+    public async Task List_search_stamps_each_row_with_its_own_projection_lifecycle()
+    {
+        // The search path stamps ResolveLifecycle(result.Metadata) per hydrated candidate and aggregates
+        // across rows, and nothing asserted either: inverting AggregateLifecycle to always return Unknown,
+        // or dropping the per-row stamp, failed no test.
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
+
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        client.EnqueueQueryResult(
+            Detail("tenant.beta"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Rows.Count.ShouldBe(2);
+        snapshot.Rows.ShouldAllBe(row => row.Lifecycle == ProjectionLifecycleState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+    }
+
+    [Fact]
+    public async Task List_search_aggregates_disagreeing_row_lifecycles_to_unknown()
+    {
+        // Rows that disagree must not let the surface claim either state for the whole page.
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
+
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        client.EnqueueQueryResult(
+            Detail("tenant.beta"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Rebuilding));
+
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Rows.Select(static row => row.Lifecycle)
+            .ShouldBe([ProjectionLifecycleState.Current, ProjectionLifecycleState.Rebuilding], ignoreOrder: true);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
     }
 
     private static QueryResponseMetadata ProjectionBackedMetadata(

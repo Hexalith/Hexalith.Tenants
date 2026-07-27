@@ -52,9 +52,14 @@
 
                     @if (IsTenantListView)
                     {
+                        @* Maxlength stops the interactive path reaching the rejection at all: without it a
+                           pasted over-length term was accepted by the input, dropped by normalization, and
+                           the operator watched their own text disappear. A URL-supplied term still bypasses
+                           the input, which is why the rejection also raises a localized notice. *@
                         <FluentTextInput TextInputType="TextInputType.Search"
                                          Value="@_search"
                                          ValueChanged="OnSearchChanged"
+                                         MaxLength="TenantWorkspaceState.MaximumSearchLength"
                                          Immediate="true"
                                          ImmediateDelay="350"
                                          Label="@Localizer["Tenants.List.SearchLabel"]"
@@ -188,12 +193,12 @@
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
         {
-            @* No filter-reset affordance here: this surface tells the operator that later pages of the same
-               search may still hold results, so it must not also offer an action that ends that search. The
-               status filter and Reset control remain available in the toolbar above. *@
-            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty"
-                               Reason="@_snapshot.Reason"
-                               HasMore="@_snapshot.HasMore" />
+            @* This surface offers the same way out as the filtered-empty verdict, because the operator who
+               simply mistyped the term would otherwise reach a dead end. Reason is deliberately NOT passed:
+               ListSurfaceStates prefers a reason string over the state message, so a window emptied with a
+               dropped record attached would render different copy than a genuine no-match and re-disclose
+               that candidates existed -- the exact difference this surface exists to erase. *@
+            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty" OnReset="ResetFiltersAsync" />
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
         {
@@ -248,7 +253,7 @@
                     <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(!HasPreviousPage)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.List.Previous"]
                     </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!HasNextPage)" OnClick="NextPageAsync">
                         @Localizer["Tenants.List.Next"]
                     </FluentButton>
                 </FluentStack>
@@ -306,6 +311,15 @@
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
+
+    // Blazor Server does not serialise async event handlers, and a pager button stays live until the
+    // render batch that disables it is acknowledged. Without this guard a second click landed while
+    // _snapshot was the transient Loading() value and mutated the cursor stack of the wrong paging mode.
+    private bool _pagingInFlight;
+
+    // Set when the incoming raw search term was well-formed but longer than the supported bound, so the
+    // resulting unfiltered list carries a localized explanation instead of silently dropping the term.
+    private bool _searchTermTooLong;
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
     private TenantSearchPagingState? _searchPaging;
@@ -386,8 +400,16 @@
 
     private bool HasPreviousPage
         => HasActiveSearch
-            ? SearchPaging.HasPrevious(_snapshot.IsAuthoritativeSearch)
+            ? IsInteractiveCircuit && SearchPaging.HasPrevious(ActivePagingModeAuthoritative)
             : _cursorHistory.Count > 0;
+
+    // Next is offered only when the click can actually advance. Enablement read _snapshot.HasMore while both
+    // branches of NextPageAsync require a non-null cursor, and the ordinary list path passes the server's
+    // HasMore and Cursor through independently with no consistency check -- so HasMore = true beside a null
+    // cursor produced a live button whose every click did nothing: no load, no re-render, no notice. The
+    // Loading() snapshot still reports HasMore = false, so Next stays disabled for the duration of a load.
+    private bool HasNextPage
+        => _snapshot.HasMore && PagingSnapshot.NextCursor is not null;
 
     // Resolved as a required service so a dropped registration fails loudly instead of silently degrading
     // to per-component paging that cannot survive tenant-detail navigation.
@@ -453,6 +475,8 @@
             TenantListReason.ListRefreshed => Localizer["Tenants.List.Notice.ListRefreshed"],
             TenantListReason.SearchRefreshed => Localizer["Tenants.List.Notice.SearchRefreshed"],
             TenantListReason.SearchUnavailable => Localizer["Tenants.List.Notice.SearchUnavailable"],
+            TenantListReason.SearchAndListUnavailable => Localizer["Tenants.List.Notice.SearchAndListUnavailable"],
+            TenantListReason.SearchTermTooLong => Localizer["Tenants.List.Notice.SearchTermTooLong"],
             TenantListReason.SearchPagingRestarted => Localizer["Tenants.List.Notice.SearchPagingRestarted"],
             _ => string.Empty,
         };
@@ -463,6 +487,8 @@
             TenantListReason.ListRefreshed => "tenants-list-refreshed-notice",
             TenantListReason.SearchRefreshed => "tenants-list-search-refreshed-notice",
             TenantListReason.SearchUnavailable => "tenants-list-search-unavailable-notice",
+            TenantListReason.SearchAndListUnavailable => "tenants-list-search-and-list-unavailable-notice",
+            TenantListReason.SearchTermTooLong => "tenants-list-search-term-too-long-notice",
             TenantListReason.SearchPagingRestarted => "tenants-list-search-paging-restarted-notice",
             _ => string.Empty,
         };
@@ -542,6 +568,8 @@
             && HasActiveSearch
             && !string.IsNullOrWhiteSpace(authenticatedUserId);
         bool retainedPagingMatched = false;
+        bool discardedRetainedPosition = false;
+        bool discardedAuthoritativePosition = false;
         if (restoreSearchPagingContext)
         {
             if (eligibleDetailReturn)
@@ -570,6 +598,19 @@
 
             if (!eligibleDetailReturn)
             {
+                // Returning by browser Back lands on /tenants?search=... with no selected/anchor, so the
+                // return context cannot be validated and retained paging is discarded. That is correct, but
+                // it was silent: the operator who was on search page 4 arrived at page 1 with no bar
+                // explaining why. Only an actual retained position is worth a notice -- a first visit with
+                // nothing retained has restarted nothing.
+                // Which mode's position was discarded decides the copy: explaining an ordinary-list discard
+                // as protected search paging restarting asserts a protected search page that never existed.
+                discardedAuthoritativePosition = SearchPaging.SearchCursor is not null
+                    || SearchPaging.HasPrevious(authoritative: true);
+                discardedRetainedPosition = discardedAuthoritativePosition
+                    || SearchPaging.FallbackCursor is not null
+                    || SearchPaging.HasPrevious(authoritative: false);
+
                 SearchPaging.Reset();
             }
 
@@ -588,6 +629,13 @@
         if (interactiveCircuit)
         {
             SearchPaging.EnsureScope(searchScope);
+
+            // Armed strictly after EnsureScope: that call resets positions when the scope changes, and a
+            // pending scope set before it would be wiped by the very reset it is meant to explain.
+            if (discardedRetainedPosition && searchScope is not null)
+            {
+                SearchPaging.SetPendingRecoveryScope(searchScope, discardedAuthoritativePosition);
+            }
         }
 
         if (restoreSearchPagingContext
@@ -651,12 +699,18 @@
                 && string.Equals(searchScope, recoveryScopeForLoad, StringComparison.Ordinal)
                 && string.Equals(SearchPaging.PendingRecoveryScope, recoveryScopeForLoad, StringComparison.Ordinal))
             {
+                // Read the owed mode before clearing it: an ordinary-list discard gets the source-changed
+                // copy, because the protected-search copy would assert a protected search page that never
+                // existed in fallback mode.
+                bool owedAuthoritative = SearchPaging.PendingRecoveryAuthoritative ?? true;
                 SearchPaging.ClearPendingRecoveryScope();
                 snapshot = snapshot with
                 {
                     PagingRecovered = true,
                     PagingNotice = snapshot.PagingNotice is TenantListReason.None
-                        ? TenantListReason.SearchRefreshed
+                        ? owedAuthoritative
+                            ? TenantListReason.SearchRefreshed
+                            : TenantListReason.SearchPagingRestarted
                         : snapshot.PagingNotice,
                 };
             }
@@ -664,6 +718,14 @@
             if (interactiveCircuit)
             {
                 snapshot = ReconcileSearchPaging(snapshot);
+            }
+
+            // A term rejected for length is explained on the very load it caused, and only when nothing more
+            // specific is already reported. Without this the operator watched their term vanish from the
+            // input and the unfiltered list load, with no statement that a search had been refused at all.
+            if (_searchTermTooLong && snapshot.Notice is TenantListReason.None)
+            {
+                snapshot = snapshot with { Notice = TenantListReason.SearchTermTooLong };
             }
 
             _snapshot = snapshot;
@@ -792,43 +854,95 @@
         await LoadAsync(reuseETag: false);
     }
 
+    /// <summary>
+    /// The snapshot paging decisions may be read from. Never <c>_snapshot</c>: that is the transient
+    /// <c>Loading()</c> value for the whole duration of a load, whose IsAuthoritativeSearch is false and
+    /// whose NextCursor is null, so a click arriving mid-load would page the wrong mode from nowhere.
+    /// </summary>
+    private TenantListSnapshot PagingSnapshot => _lastConfirmedSnapshot ?? _snapshot;
+
+    /// <summary>
+    /// The active paging mode, taken from the circuit-scoped service that owns the cursors it describes and
+    /// survives the component recreation a tenant-detail return causes.
+    /// </summary>
+    private bool ActivePagingModeAuthoritative
+        => SearchPaging.ActiveModeAuthoritative ?? PagingSnapshot.IsAuthoritativeSearch;
+
     private async Task NextPageAsync()
     {
-        if (HasActiveSearch)
+        if (_pagingInFlight)
         {
-            SearchPaging.MoveNext(_snapshot.IsAuthoritativeSearch, _snapshot.NextCursor);
-            await LoadAsync(reuseETag: false);
             return;
         }
 
-        _cursorHistory.Push(_currentCursor);
-        ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _snapshot.NextCursor });
-        NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false);
+        _pagingInFlight = true;
+        try
+        {
+            TenantListSnapshot paging = PagingSnapshot;
+            if (HasActiveSearch)
+            {
+                // Refused when there is no next cursor, so Next can never record a back-step it cannot
+                // honour and then enable a Previous that lands on the same page.
+                if (SearchPaging.MoveNext(ActivePagingModeAuthoritative, paging.NextCursor))
+                {
+                    await LoadAsync(reuseETag: false);
+                }
+
+                return;
+            }
+
+            if (paging.NextCursor is null)
+            {
+                return;
+            }
+
+            _cursorHistory.Push(_currentCursor);
+            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = paging.NextCursor });
+            NavigateToCanonicalWorkspace();
+            await LoadAsync(reuseETag: false);
+        }
+        finally
+        {
+            _pagingInFlight = false;
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (HasActiveSearch)
+        if (_pagingInFlight)
         {
-            if (SearchPaging.TryMovePrevious(_snapshot.IsAuthoritativeSearch))
-            {
-                await LoadAsync(reuseETag: false);
-            }
-
             return;
         }
 
-        if (_cursorHistory.Count > 0)
+        _pagingInFlight = true;
+        try
         {
-            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
-            NavigateToCanonicalWorkspace();
-            await LoadAsync(reuseETag: false);
+            if (HasActiveSearch)
+            {
+                if (SearchPaging.TryMovePrevious(ActivePagingModeAuthoritative))
+                {
+                    await LoadAsync(reuseETag: false);
+                }
+
+                return;
+            }
+
+            if (_cursorHistory.Count > 0)
+            {
+                ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
+                NavigateToCanonicalWorkspace();
+                await LoadAsync(reuseETag: false);
+            }
+        }
+        finally
+        {
+            _pagingInFlight = false;
         }
     }
 
     private async Task OnSearchChanged(string? value)
     {
+        _searchTermTooLong = TenantWorkspaceState.IsSearchTooLong(value);
         ApplyWorkspaceState(CurrentWorkspaceState().WithSearch(value), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false);
@@ -900,6 +1014,7 @@
 
     private void RestoreContextFromQuery()
     {
+        _searchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         ApplyWorkspaceState(WorkspaceStateFromQuery(), clearCursorHistory: true);
     }
 
@@ -1015,7 +1130,11 @@
         _activeTabId = state.Tab;
         if (clearCursorHistory)
         {
-            _searchPaging?.ClearPendingRecoveryScope();
+            // No pending-recovery clear here. It was unreachable on the path that mattered -- this runs from
+            // RestoreContextFromQuery before SearchPaging is ever resolved, so the null-conditional made it a
+            // guaranteed no-op on a fresh instance -- and it is redundant everywhere else: EnsureScope resets
+            // PendingRecoveryScope whenever the search scope actually changes. Clearing it on a transition
+            // that keeps the same scope would destroy copy the operator is still owed.
             _cursorHistory.Clear();
             if (state.Tab == TenantsTabId && !string.IsNullOrWhiteSpace(state.Cursor))
             {
@@ -1076,8 +1195,13 @@
 
     public void Dispose()
     {
+        // The pending recovery scope is deliberately NOT cleared here. It is owed copy explaining that
+        // protected paging restarted at page one, it is bound to the exact search scope that owes it, and
+        // it lives in the circuit-scoped service precisely so it survives the component disposal a
+        // tenant-detail navigation causes. Clearing it here destroyed it on the way out and the operator
+        // came back to a silently restarted search with no notice -- the invariant ExplainsSearchRestart
+        // exists to prevent. A later load for a different scope discards it through EnsureScope.
         _disposed = true;
-        _searchPaging?.ClearPendingRecoveryScope();
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
     }

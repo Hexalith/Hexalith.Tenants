@@ -26,6 +26,19 @@ public enum TenantListReason
     /// <summary>Protected whole-set search is unavailable and the ordinary cursor list is shown.</summary>
     SearchUnavailable,
 
+    /// <summary>
+    /// Protected whole-set search is unavailable and the ordinary cursor list it fell back to also failed,
+    /// so no tenant browsing is available. Distinct from <see cref="SearchUnavailable"/> because that copy
+    /// invites the operator to keep browsing a list that, on this path, did not load.
+    /// </summary>
+    SearchAndListUnavailable,
+
+    /// <summary>
+    /// The requested search term exceeded the supported length and was not applied, so the unfiltered
+    /// authorized list is shown instead of a silently dropped search.
+    /// </summary>
+    SearchTermTooLong,
+
     /// <summary>Some search candidates could not be verified operationally.</summary>
     SearchPartiallyAvailable,
 

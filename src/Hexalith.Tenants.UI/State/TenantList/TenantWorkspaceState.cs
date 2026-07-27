@@ -34,6 +34,15 @@ public sealed record TenantWorkspaceState(
 
     private const int MaximumUserIdLength = 256;
 
+    // The search term is echoed into the canonical URL on every debounced keystroke and into the Memories
+    // query string, and it is one of the seven fields hashed into the protected cursor scope. Left
+    // unbounded a crafted term produced an over-long request line, and left untrimmed "acme " and "acme"
+    // hashed to different scopes, silently restarting paging when a stray space was added.
+    // Internal, not private: TenantQueryGateway canonicalizes a direct caller's search term against the very
+    // same bound. Two independent literals "mirroring" each other could drift, and the drift is not benign --
+    // the workspace would report an active search while the gateway served the ordinary list.
+    internal const int MaximumSearchLength = 256;
+
     // Bounds the URL-supplied return-context values (selection id + focus anchor). Gives headroom for an
     // anchor prefix over a maximum-length identifier while still rejecting an unbounded crafted value.
     private const int MaximumContextValueLength = 512;
@@ -335,8 +344,27 @@ public sealed record TenantWorkspaceState(
             _ => UserTenantMembershipSortColumns.Tenant,
         };
 
+    /// <summary>
+    /// Gets whether a raw search value is rejected solely because it exceeds the supported length. The
+    /// surface uses this to say so: dropping the term silently blanked the input the operator was typing
+    /// into and loaded the unfiltered list with no explanation, while every sibling rejection path in this
+    /// feature raises a localized notice.
+    /// </summary>
+    /// <param name="value">The raw search value from the URL or the search input.</param>
+    /// <returns><see langword="true"/> when the value is well-formed but too long.</returns>
+    internal static bool IsSearchTooLong(string? value)
+    {
+        string? trimmed = NormalizeSafeText(value)?.Trim();
+        return trimmed?.Length > MaximumSearchLength;
+    }
+
     private static string? NormalizeSearch(string? value)
-        => NormalizeSafeText(value);
+    {
+        string? trimmed = NormalizeSafeText(value)?.Trim();
+        return string.IsNullOrEmpty(trimmed) || trimmed.Length > MaximumSearchLength
+            ? null
+            : trimmed;
+    }
 
     private static string? NormalizeStatus(string? value)
     {

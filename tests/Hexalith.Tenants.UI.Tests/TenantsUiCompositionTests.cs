@@ -164,6 +164,20 @@ public sealed class TenantsUiCompositionTests
         searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
         decodedOffset.ShouldBe(20);
 
+        // Purpose isolation was previously inferred from the *container's* provider identity, which says
+        // nothing about which provider the codec actually received. A codec that ignored injection and
+        // built its own EphemeralDataProtectionProvider passed every assertion while making each cursor
+        // undecodable after a restart or on a second replica. Prove the injected provider is the one in
+        // use: an independent codec over the same provider must decode this cursor, and the same codec
+        // over a different provider must not.
+        var sameProviderCodec = new TenantSearchCursorCodec(dataProtectionProvider);
+        sameProviderCodec.TryDecode(protectedCursor, scope, out int sameProviderOffset).ShouldBeTrue(
+            "the registered codec must protect with the injected provider, not one it constructed itself");
+        sameProviderOffset.ShouldBe(20);
+
+        var foreignProviderCodec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        foreignProviderCodec.TryDecode(protectedCursor, scope, out _).ShouldBeFalse();
+
         using IServiceScope firstScope = provider.CreateScope();
         using IServiceScope secondScope = provider.CreateScope();
         TenantSearchPagingState firstPaging = firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>();
@@ -243,21 +257,31 @@ public sealed class TenantsUiCompositionTests
             ["Tenants.List.Notice.SearchUnavailable"] = (
                 "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
                 "La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée."),
+            // Not "the page was no longer available": the browser-Back path discards a position that was
+            // still perfectly available, because the return context could not be validated. The copy has to
+            // be true of every trigger that raises it.
             ["Tenants.List.Notice.SearchRefreshed"] = (
-                "The protected search page was no longer available. Search has restarted from the first page.",
-                "La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page."),
+                "Protected search paging could not be restored. Search has restarted from the first page.",
+                "La pagination de recherche protégée n'a pas pu être restaurée. La recherche a redémarré depuis la première page."),
+            ["Tenants.List.Notice.SearchAndListUnavailable"] = (
+                "Protected whole-set search is temporarily unavailable, and the authorized tenant list could not be loaded either. Try again later.",
+                "La recherche protégée sur l'ensemble des locataires est temporairement indisponible, et la liste autorisée n'a pas pu être chargée non plus. Réessayez plus tard."),
+            ["Tenants.List.Notice.SearchTermTooLong"] = (
+                "The search term was too long to apply, so the full authorized tenant list is shown. Shorten the term and search again.",
+                "Le terme recherché était trop long pour être appliqué, la liste autorisée complète est donc affichée. Raccourcissez le terme et relancez la recherche."),
             ["Tenants.List.Notice.SearchPagingRestarted"] = (
                 "The available tenant source changed. Paging restarted from the first page.",
                 "La source de locataires disponible a changé. La pagination a redémarré depuis la première page."),
             ["Tenants.List.State.SearchPageEmpty.Title"] = (
-                "No visible tenants on this search page",
-                "Aucun locataire visible sur cette page de recherche"),
+                "No tenants match this search",
+                "Aucun locataire ne correspond à cette recherche"),
+
+            // One message for both causes. A window that yields no authorized row and a window that
+            // matched nothing must be described identically, or the copy itself discloses that hidden
+            // candidates existed.
             ["Tenants.List.State.SearchPageEmpty.Message"] = (
-                "No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.",
-                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche. Les pages suivantes de la même recherche peuvent encore contenir des résultats."),
-            ["Tenants.List.State.SearchPageEmpty.FinalMessage"] = (
-                "No authorized tenants were verified on this page of the search, and no further pages remain for this search.",
-                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche et aucune page suivante ne reste pour cette recherche."),
+                "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",
+                "Aucun locataire auquel vous avez accès ne correspond à cette recherche. Vérifiez le terme recherché ou effacez-le pour revenir à la liste complète."),
             ["Tenants.List.Reason.SearchPartiallyAvailable"] = (
                 "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
                 "Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées."),
@@ -411,6 +435,62 @@ public sealed class TenantsUiCompositionTests
                 forbidden,
                 $"Interactive Tenants UI must not directly bind {forbidden}; the resolved MSBuild closure test covers transitive acquisition.");
         }
+
+        // "Components never call Memories" was an unenforced claim. Hexalith.Memories.Client.Rest is
+        // necessarily referenced -- the gateway uses it -- so the assembly-level ban above cannot express
+        // this. Adding @inject MemoriesClient to a razor component would have been caught by nothing.
+        Type[] componentTypes = uiAssembly.GetTypes()
+            .Where(static type => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(type))
+            .ToArray();
+        componentTypes.ShouldNotBeEmpty("the component scan must observe real components to mean anything");
+
+        foreach (Type componentType in componentTypes)
+        {
+            IEnumerable<Type> injectedTypes = componentType
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(static property => property.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.InjectAttribute), inherit: true).Length > 0)
+                .Select(static property => property.PropertyType)
+                .Concat(componentType
+                    .GetConstructors()
+                    .SelectMany(static constructor => constructor.GetParameters())
+                    .Select(static parameter => parameter.ParameterType));
+
+            foreach (Type injected in injectedTypes)
+            {
+                (injected.FullName ?? string.Empty).StartsWith("Hexalith.Memories", StringComparison.Ordinal)
+                    .ShouldBeFalse(
+                        $"{componentType.FullName} must reach Memories through the server-side gateway, never directly.");
+            }
+        }
+
+        // The declared-injection scan above is necessary but not sufficient, and on its own it was blind to
+        // the idiom this codebase actually writes: TenantsWorkspace injects IServiceProvider and resolves
+        // through it, so Services.GetRequiredService<MemoriesClient>() inside any component satisfied every
+        // assertion above. IServiceProvider is not a Hexalith.Memories type, and Lazy<MemoriesClient> reports
+        // System.Lazy. A source scan closes the service-locator route that reflection over declared
+        // dependencies cannot see.
+        string componentsRoot = Path.Combine(UiProjectRoot(), "Components");
+        Directory.Exists(componentsRoot).ShouldBeTrue($"the component source scan must find {componentsRoot}");
+        string[] componentSources = Directory
+            .EnumerateFiles(componentsRoot, "*.*", SearchOption.AllDirectories)
+            .Where(static path => path.EndsWith(".razor", StringComparison.Ordinal)
+                || path.EndsWith(".cs", StringComparison.Ordinal))
+            .ToArray();
+        componentSources.Length.ShouldBeGreaterThan(10, "the source scan must observe real component files");
+
+        List<string> memoriesReferences = [];
+        foreach (string path in componentSources)
+        {
+            if (File.ReadAllText(path).Contains("Memories", StringComparison.Ordinal))
+            {
+                memoriesReferences.Add(Path.GetRelativePath(componentsRoot, path));
+            }
+        }
+
+        memoriesReferences.ShouldBeEmpty(
+            "No Tenants UI component may name Memories at all -- not by injection, not through "
+            + "IServiceProvider, not through a wrapper. The index is reached only by the server-side gateway. "
+            + "Offending files: " + string.Join(", ", memoriesReferences));
 
         uiAssembly.GetCustomAttributesData()
             .Where(static attribute => string.Equals(
@@ -1074,5 +1154,26 @@ public sealed class TenantsUiCompositionTests
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
+    }
+
+    /// <summary>
+    /// Locates the shipped Tenants UI project directory by walking up from the test binary to the repository
+    /// layout. Used by the component source scan, which reflection over declared dependencies cannot replace.
+    /// </summary>
+    private static string UiProjectRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null
+            && !File.Exists(Path.Combine(directory.FullName, "Hexalith.Tenants.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        string root = Path.Combine(
+            directory.ShouldNotBeNull("The repository root must be discoverable for the component source scan.").FullName,
+            "src",
+            "Hexalith.Tenants.UI");
+        Directory.Exists(root).ShouldBeTrue($"The Tenants UI project source must be discoverable at {root}.");
+        return root;
     }
 }

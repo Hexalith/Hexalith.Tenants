@@ -138,8 +138,14 @@
   <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
     <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchAndListUnavailable" xml:space="preserve">
+    <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible, et la liste autorisée n'a pas pu être chargée non plus. Réessayez plus tard.</value>
+  </data>
+  <data name="Tenants.List.Notice.SearchTermTooLong" xml:space="preserve">
+    <value>Le terme recherché était trop long pour être appliqué, la liste autorisée complète est donc affichée. Raccourcissez le terme et relancez la recherche.</value>
+  </data>
   <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
-    <value>La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page.</value>
+    <value>La pagination de recherche protégée n'a pas pu être restaurée. La recherche a redémarré depuis la première page.</value>
   </data>
   <data name="Tenants.List.Notice.SearchPagingRestarted" xml:space="preserve">
     <value>La source de locataires disponible a changé. La pagination a redémarré depuis la première page.</value>
@@ -195,14 +201,11 @@
   <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
     <value>Aucun locataire ne correspond aux filtres</value>
   </data>
-  <data name="Tenants.List.State.SearchPageEmpty.FinalMessage" xml:space="preserve">
-    <value>Aucun locataire autorisé n'a été vérifié sur cette page de recherche et aucune page suivante ne reste pour cette recherche.</value>
-  </data>
   <data name="Tenants.List.State.SearchPageEmpty.Message" xml:space="preserve">
-    <value>Aucun locataire autorisé n'a été vérifié sur cette page de recherche. Les pages suivantes de la même recherche peuvent encore contenir des résultats.</value>
+    <value>Aucun locataire auquel vous avez accès ne correspond à cette recherche. Vérifiez le terme recherché ou effacez-le pour revenir à la liste complète.</value>
   </data>
   <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
-    <value>Aucun locataire visible sur cette page de recherche</value>
+    <value>Aucun locataire ne correspond à cette recherche</value>
   </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Les données des locataires sont chargées depuis la passerelle de requête côté serveur.</value>
