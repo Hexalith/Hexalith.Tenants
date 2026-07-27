@@ -427,6 +427,33 @@ public sealed class TenantsUiCompositionTests
                 $"Interactive Tenants UI must not directly bind {forbidden}; the resolved MSBuild closure test covers transitive acquisition.");
         }
 
+        // "Components never call Memories" was an unenforced claim. Hexalith.Memories.Client.Rest is
+        // necessarily referenced -- the gateway uses it -- so the assembly-level ban above cannot express
+        // this. Adding @inject MemoriesClient to a razor component would have been caught by nothing.
+        Type[] componentTypes = uiAssembly.GetTypes()
+            .Where(static type => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(type))
+            .ToArray();
+        componentTypes.ShouldNotBeEmpty("the component scan must observe real components to mean anything");
+
+        foreach (Type componentType in componentTypes)
+        {
+            IEnumerable<Type> injectedTypes = componentType
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Where(static property => property.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.InjectAttribute), inherit: true).Length > 0)
+                .Select(static property => property.PropertyType)
+                .Concat(componentType
+                    .GetConstructors()
+                    .SelectMany(static constructor => constructor.GetParameters())
+                    .Select(static parameter => parameter.ParameterType));
+
+            foreach (Type injected in injectedTypes)
+            {
+                (injected.FullName ?? string.Empty).StartsWith("Hexalith.Memories", StringComparison.Ordinal)
+                    .ShouldBeFalse(
+                        $"{componentType.FullName} must reach Memories through the server-side gateway, never directly.");
+            }
+        }
+
         uiAssembly.GetCustomAttributesData()
             .Where(static attribute => string.Equals(
                 attribute.AttributeType.FullName,

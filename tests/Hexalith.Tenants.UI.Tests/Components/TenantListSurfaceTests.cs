@@ -1903,6 +1903,30 @@ public sealed class TenantListSurfaceTests : BunitContext
         await cut.InvokeAsync(() => search.ValueChanged.InvokeAsync(value));
     }
 
+    [Fact]
+    public void Workspace_refuses_to_render_without_the_circuit_scoped_paging_service()
+    {
+        // The "resolved as a required service so a dropped registration fails loudly" contract was carried
+        // by a code comment only. Every fixture pre-registers the service, and the composition tests call
+        // GetRequiredService themselves on a raw container with no component involved, so reverting the
+        // component to GetService(...) ?? new TenantSearchPagingState() -- which silently degrades to
+        // per-component paging that cannot survive tenant-detail navigation -- broke nothing.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadySnapshot([])));
+        Services.AddSingleton(gateway);
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns("operator-user");
+        Services.AddSingleton(userContext);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+
+        // Deliberately no AddScoped<TenantSearchPagingState>().
+        Should.Throw<InvalidOperationException>(() => Render<TenantsWorkspace>());
+    }
+
     private void RegisterServices(TenantListSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
 

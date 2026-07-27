@@ -2536,13 +2536,22 @@ public sealed class TenantQueryGatewayTests
         snapshot.Notice.ShouldBe(TenantListReason.None);
     }
 
-    [Fact]
-    public async Task Malformed_member_collection_degrades_identically_on_both_hydration_paths()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Malformed_member_collection_degrades_identically_on_both_hydration_paths(bool wholeCollectionNull)
     {
+        // Driven with BOTH shapes. Every case previously used [null!] -- a non-null list holding a null
+        // element -- so the wholly-null branch of HasUsableMembers was never exercised. Reverting that
+        // guard to !detail.Members.Any(m => m is null) throws a NullReferenceException, which
+        // IsSurfacingDefect deliberately re-raises and which would take down the whole list page, and no
+        // test failed.
+        IReadOnlyList<TenantMember> malformedMembers = wholeCollectionNull ? null! : [null!];
+
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("alpha", 1, Hit("tenant:alpha")));
         CapturingGatewayClient searchClient = new();
-        searchClient.EnqueueQueryResult(Detail("alpha") with { Members = [null!] });
+        searchClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot searchSnapshot = await CreateGateway(searchClient, memoriesClient: memories)
             .ListTenantsAsync(new TenantListRequest(Search: "alpha", PageSize: 1), previous: null, CancellationToken.None);
 
@@ -2551,7 +2560,7 @@ public sealed class TenantQueryGatewayTests
             [new TenantSummary("alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        listClient.EnqueueQueryResult(Detail("alpha") with { Members = [null!] });
+        listClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot listSnapshot = await CreateGateway(listClient)
             .ListTenantsAsync(new TenantListRequest(PageSize: 1), previous: null, CancellationToken.None);
 
