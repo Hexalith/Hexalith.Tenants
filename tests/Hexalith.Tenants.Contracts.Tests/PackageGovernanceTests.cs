@@ -123,6 +123,48 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
+    public void EventStore_host_dependencies_follow_one_complementary_source_package_policy() {
+        const string SourceCondition = "'$(HexalithEventStoreFromSource)' == 'true'";
+        const string PackageCondition = "'$(HexalithEventStoreFromSource)' != 'true'";
+        const string VersionMetadata = "Version=$(HexalithEventStoreVersion)";
+
+        string repoRoot = FindRepoRoot();
+        XDocument hostProject = XDocument.Load(Path.Combine(
+            repoRoot,
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"));
+
+        XElement gatewayProject = hostProject.Descendants("ProjectReference").Single(reference =>
+            ((string?)reference.Attribute("Include"))?.EndsWith(
+                "\\Hexalith.EventStore.Gateway.csproj",
+                StringComparison.Ordinal) == true);
+        XElement domainServiceProject = hostProject.Descendants("ProjectReference").Single(reference =>
+            ((string?)reference.Attribute("Include"))?.EndsWith(
+                "\\Hexalith.EventStore.DomainService.csproj",
+                StringComparison.Ordinal) == true);
+        XElement gatewayPackage = hostProject.Descendants("PackageReference").Single(reference =>
+            string.Equals(
+                (string?)reference.Attribute("Include"),
+                "Hexalith.EventStore.Gateway",
+                StringComparison.Ordinal));
+        XElement domainServicePackage = hostProject.Descendants("PackageReference").Single(reference =>
+            string.Equals(
+                (string?)reference.Attribute("Include"),
+                "Hexalith.EventStore.DomainService",
+                StringComparison.Ordinal));
+
+        foreach (XElement projectReference in new[] { gatewayProject, domainServiceProject }) {
+            ((string?)projectReference.Attribute("Condition")).ShouldBe(SourceCondition);
+            ((string?)projectReference.Attribute("AdditionalProperties")).ShouldBe(VersionMetadata);
+        }
+
+        foreach (XElement packageReference in new[] { gatewayPackage, domainServicePackage }) {
+            ((string?)packageReference.Attribute("Condition")).ShouldBe(PackageCondition);
+            packageReference.Attribute("Version").ShouldBeNull();
+            packageReference.Attribute("VersionOverride").ShouldBeNull();
+        }
+    }
+
+    [Fact]
     public void Shared_build_defaults_keep_language_warning_metadata_and_EventStore_governance() {
         string repoRoot = FindRepoRoot();
         XDocument buildProps = XDocument.Load(Path.Combine(repoRoot, "Directory.Build.props"));
