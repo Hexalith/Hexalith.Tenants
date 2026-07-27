@@ -2,10 +2,10 @@
 title: 'Story 1.9: Authoritative Memories Search with Protected Paging'
 type: 'feature'
 created: '2026-07-21'
-status: 'done'
+status: 'in-progress'
 baseline_revision: '85838fbbb4efcd131a44d4ac4535110b1a9d3217'
 final_revision: '7d4007638612eef4a74f067e45f40bdd53a653b3'
-review_loop_iteration: 1
+review_loop_iteration: 2
 followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/project-context.md'
