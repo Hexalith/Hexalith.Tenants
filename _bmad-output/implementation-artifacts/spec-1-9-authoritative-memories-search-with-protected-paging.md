@@ -219,41 +219,41 @@ Resolved during review: the controlling spec was restored to this path from `1af
 
 ### Patch
 
-- [ ] [Review][Patch] Re-derive the evidence report: six materially false claims [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-26.md:141]
-- [ ] [Review][Patch] Evidence certifies two coverage-gate tests that do not exist; shipped tests assert the opposite [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1063]
-- [ ] [Review][Patch] Evidence describes terminal-surface "withheld pending decision" that is the inverse of shipped code [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
-- [ ] [Review][Patch] Evidence names non-existent member SearchPagingInvalidationPending and omits Lifecycle [src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs:17]
-- [ ] [Review][Patch] Three mutually inconsistent verification records (349/1096, 396/1145, 447/1208) [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-26.md:126]
+- [x] [Review][Patch] Re-derive the evidence report: six materially false claims [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-26.md:141]
+- [x] [Review][Patch] Evidence certifies two coverage-gate tests that do not exist; shipped tests assert the opposite [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1063]
+- [x] [Review][Patch] Evidence describes terminal-surface "withheld pending decision" that is the inverse of shipped code [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
+- [x] [Review][Patch] Evidence names non-existent member SearchPagingInvalidationPending and omits Lifecycle [src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs:17]
+- [x] [Review][Patch] Three mutually inconsistent verification records (349/1096, 396/1145, 447/1208) [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-26.md:126]
 - [x] [Review][Patch] Hydration concurrency bound asserted against itself; literal 8 pinned nowhere [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:2981]
 - [x] [Review][Patch] Support-safety gate evaded four times inside the directory it scans [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:17]
 - [x] [Review][Patch] Purpose-isolation test observes the container's provider, never the codec's [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:146]
 - [ ] [Review][Patch] Crossing test's headline assertion cannot fail in either direction [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:735]
 - [x] [Review][Patch] D2 resolved fail-closed: report HasMore=false when an authoritative page yields zero authorized rows [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:829]
-- [ ] [Review][Patch] D3 resolved: narrow the no-telemetry guarantee to caller-side HttpClient suppression; record server-log and OTel-span channels as owned open risks [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
-- [ ] [Review][Patch] Search term neither trimmed nor length-bounded, unlike every peer normalizer [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:338]
+- [x] [Review][Patch] D3 resolved: narrow the no-telemetry guarantee to caller-side HttpClient suppression; record server-log and OTel-span channels as owned open risks [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
+- [x] [Review][Patch] Search term neither trimmed nor length-bounded, unlike every peer normalizer [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:338]
 - [x] [Review][Patch] Genuine zero-match rendered as a per-page verification failure with no reset affordance [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:851]
-- [ ] [Review][Patch] Unparseable index query is indistinguishable from a genuine no-match [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:733]
+- [x] [Review][Patch] Unparseable index query is indistinguishable from a genuine no-match [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:733]
 - [x] [Review][Patch] Status filter Unknown plus search always returns zero, asymmetric with the ordinary list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:710]
 - [x] [Review][Patch] One projection with a null Name disables whole-set search and shows the unfiltered list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:890]
-- [ ] [Review][Patch] Per-page candidate dedup lets one tenant render on two consecutive pages [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:781]
-- [ ] [Review][Patch] No in-flight guard; handlers read IsAuthoritativeSearch off the Loading() snapshot [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:795]
-- [ ] [Review][Patch] Dispose() erases the pending recovery notice circuit scope existed to preserve [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1077]
-- [ ] [Review][Patch] Browser Back from a detail page silently discards protected paging with no notice [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:571]
-- [ ] [Review][Patch] Search-path Lifecycle aggregation and per-row stamp have zero assertions [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:849]
-- [ ] [Review][Patch] Seven new Lifecycle bindings unverified end-to-end on any real surface [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:76]
+- [x] [Review][Patch] Per-page candidate dedup lets one tenant render on two consecutive pages [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:781]
+- [x] [Review][Patch] No in-flight guard; handlers read IsAuthoritativeSearch off the Loading() snapshot [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:795]
+- [x] [Review][Patch] Dispose() erases the pending recovery notice circuit scope existed to preserve [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1077]
+- [x] [Review][Patch] Browser Back from a detail page silently discards protected paging with no notice [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:571]
+- [x] [Review][Patch] Search-path Lifecycle aggregation and per-row stamp have zero assertions [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:849]
+- [x] [Review][Patch] Seven new Lifecycle bindings unverified end-to-end on any real surface [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:76]
 - [ ] [Review][Patch] Log-sink non-disclosure assertions are blind to the Exception argument [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:3750]
-- [ ] [Review][Patch] HasUsableMembers null-collection branch untested on both hydration paths [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1008]
-- [ ] [Review][Patch] Required-service resolution asserted only by a code comment [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:392]
+- [x] [Review][Patch] HasUsableMembers null-collection branch untested on both hydration paths [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1008]
+- [x] [Review][Patch] Required-service resolution asserted only by a code comment [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:392]
 - [ ] [Review][Patch] Pending-recovery scope binding indistinguishable from clear-on-state-change [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1032]
 - [ ] [Review][Patch] Secondary notice bar's message and testid guards are unreachable in the test [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1266]
-- [ ] [Review][Patch] "Components never call Memories" has no enforcing test [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:390]
+- [x] [Review][Patch] "Components never call Memories" has no enforcing test [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:390]
 - [ ] [Review][Patch] Standalone-host composition test asserts nothing meaningful; Program.cs hand-duplicates the module registration [src/Hexalith.Tenants.UI/Program.cs:93]
-- [ ] [Review][Patch] NextPageAsync advances paging history even with no next cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:799]
+- [x] [Review][Patch] NextPageAsync advances paging history even with no next cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:799]
 - [x] [Review][Patch] Fallback never reports search failure when the ordinary list is also terminal [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
-- [ ] [Review][Patch] ShowPager reads the circuit-scoped service on the prerender pass it is forbidden on [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:387]
+- [x] [Review][Patch] ShowPager reads the circuit-scoped service on the prerender pass it is forbidden on [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:387]
 - [ ] [Review][Patch] JS-interop identifier scan has no control case and misses module-call spellings [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1627]
 - [ ] [Review][Patch] Localizer parity gate silently skips doubles it cannot construct; one double asserts ResourceManager against itself [tests/Hexalith.Tenants.UI.Tests/LocalizerDoubleParityTests.cs:148]
-- [ ] [Review][Patch] Protected search cursor history grows without bound inside the circuit [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:65]
+- [x] [Review][Patch] Protected search cursor history grows without bound inside the circuit [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:65]
 - [x] [Review][Patch] Delete the two reverted-attempt patch archives (976 KB) from implementation artifacts [_bmad-output/implementation-artifacts/spec-1-9-review-repair-3-reverted-attempt.patch:1]
 
 ### Defer
@@ -303,3 +303,29 @@ Reclassified during application, with reasons:
 Not yet applied — the remaining patch items above are unchecked and still open. They were reviewed
 and are actionable as written; the work was stopped for session capacity, not because of any
 blocker found in them.
+
+### Final application status — 2026-07-27
+
+**25 of 32 patch findings applied**, plus both reclassifications, across commits `fd16df3`,
+`332e26f`, `de2ded0`, `fe84d51`, `feb71e0`, `dc2094c`, `ff759c7`, `acfb22c`.
+
+Validation at each commit: UI **1231/1231**, Contracts **114/114**, Sample **39/39**,
+`Hexalith.Tenants.slnx` Release **0 warnings / 0 errors**, `git diff --check` clean.
+
+Three guards were mutation-verified rather than assumed: the codec provider-identity proof (a
+self-built provider now fails), the grid lifecycle binding (deleting it fails all four theory rows),
+and the tightened support-safety scanner (which found three evading sites the review had not).
+
+**Seven patch findings remain unchecked above**, all test-efficacy rather than behaviour:
+
+- The crossing test's headline assertion still cannot fail in either direction.
+- Log-sink assertions still do not capture the `Exception` argument, where a realistic disclosure
+  regression would land.
+- The pending-recovery scope-binding is still not distinguished from clear-on-state-change.
+- The secondary notice bar's message and testid guards are still unreachable in their test.
+- The standalone-host composition test still asserts no codec identity or round trip, while
+  `Program.cs` hand-duplicates the module registration.
+- The JS-interop identifier scan still has no control case and misses module-call spellings.
+- The localizer parity gate still silently skips doubles it cannot construct.
+
+None is blocked; the work was stopped for session capacity. The story stays `in-progress`.
