@@ -4,6 +4,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Shouldly;
 
@@ -85,6 +86,86 @@ public sealed class TenantCorrectionStartIntentTests
         intent.UnavailableReasons.ShouldContain(reason);
     }
 
+    [Fact]
+    public void Legacy_current_freshness_without_lifecycle_evidence_fails_closed()
+    {
+        // The fail-open this gate closes: ResolveFreshness reports Current from the legacy
+        // `IsStale == false` fall-through when no authoritative lifecycle evidence exists, but
+        // ProjectionLifecyclePolicy.CanMutate denies a mutation on Unknown lifecycle. Gating on
+        // freshness alone would arm a correction the platform policy forbids (Story 2.11).
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row(
+                "UserRemovedFromTenant",
+                "userId: target-user",
+                lifecycle: ProjectionLifecycleState.Unknown,
+                provenance: QueryResponseProvenance.ProjectionBacked),
+            intendedRole: TenantRole.TenantReader));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
+    }
+
+    [Theory]
+    [InlineData(QueryResponseProvenance.Unknown)]
+    [InlineData(QueryResponseProvenance.HandlerComputed)]
+    public void Non_projection_backed_provenance_fails_closed(QueryResponseProvenance provenance)
+    {
+        // Current lifecycle evidence is only authoritative on a projection-backed route; a
+        // handler-computed or unrecognized route may never arm a correction.
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row(
+                "UserRemovedFromTenant",
+                "userId: target-user",
+                lifecycle: ProjectionLifecycleState.Current,
+                provenance: provenance),
+            intendedRole: TenantRole.TenantReader));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
+    }
+
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.LocalOnly)]
+    public void Non_current_lifecycle_fails_closed_even_when_freshness_reports_current(
+        ProjectionLifecycleState lifecycle)
+    {
+        // Freshness is deliberately forced to Current so the assertion isolates the lifecycle gate:
+        // no operational lifecycle other than Current is projection-confirmed evidence for a mutation.
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row(
+                "UserRemovedFromTenant",
+                "userId: target-user",
+                lifecycle: lifecycle,
+                provenance: QueryResponseProvenance.ProjectionBacked),
+            intendedRole: TenantRole.TenantReader));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
+    }
+
+    [Fact]
+    public void Projection_confirmed_evidence_matches_the_platform_mutation_policy()
+    {
+        // Positive control: the only combination that arms a correction is exactly the combination
+        // ProjectionLifecyclePolicy.CanMutate permits.
+        TenantAuditRow row = Row(
+            "UserRemovedFromTenant",
+            "userId: target-user",
+            lifecycle: ProjectionLifecycleState.Current,
+            provenance: QueryResponseProvenance.ProjectionBacked);
+
+        ProjectionLifecyclePolicy
+            .CanMutate(isAuthorized: true, row.Provenance, row.Lifecycle)
+            .ShouldBeTrue();
+        TenantCorrectionStartIntent.Evaluate(Context(row, intendedRole: TenantRole.TenantReader))
+            .IsAvailable
+            .ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(TenantStatus.Disabled, TenantCorrectionUnavailableReason.TenantDisabled)]
     [InlineData(TenantStatus.Unknown, TenantCorrectionUnavailableReason.TenantLifecycleUnknown)]
@@ -142,7 +223,9 @@ public sealed class TenantCorrectionStartIntentTests
             Scope: "tenant.alpha",
             "UserRemovedFromTenant",
             "userId: target-user",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(new(
             TenantAuditReceipt.FromRow(row),
@@ -173,7 +256,9 @@ public sealed class TenantCorrectionStartIntentTests
             Scope: "global-administrators",
             "GlobalAdministratorRemoved",
             ReferenceContext: string.Empty,
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(new(
             TenantAuditReceipt.FromRow(row),
@@ -219,10 +304,14 @@ public sealed class TenantCorrectionStartIntentTests
             HasTenantCommandSupport: true,
             HasGlobalAdministratorCommandSupport: hasGlobalAdministratorCommandSupport);
 
+    // Defaults describe the only evidence shape that may arm a correction: a projection-backed route
+    // reporting Current lifecycle. Tests that exercise a fail-closed path override them explicitly.
     private static TenantAuditRow Row(
         string eventType,
         string referenceContext,
-        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current)
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked)
         => new(
             "event-safe-reference",
             eventType,
@@ -234,5 +323,7 @@ public sealed class TenantCorrectionStartIntentTests
             eventType.StartsWith("GlobalAdministrator", StringComparison.Ordinal) ? "global-administrators" : "tenant.alpha",
             eventType,
             referenceContext,
-            freshness);
+            freshness,
+            lifecycle,
+            provenance);
 }

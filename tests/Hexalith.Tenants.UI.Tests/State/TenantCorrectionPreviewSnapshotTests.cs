@@ -1,6 +1,7 @@
 using System.Globalization;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantAudit;
@@ -166,5 +167,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             eventType is "UserRoleChanged"
                 ? "userId: target-user; oldRole: TenantContributor; newRole: TenantReader"
                 : "userId: target-user; previousRole: TenantReader",
-            ReadModelFreshnessState.Current);
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 }
