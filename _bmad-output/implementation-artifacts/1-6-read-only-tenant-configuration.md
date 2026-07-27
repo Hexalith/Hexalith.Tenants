@@ -4,7 +4,11 @@ baseline_commit: b73093bd10608afe4e6036439a48a08924d0358b
 
 # Story 1.6: Read-Only Tenant Configuration
 
-Status: review
+Status: in-progress
+
+<!-- 2026-07-27 code review: 2 decisions resolved, 38 of 39 patches applied. One finding was reclassified as not
+implementable as specified (empty-array vs emptied-env-var policy shape) and needs a spec change; two items were
+deferred. Status is in-progress rather than done because that unresolved item remains. -->
 
 <!-- Note: This corrective story supersedes the June 2026 implementation context in
 1-6-read-only-tenant-configuration-view.md. Preserve that file as historical evidence. -->

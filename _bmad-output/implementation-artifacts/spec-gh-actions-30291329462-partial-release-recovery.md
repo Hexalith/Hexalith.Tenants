@@ -2,7 +2,7 @@
 title: 'Recover a partially published NuGet release without republishing immutable artifacts'
 type: 'bugfix'
 created: '2026-07-27'
-status: 'in-review'
+status: 'done'
 baseline_commit: '578770679b9d3bc3fdf2a8a78190f24cdad8576e'
 review_loop_iteration: 0
 context:
@@ -74,3 +74,29 @@ Recovery is intentionally separate from Semantic Release because the normal vers
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~PackageGovernanceTests` -- expected: governance tests pass.
 - `bash -n scripts/validate-partial-release-recovery.sh scripts/publish-partial-release.sh scripts/verify-partial-release.sh` -- expected: shell syntax passes.
 - `git diff --check` -- expected: no whitespace errors.
+
+## Suggested Review Order
+
+**Recovery boundary and identity gates**
+
+- Operator-controlled entry point requires production approval and exact reviewed inputs.
+  [`recover-partial-release.yml:1`](../../.github/workflows/recover-partial-release.yml#L1)
+
+- Validation proves live main, successful CI, package state, and existing release identity.
+  [`validate-partial-release-recovery.sh:20`](../../scripts/validate-partial-release-recovery.sh#L20)
+
+**Immutable publication and completion**
+
+- Publisher rechecks source/version state, compares existing package bytes, and pushes only missing packages.
+  [`publish-partial-release.sh:4`](../../scripts/publish-partial-release.sh#L4)
+
+- Final verification proves package presence, container presence, tag target, release state, and assets.
+  [`verify-partial-release.sh:4`](../../scripts/verify-partial-release.sh#L4)
+
+**Release configuration and regression coverage**
+
+- Failure reporting no longer depends on a repository label existing.
+  [`.releaserc.json:19`](../../.releaserc.json#L19)
+
+- Governance coverage protects recovery entry-point and no-duplicate-publish invariants.
+  [`PackageGovernanceTests.cs:476`](../../tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs#L476)

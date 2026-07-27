@@ -490,6 +490,7 @@ public class PackageGovernanceTests {
         publisher.ShouldContain("while IFS= read -r package_id");
         publisher.ShouldNotContain("--skip-duplicate");
         publisher.ShouldContain("gh release create");
+        File.ReadAllText(Path.Combine(repoRoot, "scripts/verify-partial-release.sh")).ShouldContain("Release asset count is not five");
     }
 
     [Fact]

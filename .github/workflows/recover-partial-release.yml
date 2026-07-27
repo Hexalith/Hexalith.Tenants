@@ -42,6 +42,9 @@ jobs:
         run: git submodule update --init references/Hexalith.Builds
       - name: Validate partial release state
         env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_VERSION: ${{ inputs.version }}
+          RECOVERY_SOURCE_SHA: ${{ inputs.source_sha }}
           GITHUB_SHA: ${{ inputs.source_sha }}
           HEXALITH_BUILDS_EXECUTION_SHA: 2eac6955a812465a4308d194ae38fee35b766b05
           HEXALITH_RELEASE_ENVIRONMENT: production
@@ -50,18 +53,24 @@ jobs:
           HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: 5
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
-        run: bash scripts/validate-partial-release-recovery.sh '${{ inputs.version }}' '${{ inputs.source_sha }}'
+        run: bash scripts/validate-partial-release-recovery.sh "$RECOVERY_VERSION" "$RECOVERY_SOURCE_SHA"
       - name: Publish missing release artifacts
         env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_VERSION: ${{ inputs.version }}
+          RECOVERY_SOURCE_SHA: ${{ inputs.source_sha }}
           GITHUB_SHA: ${{ inputs.source_sha }}
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
           HEXALITH_CONTAINER_PROJECTS: src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
-        run: bash scripts/publish-partial-release.sh '${{ inputs.version }}'
+        run: bash scripts/publish-partial-release.sh "$RECOVERY_VERSION"
       - name: Verify completed release
         env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_VERSION: ${{ inputs.version }}
+          RECOVERY_SOURCE_SHA: ${{ inputs.source_sha }}
           GITHUB_SHA: ${{ inputs.source_sha }}
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
-        run: bash scripts/verify-partial-release.sh '${{ inputs.version }}'
+        run: bash scripts/verify-partial-release.sh "$RECOVERY_VERSION"

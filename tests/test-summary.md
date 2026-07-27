@@ -274,6 +274,50 @@ build validation and no behavioral coverage. Added a dedicated fixture to close 
 - [x] EN/FR `Tenants.Configuration.*` resource parity, Fluent component/style governance, forced-colors, visible focus, responsive hooks, stable data-independent selectors, and source-level no-copy/no-reveal/no-read-mutation guards pass. `CFG-1.6-SAFE-MODEL` is closed; configuration clipboard activation/certification remains intentionally absent.
 - Validation: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --logger "console;verbosity=minimal"` passed 1031/1031. `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -m:1 --nologo` passed with 0 warnings and 0 errors. `dotnet test Hexalith.Tenants.slnx -c Release --no-build --no-restore --logger "console;verbosity=minimal"` passed Client 50/50, Contracts 112/112, Sample 39/39, Testing 181/181, Server 738/738, UI 1031/1031, and Integration 166 passed / 1 skipped (2317 passed, 1 skipped overall).
 
+### Story 1.6 Addendum — Corrections from the 2026-07-27 adversarial code review
+
+The five checked claims above overstated coverage in four places. Corrected, with the gaps now closed:
+
+- **"hidden-state absence"** rested on six `ToString()` assertions that could not fail: the change converted
+  `TenantDetailSnapshot` from a `record` to a `class`, deleting the compiler-generated `ToString`, and
+  `TenantConfigurationProjectionProof` never had one — so both rendered as their bare type name. Fixed on `main` by
+  `de2ded0`, which added support-safe overrides to both types. Real absence evidence is
+  `TenantConfigurationEndToEndTests`, which asserts hidden keys and values are absent from rendered markup (covering DOM,
+  `aria-label` accessible names, and the announcer in one pass).
+- **"Unicode/case/boundary behavior"** was proven only for `IsPrefixMatch`. Grant tenant/subject matching and the
+  `DisplaySafeKeys` set had no case-sensitivity coverage, and the story's required leading-empty-segment and visually
+  confusable prefix cases were absent entirely. Added: `Grants_apply_only_to_their_exact_ordinal_tenant_and_subject`,
+  `Display_approval_is_exact_and_ordinal_so_a_case_variant_key_is_not_approved`,
+  `Empty_segment_and_confusable_keys_cannot_broaden_an_ordinal_prefix_grant`, and
+  `A_consecutive_empty_segment_stays_inside_the_granted_namespace`.
+- **"defensive copying"** was asserted by a test composing under an empty `DisplaySafe` list, so the rows were empty with
+  or without a copy. Replaced by `Composed_rows_do_not_track_later_mutation_of_the_caller_owned_dictionary`, which
+  composes a real row and then both adds to and removes from the source dictionary.
+- **"submission-time policy reauthorization"** was proven only at the component guard, against an injected lambda; the
+  production seam `TenantsBffComposition.ReauthorizeConfigurationManagementAsync` had zero test references. Added
+  `TenantsBffCompositionTests` (9 tests) covering unchanged scope, revoked grant, cross-tenant fail-closed, and the
+  ordinal key-authorization matrix.
+- Additionally, the configuration support-safety redaction test (10 assertions on correlation ids, JWT-shaped strings,
+  exception type names, stack-trace text and PII) was **deleted** by this story and never replaced, in the same change
+  that added new exception paths. Restored as
+  `Configuration_view_never_renders_error_metadata_correlation_ids_tokens_stack_traces_or_pii`.
+- Also corrected: on logging and telemetry specifically, absence held only by construction — there was no logging surface
+  in the configuration path and no test would have flagged a new one. The provider now emits a failure *category* only
+  (`TenantConfigurationPolicyFailure`), which carries no tenant, subject, prefix, key, or value.
+
+**Re-verified (2026-07-27), using the commands the story and kernel prescribe** — the earlier record used aggregate
+`dotnet test` runs and a build without `-warnaserror`, and credited a `Sample.Tests` project that does not exist under
+`tests/`:
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings / 0 errors.
+- Focused Release classes: `TenantConfigurationReadPolicyTests` 36/36, `TenantsBffCompositionTests` 9/9,
+  `TenantQueryGatewayTests` 284/284, `TenantDetailSurfaceTests` 61/61, `SetTenantConfigurationFlowTests` 28/28,
+  `RemoveTenantConfigurationFlowTests` 12/12, `DomainUiFluentConformanceTests` 51/51,
+  `TenantConfigurationEndToEndTests` 1/1.
+- Full UI suite 1312/1312; Contracts 116/116, Client 50/50, Testing 181/181, Server 738/738.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings / 0 errors.
+- `Hexalith.Tenants.IntegrationTests` (Tier 3, non-blocking) was not run in this pass.
+
 ## Story 1.9 Authoritative Memories Search Evidence Addendum (2026-07-26)
 
 Re-derived from the amended Story 1.9 spec after commit `a6f5801` rolled back the previous
