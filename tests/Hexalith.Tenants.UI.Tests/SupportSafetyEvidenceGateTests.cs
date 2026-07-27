@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Shouldly;
 
@@ -11,7 +12,7 @@ namespace Hexalith.Tenants.UI.Tests;
 /// only enums, bools, and counts: it can never fail, therefore it certifies nothing, and offering it as
 /// non-disclosure evidence lets a green suite claim safety it never observed.
 /// </summary>
-public sealed class SupportSafetyEvidenceGateTests
+public sealed partial class SupportSafetyEvidenceGateTests
 {
     // Assembled from fragments so this gate's own source cannot trip it.
     private const string BannedAssertion = "ToString()" + ".ShouldNotContain(";
@@ -66,24 +67,62 @@ public sealed class SupportSafetyEvidenceGateTests
         {
             string relative = Path.GetRelativePath(root, path);
             if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+
+                // This gate necessarily names the pattern it bans. Its own ability to fail is proven by
+                // the planted-file test below, not by scanning its own source.
+                || string.Equals(Path.GetFileName(path), "SupportSafetyEvidenceGateTests.cs", StringComparison.Ordinal))
             {
                 continue;
             }
 
             string[] lines = File.ReadAllLines(path);
+            // Matching the literal spelling alone was trivially evaded four times inside this very
+            // directory: "(x.ToString() ?? string.Empty).ShouldNotContain(" and "var t = x.ToString();"
+            // followed by "t.ShouldNotContain(" both slipped through while being exactly the pattern this
+            // gate exists to ban. Two rules are applied instead of one literal.
+            Dictionary<string, int> stringifiedLocals = new(StringComparer.Ordinal);
             for (int index = 0; index < lines.Length; index++)
             {
-                if (lines[index].Contains(BannedAssertion, StringComparison.Ordinal)
-                    && !lines[index].TrimStart().StartsWith("//", StringComparison.Ordinal))
+                string line = lines[index];
+                if (line.TrimStart().StartsWith("//", StringComparison.Ordinal))
                 {
-                    occurrences.Add($"{relative} line {index + 1}: {lines[index].Trim()}");
+                    continue;
+                }
+
+                // Rule 1 -- one statement stringifies and asserts absence, however it is spelled.
+                if (line.Contains("ToString()", StringComparison.Ordinal)
+                    && line.Contains("ShouldNotContain", StringComparison.Ordinal))
+                {
+                    occurrences.Add($"{relative} line {index + 1}: {line.Trim()}");
+                    continue;
+                }
+
+                // Rule 2 -- the value is parked in a local first, then asserted on a later line.
+                Match assignment = StringifiedLocalPattern().Match(line);
+                if (assignment.Success)
+                {
+                    stringifiedLocals[assignment.Groups["name"].Value] = index + 1;
+                    continue;
+                }
+
+                foreach ((string name, int declaredAt) in stringifiedLocals)
+                {
+                    if (line.Contains($"{name}.ShouldNotContain", StringComparison.Ordinal))
+                    {
+                        occurrences.Add(
+                            $"{relative} line {index + 1}: {line.Trim()} "
+                            + $"(stringified at line {declaredAt})");
+                    }
                 }
             }
         }
 
         return occurrences;
     }
+
+    [GeneratedRegex(@"^\s*(?:var|string)\s+(?<name>\w+)\s*=.*\bToString\(\)")]
+    private static partial Regex StringifiedLocalPattern();
 
     private static string TestProjectRoot()
     {

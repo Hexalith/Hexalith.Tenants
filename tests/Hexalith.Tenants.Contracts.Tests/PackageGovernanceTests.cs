@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -430,6 +431,41 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
+    public async Task Release_workflow_requires_a_published_tag_at_the_exact_dispatched_source() {
+        string repoRoot = FindRepoRoot();
+        string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
+        string publicationJob = GetYamlJobBlock(workflow, "verify-publication");
+
+        publicationJob.ShouldContain("needs: release");
+        publicationJob.ShouldContain("contents: read");
+        publicationJob.ShouldNotContain("contents: write");
+        publicationJob.ShouldContain("select(.draft == false)");
+        publicationJob.ShouldContain("repos/${REPOSITORY}/commits/${encoded_tag}");
+        publicationJob.ShouldContain("[ \"$tag_sha\" = \"$DISPATCH_SHA\" ]");
+        publicationJob.ShouldContain("No published GitHub Release tag resolves to dispatched SHA");
+        publicationJob.ShouldNotContain("releases/latest");
+        publicationJob.ShouldNotContain("git/ref/heads/main");
+
+        string dispatchSha = new('a', 40);
+        (int ExitCode, string Output, string Error) noRelease = await RunPublicationPostconditionAsync(
+            workflow,
+            "[]",
+            new string('b', 40),
+            dispatchSha);
+        noRelease.ExitCode.ShouldBe(1, noRelease.Output);
+        noRelease.Error.ShouldContain("No published GitHub Release tag resolves to dispatched SHA");
+        noRelease.Error.ShouldContain("Redispatch Release");
+
+        (int ExitCode, string Output, string Error) matchingRelease = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+            dispatchSha,
+            dispatchSha);
+        matchingRelease.ExitCode.ShouldBe(0, matchingRelease.Error);
+        matchingRelease.Output.ShouldContain("resolves to dispatched SHA");
+    }
+
+    [Fact]
     public void Release_package_manifest_matches_every_other_copy_of_the_inventory() {
         string repoRoot = FindRepoRoot();
         string manifestPath = Path.Combine(repoRoot, "tools/release-packages.json");
@@ -692,6 +728,74 @@ public class PackageGovernanceTests {
         }
 
         return string.Join('\n', lines[start..end]);
+    }
+
+    private static string GetYamlStepRunBlock(string workflow, string stepName) {
+        string[] lines = workflow.Replace("\r\n", "\n").Split('\n');
+        int stepStart = Array.FindIndex(lines, line => line.Trim() == $"- name: {stepName}");
+        if (stepStart < 0) {
+            throw new InvalidOperationException($"Could not find workflow step {stepName}.");
+        }
+
+        int runStart = Array.FindIndex(lines, stepStart + 1, line => line.Trim() == "run: |");
+        if (runStart < 0) {
+            throw new InvalidOperationException($"Could not find run block for workflow step {stepName}.");
+        }
+
+        int runIndent = CountLeadingSpaces(lines[runStart]);
+        List<string> block = [];
+        for (int index = runStart + 1; index < lines.Length; index++) {
+            string line = lines[index];
+            if (!string.IsNullOrWhiteSpace(line) && CountLeadingSpaces(line) <= runIndent) {
+                break;
+            }
+
+            block.Add(string.IsNullOrWhiteSpace(line) ? string.Empty : line[(runIndent + 2)..]);
+        }
+
+        return string.Join('\n', block) + '\n';
+    }
+
+    private static async Task<(int ExitCode, string Output, string Error)> RunPublicationPostconditionAsync(
+        string workflow,
+        string releases,
+        string tagSha,
+        string dispatchSha) {
+        string script = """
+            gh() {
+              case "$*" in
+                *"/releases?per_page=100"*)
+                  printf '%s\n' "$FAKE_RELEASES"
+                  ;;
+                *)
+                  printf '%s\n' "$FAKE_TAG_SHA"
+                  ;;
+              esac
+            }
+
+            """ + GetYamlStepRunBlock(workflow, "Require published release for exact dispatched source");
+        using Process process = new() {
+            StartInfo = new ProcessStartInfo {
+                FileName = "bash",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            },
+        };
+        process.StartInfo.ArgumentList.Add("-c");
+        process.StartInfo.ArgumentList.Add(script);
+        process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
+        process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
+        process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha;
+        process.StartInfo.Environment["FAKE_RELEASES"] = releases;
+        process.StartInfo.Environment["FAKE_TAG_SHA"] = tagSha;
+
+        process.Start();
+        Task<string> output = process.StandardOutput.ReadToEndAsync();
+        Task<string> error = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        return (process.ExitCode, await output, await error);
     }
 
     private static bool YamlBlockContainsKey(string yamlBlock, string key)

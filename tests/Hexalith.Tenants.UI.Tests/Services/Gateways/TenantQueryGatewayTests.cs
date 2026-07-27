@@ -276,9 +276,11 @@ public sealed class TenantQueryGatewayTests
         row.Key.ShouldBe("billing.mode");
         row.Value.ShouldBe("visible");
         snapshot.ConfigurationManagement.RemovableRows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
-        string snapshotText = snapshot.ToString().ShouldNotBeNull();
-        snapshotText.ShouldNotContain("hidden-undefined", Case.Sensitive);
-        snapshotText.ShouldNotContain("hidden-namespace", Case.Sensitive);
+        // Pinned by equality. The absence pair that stood here ran against this type's default class
+        // ToString(), which emitted only the type name, so it could not have failed for any payload.
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Ready, HasDetail = True, Freshness = Current, "
+            + "Lifecycle = Unknown, HasErrorMessage = False }");
     }
 
     [Fact]
@@ -333,7 +335,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("prior-visible", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Unavailable, HasDetail = False, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Fact]
@@ -353,7 +357,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("wrong-tenant-value", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Unavailable, HasDetail = False, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Fact]
@@ -402,7 +408,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Configuration.IsDegraded.ShouldBeTrue();
         snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
-        (snapshot.ToString() ?? string.Empty).ShouldNotContain("new-raw-secret", Case.Sensitive);
+        snapshot.ToString().ShouldBe(
+            "TenantDetailSnapshot { Kind = Degraded, HasDetail = True, Freshness = Unknown, "
+            + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
     [Theory]
@@ -445,9 +453,9 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(expectedKind);
-        string proofText = proof.ToString() ?? string.Empty;
-        proofText.ShouldNotContain("trial", Case.Sensitive);
-        proofText.ShouldNotContain("billing.mode", Case.Sensitive);
+        // Also pinned: this type is a class too, so the absence pair ran against its type name.
+        proof.ToString().ShouldBe(
+            $"TenantConfigurationProjectionProof {{ Kind = {expectedKind}, HasTenantId = True }}");
     }
 
     [Fact]
@@ -503,8 +511,8 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        string proofText = proof.ToString() ?? string.Empty;
-        proofText.ShouldNotContain("raw projection secret", Case.Sensitive);
+        proof.ToString().ShouldBe(
+            "TenantConfigurationProjectionProof { Kind = Unavailable, HasTenantId = True }");
     }
 
     [Fact]
@@ -3031,8 +3039,14 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             timeout.Token);
 
-        maximum.ShouldBeLessThanOrEqualTo(TenantQueryGateway.MaximumHydrationConcurrency);
-        maximum.ShouldBeGreaterThan(TenantQueryGateway.MaximumHydrationConcurrency / 2);
+        // Pinned to an independent literal. Comparing the observed maximum only against the production
+        // constant moved both sides together: raising it to the 100 page-size ceiling -- i.e. removing the
+        // bound entirely -- satisfied "<= constant" and "> constant / 2" just as well, so the guard could
+        // not fail. The bound exists to stop a 100-hit search becoming 100 concurrent authorized reads.
+        const int expectedBound = 8;
+        TenantQueryGateway.MaximumHydrationConcurrency.ShouldBe(expectedBound);
+        maximum.ShouldBeLessThanOrEqualTo(expectedBound);
+        maximum.ShouldBeGreaterThan(expectedBound / 2);
         snapshot.Rows.Count.ShouldBe(candidateCount);
         snapshot.Rows.Select(static row => row.TenantId).ShouldBe(
             Enumerable.Range(0, candidateCount).Select(static index => $"tenant-{index:D3}"));

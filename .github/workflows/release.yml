@@ -103,3 +103,63 @@ jobs:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
       HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+
+  verify-publication:
+    name: Verify exact source was published
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Require published release for exact dispatched source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$DISPATCH_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The dispatched release source must be an exact lowercase commit SHA." >&2
+            exit 1
+          fi
+
+          releases="$(gh api --paginate "repos/${REPOSITORY}/releases?per_page=100" | jq -s '.')"
+          if ! printf '%s\n' "$releases" | jq -e '
+            type == "array" and
+            all(.[]; type == "array") and
+            all(.[][];
+              type == "object" and
+              (.draft | type == "boolean") and
+              (.tag_name | type == "string") and
+              (.tag_name | length > 0)
+            )
+          ' >/dev/null; then
+            echo "The GitHub Releases response could not be validated safely." >&2
+            exit 1
+          fi
+
+          published_tags="$(printf '%s\n' "$releases" | jq -r '.[][] | select(.draft == false) | .tag_name')"
+          matching_tag=''
+          while IFS= read -r tag_name; do
+            [ -n "$tag_name" ] || continue
+            encoded_tag="$(jq -rn --arg tag "$tag_name" '$tag | @uri')"
+            if ! tag_sha="$(gh api "repos/${REPOSITORY}/commits/${encoded_tag}" --jq '.sha')"; then
+              echo "The commit for published release tag '${tag_name}' could not be resolved." >&2
+              exit 1
+            fi
+            if [[ ! "$tag_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Published release tag '${tag_name}' did not resolve to an exact lowercase commit SHA." >&2
+              exit 1
+            fi
+            if [ "$tag_sha" = "$DISPATCH_SHA" ]; then
+              matching_tag="$tag_name"
+              break
+            fi
+          done <<< "$published_tags"
+
+          if [ -z "$matching_tag" ]; then
+            echo "No published GitHub Release tag resolves to dispatched SHA ${DISPATCH_SHA}. Redispatch Release from the current main tip after exact-source CI succeeds." >&2
+            exit 1
+          fi
+          echo "Published release tag '${matching_tag}' resolves to dispatched SHA ${DISPATCH_SHA}."
