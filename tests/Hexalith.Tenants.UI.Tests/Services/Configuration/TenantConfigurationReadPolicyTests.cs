@@ -206,6 +206,105 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public void An_emptied_environment_override_cannot_clear_a_declared_display_safe_list()
+    {
+        // `[]`, `""` and an emptied environment override are a single observable state at this layer
+        // (Value == "" with no element children), so the provider cannot fail closed on an empty value
+        // without taking the shipped valid-empty default dark. What bounds that residual is this: an
+        // emptied override does not shorten an already-declared list, because the declaring provider's
+        // element children still win. Approval cannot be erased from the environment.
+        const string variable = "Tenants__ConfigurationReadPolicy__DisplaySafe";
+        string? original = Environment.GetEnvironmentVariable(variable);
+        IConfiguration configuration;
+        try
+        {
+            Environment.SetEnvironmentVariable(variable, string.Empty);
+            configuration = new ConfigurationBuilder()
+                .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes("""
+                    {
+                      "Tenants": {
+                        "ConfigurationReadPolicy": {
+                          "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                          "DisplaySafe": ["billing.mode"]
+                        }
+                      }
+                    }
+                    """)))
+                .AddEnvironmentVariables()
+                .Build();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(variable, original);
+        }
+
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(configuration).Resolve(
+            "tenant.alpha",
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["billing.mode"] = "visible",
+            }),
+            policy);
+
+        policy.IsAvailable.ShouldBeTrue();
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+    }
+
+    [Fact]
+    public void An_emptied_display_safe_element_is_rejected_rather_than_silently_dropped()
+    {
+        // The one override shape that does reach the bound list — `…__DisplaySafe__0=` — arrives as an
+        // empty element rather than as a shorter list, and semantic validation already fails closed on
+        // it. Without that guard the emptied slot would bind as an unapprovable blank key.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [],
+                  "DisplaySafe": ["", "billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        policy.IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_empty_display_safe_scalar_approves_nothing_rather_than_widening_approval()
+    {
+        // Documented residual of the same decision: `"DisplaySafe": ""` is indistinguishable from the
+        // valid-empty `[]` default, so it resolves as available with nothing approved. The direction is
+        // what makes that acceptable — a malformed empty declaration can only remove rows, never add
+        // one, and never promotes an authorized prefix into display approval.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ""
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["billing.mode"] = "hidden",
+            }),
+            policy);
+
+        policy.IsAvailable.ShouldBeTrue();
+        policy.DisplaySafeKeys.ShouldBeEmpty();
+        composition.SafeModel.Rows.ShouldBeEmpty();
+        composition.SanitizedDetail.Configuration.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Valid_empty_policy_is_safe_empty_and_defensively_copies_caller_owned_data()
     {
         Dictionary<string, string> raw = new(StringComparer.Ordinal)

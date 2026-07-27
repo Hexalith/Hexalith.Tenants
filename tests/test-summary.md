@@ -318,6 +318,37 @@ The five checked claims above overstated coverage in four places. Corrected, wit
 - `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings / 0 errors.
 - `Hexalith.Tenants.IntegrationTests` (Tier 3, non-blocking) was not run in this pass.
 
+### Story 1.6 closure pass — the last open review item (2026-07-27)
+
+The review left one patch open, classified "not implementable as specified": `"DisplaySafe": ""` binds to an empty
+allow-list instead of failing closed. Re-probed against the pinned .NET 10 configuration stack before deciding.
+
+- **The blocking claim is correct.** `"DisplaySafe": []`, `"DisplaySafe": ""` and an emptied
+  `Tenants__ConfigurationReadPolicy__DisplaySafe` override all present as `Value == ""` with zero element children. No
+  code-only fix can separate them, and re-applying the "treat empty value as scalar" fix still takes the shipped
+  valid-empty `appsettings.json` default dark.
+- **The blast radius was never established, and it is what closes the item.** The environment cannot reach this state:
+  an emptied override does *not* shorten an already-declared list (`["a","b"]` still binds to two entries, because the
+  declaring provider's element children win), and the one override shape that does reach the bound list
+  (`…__DisplaySafe__0=`) arrives as a blank element that `TryValidate` already rejects. The residual is a hand-authored
+  JSON scalar typo whose only effect is zero approved keys — it can withhold approval, never grant it.
+- Closed as an accepted, test-pinned limitation rather than by a spec change. A required declared cardinality
+  (`DisplaySafeCount`) was considered and rejected: it would catch "intended 2, got 0", but since the environment cannot
+  produce that state it buys an operator sync footgun for near-zero benefit.
+- Pinned by three tests, each verified by mutation rather than assumed:
+  `An_emptied_environment_override_cannot_clear_a_declared_display_safe_list`,
+  `An_emptied_display_safe_element_is_rejected_rather_than_silently_dropped`, and
+  `An_empty_display_safe_scalar_approves_nothing_rather_than_widening_approval`. Mutating
+  `HasScalarCollection` to `child.Value is not null` fails 5 tests (2 of them new); dropping the blank-key guard from
+  `TryValidate` fails exactly the third.
+
+Re-verified with the prescribed commands: UI test project build 0 warnings / 0 errors;
+`TenantConfigurationReadPolicyTests` **39/39** (was 36), `TenantsBffCompositionTests` 9/9, `TenantQueryGatewayTests`
+284/284, `TenantDetailSurfaceTests` 61/61, `SetTenantConfigurationFlowTests` 28/28, `RemoveTenantConfigurationFlowTests`
+12/12, `DomainUiFluentConformanceTests` 51/51, `TenantConfigurationEndToEndTests` 1/1; full UI suite **1315/1315**;
+Contracts 116/116, Client 50/50, Testing 181/181, Server 738/738; `dotnet build Hexalith.Tenants.slnx -c Release
+--no-restore -warnaserror -m:1 -nr:false` 0 warnings / 0 errors. Tier 3 `IntegrationTests` not run in this pass.
+
 ## Story 1.9 Authoritative Memories Search Evidence Addendum (2026-07-26)
 
 Re-derived from the amended Story 1.9 spec after commit `a6f5801` rolled back the previous

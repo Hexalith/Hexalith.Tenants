@@ -85,10 +85,15 @@ internal sealed class TenantConfigurationReadPolicyProvider
         IConfigurationSection child = section.GetSection(childName);
 
         // A non-empty value on a collection-shaped member is a scalar. An *empty* value cannot be
-        // classified here: the JSON provider represents `"DisplaySafe": []` and an emptied
-        // `Tenants__ConfigurationReadPolicy__DisplaySafe` environment override identically, and the
-        // kernel requires the empty-array form to remain the valid-empty repository default. Failing
-        // closed on an empty value would take the shipped appsettings.json default dark.
+        // classified here: `[]`, `""` and an emptied environment override are one observable state
+        // (Value == "" with no element children), and the empty-array form is the valid-empty
+        // repository default, so failing closed on it would take the shipped appsettings.json dark.
+        //
+        // The residual is bounded, and deliberately accepted rather than traded for a redundant
+        // cardinality discriminator. An empty declaration can only withhold approval, never grant it,
+        // and an emptied environment override cannot shorten a declared list because the declaring
+        // provider's element children still win. The one override shape that does reach the bound
+        // list arrives as a blank element, which TryValidate rejects. All three are pinned by tests.
         return !string.IsNullOrEmpty(child.Value);
     }
 
