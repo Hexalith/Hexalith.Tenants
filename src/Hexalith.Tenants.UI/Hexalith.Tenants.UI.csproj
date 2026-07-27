@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Hexalith.Tenants.IntegrationTests" />
     <InternalsVisibleTo Include="Hexalith.Tenants.UI.Tests" />
   </ItemGroup>
 

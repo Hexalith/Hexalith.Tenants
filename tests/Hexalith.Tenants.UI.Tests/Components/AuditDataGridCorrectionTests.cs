@@ -61,6 +61,26 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
     }
 
     [Fact]
+    public void Audit_grid_hides_correction_start_for_untrusted_route_provenance()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantAuditRow row = Row("UserRemovedFromTenant") with
+        {
+            Provenance = QueryResponseProvenance.HandlerComputed,
+        };
+
+        IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [row])
+            .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader))));
+
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']")
+            .TextContent.ShouldContain("Refresh current evidence");
+    }
+
+    [Fact]
     public void Audit_grid_does_not_render_correction_copy_for_unsupported_rows()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -132,6 +152,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             ["Tenants.Correction.Action.Start"] = "start correction",
             ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
+            ["Tenants.Correction.Unavailable.FreshnessIndeterminate"] = "Refresh current evidence before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
         };
     }

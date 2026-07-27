@@ -108,6 +108,7 @@ public sealed class TenantCorrectionStartIntentTests
     [Theory]
     [InlineData(QueryResponseProvenance.Unknown)]
     [InlineData(QueryResponseProvenance.HandlerComputed)]
+    [InlineData((QueryResponseProvenance)999)]
     public void Non_projection_backed_provenance_fails_closed(QueryResponseProvenance provenance)
     {
         // Current lifecycle evidence is only authoritative on a projection-backed route; a
@@ -148,22 +149,52 @@ public sealed class TenantCorrectionStartIntentTests
     }
 
     [Fact]
-    public void Projection_confirmed_evidence_matches_the_platform_mutation_policy()
+    public void Available_intent_implies_the_platform_mutation_policy_allows_the_same_evidence()
     {
-        // Positive control: the only combination that arms a correction is exactly the combination
-        // ProjectionLifecyclePolicy.CanMutate permits.
-        TenantAuditRow row = Row(
-            "UserRemovedFromTenant",
-            "userId: target-user",
-            lifecycle: ProjectionLifecycleState.Current,
-            provenance: QueryResponseProvenance.ProjectionBacked);
+        // This is intentionally a one-way invariant. The platform policy is necessary evidence for
+        // correction availability, but correction-specific checks may still deny an otherwise
+        // platform-eligible mutation.
+        QueryResponseProvenance[] provenances =
+        [
+            .. Enum.GetValues<QueryResponseProvenance>(),
+            (QueryResponseProvenance)999,
+        ];
+        ProjectionLifecycleState[] lifecycles =
+        [
+            .. Enum.GetValues<ProjectionLifecycleState>(),
+            (ProjectionLifecycleState)999,
+        ];
+        ReadModelFreshnessState[] freshnessStates = Enum.GetValues<ReadModelFreshnessState>();
+        int availableCount = 0;
 
-        ProjectionLifecyclePolicy
-            .CanMutate(isAuthorized: true, row.Provenance, row.Lifecycle)
-            .ShouldBeTrue();
-        TenantCorrectionStartIntent.Evaluate(Context(row, intendedRole: TenantRole.TenantReader))
-            .IsAvailable
-            .ShouldBeTrue();
+        foreach (bool isAuthorized in new[] { false, true })
+        foreach (QueryResponseProvenance provenance in provenances)
+        foreach (ProjectionLifecycleState lifecycle in lifecycles)
+        foreach (ReadModelFreshnessState freshness in freshnessStates)
+        {
+            TenantAuditRow row = Row(
+                "UserRemovedFromTenant",
+                "userId: target-user",
+                freshness,
+                lifecycle,
+                provenance);
+            TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(
+                Context(row, intendedRole: TenantRole.TenantReader) with { IsAuthorized = isAuthorized });
+
+            if (!intent.IsAvailable)
+            {
+                continue;
+            }
+
+            availableCount++;
+            ProjectionLifecyclePolicy
+                .CanMutate(isAuthorized, row.Provenance, row.Lifecycle)
+                .ShouldBeTrue(
+                    $"Available correction evidence must satisfy the platform policy: "
+                    + $"authorized={isAuthorized}, freshness={freshness}, lifecycle={lifecycle}, provenance={provenance}.");
+        }
+
+        availableCount.ShouldBeGreaterThan(0, "the invariant matrix must retain a positive control.");
     }
 
     [Theory]
