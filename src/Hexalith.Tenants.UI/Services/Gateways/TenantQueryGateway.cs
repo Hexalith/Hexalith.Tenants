@@ -497,7 +497,7 @@ internal sealed class TenantQueryGateway(
         }
 
         PaginatedResult<TenantAuditEntry>? payload = result.Payload;
-        if (payload is null) {
+        if (payload is null || payload.Items is null) {
             return previous is not null && previous.MatchesScope(request)
                 ? previous with {
                     Kind = TenantAuditSurfaceKind.Degraded,

@@ -5,6 +5,20 @@ using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
+/// <summary>Represents support-safe audit evidence rendered by the Tenants UI.</summary>
+/// <param name="EventReference">The stable event reference.</param>
+/// <param name="EventType">The audit event type.</param>
+/// <param name="Category">The audit event category.</param>
+/// <param name="ActorId">The support-safe actor identifier.</param>
+/// <param name="Timestamp">The event timestamp.</param>
+/// <param name="TenantId">The tenant identifier carried by the evidence.</param>
+/// <param name="Target">The support-safe affected target.</param>
+/// <param name="Scope">The support-safe event scope.</param>
+/// <param name="Outcome">The support-safe event outcome.</param>
+/// <param name="ReferenceContext">The allow-listed narrative context.</param>
+/// <param name="Freshness">The normalized read-model freshness.</param>
+/// <param name="Lifecycle">The normalized projection lifecycle.</param>
+/// <param name="Provenance">The declared route provenance for the query response.</param>
 public sealed record TenantAuditRow(
     string EventReference,
     string EventType,
@@ -31,6 +45,10 @@ public sealed record TenantAuditRow(
         "occurredAt",
     ];
 
+    /// <summary>Creates a UI audit row from a query-contract entry.</summary>
+    /// <param name="entry">The query-contract audit entry.</param>
+    /// <param name="freshness">The normalized read-model freshness for the response.</param>
+    /// <returns>A support-safe audit row.</returns>
     public static TenantAuditRow FromEntry(TenantAuditEntry entry, ReadModelFreshnessState freshness) {
         ArgumentNullException.ThrowIfNull(entry);
 

@@ -1182,13 +1182,13 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(false, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Unknown, null, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
-    [InlineData(true, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
-    [InlineData(true, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
-    [InlineData(true, (QueryResponseProvenance)999, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
-    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Stale, false, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Stale, TenantAuditSurfaceKind.Stale, TenantAuditReason.ProjectionStale)]
-    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, true, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
-    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Degraded, false, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Degraded, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(false, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Unknown, null, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, QueryResponseProvenance.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(true, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, QueryResponseProvenance.HandlerComputed, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(true, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, QueryResponseProvenance.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(true, (QueryResponseProvenance)999, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, QueryResponseProvenance.Unknown, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Stale, false, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Stale, QueryResponseProvenance.ProjectionBacked, TenantAuditSurfaceKind.Stale, TenantAuditReason.ProjectionStale)]
+    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, true, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
+    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Degraded, false, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Degraded, QueryResponseProvenance.ProjectionBacked, TenantAuditSurfaceKind.Ready, TenantAuditReason.None)]
     public async Task Get_tenant_audit_not_modified_gates_freshness_on_provenance_and_lifecycle(
         bool emitMetadata,
         QueryResponseProvenance provenance,
@@ -1196,6 +1196,7 @@ public sealed class TenantQueryGatewayTests
         bool? isStale,
         ReadModelFreshnessState expectedFreshness,
         ProjectionLifecycleState expectedLifecycle,
+        QueryResponseProvenance expectedProvenance,
         TenantAuditSurfaceKind expectedKind,
         TenantAuditReason expectedReason)
     {
@@ -1219,6 +1220,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Reason.ShouldBe(expectedReason);
         snapshot.Rows.ShouldHaveSingleItem().Lifecycle.ShouldBe(expectedLifecycle);
+        snapshot.Rows.ShouldHaveSingleItem().Provenance.ShouldBe(expectedProvenance);
     }
 
     [Theory]
@@ -1247,10 +1249,13 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current)]
-    [InlineData(QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Current, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Unknown)]
-    [InlineData(QueryResponseProvenance.Unknown, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current)]
+    [InlineData(true, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Current, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Unknown)]
+    [InlineData(true, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(true, (QueryResponseProvenance)999, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(false, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Unknown)]
     public async Task Get_tenant_audit_transports_declared_route_provenance_onto_rows(
+        bool emitMetadata,
         QueryResponseProvenance provenance,
         ProjectionLifecycleState lifecycle,
         QueryResponseProvenance expectedProvenance,
@@ -1262,7 +1267,10 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-provenance", AuditEventCategory.Access)], null, false),
-            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: lifecycle, provenance: provenance));
+            metadata: emitMetadata
+                ? ProjectionBackedMetadata(isStale: false, lifecycle: lifecycle, provenance: provenance)
+                : null,
+            emitDefaultMetadata: false);
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
@@ -1320,11 +1328,35 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_audit_maps_wrong_persisted_projection_shape_to_safe_degraded_state()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantAuditEntry>(null!, null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                provenance: QueryResponseProvenance.ProjectionBacked));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
+        snapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Get_tenant_audit_preserves_previous_rows_for_missing_payload_when_scope_matches()
     {
         TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access);
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
-            [TenantAuditRow.FromEntry(AuditEntry("event-5", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            [
+                TenantAuditRow.FromEntry(AuditEntry("event-5", AuditEventCategory.Access), ReadModelFreshnessState.Current)
+                    with { Lifecycle = ProjectionLifecycleState.Current, Provenance = QueryResponseProvenance.ProjectionBacked }
+            ],
             nextCursor: null,
             hasMore: false,
             eTag: "\"known\"",
@@ -1339,7 +1371,11 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
         snapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
-        snapshot.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-5");
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.EventReference.ShouldBe("event-5");
+        row.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        row.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        row.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
     }
 
     [Theory]

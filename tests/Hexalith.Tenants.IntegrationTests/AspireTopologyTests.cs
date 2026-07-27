@@ -10,13 +10,25 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using Hexalith.Commons.UniqueIds;
+using Hexalith.EventStore.Client.Gateway;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Models;
+using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantAudit;
 
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 using Shouldly;
@@ -121,6 +133,7 @@ public class AspireTopologyTests : IDisposable {
     }
 
     [DaprFact]
+    [Trait("Tier", "3")]
     public async Task Aha_moment_demo_revokes_sample_access_from_tenant_events() {
         _fixture.SkipIfUnavailable();
 
@@ -186,6 +199,17 @@ public class AspireTopologyTests : IDisposable {
 
         JsonElement denied = await WaitForAccessAsync(tenantId, userId, "denied", timeout.Token);
         GetStringProperty(denied, "reason").ShouldBe("User is not a member");
+
+        TenantAuditSnapshot auditSnapshot = await LoadPersistedAuditConsumerSnapshotAsync(
+            tenantId,
+            token,
+            timeout.Token);
+        auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
+        auditSnapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
+        auditSnapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        auditSnapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        auditSnapshot.Rows.ShouldBeEmpty(
+            "the pre-Story-4.7 producer alias must not become correction-eligible audit evidence.");
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()
@@ -311,6 +335,55 @@ public class AspireTopologyTests : IDisposable {
             $"Sample projection did not report access '{expectedAccess}' for {tenantId}/{userId} within {SampleProjectionTimeout}. Last access: {lastAccess}.");
     }
 
+    private async Task<TenantAuditSnapshot> LoadPersistedAuditConsumerSnapshotAsync(
+        string tenantId,
+        string token,
+        CancellationToken cancellationToken) {
+        using var eventStoreHttpClient = new HttpClient {
+            BaseAddress = _fixture.CommandApiClient.BaseAddress,
+            Timeout = TimeSpan.FromSeconds(60),
+        };
+        eventStoreHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var gatewayClient = new EventStoreGatewayClient(
+            eventStoreHttpClient,
+            Options.Create(new EventStoreGatewayClientOptions()));
+        var auditQuery = new SubmitQueryRequest(
+            "system",
+            GetTenantAuditQuery.Domain,
+            tenantId,
+            GetTenantAuditQuery.QueryType,
+            GetTenantAuditQuery.ProjectionType,
+            JsonSerializer.SerializeToElement(new {
+                from = (DateTimeOffset?)null,
+                to = (DateTimeOffset?)null,
+                category = (string?)null,
+                cursor = (string?)null,
+                pageSize = 50,
+            }),
+            EntityId: tenantId);
+        EventStoreQueryResult rawResult = await gatewayClient
+            .SubmitQueryAsync(auditQuery, cancellationToken: cancellationToken);
+        JsonElement rawPayload = rawResult.Payload.ShouldNotBeNull();
+        rawPayload.GetProperty("TenantId").GetString().ShouldBe(tenantId);
+        rawPayload.GetProperty("ProjectedAt").ValueKind.ShouldBe(JsonValueKind.String);
+        QueryResponseMetadata metadata = rawResult.Metadata.ShouldNotBeNull();
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        using var memoriesHttpClient = new HttpClient { BaseAddress = new Uri("https://memories.invalid") };
+        var memoriesClient = new MemoriesClient(
+            memoriesHttpClient,
+            Options.Create(new MemoriesClientOptions()),
+            NullLogger<MemoriesClient>.Instance);
+        var gateway = new TenantQueryGateway(
+            gatewayClient,
+            new FixedUserContextAccessor("system", "admin-user"),
+            memoriesClient,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
+        return await gateway.GetTenantAuditAsync(
+            new TenantAuditRequest(tenantId),
+            previous: null,
+            cancellationToken);
+    }
+
     private static string? GetStringProperty(JsonElement element, string propertyName) {
         foreach (JsonProperty property in element.EnumerateObject()) {
             if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase)) {
@@ -329,7 +402,7 @@ public class AspireTopologyTests : IDisposable {
             new("sub", "admin-user"),
             new("tenants", "[\"system\"]"),
             new("domains", "[\"global-administrators\",\"tenants\"]"),
-            new("permissions", "[\"command:submit\"]"),
+            new("permissions", "[\"command:submit\",\"query:read\"]"),
             new("roles", "[\"GlobalAdministrator\"]"),
         ];
 
@@ -342,4 +415,6 @@ public class AspireTopologyTests : IDisposable {
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private sealed record FixedUserContextAccessor(string? TenantId, string? UserId) : IUserContextAccessor;
 }
