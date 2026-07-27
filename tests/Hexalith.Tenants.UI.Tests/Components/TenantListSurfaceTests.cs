@@ -13,6 +13,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
@@ -995,6 +996,36 @@ public sealed class TenantListSurfaceTests : BunitContext
         // the eligible-return branch. A restart the operator can see is the whole point of the notice.
         fresh.WaitForAssertion(() =>
             fresh.Find("[data-testid='tenants-list-search-refreshed-notice']").ShouldNotBeNull());
+    }
+
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Rebuilding, "truth-state-badge--rebuilding")]
+    [InlineData(ProjectionLifecycleState.Degraded, "truth-state-badge--degraded")]
+    [InlineData(ProjectionLifecycleState.Unavailable, "truth-state-badge--unavailable")]
+    [InlineData(ProjectionLifecycleState.LocalOnly, "truth-state-badge--localonly")]
+    public void Row_lifecycle_reaches_the_rendered_truth_badge_on_the_tenant_list(
+        ProjectionLifecycleState lifecycle,
+        string expectedClass)
+    {
+        // TruthStateBadge was only ever rendered directly with an explicit Lifecycle parameter, so no test
+        // observed the grid's Lifecycle="@..." binding. Deleting that binding compiled and defaulted to
+        // Unknown, rendering ordinary freshness copy over a Rebuilding or Unavailable projection with
+        // nothing failing. This drives the real surface instead.
+        RegisterServices(_ => Task.FromResult(ReadySnapshot(
+        [
+            Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)
+                with { Lifecycle = lifecycle },
+        ])));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        // An operational lifecycle must win over the row's Current freshness: the badge may not claim the
+        // data is current while the projection behind it is rebuilding or unavailable.
+        cut.Find("[data-testid='tenants-list-truth-state']")
+            .GetAttribute("class")
+            .ShouldNotBeNull()
+            .ShouldContain(expectedClass);
     }
 
     [Fact]

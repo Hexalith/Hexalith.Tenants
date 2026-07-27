@@ -3554,6 +3554,60 @@ public sealed class TenantQueryGatewayTests
             policyProvider: new TenantConfigurationReadPolicyProvider(configuration));
     }
 
+    [Fact]
+    public async Task List_search_stamps_each_row_with_its_own_projection_lifecycle()
+    {
+        // The search path stamps ResolveLifecycle(result.Metadata) per hydrated candidate and aggregates
+        // across rows, and nothing asserted either: inverting AggregateLifecycle to always return Unknown,
+        // or dropping the per-row stamp, failed no test.
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
+
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        client.EnqueueQueryResult(
+            Detail("tenant.beta"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Rows.Count.ShouldBe(2);
+        snapshot.Rows.ShouldAllBe(row => row.Lifecycle == ProjectionLifecycleState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+    }
+
+    [Fact]
+    public async Task List_search_aggregates_disagreeing_row_lifecycles_to_unknown()
+    {
+        // Rows that disagree must not let the surface claim either state for the whole page.
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
+
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        client.EnqueueQueryResult(
+            Detail("tenant.beta"),
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Rebuilding));
+
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Rows.Select(static row => row.Lifecycle)
+            .ShouldBe([ProjectionLifecycleState.Current, ProjectionLifecycleState.Rebuilding], ignoreOrder: true);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+    }
+
     private static QueryResponseMetadata ProjectionBackedMetadata(
         bool? isStale = null,
         bool? isDegraded = null,
