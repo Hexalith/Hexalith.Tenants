@@ -435,14 +435,21 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
         string publicationJob = GetYamlJobBlock(workflow, "verify-publication");
+        const string releasesInvocation = "api --paginate repos/Hexalith/Hexalith.Tenants/releases?per_page=100";
+        const string versionTag = "v1.2.3";
+        string versionTagEndpoint = TagRefEndpoint(versionTag);
 
         publicationJob.ShouldContain("needs: release");
         publicationJob.ShouldContain("contents: read");
         publicationJob.ShouldNotContain("contents: write");
         publicationJob.ShouldContain("select(.draft == false)");
-        publicationJob.ShouldContain("repos/${REPOSITORY}/commits/${encoded_tag}");
+        publicationJob.ShouldContain("repos/${REPOSITORY}/git/ref/tags/${encoded_tag}");
+        publicationJob.ShouldContain("repos/${REPOSITORY}/git/tags/${object_sha}");
         publicationJob.ShouldContain("[ \"$tag_sha\" = \"$DISPATCH_SHA\" ]");
-        publicationJob.ShouldContain("No published GitHub Release tag resolves to dispatched SHA");
+        publicationJob.ShouldContain("Inspect the Semantic Release output");
+        publicationJob.ShouldContain("redispatching will not help");
+        publicationJob.ShouldContain("Redispatch only when the source became stale");
+        publicationJob.ShouldNotContain("repos/${REPOSITORY}/commits/");
         publicationJob.ShouldNotContain("releases/latest");
         publicationJob.ShouldNotContain("git/ref/heads/main");
 
@@ -450,19 +457,114 @@ public class PackageGovernanceTests {
         (int ExitCode, string Output, string Error) noRelease = await RunPublicationPostconditionAsync(
             workflow,
             "[]",
-            new string('b', 40),
-            dispatchSha);
+            GitHubResponses(),
+            dispatchSha,
+            [releasesInvocation]);
         noRelease.ExitCode.ShouldBe(1, noRelease.Output);
-        noRelease.Error.ShouldContain("No published GitHub Release tag resolves to dispatched SHA");
-        noRelease.Error.ShouldContain("Redispatch Release");
+        noRelease.Error.ShouldStartWith("Inspect the Semantic Release output");
+        noRelease.Error.ShouldContain("no published GitHub Release tag resolves to dispatched SHA");
+        noRelease.Error.ShouldContain("redispatching will not help");
 
-        (int ExitCode, string Output, string Error) matchingRelease = await RunPublicationPostconditionAsync(
+        string differentSha = new('b', 40);
+        (int ExitCode, string Output, string Error) differentRelease = await RunPublicationPostconditionAsync(
             workflow,
             "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+            GitHubResponses((versionTagEndpoint, 0, TagRefResponse(versionTag, "commit", differentSha))),
             dispatchSha,
-            dispatchSha);
+            [releasesInvocation, $"api {versionTagEndpoint}"]);
+        differentRelease.ExitCode.ShouldBe(1, differentRelease.Output);
+        differentRelease.Error.ShouldContain("Inspect the Semantic Release output");
+
+        const string unrelatedTag = "v1.2.2";
+        string unrelatedTagEndpoint = TagRefEndpoint(unrelatedTag);
+        (int ExitCode, string Output, string Error) matchingRelease = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":false,\"tag_name\":\"v1.2.2\"},{\"draft\":false,\"tag_name\":\"v1.2.3\"},{\"draft\":false,\"tag_name\":\"v1.2.4\"}]",
+            GitHubResponses(
+                (unrelatedTagEndpoint, 0, TagRefResponse(unrelatedTag, "commit", differentSha)),
+                (versionTagEndpoint, 0, TagRefResponse(versionTag, "commit", dispatchSha))),
+            dispatchSha,
+            [releasesInvocation, $"api {unrelatedTagEndpoint}", $"api {versionTagEndpoint}"]);
         matchingRelease.ExitCode.ShouldBe(0, matchingRelease.Error);
         matchingRelease.Output.ShouldContain("resolves to dispatched SHA");
+
+        (int ExitCode, string Output, string Error) draftOnlyRelease = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":true,\"tag_name\":\"v1.2.3\"}]",
+            GitHubResponses(),
+            dispatchSha,
+            [releasesInvocation]);
+        draftOnlyRelease.ExitCode.ShouldBe(1, draftOnlyRelease.Output);
+        draftOnlyRelease.Error.ShouldContain("No published GitHub Release tag resolves");
+
+        (int ExitCode, string Output, string Error) malformedReleases = await RunPublicationPostconditionAsync(
+            workflow,
+            "{}",
+            GitHubResponses(),
+            dispatchSha,
+            [releasesInvocation]);
+        malformedReleases.ExitCode.ShouldBe(1, malformedReleases.Output);
+        malformedReleases.Error.ShouldContain("GitHub Releases response could not be validated safely");
+
+        (string Name, string TagRef, string ExpectedError)[] malformedTagCases =
+        [
+            ("wrong ref identity", TagRefResponse("v9.9.9", "commit", dispatchSha), "response could not be validated safely"),
+            ("malformed ref SHA", TagRefResponse(versionTag, "commit", "not-a-sha"), "object must have an exact lowercase SHA"),
+            ("unsupported ref object", TagRefResponse(versionTag, "tree", dispatchSha), "unsupported object type 'tree'"),
+        ];
+        foreach ((string name, string tagRef, string expectedError) in malformedTagCases) {
+            (int ExitCode, string Output, string Error) malformedTag = await RunPublicationPostconditionAsync(
+                workflow,
+                "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+                GitHubResponses((versionTagEndpoint, 0, tagRef)),
+                dispatchSha,
+                [releasesInvocation, $"api {versionTagEndpoint}"]);
+            malformedTag.ExitCode.ShouldBe(1, $"{name}: {malformedTag.Output}");
+            malformedTag.Error.ShouldContain(expectedError);
+        }
+
+        (int ExitCode, string Output, string Error) releasesApiFailure = await RunPublicationPostconditionAsync(
+            workflow,
+            "[]",
+            GitHubResponses(),
+            dispatchSha,
+            [releasesInvocation],
+            releasesExitCode: 22);
+        releasesApiFailure.ExitCode.ShouldBe(1, releasesApiFailure.Output);
+        releasesApiFailure.Error.ShouldContain("GitHub Releases API could not be queried safely");
+
+        (int ExitCode, string Output, string Error) tagRefApiFailure = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+            GitHubResponses((versionTagEndpoint, 22, string.Empty)),
+            dispatchSha,
+            [releasesInvocation, $"api {versionTagEndpoint}"]);
+        tagRefApiFailure.ExitCode.ShouldBe(1, tagRefApiFailure.Output);
+        tagRefApiFailure.Error.ShouldContain("exact tag ref 'refs/tags/v1.2.3' could not be resolved");
+
+        string tagObjectSha = new('c', 40);
+        string tagObjectEndpoint = TagObjectEndpoint(tagObjectSha);
+        (int ExitCode, string Output, string Error) peelApiFailure = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+            GitHubResponses(
+                (versionTagEndpoint, 0, TagRefResponse(versionTag, "tag", tagObjectSha)),
+                (tagObjectEndpoint, 22, string.Empty)),
+            dispatchSha,
+            [releasesInvocation, $"api {versionTagEndpoint}", $"api {tagObjectEndpoint}"]);
+        peelApiFailure.ExitCode.ShouldBe(1, peelApiFailure.Output);
+        peelApiFailure.Error.ShouldContain("could not be peeled");
+
+        (int ExitCode, string Output, string Error) malformedPeeledObject = await RunPublicationPostconditionAsync(
+            workflow,
+            "[{\"draft\":false,\"tag_name\":\"v1.2.3\"}]",
+            GitHubResponses(
+                (versionTagEndpoint, 0, TagRefResponse(versionTag, "tag", tagObjectSha)),
+                (tagObjectEndpoint, 0, TagObjectResponse(tagObjectSha, "commit", "not-a-sha"))),
+            dispatchSha,
+            [releasesInvocation, $"api {versionTagEndpoint}", $"api {tagObjectEndpoint}"]);
+        malformedPeeledObject.ExitCode.ShouldBe(1, malformedPeeledObject.Output);
+        malformedPeeledObject.Error.ShouldContain("did not peel to an exact lowercase commit SHA");
     }
 
     [Fact]
@@ -759,44 +861,96 @@ public class PackageGovernanceTests {
     private static async Task<(int ExitCode, string Output, string Error)> RunPublicationPostconditionAsync(
         string workflow,
         string releases,
-        string tagSha,
-        string dispatchSha) {
+        string githubResponses,
+        string dispatchSha,
+        string[] expectedInvocations,
+        int releasesExitCode = 0) {
         string script = """
             gh() {
-              case "$*" in
-                *"/releases?per_page=100"*)
-                  printf '%s\n' "$FAKE_RELEASES"
-                  ;;
-                *)
-                  printf '%s\n' "$FAKE_TAG_SHA"
-                  ;;
-              esac
+              printf '%s\n' "$*" >> "$FAKE_GH_LOG"
+              if [ "$#" -eq 3 ] && [ "$1" = "api" ] && [ "$2" = "--paginate" ] && [ "$3" = "repos/${REPOSITORY}/releases?per_page=100" ]; then
+                if [ "$FAKE_RELEASES_EXIT_CODE" -ne 0 ]; then
+                  echo "simulated Releases API failure" >&2
+                  return "$FAKE_RELEASES_EXIT_CODE"
+                fi
+                printf '%s\n' "$FAKE_RELEASES"
+                return 0
+              fi
+              if [ "$#" -eq 2 ] && [ "$1" = "api" ]; then
+                if ! response="$(printf '%s\n' "$FAKE_GH_RESPONSES" | jq -cer --arg endpoint "$2" '.[$endpoint]')"; then
+                  echo "unexpected gh endpoint: $2" >&2
+                  return 97
+                fi
+                response_exit_code="$(printf '%s\n' "$response" | jq -r '.exit_code')"
+                if [ "$response_exit_code" -ne 0 ]; then
+                  echo "simulated API failure for $2" >&2
+                  return "$response_exit_code"
+                fi
+                printf '%s\n' "$response" | jq -r '.body'
+                return 0
+              fi
+              echo "unexpected gh invocation: $*" >&2
+              return 97
             }
 
             """ + GetYamlStepRunBlock(workflow, "Require published release for exact dispatched source");
-        using Process process = new() {
-            StartInfo = new ProcessStartInfo {
-                FileName = "bash",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-            },
-        };
-        process.StartInfo.ArgumentList.Add("-c");
-        process.StartInfo.ArgumentList.Add(script);
-        process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
-        process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
-        process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha;
-        process.StartInfo.Environment["FAKE_RELEASES"] = releases;
-        process.StartInfo.Environment["FAKE_TAG_SHA"] = tagSha;
+        string invocationLog = Path.GetTempFileName();
+        try {
+            using Process process = new() {
+                StartInfo = new ProcessStartInfo {
+                    FileName = "bash",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                },
+            };
+            process.StartInfo.ArgumentList.Add("-c");
+            process.StartInfo.ArgumentList.Add(script);
+            process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
+            process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
+            process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha;
+            process.StartInfo.Environment["FAKE_RELEASES"] = releases;
+            process.StartInfo.Environment["FAKE_RELEASES_EXIT_CODE"] = releasesExitCode.ToString(CultureInfo.InvariantCulture);
+            process.StartInfo.Environment["FAKE_GH_RESPONSES"] = githubResponses;
+            process.StartInfo.Environment["FAKE_GH_LOG"] = invocationLog;
 
-        process.Start();
-        Task<string> output = process.StandardOutput.ReadToEndAsync();
-        Task<string> error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+            process.Start();
+            Task<string> output = process.StandardOutput.ReadToEndAsync();
+            Task<string> error = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
 
-        return (process.ExitCode, await output, await error);
+            string[] actualInvocations = await File.ReadAllLinesAsync(invocationLog);
+            actualInvocations.ShouldBe(expectedInvocations, "The postcondition must call only the exact reviewed GitHub API endpoints.");
+            return (process.ExitCode, await output, await error);
+        }
+        finally {
+            File.Delete(invocationLog);
+        }
     }
+
+    private static string GitHubResponses(params (string Endpoint, int ExitCode, string Body)[] responses)
+        => JsonSerializer.Serialize(responses.ToDictionary(
+            response => response.Endpoint,
+            response => new { exit_code = response.ExitCode, body = response.Body },
+            StringComparer.Ordinal));
+
+    private static string TagRefEndpoint(string tagName)
+        => $"repos/Hexalith/Hexalith.Tenants/git/ref/tags/{tagName}";
+
+    private static string TagObjectEndpoint(string objectSha)
+        => $"repos/Hexalith/Hexalith.Tenants/git/tags/{objectSha}";
+
+    private static string TagRefResponse(string tagName, string objectType, string objectSha)
+        => JsonSerializer.Serialize(new {
+            @ref = $"refs/tags/{tagName}",
+            @object = new { type = objectType, sha = objectSha },
+        });
+
+    private static string TagObjectResponse(string objectSha, string peeledType, string peeledSha)
+        => JsonSerializer.Serialize(new {
+            sha = objectSha,
+            @object = new { type = peeledType, sha = peeledSha },
+        });
 
     private static bool YamlBlockContainsKey(string yamlBlock, string key)
         => Regex.IsMatch(yamlBlock, $@"(?m)^\s*['""]?{Regex.Escape(key)}['""]?\s*:");

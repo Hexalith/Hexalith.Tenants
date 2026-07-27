@@ -444,3 +444,7 @@ status: open
   summary: The CI package-boundary gate asserts the fixture it generates from its own allowlist.
   evidence: `CiQualityGateScriptTests.cs:309` mirrors `scripts/validate-nuget-packages.py:64`; `ExpectedDependencies` is used to synthesise the `.nupkg` fixtures fed to the script, so the test verifies only that two copies of the same literal agree, never that `Microsoft.Extensions.Http.Resilience` is genuinely upstream-owned. Widening the allowlist to silence a real leak would pass.
   status: open
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-30240946791-89897853390.md`
+  summary: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`.
+  evidence: `domain-release.yml` and the pre-existing publication preflight reject every source branch except `main`, while the reusable-workflow input description says only that it is an exact protected source branch; resolving that public contract is broader than the stale-release race fix.

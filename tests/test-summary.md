@@ -333,3 +333,18 @@ review-repair delta.
   `LocalizerDoubleParityTests` passed 2/2; the full UI executable passed 1145/1145;
   `MemoriesSearchIndexEventPublisherTests` passed 7/7 after a warning-clean sample-test build; the
   Release solution build passed with 0 warnings / 0 errors; and `git diff --check` passed.
+
+## Story 1.9 Evidence Correction (2026-07-27)
+
+The 2026-07-26 addendum above overstated three things and is corrected here. It claimed cursor
+invalidation on a terminal surface "withholds the clearing together with its notice and delivers both
+on the next renderable load"; the shipped code clears on the load that reports it and says so
+explicitly, and no deferral mechanism exists. It claimed no `ToString()` substring check was offered
+as support-safety evidence; seven such checks were live in the UI test project, four of them against
+classes with no `ToString` override, and all are now pinned by equality behind a scanner that matches
+same-statement and stringified-local spellings. It described a `SearchPageEmpty` copy that splits on
+`HasMore`; that split is gone, because an authoritative window yielding no authorized row now ends
+paging and both causes must render identically.
+
+- Validation at `d59dd59`: UI 1,222/1,222; focused seven-class lane 452/452; Contracts 114/114;
+  Sample index-handoff 7/7; `Hexalith.Tenants.slnx` Release build 0 warnings / 0 errors.
