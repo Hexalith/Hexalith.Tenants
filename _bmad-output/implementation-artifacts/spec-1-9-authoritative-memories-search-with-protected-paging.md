@@ -224,17 +224,17 @@ Resolved during review: the controlling spec was restored to this path from `1af
 - [ ] [Review][Patch] Evidence describes terminal-surface "withheld pending decision" that is the inverse of shipped code [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
 - [ ] [Review][Patch] Evidence names non-existent member SearchPagingInvalidationPending and omits Lifecycle [src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs:17]
 - [ ] [Review][Patch] Three mutually inconsistent verification records (349/1096, 396/1145, 447/1208) [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-26.md:126]
-- [ ] [Review][Patch] Hydration concurrency bound asserted against itself; literal 8 pinned nowhere [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:2981]
-- [ ] [Review][Patch] Support-safety gate evaded four times inside the directory it scans [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:17]
-- [ ] [Review][Patch] Purpose-isolation test observes the container's provider, never the codec's [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:146]
+- [x] [Review][Patch] Hydration concurrency bound asserted against itself; literal 8 pinned nowhere [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:2981]
+- [x] [Review][Patch] Support-safety gate evaded four times inside the directory it scans [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:17]
+- [x] [Review][Patch] Purpose-isolation test observes the container's provider, never the codec's [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:146]
 - [ ] [Review][Patch] Crossing test's headline assertion cannot fail in either direction [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:735]
-- [ ] [Review][Patch] D2 resolved fail-closed: report HasMore=false when an authoritative page yields zero authorized rows [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:829]
+- [x] [Review][Patch] D2 resolved fail-closed: report HasMore=false when an authoritative page yields zero authorized rows [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:829]
 - [ ] [Review][Patch] D3 resolved: narrow the no-telemetry guarantee to caller-side HttpClient suppression; record server-log and OTel-span channels as owned open risks [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
 - [ ] [Review][Patch] Search term neither trimmed nor length-bounded, unlike every peer normalizer [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:338]
-- [ ] [Review][Patch] Genuine zero-match rendered as a per-page verification failure with no reset affordance [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:851]
+- [x] [Review][Patch] Genuine zero-match rendered as a per-page verification failure with no reset affordance [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:851]
 - [ ] [Review][Patch] Unparseable index query is indistinguishable from a genuine no-match [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:733]
-- [ ] [Review][Patch] Status filter Unknown plus search always returns zero, asymmetric with the ordinary list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:710]
-- [ ] [Review][Patch] One projection with a null Name disables whole-set search and shows the unfiltered list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:890]
+- [x] [Review][Patch] Status filter Unknown plus search always returns zero, asymmetric with the ordinary list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:710]
+- [x] [Review][Patch] One projection with a null Name disables whole-set search and shows the unfiltered list [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:890]
 - [ ] [Review][Patch] Per-page candidate dedup lets one tenant render on two consecutive pages [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:781]
 - [ ] [Review][Patch] No in-flight guard; handlers read IsAuthoritativeSearch off the Loading() snapshot [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:795]
 - [ ] [Review][Patch] Dispose() erases the pending recovery notice circuit scope existed to preserve [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1077]
@@ -249,12 +249,12 @@ Resolved during review: the controlling spec was restored to this path from `1af
 - [ ] [Review][Patch] "Components never call Memories" has no enforcing test [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:390]
 - [ ] [Review][Patch] Standalone-host composition test asserts nothing meaningful; Program.cs hand-duplicates the module registration [src/Hexalith.Tenants.UI/Program.cs:93]
 - [ ] [Review][Patch] NextPageAsync advances paging history even with no next cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:799]
-- [ ] [Review][Patch] Fallback never reports search failure when the ordinary list is also terminal [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
+- [x] [Review][Patch] Fallback never reports search failure when the ordinary list is also terminal [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:962]
 - [ ] [Review][Patch] ShowPager reads the circuit-scoped service on the prerender pass it is forbidden on [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:387]
 - [ ] [Review][Patch] JS-interop identifier scan has no control case and misses module-call spellings [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1627]
 - [ ] [Review][Patch] Localizer parity gate silently skips doubles it cannot construct; one double asserts ResourceManager against itself [tests/Hexalith.Tenants.UI.Tests/LocalizerDoubleParityTests.cs:148]
 - [ ] [Review][Patch] Protected search cursor history grows without bound inside the circuit [src/Hexalith.Tenants.UI/State/TenantList/TenantSearchPagingState.cs:65]
-- [ ] [Review][Patch] Delete the two reverted-attempt patch archives (976 KB) from implementation artifacts [_bmad-output/implementation-artifacts/spec-1-9-review-repair-3-reverted-attempt.patch:1]
+- [x] [Review][Patch] Delete the two reverted-attempt patch archives (976 KB) from implementation artifacts [_bmad-output/implementation-artifacts/spec-1-9-review-repair-3-reverted-attempt.patch:1]
 
 ### Defer
 
@@ -273,3 +273,33 @@ Resolved during review: the controlling spec was restored to this path from `1af
   user-membership and global-administrator grids; the ordinary tenant-list path
   (`TenantQueryGateway.cs:1174`) passes rows through untouched in exactly the same way, so the two
   tenant-list paths are symmetric, which is what this story required.
+
+### Application status — 2026-07-27
+
+Applied and validated (UI suite 1222/1222, `Hexalith.Tenants.slnx` Release build 0 warnings /
+0 errors, all commands re-run after every batch):
+
+- Nine patch items checked off above, across commits `332e26f`, `de2ded0`, `fe84d51`.
+- The tightened support-safety scanner found **three further evading sites** that neither the
+  original gate nor the review layers had identified (stringified locals asserted on a later line).
+- `TenantDetailSnapshot` and `TenantConfigurationProjectionProof` were classes without a `ToString`
+  override, so every absence assertion against them ran on a bare type name and could not fail.
+  Both now carry a support-safe fixed-shape override and every site is pinned by equality.
+- The codec provider-identity guard was mutation-verified: a codec that builds its own
+  `EphemeralDataProtectionProvider` now fails the composition test, and passed it before.
+
+Reclassified during application, with reasons:
+
+- **Unparseable index query indistinguishable from no-match — dismissed, false positive.** The
+  Memories server escapes every user term via `RediSearchQueryEscaper.EscapeText` on all three
+  paths of `BuildSearchTermsQuery` (`SyntacticSearchService.cs:267-291`), so metacharacters are
+  treated literally and cannot produce a syntax error returned as an empty page. Adding escaping in
+  Tenants would double-escape and break search.
+- **Per-page dedup lets one tenant render on two consecutive pages — deferred.** Closing it needs
+  either an index uniqueness guarantee (upstream, barred by this spec's Block-If) or a cross-page
+  seen-set carried in the cursor, which would place reconstructable index material into protected
+  state and violate the story's own cursor constraints.
+
+Not yet applied — the remaining patch items above are unchecked and still open. They were reviewed
+and are actionable as written; the work was stopped for session capacity, not because of any
+blocker found in them.
