@@ -207,6 +207,12 @@
   <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
     <value>Aucun locataire ne correspond à cette recherche</value>
   </data>
+  <data name="Tenants.List.State.SearchPageEmpty.MoreMessage" xml:space="preserve">
+    <value>Aucun résultat de locataire autorisé n’est visible sur cette page. Passez à la page de recherche suivante pour vérifier s’il existe d’autres résultats, ou effacez la recherche pour revenir à la liste complète.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.MoreTitle" xml:space="preserve">
+    <value>Aucun locataire visible sur cette page de recherche</value>
+  </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Les données des locataires sont chargées depuis la passerelle de requête côté serveur.</value>
   </data>

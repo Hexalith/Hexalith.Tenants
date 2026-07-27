@@ -13,12 +13,12 @@ in it was verified to exist by name before being cited.
 
 | Item | Value |
 |---|---|
-| Revision this report describes | uncommitted working tree on top of `5fdbc80` (pass-3 review repairs) |
+| Revision this report describes | uncommitted working tree on top of `f1053a3` (pass-4 review repairs) |
 | .NET SDK | `10.0.302`, target `net10.0` |
-| `references/Hexalith.EventStore` | `73589770b14888b703d78d37325b066befa0689c` |
-| `references/Hexalith.Memories` | `6e6d3fb9cb04678a0a1994f43c00804523ed1a26` |
+| `references/Hexalith.EventStore` | `c8c7003052a7f811d3b821f3442379ca5f3a9c65` |
+| `references/Hexalith.Memories` | `b073aa577ad3006300a5d7192392bb0ca656944b` |
 | `references/Hexalith.FrontComposer` | `7870526090a8596082e3df034ecacf4c07881a04` |
-| `references/Hexalith.Builds` | `cca42924caf86342fa4e23a9d9fefde40d30cd17` |
+| `references/Hexalith.Builds` | `1b1c0b0360715b82de48b618fc4e94e7e01e8092` |
 | `references/Hexalith.PolymorphicSerializations` | `f3b23304283b0e7a35ffa66bf8d9bf2499e35e66` |
 
 Every value above was read from `git ls-tree HEAD references/` at the revision named, not carried over
@@ -27,7 +27,7 @@ from an earlier draft. The pass-3 code review found that the previous edition of
 gitlink under review — and that it described revision `d59dd59` while four later commits had already
 shipped. That is the same defect this report was written to correct, committed a second time.
 
-**Submodules and the published package boundary did change, twice.** Commit `1af283b` moved four
+**Submodules and the published package boundary changed repeatedly.** Commit `1af283b` moved four
 gitlinks — `Hexalith.Builds`, `Hexalith.EventStore`, `Hexalith.Memories`,
 `Hexalith.PolymorphicSerializations` — under a `test:` subject that mentions none of them. The
 `Hexalith.Memories` move was unrelated CI/CD work. As a downstream consequence,
@@ -38,6 +38,14 @@ edition of *this report*, under the subject "re-derive the evidence report from 
 moved `Hexalith.Builds` and `Hexalith.EventStore` again, alongside `.github/workflows/release.yml`
 and a 234-line `PackageGovernanceTests.cs` change. Commits `332e26f` and `de2ded0` carry the same
 unrelated release/packaging work under story-1.9 subjects. No file under `references/` was edited.
+
+The pass-4 scope then exposed a directly story-owned package break: `60b4336` moved
+`references/Hexalith.Builds` from a catalog using published EventStore `3.82.0` to the unpublished
+proof version `999.1.20-proof.fa2d1c9910f8`. The earlier blocker text attributed that break only to
+the later `8e84bf1` merge, which was false. Subsequent dependency commits `4ca5f86` and `f1053a3`
+advanced the three pins shown above, and the release owner published EventStore `3.83.0`. A default
+solution restore now succeeds without `HexalithEventStoreVersion` or any other version override; the
+UI assets file resolves EventStore Client and Contracts at `3.83.0`.
 
 The public UI state surface gained `TenantListSnapshot.FallbackPagingRecovered`, `.PagingNotice` and
 `.Lifecycle`, plus `TenantListSurfaceKind.SearchPageEmpty` and
@@ -59,22 +67,26 @@ previous report named one, which was residue of an abandoned design.
   unrenderable record, and by malformed or duplicate index hits, none of which is a secret. Ending
   paging there made accessible matches past the window unreachable while the surface claimed nothing
   matched at all. `HasMore` is now `!windowHiddenOnly && nextOffset < TotalCount`, where
-  `windowHiddenOnly` requires every hydrated candidate to have been refused with 403 or 404. The drop
-  reason is carried out of hydration for exactly this decision.
+  `windowHiddenOnly` requires every raw hit to have produced one distinct hydrated candidate and every
+  such candidate to have been refused with 403 or 404. A malformed or duplicate hit therefore prevents
+  hidden-only classification and keeps later authorized matches reachable. The drop reason is carried
+  out of hydration for exactly this decision.
   **This closes the fully hidden window only.** A partially hidden window still renders its surviving
   rows beside a live Next, which continues to advertise that the window held more than it showed. That
   was reviewed and accepted as out of scope for this story — see the open risk below.
-- **The empty-search-page surface renders one message for both causes** and no longer claims that
-  rows failed verification — a statement that is false for the dominant mistyped-term case. It carries
-  the same reset affordance as the filtered-empty verdict rather than being a dead end. The split
-  final/non-final copy was removed along with `Tenants.List.State.SearchPageEmpty.FinalMessage`.
+- **The empty-search-page surface distinguishes terminal from non-terminal windows without revealing
+  candidate existence.** A terminal page may honestly say no accessible tenant matches the search. A
+  non-terminal empty page instead says only that no authorized result is visible on this page and invites
+  the operator to check Next; it does not promise that a later authorized match exists or say why this
+  page is empty. Both variants carry the reset affordance rather than being a dead end.
   Two follow-on defects in that change were found by the pass-3 review and are fixed here: the reset
   button was rendered with `OnClick="OnReset"` while the only call site never passed `OnReset`, so it
   bound an unset `EventCallback` and every click was a silent no-op; and the call site passed `Reason`,
   which `ListSurfaceStates` prefers over the state message, so a window emptied with a dropped record
   attached rendered different copy than a genuine no-match and re-disclosed that candidates had
   existed. `Reason` is no longer passed to that surface, and the reset button is wired and driven by a
-  test that clicks it.
+  test that clicks it. A non-`None` candidate reason is now also driven through the rendered surface to
+  prove the state copy still wins.
 - Raw-page accounting is an upper bound only: a page carrying fewer hits than the requested window is
   an ordinary short page and stays authoritative; only an over-full page or one whose hits overflow
   the reported total is a contract violation. The next raw offset advances by the requested window
@@ -132,7 +144,11 @@ previous report named one, which was residue of an abandoned design.
   silent degradation in the feature. The input now carries `MaxLength`, so the interactive path cannot
   reach the rejection at all, and a URL-supplied over-length term raises a localized
   `SearchTermTooLong` notice. The bound is one constant shared by the workspace and the gateway rather
-  than two literals said to mirror each other, and the 257 boundary is pinned.
+  than two literals said to mirror each other, and the 257 boundary is pinned. Parameter-driven
+  navigation now recomputes the rejection on every incoming URL and passes it directly to the load that
+  owns the notice, so canonical-navigation re-entry cannot erase it and later loads cannot inherit it.
+  Error and Unauthorized surfaces suppress the notice because they cannot truthfully claim that the
+  authorized list is shown.
 - **Next is offered only when the click can advance.** Enablement read `snapshot.HasMore` while both
   branches of `NextPageAsync` require a non-null cursor, and the ordinary list path passes the server's
   `HasMore` and `Cursor` through independently with no consistency check. `HasMore = true` beside a null
@@ -146,7 +162,10 @@ previous report named one, which was residue of an abandoned design.
   diagnostic. No cursor, offset, query, or tenant id reaches that sink.
 - Search cursors use a dedicated Data Protection purpose, seven fixed-size scope fields, and scoped
   server-circuit paging state, and remain absent from URLs, DOM, browser storage, clipboard,
-  diagnostics, and default `HttpClient` logs. Components never call Memories.
+  diagnostics, and default `HttpClient` logs. The shipped clipboard module body is scanned for local,
+  session, IndexedDB and cookie sinks in addition to runtime interop inspection. Only the composition
+  root and `TenantQueryGateway` may acquire Memories anywhere in the production UI project; components
+  and neutrally named wrappers cannot.
 
 ## Exact automated verification
 
@@ -155,46 +174,17 @@ number below was read from the run output at that revision; none is carried over
 
 | Command | Result |
 |---|---|
-| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
-| Focused seven-class UI executable run (`TenantQueryGatewayTests`, `TenantSearchCursorTests`, `TenantListSurfaceTests`, `TenantWorkspaceStateTests`, `TenantsWorkspaceTests`, `TenantsUiCompositionTests`, `DomainUiFluentConformanceTests`) | Passed — **479 total, 0 failed, 0 skipped** |
-| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | Passed — **1,256 total, 0 failed, 0 skipped** |
-| `tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none` | Passed — **114 total, 0 failed, 0 skipped** |
+| `dotnet restore Hexalith.Tenants.slnx -m:1 -nr:false -p:NuGetAudit=false` | Passed — default dependency graph, **no version override**; EventStore resolved at `3.83.0` |
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false -p:NuGetAudit=false` | Passed — **0 warnings, 0 errors** |
+| Focused four-class UI executable run (`TenantQueryGatewayTests`, `TenantListSurfaceTests`, `TenantsUiCompositionTests`, `SupportSafetyEvidenceGateTests`) | Passed — **419 total, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | Passed — **1,276 total, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none` | Passed — **115 total, 0 failed, 0 skipped** |
 | `samples/Hexalith.Tenants.Sample.Tests/bin/Release/net10.0/Hexalith.Tenants.Sample.Tests -noLogo -noColor -parallel none` | Passed — **39 total, 0 failed, 0 skipped** |
-| `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false -p:NuGetAudit=false` | Passed — **0 warnings, 0 errors**, no version override |
 | `git diff --check` | Passed — no whitespace errors |
 
 No transcript of intermediate red-phase runs is retained, so no claim is made about them. The
 reproducible commands above are the authoritative record.
-
-The pass-3 review found the previous edition of this table recording **452** focused and **1,222** full
-against a revision four commits behind the branch tip, and stating that **21** patch findings were
-unapplied when the controlling spec recorded seven. Those numbers, and the parallel sets in
-`spec-1-9-…-paging.md` and `tests/test-summary.md`, are reconciled to the run above.
-
-### Re-run after the 2026-07-27 backlog closure (supersedes the table above)
-
-The seven remaining pass-2 patch findings were applied. Every gate was re-run; these are the current
-numbers, and the table above is retained only as the pre-closure record.
-
-| Command | Result |
-|---|---|
-| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -p:HexalithEventStoreVersion=3.82.0 -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
-| Focused seven-class UI executable run (same seven classes) | Passed — **486 total, 0 failed, 0 skipped** |
-| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | Passed — **1,266 total, 0 failed, 0 skipped** |
-| `samples/…/Hexalith.Tenants.Sample.Tests … -class …MemoriesSearchIndexEventPublisherTests` | Passed — **7 total, 0 failed, 0 skipped** |
-| `dotnet build Hexalith.Tenants.slnx --configuration Release -p:HexalithEventStoreVersion=3.82.0 -warnaserror -m:1 -nr:false` | Passed — **0 warnings, 0 errors** |
-| `git diff --check` | Passed — no whitespace errors |
-
-Focused 479 → **486**, full 1,256 → **1,266**. The additions are the scope-binding discrimination test, the
-reachable secondary-notice-bar theory (3 rows), the localizer discovery test, and the extra crossing and
-control rows.
-
-**`--no-restore` was replaced by `-p:HexalithEventStoreVersion=3.82.0`.** `references/Hexalith.Builds`
-at gitlink `0e464b5` pins `HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8`, which is not published,
-so package-mode restore fails `NU1102` repository-wide. This arrived with today's
-`fix/release-stale-source-guard` merge (`8e84bf1`) and is not owned by this story — see *Open blockers*.
-For the composition tests that shell out to `dotnet restore` in a subprocess, the same value was also
-supplied as the `HexalithEventStoreVersion` environment variable.
 
 ## Guards proven capable of failing
 
@@ -210,17 +200,17 @@ pass because they could not.
 | Fully hidden vs no-match window | Nothing compared the two | `List_search_renders_a_fully_hidden_window_identically_to_a_genuine_no_match` drives both through the gateway and compares every operator-visible field, including the pinned diagnostic |
 | That same test's "hidden" arm | It fed a **zero-hit** index page, so no candidate was ever hydrated or refused. It compared "the index omitted this window" against "nothing matched" — neither an authorization outcome — while this report cited it as the proof of the hidden-vs-no-match equivalence | The hidden arm now enqueues two real hits and answers both hydrations `Forbidden`/`NotFound`, so the window is emptied by authorization. **Mutation-verified**: reverting `HasMore` to the `TotalCount` rule fails it |
 | The reset affordance on the empty-search page | Both tests were `Find(...).ShouldNotBeNull()`, and `Find` already throws when the element is absent, so they asserted nothing beyond presence. Nothing clicked it, and the control was unwired | A test clicks it and asserts the search term leaves both gateway state and the URL. **Mutation-verified**: removing `OnReset` from the call site fails it |
-| The mid-load pager guard | `_pagingInFlight` had no test at all; every pager interaction in the suite is followed by a wait before the next one | A callback captured before the load is invoked twice, the second while the first is outstanding, asserting one gateway call and one back-step. **Mutation-verified** |
+| The mid-load pager guard | `_pagingInFlight` had no test at all; every pager interaction in the suite is followed by a wait before the next one | A callback captured before the load is invoked twice, the second while the first is outstanding, asserting one gateway call and one back-step. The refusal is awaited with a bounded `WaitAsync`, not an arbitrary scheduler delay. **Mutation-verified** |
 | The prerender guard on Previous | The one static-render test asserted requests and cursors, never the button's disabled state | The static-render test asserts `disabled` on the Previous control. **Mutation-verified** |
 | The pending recovery notice across disposal | Not clearing it in `Dispose` was unpinned — re-adding the clear was green, because no test disposed the component between arming and observing | A test errors the detail-return load, disposes the component, and re-renders on the same scope. **Mutation-verified** |
-| Support-safety scanner, second rule | The stringified-local rule had **no** planted-failure case: the single planted occurrence was a one-line Rule 1 match, so deleting the whole rule and its regex left both gate tests green. The rule was also evaded by `string?`, by assignment to an already-declared local, by a formatter-wrapped chain, by `$"{x}".ShouldNotContain(`, and by `Contains(...).ShouldBeFalse()` | The scan is statement-based, and a seven-row theory plants one occurrence per evadable spelling. A third argument pins *which* rule fired, so a row cannot be silently absorbed by Rule 1. A control case keeps legitimate markup assertions legal |
-| "Components never call Memories" | The scan inspected only `[Inject]` property types and constructor parameters. `TenantsWorkspace` injects `IServiceProvider` and resolves through it, so `Services.GetRequiredService<MemoriesClient>()` in any component passed, as would `Lazy<MemoriesClient>` | A source scan over every component file rejects the token outright. **Mutation-verified**: adding that exact resolution to a component fails the test, naming the file |
+| Support-safety scanner, second rule | The stringified-local rule had **no** planted-failure case: the single planted occurrence was a one-line Rule 1 match, so deleting the whole rule and its regex left both gate tests green. The rule was also evaded by `string?`, by assignment to an already-declared local, by a formatter-wrapped chain, by `$"{x}".ShouldNotContain(`, and by split-local `Contains(...).ShouldBeFalse()` | The scan is statement-based, and an eight-row theory plants one occurrence per evadable spelling, including the split-local `Contains` form. A third argument pins *which* rule fired, so a row cannot be silently absorbed by Rule 1. A control case keeps legitimate markup assertions legal |
+| "Components never call Memories" | The scan inspected only `[Inject]` property types, constructor parameters, and then the component directory. A component could inject a neutral wrapper outside that tree, and an alias could hide the client token in another source file | The source scan covers every production `.cs` and `.razor` file and permits acquisition only in `TenantQueryGateway` and the composition root, so aliases and neutral wrappers outside `Components` are rejected |
 | Crossing the authoritative/fallback boundary | The headline assertion read the *incoming* mode's cursor field, which the request builder can never populate — it is null by construction in both theory rows, so the assertion could not fail either way. Both modes also reused one cursor literal per mode, so no assertion about *which* page a request resumed could discriminate | Every page mints a distinct cursor; assertions moved onto the outgoing mode's own field; loads 5-6 decide the resurrection rule. **Mutation-verified**: dropping retained cursors from the request fails both rows, and passed the old assertions trivially |
 | Log-sink non-disclosure | The sink recorded only `formatter(state, exception)`, which the default formatter renders without the exception. `ShouldNotContain("key ring unavailable")` therefore scanned a channel the text could never reach — the exception being exactly where a raw query, offset or cursor would land | The sink captures the exception; `Disclosures` scans both channels; `ShouldNotDisclose` also asserts no exception object reached the sink at all. **Mutation-verified**: attaching the caught exception fails 10+ tests |
 | Pending-recovery scope binding | The only test drove a superseded load on the **same** scope, which a scope-blind "pending until any load resolves" flag satisfies identically | A counterpart test changes the scope mid-flight; the owed notice must be dropped. **Mutation-verified**: the scope-blind flag fails the new test while still passing the same-scope sibling |
 | Secondary notice bar's own guards | The test put the same unmapped reason in both slots, so the duplicate-reason guard suppressed the bar first and its empty-message/empty-testid guards were never evaluated — they could be deleted and the test stayed green | A theory with a mapped primary reason, so those two guards are the only thing left. **Mutation-verified**: deleting them fails only the new rows |
 | Standalone-host composition | It asserted a singleton codec and a scoped paging state — true of any registration at all — while `Program.cs` hand-duplicated the module's registrations, so the two copies could drift with only one under test | `Program.cs` composes the module; the test asserts a round trip, scope binding, host-provider identity and purpose isolation. **Mutation-verified**: a codec ignoring its injected provider fails it |
-| JS-interop identifier scan | It scanned `JSInterop.Invocations` only. bUnit records module invocations on the module's own handler, so anything issued through the clipboard module — the one JS module this surface imports — was invisible. The identifier channel also had no control case | Both channels are scanned, `indexedDB` is added, and each channel gets an identifier control. **Verified**: a `localStorage.setItem` planted through the module channel is caught |
+| JS-interop identifier scan | It scanned invocation identifiers, but bUnit does not execute the imported module body; an internal `indexedDB` or cookie write would still look like one innocent `writeText` call | Root and module invocation channels remain scanned with controls, and the shipped module body is inspected directly for local/session storage, IndexedDB, `document.cookie`, and `cookieStore`; the real clipboard call is the positive source control |
 | Localizer parity gate | Discovery filtered on a parameterless constructor, so a double taking an argument was never inspected and the gate's own "could not be constructed" failure was dead code. `HiddenIndexerLocalizerDouble` also read its "shipped" value from the same `ResourceManager` the gate compares against, and `FrenchlessLocalizerDouble` was in fact rejected by the neutral-bundle rule, leaving the French rule with no proof | Discovery is constructor-independent; construction failure is a gate failure; the gate returns its findings so each control pins the rule that rejected it; the French check runs before the neutral-bundle `continue`. **Mutation-verified**: restoring the filter fails the discovery test |
 
 ## Open blockers
@@ -257,20 +247,24 @@ pass because they could not.
   2026-07-27 and accepted as out of scope for this story; reopen trigger is any requirement that a
   partially hidden window be indistinguishable from a complete one.
 
-- **BUILDS-EVENTSTORE-PIN — owner: `Hexalith.Builds` / EventStore release owner — OPEN, not owned by
-  this story.** `references/Hexalith.Builds` at gitlink `0e464b5` pins
-  `HexalithEventStoreVersion = 999.1.20-proof.fa2d1c9910f8` (`Props/Directory.Packages.props:8`, submodule
-  commit `8f32f12` "pin approved EventStore proof catalog"). That version is not published to nuget.org, so
-  the default package-mode restore fails `NU1102` for every project in this repository, including CI.
-  Release plus source references is not an alternative: `references/Hexalith.Memories/Directory.Build.props:95`
-  rejects `UseHexalithProjectReferences=true` in Release by design. The pin arrived with today's
-  `fix/release-stale-source-guard` merge (`8e84bf1`) and is independent of Story 1.9 — a bare
-  `dotnet restore src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj` fails identically with no Story 1.9
-  file in the restore graph. Every gate in this report was therefore run with
-  `-p:HexalithEventStoreVersion=3.82.0`, the published version matching the EventStore submodule's own tag
-  base (`v3.82.0-60-g737b3e5a`). Reopen trigger: re-run any gate without the override while the pin stands.
+## Resolved blockers
+
+- **BUILDS-EVENTSTORE-PIN — owner: `Hexalith.Builds` / EventStore release owner — RESOLVED
+  2026-07-27.** Story commit `60b4336` introduced the unpublished
+  `999.1.20-proof.fa2d1c9910f8` catalog through its `references/Hexalith.Builds` gitlink; the earlier
+  report incorrectly attributed the break only to later merge `8e84bf1`. EventStore `3.83.0` is now
+  published, and current dependency commit `f1053a3` pins Builds at `1b1c0b0` and EventStore at
+  `c8c7003`. Default solution restore and build both pass without `HexalithEventStoreVersion` or another
+  version override. Reopen trigger: either default command in the verification table fails to resolve
+  the published catalog.
 
 ## Outstanding review findings
+
+The pass-4 code review raised one owner decision and 12 patch findings. The owner resolved the decision
+by publishing EventStore `3.83.0`, verified through the default dependency graph. All 12 patches are
+applied and checked off in the controlling spec, including behavior regressions, rendered coverage,
+architecture and support-safety guards, immutable pins, and removal of the pager test's fixed delay.
+No pass-4 review finding remains outstanding; the story is `done`.
 
 The pass-3 code review raised its own 32 merged findings over the pass-2 repair delta. Two were decisions
 resolved by the story owner and are recorded in the controlling spec: the window-collapse rule (collapse
@@ -302,7 +296,7 @@ its "shipped" value back from the same `ResourceManager` the gate compares again
 Two items remain deferred and recorded in `deferred-work.md`: the pass-2 finding on end-to-end `Lifecycle`
 binding coverage, checked off after closing 1 of 13 binding sites (the other 12 belong to other stories'
 surfaces), and the per-page candidate dedup reclassification, which had never entered the ledger at all.
-The story is `review`.
+The story is `done`.
 
 No unavailable proof was inferred from Story 1.8 evidence, bUnit, CSS or source scans, or a different
 story's runtime artifacts.

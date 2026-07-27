@@ -3494,6 +3494,37 @@ public sealed class TenantQueryGatewayTests
         snapshot.NextCursor.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task List_search_keeps_paging_when_a_hidden_window_also_contains_an_invalid_hit(bool duplicate)
+    {
+        StubMemoriesClient memories = new();
+        MemoriesScoredResult hidden = Hit("tenant:tenant.hidden");
+        memories.Enqueue(SearchResult(
+            "needle",
+            totalCount: 30,
+            hidden,
+            duplicate ? Hit("tenant:tenant.hidden") : Hit("not-a-tenant-source")));
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        // A duplicate or malformed raw hit is not an authorization outcome. If either shares a window with
+        // a hidden candidate, the gateway cannot truthfully classify every raw hit as hidden or absent and
+        // must keep later authorized matches reachable.
+        client.SubmittedQueries.Count.ShouldBe(1);
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.NextCursor.ShouldNotBeNull();
+    }
+
     [Fact]
     public async Task List_search_keeps_paging_when_the_operators_own_status_filter_empties_the_window()
     {

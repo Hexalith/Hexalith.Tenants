@@ -198,7 +198,9 @@
                ListSurfaceStates prefers a reason string over the state message, so a window emptied with a
                dropped record attached would render different copy than a genuine no-match and re-disclose
                that candidates existed -- the exact difference this surface exists to erase. *@
-            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty" OnReset="ResetFiltersAsync" />
+            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty"
+                               HasMore="@_snapshot.HasMore"
+                               OnReset="ResetFiltersAsync" />
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
         {
@@ -317,9 +319,6 @@
     // _snapshot was the transient Loading() value and mutated the cursor stack of the wrong paging mode.
     private bool _pagingInFlight;
 
-    // Set when the incoming raw search term was well-formed but longer than the supported bound, so the
-    // resulting unfiltered list carries a localized explanation instead of silently dropping the term.
-    private bool _searchTermTooLong;
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
     private TenantSearchPagingState? _searchPaging;
@@ -495,6 +494,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        bool querySearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         RestoreContextFromQuery();
         NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
         _initialized = true;
@@ -506,7 +506,7 @@
 
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false);
+            await LoadAsync(reuseETag: false, searchTermTooLong: querySearchTermTooLong);
         }
     }
 
@@ -517,10 +517,16 @@
             return;
         }
 
+        bool incomingSearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         TenantWorkspaceState incoming = WorkspaceStateFromQuery();
         if (incoming == _workspaceState)
         {
             NavigateToCanonicalWorkspaceIfNeeded(incoming);
+            if (incomingSearchTermTooLong && IsTenantListView)
+            {
+                await LoadAsync(reuseETag: false, searchTermTooLong: true);
+            }
+
             return;
         }
 
@@ -528,7 +534,7 @@
         NavigateToCanonicalWorkspaceIfNeeded(incoming);
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false);
+            await LoadAsync(reuseETag: false, searchTermTooLong: incomingSearchTermTooLong);
         }
     }
 
@@ -541,7 +547,7 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag)
+    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false)
     {
         // A disposed component must never issue another load: it would keep consuming and mutating the
         // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
@@ -723,7 +729,9 @@
             // A term rejected for length is explained on the very load it caused, and only when nothing more
             // specific is already reported. Without this the operator watched their term vanish from the
             // input and the unfiltered list load, with no statement that a search had been refused at all.
-            if (_searchTermTooLong && snapshot.Notice is TenantListReason.None)
+            if (searchTermTooLong
+                && snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
+                && snapshot.Notice is TenantListReason.None)
             {
                 snapshot = snapshot with { Notice = TenantListReason.SearchTermTooLong };
             }
@@ -942,10 +950,10 @@
 
     private async Task OnSearchChanged(string? value)
     {
-        _searchTermTooLong = TenantWorkspaceState.IsSearchTooLong(value);
+        bool searchTermTooLong = TenantWorkspaceState.IsSearchTooLong(value);
         ApplyWorkspaceState(CurrentWorkspaceState().WithSearch(value), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false);
+        await LoadAsync(reuseETag: false, searchTermTooLong: searchTermTooLong);
     }
 
     private async Task OnStatusFilterChanged(string? value)
@@ -1014,7 +1022,6 @@
 
     private void RestoreContextFromQuery()
     {
-        _searchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         ApplyWorkspaceState(WorkspaceStateFromQuery(), clearCursorHistory: true);
     }
 

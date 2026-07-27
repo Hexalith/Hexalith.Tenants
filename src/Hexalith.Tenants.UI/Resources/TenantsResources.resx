@@ -207,6 +207,12 @@
   <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
     <value>No tenants match this search</value>
   </data>
+  <data name="Tenants.List.State.SearchPageEmpty.MoreMessage" xml:space="preserve">
+    <value>No authorized tenant results are visible on this page. Continue to the next search page to check for more results, or clear the search to return to the full list.</value>
+  </data>
+  <data name="Tenants.List.State.SearchPageEmpty.MoreTitle" xml:space="preserve">
+    <value>No visible tenants on this search page</value>
+  </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Tenant data is loading from the server-side query gateway.</value>
   </data>

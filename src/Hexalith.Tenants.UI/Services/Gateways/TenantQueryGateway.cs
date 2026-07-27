@@ -878,6 +878,7 @@ internal sealed class TenantQueryGateway(
         // beside a live Next, which continues to advertise that the window held more than it rendered. That
         // channel is out of scope for this story and is recorded as an open risk in the evidence report.
         bool windowHiddenOnly = rows.Count == 0
+            && candidates.Count == result.Results.Count
             && outcomes.Length > 0
             && outcomes.All(static outcome => outcome.HiddenOrAbsent);
         bool hasMore = !windowHiddenOnly && nextOffset < result.TotalCount;

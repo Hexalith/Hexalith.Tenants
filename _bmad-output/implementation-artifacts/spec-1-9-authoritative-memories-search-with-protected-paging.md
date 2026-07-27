@@ -2,11 +2,11 @@
 title: 'Story 1.9: Authoritative Memories Search with Protected Paging'
 type: 'feature'
 created: '2026-07-21'
-status: 'review'
+status: 'done'
 baseline_revision: '85838fbbb4efcd131a44d4ac4535110b1a9d3217'
 final_revision: '7d4007638612eef4a74f067e45f40bdd53a653b3'
-review_loop_iteration: 3
-followup_review_recommended: true
+review_loop_iteration: 4
+followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -512,16 +512,22 @@ below as the first two items.
 
 ### Review Findings
 
-- [ ] [Review][Decision] The Story 1.9 dependency graph is unrestorable and violates the story's reference boundary — Commit `60b4336` moved `references/Hexalith.Builds` from a catalog using published EventStore `3.82.0` to `999.1.20-proof.fa2d1c9910f8`, while the intent contract says to block on unavailable consumed packages and on any edit under `references/`. The current default command `dotnet restore src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -m:1 -nr:false -p:NuGetAudit=false` fails `NU1102`; the recorded green gates override the dependency with `3.82.0`. Resolution requires an owner choice: restore a published catalog/gitlink, publish the approved proof package and rerun the default graph, or return the story to a blocked/deferred state with its external owner and reopen trigger. [references/Hexalith.Builds:1]
-- [ ] [Review][Patch] Mixed malformed-or-duplicate and hidden raw windows are misclassified as hidden-only and stop before later authorized matches [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:880]
-- [ ] [Review][Patch] Over-length search state is not recomputed or cleared on parameter-driven navigation, causing both silent rejection and stale false notices [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:513]
-- [ ] [Review][Patch] The over-length notice can render on Error or Unauthorized while falsely claiming the full authorized list is shown [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:726]
-- [ ] [Review][Patch] A non-terminal empty raw window claims that no accessible tenant matches even though its enabled Next page can contain authorized results [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:201]
-- [ ] [Review][Patch] The split-local support-safety scanner still misses `text.Contains(...).ShouldBeFalse()` after `text = value.ToString()` [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:194]
-- [ ] [Review][Patch] The component-to-Memories boundary guard is bypassed by an alias or neutrally named service-locator wrapper outside the scanned component tree [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:513]
-- [ ] [Review][Patch] The storage-sink proof inspects JS invocation names but cannot observe `indexedDB` or cookie use inside the imported clipboard module [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1824]
-- [ ] [Review][Patch] The evidence report's revision and three submodule pins are stale, and its blocker attribution excludes the Story 1.9 commit that introduced the unpublished catalog [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-27.md:16]
-- [ ] [Review][Patch] The candidate-existence guard that omits `Reason` from SearchPageEmpty has no regression test with a non-None reason [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:201]
-- [ ] [Review][Patch] SearchAndListUnavailable reaches gateway snapshots but its terminal rendered message and stable selector are unverified [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:478]
-- [ ] [Review][Patch] Ordinary-fallback retained-position recovery stores its paging mode but no rendered test proves it selects SearchPagingRestarted copy [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:705]
-- [ ] [Review][Patch] The pager double-click regression test depends on a fixed 200 ms scheduler delay [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:2143]
+- [x] [Review][Decision] The Story 1.9 dependency graph was unrestorable and violated the story's reference boundary — Commit `60b4336` moved `references/Hexalith.Builds` from a catalog using published EventStore `3.82.0` to `999.1.20-proof.fa2d1c9910f8`, while the intent contract says to block on unavailable consumed packages and on any edit under `references/`. Resolved 2026-07-27: the owner published EventStore `3.83.0`; the default command `dotnet restore Hexalith.Tenants.slnx -m:1 -nr:false -p:NuGetAudit=false` then exited 0 without a version override, and `src/Hexalith.Tenants.UI/obj/project.assets.json` confirms the EventStore packages resolved at `3.83.0`. [references/Hexalith.Builds:1]
+- [x] [Review][Patch] Mixed malformed-or-duplicate and hidden raw windows are misclassified as hidden-only and stop before later authorized matches [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:880]
+- [x] [Review][Patch] Over-length search state is not recomputed or cleared on parameter-driven navigation, causing both silent rejection and stale false notices [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:513]
+- [x] [Review][Patch] The over-length notice can render on Error or Unauthorized while falsely claiming the full authorized list is shown [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:726]
+- [x] [Review][Patch] A non-terminal empty raw window claims that no accessible tenant matches even though its enabled Next page can contain authorized results [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:201]
+- [x] [Review][Patch] The split-local support-safety scanner still misses `text.Contains(...).ShouldBeFalse()` after `text = value.ToString()` [tests/Hexalith.Tenants.UI.Tests/SupportSafetyEvidenceGateTests.cs:194]
+- [x] [Review][Patch] The component-to-Memories boundary guard is bypassed by an alias or neutrally named service-locator wrapper outside the scanned component tree [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:513]
+- [x] [Review][Patch] The storage-sink proof inspects JS invocation names but cannot observe `indexedDB` or cookie use inside the imported clipboard module [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:1824]
+- [x] [Review][Patch] The evidence report's revision and three submodule pins are stale, and its blocker attribution excludes the Story 1.9 commit that introduced the unpublished catalog [_bmad-output/implementation-artifacts/story-1-9-authoritative-memories-search-with-protected-paging-evidence-2026-07-27.md:16]
+- [x] [Review][Patch] The candidate-existence guard that omits `Reason` from SearchPageEmpty has no regression test with a non-None reason [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:201]
+- [x] [Review][Patch] SearchAndListUnavailable reaches gateway snapshots but its terminal rendered message and stable selector are unverified [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:478]
+- [x] [Review][Patch] Ordinary-fallback retained-position recovery stores its paging mode but no rendered test proves it selects SearchPagingRestarted copy [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:705]
+- [x] [Review][Patch] The pager double-click regression test depends on a fixed 200 ms scheduler delay [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:2143]
+
+### Pass 4 Resolution
+
+All 12 patch findings were applied. Default restore and solution build pass without a version override;
+the focused four-class run passed 419/419, the full UI suite passed 1,276/1,276, contracts passed
+115/115, and the sample suite passed 39/39.

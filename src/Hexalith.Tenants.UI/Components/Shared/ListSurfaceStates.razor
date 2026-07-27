@@ -5,7 +5,7 @@
          role="@Role"
          aria-live="@AriaLive"
          data-testid="@TestId">
-    <h2>@Localizer[$"Tenants.List.State.{ResourceName}.Title"]</h2>
+    <h2>@Title</h2>
     <p>@Message</p>
     @* The empty-search page offers the same way out as the filtered-empty verdict: without it the operator
        who simply mistyped the term reaches a dead end. Callers that render SearchPageEmpty must supply
@@ -30,6 +30,9 @@
 
     [Parameter]
     public TenantListReason Reason { get; set; }
+
+    [Parameter]
+    public bool HasMore { get; set; }
 
     [Parameter]
     public EventCallback OnReset { get; set; }
@@ -71,5 +74,11 @@
 
     private string Message => Reason is not TenantListReason.None
         ? Localizer[$"Tenants.List.Reason.{Reason}"]
-        : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
+        : Kind is TenantListSurfaceKind.SearchPageEmpty && HasMore
+            ? Localizer["Tenants.List.State.SearchPageEmpty.MoreMessage"]
+            : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
+
+    private string Title => Kind is TenantListSurfaceKind.SearchPageEmpty && HasMore
+        ? Localizer["Tenants.List.State.SearchPageEmpty.MoreTitle"]
+        : Localizer[$"Tenants.List.State.{ResourceName}.Title"];
 }

@@ -311,6 +311,12 @@ public sealed class TenantsUiCompositionTests
             ["Tenants.List.State.SearchPageEmpty.Message"] = (
                 "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",
                 "Aucun locataire auquel vous avez accès ne correspond à cette recherche. Vérifiez le terme recherché ou effacez-le pour revenir à la liste complète."),
+            ["Tenants.List.State.SearchPageEmpty.MoreTitle"] = (
+                "No visible tenants on this search page",
+                "Aucun locataire visible sur cette page de recherche"),
+            ["Tenants.List.State.SearchPageEmpty.MoreMessage"] = (
+                "No authorized tenant results are visible on this page. Continue to the next search page to check for more results, or clear the search to return to the full list.",
+                "Aucun résultat de locataire autorisé n’est visible sur cette page. Passez à la page de recherche suivante pour vérifier s’il existe d’autres résultats, ou effacez la recherche pour revenir à la liste complète."),
             ["Tenants.List.Reason.SearchPartiallyAvailable"] = (
                 "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
                 "Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées."),
@@ -492,34 +498,45 @@ public sealed class TenantsUiCompositionTests
             }
         }
 
-        // The declared-injection scan above is necessary but not sufficient, and on its own it was blind to
-        // the idiom this codebase actually writes: TenantsWorkspace injects IServiceProvider and resolves
-        // through it, so Services.GetRequiredService<MemoriesClient>() inside any component satisfied every
-        // assertion above. IServiceProvider is not a Hexalith.Memories type, and Lazy<MemoriesClient> reports
-        // System.Lazy. A source scan closes the service-locator route that reflection over declared
-        // dependencies cannot see.
-        string componentsRoot = Path.Combine(UiProjectRoot(), "Components");
-        Directory.Exists(componentsRoot).ShouldBeTrue($"the component source scan must find {componentsRoot}");
-        string[] componentSources = Directory
-            .EnumerateFiles(componentsRoot, "*.*", SearchOption.AllDirectories)
+        // The declared-injection scan above is necessary but not sufficient. A component could resolve a
+        // neutral wrapper whose implementation lived outside Components, or use a type alias that hid the
+        // Memories token from the component file. Scan the whole production project and permit the client
+        // seam only in the gateway implementation and its composition root. That closes both routes: an
+        // alias must name the forbidden namespace somewhere, and a wrapper must acquire Memories somewhere.
+        string uiProjectRoot = UiProjectRoot();
+        string[] productionSources = Directory
+            .EnumerateFiles(uiProjectRoot, "*.*", SearchOption.AllDirectories)
             .Where(static path => path.EndsWith(".razor", StringComparison.Ordinal)
                 || path.EndsWith(".cs", StringComparison.Ordinal))
+            .Where(path => !Path.GetRelativePath(uiProjectRoot, path)
+                .StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                && !Path.GetRelativePath(uiProjectRoot, path)
+                    .StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             .ToArray();
-        componentSources.Length.ShouldBeGreaterThan(10, "the source scan must observe real component files");
+        productionSources.Length.ShouldBeGreaterThan(20, "the source scan must observe the full UI project");
 
-        List<string> memoriesReferences = [];
-        foreach (string path in componentSources)
+        HashSet<string> allowedMemoriesSources = new(StringComparer.Ordinal)
         {
-            if (File.ReadAllText(path).Contains("Memories", StringComparison.Ordinal))
+            Path.Combine("Extensions", "TenantsUiServiceCollectionExtensions.cs"),
+            Path.Combine("Services", "Gateways", "TenantQueryGateway.cs"),
+        };
+        List<string> unauthorizedMemoriesSources = [];
+        foreach (string path in productionSources)
+        {
+            string source = File.ReadAllText(path);
+            bool acquiresMemories = source.Contains("Hexalith.Memories", StringComparison.Ordinal)
+                || Regex.IsMatch(source, @"\b(?:MemoriesClient|AddMemoriesClient)\b", RegexOptions.CultureInvariant);
+            string relative = Path.GetRelativePath(uiProjectRoot, path);
+            if (acquiresMemories && !allowedMemoriesSources.Contains(relative))
             {
-                memoriesReferences.Add(Path.GetRelativePath(componentsRoot, path));
+                unauthorizedMemoriesSources.Add(relative);
             }
         }
 
-        memoriesReferences.ShouldBeEmpty(
-            "No Tenants UI component may name Memories at all -- not by injection, not through "
-            + "IServiceProvider, not through a wrapper. The index is reached only by the server-side gateway. "
-            + "Offending files: " + string.Join(", ", memoriesReferences));
+        unauthorizedMemoriesSources.ShouldBeEmpty(
+            "Only TenantQueryGateway and the composition root may acquire Memories. Components and neutral "
+            + "wrappers must reach search through ITenantQueryGateway. Offending files: "
+            + string.Join(", ", unauthorizedMemoriesSources));
 
         uiAssembly.GetCustomAttributesData()
             .Where(static attribute => string.Equals(

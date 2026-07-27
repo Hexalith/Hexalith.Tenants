@@ -535,11 +535,12 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public async Task Empty_search_page_copy_is_identical_whether_the_window_was_hidden_or_matched_nothing()
+    public async Task Empty_search_page_copy_distinguishes_a_non_terminal_window_without_claiming_later_matches()
     {
-        // Superseded the "promises later results" split: an authoritative window that yields no authorized
-        // row now ends paging, so there is no non-final variant to promise anything. What must be proven
-        // instead is that the two causes are indistinguishable, since the difference was the disclosure.
+        // An empty raw window can still advance when it was emptied by malformed/duplicate hits or by the
+        // operator's own status recheck. The global no-match verdict is false in that case because later
+        // pages remain unchecked. The non-terminal copy offers Next without promising that it contains a
+        // visible match and without revealing why this page is empty.
         bool hasMore = true;
         RegisterServices(call =>
         {
@@ -554,31 +555,50 @@ public sealed class TenantListSurfaceTests : BunitContext
         await ChangeSearchAsync(cut, "nomatch");
 
         cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
-        string hiddenTitle = cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent;
-        string hiddenMessage = cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent;
+        string nonTerminalTitle = cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent;
+        string nonTerminalMessage = cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent;
 
-        hiddenTitle.ShouldBe("No tenants match this search");
-        hiddenMessage.ShouldBe(
-            "No tenants you can access match this search. "
-            + "Check the search term, or clear it to return to the full list.");
+        nonTerminalTitle.ShouldBe("No visible tenants on this search page");
+        nonTerminalMessage.ShouldBe(
+            "No authorized tenant results are visible on this page. "
+            + "Continue to the next search page to check for more results, or clear the search to return to the full list.");
+        nonTerminalMessage.ShouldNotContain("verified");
+        cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeFalse();
 
-        // The copy must never state or imply that rows failed verification on this page: that is a claim
-        // about hidden candidates, and it is false for the dominant no-match case.
-        hiddenMessage.ShouldNotContain("verified");
-        hiddenMessage.ShouldNotContain("later pages", Case.Insensitive);
-
-        // The terminal window renders the same copy, so the operator cannot tell the causes apart.
+        // Once the same search is terminal, the global no-match verdict becomes honest.
         hasMore = false;
         cut.Find("[data-testid='tenants-list-refresh']").Click();
 
         cut.WaitForAssertion(() =>
         {
-            cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent.ShouldBe(hiddenTitle);
-            cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent.ShouldBe(hiddenMessage);
+            cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent
+                .ShouldBe("No tenants match this search");
+            cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent
+                .ShouldBe(
+                    "No tenants you can access match this search. "
+                    + "Check the search term, or clear it to return to the full list.");
         });
 
         // The page is terminal for this search, so it must offer the way back to the full list.
         cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Search_page_empty_never_renders_its_candidate_existence_reason()
+    {
+        RegisterServices(SearchPageEmptySnapshot(
+            hasMore: false,
+            reason: TenantListReason.RowEnrichmentUnavailable));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
+
+        string message = cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent;
+        message.ShouldBe(
+            "No tenants you can access match this search. "
+            + "Check the search term, or clear it to return to the full list.");
+        message.ShouldNotContain("counts are unavailable", Case.Insensitive);
     }
 
     [Fact]
@@ -625,6 +645,32 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-empty']");
         cut.FindAll("[data-testid='tenants-list-degraded']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-list-filtered-empty']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(TenantListSurfaceKind.Error)]
+    [InlineData(TenantListSurfaceKind.Unauthorized)]
+    public void Search_and_list_unavailable_renders_its_terminal_copy_and_stable_selector(
+        TenantListSurfaceKind kind)
+    {
+        TenantListSnapshot terminal = kind switch
+        {
+            TenantListSurfaceKind.Error => TenantListSnapshot.Error(),
+            TenantListSurfaceKind.Unauthorized => TenantListSnapshot.Unauthorized(),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+        RegisterServices(terminal with { Notice = TenantListReason.SearchAndListUnavailable });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        var notice = cut.WaitForElement("[data-testid='tenants-list-search-and-list-unavailable-notice']");
+        notice.TextContent.ShouldContain(
+            "Protected whole-set search is temporarily unavailable, and the authorized tenant list could not be loaded either. Try again later.");
+        cut.Find(kind is TenantListSurfaceKind.Error
+            ? "[data-testid='tenants-list-error']"
+            : "[data-testid='tenants-list-unauthorized']").ShouldNotBeNull();
+        AssertSingleNoticeLiveRegion(cut);
     }
 
     [Fact]
@@ -1363,6 +1409,42 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("cursor", Case.Insensitive);
     }
 
+    [Fact]
+    public async Task Discarded_ordinary_fallback_position_renders_the_source_changed_recovery_copy()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            bool pageTwo = request.Cursor == "ordinary-page-two";
+            return Task.FromResult(ReadySnapshot(
+                [Row(pageTwo ? "tenant.page-two" : "tenant.page-one", "Fallback", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)],
+                nextCursor: pageTwo ? null : "ordinary-page-two",
+                hasMore: !pageTwo) with
+            {
+                Notice = TenantListReason.SearchUnavailable,
+            });
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> first = Render<TenantsWorkspace>();
+        first.WaitForElement("[data-testid='tenants-list-grid']");
+        first.Find("[data-testid='tenants-list-next']").Click();
+        first.WaitForAssertion(() => requests[^1].Cursor.ShouldBe("ordinary-page-two"));
+
+        await DisposeComponentsAsync();
+        navigation.NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
+
+        var notice = returned.WaitForElement("[data-testid='tenants-list-search-paging-restarted-notice']");
+        notice.TextContent.ShouldContain(
+            "The available tenant source changed. Paging restarted from the first page.");
+        returned.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
+        requests[^1].Cursor.ShouldBeNull();
+        returned.Markup.ShouldContain("tenant.page-one");
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -1664,17 +1746,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         }
         else if (kind is TenantListSurfaceKind.SearchPageEmpty)
         {
-            // This surface tells the operator that later pages of the same search may still hold results,
-            // so it must not also offer an action that ends that search.
             cut.Find($"[data-testid='{selector}'] h2").TextContent
-                .ShouldBe("No tenants match this search");
+                .ShouldBe("No visible tenants on this search page");
             cut.Find($"[data-testid='{selector}'] p").TextContent
                 .ShouldBe(
-                    "No tenants you can access match this search. "
-                    + "Check the search term, or clear it to return to the full list.");
+                    "No authorized tenant results are visible on this page. "
+                    + "Continue to the next search page to check for more results, or clear the search to return to the full list.");
 
-            // The page can no longer promise later results, so it must offer the way out.
+            // Both paging forward and clearing the search are valid exits from a non-terminal empty window.
             cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
+            cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeFalse();
         }
         else if (kind is TenantListSurfaceKind.Stale)
         {
@@ -1813,6 +1894,23 @@ public sealed class TenantListSurfaceTests : BunitContext
         // populated by the surface itself and not only by the control call.
         cut.Find("[data-surface-testid='tenants-list-copy-reference']").Click();
         cut.WaitForAssertion(() => clipboard.Invocations.Count.ShouldBeGreaterThan(0));
+
+        // bUnit can observe calls into an imported module, but it does not execute the module body. Inspect
+        // the shipped body as well so a storage write performed internally through indexedDB or cookies
+        // cannot hide behind an innocent-looking writeText invocation identifier.
+        string clipboardSource = File.ReadAllText(Path.Combine(
+            ProjectRoot(),
+            "src",
+            "Hexalith.Tenants.UI",
+            "wwwroot",
+            "js",
+            "tenantsClipboard.js"));
+        clipboardSource.ShouldContain("navigator.clipboard.writeText");
+        clipboardSource.ShouldNotContain("localStorage", Case.Insensitive);
+        clipboardSource.ShouldNotContain("sessionStorage", Case.Insensitive);
+        clipboardSource.ShouldNotContain("indexedDB", Case.Insensitive);
+        clipboardSource.ShouldNotContain("document.cookie", Case.Insensitive);
+        clipboardSource.ShouldNotContain("cookieStore", Case.Insensitive);
 
         // Runtime proof rather than a source scan: every JS interop call the surface actually made is
         // inspected for storage sinks and for the protected cursor value. Both channels are scanned. bUnit
@@ -2137,10 +2235,11 @@ public sealed class TenantListSurfaceTests : BunitContext
         Task first = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
         cut.WaitForAssertion(() => callCount.ShouldBe(2));
 
-        // Deliberately not awaited: a refused click returns immediately, but an accepted one blocks on the
-        // still-outstanding load. Awaiting it would turn the regression into a hang instead of a failure.
+        // A refused click completes immediately. WaitAsync supplies only a failure bound: if the click is
+        // wrongly accepted it remains coupled to the deliberately outstanding load and the test fails with
+        // a timeout instead of depending on an arbitrary scheduler delay.
         Task second = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
-        await Task.Delay(200);
+        await second.WaitAsync(TimeSpan.FromSeconds(5));
 
         callCount.ShouldBe(2, "the second click must be refused while a load is in flight");
         second.IsCompleted.ShouldBeTrue("a refused click returns without starting a load");
@@ -2199,6 +2298,59 @@ public sealed class TenantListSurfaceTests : BunitContext
         // A term inside the bound is applied and carries no notice.
         await ChangeSearchAsync(cut, new string('a', 256));
         cut.WaitForAssertion(() => searches[^1].ShouldBe(new string('a', 256)));
+        cut.FindAll("[data-testid='tenants-list-search-term-too-long-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Over_long_parameter_navigation_is_recomputed_and_the_notice_is_not_reused_by_a_later_load()
+    {
+        int callCount = 0;
+        List<string?> searches = [];
+        RegisterServices(call =>
+        {
+            callCount++;
+            searches.Add(call.ArgAt<TenantListRequest>(0).Search);
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        navigation.NavigateTo($"/tenants?search={new string('a', 257)}");
+
+        cut.WaitForElement("[data-testid='tenants-list-search-term-too-long-notice']");
+        searches[^1].ShouldBeNull();
+        navigation.Uri.ShouldNotContain("search=", Case.Insensitive);
+        int callsAfterRejection = callCount;
+
+        navigation.NavigateTo("/tenants?sort=name");
+
+        cut.WaitForAssertion(() => callCount.ShouldBeGreaterThan(callsAfterRejection));
+        cut.FindAll("[data-testid='tenants-list-search-term-too-long-notice']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(TenantListSurfaceKind.Error)]
+    [InlineData(TenantListSurfaceKind.Unauthorized)]
+    public void Over_long_query_never_claims_the_authorized_list_is_shown_on_a_terminal_surface(
+        TenantListSurfaceKind kind)
+    {
+        TenantListSnapshot terminal = kind switch
+        {
+            TenantListSurfaceKind.Error => TenantListSnapshot.Error(),
+            TenantListSurfaceKind.Unauthorized => TenantListSnapshot.Unauthorized(),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+        RegisterServices(terminal);
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            $"/tenants?search={new string('a', 257)}");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement(kind is TenantListSurfaceKind.Error
+            ? "[data-testid='tenants-list-error']"
+            : "[data-testid='tenants-list-unauthorized']");
+
         cut.FindAll("[data-testid='tenants-list-search-term-too-long-notice']").ShouldBeEmpty();
     }
 
@@ -2330,16 +2482,20 @@ public sealed class TenantListSurfaceTests : BunitContext
         };
 
     /// <summary>Mirrors what the gateway emits for an authoritative search page with no visible rows.</summary>
-    private static TenantListSnapshot SearchPageEmptySnapshot(bool hasMore, string? nextCursor = null)
+    private static TenantListSnapshot SearchPageEmptySnapshot(
+        bool hasMore,
+        string? nextCursor = null,
+        TenantListReason reason = TenantListReason.None)
         => new(
             TenantListSurfaceKind.SearchPageEmpty,
             [],
-            nextCursor,
+            hasMore && nextCursor is null ? "protected-next" : nextCursor,
             hasMore,
             ETag: null,
             ReadModelFreshnessState.Unknown,
             IsDegraded: false,
             IsAuthorizationScopedEmpty: true,
+            Reason: reason,
             IsAuthoritativeSearch: true);
 
     private static TenantListRow Row(
@@ -2412,6 +2568,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Notice.SearchPagingRestarted"] = "The available tenant source changed. Paging restarted from the first page.",
             ["Tenants.List.State.SearchPageEmpty.Title"] = "No tenants match this search",
             ["Tenants.List.State.SearchPageEmpty.Message"] = "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",
+            ["Tenants.List.State.SearchPageEmpty.MoreTitle"] = "No visible tenants on this search page",
+            ["Tenants.List.State.SearchPageEmpty.MoreMessage"] = "No authorized tenant results are visible on this page. Continue to the next search page to check for more results, or clear the search to return to the full list.",
             ["Tenants.List.StatusFilterLabel.Authoritative"] = "Status across indexed candidates",
             ["Tenants.List.AuthoritativeSearchSemantics"] = "Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.",
             ["Tenants.List.State.Loading.Title"] = "Loading tenants",

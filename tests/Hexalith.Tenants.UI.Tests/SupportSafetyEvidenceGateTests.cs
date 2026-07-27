@@ -60,6 +60,10 @@ public sealed partial class SupportSafetyEvidenceGateTests
     // assertion is a separate statement from the assignment, so Rule 1 cannot reach it and only Rule 2 can.
     [InlineData("    public void Planted()\n    {\n        string? text = snapshot.ToString();\n        text.ShouldNotContain(\"secret\");\n    }", 6, 5)]
 
+    // Rule 2, the split-local spelling of Contains(...).ShouldBeFalse(). Tracking only
+    // local.ShouldNotContain left this semantically identical absence assertion invisible.
+    [InlineData("    public void Planted()\n    {\n        string? text = snapshot.ToString();\n        text.Contains(\"secret\").ShouldBeFalse();\n    }", 6, 5)]
+
     // Rule 2, assignment to an already-declared local, with no declaration keyword to match on.
     [InlineData("    public void Planted()\n    {\n        string text;\n        text = snapshot.ToString();\n        text.ShouldNotContain(\"secret\");\n    }", 7, 6)]
 
@@ -179,7 +183,7 @@ public sealed partial class SupportSafetyEvidenceGateTests
                 if (assignment.Success)
                 {
                     string name = assignment.Groups["name"].Value;
-                    if (statement.Contains($"{name}.ShouldNotContain", StringComparison.Ordinal))
+                    if (AssertsAbsenceOfLocal(statement, name))
                     {
                         occurrences.Add($"{relative} line {line}: {Summarize(statement)}");
                     }
@@ -193,7 +197,7 @@ public sealed partial class SupportSafetyEvidenceGateTests
 
                 foreach ((string name, int declaredAt) in stringifiedLocals)
                 {
-                    if (statement.Contains($"{name}.ShouldNotContain", StringComparison.Ordinal))
+                    if (AssertsAbsenceOfLocal(statement, name))
                     {
                         occurrences.Add(
                             $"{relative} line {line}: {Summarize(statement)} (stringified at line {declaredAt})");
@@ -250,6 +254,11 @@ public sealed partial class SupportSafetyEvidenceGateTests
     private static bool AssertsAbsence(string statement)
         => statement.Contains("ShouldNotContain", StringComparison.Ordinal)
             || (statement.Contains("Contains(", StringComparison.Ordinal)
+                && statement.Contains("ShouldBeFalse", StringComparison.Ordinal));
+
+    private static bool AssertsAbsenceOfLocal(string statement, string name)
+        => statement.Contains($"{name}.ShouldNotContain", StringComparison.Ordinal)
+            || (statement.Contains($"{name}.Contains(", StringComparison.Ordinal)
                 && statement.Contains("ShouldBeFalse", StringComparison.Ordinal));
 
     private static string Summarize(string statement)
