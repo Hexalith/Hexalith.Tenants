@@ -7,10 +7,10 @@
          data-testid="@TestId">
     <h2>@Localizer[$"Tenants.List.State.{ResourceName}.Title"]</h2>
     <p>@Message</p>
-    @* The reset affordance belongs to the filtered-empty verdict only. An empty authoritative search page
-       whose own copy says later pages may still hold results must never offer an action that ends that
-       search. *@
-    @if (Kind is TenantListSurfaceKind.FilteredEmpty)
+    @* An authoritative search page can no longer promise later results: a window that yields no authorized
+       row now ends paging, so this surface is terminal for the current search and must offer the same way
+       out as the filtered-empty verdict. Without it the operator who simply mistyped reaches a dead end. *@
+    @if (Kind is TenantListSurfaceKind.FilteredEmpty or TenantListSurfaceKind.SearchPageEmpty)
     {
         <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-state-reset" OnClick="OnReset">
             @Localizer["Tenants.List.Reset"]
@@ -32,8 +32,9 @@
     public TenantListReason Reason { get; set; }
 
     /// <summary>
-    /// Whether the surface can still reach a later page. An empty authoritative search page may only
-    /// promise later results while paging has not ended.
+    /// Whether the surface can still reach a later page. Retained for callers and layout decisions; the
+    /// empty-search-page copy no longer branches on it, because an authoritative page that yields no
+    /// authorized row now always ends paging.
     /// </summary>
     [Parameter]
     public bool HasMore { get; set; }
@@ -78,7 +79,5 @@
 
     private string Message => Reason is not TenantListReason.None
         ? Localizer[$"Tenants.List.Reason.{Reason}"]
-        : Kind is TenantListSurfaceKind.SearchPageEmpty && !HasMore
-            ? Localizer["Tenants.List.State.SearchPageEmpty.FinalMessage"]
-            : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
+        : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
 }

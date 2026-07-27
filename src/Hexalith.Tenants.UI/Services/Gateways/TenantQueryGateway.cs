@@ -720,7 +720,13 @@ internal sealed class TenantQueryGateway(
         TenantListRequest request,
         int offset,
         CancellationToken cancellationToken) {
-        IReadOnlyDictionary<string, string>? filters = request.Status is null
+        // Only statuses the index actually records may be pushed down as an attribute filter. The index
+        // publisher coerces TenantStatus.Unknown to the event's concrete fallback and never writes
+        // status=Unknown, so forwarding it matched nothing and made "status: Unknown" plus any search term
+        // report zero tenants while the same filter on the ordinary list listed them. The authoritative
+        // recheck against the hydrated detail enforces the filter either way, so dropping the push-down
+        // costs a wider candidate window and keeps both surfaces in agreement.
+        IReadOnlyDictionary<string, string>? filters = request.Status is null or TenantStatus.Unknown
             ? null
             : new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["status"] = request.Status.Value.ToString(),
@@ -839,7 +845,15 @@ internal sealed class TenantQueryGateway(
         // This is the only advancement rule under which consecutive pages neither duplicate nor skip a
         // candidate when the index legitimately omits one of its own unusable entries.
         int nextOffset = (int)Math.Min((long)rawOffset + request.PageSize, result.TotalCount);
-        bool hasMore = nextOffset < result.TotalCount;
+
+        // Fail closed on a fully filtered window. TotalCount is the raw pre-authorization index total, so
+        // deriving HasMore from it alone made an all-unauthorized page distinguishable from a genuine
+        // no-match: the former offered "later pages may still contain results" plus a live Next control,
+        // the latter did not. That difference disclosed both the existence and a page-granular count of
+        // tenants the caller is not allowed to see. A page that yields no authorized row therefore ends
+        // paging, at the accepted cost that a deep result set whose leading window is entirely hidden is
+        // not reachable by paging forward.
+        bool hasMore = rows.Count > 0 && nextOffset < result.TotalCount;
         string? nextCursor = null;
         if (hasMore) {
             try {
@@ -903,9 +917,18 @@ internal sealed class TenantQueryGateway(
             if (result.IsNotModified
                 || detail is null
                 || result.Metadata?.IsDegraded == true
-                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)
-                || detail.Name is null) {
+                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)) {
                 return (candidate.Ordinal, null, true, false);
+            }
+
+            // A successfully read projection whose Name is null is one malformed record, not a Tenants
+            // outage. Classifying it as an operational failure meant a single bad row could take down
+            // whole-set search for the query that matched it and replace the result with the entire
+            // unfiltered tenant list under a misleading "search unavailable" notice. Drop the unrenderable
+            // row and raise the ordinary enrichment-degraded signal instead, which never reaches the
+            // fallback path.
+            if (detail.Name is null) {
+                return (candidate.Ordinal, null, false, true);
             }
 
             if (status is not null && detail.Status != status.Value) {
@@ -978,7 +1001,11 @@ internal sealed class TenantQueryGateway(
             // The notice bars render from the notice reasons alone and never consult Kind, so a terminal
             // surface can and does carry the explanation. The clearing and its notice therefore travel
             // together on this snapshot instead of being deferred to some later renderable load.
+            // The search-unavailable notice travels here too: the terminal Error/Unauthorized copy only
+            // explains that the ordinary list failed, so without it the operator is never told that
+            // whole-set search failed independently -- which is the one thing the reason codes exist for.
             return fallback with {
+                Notice = TenantListReason.SearchUnavailable,
                 PagingRecovered = searchCursorInvalidated,
                 PagingNotice = searchCursorInvalidated
                     ? TenantListReason.SearchRefreshed

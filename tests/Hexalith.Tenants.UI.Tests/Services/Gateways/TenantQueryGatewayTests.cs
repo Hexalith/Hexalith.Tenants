@@ -3320,7 +3320,10 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
         snapshot.PagingRecovered.ShouldBeTrue();
         snapshot.PagingNotice.ShouldBe(TenantListReason.SearchRefreshed);
-        snapshot.Notice.ShouldBe(TenantListReason.None);
+
+        // The terminal copy explains only that the ordinary list failed. Without this the operator is
+        // never told that whole-set search failed independently.
+        snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
     }
 
     [Fact]
@@ -3375,17 +3378,47 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldBeEmpty();
         client.SubmittedQueries.ShouldBeEmpty();
 
-        // Traversal is preserved: the next window is still reachable.
-        snapshot.HasMore.ShouldBeTrue();
-        string scope = TenantSearchCursorScopes.Create(
-            "operator-user",
-            "needle",
-            status: null,
-            TenantListSortColumns.TenantId,
-            descending: false,
-            pageSize: 10);
-        codec.TryDecode(snapshot.NextCursor, scope, out int nextOffset).ShouldBeTrue();
-        nextOffset.ShouldBe(10);
+        // Fail closed. TotalCount is the raw pre-authorization total, so advertising a further page here
+        // would tell the operator that candidates exist beyond a window in which they were allowed to see
+        // nothing -- disclosing both the existence and a page-granular count of hidden tenants.
+        snapshot.HasMore.ShouldBeFalse();
+        snapshot.NextCursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task List_search_renders_a_fully_hidden_window_identically_to_a_genuine_no_match()
+    {
+        // The disclosure this guards is a *difference*, so one payload is not evidence. Both causes are
+        // driven through the same gateway and every operator-visible field is compared field by field.
+        async Task<TenantListSnapshot> LoadAsync(int totalCount)
+        {
+            StubMemoriesClient memories = new();
+            memories.Enqueue(SearchResult("needle", totalCount: totalCount));
+            return await CreateGateway(
+                    new CapturingGatewayClient(),
+                    memoriesClient: memories,
+                    searchCursorCodec: new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()))
+                .ListTenantsAsync(
+                    new TenantListRequest(Search: "needle", PageSize: 10),
+                    previous: null,
+                    CancellationToken.None);
+        }
+
+        TenantListSnapshot hidden = await LoadAsync(totalCount: 30);
+        TenantListSnapshot noMatch = await LoadAsync(totalCount: 0);
+
+        hidden.Kind.ShouldBe(noMatch.Kind);
+        hidden.HasMore.ShouldBe(noMatch.HasMore);
+        hidden.NextCursor.ShouldBe(noMatch.NextCursor);
+        hidden.Reason.ShouldBe(noMatch.Reason);
+        hidden.Notice.ShouldBe(noMatch.Notice);
+        hidden.Rows.Count.ShouldBe(noMatch.Rows.Count);
+        hidden.IsDegraded.ShouldBe(noMatch.IsDegraded);
+        hidden.IsAuthorizationScopedEmpty.ShouldBe(noMatch.IsAuthorizationScopedEmpty);
+        hidden.Freshness.ShouldBe(noMatch.Freshness);
+
+        // The pinned diagnostic is a disclosure channel too, so it must not separate the two either.
+        hidden.ToString().ShouldBe(noMatch.ToString());
     }
 
     [Fact]

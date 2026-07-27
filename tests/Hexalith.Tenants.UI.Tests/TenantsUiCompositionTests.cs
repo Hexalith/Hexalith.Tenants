@@ -250,14 +250,15 @@ public sealed class TenantsUiCompositionTests
                 "The available tenant source changed. Paging restarted from the first page.",
                 "La source de locataires disponible a changé. La pagination a redémarré depuis la première page."),
             ["Tenants.List.State.SearchPageEmpty.Title"] = (
-                "No visible tenants on this search page",
-                "Aucun locataire visible sur cette page de recherche"),
+                "No tenants match this search",
+                "Aucun locataire ne correspond à cette recherche"),
+
+            // One message for both causes. A window that yields no authorized row and a window that
+            // matched nothing must be described identically, or the copy itself discloses that hidden
+            // candidates existed.
             ["Tenants.List.State.SearchPageEmpty.Message"] = (
-                "No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.",
-                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche. Les pages suivantes de la même recherche peuvent encore contenir des résultats."),
-            ["Tenants.List.State.SearchPageEmpty.FinalMessage"] = (
-                "No authorized tenants were verified on this page of the search, and no further pages remain for this search.",
-                "Aucun locataire autorisé n'a été vérifié sur cette page de recherche et aucune page suivante ne reste pour cette recherche."),
+                "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",
+                "Aucun locataire auquel vous avez accès ne correspond à cette recherche. Vérifiez le terme recherché ou effacez-le pour revenir à la liste complète."),
             ["Tenants.List.Reason.SearchPartiallyAvailable"] = (
                 "Some search results could not be verified. Only authorized tenant rows that were verified are shown.",
                 "Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées."),

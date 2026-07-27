@@ -533,8 +533,11 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public async Task Empty_search_page_copy_promises_later_results_only_while_paging_continues()
+    public async Task Empty_search_page_copy_is_identical_whether_the_window_was_hidden_or_matched_nothing()
     {
+        // Superseded the "promises later results" split: an authoritative window that yields no authorized
+        // row now ends paging, so there is no non-final variant to promise anything. What must be proven
+        // instead is that the two causes are indistinguishable, since the difference was the disclosure.
         bool hasMore = true;
         RegisterServices(call =>
         {
@@ -549,17 +552,31 @@ public sealed class TenantListSurfaceTests : BunitContext
         await ChangeSearchAsync(cut, "nomatch");
 
         cut.WaitForElement("[data-testid='tenants-list-search-page-empty']");
-        cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent
-            .ShouldBe("No visible tenants on this search page");
-        cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent
-            .ShouldBe("No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.");
+        string hiddenTitle = cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent;
+        string hiddenMessage = cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent;
 
-        // On a final page nothing further is reachable, so the copy may not promise later results.
+        hiddenTitle.ShouldBe("No tenants match this search");
+        hiddenMessage.ShouldBe(
+            "No tenants you can access match this search. "
+            + "Check the search term, or clear it to return to the full list.");
+
+        // The copy must never state or imply that rows failed verification on this page: that is a claim
+        // about hidden candidates, and it is false for the dominant no-match case.
+        hiddenMessage.ShouldNotContain("verified");
+        hiddenMessage.ShouldNotContain("later pages", Case.Insensitive);
+
+        // The terminal window renders the same copy, so the operator cannot tell the causes apart.
         hasMore = false;
         cut.Find("[data-testid='tenants-list-refresh']").Click();
 
-        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent
-            .ShouldBe("No authorized tenants were verified on this page of the search, and no further pages remain for this search."));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-list-search-page-empty'] h2").TextContent.ShouldBe(hiddenTitle);
+            cut.Find("[data-testid='tenants-list-search-page-empty'] p").TextContent.ShouldBe(hiddenMessage);
+        });
+
+        // The page is terminal for this search, so it must offer the way back to the full list.
+        cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
     }
 
     [Fact]
@@ -1483,12 +1500,14 @@ public sealed class TenantListSurfaceTests : BunitContext
             // This surface tells the operator that later pages of the same search may still hold results,
             // so it must not also offer an action that ends that search.
             cut.Find($"[data-testid='{selector}'] h2").TextContent
-                .ShouldBe("No visible tenants on this search page");
+                .ShouldBe("No tenants match this search");
             cut.Find($"[data-testid='{selector}'] p").TextContent
                 .ShouldBe(
-                    "No authorized tenants were verified on this page of the search. "
-                    + "Later pages of the same search may still contain results.");
-            cut.FindAll("[data-testid='tenants-list-state-reset']").ShouldBeEmpty();
+                    "No tenants you can access match this search. "
+                    + "Check the search term, or clear it to return to the full list.");
+
+            // The page can no longer promise later results, so it must offer the way out.
+            cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
         }
         else if (kind is TenantListSurfaceKind.Stale)
         {
@@ -1965,9 +1984,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Notice.SearchUnavailable"] = "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
             ["Tenants.List.Notice.SearchRefreshed"] = "The protected search page was no longer available. Search has restarted from the first page.",
             ["Tenants.List.Notice.SearchPagingRestarted"] = "The available tenant source changed. Paging restarted from the first page.",
-            ["Tenants.List.State.SearchPageEmpty.Title"] = "No visible tenants on this search page",
-            ["Tenants.List.State.SearchPageEmpty.Message"] = "No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.",
-            ["Tenants.List.State.SearchPageEmpty.FinalMessage"] = "No authorized tenants were verified on this page of the search, and no further pages remain for this search.",
+            ["Tenants.List.State.SearchPageEmpty.Title"] = "No tenants match this search",
+            ["Tenants.List.State.SearchPageEmpty.Message"] = "No tenants you can access match this search. Check the search term, or clear it to return to the full list.",
             ["Tenants.List.StatusFilterLabel.Authoritative"] = "Status across indexed candidates",
             ["Tenants.List.AuthoritativeSearchSemantics"] = "Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.",
             ["Tenants.List.State.Loading.Title"] = "Loading tenants",

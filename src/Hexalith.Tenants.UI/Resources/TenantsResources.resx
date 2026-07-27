@@ -195,14 +195,11 @@
   <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
     <value>No tenants match filters</value>
   </data>
-  <data name="Tenants.List.State.SearchPageEmpty.FinalMessage" xml:space="preserve">
-    <value>No authorized tenants were verified on this page of the search, and no further pages remain for this search.</value>
-  </data>
   <data name="Tenants.List.State.SearchPageEmpty.Message" xml:space="preserve">
-    <value>No authorized tenants were verified on this page of the search. Later pages of the same search may still contain results.</value>
+    <value>No tenants you can access match this search. Check the search term, or clear it to return to the full list.</value>
   </data>
   <data name="Tenants.List.State.SearchPageEmpty.Title" xml:space="preserve">
-    <value>No visible tenants on this search page</value>
+    <value>No tenants match this search</value>
   </data>
   <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
     <value>Tenant data is loading from the server-side query gateway.</value>
