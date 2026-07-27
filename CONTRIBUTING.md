@@ -92,6 +92,33 @@ feat!: rename TenantAggregate state shape
 6. PRs require at least one approval
 7. On merge to `main`, semantic-release automatically determines the version, publishes NuGet packages, and creates a GitHub Release
 
+## Release Version Line
+
+Releases run on the **4.x** line. Nothing at or below `4.0.0` can be released again, because the
+five packages share one version and part of the range is already published and immutable:
+
+- `Hexalith.Tenants.Contracts`, `.Server` and `.Aspire` occupy `3.3.0` through `3.15.1`, published
+  from this repository in May 2026 (`3.15.1` was built from `5469a6b`).
+- Tags `v3.2.0` through `v3.15.1` were deleted afterwards, so semantic-release resumed from `v3.1.1`
+  and released back inside that range. `3.2.0` and `3.2.1` were tagged but never landed on NuGet —
+  the push still carried `--skip-duplicate` then, so the collision passed silently. `3.2.2` through
+  `3.2.18` occupied numbers the May line had left free.
+- The next minor bump therefore proposed `3.3.0`, which the publication preflight rejected as a
+  collision in run `30291329462`.
+
+`scripts/validate-publication-preflight.sh` declares `minimum_release_version` and fails closed —
+locally, before the shared preflight probes any destination — when a proposal falls below it. The
+check firing means one of two things: the tag line lost its history again, so restore the deleted
+tags until semantic-release resumes above the floor; or the analyzed commits do not justify the
+major bump, so the change needs a `BREAKING CHANGE` footer. Never lower the floor to make a release
+pass, and never publish into the consumed range.
+
+**Consumers.** Sibling Hexalith repositories pin `Hexalith.Tenants.*` at `3.2.x`. Moving to `4.0.0`
+requires a coordinated package-reference bump. A consumer coming from `3.2.18` gets no API break —
+the breaking commits it names are already in `3.2.x`. A consumer still on the May `3.15.1` line does:
+`09699ca` (container release moved to zot) and `f46264a` (fail-safe role/status enum defaults and
+consumer-contract hardening).
+
 ## Test Requirements
 
 All pull requests must pass Tier 1 (unit) and Tier 2 (DAPR integration) tests.

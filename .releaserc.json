@@ -16,7 +16,9 @@
       "@semantic-release/github",
       {
         "assets": ["nupkgs/*.nupkg"],
-        "labels": []
+        "labels": [],
+        "successCommentCondition": false,
+        "releasedLabels": false
       }
     ]
   ]

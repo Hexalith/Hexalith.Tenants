@@ -19,6 +19,17 @@ evidence_directory="${HEXALITH_RELEASE_EVIDENCE_DIRECTORY:-$PWD/.hexalith/releas
 # closed until the change is reviewed alongside tools/release-packages.json.
 expected_package_count=5
 
+# No version at or below 3.15.1 can be released. Contracts, Server and Aspire already
+# occupy 3.3.0 through 3.15.1, published from this repository in May 2026; Client and
+# Testing reach 3.2.18. All five ship one shared version, so one occupied ID is enough to
+# block the release. Tags v3.2.0 through v3.15.1 were deleted afterwards, which is how
+# semantic-release came to resume inside that range and propose 3.3.0 in run 30291329462.
+# 4.x is the authoritative line. Declaring the floor here, beside the package count, turns
+# a version line that slips back below it into an actionable local failure instead of a
+# NuGet destination collision. Raise it only alongside a deliberate version-line decision,
+# and update the "Release Version Line" section of CONTRIBUTING.md with it.
+minimum_release_version=4.0.0
+
 fail() {
   echo "[publication-preflight] $1" >&2
   exit 1
@@ -26,6 +37,14 @@ fail() {
 
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] ||
   fail "A plain semantic release version is required."
+# Compare release cores so the ordering does not depend on how a given sort implementation
+# ranks prerelease suffixes. Assign before comparing: an inline command substitution inside
+# [[ ]] discards the pipeline status, so a sort that is missing or errors would produce an
+# empty string and be misreported as a below-floor version instead of aborting.
+version_core="${version%%-*}"
+lowest_version="$(printf '%s\n%s\n' "$minimum_release_version" "$version_core" | sort -V | head -n 1)"
+[[ "$lowest_version" = "$minimum_release_version" ]] ||
+  fail "Version $version is below the $minimum_release_version release floor. Everything at or below 3.15.1 is published and immutable. Either the tag line lost its release history, in which case restore the deleted tags so semantic-release resumes above the floor, or the analyzed commits do not justify the major bump out of the 3.x line, in which case land the change with a BREAKING CHANGE footer. Never lower the floor to make a release pass."
 [[ "$phase" =~ ^(verify|publish)$ ]] ||
   fail "Publication phase must be verify or publish."
 [[ "$builds_execution_sha" =~ ^[0-9a-f]{40}$ ]] ||

@@ -409,6 +409,15 @@ public class PackageGovernanceTests {
         // Existing package and tag identities are collisions, not something to skip past.
         releaseConfig.ShouldNotContain("--skip-duplicate");
 
+        // The success path must not write comments or labels: a failure there turns a run red after
+        // a completed publish, leaving the partial state recover-partial-release.yml exists to clean
+        // up. The empty labels array stays too — the plugin appends its own "semantic-release" label
+        // to the failure issue, and with the default the payload carried it twice, which is the HTTP
+        // 422 that masked the real publication error in run 30291329462.
+        releaseConfig.ShouldContain("\"labels\": []");
+        releaseConfig.ShouldContain("\"successCommentCondition\": false");
+        releaseConfig.ShouldContain("\"releasedLabels\": false");
+
         // The publication preflight must run before the first NuGet write and again before the
         // first container write, freezing publication identity at the verify phase.
         releaseConfig.ShouldContain("bash scripts/validate-publication-preflight.sh ${nextRelease.version} verify");
@@ -470,6 +479,54 @@ public class PackageGovernanceTests {
         GetWorkflowActionReferences(workflow).ShouldAllBe(
             action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && IsFullCommitSha(action.Reference),
             "The release workflow must pin every shared Hexalith.Builds workflow to an exact commit SHA.");
+    }
+
+    [Fact]
+    public async Task Publication_preflight_rejects_release_versions_below_the_published_floor() {
+        string repoRoot = FindRepoRoot();
+        string bridge = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-publication-preflight.sh"));
+        string contributing = File.ReadAllText(Path.Combine(repoRoot, "CONTRIBUTING.md"));
+
+        // The floor is declared beside the package count, and the documented version line must carry
+        // the same value: raising one without the other leaves operators a stale remedy.
+        bridge.ShouldContain("minimum_release_version=4.0.0");
+        contributing.ShouldContain("Nothing at or below `4.0.0` can be released again");
+
+        // Every version at or below 3.15.1 is published, so a version line that drops back into that
+        // range must fail here rather than on a NuGet destination probe. The message must name both
+        // causes, because a restored tag line with no major in range fails the same way.
+        (int ExitCode, string Error) collided = await RunPublicationPreflightAsync(repoRoot, "3.3.0", "verify");
+        collided.ExitCode.ShouldBe(1);
+        collided.Error.ShouldContain("below the 4.0.0 release floor");
+        collided.Error.ShouldContain("restore the deleted tags");
+        collided.Error.ShouldContain("BREAKING CHANGE");
+
+        (int ExitCode, string Error) highestConsumed = await RunPublicationPreflightAsync(repoRoot, "3.15.1", "verify");
+        highestConsumed.ExitCode.ShouldBe(1);
+        highestConsumed.Error.ShouldContain("below the 4.0.0 release floor");
+
+        // A prerelease below the floor is still below the floor: the core comparison must not become
+        // an escape hatch into the consumed range.
+        (int ExitCode, string Error) prereleaseBelowFloor = await RunPublicationPreflightAsync(repoRoot, "3.15.1-rc.1", "verify");
+        prereleaseBelowFloor.ExitCode.ShouldBe(1);
+        prereleaseBelowFloor.Error.ShouldContain("below the 4.0.0 release floor");
+
+        // At and above the floor the bridge falls through to the existing identity checks, proving
+        // the floor neither releases anything on its own nor short-circuits the rest of the preflight.
+        // Each case asserts the next expected failure, so a version rejected for a new reason cannot
+        // pass by merely omitting the floor message.
+        foreach (string allowed in new string[] { "4.0.0", "4.1.0", "10.0.0", "4.0.0-rc.1" }) {
+            (int ExitCode, string Error) accepted = await RunPublicationPreflightAsync(repoRoot, allowed, "verify");
+            accepted.ExitCode.ShouldBe(1, $"{allowed} must reach the identity checks.");
+            accepted.Error.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA must be an exact lowercase commit SHA.", customMessage: allowed);
+            accepted.Error.ShouldNotContain("release floor", customMessage: allowed);
+        }
+
+        // A malformed version is still rejected first, by the unchanged format check.
+        (int ExitCode, string Error) malformed = await RunPublicationPreflightAsync(repoRoot, "x", "verify");
+        malformed.ExitCode.ShouldBe(1);
+        malformed.Error.ShouldContain("A plain semantic release version is required.");
+        malformed.Error.ShouldNotContain("release floor");
     }
 
     [Fact]
@@ -919,6 +976,47 @@ public class PackageGovernanceTests {
         }
 
         return string.Join('\n', block) + '\n';
+    }
+
+    private static async Task<(int ExitCode, string Error)> RunPublicationPreflightAsync(string repoRoot, string version, string phase) {
+        using Process process = new() {
+            StartInfo = new ProcessStartInfo {
+                FileName = "bash",
+                WorkingDirectory = repoRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            },
+        };
+        process.StartInfo.ArgumentList.Add("scripts/validate-publication-preflight.sh");
+        process.StartInfo.ArgumentList.Add(version);
+        process.StartInfo.ArgumentList.Add(phase);
+
+        // Unset every input the bridge reads so an inherited value cannot change which check reports
+        // first, and so the bridge can never reach a real destination probe from a test. Unset rather
+        // than blank: the script distinguishes unset from set-but-empty for the package count.
+        foreach (string releaseInput in new string[] {
+            "HEXALITH_BUILDS_EXECUTION_SHA",
+            "GITHUB_SHA",
+            "HEXALITH_RELEASE_SOURCE_BRANCH",
+            "HEXALITH_RELEASE_SOURCE_CI_WORKFLOW",
+            "HEXALITH_RELEASE_PACKAGE_MANIFEST",
+            "HEXALITH_RELEASE_ENVIRONMENT",
+            "HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT",
+            "HEXALITH_RELEASE_CONTRACT_DIRECTORY",
+            "HEXALITH_RELEASE_EVIDENCE_DIRECTORY",
+            "HEXALITH_PUBLICATION_PREFLIGHT",
+            "HEXALITH_ZOT_REGISTRY",
+        }) {
+            process.StartInfo.Environment.Remove(releaseInput);
+        }
+
+        process.Start();
+        Task<string> output = process.StandardOutput.ReadToEndAsync();
+        Task<string> error = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        await output;
+        return (process.ExitCode, await error);
     }
 
     private static async Task<(int ExitCode, string Output, string Error)> RunPublicationPostconditionAsync(
