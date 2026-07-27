@@ -24,14 +24,17 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
-    public void Remove_configuration_flow_excludes_unsafe_target_without_rendering_sensitive_value()
+    public void Remove_configuration_flow_blocks_a_target_absent_from_the_safe_rows_without_borrowing_a_value()
     {
+        // The target sits inside the authorized `billing` namespace but has no safe row — how an
+        // unapproved or undefined-policy key reaches this flow. It must block, and it must not display
+        // a sibling row's value: this context is the component's only configuration input.
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
-                ["billing.endpoint"] = "Bearer raw-token",
+                ["billing.mode"] = "sibling-row-value",
             }))
             .Add(p => p.TargetKey, "billing.endpoint")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -44,7 +47,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-remove-preview-blocked']").TextContent.ShouldContain("not visible", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-config-remove-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("sibling-row-value", Case.Insensitive);
         cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
         cut.Markup.ShouldNotContain("receipt", Case.Insensitive);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
@@ -65,11 +68,11 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Remove_configuration_preview_excludes_a_sensitive_key_from_safe_targets()
+    public void Remove_configuration_preview_excludes_a_key_absent_from_the_safe_targets()
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.password")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -348,8 +351,10 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Select(Namespace)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        // No filtering here. This helper previously dropped rows through a verbatim copy of the old
+        // deny-list, which meant the "redaction" assertions below were satisfied by the fixture rather
+        // than by the component under test. The context now contains exactly what a caller passes.
         TenantConfigurationSafeRow[] rows = configuration
-            .Where(static item => IsSafeForTestContext(item.Key, item.Value))
             .Select(item => new TenantConfigurationSafeRow(Namespace(item.Key), item.Key, item.Value))
             .ToArray();
         return TenantConfigurationManagementContext.Available(
@@ -366,10 +371,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         return separator > 0 ? key[..separator] : key;
     }
 
-    private static bool IsSafeForTestContext(string key, string value)
-        => !key.Contains("password", StringComparison.OrdinalIgnoreCase)
-        && !value.Contains("token", StringComparison.OrdinalIgnoreCase)
-        && !value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
 
     private static TenantConfigurationProjectionProof Proof(
         string tenantId,
@@ -437,7 +438,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
-            ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.Remove.Title"] = "Remove configuration",
             ["Tenants.Configuration.Remove.Description"] = "Prepare a scoped configuration removal for tenant {0} with projection confirmation.",
             ["Tenants.Configuration.Remove.Submit"] = "Confirm removal",

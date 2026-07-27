@@ -1,6 +1,7 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 
 <section class="tenant-config-management"
@@ -16,7 +17,7 @@
         <p id="tenants-config-management-unavailable"
            data-testid="tenants-config-management-unavailable"
            role="status">
-            @Localizer["Tenants.Configuration.Management.Unavailable.Policy"]
+            @Localizer[PolicyUnavailableResourceKey]
         </p>
     }
     else if (!string.IsNullOrWhiteSpace(UnavailableReason))
@@ -134,6 +135,14 @@
         => Context?.IsAvailable == true
         && (Context.IsGlobalAdministrator || Context.AuthorizedPrefixes.Count > 0);
 
+    // A valid policy that grants this caller nothing is not a verification failure. Reporting it as
+    // one told a proven non-administrator that policy could not be verified, contradicting the
+    // sibling read landmark, which correctly showed an authorization-safe empty state.
+    private string PolicyUnavailableResourceKey
+        => Context?.IsAvailable == true
+            ? "Tenants.Configuration.Management.Unavailable.NoScope"
+            : "Tenants.Configuration.Management.Unavailable.Policy";
+
     private string? UnavailableReason
         => SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
             ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionState"].Value
@@ -151,6 +160,24 @@
         {
             _removeKey = null;
         }
+
+        // Prune references for rows that are no longer rendered. Without this the dictionary retains a
+        // detached ElementReference after a successful remove — focusing it throws — and it keeps
+        // configuration key names from previously visited tenants alive for the life of the circuit.
+        if (_removeLaunchElements.Count > 0)
+        {
+            HashSet<string> live = Context?.RemovableRows.Select(static row => row.Key).ToHashSet(StringComparer.Ordinal)
+                ?? [];
+            foreach (string stale in _removeLaunchElements.Keys.Where(key => !live.Contains(key)).ToArray())
+            {
+                _ = _removeLaunchElements.Remove(stale);
+            }
+        }
+
+        if (_focusRemoveLaunchKey is not null && !_removeLaunchElements.ContainsKey(_focusRemoveLaunchKey))
+        {
+            _focusRemoveLaunchKey = null;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -159,7 +186,14 @@
             && _removeLaunchElements.TryGetValue(_focusRemoveLaunchKey, out ElementReference launchElement))
         {
             _focusRemoveLaunchKey = null;
-            await launchElement.FocusAsync().ConfigureAwait(false);
+            try
+            {
+                await launchElement.FocusAsync().ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit went away while a refocus was queued; nothing to restore focus to.
+            }
         }
     }
 

@@ -80,14 +80,27 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
+            // Deliberately unconditional. Safe rows cannot be reconstructed from an already-filtered
+            // model, so a 304 always forces a second full read anyway; sending the validator merely
+            // doubled the backend queries in the common case. The not-modified branch below is kept
+            // as defence for a client that returns 304 regardless.
             EventStoreQueryResult<TenantDetail> result = await queryClient
-                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), request.ETag, cancellationToken)
+                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), ifNoneMatch: null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
                 result = await queryClient
                     .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), ifNoneMatch: null, cancellationToken)
                     .ConfigureAwait(false);
+            }
+
+            // A payload-less success with nothing to retain is unknown, not degraded: there is no
+            // last-confirmed evidence being carried forward, and AC5 requires the two to stay distinct
+            // so the surface cannot claim retained data it does not have.
+            if (result.Payload is null && !result.IsNotModified && !HasSameTenantDetail(previous, request.TenantId)) {
+                return TenantDetailSnapshot.Unknown(
+                    "Tenant detail projection returned no payload.",
+                    result.ETag);
             }
 
             if (result.IsNotModified || result.Payload is null) {
@@ -1417,6 +1430,17 @@ internal sealed class TenantQueryGateway(
         bool isRemove,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantConfigurationProjectionProof.Unavailable(tenantId);
+        }
+
+        // Proof comparison reads the raw dictionary, so it must apply the configuration policy itself.
+        // Without this gate the method answers "does key K exist" and "is K equal to V" for any key a
+        // caller supplies, which is an existence and value oracle for namespaces outside their grants —
+        // the component-level checks are not a substitute, because they are not on this path.
+        if (bffComposition is null
+            || !await bffComposition
+                .IsConfigurationKeyAuthorizedAsync(tenantId, key, cancellationToken)
+                .ConfigureAwait(false)) {
             return TenantConfigurationProjectionProof.Unavailable(tenantId);
         }
 

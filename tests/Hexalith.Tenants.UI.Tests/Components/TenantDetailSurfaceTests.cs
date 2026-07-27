@@ -83,7 +83,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
-        cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
+        cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 visible configuration keys");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Find(".tenant-detail__literal").GetAttribute("aria-label").ShouldBe($"Full tenant identifier {tenantId}");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
@@ -392,6 +392,94 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-remove-flow']");
         cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
         cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Configuration_management_returns_focus_to_the_launching_control_when_the_remove_flow_closes()
+    {
+        // Restores the focus-return regression guard dropped by the read/management split, which
+        // test-summary.md still claimed was covered. The launching control is refocused through an
+        // ElementReference, so a JS focus invocation is the observable evidence.
+        RegisterComponentServices();
+        TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            [row]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, context)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        int focusCallsBeforeClose = JSInterop.Invocations.Count(invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+
+        JSInterop.Invocations
+            .Count(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .ShouldBeGreaterThan(focusCallsBeforeClose);
+    }
+
+    [Fact]
+    public void Configuration_management_can_remove_an_authorized_key_that_contains_no_separator()
+    {
+        // Grant `P` authorizes exact key `P` as well as `P.*`, so a dotless key is a legitimate safe
+        // row. The remove flow derived its namespace as empty for such a key and opened permanently
+        // blocked on scope, while the set flow handled the same key correctly.
+        RegisterComponentServices();
+        TenantConfigurationSafeRow row = new("maintenance", "maintenance", "on");
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["maintenance"],
+            [row]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, context)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+        cut.FindAll("[data-testid='tenants-config-remove-preview-blocked']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-config-remove-preview-namespace']").TextContent.ShouldContain("maintenance");
+    }
+
+    [Fact]
+    public void Configuration_management_distinguishes_an_unverifiable_policy_from_a_policy_that_grants_nothing()
+    {
+        // A valid policy granting this caller nothing is not a verification failure. Reporting it as one
+        // contradicted the sibling read landmark, which correctly showed authorization-safe empty.
+        RegisterComponentServices();
+
+        IRenderedComponent<TenantConfigurationManagement> noScope = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, TenantConfigurationManagementContext.Available(
+                "tenant.alpha",
+                TenantStatus.Active,
+                false,
+                [],
+                []))
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        string noScopeText = noScope.Find("[data-testid='tenants-config-management-unavailable']").TextContent;
+        noScopeText.ShouldContain("no configuration namespace is granted", Case.Insensitive);
+        noScopeText.ShouldNotContain("cannot be verified", Case.Insensitive);
+
+        IRenderedComponent<TenantConfigurationManagement> unverifiable = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, TenantConfigurationManagementContext.Unavailable("tenant.alpha"))
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+
+        unverifiable.Find("[data-testid='tenants-config-management-unavailable']").TextContent
+            .ShouldContain("cannot be verified", Case.Insensitive);
     }
 
     [Fact]
@@ -947,13 +1035,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchResources.ShouldContain("Tenants.Detail.State.Unauthorized.Message");
         frenchResources.ShouldContain("Tenants.Detail.Configuration.Summary");
         invariantResources.ShouldContain("Tenants.Configuration.Title");
-        invariantResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
         invariantResources.ShouldContain("Tenants.Configuration.State.Unavailable");
-        invariantResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
+        invariantResources.ShouldContain("Tenants.Configuration.State.Unavailable");
+        invariantResources.ShouldContain("Tenants.Configuration.Management.Unavailable.NoScope");
         frenchResources.ShouldContain("Tenants.Configuration.Title");
-        frenchResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
         frenchResources.ShouldContain("Tenants.Configuration.State.Unavailable");
-        frenchResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
+        frenchResources.ShouldContain("Tenants.Configuration.State.Unavailable");
+        frenchResources.ShouldContain("Tenants.Configuration.Management.Unavailable.NoScope");
         invariantResources.ShouldContain("Tenants.Configuration.Set.Title");
         invariantResources.ShouldContain("Tenants.Configuration.Set.State.ProjectionPending");
         frenchResources.ShouldContain("Tenants.Configuration.Set.Title");
@@ -1290,6 +1378,68 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["billing.mode"] = "trial",
         });
 
+    [Fact]
+    public void Configuration_view_never_renders_error_metadata_correlation_ids_tokens_stack_traces_or_pii()
+    {
+        // Restores the support-safety regression guard deleted by the read/management split. Its ten
+        // assertions were the only executable evidence for the story's "never expose correlations,
+        // exceptions, stack traces, tokens or PII" clause on this surface, and they were removed in the
+        // same change that added new exception-handling paths through the gateway and composer.
+        RegisterComponentServices();
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, TenantConfigurationSafeModel.Unavailable("tenant.alpha"))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unavailable)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Unknown));
+
+        foreach (string forbidden in new[]
+        {
+            "correlation-123",
+            "raw-cursor",
+            "InvalidOperationException",
+            "stack trace",
+            "at Hexalith.",
+            "eyJhbGciOiJIUzI1NiJ9",
+            "Bearer ",
+            "jane.doe@example.test",
+            "EventStore metadata",
+            "ProjectedAt",
+        })
+        {
+            cut.Markup.ShouldNotContain(forbidden, Case.Insensitive);
+        }
+    }
+
+    [Fact]
+    public void Configuration_filter_matches_literally_rather_than_by_culture_collation()
+    {
+        // Every other comparison in the feature is ordinal. Culture-sensitive Contains applies ICU
+        // collation, which normalizes: the decomposed filter below matched the composed key even though
+        // the policy treats those as different keys, and a zero-width space matched every row because
+        // ICU treats it as fully ignorable. Code points are spelled out so the intent cannot be lost to
+        // editor normalization.
+        const string composed = "billing.caf\u00E9";      // NFC: e-acute as one code point
+        const string decomposed = "caf\u0065\u0301";      // NFD: e + combining acute
+        const string zeroWidthSpace = "\u200B";
+
+        RegisterComponentServices();
+        TenantConfigurationSafeModel model = SafeConfiguration(("billing", composed, "trial"));
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, model)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-read-filter']").Change(decomposed);
+        cut.FindAll("[data-testid='tenants-config-read-group']").ShouldBeEmpty();
+
+        cut.Find("[data-testid='tenants-config-read-filter']").Change(zeroWidthSpace);
+        cut.FindAll("[data-testid='tenants-config-read-group']").ShouldBeEmpty();
+
+        cut.Find("[data-testid='tenants-config-read-filter']").Change("caf\u00E9");
+        cut.FindAll("[data-testid='tenants-config-read-group']").Count.ShouldBe(1);
+    }
+
     private static TenantConfigurationSafeModel SafeConfiguration(
         params (string Namespace, string Key, string Value)[] rows)
         => TenantConfigurationSafeModel.Available(
@@ -1390,8 +1540,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Detail.Back"] = "Back to tenants",
-            ["Tenants.Detail.Configuration.Empty"] = "No configuration keys are available in this detail projection.",
-            ["Tenants.Detail.Configuration.Summary"] = "{0} configuration keys across {1} safe groups.",
+            ["Tenants.Detail.Configuration.Empty"] = "No visible configuration is available in this detail projection.",
+            ["Tenants.Detail.Configuration.Summary"] = "{0} visible configuration keys across {1} namespaces.",
             ["Tenants.Detail.Configuration.Title"] = "Configuration summary",
             ["Tenants.Detail.CreatedAtLabel"] = "Created",
             ["Tenants.Detail.FreshnessLabel"] = "Freshness",
@@ -1422,7 +1572,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Lifecycle.Unavailable.AlreadyActive"] = "{1} is unavailable for tenant {0} because the current projection already shows Active. If submitted by another surface, the safe domain outcome is {2}; continue read-only or refresh.",
             ["Tenants.Configuration.Announcement.Results"] = "{0} visible configuration entries across {1} namespace groups.",
             ["Tenants.Configuration.ClearFilter"] = "Clear",
-            ["Tenants.Configuration.CommandUnavailable"] = "Configuration command previews are unavailable until tenant freshness can be verified.",
             ["Tenants.Configuration.Description"] = "Read-only visible configuration from the authorized tenant detail projection.",
             ["Tenants.Configuration.Filter.Help"] = "Scan visible namespaces and literal keys. Prefix ownership is not inferred from this read model.",
             ["Tenants.Configuration.Filter.Label"] = "Filter visible configuration",
@@ -1431,7 +1580,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Header.Freshness"] = "Freshness",
             ["Tenants.Configuration.Header.Key"] = "Key",
             ["Tenants.Configuration.Header.Namespace"] = "Namespace",
-            ["Tenants.Configuration.Header.Safety"] = "Safety",
             ["Tenants.Configuration.Header.Value"] = "Value",
             ["Tenants.Configuration.Header.Actions"] = "Actions",
             ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
@@ -1451,14 +1599,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Table.Caption"] = "Visible tenant configuration grouped by namespace",
             ["Tenants.Configuration.Table.AccessibleLabel"] = "Authorized tenant configuration values",
             ["Tenants.Configuration.Title"] = "Visible configuration",
-            ["Tenants.Configuration.UnscopedNamespace"] = "Other",
-            ["Tenants.Configuration.Value.Safe"] = "Visible",
-            ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
-            ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
             ["Tenants.Configuration.Management.Title"] = "Configuration management",
             ["Tenants.Configuration.Management.Description"] = "Set configuration within current authorized prefixes or remove a current safe target.",
             ["Tenants.Configuration.Management.Unavailable.Policy"] = "Configuration management is unavailable because current authorization policy cannot be verified.",
+            ["Tenants.Configuration.Management.Unavailable.NoScope"] = "Configuration management is unavailable because no configuration namespace is granted to you for this tenant.",
             ["Tenants.Configuration.Management.Unavailable.ProjectionState"] = "Refresh available tenant detail before managing configuration.",
             ["Tenants.Configuration.Management.Unavailable.Freshness"] = "Refresh current tenant detail before managing configuration.",
             ["Tenants.Configuration.Management.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration management.",

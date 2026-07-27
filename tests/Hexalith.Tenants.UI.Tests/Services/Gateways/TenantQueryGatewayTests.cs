@@ -77,7 +77,10 @@ public sealed class TenantQueryGatewayTests
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
-        query.IfNoneMatch.ShouldBe("\"known\"");
+        // Deliberately unconditional: safe rows cannot be rebuilt from an already-filtered model, so a
+        // 304 always forced a second full read. Sending the validator only doubled the backend queries.
+        query.IfNoneMatch.ShouldBeNull();
+        client.SubmittedQueries.Count.ShouldBe(1);
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
@@ -422,7 +425,7 @@ public sealed class TenantQueryGatewayTests
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
-        TenantQueryGateway gateway = CreateGateway(client);
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
             new SetTenantConfiguration("tenant.alpha", "billing.mode", expectedValue),
@@ -446,7 +449,7 @@ public sealed class TenantQueryGatewayTests
             ? new Dictionary<string, string> { ["billing.mode"] = "trial" }
             : new Dictionary<string, string> { ["billing.other"] = "kept" };
         client.EnqueueQueryResult(Detail("tenant.alpha", configuration));
-        TenantQueryGateway gateway = CreateGateway(client);
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(
             new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
@@ -458,12 +461,82 @@ public sealed class TenantQueryGatewayTests
             $"TenantConfigurationProjectionProof {{ Kind = {expectedKind}, HasTenantId = True }}");
     }
 
+    [Theory]
+    [InlineData("secret.key")]
+    [InlineData("billingother.key")]
+    [InlineData("Billing.mode")]
+    public async Task Configuration_projection_proof_fails_closed_for_a_key_outside_policy_scope(string key)
+    {
+        // Without a policy gate on this path the method answers "does key K exist" and "is K equal to
+        // V" for any key a caller supplies. The submitted-query assertion is the load-bearing one: the
+        // gate must run before the backend read, so no oracle response is produced at all.
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { [key] = "hidden" }));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
+
+        TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(
+            new RemoveTenantConfiguration("tenant.alpha", key),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_fails_closed_without_a_composition_seam()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_fails_closed_when_policy_is_unavailable()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition("{ \"Tenants\": { \"ConfigurationReadPolicy\": { \"PrefixGrants\": \"scalar\", \"DisplaySafe\": [] } } }"));
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_tenant_reports_a_payloadless_success_with_no_prior_as_unknown_rather_than_degraded()
+    {
+        // AC5 requires unknown and degraded to stay distinct. Routing a null payload through the
+        // retention path labelled the surface degraded, which tells the user last-confirmed evidence is
+        // being shown when there is none to show.
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult<TenantDetail>(null!);
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unknown);
+        snapshot.Detail.ShouldBeNull();
+    }
+
     [Fact]
     public async Task Configuration_projection_proof_rejects_wrong_tenant_payload()
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(Detail("tenant.other", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
-        TenantQueryGateway gateway = CreateGateway(client);
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
             new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
@@ -3811,6 +3884,20 @@ public sealed class TenantQueryGatewayTests
             observed = prior;
         }
     }
+
+    // Grants `billing` on tenant.alpha to the default test subject so projection-proof tests exercise
+    // the comparison rather than the policy gate. Proof authorization is namespace-only by design: a
+    // key may be commanded under proven scope while remaining absent from the read model.
+    private const string BillingGrantPolicyJson = """
+        {
+          "Tenants": {
+            "ConfigurationReadPolicy": {
+              "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "billing" }],
+              "DisplaySafe": ["billing.mode"]
+            }
+          }
+        }
+        """;
 
     private static ITenantsBffComposition ConfigurationComposition(string json)
     {

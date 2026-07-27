@@ -20,11 +20,13 @@
     gap: 0.5rem;
 }
 
+/* fc-css-exception: removable targets must stay horizontally available at every width; Fluent grid has no cursor-safe overflow container for a pinned action column. */
 .tenant-config-management__targets {
     min-inline-size: 0;
     overflow-x: auto;
 }
 
+/* fc-css-exception: configuration keys are literal caller-supplied values and must render monospaced and wrap at arbitrary points so no character is dropped or visually merged. */
 .tenant-config-management__targets code {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
     overflow-wrap: anywhere;
@@ -41,9 +43,9 @@
         padding: 0.75rem;
     }
 
-    .tenant-config-management__targets {
-        display: none;
-    }
+    /* The removable-target table stays rendered at narrow widths. Hiding it removed a safety-critical
+       surface from the accessibility tree with no localized substitute, while the sibling set flow
+       stayed operable — the region scrolls horizontally instead. */
 }
 
 @media (forced-colors: active) {

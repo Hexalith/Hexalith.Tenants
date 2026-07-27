@@ -589,13 +589,13 @@
     <value>Back to tenants</value>
   </data>
   <data name="Tenants.Detail.Configuration.Empty" xml:space="preserve">
-    <value>No configuration keys are available in this detail projection.</value>
+    <value>No visible configuration is available in this detail projection.</value>
   </data>
   <data name="Tenants.Detail.Configuration.Unavailable" xml:space="preserve">
     <value>Configuration unavailable</value>
   </data>
   <data name="Tenants.Detail.Configuration.Summary" xml:space="preserve">
-    <value>{0} configuration keys across {1} safe groups.</value>
+    <value>{0} visible configuration keys across {1} namespaces.</value>
   </data>
   <data name="Tenants.Detail.Configuration.Title" xml:space="preserve">
     <value>Configuration summary</value>
@@ -978,17 +978,8 @@
   <data name="Tenants.Configuration.Announcement.Results" xml:space="preserve">
     <value>{0} visible configuration entries across {1} namespace groups.</value>
   </data>
-  <data name="Tenants.Configuration.Announcement.Unauthorized" xml:space="preserve">
-    <value>Configuration is not authorized for this tenant detail request.</value>
-  </data>
-  <data name="Tenants.Configuration.Announcement.Unavailable" xml:space="preserve">
-    <value>Configuration is unavailable until tenant detail evidence can be verified.</value>
-  </data>
   <data name="Tenants.Configuration.ClearFilter" xml:space="preserve">
     <value>Clear</value>
-  </data>
-  <data name="Tenants.Configuration.CommandUnavailable" xml:space="preserve">
-    <value>Configuration command previews are unavailable until tenant freshness can be verified.</value>
   </data>
   <data name="Tenants.Configuration.Description" xml:space="preserve">
     <value>Read-only visible configuration from the authorized tenant detail projection.</value>
@@ -1028,9 +1019,6 @@
   </data>
   <data name="Tenants.Configuration.Header.Namespace" xml:space="preserve">
     <value>Namespace</value>
-  </data>
-  <data name="Tenants.Configuration.Header.Safety" xml:space="preserve">
-    <value>Safety</value>
   </data>
   <data name="Tenants.Configuration.Header.Value" xml:space="preserve">
     <value>Value</value>
@@ -1083,12 +1071,6 @@
   <data name="Tenants.Configuration.State.Stale.Title" xml:space="preserve">
     <value>Configuration evidence is stale</value>
   </data>
-  <data name="Tenants.Configuration.State.Unauthorized" xml:space="preserve">
-    <value>Configuration is not authorized for this tenant detail request.</value>
-  </data>
-  <data name="Tenants.Configuration.State.Unauthorized.Title" xml:space="preserve">
-    <value>Configuration unauthorized</value>
-  </data>
   <data name="Tenants.Configuration.State.Unavailable" xml:space="preserve">
     <value>Configuration is unavailable until tenant detail evidence can be verified.</value>
   </data>
@@ -1109,6 +1091,9 @@
   </data>
   <data name="Tenants.Configuration.Management.Unavailable.Policy" xml:space="preserve">
     <value>Configuration management is unavailable because current authorization policy cannot be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.Management.Unavailable.NoScope" xml:space="preserve">
+    <value>Configuration management is unavailable because no configuration namespace is granted to you for this tenant.</value>
   </data>
   <data name="Tenants.Configuration.Management.Unavailable.ProjectionState" xml:space="preserve">
     <value>Refresh available tenant detail before managing configuration.</value>
@@ -1131,18 +1116,6 @@
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Visible configuration</value>
   </data>
-  <data name="Tenants.Configuration.UnscopedNamespace" xml:space="preserve">
-    <value>Other</value>
-  </data>
-  <data name="Tenants.Configuration.Value.Safe" xml:space="preserve">
-    <value>Visible</value>
-  </data>
-  <data name="Tenants.Configuration.Value.Sensitive" xml:space="preserve">
-    <value>Unavailable</value>
-  </data>
-  <data name="Tenants.Configuration.Value.Unavailable" xml:space="preserve">
-    <value>Unavailable</value>
-  </data>
   <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
     <value>Visible configuration value {0}</value>
   </data>
@@ -1154,12 +1127,6 @@
   </data>
   <data name="Tenants.Configuration.Set.Open" xml:space="preserve">
     <value>Set configuration</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Namespace.Label" xml:space="preserve">
-    <value>Namespace prefix</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Namespace.Help" xml:space="preserve">
-    <value>Use a visible authorized namespace prefix without the trailing dot.</value>
   </data>
   <data name="Tenants.Configuration.Set.Key.Label" xml:space="preserve">
     <value>Full configuration key</value>
@@ -1212,9 +1179,6 @@
   <data name="Tenants.Configuration.Set.Unavailable.Narrow" xml:space="preserve">
     <value>Configuration changes are unavailable on narrow layouts because preview, tenant identity, freshness, and confirmed configuration context must remain visible together.</value>
   </data>
-  <data name="Tenants.Configuration.Set.Validation.NamespaceRequired" xml:space="preserve">
-    <value>Enter an authorized namespace prefix before previewing the configuration change.</value>
-  </data>
   <data name="Tenants.Configuration.Set.Validation.NamespaceScope" xml:space="preserve">
     <value>The namespace prefix cannot be proven from the current authorized projection.</value>
   </data>
@@ -1250,9 +1214,6 @@
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState.Unavailable" xml:space="preserve">
     <value>Unavailable</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve">
-    <value>No current value is visible for this key.</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.IntendedEffect" xml:space="preserve">
     <value>Intended effect</value>

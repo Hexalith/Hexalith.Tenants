@@ -64,9 +64,12 @@ internal sealed class TenantConfigurationPrincipalResolver(
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
+        // The accessor trims the claim before yielding UserId, so the raw claim must be trimmed the
+        // same way. Comparing raw against trimmed made a `sub` carrying surrounding whitespace look
+        // like a cross-identity mismatch and took configuration dark for an otherwise valid caller.
         string? authenticatedSubject = userContextAccessor.UserId;
         if (string.IsNullOrWhiteSpace(authenticatedSubject)
-            || !string.Equals(authenticatedSubject, subjects[0].Value, StringComparison.Ordinal))
+            || !string.Equals(authenticatedSubject, subjects[0].Value.Trim(), StringComparison.Ordinal))
         {
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
@@ -82,9 +85,13 @@ internal sealed class TenantConfigurationPrincipalResolver(
             bool hasSystemScope = identity.Claims.Any(static claim =>
                 string.Equals(claim.Type, "eventstore:tenant", StringComparison.Ordinal)
                 && string.Equals(claim.Value, "system", StringComparison.Ordinal));
+            // An administrator role scoped to a non-system tenant is a well-formed claim that simply
+            // does not meet the bar for the namespace wildcard. That is proven non-administrator, not
+            // ambiguous evidence, so the caller keeps whatever explicit grants deployment gave them
+            // instead of losing the whole surface.
             if (!hasSystemScope)
             {
-                return TenantConfigurationPrincipalEvidence.Indeterminate();
+                return TenantConfigurationPrincipalEvidence.NonAdministrator(authenticatedSubject);
             }
 
             return TenantConfigurationPrincipalEvidence.GlobalAdministrator(authenticatedSubject);

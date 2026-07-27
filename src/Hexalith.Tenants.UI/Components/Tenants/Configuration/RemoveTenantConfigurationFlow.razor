@@ -458,9 +458,24 @@
             return;
         }
 
-        TenantConfigurationManagementContext currentContext = ReauthorizeProvider is null
-            ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
-            : await ReauthorizeProvider().ConfigureAwait(false);
+        // A re-authorization that throws must fail closed rather than escape this event handler and
+        // tear down the circuit.
+        TenantConfigurationManagementContext currentContext;
+        try
+        {
+            currentContext = ReauthorizeProvider is null
+                ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
+                : await ReauthorizeProvider().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            currentContext = TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus);
+        }
+
         if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)
             || currentContext.FindRemovableRow(request.Key) is null)
         {
@@ -591,10 +606,13 @@
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
+    // A key with no dot is a legitimate authorized key: grant `P` authorizes exact key `P` as well as
+    // `P.*`. Returning empty here made the launch control render for such a row and then open a flow
+    // permanently blocked on Unavailable.Scope. Mirrors the set flow's resolution.
     private static string NamespacePrefix(string key)
     {
         int separator = key.IndexOf('.', StringComparison.Ordinal);
-        return separator > 0 ? key[..separator] : string.Empty;
+        return separator > 0 ? key[..separator] : key;
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)

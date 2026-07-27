@@ -1,0 +1,150 @@
+using System.Text;
+
+using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.Configuration;
+using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantDetail;
+
+using Microsoft.Extensions.Configuration;
+
+using Shouldly;
+
+namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
+
+/// <summary>
+/// Covers the server-side composition seam directly.
+/// </summary>
+/// <remarks>
+/// The submit-time re-authorization path had no test at all: both revocation tests in the command-flow
+/// suites asserted against a hand-written <c>ReauthorizeProvider</c> lambda, so they exercised the
+/// component guard honouring an answer rather than the server producing one. Removing the cross-tenant
+/// check, or rebuilding the context from the passed-in safe model instead of re-resolving policy,
+/// survived the entire suite.
+/// </remarks>
+public sealed class TenantsBffCompositionTests
+{
+    private const string GrantedPolicy = """
+        {
+          "Tenants": {
+            "ConfigurationReadPolicy": {
+              "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+              "DisplaySafe": ["billing.mode"]
+            }
+          }
+        }
+        """;
+
+    private const string RevokedPolicy = """
+        {
+          "Tenants": {
+            "ConfigurationReadPolicy": {
+              "PrefixGrants": [],
+              "DisplaySafe": ["billing.mode"]
+            }
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task Reauthorize_returns_current_scope_when_the_grant_still_stands()
+    {
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+
+        TenantConfigurationManagementContext context = await Composition(GrantedPolicy)
+            .ReauthorizeConfigurationManagementAsync("tenant.alpha", TenantStatus.Active, safeModel);
+
+        context.IsAvailable.ShouldBeTrue();
+        context.IsKeyAuthorized("billing.mode").ShouldBeTrue();
+        context.FindRemovableRow("billing.mode").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Reauthorize_drops_scope_when_the_grant_was_revoked_since_the_page_rendered()
+    {
+        // The safe model still carries the row that was authorized at render time; re-authorization has
+        // to consult current deployment policy rather than trust it.
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+        safeModel.Rows.ShouldHaveSingleItem();
+
+        TenantConfigurationManagementContext context = await Composition(RevokedPolicy)
+            .ReauthorizeConfigurationManagementAsync("tenant.alpha", TenantStatus.Active, safeModel);
+
+        context.IsKeyAuthorized("billing.mode").ShouldBeFalse();
+        context.RemovableRows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Reauthorize_fails_closed_for_a_safe_model_belonging_to_another_tenant()
+    {
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+
+        TenantConfigurationManagementContext context = await Composition(GrantedPolicy)
+            .ReauthorizeConfigurationManagementAsync("tenant.beta", TenantStatus.Active, safeModel);
+
+        context.IsAvailable.ShouldBeFalse();
+        context.RemovableRows.ShouldBeEmpty();
+        context.TenantId.ShouldBe("tenant.beta");
+    }
+
+    [Theory]
+    [InlineData("billing.mode", true)]
+    [InlineData("billing", true)]
+    [InlineData("billingother.mode", false)]
+    [InlineData("Billing.mode", false)]
+    [InlineData("secret.key", false)]
+    public async Task Key_authorization_follows_the_ordinal_prefix_grant(string key, bool expected)
+    {
+        bool authorized = await Composition(GrantedPolicy)
+            .IsConfigurationKeyAuthorizedAsync("tenant.alpha", key);
+
+        authorized.ShouldBe(expected);
+    }
+
+    [Fact]
+    public async Task Key_authorization_fails_closed_when_policy_is_unavailable()
+    {
+        bool authorized = await Composition(
+                "{ \"Tenants\": { \"ConfigurationReadPolicy\": { \"PrefixGrants\": \"scalar\", \"DisplaySafe\": [] } } }")
+            .IsConfigurationKeyAuthorizedAsync("tenant.alpha", "billing.mode");
+
+        authorized.ShouldBeFalse();
+    }
+
+    private static TenantsBffComposition Composition(string json)
+        => new(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")),
+            policyProvider: new TenantConfigurationReadPolicyProvider(Configuration(json)));
+
+    private static TenantConfigurationSafeModel SafeModel(string json)
+    {
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration(json))
+            .Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        return TenantConfigurationSafeComposer.Compose(Detail(), policy).SafeModel;
+    }
+
+    private static IConfiguration Configuration(string json)
+        => new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
+            .Build();
+
+    private static TenantDetail Detail()
+        => new(
+            "tenant.alpha",
+            "Alpha",
+            "Description",
+            TenantStatus.Active,
+            [new TenantMember("operator.alpha", TenantRole.TenantOwner)],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = "trial" },
+            DateTimeOffset.UtcNow);
+
+    private sealed class StubPrincipalResolver(TenantConfigurationPrincipalEvidence evidence)
+        : ITenantConfigurationPrincipalResolver
+    {
+        public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(evidence);
+    }
+}

@@ -284,12 +284,17 @@
     private Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfiguration request)
         => QueryGateway.GetRemoveConfigurationProjectionProofAsync(request, CancellationToken.None);
 
+    // Reads _snapshot.Detail defensively rather than through the throwing Detail property: a refresh
+    // can null the snapshot between render and a queued submit, and a security re-check must fail
+    // closed there instead of throwing out of an event handler and tearing down the circuit.
     private Task<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync()
-        => BffComposition.ReauthorizeConfigurationManagementAsync(
-            Detail.TenantId,
-            Detail.Status,
-            _snapshot.Configuration,
-            CancellationToken.None).AsTask();
+        => _snapshot.Detail is null
+            ? Task.FromResult(TenantConfigurationManagementContext.Unavailable(TenantId, TenantStatus.Unknown))
+            : BffComposition.ReauthorizeConfigurationManagementAsync(
+                _snapshot.Detail.TenantId,
+                _snapshot.Detail.Status,
+                _snapshot.Configuration,
+                CancellationToken.None).AsTask();
 
     private Task<TenantDetail?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
         => Task.FromResult(

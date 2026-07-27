@@ -24,6 +24,8 @@
     margin: 0;
 }
 
+/* fc-css-exception: readable measure cap on semantic <p>/<section> status regions; no Fluent primitive
+   constrains line length on non-Fluent elements. */
 .tenant-config__scope,
 .tenant-config__state,
 .tenant-config__announcer {
@@ -73,6 +75,8 @@
     padding: 0.35rem 0.75rem;
 }
 
+/* fc-css-exception: horizontal availability container so literal keys and values stay reachable at every
+   width instead of being truncated or dropped; FluentDataGrid provides no such scroll container. */
 .tenant-config__table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -94,11 +98,15 @@
     min-width: 0;
 }
 
+/* fc-css-exception: minimum grid width that keeps namespace, key and value columns simultaneously legible;
+   below it the safety-critical value column would collapse. */
 .tenant-config__data-grid {
     min-width: 58rem;
     width: 100%;
 }
 
+/* fc-css-exception: configuration keys and values are literal caller-supplied text; monospace plus
+   arbitrary-point wrapping prevents characters being visually merged or dropped. */
 .tenant-config code,
 .tenant-config__value {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
@@ -130,12 +138,14 @@
         justify-items: start;
     }
 
+    /* fc-css-exception: narrow-viewport minimum grid width; the region scrolls rather than dropping columns. */
     .tenant-config__data-grid {
         min-width: 48rem;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
+    /* fc-css-exception: tablet minimum grid width; the region scrolls rather than dropping columns. */
     .tenant-config__data-grid {
         min-width: 54rem;
     }

@@ -1,0 +1,67 @@
+name: Recover Partial Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Existing partially published SemVer, for example 3.3.0'
+        required: true
+        type: string
+      source_sha:
+        description: 'Exact live main SHA that produced the partial release'
+        required: true
+        type: string
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8
+      - name: Initialize root-declared build submodule
+        run: git submodule update --init references/Hexalith.Builds
+      - name: Validate partial release state
+        env:
+          GITHUB_SHA: ${{ inputs.source_sha }}
+          HEXALITH_BUILDS_EXECUTION_SHA: 2eac6955a812465a4308d194ae38fee35b766b05
+          HEXALITH_RELEASE_ENVIRONMENT: production
+          HEXALITH_RELEASE_SOURCE_BRANCH: main
+          HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
+          HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: 5
+          HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+          HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+        run: bash scripts/validate-partial-release-recovery.sh '${{ inputs.version }}' '${{ inputs.source_sha }}'
+      - name: Publish missing release artifacts
+        env:
+          GITHUB_SHA: ${{ inputs.source_sha }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+          HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+          HEXALITH_CONTAINER_PROJECTS: src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
+        run: bash scripts/publish-partial-release.sh '${{ inputs.version }}'
+      - name: Verify completed release
+        env:
+          GITHUB_SHA: ${{ inputs.source_sha }}
+          HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+          HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+        run: bash scripts/verify-partial-release.sh '${{ inputs.version }}'

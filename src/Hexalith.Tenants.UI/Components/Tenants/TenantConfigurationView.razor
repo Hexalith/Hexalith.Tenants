@@ -162,8 +162,13 @@
         => string.IsNullOrWhiteSpace(_filter)
             ? Rows
             : Rows
-                .Where(row => row.Namespace.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)
-                    || row.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
+
+                // Ordinal, like every other comparison in this feature. Culture-sensitive matching
+                // applies ICU collation, so an NFD filter matched an NFC key the policy treats as
+                // different, a zero-width space matched every row, and EN/FR produced different
+                // results over identical literals.
+                .Where(row => row.Namespace.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+                    || row.Key.Contains(_filter, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
     private bool CanInspect
@@ -191,11 +196,14 @@
     private string StateMessage
         => Localizer[StateResourcePrefix];
 
+    // Loading is tested before availability: a loading snapshot legitimately carries an unavailable
+    // model, so ordering availability first made the loading state unreachable and reported a
+    // still-arriving read as unavailable.
     private string StateResourcePrefix
-        => Model?.IsAvailable != true || SurfaceKind is TenantDetailSurfaceKind.Unavailable
-            ? "Tenants.Configuration.State.Unavailable"
-            : SurfaceKind is TenantDetailSurfaceKind.Loading
-                ? "Tenants.Configuration.State.Loading"
+        => SurfaceKind is TenantDetailSurfaceKind.Loading
+            ? "Tenants.Configuration.State.Loading"
+            : Model?.IsAvailable != true || SurfaceKind is TenantDetailSurfaceKind.Unavailable
+                ? "Tenants.Configuration.State.Unavailable"
                 : IsDegraded
                     ? "Tenants.Configuration.State.Degraded"
                     : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale

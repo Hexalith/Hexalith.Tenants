@@ -233,6 +233,294 @@ public sealed class TenantConfigurationReadPolicyTests
         composition.SanitizedDetail.Configuration.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Administrator_role_without_system_scope_is_a_non_administrator_that_keeps_explicit_grants()
+    {
+        // Review decision 1: an administrator role scoped to a non-system tenant is a well-formed claim
+        // that does not meet the wildcard bar. Treating it as indeterminate stripped the caller's own
+        // explicit grants and took the whole surface dark.
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "tenant.alpha"),
+            new Claim("roles", "[\"global-admin\"]"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: principal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", evidence);
+
+        policy.IsAvailable.ShouldBeTrue();
+        policy.IsGlobalAdministrator.ShouldBeFalse();
+        policy.AuthorizedPrefixes.ShouldBe(["billing"]);
+    }
+
+    [Fact]
+    public async Task Subject_claim_with_surrounding_whitespace_still_corroborates_the_trimmed_user_context()
+    {
+        // The accessor trims before yielding UserId, so comparing it against the raw claim made a
+        // padded `sub` look like a cross-identity mismatch.
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", " operator.alpha "),
+            new Claim("roles", "[\"tenant-reader\"]"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            httpPrincipal: principal,
+            userContextSubject: "operator.alpha").ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
+    }
+
+    [Fact]
+    public void Indeterminate_principal_evidence_makes_policy_unavailable_even_when_the_section_is_valid()
+    {
+        // The resolver tests prove Indeterminate is produced; this proves the provider acts on it.
+        // Without the guard the grant filter runs with a null subject and returns Available with zero
+        // prefixes, so an unauthenticated or cross-identity caller would see authorization-safe empty
+        // rather than unavailable.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.Indeterminate());
+
+        policy.IsAvailable.ShouldBeFalse();
+        policy.AuthorizedPrefixes.ShouldBeEmpty();
+        policy.DisplaySafeKeys.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("tenant.beta", "operator.alpha")]
+    [InlineData("TENANT.ALPHA", "operator.alpha")]
+    [InlineData("tenant.alpha", "OPERATOR.ALPHA")]
+    [InlineData("tenant.alpha", "operator.beta")]
+    public void Grants_apply_only_to_their_exact_ordinal_tenant_and_subject(string grantTenant, string grantSubject)
+    {
+        // Every prior fixture granted and queried tenant.alpha, so dropping the tenant conjunct — a
+        // cross-tenant policy leak — or switching either comparison to OrdinalIgnoreCase survived.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration($$"""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "{{grantTenant}}", "Subject": "{{grantSubject}}", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        policy.IsAvailable.ShouldBeTrue();
+        policy.AuthorizedPrefixes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Display_approval_is_exact_and_ordinal_so_a_case_variant_key_is_not_approved()
+    {
+        // The prior confusable fixture key was itself listed in DisplaySafe, so it exercised the prefix
+        // gate rather than the display set. A global administrator bypasses prefix matching, which is
+        // what makes the display set's comparer the only thing standing between a case variant and a
+        // rendered row.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["billing.mode"] = "visible",
+                ["Billing.MODE"] = "case-variant-hidden",
+                ["BILLING.MODE"] = "case-variant-hidden-upper",
+            }),
+            policy);
+
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Value.ShouldBe("visible");
+    }
+
+    [Theory]
+    [InlineData(".billing")]
+    [InlineData("бilling.mode")]
+    [InlineData("Вilling.mode")]
+    public void Empty_segment_and_confusable_keys_cannot_broaden_an_ordinal_prefix_grant(string key)
+    {
+        // The story required leading/consecutive empty segments and visually confusable prefixes to be
+        // pinned at the policy level; none existed. The Cyrillic cases look like `billing` but are
+        // different code points, so an ordinal grant must not match them.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration($$"""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["{{key}}"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal) { [key] = "hidden" }),
+            policy);
+
+        composition.SafeModel.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_consecutive_empty_segment_stays_inside_the_granted_namespace()
+    {
+        // Pins the boundary rather than assuming it: `billing..mode` begins with `billing.`, so grant
+        // `billing` authorizes it. It is an odd key, not an escape from the namespace, and the ordinal
+        // rule must not be "fixed" into rejecting it.
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing..mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal) { ["billing..mode"] = "visible" }),
+            policy);
+
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing..mode");
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Namespace.ShouldBe("billing");
+    }
+
+    [Fact]
+    public void Unavailable_policy_composes_an_unavailable_read_model_rather_than_a_safe_empty_one()
+    {
+        // The composer's fail-closed branch was never executed by any test: replacing it with
+        // Available(tenantId, []) survived the whole suite, so a malformed deployment policy would
+        // render the authorization-safe empty state instead of the required unavailable state.
+        TenantConfigurationReadPolicyResolution unavailable = new TenantConfigurationReadPolicyProvider(
+            Configuration("{ \"Tenants\": { \"ConfigurationReadPolicy\": { \"PrefixGrants\": \"scalar\", \"DisplaySafe\": [] } } }"))
+            .Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        unavailable.IsAvailable.ShouldBeFalse();
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = "trial" }),
+            unavailable);
+
+        composition.SafeModel.IsAvailable.ShouldBeFalse();
+        composition.SafeModel.Rows.ShouldBeEmpty();
+        composition.ManagementContext.IsAvailable.ShouldBeFalse();
+        composition.SanitizedDetail.Configuration.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Reauthorizing_against_an_unavailable_policy_drops_previously_safe_rows()
+    {
+        TenantConfigurationReadPolicyResolution granted = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        TenantConfigurationComposition composed = TenantConfigurationSafeComposer.Compose(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = "trial" }),
+            granted);
+        composed.SafeModel.Rows.ShouldHaveSingleItem();
+
+        TenantConfigurationReadPolicyResolution revoked = TenantConfigurationReadPolicyResolution.Unavailable();
+        (TenantConfigurationSafeModel safe, TenantConfigurationManagementContext management) =
+            TenantConfigurationSafeComposer.Reauthorize(composed.SafeModel, TenantStatus.Active, revoked, degraded: false);
+
+        safe.IsAvailable.ShouldBeFalse();
+        safe.Rows.ShouldBeEmpty();
+        management.IsAvailable.ShouldBeFalse();
+        management.RemovableRows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Composed_rows_do_not_track_later_mutation_of_the_caller_owned_dictionary()
+    {
+        // The previous defensive-copy test composed under an empty DisplaySafe list, so the rows were
+        // empty with or without a copy and the assertion could not fail. This one composes a real row
+        // first, then both adds to and removes from the source.
+        Dictionary<string, string> raw = new(StringComparer.Ordinal)
+        {
+            ["billing.mode"] = "trial",
+        };
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode", "billing.later"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(Detail(raw), policy);
+
+        raw["billing.later"] = "later-value";
+        _ = raw.Remove("billing.mode");
+
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Value.ShouldBe("trial");
+        composition.ManagementContext.RemovableRows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+    }
+
+    [Fact]
+    public void A_null_configuration_value_omits_only_that_row()
+    {
+        // The contract types values as non-null but System.Text.Json does not enforce it. Throwing
+        // inside the composer made the gateway's blanket catch discard the entire tenant detail.
+        Dictionary<string, string> raw = new(StringComparer.Ordinal)
+        {
+            ["billing.mode"] = "trial",
+            ["billing.broken"] = null!,
+        };
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode", "billing.broken"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(
+            Detail(raw),
+            policy);
+
+        composition.SafeModel.IsAvailable.ShouldBeTrue();
+        composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
+    }
+
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? httpPrincipal = null,
         ClaimsPrincipal? circuitPrincipal = null,

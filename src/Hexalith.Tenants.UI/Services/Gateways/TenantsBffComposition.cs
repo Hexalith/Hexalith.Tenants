@@ -72,6 +72,20 @@ internal sealed class TenantsBffComposition(
         return TenantConfigurationSafeComposer.Reauthorize(safeModel, tenantStatus, policy, safeModel.IsDegraded).ManagementContext;
     }
 
+    public async ValueTask<bool> IsConfigurationKeyAuthorizedAsync(
+        string tenantId,
+        string key,
+        CancellationToken cancellationToken = default) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        return policy.IsAvailable
+            && (policy.IsGlobalAdministrator
+                || policy.AuthorizedPrefixes.Any(prefix => TenantConfigurationManagementContext.IsPrefixMatch(prefix, key)));
+    }
+
     private async ValueTask<TenantConfigurationReadPolicyResolution> ResolvePolicyAsync(
         string tenantId,
         CancellationToken cancellationToken) {

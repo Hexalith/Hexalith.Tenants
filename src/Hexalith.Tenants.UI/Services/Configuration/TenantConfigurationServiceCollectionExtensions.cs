@@ -3,6 +3,7 @@ using Hexalith.FrontComposer.Shell.Services.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.UI.Services.Configuration;
 
@@ -27,7 +28,13 @@ internal static class TenantConfigurationServiceCollectionExtensions
         _ = services.AddHttpContextAccessor();
         services.TryAddSingleton<CircuitServicesAccessor>();
         services.TryAddScoped<ITenantConfigurationPrincipalResolver, TenantConfigurationPrincipalResolver>();
-        services.TryAddSingleton(_ => new TenantConfigurationReadPolicyProvider(configuration));
+
+        // Prefer the container's configuration so an embedding host that composes its own root, or
+        // passes a sub-section here, still reads the policy it actually runs on; fall back to the
+        // supplied instance for hosts that register no IConfiguration.
+        services.TryAddSingleton(serviceProvider => new TenantConfigurationReadPolicyProvider(
+            serviceProvider.GetService<IConfiguration>() ?? configuration,
+            serviceProvider.GetService<ILogger<TenantConfigurationReadPolicyProvider>>()));
         return services;
     }
 }

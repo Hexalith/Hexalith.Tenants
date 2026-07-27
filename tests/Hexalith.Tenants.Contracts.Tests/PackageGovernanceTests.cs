@@ -473,6 +473,26 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
+    public void Partial_release_recovery_is_protected_and_never_skips_duplicate_packages() {
+        string repoRoot = FindRepoRoot();
+        string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/recover-partial-release.yml"));
+        string validator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-partial-release-recovery.sh"));
+        string publisher = File.ReadAllText(Path.Combine(repoRoot, "scripts/publish-partial-release.sh"));
+
+        workflow.ShouldContain("workflow_dispatch:");
+        workflow.ShouldContain("environment: production");
+        workflow.ShouldContain("source_sha:");
+        workflow.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA:");
+        workflow.ShouldContain("git submodule update --init references/Hexalith.Builds");
+        validator.ShouldContain("No successful push CI run exists for the exact source SHA");
+        validator.ShouldContain("The package manifest must contain exactly five packages");
+        validator.ShouldContain("missing-packages");
+        publisher.ShouldContain("while IFS= read -r package_id");
+        publisher.ShouldNotContain("--skip-duplicate");
+        publisher.ShouldContain("gh release create");
+    }
+
+    [Fact]
     public async Task Release_workflow_requires_a_published_tag_at_the_exact_dispatched_source() {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));

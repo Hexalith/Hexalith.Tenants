@@ -23,14 +23,18 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
-    public void Set_configuration_flow_renders_complete_preview_with_stable_selectors_and_redacts_sensitive_current_value()
+    public void Set_configuration_flow_renders_complete_preview_and_shows_no_current_value_for_an_unapproved_key()
     {
+        // The target key is inside the authorized `billing` namespace but has no safe row, which is
+        // exactly how an unapproved or undefined-policy key reaches this flow. The current state must
+        // read Unavailable and must not borrow another row's value: the component's only configuration
+        // input is this context, and that is the property under test.
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
-                ["billing.endpoint"] = "Bearer raw-token",
+                ["billing.mode"] = "sibling-row-value",
             }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -51,7 +55,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             .ShouldNotBeNull();
         keyDescription.ShouldNotContain("tenants-config-set-preview-blocked", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("[data-testid='tenants-config-set-preview']").TextContent.ShouldNotContain("raw-token", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-set-preview']").TextContent.ShouldNotContain("sibling-row-value", Case.Insensitive);
         cut.Find("[data-testid='tenants-config-set-live-region']").TextContent.ShouldNotContain("new-safe-value", Case.Insensitive);
         cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
         cut.Markup.ShouldNotContain("View receipt", Case.Insensitive);
@@ -76,11 +80,11 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Set_configuration_preview_redacts_a_safe_value_when_its_key_is_sensitive()
+    public void Set_configuration_preview_shows_no_current_value_for_a_key_absent_from_the_safe_rows()
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.password"] = "trial" }))
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -244,9 +248,15 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new();
         RegisterServices(gateway);
 
+        // Already-applied is decided from the re-authorized context, not the render-time parameter, so
+        // a revoked grant can no longer yield a terminal success state from stale rows.
+        TenantConfigurationManagementContext current = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
-            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.Context, current)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(current))
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
@@ -617,8 +627,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             .Select(Namespace)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        // No filtering here. This helper previously dropped rows through a verbatim copy of the old
+        // deny-list, which meant the "redaction" assertions below were satisfied by the fixture rather
+        // than by the component under test. The context now contains exactly what a caller passes.
         TenantConfigurationSafeRow[] rows = configuration
-            .Where(static item => IsSafeForTestContext(item.Key, item.Value))
             .Select(item => new TenantConfigurationSafeRow(Namespace(item.Key), item.Key, item.Value))
             .ToArray();
         return TenantConfigurationManagementContext.Available(
@@ -635,10 +647,6 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         return separator > 0 ? key[..separator] : key;
     }
 
-    private static bool IsSafeForTestContext(string key, string value)
-        => !key.Contains("password", StringComparison.OrdinalIgnoreCase)
-        && !value.Contains("token", StringComparison.OrdinalIgnoreCase)
-        && !value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
 
     private static TenantConfigurationProjectionProof Proof(
         string tenantId,
@@ -707,12 +715,9 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
-            ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.Set.Title"] = "Set configuration",
             ["Tenants.Configuration.Set.Description"] = "Prepare a scoped configuration change for tenant {0} with projection confirmation.",
             ["Tenants.Configuration.Set.Open"] = "Set configuration",
-            ["Tenants.Configuration.Set.Namespace.Label"] = "Namespace prefix",
-            ["Tenants.Configuration.Set.Namespace.Help"] = "Use a visible authorized namespace prefix without the trailing dot.",
             ["Tenants.Configuration.Set.Key.Label"] = "Full configuration key",
             ["Tenants.Configuration.Set.Key.Help"] = "Enter the exact literal full key within a current authorized prefix.",
             ["Tenants.Configuration.Set.Value.Label"] = "Value",
@@ -730,7 +735,6 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Set.Unavailable.Identity"] = "Tenant identity is unavailable, so configuration changes fail closed.",
             ["Tenants.Configuration.Set.Unavailable.Scope"] = "No authorized namespace prefix evidence is available from the current projection.",
             ["Tenants.Configuration.Set.Unavailable.Narrow"] = "Configuration changes are unavailable on narrow layouts because preview, tenant identity, freshness, and confirmed configuration context must remain visible together.",
-            ["Tenants.Configuration.Set.Validation.NamespaceRequired"] = "Enter an authorized namespace prefix before previewing the configuration change.",
             ["Tenants.Configuration.Set.Validation.NamespaceScope"] = "The namespace prefix cannot be proven from the current authorized projection.",
             ["Tenants.Configuration.Set.Validation.KeyRequired"] = "Enter a configuration key before previewing the configuration change.",
             ["Tenants.Configuration.Set.Validation.KeyLength"] = "The full configuration key must be {0} characters or fewer.",
@@ -742,7 +746,6 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Set.Preview.Namespace"] = "Namespace",
             ["Tenants.Configuration.Set.Preview.Key"] = "Full key",
             ["Tenants.Configuration.Set.Preview.CurrentState"] = "Current known state",
-            ["Tenants.Configuration.Set.Preview.CurrentState.Absent"] = "No current value is visible for this key.",
             ["Tenants.Configuration.Set.Preview.IntendedEffect"] = "Intended effect",
             ["Tenants.Configuration.Set.Preview.IntendedEffect.Value"] = "The selected configuration key will be set after command acceptance and projection proof.",
             ["Tenants.Configuration.Set.Preview.Freshness"] = "Freshness evidence",

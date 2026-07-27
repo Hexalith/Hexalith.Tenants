@@ -108,7 +108,13 @@ internal static class TenantConfigurationSafeComposer
         IReadOnlyDictionary<string, string> configuration,
         TenantConfigurationReadPolicyResolution policy)
         => configuration
-            .Where(item => policy.DisplaySafeKeys.Contains(item.Key)
+
+            // The contract types a value as non-null, but System.Text.Json does not enforce that on a
+            // projection payload. Skipping the row keeps one malformed entry from throwing inside the
+            // composer, where the gateway's blanket catch would discard the entire tenant detail —
+            // members, metadata, lifecycle and audit included — rather than just this key.
+            .Where(item => item.Value is not null
+                && policy.DisplaySafeKeys.Contains(item.Key)
                 && TryResolveNamespace(item.Key, policy, out _))
             .Select(item =>
             {

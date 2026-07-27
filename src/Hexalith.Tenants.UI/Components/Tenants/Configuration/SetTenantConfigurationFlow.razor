@@ -506,24 +506,41 @@
         }
 
         _snapshot = _snapshot.Previewed(request);
-        if (Context.FindRemovableRow(request.Key) is { } current
-            && string.Equals(current.Value, request.Value, StringComparison.Ordinal))
+
+        // Re-authorization runs before the already-applied short-circuit. Deciding "already applied"
+        // from the parameter Context would let a terminal success state be derived entirely from rows
+        // captured before the grant was revoked.
+        TenantConfigurationManagementContext currentContext;
+        try
         {
-            SetSnapshot(_snapshot.AlreadyApplied(
-                request,
-                Localizer["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"].Value));
-            return;
+            currentContext = ReauthorizeProvider is null
+                ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
+                : await ReauthorizeProvider().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            currentContext = TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus);
         }
 
-        TenantConfigurationManagementContext currentContext = ReauthorizeProvider is null
-            ? TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus)
-            : await ReauthorizeProvider().ConfigureAwait(false);
         if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)
             || !currentContext.IsKeyAuthorized(request.Key))
         {
             SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
                 Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value,
                 TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (currentContext.FindRemovableRow(request.Key) is { } current
+            && string.Equals(current.Value, request.Value, StringComparison.Ordinal))
+        {
+            SetSnapshot(_snapshot.AlreadyApplied(
+                request,
+                Localizer["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"].Value));
             return;
         }
 
