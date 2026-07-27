@@ -216,3 +216,76 @@ GPT-5 Codex
 ### Change Log
 
 - 2026-07-22: Completed the corrective positive-policy safe configuration model, sanitized BFF integration, strict read-only landmark, sibling safe management/proof boundary, localization, accessibility, focused/end-to-end coverage, and repository-wide validation; moved Story 1.6 to review.
+
+### Review Findings
+
+Adversarial code review 2026-07-27 over `2f190a1..ec7ec8c` (49 files, +3800/-967). Four independent layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor. Every finding below was re-verified against the real source at `HEAD` (`0ded4a1`) before being recorded; findings already resolved by later commits were dismissed rather than listed.
+
+#### Decisions resolved (2026-07-27, by story owner)
+
+- **RESOLVED → option A.** Global-administrator claim present but `eventstore:tenant=system` absent resolved to Indeterminate, stripping the user's *explicit* `(tenantId, sub, prefix)` grants as well as the wildcard. An admin role scoped to a non-system tenant is a well-formed claim that simply does not meet the bar — that is proven-non-administrator, not ambiguous evidence. Decision: fall back to `NonAdministrator` so explicit grants are honoured. Recorded as a patch below.
+- **RESOLVED → option B.** The forbidden `references/Hexalith.EventStore` bump (`c6b72ca` → `440ff4c`) is absorbed into main — nine later commits touched the gitlink and the story SHA is an ancestor of the current pointer `c8c7003`, so no revert is possible. Decision: correct the false Completion Notes claim *and* log a sprint action item, because Story 1.4's commit `41e047e` exhibited the identical defect (bundled submodule bumps while claiming untouched). Second occurrence makes it a pattern worth guarding, not a slip.
+
+#### Patches
+
+Security and correctness:
+
+- [ ] [Review][Patch] (from Decision 1) Admin claim without `eventstore:tenant=system` must resolve to `NonAdministrator`, not `Indeterminate`, so the user's explicit `(tenantId, sub, prefix)` grants are still evaluated; add a policy test pinning both the no-wildcard and grants-honoured halves. [`src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:87`]
+- [ ] [Review][Patch] Projection-proof gateway applies no configuration policy — gates only on a non-empty `UserId`, tenant-id match and Current freshness, then probes the raw dictionary, making it an existence/value oracle for keys outside the caller's grants. Two layers converged on this independently. Still byte-identical at HEAD. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1413-1450`]
+- [ ] [Review][Patch] Submit-time re-authorization throws instead of failing closed — the provider dereferences `_snapshot.Detail ?? throw`, and both flows await it *outside* their `try` blocks, so a background refresh that nulls Detail turns the TOCTOU guard into a circuit teardown. [`src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:220,287`; `SetTenantConfigurationFlow.razor:518-520` (try opens at 534); `RemoveTenantConfigurationFlow.razor:461-463`]
+- [ ] [Review][Patch] A safe row whose key contains no `.` renders a Remove button that can never complete — `NamespacePrefix` returns empty unless a dot exists at index > 0, so the flow opens straight into Unavailable.Scope. The Set flow handles the identical key correctly; the change's own fixtures seed such a key. [`RemoveTenantConfigurationFlow.razor:594-598` vs `SetTenantConfigurationFlow.razor:694-707`]
+- [ ] [Review][Patch] `AlreadyApplied` short-circuits *before* `ReauthorizeProvider()`, so a terminal already-applied state can be derived entirely from pre-revocation rows. [`SetTenantConfigurationFlow.razor:509-516`]
+- [ ] [Review][Patch] `_removeLaunchElements` is never pruned — a successful remove leaves a detached `ElementReference` that `OnAfterRenderAsync` then focuses, throwing `JSException`; the dictionary also retains configuration key names from previously visited tenants for the life of the circuit. [`TenantConfigurationManagement.razor:102,158-162`]
+- [ ] [Review][Patch] No `JSDisconnectedException` guard around `FocusAsync` in `OnAfterRenderAsync`; six sibling components in this repo carry the guard and this one is the outlier. [`TenantConfigurationManagement.razor:156-164`]
+- [ ] [Review][Patch] One null configuration value discards the whole tenant detail page — `ThrowIfNull` inside `Compose` is swallowed by the gateway's blanket catch, taking members, metadata, lifecycle and audit down with it. Filter nulls per row instead. [`TenantConfigurationSafeComposer.cs:111-117`]
+- [ ] [Review][Patch] Row filter uses `CurrentCultureIgnoreCase` in a feature that is ordinal everywhere else — NFD input matches an NFC key, U+200B matches every row, and EN/FR give different results over identical literals. [`TenantConfigurationView.razor:165-166`]
+- [ ] [Review][Patch] Null payload now maps to Degraded instead of the deleted Unknown state, so the UI claims retained evidence where there is none — AC5 requires these to stay distinct. [`TenantQueryGateway.cs` null-payload path]
+- [ ] [Review][Patch] `"DisplaySafe": ""` (the natural shape of an empty env-var override) is not caught by the scalar-collection check and binds to an empty allow-list instead of failing closed. [`TenantConfigurationReadPolicyProvider.cs:68-72`]
+- [ ] [Review][Patch] Subject equality compares the raw `sub` claim against `IUserContextAccessor.UserId`, which FrontComposer already trimmed — a `sub` with surrounding whitespace makes configuration silently unavailable while every other surface works. [`TenantConfigurationPrincipalResolver.cs:67-72`]
+- [ ] [Review][Patch] No diagnostic on any Unavailable path — missing section, duplicate grant, trailing-dot prefix, unbindable section and indeterminate principal are indistinguishable at runtime, so a one-character deployment typo takes the surface dark with zero operator signal. Log the failure *category* only, never policy contents. [`TenantConfigurationReadPolicyProvider.cs`]
+- [ ] [Review][Patch] Provider captures the `IConfiguration` passed to `AddTenantConfigurationReadPolicy` rather than resolving it from DI, so an embedding host that passes a sub-section gets a permanently unavailable policy. [`TenantConfigurationServiceCollectionExtensions.cs:30`]
+- [ ] [Review][Patch] Singleton provider caches nothing — a full reflection bind plus two HashSet rebuilds run on every detail read, degraded reauthorization and command reauthorization. [`TenantConfigurationReadPolicyProvider.cs:31-65`]
+- [ ] [Review][Patch] Detail reads still send the conditional ETag although the 304 path always re-reads unconditionally, doubling backend queries in the common case. [`TenantQueryGateway.cs` detail read + 304 retry]
+
+Copy, layout and accessibility:
+
+- [ ] [Review][Patch] Page-level summary still says "No configuration keys are available in this detail projection" while now computed from the *safe* model — an absolute claim about the projection derived from the approved subset, against AC2/AC4. The region-level string was correctly reworded to "No **visible** configuration"; this one was not (EN+FR). [`TenantDetailPage.razor:303-311`; `TenantsResources.resx:591`]
+- [ ] [Review][Patch] A valid-but-empty policy renders "authorization policy cannot be verified" to a proven non-administrator — false, and it contradicts the sibling read landmark on the shipped `appsettings.json` default. [`TenantConfigurationManagement.razor:14,133-135`]
+- [ ] [Review][Patch] `display: none` removes the entire removable-target region below 768px with no localized substitute and no `fc-css-exception` marker, while the Set flow keeps an explicit narrow message — AC8 forbids layout that makes safety-critical state disappear. [`TenantConfigurationManagement.razor.css:38-46`]
+- [ ] [Review][Patch] The read landmark can never render its Loading state (every Loading snapshot carries an unavailable model), leaving `State.Loading` resources dead. User-visible behaviour is mitigated by page-level `LoadingContent`. [`TenantConfigurationView.razor:189-200`]
+- [ ] [Review][Patch] Unmarked layout/typography rules lacking the required `/* fc-css-exception: … */` marker; they pass CI only because the ratcheted guard tracks a narrower property set. [`TenantConfigurationView.razor.css:27-31,76-79,97-106,129-141`; `TenantConfigurationManagement.razor.css:23-31,44-46`]
+- [ ] [Review][Patch] 14 orphaned EN/FR resource pairs left unreachable by the read/set rewrite (`Set.Namespace.*`, `Value.Safe`, `Value.Sensitive`, `Header.Safety`, `State.Unauthorized*`, …). Parity is preserved; the keys are simply dead.
+- [ ] [Review][Patch] `LegacyConfigurationDisplaySanitizer` is now wholly unreferenced dead code (4 call sites → 0). Delete it. [`Components/Tenants/Configuration/LegacyConfigurationDisplaySanitizer.cs`]
+
+Verification that does not verify:
+
+- [ ] [Review][Patch] The configuration support-safety redaction test was deleted and never replaced — 10 assertions on `correlation-123`, JWT-shaped strings, `InvalidOperationException`, stack-trace text and PII at `2f190a1`, 0 at `ec7ec8c`, still 0 at HEAD — in the same change that added new exception paths through the gateway and composer. [`tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`]
+- [ ] [Review][Patch] The composer's fail-closed branch is never executed by any test; `Unavailable(...)` → `Available(tenantId, [])` survives the whole suite, meaning broken deployment policy would render authorization-safe empty instead of unavailable. [`TenantConfigurationSafeComposer.cs:28-34,65-70`]
+- [ ] [Review][Patch] No test feeds `PrincipalEvidence.Indeterminate()` to `Resolve` — deleting the fail-closed guard yields `IsAvailable == true` with zero prefixes and nothing fails. [`TenantConfigurationReadPolicyProvider.cs:25-29`]
+- [ ] [Review][Patch] `TenantsBffComposition.ReauthorizeConfigurationManagementAsync` — the production submit-time re-authorization seam — has zero test references; both revocation tests assert against a hand-written lambda's return value. [`TenantsBffComposition.cs:59-73`]
+- [ ] [Review][Patch] Cross-tenant grant isolation is untested — every fixture grants and queries `tenant.alpha`, so deleting the `grant.TenantId` conjunct (a cross-tenant policy leak) survives. [`TenantConfigurationReadPolicyProvider.cs:60-61`]
+- [ ] [Review][Patch] Four Epic 3 "redaction" tests became tautologies — their fixtures are pre-filtered through `IsSafeForTestContext`, a verbatim test-local copy of the deny-list, so the sensitive value never reaches the component under test. [`SetTenantConfigurationFlowTests.cs:635-637`; `RemoveTenantConfigurationFlowTests.cs:370-372`]
+- [ ] [Review][Patch] `Valid_empty_policy_is_safe_empty_and_defensively_copies_caller_owned_data` cannot fail — with an empty `DisplaySafe` the rows are empty with or without a defensive copy. [`TenantConfigurationReadPolicyTests.cs:209-235`]
+- [ ] [Review][Patch] `DisplaySafeKeys` ordinal case-sensitivity is unproven; the one case-confusable fixture key is itself in `DisplaySafe`, so it exercises the prefix gate, not the display gate. `OrdinalIgnoreCase` would leak case-variant keys to global administrators. [`TenantConfigurationReadPolicyResolution.cs:19`]
+- [ ] [Review][Patch] Boundary cases the story explicitly required are absent — leading/consecutive empty segments (`.a`, `a..b`) and visually confusable prefixes (Cyrillic/Greek) have no policy-level test. [`TenantConfigurationReadPolicyTests.cs`]
+- [ ] [Review][Patch] The focus-return regression test was deleted while `test-summary.md` still claims focus return is preserved; the replacement asserts only that the flow disappears. [`TenantDetailSurfaceTests.cs:363-390`]
+
+Record accuracy:
+
+- [ ] [Review][Patch] Completion Notes state "No public query contract, endpoint, dependency, package, or `references/` content changed" — the `references/` clause is false. [story line 185]
+- [ ] [Review][Patch] (from Decision 2) Register a sprint action item for undeclared submodule-pointer bumps riding along in story commits — second occurrence after Story 1.4's `41e047e`; the guard belongs in the story-completion checklist, not in a per-story fix. [`_bmad-output/implementation-artifacts/sprint-status.yaml` action_items]
+- [ ] [Review][Patch] File List omits 23 of the 49 changed paths, including every file the kernel's Execution bullets name. Root cause: `baseline_commit: b73093b` names an in-story implementation commit, so the list was computed from a mid-story baseline. [story frontmatter line 2, lines 189-214]
+- [ ] [Review][Patch] Recorded verification commands do not match the prescribed ones — `-warnaserror` and `-nr:false` are absent and no focused per-class run is recorded with its result. [story lines 163-169]
+- [ ] [Review][Patch] `test-summary.md:270-273` and the Dev Agent Record overclaim coverage for Unicode/case boundaries, defensive copying, hidden-state absence and submission-time reauthorization; narrow the claims once the gaps above are closed.
+- [ ] [Review][Patch] The "corroborated the SSR/circuit `sub` with server-side `IUserContextAccessor`" claim is circular — the resolver reproduces FrontComposer's own principal precedence and then compares that principal's `sub` against a `UserId` configured to read the same claim from the same principal. It catches claim-type misconfiguration, not identity divergence. Correct the record or make the corroboration independent. [`TenantConfigurationPrincipalResolver.cs:30-41,67-72`]
+
+#### Deferred
+
+- [x] [Review][Defer] A third divergent global-administrator claim parser now coexists with `TenantsGlobalAdministratorClaims`, with four verified behavioural divergences — deferred, consolidation spans lifecycle and global-administrator surfaces beyond Story 1.6. [`TenantConfigurationPrincipalResolver.cs:102-194`]
+- [x] [Review][Defer] `LifecycleAuthorizationReflection` and `GlobalAdministratorsAuthorizationReflection` still read `HttpContext.User` with no circuit fallback while the new configuration path has one — deferred, pre-existing and outside this story's file scope.
+
+#### Dismissed (recorded so they are not re-raised)
+
+- Six `ToString()`-based absence assertions were genuinely vacuous at `ec7ec8c` (`TenantDetailSnapshot` went `record` → `class`, losing the generated `ToString`). **Already fixed at HEAD** by `de2ded0`, which added support-safe overrides to both types. Real defect, resolved by a later commit.
+- Malformed/unsupported role encodings resolving to Indeterminate, and duplicate policy declarations disabling the section — both are spec-conformant by design. The missing *diagnostics* are retained as a patch above.
+- The acceptance-auditor's claim that `ToString()` overrides existed at `ec7ec8c` is factually wrong; it read the working tree, not the reviewed revision.
