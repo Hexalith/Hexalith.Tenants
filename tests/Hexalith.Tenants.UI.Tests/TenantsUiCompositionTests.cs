@@ -164,6 +164,20 @@ public sealed class TenantsUiCompositionTests
         searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
         decodedOffset.ShouldBe(20);
 
+        // Purpose isolation was previously inferred from the *container's* provider identity, which says
+        // nothing about which provider the codec actually received. A codec that ignored injection and
+        // built its own EphemeralDataProtectionProvider passed every assertion while making each cursor
+        // undecodable after a restart or on a second replica. Prove the injected provider is the one in
+        // use: an independent codec over the same provider must decode this cursor, and the same codec
+        // over a different provider must not.
+        var sameProviderCodec = new TenantSearchCursorCodec(dataProtectionProvider);
+        sameProviderCodec.TryDecode(protectedCursor, scope, out int sameProviderOffset).ShouldBeTrue(
+            "the registered codec must protect with the injected provider, not one it constructed itself");
+        sameProviderOffset.ShouldBe(20);
+
+        var foreignProviderCodec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        foreignProviderCodec.TryDecode(protectedCursor, scope, out _).ShouldBeFalse();
+
         using IServiceScope firstScope = provider.CreateScope();
         using IServiceScope secondScope = provider.CreateScope();
         TenantSearchPagingState firstPaging = firstScope.ServiceProvider.GetRequiredService<TenantSearchPagingState>();
