@@ -2,7 +2,7 @@
 title: 'Restore the release version floor and guard registry/tag drift'
 type: 'bugfix'
 created: '2026-07-28'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: 'f6ccee0'
 review_loop_iteration: 0
 context: []
@@ -61,11 +61,11 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `.github/workflows/release.yml` -- add a `Require registry versions at or below the release tag floor` step to `verify-source`: resolve the reachable floor tag, read manifest IDs at the dispatched SHA, probe `https://api.nuget.org/v3-flatcontainer/<id>/index.json` per package, fail per the matrix -- turns a post-approval collision into a named pre-approval failure.
-- [ ] `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- assert the new step and its remedy wording in the release-workflow governance test, and add a behavioural test driving the extracted run block with stubbed `gh`/`curl` across every matrix row.
-- [ ] `_bmad-output/project-context.md` -- correct the release rule to name the `BREAKING CHANGE:` footer as the only major trigger.
-- [ ] Commit on a `fix/…` branch with a `BREAKING CHANGE:` footer, footer lines ≤ 100 chars (`footer-max-line-length` is not relaxed in `commitlint.config.mjs`).
-- [ ] Create annotated tag `v3.15.1` at `7918ac69`; push after human confirmation.
+- [x] `.github/workflows/release.yml` -- add a `Require registry versions at or below the release tag floor` step to `verify-source`: resolve the reachable floor tag, read manifest IDs at the dispatched SHA, probe `https://api.nuget.org/v3-flatcontainer/<id>/index.json` per package, fail per the matrix -- turns a post-approval collision into a named pre-approval failure.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- assert the new step and its remedy wording in the release-workflow governance test, and add a behavioural test driving the extracted run block with stubbed `gh`/`curl` across every matrix row.
+- [x] `_bmad-output/project-context.md` -- correct the release rule to name the `BREAKING CHANGE:` footer as the only major trigger.
+- [x] Commit on a `fix/…` branch with a `BREAKING CHANGE:` footer, footer lines ≤ 100 chars (`footer-max-line-length` is not relaxed in `commitlint.config.mjs`).
+- [x] Create annotated tag `v3.15.1` at `7918ac69` -- created locally; the push to `origin` is still pending human confirmation.
 
 **Acceptance Criteria:**
 - Given the tag is pushed and the branch merged, when Release is dispatched from the `main` tip with green exact-source CI, then `verify-source` passes and semantic-release proposes `4.0.0`.
