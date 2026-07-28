@@ -97,24 +97,8 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
             httpContextAccessor,
             principalResolver,
             new TenantConfigurationReadPolicyProvider(configuration));
-        ITenantsRestQueryClient restQueryClient = Substitute.For<ITenantsRestQueryClient>();
-        restQueryClient
-            .GetTenantAsync(
-                Arg.Any<GetTenantQuery>(),
-                Arg.Any<string?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new TenantsRestQueryResponse<TenantDetail>(
-                rawDetail,
-                new QueryResponseMetadata(ETag: "etag", IsStale: false)
-                {
-                    Provenance = QueryResponseProvenance.ProjectionBacked,
-                    Lifecycle = ProjectionLifecycleState.Current,
-                },
-                ReadModelFreshnessState.Current,
-                TenantsRestQueryFailureKind.None,
-                StatusCodes.Status200OK));
         ITenantQueryGateway queryGateway = new TenantQueryGateway(
-            restQueryClient,
+            new OneShotGatewayClient(rawDetail),
             userContext,
             new MemoriesClient(
                 new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
@@ -143,6 +127,38 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
         markup.ShouldNotContain("hidden-undefined-value", Case.Sensitive);
         markup.ShouldNotContain("private.mode", Case.Sensitive);
         markup.ShouldNotContain("hidden-namespace-value", Case.Sensitive);
+    }
+
+    private sealed class OneShotGatewayClient(TenantDetail detail) : IEventStoreGatewayClient
+    {
+        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
+            SubmitQueryRequest request,
+            string? ifNoneMatch = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult((EventStoreQueryResult<T>)(object)new EventStoreQueryResult<TenantDetail>(
+                "correlation",
+                detail,
+                IsNotModified: false,
+                ETag: "\"etag\"")
+            {
+                Metadata = new QueryResponseMetadata(ETag: "\"etag\"", IsStale: false)
+                {
+                    Provenance = QueryResponseProvenance.ProjectionBacked,
+                    Lifecycle = ProjectionLifecycleState.Current,
+                },
+            });
+
+        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<EventStoreQueryResult> SubmitQueryAsync(
+            SubmitQueryRequest request,
+            string? ifNoneMatch = null,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 
     private sealed class PassthroughLocalizer : IStringLocalizer<TenantsResources>

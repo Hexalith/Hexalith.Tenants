@@ -2,8 +2,6 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
-@inject IServiceProvider Services
-@implements IAsyncDisposable
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page">
     @if (ShowBackLink)
@@ -37,13 +35,6 @@
             @Localizer["Tenants.MyTenants.Refresh"]
         </FluentButton>
     </FluentStack>
-
-    @if (_isNotificationRefreshing)
-    {
-        <p role="status" aria-live="polite" data-testid="tenants-my-notification-refreshing">
-            @Localizer["Tenants.MyTenants.Freshness.Refreshing"]
-        </p>
-    }
 
     @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
     {
@@ -93,10 +84,8 @@
 
 @code {
     private UserTenantMembershipSnapshot _snapshot = UserTenantMembershipSnapshot.Loading();
-    private IAsyncDisposable? _readRefreshLease;
     private readonly Stack<string?> _cursorHistory = new();
     private bool _parametersInitialized;
-    private bool _isNotificationRefreshing;
     private long _loadVersion;
     private string? _currentCursor;
 
@@ -143,28 +132,13 @@
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender
-            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
-        {
-            _readRefreshLease = await refreshSubscription.SubscribeAsync(
-                GetUserTenantsQuery.ProjectionType,
-                "system",
-                () => InvokeAsync(RefreshFromNotificationAsync));
-        }
-    }
-
-    private async Task LoadAsync(bool reuseETag, bool retainConfirmed = false)
+    private async Task LoadAsync(bool reuseETag)
     {
         // Invalidate any in-flight load so a slower earlier response cannot overwrite a newer snapshot
         // (Refresh/paging call the gateway with no cancellation token).
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         UserTenantMembershipSnapshot previous = _snapshot;
-        if (!retainConfirmed)
-        {
-            _snapshot = UserTenantMembershipSnapshot.Loading();
-        }
+        _snapshot = UserTenantMembershipSnapshot.Loading();
 
         UserTenantMembershipRequest request = new(
             Cursor: _currentCursor,
@@ -186,29 +160,6 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
-
-    private async Task RefreshFromNotificationAsync()
-    {
-        _isNotificationRefreshing = true;
-        StateHasChanged();
-        try
-        {
-            await LoadAsync(reuseETag: true, retainConfirmed: true).ConfigureAwait(false);
-        }
-        finally
-        {
-            await InvokeAsync(() => _isNotificationRefreshing = false);
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_readRefreshLease is not null)
-        {
-            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
-            _readRefreshLease = null;
-        }
-    }
 
     private async Task NextPageAsync()
     {

@@ -18,7 +18,6 @@ public sealed class TenantDetailSnapshot
         string? eTag,
         ReadModelFreshnessState freshness,
         ProjectionLifecycleState lifecycle,
-        string? projectionVersion,
         string? errorMessage,
         TenantConfigurationSafeModel configuration,
         TenantConfigurationManagementContext configurationManagement)
@@ -28,7 +27,6 @@ public sealed class TenantDetailSnapshot
         ETag = eTag;
         Freshness = freshness;
         Lifecycle = lifecycle;
-        ProjectionVersion = projectionVersion;
         ErrorMessage = errorMessage;
         Configuration = configuration;
         ConfigurationManagement = configurationManagement;
@@ -48,9 +46,6 @@ public sealed class TenantDetailSnapshot
 
     /// <summary>Gets authoritative projection lifecycle evidence without collapsing operational states into freshness.</summary>
     public ProjectionLifecycleState Lifecycle { get; }
-
-    /// <summary>Gets authoritative projection-version evidence retained only for server-side composition.</summary>
-    public string? ProjectionVersion { get; }
 
     /// <summary>Gets support-safe error copy.</summary>
     public string? ErrorMessage { get; }
@@ -83,59 +78,51 @@ public sealed class TenantDetailSnapshot
         TenantDetailContract detail,
         string? eTag,
         ReadModelFreshnessState freshness,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
-        string? projectionVersion = null)
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
         => FromComposition(
             TenantDetailSurfaceKind.Ready,
             UnavailableComposition(detail),
             eTag,
             freshness,
             lifecycle,
-            projectionVersion,
             null);
 
     internal static TenantDetailSnapshot Ready(
         TenantConfigurationComposition composition,
         string? eTag,
         ReadModelFreshnessState freshness,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
-        string? projectionVersion = null)
-        => FromComposition(TenantDetailSurfaceKind.Ready, composition, eTag, freshness, lifecycle, projectionVersion, null);
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
+        => FromComposition(TenantDetailSurfaceKind.Ready, composition, eTag, freshness, lifecycle, null);
 
     internal static TenantDetailSnapshot Stale(
         TenantDetailContract detail,
         string? eTag,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Stale,
-        string? projectionVersion = null)
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Stale)
         => FromComposition(
             TenantDetailSurfaceKind.Stale,
             UnavailableComposition(detail),
             eTag,
             ReadModelFreshnessState.Stale,
             lifecycle,
-            projectionVersion,
             null);
 
     internal static TenantDetailSnapshot Stale(
         TenantConfigurationComposition composition,
         string? eTag,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Stale,
-        string? projectionVersion = null)
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Stale)
         => FromComposition(
             TenantDetailSurfaceKind.Stale,
             composition,
             eTag,
             ReadModelFreshnessState.Stale,
             lifecycle,
-            projectionVersion,
             null);
 
     internal static TenantDetailSnapshot Degraded(
         TenantDetailContract? detail,
         string message,
         string? eTag = null,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
-        string? projectionVersion = null)
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
         => detail is null
             ? Empty(TenantDetailSurfaceKind.Degraded, message, eTag, lifecycle)
             : FromComposition(
@@ -144,22 +131,19 @@ public sealed class TenantDetailSnapshot
                 eTag,
                 ReadModelFreshnessState.Unknown,
                 lifecycle,
-                projectionVersion,
                 message);
 
     internal static TenantDetailSnapshot DegradedFromComposition(
         TenantConfigurationComposition composition,
         string message,
         string? eTag = null,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
-        string? projectionVersion = null)
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
         => FromComposition(
             TenantDetailSurfaceKind.Degraded,
             composition,
             eTag,
             ReadModelFreshnessState.Unknown,
             lifecycle,
-            projectionVersion,
             message);
 
     internal static TenantDetailSnapshot Unknown(string message, string? eTag = null)
@@ -180,7 +164,6 @@ public sealed class TenantDetailSnapshot
         string? eTag,
         ReadModelFreshnessState freshness,
         ProjectionLifecycleState lifecycle,
-        string? projectionVersion,
         string? message)
         => new(
             kind,
@@ -188,7 +171,6 @@ public sealed class TenantDetailSnapshot
             eTag,
             freshness,
             lifecycle,
-            projectionVersion,
             message,
             composition.SafeModel,
             composition.ManagementContext);
@@ -204,7 +186,6 @@ public sealed class TenantDetailSnapshot
             eTag,
             ReadModelFreshnessState.Unknown,
             lifecycle,
-            null,
             message,
             TenantConfigurationSafeModel.Unavailable(string.Empty),
             TenantConfigurationManagementContext.Unavailable(string.Empty));

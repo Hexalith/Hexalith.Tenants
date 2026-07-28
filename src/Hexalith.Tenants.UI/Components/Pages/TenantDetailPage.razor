@@ -6,12 +6,9 @@
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State.TenantCommands
-@using Hexalith.Tenants.UI.State.TenantUsers
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
-@inject IServiceProvider Services
-@implements IAsyncDisposable
 
 <FcAggregateDetailPage TItem="TenantDetail"
                        LayoutMode="FcPageLayoutMode.Constrained"
@@ -159,21 +156,16 @@
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail__accordion-body">
                         <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                             <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
-                            <p>@Localizer["Tenants.Detail.Members.Summary", _tenantUsersSnapshot.Rows.Count, OwnerCount(Detail)]</p>
+                            <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
                         </section>
 
                         <MemberAccessReview Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
-                                            ProjectionVersion="@_snapshot.ProjectionVersion"
-                                            Members="@_tenantUsersSnapshot"
-                                            CanGoPrevious="@(_memberCursorHistory.Count > 0)"
-                                            OnNextPageRequested="@LoadNextMemberPageAsync"
-                                            OnPreviousPageRequested="@LoadPreviousMemberPageAsync"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnCommandActivityChanged="@SetCommandActivityAsync"
-                                            OnProjectionRefreshRequested="@RefreshTenantReadsAsync"
+                                            OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                             ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
                                             RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
@@ -211,11 +203,6 @@
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
-    private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
-    private readonly Stack<string?> _memberCursorHistory = new();
-    private string? _memberCursor;
-    private IAsyncDisposable? _readRefreshLease;
-    private string? _subscriptionTenantId;
     private bool _commandInFlight;
 
     [Parameter]
@@ -255,92 +242,15 @@
     protected override async Task OnParametersSetAsync()
     {
         _snapshot = TenantDetailSnapshot.Loading();
-        _tenantUsersSnapshot = TenantUsersSnapshot.Loading(TenantId);
-        _memberCursor = null;
-        _memberCursorHistory.Clear();
-
-        Task<TenantDetailSnapshot> detailTask = QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(TenantId), null, CancellationToken.None);
-        Task<TenantUsersSnapshot> membersTask = QueryGateway
-            .GetTenantUsersAsync(new TenantUsersRequest(TenantId), null, CancellationToken.None);
-        await Task.WhenAll(detailTask, membersTask).ConfigureAwait(false);
-        _snapshot = await detailTask.ConfigureAwait(false);
-        _tenantUsersSnapshot = await membersTask.ConfigureAwait(false)
-            ?? TenantUsersSnapshot.Unavailable(TenantId);
-
-        if (!string.Equals(_subscriptionTenantId, TenantId, StringComparison.Ordinal))
-        {
-            if (_readRefreshLease is not null)
-            {
-                await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
-            }
-
-            _subscriptionTenantId = TenantId;
-            if (Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
-            {
-                _readRefreshLease = await refreshSubscription.SubscribeAsync(
-                    GetTenantQuery.ProjectionType,
-                    TenantId,
-                    () => InvokeAsync(RefreshTenantReadsAsync));
-            }
-        }
+        _snapshot = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(TenantId), null, CancellationToken.None)
+            .ConfigureAwait(false);
     }
 
     private async Task RefreshTenantDetailAsync()
     {
         _snapshot = await QueryGateway
             .GetTenantAsync(new TenantDetailRequest(TenantId), _snapshot, CancellationToken.None)
-            .ConfigureAwait(false);
-    }
-
-    private async Task RefreshTenantReadsAsync()
-    {
-        TenantUsersSnapshot retainedMembers = _tenantUsersSnapshot;
-        _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retainedMembers);
-        Task<TenantDetailSnapshot> detailTask = QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(TenantId, _snapshot.ETag), _snapshot, CancellationToken.None);
-        Task<TenantUsersSnapshot> membersTask = QueryGateway
-            .GetTenantUsersAsync(
-                new TenantUsersRequest(TenantId, _memberCursor, ETag: retainedMembers.ETag),
-                retainedMembers,
-                CancellationToken.None);
-        await Task.WhenAll(detailTask, membersTask).ConfigureAwait(false);
-        _snapshot = await detailTask.ConfigureAwait(false);
-        _tenantUsersSnapshot = await membersTask.ConfigureAwait(false);
-    }
-
-    private async Task LoadNextMemberPageAsync()
-    {
-        if (!_tenantUsersSnapshot.HasMore || string.IsNullOrWhiteSpace(_tenantUsersSnapshot.NextCursor))
-        {
-            return;
-        }
-
-        _memberCursorHistory.Push(_memberCursor);
-        _memberCursor = _tenantUsersSnapshot.NextCursor;
-        await LoadMemberPageAsync().ConfigureAwait(false);
-    }
-
-    private async Task LoadPreviousMemberPageAsync()
-    {
-        if (_memberCursorHistory.Count == 0)
-        {
-            return;
-        }
-
-        _memberCursor = _memberCursorHistory.Pop();
-        await LoadMemberPageAsync().ConfigureAwait(false);
-    }
-
-    private async Task LoadMemberPageAsync()
-    {
-        TenantUsersSnapshot retained = _tenantUsersSnapshot;
-        _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retained);
-        _tenantUsersSnapshot = await QueryGateway
-            .GetTenantUsersAsync(
-                new TenantUsersRequest(TenantId, _memberCursor),
-                previous: null,
-                CancellationToken.None)
             .ConfigureAwait(false);
     }
 
@@ -434,13 +344,4 @@
         => !string.IsNullOrWhiteSpace(returnUrl)
             && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
             && !returnUrl.StartsWith("//", StringComparison.Ordinal);
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_readRefreshLease is not null)
-        {
-            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
-            _readRefreshLease = null;
-        }
-    }
 }

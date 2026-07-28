@@ -2,7 +2,6 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -13,12 +12,6 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
         TenantDetailSnapshot? previous,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant query gateway configuration is missing."));
-
-    public Task<TenantUsersSnapshot> GetTenantUsersAsync(
-        TenantUsersRequest request,
-        TenantUsersSnapshot? previous,
-        CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
 
     public Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,

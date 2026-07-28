@@ -21,9 +21,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.EventStore.Client.Projections;
-using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -551,14 +549,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-detail-stale']").TextContent.ShouldContain("stale", Case.Insensitive);
         IElement memberSection = cut.Find("[data-testid='tenants-member-section']");
-        memberSection.TextContent.ShouldContain("stale data", Case.Insensitive);
+        memberSection.TextContent.ShouldContain("Member evidence is stale.");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("stale data");
         cut.Find("[data-testid='tenants-add-member-flow']").TextContent.ShouldContain("Refresh current tenant detail");
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
-        memberSection.TextContent.ShouldNotContain("Success");
+        memberSection.InnerHtml.ShouldNotContain("Success");
     }
 
     [Fact]
@@ -579,10 +577,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("OWNER/User.01");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("reader-user-with-a-very-long-literal-identifier");
@@ -621,10 +616,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         HashSet<string> reasonListIds = cut.FindAll("[data-testid='tenants-member-reason-list']")
             .Select(static list => list.GetAttribute("id").ShouldNotBeNull())
@@ -658,14 +650,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         string flowTestId)
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+            .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         IElement launch = cut.FindAll($"[data-testid='{launchTestId}']")[0];
         launch.GetAttribute("aria-controls").ShouldBe(regionId);
@@ -686,14 +674,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public void Member_access_review_surfaces_all_canonical_unavailable_reason_categories_without_mutation_affordances()
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+            .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         string[] categories =
         [
@@ -728,14 +712,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public void Member_access_review_opens_change_role_flow_without_removing_add_or_remove_action_slots()
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+            .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-change-role-open']").Click();
 
@@ -767,18 +747,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         string expectedReason)
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail(
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
                 "tenant.alpha",
                 new Dictionary<string, string>(),
                 status,
-                [new TenantMember("owner-user", TenantRole.TenantOwner)]);
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]))
             .Add(view => view.SurfaceKind, surfaceKind)
-            .Add(view => view.Freshness, freshness)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, freshness));
 
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain(expectedReason);
         if (surfaceKind is TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
@@ -797,14 +773,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public void Member_access_review_true_authorization_failure_still_renders_missing_permission()
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+            .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("missing permission");
         cut.FindAll("[data-testid='tenants-member-action-slot']")
@@ -817,18 +789,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public void Member_access_review_does_not_render_backend_urls_tokens_payloads_or_command_lifecycle_context()
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail(
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
                 "tenant.alpha",
                 new Dictionary<string, string>(),
                 TenantStatus.Active,
-                [new TenantMember("literal-user", TenantRole.TenantOwner)]);
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+                [new TenantMember("literal-user", TenantRole.TenantOwner)]))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("literal-user");
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
@@ -844,44 +812,19 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public void Member_access_review_renders_authorization_safe_empty_state()
     {
         RegisterComponentServices();
-        TenantDetail detail = Detail(
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
                 "tenant.empty",
                 new Dictionary<string, string>(),
                 TenantStatus.Active,
-                []);
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
+                []))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Unknown)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Unknown));
 
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("No visible members");
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("does not reveal hidden memberships");
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("stale data");
         cut.Markup.ShouldNotContain("tenants-member-row");
-    }
-
-    [Fact]
-    public void Member_access_review_keeps_rows_readable_but_actions_unavailable_for_version_mismatch()
-    {
-        RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
-        TenantUsersSnapshot members = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
-
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "detail-v1")
-            .Add(view => view.Members, members));
-
-        cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(detail.Members.Count);
-        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
-        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("stale data");
     }
 
     [Fact]
@@ -1405,21 +1348,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
-        TenantDetail? observedDetail = null;
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(async call =>
-            {
-                TenantDetailSnapshot snapshot = await detailFactory(call);
-                observedDetail = snapshot.Detail;
-                return snapshot;
-            });
-        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(call =>
-            {
-                TenantUsersRequest request = call.Arg<TenantUsersRequest>()
-                    ?? throw new InvalidOperationException("A tenant-users request is required.");
-                return Task.FromResult(MemberSnapshot(observedDetail ?? Detail(request.TenantId)));
-            });
+            .Returns(detailFactory);
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1532,25 +1462,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 rows));
         return TenantDetailSnapshot.Ready(composition, "\"etag\"", ReadModelFreshnessState.Current);
     }
-
-    private static TenantUsersSnapshot MemberSnapshot(TenantDetail detail)
-        => detail.Members.Count == 0
-            ? TenantUsersSnapshot.Empty(
-                detail.TenantId,
-                isAuthorizationScoped: true,
-                eTag: "members-etag",
-                projectionVersion: "v1",
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)
-            : TenantUsersSnapshot.Ready(
-                detail.TenantId,
-                detail.Members,
-                nextCursor: null,
-                hasMore: false,
-                eTag: "members-etag",
-                projectionVersion: "v1",
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current);
 
     private static string NamespaceFrom(string key)
     {
@@ -1871,7 +1782,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Members.Column.Role"] = "Role",
             ["Tenants.Members.Column.Status"] = "Tenant status",
             ["Tenants.Members.Column.UserId"] = "User id",
-            ["Tenants.Members.Description"] = "Read-only member access context from the dedicated authorized member projection.",
+            ["Tenants.Members.Description"] = "Read-only member access context from the authorized tenant detail projection.",
             ["Tenants.Members.Empty.Message"] = "No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}.",
             ["Tenants.Members.Empty.Title"] = "No visible members",
             ["Tenants.Members.Freshness.Aging"] = "Aging",
