@@ -374,7 +374,7 @@ public class AspireTopologyTests : IDisposable {
             Options.Create(new MemoriesClientOptions()),
             NullLogger<MemoriesClient>.Instance);
         var gateway = new TenantQueryGateway(
-            gatewayClient,
+            new AuditRestQueryClientAdapter(gatewayClient),
             new FixedUserContextAccessor("system", "admin-user"),
             memoriesClient,
             new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
@@ -414,6 +414,75 @@ public class AspireTopologyTests : IDisposable {
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private sealed class AuditRestQueryClientAdapter(IEventStoreGatewayClient client) : ITenantsRestQueryClient {
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
+            GetTenantAuditQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(
+                new SubmitQueryRequest(
+                    "system",
+                    GetTenantAuditQuery.Domain,
+                    query.TenantId,
+                    GetTenantAuditQuery.QueryType,
+                    GetTenantAuditQuery.ProjectionType,
+                    JsonSerializer.SerializeToElement(new {
+                        from = query.From,
+                        to = query.To,
+                        category = query.Category?.ToString(),
+                        cursor = query.Cursor,
+                        pageSize = query.PageSize,
+                    }),
+                    EntityId: query.TenantId),
+                eTag,
+                cancellationToken));
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> ListTenantsAsync(
+            ListTenantsQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantsRestQueryResponse<TenantDetail>> GetTenantAsync(
+            GetTenantQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantMember>>> GetTenantUsersAsync(
+            GetTenantUsersQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>>> GetUserTenantsAsync(
+            GetUserTenantsQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>> GetGlobalAdministratorsAsync(
+            GetGlobalAdministratorsQuery query,
+            string? eTag,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        private static async Task<TenantsRestQueryResponse<TPayload>> ConvertAsync<TPayload>(
+            Task<EventStoreQueryResult<TPayload>> resultTask) {
+            EventStoreQueryResult<TPayload> result = await resultTask.ConfigureAwait(false);
+            QueryResponseMetadata metadata = (result.Metadata ?? new QueryResponseMetadata()) with {
+                ETag = result.ETag ?? result.Metadata?.ETag,
+                IsNotModified = result.IsNotModified,
+            };
+            return new(
+                result.Payload,
+                metadata,
+                ReadModelFreshnessState.Unknown,
+                TenantsRestQueryFailureKind.None,
+                result.IsNotModified ? (int)HttpStatusCode.NotModified : (int)HttpStatusCode.OK);
+        }
     }
 
     private sealed record FixedUserContextAccessor(string? TenantId, string? UserId) : IUserContextAccessor;

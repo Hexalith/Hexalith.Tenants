@@ -1,5 +1,5 @@
 # generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-07-27T23:53:30+02:00
+# last_updated: 2026-07-28
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-07-27T23:53:30+02:00
+last_updated: 2026-07-28
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -60,7 +60,7 @@ development_status:
   1-7-tenant-member-table-and-action-availability: done
   1-8-support-safe-identifier-copy-and-read-experience-evidence: done
   1-9-authoritative-memories-search-with-protected-paging: done
-  1-10-direct-tenants-reads-and-authoritative-freshness: backlog
+  1-10-direct-tenants-reads-and-authoritative-freshness: in-progress
   1-11-authorized-global-administrator-review: backlog
   epic-1-retrospective: done
 

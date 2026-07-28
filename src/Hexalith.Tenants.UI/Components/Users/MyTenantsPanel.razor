@@ -132,13 +132,16 @@
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    private async Task LoadAsync(bool reuseETag)
+    private async Task LoadAsync(bool reuseETag, bool retainConfirmed = false)
     {
         // Invalidate any in-flight load so a slower earlier response cannot overwrite a newer snapshot
         // (Refresh/paging call the gateway with no cancellation token).
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         UserTenantMembershipSnapshot previous = _snapshot;
-        _snapshot = UserTenantMembershipSnapshot.Loading();
+        if (!retainConfirmed)
+        {
+            _snapshot = UserTenantMembershipSnapshot.Loading();
+        }
 
         UserTenantMembershipRequest request = new(
             Cursor: _currentCursor,

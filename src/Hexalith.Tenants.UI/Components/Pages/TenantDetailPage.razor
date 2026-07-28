@@ -6,9 +6,12 @@
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantUsers
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
+@inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <FcAggregateDetailPage TItem="TenantDetail"
                        LayoutMode="FcPageLayoutMode.Constrained"
@@ -156,16 +159,21 @@
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail__accordion-body">
                         <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                             <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
-                            <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
+                            <p>@MemberSummary</p>
                         </section>
 
                         <MemberAccessReview Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
+                                            ProjectionVersion="@_snapshot.ProjectionVersion"
+                                            Members="@_tenantUsersSnapshot"
+                                            CanGoPrevious="@(_memberCursorHistory.Count > 0)"
+                                            OnNextPageRequested="@LoadNextMemberPageAsync"
+                                            OnPreviousPageRequested="@LoadPreviousMemberPageAsync"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnCommandActivityChanged="@SetCommandActivityAsync"
-                                            OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                            OnProjectionRefreshRequested="@RefreshTenantReadsAsync"
                                             ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                             ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
                                             RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
@@ -203,6 +211,15 @@
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
+    private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
+    private readonly Stack<string?> _memberCursorHistory = new();
+    private string? _memberCursor;
+    private IAsyncDisposable? _readRefreshLease;
+    private string? _subscriptionTenantId;
+    private CancellationTokenSource? _loadCancellation;
+    private long _loadGeneration;
+    private bool _disposed;
+    private bool _memberPageLoadInFlight;
     private bool _commandInFlight;
 
     [Parameter]
@@ -221,6 +238,29 @@
 
     private bool IsCommandSurfaceAvailable
         => !_commandInFlight && BffComposition.IsCommandSurfaceConnected;
+
+    private bool MemberEvidenceIsVersionConsistent
+        => _snapshot.Kind is TenantDetailSurfaceKind.Ready
+            && _snapshot.Freshness is ReadModelFreshnessState.Current
+            && _snapshot.Lifecycle is ProjectionLifecycleState.Current
+            && _tenantUsersSnapshot.Kind is TenantUsersSurfaceKind.Ready or TenantUsersSurfaceKind.Empty
+            && _tenantUsersSnapshot.Freshness is ReadModelFreshnessState.Current
+            && _tenantUsersSnapshot.Lifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(_snapshot.ProjectionVersion)
+            && string.Equals(
+                _snapshot.ProjectionVersion,
+                _tenantUsersSnapshot.ProjectionVersion,
+                StringComparison.Ordinal);
+
+    private string MemberSummary
+        => MemberEvidenceIsVersionConsistent
+            ? Localizer[
+                "Tenants.Detail.Members.VisiblePageSummaryWithOwners",
+                _tenantUsersSnapshot.Rows.Count,
+                OwnerCount(Detail)]
+            : Localizer[
+                "Tenants.Detail.Members.VisiblePageSummary",
+                _tenantUsersSnapshot.Rows.Count];
 
     // Maps the Tenants detail snapshot kind onto the domain-agnostic FC-DTL surface state the wrapper
     // routes. Kind takes precedence (loading/unauthorized/not-found/unavailable/unknown render their own
@@ -241,18 +281,255 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        string tenantId = TenantId;
+        if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
+            && _readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
+            _subscriptionTenantId = null;
+        }
+
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
         _snapshot = TenantDetailSnapshot.Loading();
-        _snapshot = await QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(TenantId), null, CancellationToken.None)
-            .ConfigureAwait(false);
+        _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
+        _memberCursor = null;
+        _memberCursorHistory.Clear();
+
+        Task<TenantDetailSnapshot> detailTask = QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
+        Task<TenantUsersSnapshot> membersTask = QueryGateway
+            .GetTenantUsersAsync(new TenantUsersRequest(tenantId), null, cancellationToken);
+        try
+        {
+            await Task.WhenAll(detailTask, membersTask).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!CanApply(generation, tenantId))
+        {
+            return;
+        }
+
+        _snapshot = await detailTask.ConfigureAwait(false);
+        _tenantUsersSnapshot = await membersTask.ConfigureAwait(false)
+            ?? TenantUsersSnapshot.Unavailable(tenantId);
+
+        if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
+            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        {
+            IAsyncDisposable lease;
+            try
+            {
+                lease = await refreshSubscription.SubscribeAsync(
+                    GetTenantQuery.ProjectionType,
+                    tenantId,
+                    () => InvokeAsync(() => RefreshTenantReadsAsync(tenantId)),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (!CanApply(generation, tenantId))
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+                return;
+            }
+
+            _readRefreshLease = lease;
+            _subscriptionTenantId = tenantId;
+        }
     }
 
     private async Task RefreshTenantDetailAsync()
     {
-        _snapshot = await QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(TenantId), _snapshot, CancellationToken.None)
-            .ConfigureAwait(false);
+        string tenantId = TenantId;
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        TenantDetailSnapshot previous = _snapshot;
+        TenantDetailSnapshot snapshot;
+        try
+        {
+            snapshot = await QueryGateway
+                .GetTenantAsync(
+                    new TenantDetailRequest(tenantId, previous.ETag),
+                    previous,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (CanApply(generation, tenantId))
+        {
+            _snapshot = snapshot;
+        }
     }
+
+    private Task RefreshTenantReadsAsync()
+        => RefreshTenantReadsAsync(TenantId);
+
+    private async Task RefreshTenantReadsAsync(string tenantId)
+    {
+        if (!string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        TenantDetailSnapshot retainedDetail = _snapshot;
+        TenantUsersSnapshot retainedMembers = _tenantUsersSnapshot;
+        _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retainedMembers);
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        Task<TenantDetailSnapshot> detailTask = QueryGateway
+            .GetTenantAsync(
+                new TenantDetailRequest(tenantId, retainedDetail.ETag),
+                retainedDetail,
+                cancellationToken);
+        Task<TenantUsersSnapshot> membersTask = QueryGateway
+            .GetTenantUsersAsync(
+                new TenantUsersRequest(tenantId, _memberCursor, ETag: retainedMembers.ETag),
+                retainedMembers,
+                cancellationToken);
+        try
+        {
+            await Task.WhenAll(detailTask, membersTask).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!CanApply(generation, tenantId))
+        {
+            return;
+        }
+
+        TenantDetailSnapshot detail = await detailTask.ConfigureAwait(false);
+        TenantUsersSnapshot members = await membersTask.ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!CanApply(generation, tenantId))
+            {
+                return;
+            }
+
+            _snapshot = detail;
+            _tenantUsersSnapshot = members;
+            StateHasChanged();
+        }).ConfigureAwait(false);
+    }
+
+    private async Task LoadNextMemberPageAsync()
+    {
+        if (_memberPageLoadInFlight
+            || !_tenantUsersSnapshot.HasMore
+            || string.IsNullOrWhiteSpace(_tenantUsersSnapshot.NextCursor))
+        {
+            return;
+        }
+
+        await LoadMemberPageAsync(_tenantUsersSnapshot.NextCursor, moveForward: true).ConfigureAwait(false);
+    }
+
+    private async Task LoadPreviousMemberPageAsync()
+    {
+        if (_memberPageLoadInFlight || _memberCursorHistory.Count == 0)
+        {
+            return;
+        }
+
+        await LoadMemberPageAsync(_memberCursorHistory.Peek(), moveForward: false).ConfigureAwait(false);
+    }
+
+    private async Task LoadMemberPageAsync(string? requestedCursor, bool moveForward)
+    {
+        string tenantId = TenantId;
+        string? priorCursor = _memberCursor;
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        _memberPageLoadInFlight = true;
+        TenantUsersSnapshot retained = _tenantUsersSnapshot;
+        _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retained);
+        try
+        {
+            TenantUsersSnapshot snapshot = await QueryGateway
+                .GetTenantUsersAsync(
+                    new TenantUsersRequest(tenantId, requestedCursor),
+                    previous: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!CanApply(generation, tenantId))
+            {
+                return;
+            }
+
+            if (snapshot.Kind is TenantUsersSurfaceKind.Unavailable
+                or TenantUsersSurfaceKind.Error
+                or TenantUsersSurfaceKind.Degraded)
+            {
+                _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(
+                    tenantId,
+                    retained,
+                    snapshot.Reason);
+                return;
+            }
+
+            _tenantUsersSnapshot = snapshot;
+            _memberCursor = requestedCursor;
+            if (moveForward)
+            {
+                _memberCursorHistory.Push(priorCursor);
+            }
+            else
+            {
+                _ = _memberCursorHistory.Pop();
+            }
+
+            if (snapshot.Reason is TenantUsersReason.ListRefreshed)
+            {
+                _memberCursor = null;
+                _memberCursorHistory.Clear();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // A newer load owns the surface.
+        }
+        finally
+        {
+            if (generation == _loadGeneration)
+            {
+                _memberPageLoadInFlight = false;
+            }
+        }
+    }
+
+    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    {
+        long generation = Interlocked.Increment(ref _loadGeneration);
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        _memberPageLoadInFlight = false;
+        if (_tenantUsersSnapshot.IsRefreshing)
+        {
+            _tenantUsersSnapshot = _tenantUsersSnapshot with { IsRefreshing = false };
+        }
+
+        return (generation, _loadCancellation.Token);
+    }
+
+    private bool CanApply(long generation, string tenantId)
+        => !_disposed
+            && generation == _loadGeneration
+            && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
     private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => Task.FromResult(
@@ -344,4 +621,18 @@
         => !string.IsNullOrWhiteSpace(returnUrl)
             && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
             && !returnUrl.StartsWith("//", StringComparison.Ordinal);
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        _ = Interlocked.Increment(ref _loadGeneration);
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        if (_readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
+        }
+    }
 }

@@ -3,6 +3,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
+@using Hexalith.Tenants.UI.State.TenantUsers
 @inject IStringLocalizer<TenantsResources> Localizer
 
 <section class="tenant-members"
@@ -15,11 +16,15 @@
             <p class="tenant-members__scope">@Localizer["Tenants.Members.ScopeNotice"]</p>
         </div>
         <div class="tenant-members__truth" data-testid="tenants-member-truth-state">
-            <TruthStateBadge Freshness="@Freshness"
-                             Lifecycle="@Lifecycle"
+            <TruthStateBadge Freshness="@Members.Freshness"
+                             Lifecycle="@Members.Lifecycle"
                              TestId="tenants-member-truth-badge"
                              ResourcePrefix="Tenants.Members" />
-            @if (SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded)
+            @if (Members.IsRefreshing)
+            {
+                <p data-testid="tenants-member-refreshing">@Localizer["Tenants.Members.Freshness.Refreshing"]</p>
+            }
+            else if (Members.Kind is not TenantUsersSurfaceKind.Ready and not TenantUsersSurfaceKind.Empty)
             {
                 <p>@StateMessage</p>
             }
@@ -42,8 +47,8 @@
     </FluentStack>
 
     <AddTenantMemberFlow Detail="@Detail"
-                         SurfaceKind="@SurfaceKind"
-                         Freshness="@Freshness"
+                         SurfaceKind="@EffectiveSurfaceKind"
+                         Freshness="@EffectiveFreshness"
                          IsAuthorized="@IsAddMemberAuthorized"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
@@ -53,10 +58,10 @@
     @if (Rows.Count == 0)
     {
         <section class="tenant-members__state"
-                 data-testid="tenants-member-empty"
+                 data-testid="@EmptyStateTestId"
                  role="status">
-            <h3>@Localizer["Tenants.Members.Empty.Title"]</h3>
-            <p>@Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]</p>
+            <h3>@EmptyStateTitle</h3>
+            <p>@EmptyStateMessage</p>
         </section>
     }
     else
@@ -112,8 +117,8 @@
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Freshness"]"
                                 ColumnId="member-freshness"
                                 Width="170px">
-                    <TruthStateBadge Freshness="@Freshness"
-                                     Lifecycle="@Lifecycle"
+                    <TruthStateBadge Freshness="@Members.Freshness"
+                                     Lifecycle="@Members.Lifecycle"
                                      TestId="tenants-member-row-freshness"
                                      ResourcePrefix="Tenants.Members" />
                 </TemplateColumn>
@@ -197,8 +202,8 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
                 <ChangeTenantMemberRoleFlow Detail="@Detail"
                                             Member="@ActiveChangeRoleMember"
-                                            SurfaceKind="@SurfaceKind"
-                                            Freshness="@Freshness"
+                                            SurfaceKind="@EffectiveSurfaceKind"
+                                            Freshness="@EffectiveFreshness"
                                             IsAuthorized="@IsChangeRoleAuthorized"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
@@ -213,8 +218,8 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
                 <RemoveTenantMemberFlow Detail="@Detail"
                                         Member="@ActiveRemoveMember"
-                                        SurfaceKind="@SurfaceKind"
-                                        Freshness="@Freshness"
+                                        SurfaceKind="@EffectiveSurfaceKind"
+                                        Freshness="@EffectiveFreshness"
                                         IsAuthorized="@IsRemoveMemberAuthorized"
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                         TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
@@ -223,6 +228,26 @@
                                         OnCommandActivityChanged="@OnCommandActivityChanged"
                                         ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
             </FluentStack>
+        }
+
+        @if (CanGoPrevious || Members.HasMore)
+        {
+            <nav class="tenant-members__paging"
+                 data-testid="tenants-member-paging"
+                 aria-label="@Localizer["Tenants.Members.Paging.Label"]">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              Disabled="@(!CanGoPrevious || Members.IsRefreshing)"
+                              data-testid="tenants-member-previous"
+                              OnClick="RequestPreviousPageAsync">
+                    @Localizer["Tenants.Members.Previous"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              Disabled="@(!Members.HasMore || Members.IsRefreshing)"
+                              data-testid="tenants-member-next"
+                              OnClick="RequestNextPageAsync">
+                    @Localizer["Tenants.Members.Next"]
+                </FluentButton>
+            </nav>
         }
     }
 </section>
@@ -262,6 +287,21 @@
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
     [Parameter]
+    public string? ProjectionVersion { get; set; }
+
+    [Parameter]
+    public TenantUsersSnapshot Members { get; set; } = TenantUsersSnapshot.Unavailable();
+
+    [Parameter]
+    public bool CanGoPrevious { get; set; }
+
+    [Parameter]
+    public EventCallback OnNextPageRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnPreviousPageRequested { get; set; }
+
+    [Parameter]
     public bool IsAddMemberAuthorized { get; set; } = true;
 
     [Parameter]
@@ -292,21 +332,23 @@
     public Func<RemoveUserFromTenant, Task<TenantDetail?>>? RemoveMemberProjectionEvidenceProvider { get; set; }
 
     private IReadOnlyList<MemberRow> Rows
-        => Detail.Members
+        => Members.Rows
             .Select((member, index) => ToRow(member, index))
             .ToArray();
 
     private TenantMember? ActiveChangeRoleMember
-        => Detail.Members.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal));
+        => Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal));
 
     private TenantMember? ActiveRemoveMember
-        => Detail.Members.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal));
+        => Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal));
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
 
     private string OwnerContext
-        => OwnerCount switch
+        => !ActionsAreEvidenceBacked
+            ? Localizer["Tenants.Members.OwnerContext.Unavailable"]
+            : OwnerCount switch
         {
             0 => Localizer["Tenants.Members.OwnerContext.NoOwners"],
             1 => Localizer["Tenants.Members.OwnerContext.LastOwner", OwnerCount],
@@ -331,15 +373,51 @@
         => ResolveFailClosedReasons(TenantRole.Unknown).FirstOrDefault(UnavailableReason.StaleData);
 
     private string StateMessage
-        => SurfaceKind switch
+        => Members.Kind switch
         {
-            TenantDetailSurfaceKind.Stale => Localizer["Tenants.Members.State.Stale"],
-            TenantDetailSurfaceKind.Degraded => Localizer["Tenants.Members.State.Degraded"],
-            _ => string.Empty,
+            TenantUsersSurfaceKind.Loading => Localizer["Tenants.Members.State.Loading"],
+            TenantUsersSurfaceKind.Stale => Localizer["Tenants.Members.State.Stale"],
+            TenantUsersSurfaceKind.Degraded => Localizer["Tenants.Members.State.Degraded"],
+            TenantUsersSurfaceKind.Unknown => Localizer["Tenants.Members.State.Unknown"],
+            TenantUsersSurfaceKind.Unauthorized => Localizer["Tenants.Members.State.Unauthorized"],
+            TenantUsersSurfaceKind.NotFound => Localizer["Tenants.Members.State.NotFound"],
+            _ => Localizer["Tenants.Members.State.Unavailable"],
         };
 
     private bool CanOpenMemberAudit
-        => SurfaceKind is TenantDetailSurfaceKind.Ready or TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded;
+        => Members.Kind is TenantUsersSurfaceKind.Ready
+            or TenantUsersSurfaceKind.Stale
+            or TenantUsersSurfaceKind.Degraded
+            or TenantUsersSurfaceKind.Unknown;
+
+    private bool ActionsAreEvidenceBacked
+        => SurfaceKind is TenantDetailSurfaceKind.Ready
+            && Freshness is ReadModelFreshnessState.Current
+            && Lifecycle is ProjectionLifecycleState.Current
+            && Members.Kind is TenantUsersSurfaceKind.Ready or TenantUsersSurfaceKind.Empty
+            && Members.Freshness is ReadModelFreshnessState.Current
+            && Members.Lifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(ProjectionVersion)
+            && string.Equals(ProjectionVersion, Members.ProjectionVersion, StringComparison.Ordinal);
+
+    private TenantDetailSurfaceKind EffectiveSurfaceKind
+        => ActionsAreEvidenceBacked ? SurfaceKind : TenantDetailSurfaceKind.Degraded;
+
+    private ReadModelFreshnessState EffectiveFreshness
+        => ActionsAreEvidenceBacked ? Freshness : ReadModelFreshnessState.Unknown;
+
+    private string EmptyStateTestId
+        => Members.Kind is TenantUsersSurfaceKind.Empty ? "tenants-member-empty" : "tenants-member-state";
+
+    private string EmptyStateTitle
+        => Members.Kind is TenantUsersSurfaceKind.Empty
+            ? Localizer["Tenants.Members.Empty.Title"]
+            : Localizer["Tenants.Members.State.Title"];
+
+    private string EmptyStateMessage
+        => Members.Kind is TenantUsersSurfaceKind.Empty
+            ? Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
+            : StateMessage;
 
     private string MemberReturnUrl
         => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
@@ -378,6 +456,11 @@
             return [UnavailableReason.MissingPermission];
         }
 
+        if (!ActionsAreEvidenceBacked)
+        {
+            return [UnavailableReason.StaleData];
+        }
+
         if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded)
         {
             return [UnavailableReason.StaleData];
@@ -400,6 +483,16 @@
 
         return [];
     }
+
+    private Task RequestNextPageAsync()
+        => Members.HasMore && !Members.IsRefreshing
+            ? OnNextPageRequested.InvokeAsync()
+            : Task.CompletedTask;
+
+    private Task RequestPreviousPageAsync()
+        => CanGoPrevious && !Members.IsRefreshing
+            ? OnPreviousPageRequested.InvokeAsync()
+            : Task.CompletedTask;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

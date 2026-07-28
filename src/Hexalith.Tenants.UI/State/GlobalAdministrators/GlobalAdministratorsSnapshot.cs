@@ -12,7 +12,8 @@ public sealed record GlobalAdministratorsSnapshot(
     ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     GlobalAdministratorsReason Reason,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
+    string? ProjectionVersion = null) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

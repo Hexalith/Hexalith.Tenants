@@ -13,7 +13,8 @@ public sealed record UserTenantMembershipSnapshot(
     bool IsAuthorizationScopedEmpty,
     UserTenantMembershipReason Reason,
     string? TargetUserId = null,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
+    string? ProjectionVersion = null) {
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

@@ -9,8 +9,9 @@ internal sealed class TenantsBffComposition(
     ITenantCommandGateway commandGateway,
     IHttpContextAccessor? httpContextAccessor = null,
     ITenantConfigurationPrincipalResolver? principalResolver = null,
-    TenantConfigurationReadPolicyProvider? policyProvider = null) : ITenantsBffComposition {
-    public bool IsReadSurfaceConnected => true;
+    TenantConfigurationReadPolicyProvider? policyProvider = null,
+    ITenantQueryGateway? queryGateway = null) : ITenantsBffComposition {
+    public bool IsReadSurfaceConnected => queryGateway is null or not UnavailableTenantQueryGateway;
 
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 

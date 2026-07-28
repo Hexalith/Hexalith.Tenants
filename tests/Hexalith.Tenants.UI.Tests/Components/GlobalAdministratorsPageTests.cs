@@ -2,10 +2,13 @@ using System.Globalization;
 
 using Bunit;
 
+using Hexalith.FrontComposer.Contracts.Communication;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -17,6 +20,8 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -63,8 +68,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
-    public void Tenant_owner_without_platform_authority_gets_fail_closed_without_querying_gateway()
+    public async Task Tenant_owner_without_platform_authority_gets_fail_closed_without_querying_or_subscribing()
     {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
         var gateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
             [new GlobalAdministratorRow("hidden-admin", ReadModelFreshnessState.Current)],
             null,
@@ -75,6 +82,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
@@ -84,6 +94,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Markup.ShouldNotContain("hidden-admin");
         cut.Markup.ShouldNotContain("tenants-global-admins-list");
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
+        await subscription.DidNotReceive()
+            .SubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                Arg.Any<CancellationToken>());
     }
 
     [Theory]

@@ -11,6 +11,7 @@
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
 @inject IJSRuntime JS
+@inject IServiceProvider Services
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical"
@@ -108,6 +109,12 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+                    @if (_isNotificationRefreshing)
+                    {
+                        <p role="status" aria-live="polite" data-testid="tenants-audit-notification-refreshing">
+                            @Localizer["Tenants.Audit.Freshness.Refreshing"]
+                        </p>
+                    }
                 </div>
             </section>
         </FluentAccordionItem>
@@ -177,6 +184,13 @@
     private int _correctionOpenGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
+    private IAsyncDisposable? _readRefreshLease;
+    private string? _subscriptionTenantId;
+    private bool _isNotificationRefreshing;
+    private bool _pageLoadInFlight;
+    private bool _disposed;
+    private long _loadGeneration;
+    private CancellationTokenSource? _loadCancellation;
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
@@ -296,8 +310,28 @@
         _ => "?",
     };
 
-    protected override async Task OnInitializedAsync()
-        => await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    protected override async Task OnParametersSetAsync()
+    {
+        string tenantId = TenantId;
+        if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal))
+        {
+            IAsyncDisposable? previousLease = _readRefreshLease;
+            _readRefreshLease = null;
+            _subscriptionTenantId = null;
+            if (previousLease is not null)
+            {
+                await previousLease.DisposeAsync().ConfigureAwait(false);
+            }
+
+            ClearPaging();
+            _tenantDetailSnapshot = null;
+            _globalAdministratorsSnapshot = null;
+            _snapshot = TenantAuditSnapshot.Loading(tenantId);
+        }
+
+        await LoadAsync(reuseETag: false, requestedTenantId: tenantId).ConfigureAwait(false);
+        await EnsureReadRefreshSubscriptionAsync(tenantId).ConfigureAwait(false);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -324,17 +358,45 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag)
+    private async Task<TenantAuditSnapshot?> LoadAsync(
+        bool reuseETag,
+        bool retainConfirmed = false,
+        string? requestedTenantId = null,
+        string? requestedCursor = null,
+        bool useRequestedCursor = false)
     {
+        string tenantId = requestedTenantId ?? TenantId;
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
         TenantAuditSnapshot previous = _snapshot;
-        _snapshot = TenantAuditSnapshot.Loading(TenantId);
+        if (!retainConfirmed)
+        {
+            _snapshot = TenantAuditSnapshot.Loading(tenantId);
+        }
 
-        TenantAuditRequest request = CreateRequest(reuseETag ? previous.ETag : null);
-        _snapshot = await QueryGateway
-            .GetTenantAuditAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
-        await RefreshTenantProjectionAsync().ConfigureAwait(false);
-        if (_snapshot.Rows.Any(IsGlobalAdministratorRow))
+        TenantAuditRequest request = CreateRequest(
+            tenantId,
+            useRequestedCursor ? requestedCursor : _currentCursor,
+            reuseETag ? previous.ETag : null);
+        TenantAuditSnapshot result;
+        try
+        {
+            result = await QueryGateway
+                .GetTenantAuditAsync(request, previous, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        if (!CanApply(tenantId, generation))
+        {
+            return null;
+        }
+
+        await InvokeAsync(() => _snapshot = result).ConfigureAwait(false);
+        await RefreshTenantProjectionForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
+        if (result.Rows.Any(IsGlobalAdministratorRow))
         {
             // Page-load enrichment only: the audit list already rendered. A transport/parse fault that
             // escapes the gateway's EventStoreGatewayException mapping must degrade this supplementary
@@ -343,25 +405,90 @@
             // never silently confirms on a failed read.
             try
             {
-                await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+                await RefreshGlobalAdministratorsProjectionForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException)
+            catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException or OperationCanceledException)
             {
                 // Supplementary evidence unavailable; the audit page stays usable.
             }
         }
 
-        if (_snapshot.Kind is TenantAuditSurfaceKind.ListRefreshed)
+        if (!CanApply(tenantId, generation))
+        {
+            return null;
+        }
+
+        if (result.Kind is TenantAuditSurfaceKind.ListRefreshed)
         {
             _cursorHistory.Clear();
             _currentCursor = null;
         }
 
         ResolveReceiptSelection();
+        return result;
+    }
+
+    private async Task EnsureReadRefreshSubscriptionAsync(string tenantId)
+    {
+        if (_disposed
+            || string.IsNullOrWhiteSpace(tenantId)
+            || !BffComposition.IsReadSurfaceConnected
+            || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
+            || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
+        {
+            return;
+        }
+
+        CancellationToken cancellationToken = _loadCancellation?.Token ?? CancellationToken.None;
+        IAsyncDisposable lease;
+        try
+        {
+            lease = await refreshSubscription.SubscribeAsync(
+                GetTenantAuditQuery.ProjectionType,
+                tenantId,
+                () => InvokeAsync(() => RefreshFromNotificationAsync(tenantId)),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (_disposed || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+        {
+            await lease.DisposeAsync().ConfigureAwait(false);
+            return;
+        }
+
+        _readRefreshLease = lease;
+        _subscriptionTenantId = tenantId;
     }
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task RefreshFromNotificationAsync(string tenantId)
+    {
+        if (_disposed || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _isNotificationRefreshing = true;
+        StateHasChanged();
+        try
+        {
+            await LoadAsync(reuseETag: true, retainConfirmed: true, requestedTenantId: tenantId).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() =>
+            {
+                _isNotificationRefreshing = false;
+                StateHasChanged();
+            });
+        }
+    }
 
     private async Task ResetFiltersAsync()
     {
@@ -374,17 +501,63 @@
 
     private async Task NextPageAsync()
     {
-        _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        if (_pageLoadInFlight || string.IsNullOrWhiteSpace(_snapshot.NextCursor))
+        {
+            return;
+        }
+
+        string tenantId = TenantId;
+        string? priorCursor = _currentCursor;
+        string nextCursor = _snapshot.NextCursor;
+        _pageLoadInFlight = true;
+        try
+        {
+            TenantAuditSnapshot? result = await LoadAsync(
+                reuseETag: false,
+                requestedTenantId: tenantId,
+                requestedCursor: nextCursor,
+                useRequestedCursor: true).ConfigureAwait(false);
+            if (IsSuccessfulPage(result)
+                && ReferenceEquals(_snapshot, result)
+                && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                _cursorHistory.Push(priorCursor);
+                _currentCursor = nextCursor;
+            }
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (_cursorHistory.Count > 0)
+        if (_pageLoadInFlight || _cursorHistory.Count == 0)
         {
-            _currentCursor = _cursorHistory.Pop();
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            return;
+        }
+
+        string tenantId = TenantId;
+        string? previousCursor = _cursorHistory.Peek();
+        _pageLoadInFlight = true;
+        try
+        {
+            TenantAuditSnapshot? result = await LoadAsync(
+                reuseETag: false,
+                requestedTenantId: tenantId,
+                requestedCursor: previousCursor,
+                useRequestedCursor: true).ConfigureAwait(false);
+            if (IsSuccessfulPage(result)
+                && ReferenceEquals(_snapshot, result)
+                && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                _currentCursor = _cursorHistory.Pop();
+            }
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
         }
     }
 
@@ -409,13 +582,13 @@
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    private TenantAuditRequest CreateRequest(string? eTag)
+    private TenantAuditRequest CreateRequest(string tenantId, string? cursor, string? eTag)
         => new(
-            TenantId,
+            tenantId,
             From: ParseDate(_fromText),
             To: ParseDate(_toText),
             Category: Enum.TryParse(_categoryText, out AuditEventCategory category) ? category : null,
-            Cursor: _currentCursor,
+            Cursor: cursor,
             PageSize: PageSize,
             ETag: eTag);
 
@@ -595,18 +768,40 @@
 
     private async Task<Hexalith.Tenants.Contracts.Queries.TenantDetail?> RefreshTenantProjectionAsync()
     {
+        string tenantId = TenantId;
         TenantDetailSnapshot? snapshot = await QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(TenantId, _tenantDetailSnapshot?.ETag), _tenantDetailSnapshot, CancellationToken.None)
+            .GetTenantAsync(new TenantDetailRequest(tenantId, _tenantDetailSnapshot?.ETag), _tenantDetailSnapshot, CancellationToken.None)
             .ConfigureAwait(false);
         // Assign on the renderer's dispatcher: this also runs as a correction panel
         // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
-        await InvokeAsync(() => _tenantDetailSnapshot = snapshot).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                _tenantDetailSnapshot = snapshot;
+            }
+        }).ConfigureAwait(false);
 
         // Confirm-time provider contract: only a Current (fresh, Ready) projection is admissible as
         // correction proof. A Stale/Degraded/Unknown snapshot returns null so the panel's
         // ConfirmProjection(null) fails closed instead of confirming a tenant correction off stale evidence
         // (parity with the global-administrator panel's Freshness=Current confirm gate).
         return snapshot?.Freshness is ReadModelFreshnessState.Current ? snapshot.Detail : null;
+    }
+
+    private async Task RefreshTenantProjectionForLoadAsync(
+        string tenantId,
+        long generation,
+        CancellationToken cancellationToken)
+    {
+        TenantDetailSnapshot? previous = _tenantDetailSnapshot;
+        TenantDetailSnapshot? snapshot = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(tenantId, previous?.ETag), previous, cancellationToken)
+            .ConfigureAwait(false);
+        if (CanApply(tenantId, generation))
+        {
+            await InvokeAsync(() => _tenantDetailSnapshot = snapshot).ConfigureAwait(false);
+        }
     }
 
     // Always re-read the fixed platform-authority projection. This is also the correction panel's
@@ -624,6 +819,21 @@
         // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
         await InvokeAsync(() => _globalAdministratorsSnapshot = snapshot).ConfigureAwait(false);
         return snapshot;
+    }
+
+    private async Task RefreshGlobalAdministratorsProjectionForLoadAsync(
+        string tenantId,
+        long generation,
+        CancellationToken cancellationToken)
+    {
+        GlobalAdministratorsSnapshot? previous = _globalAdministratorsSnapshot;
+        GlobalAdministratorsSnapshot snapshot = await QueryGateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: previous?.ETag), previous, cancellationToken)
+            .ConfigureAwait(false);
+        if (CanApply(tenantId, generation))
+        {
+            await InvokeAsync(() => _globalAdministratorsSnapshot = snapshot).ConfigureAwait(false);
+        }
     }
 
     private static bool IsGlobalAdministratorRow(TenantAuditRow row)
@@ -687,6 +897,19 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        _loadGeneration++;
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        if (_readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
+        }
+
+        _subscriptionTenantId = null;
+
         if (_focusModule is null)
         {
             return;
@@ -701,4 +924,23 @@
             // The circuit is already gone; no support-safe value is logged or surfaced here.
         }
     }
+
+    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        return (++_loadGeneration, _loadCancellation.Token);
+    }
+
+    private bool CanApply(string tenantId, long generation)
+        => !_disposed
+            && generation == _loadGeneration
+            && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
+
+    private static bool IsSuccessfulPage(TenantAuditSnapshot? snapshot)
+        => snapshot?.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty;
 }

@@ -509,3 +509,36 @@ its "shipped" value back from the same `ResourceManager` the gate compares it ag
   `fix/release-stale-source-guard` merge (`8e84bf1`) and is not owned by Story 1.9 — a bare
   `dotnet restore` of any project fails identically. Recorded as `BUILDS-EVENTSTORE-PIN` in the dated
   Story 1.9 evidence report.
+
+## Story 1.10 — Direct Tenants Reads and Authoritative Freshness (2026-07-28)
+
+The Tenants UI query side now uses six typed server-side REST GETs and contains no generic EventStore
+query submission/router symbols. `Tenants:BaseAddress` is independent from the unchanged EventStore
+command/status dependency. Direct-client and gateway coverage pins exact paths/query fields, URI and
+dot-only escaping, real enabled/disabled bearer relay, 200-only payload handling, exact-validator 304,
+metadata contradictions, empty/auth/not-found/transport states, bounded ETags, paging shape, body/header
+exceptions, cancellation, first-load truth, matching retained refresh data, and unchanged Memories
+hydration.
+
+Tenant member rows and paging are backed only by the dedicated tenant-users snapshot. Component tests
+cover disjoint detail/member data, projection-version action gating, visible-page labeling, Next/Previous
+history, page-one recovery, duplicate suppression, route and overlapping-load generations, retained rows
+during notification refresh, exact producer/subscriber notification pairs, lease reference counting and
+late disposal, and no unauthorized global-administrator subscription. EN/FR, accessibility, safe DOM,
+diagnostic, and command/status regressions are included in the full UI gate.
+
+- UI: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` —
+  **1,373/1,373 passed** after a serialized project restore.
+- PLAT-FRESH-1: `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~TenantsApiGeneratedControllerTests`
+  — **26/26 passed** after a serialized project restore.
+- Static: generic-query scan had no matches; invented `tenant-index:system` scan had no matches; exact
+  story gitlink validator passed for all three baseline dependency pointers; staged and unstaged
+  `git diff --check` passed.
+- Solution: `dotnet test Hexalith.Tenants.slnx --no-restore` is blocked before test execution by
+  `SOLUTION-GRAPH-1`: solution restore emits a source-project/placeholder asset graph while default
+  evaluation expects packages, causing missing EventStore contract symbols. The source-reference
+  diagnostic fallback is independently blocked by duplicate `Hexalith.Commons.UniqueIds` assembly
+  versions (`CS1704`). This is recorded, not claimed as a pass.
+- `HOST-REF-1` remains open: the unchanged transitional AppHost does not provide the Tenants service
+  reference/`Tenants:BaseAddress`, so no authenticated live-host REST proof is claimed. See the dated
+  Story 1.10 evidence report for exact producer-pair, route, metadata, host, and build-graph evidence.

@@ -16,6 +16,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,7 @@ using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantQueryGateway(
-    IEventStoreGatewayClient queryClient,
+    ITenantsRestQueryClient queryClient,
     IUserContextAccessor userContextAccessor,
     MemoriesClient memoriesClient,
     ITenantSearchCursorCodec searchCursorCodec,
@@ -61,9 +62,6 @@ internal sealed class TenantQueryGateway(
     /// <summary>Identifies the signal raised when the ordinary-list fallback was also unavailable.</summary>
     internal static readonly EventId SearchAndOrdinaryListUnavailableEvent = new(1902, "AuthoritativeTenantSearchAndListUnavailable");
 
-    private const string SystemTenant = "system";
-    private const string GlobalAdministratorsAggregateId = "global-administrators";
-    private const string TenantIndexAggregateId = "index";
     private const string SearchAxis = "syntactic";
     private const string TenantSourcePrefix = "tenant:";
     private const int DefaultPageSize = 20;
@@ -80,18 +78,62 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
-            // Deliberately unconditional. Safe rows cannot be reconstructed from an already-filtered
-            // model, so a 304 always forces a second full read anyway; sending the validator merely
-            // doubled the backend queries in the common case. The not-modified branch below is kept
-            // as defence for a client that returns 304 regardless.
-            EventStoreQueryResult<TenantDetail> result = await queryClient
-                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), ifNoneMatch: null, cancellationToken)
-                .ConfigureAwait(false);
+            // A matching retained snapshot can safely consume a metadata-complete 304. A conditional
+            // response without matching retained state is retried unconditionally below.
+            EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
+                .GetTenantAsync(
+                    new GetTenantQuery { TenantId = request.TenantId },
+                    request.ETag ?? previous?.ETag,
+                    cancellationToken)
+                .ConfigureAwait(false));
 
-            if (result.IsNotModified) {
-                result = await queryClient
-                    .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), ifNoneMatch: null, cancellationToken)
-                    .ConfigureAwait(false);
+            if (result.IsNotModified && !HasSameTenantDetail(previous, request.TenantId)) {
+                result = ToEventStoreResult(await queryClient
+                    .GetTenantAsync(
+                        new GetTenantQuery { TenantId = request.TenantId },
+                        eTag: null,
+                        cancellationToken)
+                    .ConfigureAwait(false));
+            }
+
+            /*
+             * A supported 304 retains the separately held server-side snapshot. Only a 304 without a
+             * matching retained detail requires the unconditional recovery read above.
+             */
+            if (result.IsNotModified && HasSameTenantDetail(previous, request.TenantId)) {
+                if (!HasSupportedProjectionVersion(result.Metadata)) {
+                    return await RetainPreviousTenantDetailAsync(
+                        request.TenantId,
+                        previous,
+                        "Tenant detail conditional metadata did not match retained evidence.",
+                        previous!.ETag,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                ReadModelFreshnessState retainedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
+                ProjectionLifecycleState retainedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+                TenantConfigurationComposition retainedComposition = bffComposition is null
+                    ? new(
+                        TenantConfigurationSafeComposer.SanitizeDetail(previous.Detail!),
+                        TenantConfigurationSafeModel.Unavailable(request.TenantId),
+                        TenantConfigurationManagementContext.Unavailable(request.TenantId, previous.Detail!.Status))
+                    : await bffComposition.ReauthorizeTenantDetailAsync(
+                        previous.Detail!,
+                        previous.Configuration,
+                        degraded: false,
+                        cancellationToken).ConfigureAwait(false);
+                return retainedFreshness == ReadModelFreshnessState.Stale
+                    ? TenantDetailSnapshot.Stale(
+                        retainedComposition,
+                        previous.ETag,
+                        retainedLifecycle,
+                        previous.ProjectionVersion)
+                    : TenantDetailSnapshot.Ready(
+                        retainedComposition,
+                        previous.ETag,
+                        retainedFreshness,
+                        retainedLifecycle,
+                        previous.ProjectionVersion);
             }
 
             // A payload-less success with nothing to retain is unknown, not degraded: there is no
@@ -154,10 +196,19 @@ internal sealed class TenantQueryGateway(
                     : TenantDetailSnapshot.Unavailable("Tenant configuration read is unavailable.");
             }
             if (freshness is ReadModelFreshnessState.Stale) {
-                return TenantDetailSnapshot.Stale(composition, result.ETag, lifecycle);
+                return TenantDetailSnapshot.Stale(
+                    composition,
+                    result.ETag,
+                    lifecycle,
+                    result.Metadata?.ProjectionVersion);
             }
 
-            return TenantDetailSnapshot.Ready(composition, result.ETag, freshness, lifecycle);
+            return TenantDetailSnapshot.Ready(
+                composition,
+                result.ETag,
+                freshness,
+                lifecycle,
+                result.Metadata?.ProjectionVersion);
         }
         catch (OperationCanceledException) {
             throw;
@@ -202,6 +253,40 @@ internal sealed class TenantQueryGateway(
             request.Value,
             isRemove: false,
             cancellationToken);
+    }
+
+    public async Task<TenantUsersSnapshot> GetTenantUsersAsync(
+        TenantUsersRequest request,
+        TenantUsersSnapshot? previous,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantUsersSnapshot.Unauthorized(request.TenantId);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TenantId)) {
+            return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.MissingTenantId);
+        }
+
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> response = await queryClient
+            .GetTenantUsersAsync(
+                new GetTenantUsersQuery {
+                    TenantId = request.TenantId,
+                    Cursor = request.Cursor,
+                    PageSize = request.PageSize,
+                },
+                request.ETag ?? previous?.ETag,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response is null) {
+            return previous is not null && string.Equals(previous.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
+                : TenantUsersSnapshot.Unavailable(request.TenantId);
+        }
+
+        return MapTenantUsersResponse(request, previous, response, isListRefreshed: false);
     }
 
     public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
@@ -262,10 +347,16 @@ internal sealed class TenantQueryGateway(
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken) {
         try {
-            SubmitQueryRequest query = CreateUserTenantsRequest(authenticatedUserId, request);
-            EventStoreQueryResult<PaginatedResult<UserTenantMembership>> result = await queryClient
-                .SubmitQueryAsync<PaginatedResult<UserTenantMembership>>(query, request.ETag, cancellationToken)
-                .ConfigureAwait(false);
+            EventStoreQueryResult<PaginatedResult<UserTenantMembership>> result = ToEventStoreResult(await queryClient
+                .GetUserTenantsAsync(
+                    new GetUserTenantsQuery {
+                        UserId = request.TargetUserId ?? authenticatedUserId,
+                        Cursor = request.Cursor,
+                        PageSize = request.PageSize,
+                    },
+                    request.ETag,
+                    cancellationToken)
+                .ConfigureAwait(false));
 
             if (result.IsNotModified) {
                 if (previous is null || !string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)) {
@@ -276,10 +367,14 @@ internal sealed class TenantQueryGateway(
                         targetUserId: request.TargetUserId);
                 }
 
+                if (!HasSupportedProjectionVersion(result.Metadata)) {
+                    return RetainUserTenants(previous, UserTenantMembershipReason.GatewayFailure);
+                }
+
                 ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
                 ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
                 return previous with {
-                    ETag = result.ETag ?? previous.ETag,
+                    ETag = previous.ETag,
                     Kind = ResolveUserTenantsKindForFreshness(previous, notModifiedFreshness),
                     Freshness = notModifiedFreshness,
                     Lifecycle = notModifiedLifecycle,
@@ -287,11 +382,17 @@ internal sealed class TenantQueryGateway(
                         .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
                         .ToArray(),
                     Reason = ResolveUserTenantsReasonForFreshness(previous, notModifiedFreshness),
+                    ProjectionVersion = previous.ProjectionVersion,
                 };
             }
 
-            PaginatedResult<UserTenantMembership> payload = result.Payload
-                ?? new PaginatedResult<UserTenantMembership>([], null, false);
+            PaginatedResult<UserTenantMembership>? payload = result.Payload;
+            if (payload is null || payload.Items is null) {
+                return previous is not null
+                    && string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
+                    ? RetainUserTenants(previous, UserTenantMembershipReason.GatewayFailure)
+                    : UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId);
+            }
             ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
             IReadOnlyList<UserTenantMembershipRow> rows = payload.Items
@@ -309,7 +410,7 @@ internal sealed class TenantQueryGateway(
                     result.ETag,
                     payload.Cursor,
                     payload.HasMore,
-                    request.TargetUserId) with { Lifecycle = lifecycle };
+                    request.TargetUserId) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             if (freshness is ReadModelFreshnessState.Stale) {
@@ -319,11 +420,11 @@ internal sealed class TenantQueryGateway(
                     payload.Cursor,
                     payload.HasMore,
                     result.ETag,
-                    request.TargetUserId) with { Lifecycle = lifecycle };
+                    request.TargetUserId) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             if (rows.Count == 0) {
-                return UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request.TargetUserId) with { Lifecycle = lifecycle };
+                return UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request.TargetUserId) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             return UserTenantMembershipSnapshot.Ready(
@@ -332,10 +433,12 @@ internal sealed class TenantQueryGateway(
                 payload.HasMore,
                 result.ETag,
                 freshness,
-                request.TargetUserId) with { Lifecycle = lifecycle };
+                request.TargetUserId) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
         catch (EventStoreGatewayException ex) {
-            return MapUserTenantException(ex, request.TargetUserId);
+            return CanRetainUserTenants(previous, request, ex)
+                ? RetainUserTenants(previous!, UserTenantMembershipReason.GatewayFailure)
+                : MapUserTenantException(ex, request.TargetUserId);
         }
     }
 
@@ -351,10 +454,12 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
-            SubmitQueryRequest query = CreateGlobalAdministratorsRequest(request);
-            EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>> result = await queryClient
-                .SubmitQueryAsync<PaginatedResult<GlobalAdministratorSummary>>(query, request.ETag, cancellationToken)
-                .ConfigureAwait(false);
+            EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>> result = ToEventStoreResult(await queryClient
+                .GetGlobalAdministratorsAsync(
+                    new GetGlobalAdministratorsQuery { Cursor = request.Cursor, PageSize = request.PageSize },
+                    request.ETag,
+                    cancellationToken)
+                .ConfigureAwait(false));
 
             if (result.IsNotModified) {
                 if (previous is null) {
@@ -364,10 +469,14 @@ internal sealed class TenantQueryGateway(
                         result.ETag);
                 }
 
+                if (!HasSupportedProjectionVersion(result.Metadata)) {
+                    return RetainGlobalAdministrators(previous, GlobalAdministratorsReason.GatewayFailure);
+                }
+
                 ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
                 ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
                 return previous with {
-                    ETag = result.ETag ?? previous.ETag,
+                    ETag = previous.ETag,
                     Kind = ResolveGlobalAdministratorsKindForFreshness(previous, notModifiedFreshness),
                     Freshness = notModifiedFreshness,
                     Lifecycle = notModifiedLifecycle,
@@ -375,22 +484,21 @@ internal sealed class TenantQueryGateway(
                         .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
                         .ToArray(),
                     Reason = ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
+                    ProjectionVersion = previous.ProjectionVersion,
                 };
             }
 
             PaginatedResult<GlobalAdministratorSummary>? payload = result.Payload;
-            if (payload is null) {
+            if (payload is null || payload.Items is null) {
                 return previous is null
-                    ? GlobalAdministratorsSnapshot.Degraded(
-                        [],
-                        GlobalAdministratorsReason.MissingPayload,
-                        result.ETag)
+                    ? GlobalAdministratorsSnapshot.Unavailable(GlobalAdministratorsReason.MissingPayload)
                     : previous with {
                         Kind = GlobalAdministratorsSurfaceKind.Degraded,
                         Reason = GlobalAdministratorsReason.MissingPayload,
-                        ETag = result.ETag ?? previous.ETag,
+                        ETag = previous.ETag,
                         Freshness = ReadModelFreshnessState.Unknown,
                         Lifecycle = ProjectionLifecycleState.Unknown,
+                        ProjectionVersion = previous.ProjectionVersion,
                         Rows = previous.Rows
                             .Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown, Lifecycle = ProjectionLifecycleState.Unknown })
                             .ToArray(),
@@ -410,16 +518,16 @@ internal sealed class TenantQueryGateway(
                     GlobalAdministratorsReason.ProjectionDegraded,
                     result.ETag,
                     payload.Cursor,
-                    payload.HasMore) with { Lifecycle = lifecycle };
+                    payload.HasMore) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             if (freshness is ReadModelFreshnessState.Stale) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-                return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag) with { Lifecycle = lifecycle };
+                return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             if (rows.Count == 0) {
-                return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag) with { Lifecycle = lifecycle };
+                return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
             return GlobalAdministratorsSnapshot.Ready(
@@ -427,10 +535,12 @@ internal sealed class TenantQueryGateway(
                 payload.Cursor,
                 payload.HasMore,
                 result.ETag,
-                freshness) with { Lifecycle = lifecycle };
+                freshness) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
         catch (EventStoreGatewayException ex) {
-            return MapGlobalAdministratorsException(ex);
+            return CanRetainGlobalAdministrators(previous, request, ex)
+                ? RetainGlobalAdministrators(previous!, GlobalAdministratorsReason.GatewayFailure)
+                : MapGlobalAdministratorsException(ex);
         }
     }
 
@@ -467,7 +577,9 @@ internal sealed class TenantQueryGateway(
             }
         }
         catch (EventStoreGatewayException ex) {
-            return MapTenantAuditException(request, ex);
+            return CanRetainTenantAudit(previous, request, ex)
+                ? RetainTenantAudit(previous!, TenantAuditReason.GatewayFailure)
+                : MapTenantAuditException(request, ex);
         }
     }
 
@@ -476,10 +588,19 @@ internal sealed class TenantQueryGateway(
         TenantAuditSnapshot? previous,
         bool isListRefreshed,
         CancellationToken cancellationToken) {
-        SubmitQueryRequest query = CreateTenantAuditRequest(request);
-        EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = await queryClient
-            .SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(query, request.ETag, cancellationToken)
-            .ConfigureAwait(false);
+        EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = ToEventStoreResult(await queryClient
+            .GetTenantAuditAsync(
+                new GetTenantAuditQuery {
+                    TenantId = request.TenantId,
+                    From = request.From,
+                    To = request.To,
+                    Category = request.Category,
+                    Cursor = request.Cursor,
+                    PageSize = request.PageSize,
+                },
+                request.ETag,
+                cancellationToken)
+            .ConfigureAwait(false));
 
         if (result.IsNotModified) {
             if (previous is null || !previous.MatchesScope(request)) {
@@ -490,11 +611,15 @@ internal sealed class TenantQueryGateway(
                     result.ETag);
             }
 
+            if (!HasSupportedProjectionVersion(result.Metadata)) {
+                return RetainTenantAudit(previous, TenantAuditReason.GatewayFailure);
+            }
+
             ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
             ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
             QueryResponseProvenance notModifiedProvenance = ResolveProvenance(result.Metadata);
             return previous with {
-                ETag = result.ETag ?? previous.ETag,
+                ETag = previous.ETag,
                 Kind = ResolveTenantAuditKindForFreshness(previous, notModifiedFreshness),
                 Freshness = notModifiedFreshness,
                 Lifecycle = notModifiedLifecycle,
@@ -506,6 +631,7 @@ internal sealed class TenantQueryGateway(
                     })
                     .ToArray(),
                 Reason = ResolveTenantAuditReasonForFreshness(previous, notModifiedFreshness),
+                ProjectionVersion = previous.ProjectionVersion,
             };
         }
 
@@ -515,9 +641,10 @@ internal sealed class TenantQueryGateway(
                 ? previous with {
                     Kind = TenantAuditSurfaceKind.Degraded,
                     Reason = TenantAuditReason.MissingPayload,
-                    ETag = result.ETag ?? previous.ETag,
+                    ETag = previous.ETag,
                     Freshness = ReadModelFreshnessState.Unknown,
                     Lifecycle = ProjectionLifecycleState.Unknown,
+                    ProjectionVersion = previous.ProjectionVersion,
                     Rows = previous.Rows
                         .Select(static row => row with {
                             Freshness = ReadModelFreshnessState.Unknown,
@@ -526,7 +653,7 @@ internal sealed class TenantQueryGateway(
                         })
                         .ToArray(),
                 }
-                : TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingPayload, request, result.ETag);
+                : TenantAuditSnapshot.Error(request);
         }
 
         ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
@@ -547,12 +674,12 @@ internal sealed class TenantQueryGateway(
                 request,
                 result.ETag,
                 payload.Cursor,
-                payload.HasMore) with { Lifecycle = lifecycle };
+                payload.HasMore) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
 
         if (freshness is ReadModelFreshnessState.Stale) {
             rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request) with { Lifecycle = lifecycle };
+            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
 
         if (isListRefreshed) {
@@ -562,14 +689,14 @@ internal sealed class TenantQueryGateway(
                 payload.HasMore,
                 result.ETag,
                 freshness,
-                request) with { Lifecycle = lifecycle };
+                request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
 
         if (rows.Count == 0) {
-            return TenantAuditSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request) with { Lifecycle = lifecycle };
+            return TenantAuditSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
 
-        return TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request) with { Lifecycle = lifecycle };
+        return TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
     }
 
     public async Task<TenantListSnapshot> ListTenantsAsync(
@@ -957,9 +1084,12 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken) {
         await concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            EventStoreQueryResult<TenantDetail> result = await queryClient
-                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(candidate.TenantId), ifNoneMatch: null, cancellationToken)
-                .ConfigureAwait(false);
+            EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
+                .GetTenantAsync(
+                    new GetTenantQuery { TenantId = candidate.TenantId },
+                    eTag: null,
+                    cancellationToken)
+                .ConfigureAwait(false));
             TenantDetail? detail = result.Payload;
             if (result.IsNotModified
                 || detail is null
@@ -1220,7 +1350,9 @@ internal sealed class TenantQueryGateway(
         }
         catch (EventStoreGatewayException ex)
         {
-            return MapTenantListException(ex);
+            return CanRetainTenantList(previous, request, ex)
+                ? RetainTenantList(previous!, TenantListReason.GatewayUnavailable)
+                : MapTenantListException(ex);
         }
     }
 
@@ -1229,16 +1361,23 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? previous,
         CancellationToken cancellationToken)
     {
-        SubmitQueryRequest query = CreateListRequest(request);
-        EventStoreQueryResult<PaginatedResult<TenantSummary>> result = await queryClient
-            .SubmitQueryAsync<PaginatedResult<TenantSummary>>(query, request.ETag, cancellationToken)
-            .ConfigureAwait(false);
+        EventStoreQueryResult<PaginatedResult<TenantSummary>> result = ToEventStoreResult(await queryClient
+            .ListTenantsAsync(
+                new ListTenantsQuery { Cursor = request.Cursor, PageSize = request.PageSize },
+                request.ETag,
+                cancellationToken)
+            .ConfigureAwait(false));
 
         if (result.IsNotModified)
         {
             if (previous is null)
             {
                 return TenantListSnapshot.Degraded([], TenantListReason.NotModifiedWithoutSnapshot);
+            }
+
+            if (!HasSupportedProjectionVersion(result.Metadata))
+            {
+                return RetainTenantList(previous, TenantListReason.GatewayUnavailable);
             }
 
             ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
@@ -1252,12 +1391,19 @@ internal sealed class TenantQueryGateway(
                 Rows = previous.Rows
                     .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
                     .ToArray(),
-                ETag = result.ETag ?? previous.ETag,
+                ETag = previous.ETag,
                 Reason = ResolveTenantListReasonForNotModified(previous, kind),
+                ProjectionVersion = previous.ProjectionVersion,
             };
         }
 
-        PaginatedResult<TenantSummary> payload = result.Payload ?? new PaginatedResult<TenantSummary>([], null, false);
+        PaginatedResult<TenantSummary>? payload = result.Payload;
+        if (payload is null || payload.Items is null)
+        {
+            return previous is not null && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal)
+                ? RetainTenantList(previous, TenantListReason.GatewayUnavailable)
+                : TenantListSnapshot.Error();
+        }
         ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
         ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
         (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
@@ -1282,6 +1428,7 @@ internal sealed class TenantQueryGateway(
                 Reason = projectionDegraded
                     ? TenantListReason.ProjectionDegraded
                     : TenantListReason.RowEnrichmentUnavailable,
+                ProjectionVersion = result.Metadata?.ProjectionVersion,
             };
         }
 
@@ -1293,7 +1440,7 @@ internal sealed class TenantQueryGateway(
                 payload.HasMore,
                 result.ETag,
                 freshness,
-                isDegraded: false) with { Lifecycle = lifecycle };
+                isDegraded: false) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
         }
 
         if (rows.Count == 0)
@@ -1302,6 +1449,7 @@ internal sealed class TenantQueryGateway(
             {
                 ETag = result.ETag,
                 Lifecycle = lifecycle,
+                ProjectionVersion = result.Metadata?.ProjectionVersion,
             };
         }
 
@@ -1311,66 +1459,8 @@ internal sealed class TenantQueryGateway(
             payload.HasMore,
             result.ETag,
             freshness,
-            isDegraded) with { Lifecycle = lifecycle };
+            isDegraded) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
     }
-
-    // The ordinary cursor path carries only cursor + pageSize. Search, filter, and sort are not server
-    // query fields in the current tenant-list contract; they reset the cursor and affect only the authorized
-    // page already returned. Protected whole-set search remains owned by Story 1.9/SEARCH-CURSOR-1.
-    private static SubmitQueryRequest CreateListRequest(TenantListRequest request)
-        => new(
-            SystemTenant,
-            ListTenantsQuery.Domain,
-            TenantIndexAggregateId,
-            ListTenantsQuery.QueryType,
-            ListTenantsQuery.ProjectionType,
-            JsonSerializer.SerializeToElement(new {
-                cursor = request.Cursor,
-                pageSize = request.PageSize,
-            }),
-            EntityId: null);
-
-    private static SubmitQueryRequest CreateUserTenantsRequest(string authenticatedUserId, UserTenantMembershipRequest request)
-        => new(
-            SystemTenant,
-            GetUserTenantsQuery.Domain,
-            TenantIndexAggregateId,
-            GetUserTenantsQuery.QueryType,
-            GetUserTenantsQuery.ProjectionType,
-            JsonSerializer.SerializeToElement(new {
-                cursor = request.Cursor,
-                pageSize = request.PageSize,
-            }),
-            EntityId: request.TargetUserId ?? authenticatedUserId);
-
-    private static SubmitQueryRequest CreateGlobalAdministratorsRequest(GlobalAdministratorsRequest request)
-        => new(
-            SystemTenant,
-            GetGlobalAdministratorsQuery.Domain,
-            GlobalAdministratorsAggregateId,
-            GetGlobalAdministratorsQuery.QueryType,
-            GetGlobalAdministratorsQuery.ProjectionType,
-            JsonSerializer.SerializeToElement(new {
-                cursor = request.Cursor,
-                pageSize = request.PageSize,
-            }),
-            EntityId: GlobalAdministratorsAggregateId);
-
-    private static SubmitQueryRequest CreateTenantAuditRequest(TenantAuditRequest request)
-        => new(
-            SystemTenant,
-            GetTenantAuditQuery.Domain,
-            request.TenantId,
-            GetTenantAuditQuery.QueryType,
-            GetTenantAuditQuery.ProjectionType,
-            JsonSerializer.SerializeToElement(new {
-                from = request.From,
-                to = request.To,
-                category = request.Category?.ToString(),
-                cursor = request.Cursor,
-                pageSize = request.PageSize,
-            }),
-            EntityId: request.TenantId);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
         IReadOnlyList<TenantSummary> summaries,
@@ -1416,9 +1506,9 @@ internal sealed class TenantQueryGateway(
     }
 
     private async Task<TenantDetail?> LoadTenantDetailAsync(string tenantId, CancellationToken cancellationToken) {
-        EventStoreQueryResult<TenantDetail> result = await queryClient
-            .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
-            .ConfigureAwait(false);
+        EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
+            .GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, eTag: null, cancellationToken)
+            .ConfigureAwait(false));
 
         return result.Payload;
     }
@@ -1446,9 +1536,9 @@ internal sealed class TenantQueryGateway(
                 return TenantConfigurationProjectionProof.Unavailable(tenantId);
             }
 
-            EventStoreQueryResult<TenantDetail> result = await queryClient
-                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
-                .ConfigureAwait(false);
+            EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
+                .GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, eTag: null, cancellationToken)
+                .ConfigureAwait(false));
             TenantDetail? detail = result.Payload;
             if (result.IsNotModified
                 || detail is null
@@ -1520,10 +1610,17 @@ internal sealed class TenantQueryGateway(
             return TenantDetailSnapshot.Degraded(
                 previous!.Detail,
                 "Tenant configuration authorization could not be refreshed.",
-                eTag ?? previous.ETag);
+                previous.ETag,
+                ProjectionLifecycleState.Unknown,
+                previous.ProjectionVersion);
         }
 
-        return TenantDetailSnapshot.DegradedFromComposition(composition, message, eTag ?? previous.ETag, lifecycle);
+        return TenantDetailSnapshot.DegradedFromComposition(
+            composition,
+            message,
+            previous.ETag,
+            lifecycle,
+            previous.ProjectionVersion);
     }
 
     private static bool HasSameTenantDetail(TenantDetailSnapshot? previous, string tenantId)
@@ -1531,15 +1628,241 @@ internal sealed class TenantQueryGateway(
             && string.Equals(previous.Detail.TenantId, tenantId, StringComparison.Ordinal)
             && string.Equals(previous.Configuration.TenantId, tenantId, StringComparison.Ordinal);
 
-    private static SubmitQueryRequest CreateDetailRequest(string tenantId)
-        => new(
-            SystemTenant,
-            GetTenantQuery.Domain,
-            tenantId,
-            GetTenantQuery.QueryType,
-            GetTenantQuery.ProjectionType,
-            Payload: null,
-            EntityId: tenantId);
+    private static TenantUsersSnapshot MapTenantUsersResponse(
+        TenantUsersRequest request,
+        TenantUsersSnapshot? previous,
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> response,
+        bool isListRefreshed) {
+        bool hasMatchingPrevious = previous is not null
+            && string.Equals(previous.TenantId, request.TenantId, StringComparison.Ordinal)
+            && string.Equals(request.ETag ?? previous.ETag, previous.ETag, StringComparison.Ordinal);
+        if (!response.IsSuccess) {
+            return response.FailureKind switch {
+                TenantsRestQueryFailureKind.Unauthorized or TenantsRestQueryFailureKind.Forbidden
+                    => TenantUsersSnapshot.Unauthorized(request.TenantId),
+                TenantsRestQueryFailureKind.NotFound
+                    => TenantUsersSnapshot.NotFound(request.TenantId),
+                TenantsRestQueryFailureKind.InvalidRequest
+                    => TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.GatewayFailure),
+                TenantsRestQueryFailureKind.Unavailable or TenantsRestQueryFailureKind.Timeout
+                    => hasMatchingPrevious
+                        ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
+                        : TenantUsersSnapshot.Unavailable(request.TenantId),
+                _ => hasMatchingPrevious
+                    ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayFailure)
+                    : TenantUsersSnapshot.Error(request.TenantId),
+            };
+        }
+
+        if (response.IsNotModified) {
+            if (!hasMatchingPrevious) {
+                return TenantUsersSnapshot.Degraded(
+                    request.TenantId,
+                    previous,
+                    TenantUsersReason.NotModifiedWithoutSnapshot);
+            }
+
+            if (!HasSupportedProjectionVersion(response.Metadata)) {
+                return TenantUsersSnapshot.Degraded(
+                    request.TenantId,
+                    previous,
+                    TenantUsersReason.GatewayFailure);
+            }
+
+            ReadModelFreshnessState freshness = ResolveNotModifiedFreshness(response.Metadata, previous!.Freshness);
+            ProjectionLifecycleState lifecycle = ResolveNotModifiedLifecycle(response.Metadata, previous.Lifecycle);
+            return previous with {
+                Kind = ResolveTenantUsersKind(previous, freshness),
+                ETag = previous.ETag,
+                ProjectionVersion = previous.ProjectionVersion,
+                Freshness = freshness,
+                Lifecycle = lifecycle,
+                Reason = freshness == ReadModelFreshnessState.Stale
+                    ? TenantUsersReason.ProjectionStale
+                    : TenantUsersReason.None,
+                IsRefreshing = false,
+            };
+        }
+
+        if (response.Payload?.Items is null) {
+            return TenantUsersSnapshot.Degraded(
+                request.TenantId,
+                previous,
+                TenantUsersReason.MissingPayload);
+        }
+
+        ReadModelFreshnessState payloadFreshness = ResolveFreshness(response.Metadata);
+        ProjectionLifecycleState payloadLifecycle = ResolveLifecycle(response.Metadata);
+        TenantUsersSnapshot snapshot = response.Payload.Items.Count == 0
+            ? TenantUsersSnapshot.Empty(
+                request.TenantId,
+                isAuthorizationScoped: true,
+                response.ETag,
+                response.Metadata.ProjectionVersion,
+                payloadFreshness,
+                payloadLifecycle)
+            : TenantUsersSnapshot.Ready(
+                request.TenantId,
+                response.Payload.Items,
+                response.Payload.Cursor,
+                response.Payload.HasMore,
+                response.ETag,
+                response.Metadata.ProjectionVersion,
+                payloadFreshness,
+                payloadLifecycle);
+
+        if (response.Metadata.IsDegraded == true) {
+            return snapshot with {
+                Kind = TenantUsersSurfaceKind.Degraded,
+                Freshness = ReadModelFreshnessState.Unknown,
+                Reason = TenantUsersReason.ProjectionDegraded,
+            };
+        }
+
+        return isListRefreshed
+            ? snapshot with { Reason = TenantUsersReason.ListRefreshed }
+            : snapshot;
+    }
+
+    private static TenantUsersSurfaceKind ResolveTenantUsersKind(
+        TenantUsersSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => freshness switch {
+            ReadModelFreshnessState.Stale => TenantUsersSurfaceKind.Stale,
+            ReadModelFreshnessState.Unknown => TenantUsersSurfaceKind.Unknown,
+            _ => previous.Rows.Count == 0 ? TenantUsersSurfaceKind.Empty : TenantUsersSurfaceKind.Ready,
+        };
+
+    private static bool HasSupportedProjectionVersion(QueryResponseMetadata? metadata)
+        => !string.IsNullOrWhiteSpace(metadata?.ProjectionVersion);
+
+    private static bool IsRetainableReadFailure(EventStoreGatewayException exception)
+        => exception.StatusCode is not ((int)HttpStatusCode.Unauthorized)
+            and not ((int)HttpStatusCode.Forbidden)
+            and not ((int)HttpStatusCode.NotFound)
+            and not ((int)HttpStatusCode.BadRequest);
+
+    private static bool CanRetainUserTenants(
+        UserTenantMembershipSnapshot? previous,
+        UserTenantMembershipRequest request,
+        EventStoreGatewayException exception)
+        => previous is not null
+            && IsRetainableReadFailure(exception)
+            && string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(request.ETag)
+            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+
+    private static UserTenantMembershipSnapshot RetainUserTenants(
+        UserTenantMembershipSnapshot previous,
+        UserTenantMembershipReason reason)
+        => previous with {
+            Kind = UserTenantMembershipSurfaceKind.Degraded,
+            Freshness = ReadModelFreshnessState.Unknown,
+            Lifecycle = ProjectionLifecycleState.Unknown,
+            Reason = reason,
+            Rows = previous.Rows
+                .Select(static row => row with {
+                    Freshness = ReadModelFreshnessState.Unknown,
+                    Lifecycle = ProjectionLifecycleState.Unknown,
+                })
+                .ToArray(),
+        };
+
+    private static bool CanRetainGlobalAdministrators(
+        GlobalAdministratorsSnapshot? previous,
+        GlobalAdministratorsRequest request,
+        EventStoreGatewayException exception)
+        => previous is not null
+            && IsRetainableReadFailure(exception)
+            && !string.IsNullOrWhiteSpace(request.ETag)
+            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+
+    private static GlobalAdministratorsSnapshot RetainGlobalAdministrators(
+        GlobalAdministratorsSnapshot previous,
+        GlobalAdministratorsReason reason)
+        => previous with {
+            Kind = GlobalAdministratorsSurfaceKind.Degraded,
+            Freshness = ReadModelFreshnessState.Unknown,
+            Lifecycle = ProjectionLifecycleState.Unknown,
+            Reason = reason,
+            Rows = previous.Rows
+                .Select(static row => row with {
+                    Freshness = ReadModelFreshnessState.Unknown,
+                    Lifecycle = ProjectionLifecycleState.Unknown,
+                })
+                .ToArray(),
+        };
+
+    private static bool CanRetainTenantAudit(
+        TenantAuditSnapshot? previous,
+        TenantAuditRequest request,
+        EventStoreGatewayException exception)
+        => previous is not null
+            && IsRetainableReadFailure(exception)
+            && previous.MatchesScope(request)
+            && !string.IsNullOrWhiteSpace(request.ETag)
+            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+
+    private static TenantAuditSnapshot RetainTenantAudit(
+        TenantAuditSnapshot previous,
+        TenantAuditReason reason)
+        => previous with {
+            Kind = TenantAuditSurfaceKind.Degraded,
+            Freshness = ReadModelFreshnessState.Unknown,
+            Lifecycle = ProjectionLifecycleState.Unknown,
+            Reason = reason,
+            Rows = previous.Rows
+                .Select(static row => row with {
+                    Freshness = ReadModelFreshnessState.Unknown,
+                    Lifecycle = ProjectionLifecycleState.Unknown,
+                    Provenance = QueryResponseProvenance.Unknown,
+                })
+                .ToArray(),
+        };
+
+    private static bool CanRetainTenantList(
+        TenantListSnapshot? previous,
+        TenantListRequest request,
+        EventStoreGatewayException exception)
+        => previous is not null
+            && IsRetainableReadFailure(exception)
+            && !string.IsNullOrWhiteSpace(request.ETag)
+            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+
+    private static TenantListSnapshot RetainTenantList(
+        TenantListSnapshot previous,
+        TenantListReason reason)
+        => previous with {
+            Kind = TenantListSurfaceKind.Degraded,
+            Freshness = ReadModelFreshnessState.Unknown,
+            Lifecycle = ProjectionLifecycleState.Unknown,
+            IsDegraded = true,
+            Reason = reason,
+            Rows = previous.Rows
+                .Select(static row => row with {
+                    Freshness = ReadModelFreshnessState.Unknown,
+                    Lifecycle = ProjectionLifecycleState.Unknown,
+                })
+                .ToArray(),
+        };
+
+    private static EventStoreQueryResult<TPayload> ToEventStoreResult<TPayload>(
+        TenantsRestQueryResponse<TPayload> response) {
+        if (!response.IsSuccess) {
+            throw new EventStoreGatewayException(
+                response.StatusCode,
+                "Tenants read unavailable",
+                reasonCode: response.FailureKind.ToString());
+        }
+
+        return new EventStoreQueryResult<TPayload>(
+            CorrelationId: null,
+            response.Payload,
+            response.IsNotModified,
+            response.ETag) {
+            Metadata = response.Metadata,
+        };
+    }
 
     private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata) {
         if (metadata is null
@@ -1744,7 +2067,7 @@ internal sealed class TenantQueryGateway(
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => UserTenantMembershipSnapshot.Unauthorized(targetUserId: targetUserId),
             (int)HttpStatusCode.BadRequest
-                => UserTenantMembershipSnapshot.Invalid(targetUserId: targetUserId),
+                => UserTenantMembershipSnapshot.Invalid(UserTenantMembershipReason.GatewayFailure, targetUserId),
             (int)HttpStatusCode.ServiceUnavailable
                 => UserTenantMembershipSnapshot.Unavailable(targetUserId: targetUserId),
             _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure, targetUserId: targetUserId),
@@ -1755,7 +2078,7 @@ internal sealed class TenantQueryGateway(
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => GlobalAdministratorsSnapshot.Unauthorized(),
             (int)HttpStatusCode.BadRequest
-                => GlobalAdministratorsSnapshot.Invalid(),
+                => GlobalAdministratorsSnapshot.Invalid(GlobalAdministratorsReason.GatewayFailure),
             (int)HttpStatusCode.NotFound or (int)HttpStatusCode.NotImplemented or (int)HttpStatusCode.ServiceUnavailable
                 => GlobalAdministratorsSnapshot.Unavailable(),
             _ => GlobalAdministratorsSnapshot.Degraded([], GlobalAdministratorsReason.GatewayFailure),

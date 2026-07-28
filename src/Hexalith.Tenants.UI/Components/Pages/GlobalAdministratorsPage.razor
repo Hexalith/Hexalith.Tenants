@@ -3,6 +3,8 @@
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantCommandGateway CommandGateway
+@inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical"
@@ -55,6 +57,12 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__state-copy">
                     <h2>@StatusHeading</h2>
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
+                    @if (_isNotificationRefreshing)
+                    {
+                        <p role="status" aria-live="polite" data-testid="tenants-global-admins-notification-refreshing">
+                            @Localizer["Tenants.GlobalAdministrators.Freshness.Refreshing"]
+                        </p>
+                    }
                 </FluentStack>
             </section>
         </FluentAccordionItem>
@@ -389,6 +397,7 @@
     private const int PageSize = 20;
     private readonly object _grantFormModel = new();
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
+    private IAsyncDisposable? _readRefreshLease;
     private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
     private GlobalAdministratorRemoveCommandSnapshot _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
     private readonly Stack<string?> _cursorHistory = new();
@@ -397,6 +406,11 @@
     private string? _grantValidationMessage;
     private bool _isGrantSubmitting;
     private bool _isRemoveSubmitting;
+    private bool _isNotificationRefreshing;
+    private bool _pageLoadInFlight;
+    private bool _disposed;
+    private long _loadGeneration;
+    private CancellationTokenSource? _loadCancellation;
     private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
@@ -641,6 +655,27 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender
+            && IsAuthorized
+            && BffComposition.IsReadSurfaceConnected
+            && !_disposed
+            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        {
+            IAsyncDisposable lease = await refreshSubscription.SubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                () => InvokeAsync(RefreshFromNotificationAsync),
+                _loadCancellation?.Token ?? CancellationToken.None);
+            if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected)
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _readRefreshLease = lease;
+            }
+        }
+
         if (_focusGrantUserIdPending)
         {
             _focusGrantUserIdPending = false;
@@ -672,39 +707,152 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag)
+    private async Task<GlobalAdministratorsSnapshot?> LoadAsync(
+        bool reuseETag,
+        bool retainConfirmed = false,
+        string? requestedCursor = null,
+        bool useRequestedCursor = false)
     {
+        (long generation, CancellationToken cancellationToken) = BeginLoad();
         GlobalAdministratorsSnapshot previous = _snapshot;
-        _snapshot = GlobalAdministratorsSnapshot.Loading();
+        if (!retainConfirmed)
+        {
+            _snapshot = GlobalAdministratorsSnapshot.Loading();
+        }
 
         GlobalAdministratorsRequest request = new(
-            Cursor: _currentCursor,
+            Cursor: useRequestedCursor ? requestedCursor : _currentCursor,
             PageSize: PageSize,
             ETag: reuseETag ? previous.ETag : null);
 
-        _snapshot = await QueryGateway
-            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
+        try
+        {
+            GlobalAdministratorsSnapshot result = await QueryGateway
+                .GetGlobalAdministratorsAsync(request, previous, cancellationToken)
+                .ConfigureAwait(false);
+            if (!CanApply(generation))
+            {
+                return null;
+            }
+
+            await InvokeAsync(() => _snapshot = result).ConfigureAwait(false);
+            return result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
     }
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
 
+    private async Task RefreshFromNotificationAsync()
+    {
+        if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected)
+        {
+            return;
+        }
+
+        _isNotificationRefreshing = true;
+        StateHasChanged();
+        try
+        {
+            await LoadAsync(reuseETag: true, retainConfirmed: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() =>
+            {
+                _isNotificationRefreshing = false;
+                StateHasChanged();
+            });
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        _loadGeneration++;
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        if (_readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
+        }
+    }
+
     private async Task NextPageAsync()
     {
-        _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        if (_pageLoadInFlight || string.IsNullOrWhiteSpace(_snapshot.NextCursor))
+        {
+            return;
+        }
+
+        string? priorCursor = _currentCursor;
+        string nextCursor = _snapshot.NextCursor;
+        _pageLoadInFlight = true;
+        try
+        {
+            GlobalAdministratorsSnapshot? result = await LoadAsync(
+                reuseETag: false,
+                requestedCursor: nextCursor,
+                useRequestedCursor: true).ConfigureAwait(false);
+            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result))
+            {
+                _cursorHistory.Push(priorCursor);
+                _currentCursor = nextCursor;
+            }
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (_cursorHistory.Count > 0)
+        if (_pageLoadInFlight || _cursorHistory.Count == 0)
         {
-            _currentCursor = _cursorHistory.Pop();
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            return;
+        }
+
+        string? previousCursor = _cursorHistory.Peek();
+        _pageLoadInFlight = true;
+        try
+        {
+            GlobalAdministratorsSnapshot? result = await LoadAsync(
+                reuseETag: false,
+                requestedCursor: previousCursor,
+                useRequestedCursor: true).ConfigureAwait(false);
+            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result))
+            {
+                _currentCursor = _cursorHistory.Pop();
+            }
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
         }
     }
+
+    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        return (++_loadGeneration, _loadCancellation.Token);
+    }
+
+    private bool CanApply(long generation)
+        => !_disposed && generation == _loadGeneration;
+
+    private static bool IsSuccessfulPage(GlobalAdministratorsSnapshot? snapshot)
+        => snapshot?.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Empty;
 
     private void OnGrantUserIdInput(string? value)
         => _grantUserId = value;

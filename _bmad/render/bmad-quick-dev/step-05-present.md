@@ -75,4 +75,15 @@ Workflow complete.
 
 If anything appears below, follow it as the final terminal instruction before exiting; otherwise exit normally.
 
+Run the submodule pointer declaration check against this run's spec file:
+
+  python3 scripts/validate-story-gitlinks.py <spec-file>
+
+- Exit 0 — continue.
+- Exit 1 — STOP. Do not present the work as complete. For each UNDECLARED entry,
+  either declare the path (File List entry plus the reason it belongs to this
+  change) or run the printed `git checkout <sha> -- <path>` and land the bump
+  separately as `build(deps): bump <module> submodule`. Re-run until it exits 0.
+
+Report the verdict in the completion summary.
 

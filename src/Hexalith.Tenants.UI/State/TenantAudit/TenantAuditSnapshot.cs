@@ -16,7 +16,8 @@ public sealed record TenantAuditSnapshot(
     DateTimeOffset? From = null,
     DateTimeOffset? To = null,
     string? Category = null,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
+    string? ProjectionVersion = null) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,

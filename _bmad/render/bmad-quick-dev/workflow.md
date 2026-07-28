@@ -48,6 +48,8 @@ _None._
 Treat every entry below as foundational context you carry for the rest of the workflow run. Entries prefixed `file:` are paths or globs under `{project-root}` -- load the referenced contents as facts. All other entries are facts verbatim (`_None._` means none):
 
 - file:{project-root}/**/project-context.md
+- A change must not move a `references/` submodule pointer silently. Before presenting work as complete, run `python3 scripts/validate-story-gitlinks.py <spec-file>` and resolve every UNDECLARED entry by declaring it (File List entry + reason) or reverting it to the baseline SHA.
+- Never write that `references/` was untouched, unchanged, or left alone unless `scripts/validate-story-gitlinks.py` exited 0.
 
 ### Step 3: Execute Append Steps
 

@@ -13,8 +13,11 @@ using System.Xml.Linq;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Shell.Components.Icons;
+using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
@@ -97,6 +100,120 @@ public sealed class TenantsUiCompositionTests
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Read_and_command_dependencies_register_independently(
+        bool hasTenants,
+        bool hasEventStore)
+    {
+        var settings = new Dictionary<string, string?>();
+        if (hasTenants)
+        {
+            settings["Tenants:BaseAddress"] = "https://tenants.invalid";
+        }
+
+        if (hasEventStore)
+        {
+            settings["EventStore:BaseAddress"] = "https://eventstore.invalid";
+        }
+
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings)
+            .Build();
+        ServiceCollection services = new();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor query = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway));
+        ServiceDescriptor command = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway));
+        query.ImplementationType.ShouldBe(
+            hasTenants ? typeof(TenantQueryGateway) : typeof(UnavailableTenantQueryGateway));
+        if (hasEventStore)
+        {
+            command.ImplementationFactory.ShouldNotBeNull();
+        }
+        else
+        {
+            command.ImplementationType.ShouldBe(typeof(UnavailableTenantCommandGateway));
+        }
+
+        services.Any(descriptor => descriptor.ServiceType == typeof(ITenantsRestQueryClient))
+            .ShouldBe(hasTenants);
+    }
+
+    [Theory]
+    [InlineData("ftp://tenants.invalid")]
+    [InlineData("file:///tmp/tenants")]
+    [InlineData("not an absolute URI")]
+    public void Malformed_or_non_http_tenants_base_address_fails_closed(string baseAddress)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = baseAddress,
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor query = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway));
+        query.ImplementationType.ShouldBe(typeof(UnavailableTenantQueryGateway));
+        services.Any(descriptor => descriptor.ServiceType == typeof(ITenantsRestQueryClient)).ShouldBeFalse();
+        services.Last(descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway))
+            .ImplementationFactory.ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, "Bearer direct-read-token")]
+    public async Task Direct_tenants_client_relays_the_server_side_bearer_only_when_authorization_is_enabled(
+        bool enableGatewayAuthorization,
+        string? expectedAuthorization)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithFrontComposerTokenRelay();
+        services.AddServiceDiscovery();
+        services.AddPassThroughServiceEndpointProvider();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization);
+        var primaryHandler = new AuthorizationRecordingHandler();
+        services.AddHttpClient<TenantsRestQueryClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim("sub", "operator-user")],
+                authenticationType: "test")),
+        };
+        services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext = httpContext });
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(
+            "operator-user",
+            "direct-read-token",
+            DateTimeOffset.UtcNow.AddMinutes(5));
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+
+        _ = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        primaryHandler.Authorization.ShouldBe(expectedAuthorization);
     }
 
     [Fact]
@@ -1204,6 +1321,23 @@ public sealed class TenantsUiCompositionTests
 
         public void RegisterDomain(DomainManifest manifest)
             => Manifests.Add(manifest);
+    }
+
+    private sealed class AuthorizationRecordingHandler : HttpMessageHandler
+    {
+        public string? Authorization { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Authorization = request.Headers.Authorization?.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
+            });
+        }
     }
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway

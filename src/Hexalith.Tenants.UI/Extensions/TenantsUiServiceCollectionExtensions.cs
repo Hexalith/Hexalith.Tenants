@@ -40,12 +40,32 @@ public static class TenantsUiServiceCollectionExtensions
         services.AddTenantConfigurationReadPolicy(configuration);
         services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
         services.TryAddScoped<TenantSearchPagingState>();
+        services.TryAddScoped<TenantReadRefreshSubscription>();
 
         services.AddAuthorizationCore(options =>
             options.AddPolicy(
                 TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
                 policy => policy.RequireAssertion(context =>
                     TenantsGlobalAdministratorClaims.IsGlobalAdministrator(context.User))));
+
+        if (TryGetHttpBaseAddress(configuration["Tenants:BaseAddress"], out Uri? tenantsBaseAddress))
+        {
+            IHttpClientBuilder tenantsQueryClient = services
+                .AddHttpClient<TenantsRestQueryClient>(client => client.BaseAddress = tenantsBaseAddress)
+                .AddServiceDiscovery()
+                .RemoveAllLoggers();
+            if (enableGatewayAuthorization)
+            {
+                _ = tenantsQueryClient.AddFrontComposerGatewayAuthorization();
+            }
+
+            services.TryAddScoped<ITenantsRestQueryClient>(sp => sp.GetRequiredService<TenantsRestQueryClient>());
+            services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
+        }
+        else
+        {
+            services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+        }
 
         if (Uri.TryCreate(configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress))
         {
@@ -60,12 +80,10 @@ public static class TenantsUiServiceCollectionExtensions
             }
 
             services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
-            services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
         }
         else
         {
             services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
-            services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
         }
 
         _ = services.AddMemoriesClient(o =>
@@ -81,5 +99,19 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
         services.Configure<FcShellOptions>(configuration.GetSection("Hexalith:Shell"));
         return services;
+    }
+
+    private static bool TryGetHttpBaseAddress(string? value, out Uri? baseAddress)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed)
+            && (string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            baseAddress = parsed;
+            return true;
+        }
+
+        baseAddress = null;
+        return false;
     }
 }

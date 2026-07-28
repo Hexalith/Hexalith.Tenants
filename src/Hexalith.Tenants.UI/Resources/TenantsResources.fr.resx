@@ -621,6 +621,12 @@
   <data name="Tenants.Detail.Members.Summary" xml:space="preserve">
     <value>{0} membres, dont {1} propriétaires.</value>
   </data>
+  <data name="Tenants.Detail.Members.VisiblePageSummary" xml:space="preserve">
+    <value>{0} membres visibles sur cette page. Le contexte des propriétaires est indisponible tant que les deux lectures ne sont pas actuelles et cohérentes en version.</value>
+  </data>
+  <data name="Tenants.Detail.Members.VisiblePageSummaryWithOwners" xml:space="preserve">
+    <value>{0} membres visibles sur cette page ; le détail faisant autorité indique {1} propriétaires.</value>
+  </data>
   <data name="Tenants.Detail.Members.Title" xml:space="preserve">
     <value>Résumé des membres</value>
   </data>
@@ -1633,7 +1639,7 @@
     <value>Identifiant utilisateur</value>
   </data>
   <data name="Tenants.Members.Description" xml:space="preserve">
-    <value>Contexte d'accès des membres en lecture seule depuis la projection de détail de locataire autorisée.</value>
+    <value>Contexte d'accès des membres en lecture seule depuis la projection dédiée et autorisée des membres.</value>
   </data>
   <data name="Tenants.Members.Empty.Message" xml:space="preserve">
     <value>Aucun membre visible n'est disponible. Cet état ne révèle pas les appartenances masquées, et les actions restent indisponibles tant que la visibilité et la fraîcheur ne sont pas vérifiées : {0}.</value>
@@ -1665,6 +1671,9 @@
   <data name="Tenants.Members.OwnerContext.NoOwners" xml:space="preserve">
     <value>0 propriétaire visible ; le contexte propriétaire est indisponible.</value>
   </data>
+  <data name="Tenants.Members.OwnerContext.Unavailable" xml:space="preserve">
+    <value>Le contexte des propriétaires est indisponible tant que le détail du locataire et les preuves des membres ne sont pas actuels et cohérents en version.</value>
+  </data>
   <data name="Tenants.Members.ReasonCatalogLabel" xml:space="preserve">
     <value>Catégories canoniques de raisons d'action indisponible</value>
   </data>
@@ -1692,8 +1701,35 @@
   <data name="Tenants.Members.State.Degraded" xml:space="preserve">
     <value>Les preuves des membres sont dégradées.</value>
   </data>
+  <data name="Tenants.Members.State.Loading" xml:space="preserve">
+    <value>Chargement des membres visibles.</value>
+  </data>
+  <data name="Tenants.Members.State.NotFound" xml:space="preserve">
+    <value>La lecture des membres du locataire est introuvable.</value>
+  </data>
   <data name="Tenants.Members.State.Stale" xml:space="preserve">
     <value>Les preuves des membres sont périmées.</value>
+  </data>
+  <data name="Tenants.Members.State.Title" xml:space="preserve">
+    <value>Lecture des membres indisponible</value>
+  </data>
+  <data name="Tenants.Members.State.Unauthorized" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à consulter ces membres.</value>
+  </data>
+  <data name="Tenants.Members.State.Unavailable" xml:space="preserve">
+    <value>Les membres visibles ne peuvent pas être chargés actuellement.</value>
+  </data>
+  <data name="Tenants.Members.State.Unknown" xml:space="preserve">
+    <value>La fraîcheur des membres ne peut pas être établie.</value>
+  </data>
+  <data name="Tenants.Members.Next" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="Tenants.Members.Paging.Label" xml:space="preserve">
+    <value>Pages de membres</value>
+  </data>
+  <data name="Tenants.Members.Previous" xml:space="preserve">
+    <value>Précédent</value>
   </data>
   <data name="Tenants.Members.Status.Active" xml:space="preserve">
     <value>Actif</value>
