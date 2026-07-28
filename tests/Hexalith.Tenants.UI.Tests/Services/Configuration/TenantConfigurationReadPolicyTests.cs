@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using NSubstitute;
 
@@ -364,10 +365,10 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
-    public async Task Subject_claim_with_surrounding_whitespace_still_corroborates_the_trimmed_user_context()
+    public async Task Subject_claim_normalization_cannot_unlock_a_literal_deployment_grant()
     {
-        // The accessor trims before yielding UserId, so comparing it against the raw claim made a
-        // padded `sub` look like a cross-identity mismatch.
+        // The accessor normalizes before yielding UserId. That normalized value cannot corroborate a
+        // different raw claim, because deployment grants are keyed by the literal authenticated subject.
         ClaimsPrincipal principal = Principal(
             new Claim("sub", " operator.alpha "),
             new Claim("roles", "[\"tenant-reader\"]"));
@@ -376,8 +377,41 @@ public sealed class TenantConfigurationReadPolicyTests
             httpPrincipal: principal,
             userContextSubject: "operator.alpha").ResolveAsync();
 
-        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
-        evidence.Subject.ShouldBe("operator.alpha");
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", evidence);
+
+        policy.IsAvailable.ShouldBeFalse();
+        policy.AuthorizedPrefixes.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("system", "tenant.alpha")]
+    [InlineData("system", " ")]
+    public async Task Conflicting_or_malformed_tenant_scope_cannot_unlock_the_administrator_wildcard(
+        string firstScope,
+        string secondScope)
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", firstScope),
+            new Claim("eventstore:tenant", secondScope),
+            new Claim("roles", "[\"global-admin\"]"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: principal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
     }
 
     [Fact]
@@ -561,6 +595,70 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public void Configuration_reload_invalidates_cached_grants_before_the_next_resolution()
+    {
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:TenantId"] = "tenant.alpha",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator.alpha",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Prefix"] = "billing",
+                ["Tenants:ConfigurationReadPolicy:DisplaySafe:0"] = "billing.mode",
+            })
+            .Build();
+        TenantConfigurationReadPolicyProvider provider = new(configuration);
+        TenantConfigurationPrincipalEvidence principal =
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha");
+
+        provider.Resolve("tenant.alpha", principal).AuthorizedPrefixes.ShouldBe(["billing"]);
+
+        configuration["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator.other";
+        configuration.Reload();
+
+        TenantConfigurationReadPolicyResolution reloaded = provider.Resolve("tenant.alpha", principal);
+        reloaded.IsAvailable.ShouldBeTrue();
+        reloaded.AuthorizedPrefixes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Policy_diagnostics_are_structured_safe_and_emitted_once_per_invalid_configuration_load()
+    {
+        const string rawDeclaration = "raw-secret-prefix";
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants"] = rawDeclaration,
+            })
+            .Build();
+        CapturingLogger<TenantConfigurationReadPolicyProvider> logger = new();
+        TenantConfigurationReadPolicyProvider provider = new(configuration, logger);
+        TenantConfigurationPrincipalEvidence principal =
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha");
+
+        _ = provider.Resolve("tenant.alpha", principal);
+        _ = provider.Resolve("tenant.alpha", principal);
+        configuration.Reload();
+        _ = provider.Resolve("tenant.alpha", principal);
+        _ = provider.Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.Indeterminate());
+
+        var deploymentEntries = logger.Entries
+            .Where(static entry => entry.EventId.Id == 2101)
+            .ToArray();
+        deploymentEntries.Length.ShouldBe(2);
+        deploymentEntries.ShouldAllBe(static entry => entry.Level == LogLevel.Warning);
+        deploymentEntries.ShouldAllBe(static entry => entry.Message.Contains(
+            nameof(TenantConfigurationPolicyFailure.ScalarCollection),
+            StringComparison.Ordinal));
+
+        var principalEntry = logger.Entries.Single(static entry => entry.EventId.Id == 2100);
+        principalEntry.Level.ShouldBe(LogLevel.Debug);
+        principalEntry.Message.ShouldContain(
+            nameof(TenantConfigurationPolicyFailure.IndeterminatePrincipal),
+            Case.Sensitive);
+        logger.Entries.ShouldAllBe(entry => !entry.Message.Contains(rawDeclaration, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Composed_rows_do_not_track_later_mutation_of_the_caller_owned_dictionary()
     {
         // The previous defensive-copy test composed under an empty DisplaySafe list, so the rows were
@@ -670,5 +768,33 @@ public sealed class TenantConfigurationReadPolicyTests
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
             => Task.FromResult(new AuthenticationState(principal));
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, EventId EventId, string Message, Exception? Exception)> Entries { get; } = [];
+
+        public IDisposable BeginScope<TState>(TState state)
+            where TState : notnull
+            => EmptyScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Entries.Add((logLevel, eventId, formatter(state, exception), exception));
+
+        private sealed class EmptyScope : IDisposable
+        {
+            public static EmptyScope Instance { get; } = new();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }

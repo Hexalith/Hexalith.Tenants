@@ -1433,18 +1433,19 @@ internal sealed class TenantQueryGateway(
             return TenantConfigurationProjectionProof.Unavailable(tenantId);
         }
 
-        // Proof comparison reads the raw dictionary, so it must apply the configuration policy itself.
-        // Without this gate the method answers "does key K exist" and "is K equal to V" for any key a
-        // caller supplies, which is an existence and value oracle for namespaces outside their grants —
-        // the component-level checks are not a substitute, because they are not on this path.
-        if (bffComposition is null
-            || !await bffComposition
-                .IsConfigurationKeyAuthorizedAsync(tenantId, key, cancellationToken)
-                .ConfigureAwait(false)) {
-            return TenantConfigurationProjectionProof.Unavailable(tenantId);
-        }
-
         try {
+            // Proof comparison reads the raw dictionary, so it must apply the configuration policy itself.
+            // Without this gate the method answers "does key K exist" and "is K equal to V" for any key a
+            // caller supplies, which is an existence and value oracle for namespaces outside their grants —
+            // the component-level checks are not a substitute, because they are not on this path. Policy
+            // resolution is part of the proof boundary and therefore shares its fail-closed containment.
+            if (bffComposition is null
+                || !await bffComposition
+                    .IsConfigurationKeyAuthorizedAsync(tenantId, key, cancellationToken)
+                    .ConfigureAwait(false)) {
+                return TenantConfigurationProjectionProof.Unavailable(tenantId);
+            }
+
             EventStoreQueryResult<TenantDetail> result = await queryClient
                 .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
                 .ConfigureAwait(false);

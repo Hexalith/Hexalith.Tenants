@@ -121,6 +121,34 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Configuration_policy_prefers_the_host_root_when_registration_receives_a_subsection()
+    {
+        IConfiguration root = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:TenantId"] = "tenant.alpha",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator-user",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Prefix"] = "billing",
+                ["Tenants:ConfigurationReadPolicy:DisplaySafe:0"] = "billing.mode",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton<IConfiguration>(root);
+
+        services.AddTenantConfigurationReadPolicy(root.GetSection("Tenants"));
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        TenantConfigurationReadPolicyResolution resolution = provider
+            .GetRequiredService<TenantConfigurationReadPolicyProvider>()
+            .Resolve(
+                "tenant.alpha",
+                TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
+
+        resolution.IsAvailable.ShouldBeTrue();
+        resolution.AuthorizedPrefixes.ShouldBe(["billing"]);
+    }
+
+    [Fact]
     public void Tenant_search_composition_is_purpose_isolated_scoped_and_server_configured()
     {
         ServiceCollection services = new();

@@ -111,11 +111,24 @@ public sealed class TenantsBffCompositionTests
         authorized.ShouldBeFalse();
     }
 
-    private static TenantsBffComposition Composition(string json)
+    [Fact]
+    public async Task Global_administrator_key_authorization_requires_no_explicit_prefix_grants()
+    {
+        bool authorized = await Composition(
+                RevokedPolicy,
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"))
+            .IsConfigurationKeyAuthorizedAsync("tenant.alpha", "unlisted.literal.key");
+
+        authorized.ShouldBeTrue();
+    }
+
+    private static TenantsBffComposition Composition(
+        string json,
+        TenantConfigurationPrincipalEvidence? evidence = null)
         => new(
             new UnavailableTenantCommandGateway(),
             principalResolver: new StubPrincipalResolver(
-                TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")),
+                evidence ?? TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")),
             policyProvider: new TenantConfigurationReadPolicyProvider(Configuration(json)));
 
     private static TenantConfigurationSafeModel SafeModel(string json)

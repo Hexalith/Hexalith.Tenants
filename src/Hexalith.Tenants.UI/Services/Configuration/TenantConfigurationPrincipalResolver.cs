@@ -64,12 +64,11 @@ internal sealed class TenantConfigurationPrincipalResolver(
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
-        // The accessor trims the claim before yielding UserId, so the raw claim must be trimmed the
-        // same way. Comparing raw against trimmed made a `sub` carrying surrounding whitespace look
-        // like a cross-identity mismatch and took configuration dark for an otherwise valid caller.
+        // Subject evidence is literal. If the accessor normalizes a malformed claim, the normalized
+        // value must not be allowed to corroborate that raw claim and unlock deployment grants.
         string? authenticatedSubject = userContextAccessor.UserId;
         if (string.IsNullOrWhiteSpace(authenticatedSubject)
-            || !string.Equals(authenticatedSubject, subjects[0].Value.Trim(), StringComparison.Ordinal))
+            || !string.Equals(authenticatedSubject, subjects[0].Value, StringComparison.Ordinal))
         {
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
@@ -82,14 +81,17 @@ internal sealed class TenantConfigurationPrincipalResolver(
 
         if (administrator.Value)
         {
-            bool hasSystemScope = identity.Claims.Any(static claim =>
-                string.Equals(claim.Type, "eventstore:tenant", StringComparison.Ordinal)
-                && string.Equals(claim.Value, "system", StringComparison.Ordinal));
+            bool? hasSystemScope = ResolveSystemScopeEvidence(identity);
+            if (hasSystemScope is null)
+            {
+                return TenantConfigurationPrincipalEvidence.Indeterminate();
+            }
+
             // An administrator role scoped to a non-system tenant is a well-formed claim that simply
             // does not meet the bar for the namespace wildcard. That is proven non-administrator, not
             // ambiguous evidence, so the caller keeps whatever explicit grants deployment gave them
             // instead of losing the whole surface.
-            if (!hasSystemScope)
+            if (!hasSystemScope.Value)
             {
                 return TenantConfigurationPrincipalEvidence.NonAdministrator(authenticatedSubject);
             }
@@ -121,6 +123,21 @@ internal sealed class TenantConfigurationPrincipalResolver(
         }
 
         return administrator;
+    }
+
+    private static bool? ResolveSystemScopeEvidence(ClaimsIdentity identity)
+    {
+        string[] scopes = identity.Claims
+            .Where(static claim => string.Equals(claim.Type, "eventstore:tenant", StringComparison.Ordinal))
+            .Select(static claim => claim.Value)
+            .ToArray();
+        if (scopes.Any(static scope => string.IsNullOrWhiteSpace(scope) || scope.Any(char.IsWhiteSpace))
+            || scopes.Distinct(StringComparer.Ordinal).Skip(1).Any())
+        {
+            return null;
+        }
+
+        return scopes.Any(static scope => string.Equals(scope, "system", StringComparison.Ordinal));
     }
 
     private static bool? ResolveClaim(Claim claim)

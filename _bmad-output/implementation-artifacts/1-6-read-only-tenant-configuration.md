@@ -198,6 +198,20 @@ GPT-5 Codex
 - `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
 - Other Release tiers: Contracts 116/116, Client 50/50, Testing 181/181, Server 738/738. `Hexalith.Tenants.IntegrationTests` (Tier 3, non-blocking) was again not run in this pass.
 
+**2026-07-28 trust-boundary re-review patch pass.** The story-owned portion of the narrowed review chunk closed all
+11 accepted patches. Principal evidence now rejects normalized subjects and ambiguous tenant scopes; cache reads and
+reload invalidation share one lock; projection-proof policy failures fail closed; diagnostics use source-generated,
+support-safe category events; and the accepted DI, wildcard, retained-state, reload, failure, and cancellation behavior is
+pinned by regression tests.
+
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore -p:UseHexalithProjectReferences=false` — 1325/1325.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` — 1325/1325.
+- `dotnet build Hexalith.Tenants.slnx -c Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `git diff --check` — passed.
+- An initial `--no-restore` Release attempt was invalidated by generated assets left in source-reference mode; running the
+  pinned package-mode restore and build as one graph resolved the environmental mismatch without dependency changes.
+
 ### Implementation Plan
 
 - Harden the policy/principal boundary and sanitize all tenant configuration before snapshot construction.
@@ -214,6 +228,9 @@ GPT-5 Codex
 - Added complete EN/FR configuration/read/management copy and exact resource parity. The deployment-owned positive `DisplaySafe` decision is resolved; `CFG-1.6-SAFE-MODEL` is closed. Configuration clipboard activation/certification remains intentionally out of scope and absent.
 - **2026-07-27, final open item.** The empty-scalar `DisplaySafe` shape is a known, accepted limitation, not an oversight: `[]`, `""` and an emptied environment override are indistinguishable at the configuration layer, and failing closed on that state takes the shipped valid-empty default dark. It is safe to accept because the failure direction is one-way — an empty declaration withholds approval and can never grant it — and because the environment cannot produce it: an emptied override leaves a declared list intact, and an emptied element is rejected outright. All three properties are pinned by `An_emptied_environment_override_cannot_clear_a_declared_display_safe_list`, `An_emptied_display_safe_element_is_rejected_rather_than_silently_dropped`, and `An_empty_display_safe_scalar_approves_nothing_rather_than_widening_approval`, each verified by mutation.
 - **2026-07-27, story-file integrity.** Commit `ec7ec8c` had stripped the `- [ ]`/`- [x]` markers from all 34 Tasks/Subtasks lines rather than checking them, leaving the story with no completion record. The original structure was restored from `91d5980` (task text verified byte-identical) and marked complete.
+- **2026-07-28, trust-boundary re-review.** Applied all 11 accepted patches from the narrowed trust-boundary chunk and
+  added 10 net-new test cases. The full UI count moved 1315 → 1325. Story status remains `review` because the agreed
+  chunking leaves the UI composition/accessibility and broader test/evidence review groups for follow-up.
 - No public query contract, endpoint, dependency, or package changed; Story 1.10 transport/provenance work remains separate. **Correction (2026-07-27 review):** the `references/Hexalith.EventStore` gitlink *was* changed by `ec7ec8c` (`c6b72ca` → `440ff4c`), which this sentence originally denied. See the resolved decisions below.
 
 ### File List
@@ -285,11 +302,25 @@ Touched by the 2026-07-27 closure pass (all already listed above; no new paths):
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `tests/test-summary.md`
 
+Touched by the 2026-07-28 trust-boundary re-review patch pass (all source/test paths already listed above):
+
+- `_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs`
+- `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
+- `tests/test-summary.md`
+
 ### Change Log
 
 - 2026-07-22: Completed the corrective positive-policy safe configuration model, sanitized BFF integration, strict read-only landmark, sibling safe management/proof boundary, localization, accessibility, focused/end-to-end coverage, and repository-wide validation; moved Story 1.6 to review.
 - 2026-07-27: Adversarial code review over `2f190a1..ec7ec8c`; 2 decisions resolved, 38 of 39 patches applied, 2 items deferred. UI suite 1281 → 1312. Story held at in-progress for the one open patch.
 - 2026-07-27: Closed the last open review patch as Decision 3 (bounded limitation, no spec change) with 3 mutation-verified regression tests; restored the Tasks/Subtasks checkboxes that `ec7ec8c` stripped from this file; re-ran the prescribed verification. UI suite 1312 → 1315. Story 1.6 back to review.
+- 2026-07-28: Applied all 11 accepted patches from the narrowed trust-boundary re-review chunk; Release UI and solution builds passed warning-clean and the UI suite passed 1325/1325. Story remains in review for the agreed follow-up chunks.
 
 ### Review Findings
 
@@ -375,3 +406,25 @@ Record accuracy:
 - Six `ToString()`-based absence assertions were genuinely vacuous at `ec7ec8c` (`TenantDetailSnapshot` went `record` → `class`, losing the generated `ToString`). **Already fixed at HEAD** by `de2ded0`, which added support-safe overrides to both types. Real defect, resolved by a later commit.
 - Malformed/unsupported role encodings resolving to Indeterminate, and duplicate policy declarations disabling the section — both are spec-conformant by design. The missing *diagnostics* are retained as a patch above.
 - The acceptance-auditor's claim that `ToString()` overrides existed at `ec7ec8c` is factually wrong; it read the working tree, not the reviewed revision.
+
+### Review Findings
+
+#### Trust-boundary re-review (2026-07-28, `b73093b..f279cb1` narrowed chunk)
+
+- [x] [Review][Patch] [HIGH] Reject padded `sub` claims instead of normalizing them into literal policy grants [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:67]
+- [x] [Review][Patch] [HIGH] Reject conflicting or malformed tenant-scope claims before granting the global-administrator wildcard [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:83]
+- [x] [Review][Patch] [HIGH] Synchronize policy-cache reads with reload invalidation so revoked grants cannot remain visible [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs:143]
+- [x] [Review][Patch] [HIGH] Contain configuration-policy authorization failures inside the projection-proof fail-closed boundary [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1440]
+- [x] [Review][Patch] Pin the accepted root-configuration precedence when an embedding host passes a subsection [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationServiceCollectionExtensions.cs:35]
+- [x] [Review][Patch] Prove policy-cache reload invalidation with a mutable configuration and grant revocation [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs:36]
+- [x] [Review][Patch] Verify support-safe policy diagnostics, failure categories, levels, and once-per-load emission [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs:168]
+- [x] [Review][Patch] Cover global-administrator wildcard key authorization without explicit prefix grants [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:84]
+- [x] [Review][Patch] Cover retained-detail reauthorization failure as a support-safe degraded snapshot [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1502]
+- [x] [Review][Patch] Convert Story 1.6 policy diagnostics to source-generated `LoggerMessage` methods [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs:57]
+- [x] [Review][Patch] Cover cancellation propagation through initial composition and retained-detail reauthorization [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:140]
+- [x] [Review][Defer] Partially hidden authoritative-search windows still disclose hidden candidates through surviving-row count plus live paging [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:890] — deferred, pre-existing relative to Story 1.6 and already owned by Story 1.9
+- [x] [Review][Defer] Treating search-hydration 404 and 403 identically can stop paging before later authorized matches [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1013] — deferred, pre-existing relative to Story 1.6 and owned by Story 1.9
+
+All 11 patch findings in this narrowed chunk were resolved and verified on 2026-07-28. The two defers remain in the
+deferred-work ledger under Story 1.9 ownership. Story and sprint status intentionally remain `review`: the agreed
+chunking still leaves UI composition/accessibility and broader test/evidence groups for follow-up review.

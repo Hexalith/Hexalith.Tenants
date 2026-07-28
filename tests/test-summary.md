@@ -349,6 +349,27 @@ Re-verified with the prescribed commands: UI test project build 0 warnings / 0 e
 Contracts 116/116, Client 50/50, Testing 181/181, Server 738/738; `dotnet build Hexalith.Tenants.slnx -c Release
 --no-restore -warnaserror -m:1 -nr:false` 0 warnings / 0 errors. Tier 3 `IntegrationTests` not run in this pass.
 
+### Story 1.6 trust-boundary re-review patch evidence (2026-07-28)
+
+- [x] Literal principal evidence rejects a padded `sub` even when `IUserContextAccessor` exposes its normalized value;
+  conflicting or whitespace-bearing tenant scopes resolve indeterminate before any global-administrator wildcard grant.
+- [x] Policy-cache reads and reload invalidation share one synchronization boundary. Mutable-configuration coverage proves
+  a cached subject grant is revoked on the next resolution after reload.
+- [x] Policy diagnostics use source-generated `LoggerMessage` events (2100 Debug for indeterminate principal, 2101
+  Warning for invalid deployment policy); captured messages expose only the failure category and the warning occurs once
+  per invalid configuration load.
+- [x] Embedding-host DI root precedence and global-administrator namespace authorization without explicit grants are
+  pinned at the production composition seams.
+- [x] Projection-proof policy exceptions return Unavailable without querying raw detail. Retained-detail authorization
+  failures return a sanitized degraded snapshot, while cancellation propagates through initial composition and retained
+  reauthorization.
+- [x] Ten net-new cases moved the UI suite **1315 → 1325**. Package-mode Debug `dotnet test` passed 1325/1325; the
+  Release UI build passed with 0 warnings / 0 errors; the Release xUnit v3 executable passed 1325/1325; and the Release
+  `Hexalith.Tenants.slnx` build passed with 0 warnings / 0 errors. `git diff --check` passed.
+- The story remains in `review` because this was the agreed narrowed trust-boundary chunk; UI
+  composition/accessibility and broader test/evidence review groups remain follow-up work. The two Story 1.9 search
+  findings remain tracked in `_bmad-output/implementation-artifacts/deferred-work.md`.
+
 ## Story 1.9 Authoritative Memories Search Evidence Addendum (2026-07-26)
 
 Re-derived from the amended Story 1.9 spec after commit `a6f5801` rolled back the previous

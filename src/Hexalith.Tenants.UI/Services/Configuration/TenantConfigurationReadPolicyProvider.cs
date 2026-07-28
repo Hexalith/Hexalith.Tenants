@@ -12,7 +12,7 @@ namespace Hexalith.Tenants.UI.Services.Configuration;
 /// configuration reloads. Without that cache a full reflection bind and two set rebuilds ran on every
 /// tenant-detail read, degraded reauthorization, and command reauthorization.
 /// </remarks>
-internal sealed class TenantConfigurationReadPolicyProvider
+internal sealed partial class TenantConfigurationReadPolicyProvider
 {
     private const string PolicySectionPath = "Tenants:ConfigurationReadPolicy";
 
@@ -54,9 +54,12 @@ internal sealed class TenantConfigurationReadPolicyProvider
         {
             // Per-request and often routine (an unauthenticated read), so this stays at Debug while
             // deployment faults are reported once per configuration load at Warning.
-            _logger?.LogDebug(
-                "Tenant configuration read policy is unavailable. Category: {Failure}.",
-                TenantConfigurationPolicyFailure.IndeterminatePrincipal);
+            if (_logger is not null)
+            {
+                Log.PolicyUnavailableForPrincipal(
+                    _logger,
+                    TenantConfigurationPolicyFailure.IndeterminatePrincipal);
+            }
             return TenantConfigurationReadPolicyResolution.Unavailable();
         }
 
@@ -150,12 +153,6 @@ internal sealed class TenantConfigurationReadPolicyProvider
 
     private TenantConfigurationValidatedPolicy GetValidatedPolicy()
     {
-        TenantConfigurationValidatedPolicy? cached = _cached;
-        if (cached is not null)
-        {
-            return cached;
-        }
-
         lock (_gate)
         {
             _cached ??= BuildValidatedPolicy();
@@ -171,9 +168,10 @@ internal sealed class TenantConfigurationReadPolicyProvider
             // Once per configuration load rather than once per request: a broken deployment should be
             // visible to an operator without flooding the log. The category names the fault class and
             // never the tenant, subject, prefix, key, or value that produced it.
-            _logger?.LogWarning(
-                "Tenant configuration read policy is unavailable. Category: {Failure}.",
-                result.Failure);
+            if (_logger is not null)
+            {
+                Log.PolicyUnavailableForDeployment(_logger, result.Failure);
+            }
         }
 
         return result;
@@ -208,5 +206,24 @@ internal sealed class TenantConfigurationReadPolicyProvider
                     options.PrefixGrants.ToArray(),
                     options.DisplaySafe.ToArray());
         }
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(
+            EventId = 2100,
+            Level = LogLevel.Debug,
+            Message = "Tenant configuration read policy is unavailable. Category: {Failure}.")]
+        public static partial void PolicyUnavailableForPrincipal(
+            ILogger logger,
+            TenantConfigurationPolicyFailure failure);
+
+        [LoggerMessage(
+            EventId = 2101,
+            Level = LogLevel.Warning,
+            Message = "Tenant configuration read policy is unavailable. Category: {Failure}.")]
+        public static partial void PolicyUnavailableForDeployment(
+            ILogger logger,
+            TenantConfigurationPolicyFailure failure);
     }
 }

@@ -310,6 +310,28 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_initial_composition_propagates_caller_cancellation()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new OperationCanceledException(cancellation.Token)));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        await Should.ThrowAsync<OperationCanceledException>(() => gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            cancellation.Token));
+
+        _ = composition.Received(1).ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), cancellation.Token);
+    }
+
+    [Fact]
     public async Task Get_tenant_never_reuses_previous_safe_state_from_a_different_literal_tenant()
     {
         TenantConfigurationSafeRow priorRow = new("billing", "billing.mode", "prior-visible");
@@ -416,6 +438,70 @@ public sealed class TenantQueryGatewayTests
             + "Lifecycle = Unknown, HasErrorMessage = True }");
     }
 
+    [Fact]
+    public async Task Get_tenant_retained_reauthorization_failure_returns_safe_degraded_state()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
+            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .ReauthorizeTenantDetailAsync(
+                Arg.Any<TenantDetail>(),
+                Arg.Any<TenantConfigurationSafeModel>(),
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new InvalidOperationException("raw secret authorization details")));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        snapshot.Configuration.Rows.ShouldBeEmpty();
+        snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("raw secret authorization details", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_retained_reauthorization_propagates_caller_cancellation()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .ReauthorizeTenantDetailAsync(
+                Arg.Any<TenantDetail>(),
+                Arg.Any<TenantConfigurationSafeModel>(),
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new OperationCanceledException(cancellation.Token)));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        await Should.ThrowAsync<OperationCanceledException>(() => gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            cancellation.Token));
+
+        _ = composition.Received(1).ReauthorizeTenantDetailAsync(
+            Arg.Any<TenantDetail>(),
+            Arg.Any<TenantConfigurationSafeModel>(),
+            true,
+            cancellation.Token);
+    }
+
     [Theory]
     [InlineData("trial", TenantConfigurationProjectionProofKind.SetConfirmed)]
     [InlineData("different", TenantConfigurationProjectionProofKind.SetNotConfirmed)]
@@ -505,6 +591,29 @@ public sealed class TenantQueryGatewayTests
         TenantQueryGateway gateway = CreateGateway(
             client,
             bffComposition: ConfigurationComposition("{ \"Tenants\": { \"ConfigurationReadPolicy\": { \"PrefixGrants\": \"scalar\", \"DisplaySafe\": [] } } }"));
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_contains_policy_authorization_failure()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .IsConfigurationKeyAuthorizedAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<bool>(
+                new InvalidOperationException("raw secret authorization details")));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
             new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
@@ -3868,6 +3977,24 @@ public sealed class TenantQueryGatewayTests
             searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()),
             bffComposition,
             logger);
+    }
+
+    private static TenantDetailSnapshot ReadyConfigurationSnapshot()
+    {
+        TenantConfigurationSafeRow priorRow = new("billing", "billing.mode", "prior-visible");
+        TenantConfigurationComposition priorComposition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(Detail("tenant.alpha")),
+            TenantConfigurationSafeModel.Available("tenant.alpha", [priorRow]),
+            TenantConfigurationManagementContext.Available(
+                "tenant.alpha",
+                TenantStatus.Active,
+                false,
+                ["billing"],
+                [priorRow]));
+        return TenantDetailSnapshot.Ready(
+            priorComposition,
+            "\"prior\"",
+            ReadModelFreshnessState.Current);
     }
 
     private static void ObserveMaximum(ref int maximum, int current)
