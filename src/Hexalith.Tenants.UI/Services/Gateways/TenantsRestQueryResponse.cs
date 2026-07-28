@@ -7,7 +7,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// Contains one typed Tenants REST read result and its conservatively normalized metadata.
 /// </summary>
 /// <typeparam name="TPayload">Expected response payload contract.</typeparam>
-internal sealed record TenantsRestQueryResponse<TPayload>(
+public sealed record TenantsRestQueryResponse<TPayload>(
     TPayload? Payload,
     QueryResponseMetadata Metadata,
     ReadModelFreshnessState Freshness,

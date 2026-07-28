@@ -135,9 +135,17 @@ IResourceBuilder<ProjectResource> memoriesService = memories.Server
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(eventStore)
     .WithReference(memoriesService)
+    // Story 1.10: the BFF's six canonical reads go direct to the generated Tenants REST API, not through
+    // the EventStore query gateway. Without this reference and base address every read resolves
+    // UnavailableTenantQueryGateway, so the read surfaces render fail-closed. This closes HOST-REF-1.
+    .WithReference(tenantsApi)
     .WaitFor(eventStore)
     .WaitFor(memoriesService)
+    .WaitFor(tenantsApi)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
+    // Commands/status stay on EventStore; reads resolve independently from Tenants__BaseAddress. A missing
+    // reference must fail closed on its own side -- neither side falls back to the other.
+    .WithEnvironment("Tenants__BaseAddress", tenantsApi.GetEndpoint("https"))
     // Aspire service discovery (not a hardcoded :5000); the BFF reads Memories:BaseAddress and calls
     // AddMemoriesClient. Memories.Server exposes only an http endpoint.
     .WithEnvironment("Memories__BaseAddress", memoriesService.GetEndpoint("http"))

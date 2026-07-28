@@ -154,7 +154,7 @@ public sealed class TenantReadRefreshSubscriptionTests
         using var cancellation = new CancellationTokenSource();
         int refreshCount = 0;
 
-        Task<IAsyncDisposable> pending = sut.SubscribeAsync(
+        Task<TenantReadRefreshLease> pending = sut.SubscribeAsync(
             "tenants",
             "tenant.alpha",
             () =>

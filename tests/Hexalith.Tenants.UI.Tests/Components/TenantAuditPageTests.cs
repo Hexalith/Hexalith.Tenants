@@ -9,6 +9,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -662,6 +663,20 @@ public sealed class TenantAuditPageTests : BunitContext
 
     private sealed class StubTenantQueryGateway(params TenantAuditSnapshot[] snapshots) : ITenantQueryGateway
     {
+        /// <summary>
+        /// Explicit because <c>ITenantQueryGateway.GetTenantUsersAsync</c> is no longer a default interface
+        /// method. These stubs previously inherited a silent <c>Unavailable</c> fallback, so a member-read
+        /// regression would have rendered as an outage here rather than failing the build.
+        /// </summary>
+        public Task<TenantUsersSnapshot> GetTenantUsersAsync(
+            TenantUsersRequest request,
+            TenantUsersSnapshot? previous,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            return Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
+        }
+
         private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
 
         public List<TenantAuditRequest> Requests { get; } = [];

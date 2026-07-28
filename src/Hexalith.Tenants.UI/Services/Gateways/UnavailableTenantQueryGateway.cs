@@ -18,7 +18,10 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
         TenantUsersRequest request,
         TenantUsersSnapshot? previous,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
+    }
 
     public Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,

@@ -230,25 +230,29 @@
             </FluentStack>
         }
 
-        @if (CanGoPrevious || Members.HasMore)
-        {
-            <nav class="tenant-members__paging"
-                 data-testid="tenants-member-paging"
-                 aria-label="@Localizer["Tenants.Members.Paging.Label"]">
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              Disabled="@(!CanGoPrevious || Members.IsRefreshing)"
-                              data-testid="tenants-member-previous"
-                              OnClick="RequestPreviousPageAsync">
-                    @Localizer["Tenants.Members.Previous"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              Disabled="@(!Members.HasMore || Members.IsRefreshing)"
-                              data-testid="tenants-member-next"
-                              OnClick="RequestNextPageAsync">
-                    @Localizer["Tenants.Members.Next"]
-                </FluentButton>
-            </nav>
-        }
+    }
+
+    @* Rendered outside the empty/non-empty branches on purpose. Paging forward into a page emptied by
+       concurrent removals previously hid the whole pager, leaving no Previous control and no way back
+       except a full reload -- which resets the member cursor anyway. *@
+    @if (CanGoPrevious || Members.HasMore)
+    {
+        <nav class="tenant-members__paging"
+             data-testid="tenants-member-paging"
+             aria-label="@Localizer["Tenants.Members.Paging.Label"]">
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          Disabled="@(!CanGoPrevious || Members.IsRefreshing)"
+                          data-testid="tenants-member-previous"
+                          OnClick="RequestPreviousPageAsync">
+                @Localizer["Tenants.Members.Previous"]
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          Disabled="@(!Members.HasMore || Members.IsRefreshing)"
+                          data-testid="tenants-member-next"
+                          OnClick="RequestNextPageAsync">
+                @Localizer["Tenants.Members.Next"]
+            </FluentButton>
+        </nav>
     }
 </section>
 

@@ -2781,9 +2781,6 @@
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
     <value>Une autre commande d'autorite plateforme est en cours.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Incomplete" xml:space="preserve">
-    <value>Une preuve de projection actuelle et complète est requise avant d'accorder l'autorité de la plateforme.</value>
-  </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
     <value>La projection de lecture des administrateurs globaux doit etre disponible avant la soumission.</value>
   </data>

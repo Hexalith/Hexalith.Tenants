@@ -86,3 +86,37 @@ The registered policy controls discoverability and route presentation, while `GE
 - `dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false` -- expected: solution builds with no warnings; record the exact asset-graph blocker if the known environment issue recurs.
 - `rg -n "SubmitQueryAsync|/api/v1/queries|QueryRouter|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` -- expected: no production generic-query read path.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md` -- expected: exit 0.
+
+## Scope Attribution — added by code review of Story 1.10 (2026-07-28)
+
+This story's implementation landed inside Story 1.10's commit range rather than under its own key. The
+1.10 review split the scope forward rather than by rewriting history, because commits `7d7b701` and
+`536596f` are published on `origin/main`.
+
+Work belonging to this story, already present in the tree:
+
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs` (+190) — strict tri-state
+  evaluator, `ResolveAdministratorEvidence`, `explicitDenial` veto, `MissingPermission` state.
+- `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs` (-203) —
+  consolidated onto the evaluator above.
+- `src/Hexalith.Tenants.UI/Services/Gateways/{I,}TenantsBffComposition.cs` —
+  `ResolveGlobalAdministratorsAuthorizationAsync`.
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` — `_canReviewGlobalAdministrators`,
+  `GlobalAdministratorsHref`, `tenants-global-administrators-entry`.
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/*` — `IsCompleteEvidence` and surface/reason additions.
+
+Two decisions were transferred here from the 1.10 review because no acceptance criterion in either spec
+covers them. Both are security-relevant and must be resolved against this story's ACs before it closes:
+
+- [ ] [Review][Decision] Principal-resolution precedence was inverted — the circuit `AuthenticationStateProvider`
+  now outranks `HttpContext.User`, where `HttpContext` was previously primary. A circuit whose provider
+  returns an anonymous or not-yet-populated state while `HttpContext.User` is authenticated collapses to
+  `Indeterminate` and fails every configuration grant closed. [TenantConfigurationPrincipalResolver.cs:17-48]
+- [ ] [Review][Decision] `Evaluate` now requires exactly one authenticated identity carrying exactly one
+  literal, non-whitespace, control-char-free `sub` claim. Any handler mapping `sub` to
+  `ClaimTypes.NameIdentifier` (the ASP.NET default), or any principal with two authenticated identities
+  (cookie + bearer), denies a genuine global administrator. Confirm against
+  `docs/production-auth-claim-contract.md`. [TenantsGlobalAdministratorClaims.cs:36-46]
+
+This story has not yet had a review loop (`review_loop_iteration: 0`). Sprint status was moved
+`backlog -> review` to reflect that its code exists and is awaiting that loop.

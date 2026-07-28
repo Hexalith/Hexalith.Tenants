@@ -79,12 +79,18 @@ public class EventPublicationConfigurationTests {
         normalizedProgram.ShouldContain("    _ = eventStore.WithJwtBearerSecurity(security);");
         normalizedProgram.ShouldContain(".WithOpenIdConnectSecurity(");
 
-        // The generated external Tenants API is a separate AppHost resource. The UI talks to EventStore directly,
-        // so the old Tenants__BaseAddress BFF hop must not come back.
+        // The generated external Tenants API is a separate AppHost resource.
         program.ShouldContain("IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenantsApi>(\"tenants-api\")");
         program.ShouldContain("AppId = \"tenants-api\"");
         normalizedProgram.ShouldContain("    _ = tenantsApi.WithEventStoreClientCredentials(security);");
-        program.ShouldNotContain("Tenants__BaseAddress");
+
+        // Story 1.10 reversed the earlier "the UI talks to EventStore directly" rule: the six canonical reads
+        // now go direct to the Tenants REST API, so the UI needs both the reference and the base address.
+        // The previous assertion here (ShouldNotContain("Tenants__BaseAddress")) described the pre-1.10
+        // architecture and is retired -- keeping it would have made the read transport unreachable in every
+        // deployment while still passing CI.
+        program.ShouldContain("Tenants__BaseAddress");
+        program.ShouldContain(".WithReference(tenantsApi)");
 
         // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
         // AppHost composition (the helper adds only the service runtime).

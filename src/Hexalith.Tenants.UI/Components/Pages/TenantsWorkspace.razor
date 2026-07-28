@@ -653,7 +653,7 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false, bool retainConfirmed = false)
+    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false)
     {
         // A disposed component must never issue another load: it would keep consuming and mutating the
         // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
@@ -669,10 +669,7 @@
         _loadCancellation = new CancellationTokenSource();
         CancellationToken cancellationToken = _loadCancellation.Token;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
-        if (!retainConfirmed)
-        {
-            _snapshot = TenantListSnapshot.Loading();
-        }
+        _snapshot = TenantListSnapshot.Loading();
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;

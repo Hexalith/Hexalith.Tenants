@@ -2781,9 +2781,6 @@
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
     <value>Another platform authority command is in flight.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Incomplete" xml:space="preserve">
-    <value>Current complete projection evidence is required before granting platform authority.</value>
-  </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
     <value>The global administrator read projection must be available before grant can be submitted.</value>
   </data>

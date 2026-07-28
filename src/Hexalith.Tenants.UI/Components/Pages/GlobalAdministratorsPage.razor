@@ -2,6 +2,7 @@
 @* Platform authority is enforced by the rendered fail-closed state below, not by endpoint
    authorization: the host registers an authentication scheme only when OIDC is configured, so an
    [Authorize] attribute would make the authorization middleware challenge and fault the route. *@
+@using Microsoft.Extensions.Logging
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
@@ -485,6 +486,13 @@
     private long _authorizationTransitionVersion;
     private CancellationTokenSource? _loadCancellation;
     private CancellationTokenSource? _mutationCancellation;
+
+    // Superseded cancellation sources awaiting disposal. Disposing one at the moment it is replaced races
+    // the request still inside SendAsync: a CancellationToken.Register performed after Dispose throws
+    // ObjectDisposedException, which is not an OperationCanceledException and so slips past every caller's
+    // cancellation-only handler. They are cancelled immediately (which is what callers observe) and disposed
+    // once clearly finished, or at teardown.
+    private readonly List<CancellationTokenSource> _supersededCancellations = [];
     private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
@@ -658,10 +666,15 @@
                                             ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"].Value
                                             : null;
 
+    // Only server-stated population counts. _cursorHistory is client-local paging bookkeeping: it records
+    // that this circuit navigated forward at some point, which says nothing about how many administrators
+    // exist *now*. Treating it as evidence let the last-administrator hard stop fail open -- on page 2 the
+    // completeness gate is false, so the LastAdmin branch is skipped, and a non-empty history alone then
+    // enabled Remove against a platform that may have exactly one administrator left. HasMore is kept
+    // because it is the service's own statement that rows exist beyond the current page.
     private bool HasPositiveRemovalPopulationEvidence
         => (_snapshot.IsCompleteEvidence && _snapshot.Rows.Count > 1)
-        || _snapshot.HasMore
-        || _cursorHistory.Count > 0;
+        || _snapshot.HasMore;
 
     private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
 
@@ -908,6 +921,24 @@
         }
     }
 
+    /// <summary>
+    /// Records that optional notification setup failed, using a fixed reason code only.
+    /// </summary>
+    /// <remarks>
+    /// The catch below is deliberately broad, so without this the surface could stop auto-refreshing for the
+    /// whole circuit with no signal anywhere. The logger is resolved optionally and the message carries a
+    /// constant reason code — no tenant id, projection scope, transport detail, or exception is emitted.
+    /// </remarks>
+    private void LogNotificationSetupFailure()
+    {
+        if (Services.GetService(typeof(ILoggerFactory)) is ILoggerFactory loggerFactory)
+        {
+            loggerFactory
+                .CreateLogger<GlobalAdministratorsPage>()
+                .LogWarning("Optional projection refresh setup failed. ReasonCode={NotificationReasonCode}", "notification-setup-failed");
+        }
+    }
+
     private async Task EnsureReadRefreshLeaseAsync()
     {
         if (_disposed
@@ -921,7 +952,7 @@
         }
 
         _readRefreshSubscriptionInFlight = true;
-        IAsyncDisposable? lease = null;
+        TenantReadRefreshLease? lease = null;
         try
         {
             lease = await refreshSubscription.SubscribeAsync(
@@ -935,11 +966,21 @@
                 return;
             }
 
+            if (!lease.IsSubscribed)
+            {
+                // Setup registered no callback. Storing it would satisfy the "_readRefreshLease is not null"
+                // guard above forever, permanently disabling auto-refresh for this circuit.
+                return;
+            }
+
             _readRefreshLease = lease;
             lease = null;
         }
         catch
         {
+            // Optional nudge only; never surface transport detail. The reason code is recorded so a
+            // permanently non-refreshing surface is diagnosable instead of silent.
+            LogNotificationSetupFailure();
             if (lease is not null)
             {
                 await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
@@ -960,9 +1001,8 @@
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
             _authenticationStateProvider = null;
         }
-        _loadGeneration++;
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Interlocked.Increment(ref _loadGeneration);
+        Retire(_loadCancellation);
         _loadCancellation = null;
         InvalidateMutations();
         IAsyncDisposable? lease = _readRefreshLease;
@@ -971,6 +1011,13 @@
         {
             await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
+
+        foreach (CancellationTokenSource superseded in _supersededCancellations)
+        {
+            superseded.Dispose();
+        }
+
+        _supersededCancellations.Clear();
     }
 
     private async Task NextPageAsync()
@@ -1029,33 +1076,57 @@
 
     private (long Generation, CancellationToken CancellationToken) BeginLoad()
     {
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Retire(_loadCancellation);
         _loadCancellation = new CancellationTokenSource();
-        return (++_loadGeneration, _loadCancellation.Token);
+        return (Interlocked.Increment(ref _loadGeneration), _loadCancellation.Token);
+    }
+
+    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
+    private void Retire(CancellationTokenSource? source)
+    {
+        if (source is null)
+        {
+            return;
+        }
+
+        source.Cancel();
+        _supersededCancellations.Add(source);
+
+        // Anything older than the two most recent supersessions cannot still be awaited: each entry was
+        // cancelled before the next one was created. Disposing them here keeps the list bounded on a
+        // long-lived circuit without reintroducing the dispose-while-in-flight race.
+        while (_supersededCancellations.Count > 2)
+        {
+            _supersededCancellations[0].Dispose();
+            _supersededCancellations.RemoveAt(0);
+        }
     }
 
     private bool CanApply(long generation)
-        => !_disposed && generation == _loadGeneration;
+        => !_disposed && generation == Volatile.Read(ref _loadGeneration);
 
     private (long Generation, CancellationToken CancellationToken) BeginMutation()
     {
-        _mutationCancellation?.Cancel();
-        _mutationCancellation?.Dispose();
+        Retire(_mutationCancellation);
         _mutationCancellation = new CancellationTokenSource();
-        return (++_mutationGeneration, _mutationCancellation.Token);
+        return (Interlocked.Increment(ref _mutationGeneration), _mutationCancellation.Token);
     }
 
     private void InvalidateMutations()
     {
-        _mutationGeneration++;
-        _mutationCancellation?.Cancel();
-        _mutationCancellation?.Dispose();
+        Interlocked.Increment(ref _mutationGeneration);
+        Retire(_mutationCancellation);
         _mutationCancellation = null;
+
+        // Cancelling or superseding an in-flight submit moves the generation forward, so the owning
+        // submit's finally can no longer clear its own flag (CanApplyMutation is false). Clearing here
+        // keeps grant/remove reachable; leaving it set pinned "in flight" for the rest of the circuit.
+        _isGrantSubmitting = false;
+        _isRemoveSubmitting = false;
     }
 
     private bool CanApplyMutation(long generation)
-        => !_disposed && IsAuthorized && generation == _mutationGeneration;
+        => !_disposed && IsAuthorized && generation == Volatile.Read(ref _mutationGeneration);
 
     private static bool IsSuccessfulPage(GlobalAdministratorsSnapshot? snapshot)
         => snapshot?.Kind is GlobalAdministratorsSurfaceKind.Ready
@@ -1180,7 +1251,7 @@
             Interlocked.Increment(ref _authorizationTransitionVersion);
         }
 
-        _loadGeneration++;
+        Interlocked.Increment(ref _loadGeneration);
         _loadCancellation?.Cancel();
         InvalidateMutations();
         IAsyncDisposable? lease = _readRefreshLease;
@@ -1394,6 +1465,13 @@
 
     private async Task RequeryGrantProjectionAsync(long generation)
     {
+        await InvokeAsync(() =>
+        {
+            // The re-query below deliberately renders page one; reset the cursor state that describes the
+            // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
+            _cursorHistory.Clear();
+            _currentCursor = null;
+        }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,
@@ -1541,6 +1619,13 @@
 
     private async Task RequeryRemoveProjectionAsync(long generation)
     {
+        await InvokeAsync(() =>
+        {
+            // The re-query below deliberately renders page one; reset the cursor state that describes the
+            // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
+            _cursorHistory.Clear();
+            _currentCursor = null;
+        }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,

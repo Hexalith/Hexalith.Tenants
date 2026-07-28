@@ -24,20 +24,20 @@ Deliver the complete read-only tenant-management experience so operators, owners
 ## Requirements & Constraints
 
 - Cover tenant triage, deep-linked overview, My Tenants, user-membership lookup, authorized configuration, member/access review, and global-administrator review. User lookup is not an exhaustive directory; platform authority remains distinct from tenant membership.
-- Lists use opaque cursors, deterministic sorting, exact status filtering, and authorization-safe results. `loading`, `empty`, `filtered-empty`, `error`, `stale`, and `degraded` remain distinct; search failure must not block the normal list.
+- Lists use opaque cursors, deterministic sorting, exact status filtering, and authorization-safe results. `loading`, `empty`, `filtered-empty`, `error`, `stale`, and `degraded` remain distinct; invalid or stale cursor state restarts at page 1 with an honest localized notice; search failure must not block the normal list.
 - Freshness requires authoritative read-model provenance. Missing provenance is `unknown`; HTTP success, request/cache time, indexed data, command status, and live notifications are not proof. Safety-sensitive availability fails closed when freshness or authorization is indeterminate.
 - APIs and domain logic enforce authorization; the UI only reflects it. Routes, errors, empty states, and component state must not reveal hidden tenants, memberships, configuration namespaces, administrator identities, counts, or existence.
-- Only explicitly support-safe identifiers may be copied, preserving the caller-supplied literal. Tokens, protected cursors, ETags, payloads, internal correlations, raw metadata, stack traces, and PII remain absent from every output channel.
+- Sensitive configuration values and unsafe internals must never reach rendered component state, DOM, announcements, clipboard, logs, or telemetry. Only explicitly support-safe identifiers may be copied, preserving the caller-supplied literal. Tokens, protected cursors, ETags, payloads, internal correlations, raw metadata, stack traces, and PII remain absent from every output channel.
 - Typical warm list/detail/member reads target roughly one-second interaction. Each surface needs focused authorization, support-safety, localization, responsive, accessibility, and conformance evidence with selectors independent of text, color, row data, or generated markup.
 
 ## Technical Decisions
 
 - Use the domain-owned .NET 10 Blazor InteractiveServer host through FrontComposer and Fluent UI Blazor V5. Tenants owns domain behavior and copy; reusable UI infrastructure remains platform-owned or uses an approved fallback.
-- Components use server-side BFF contracts only. Six reads go directly to Tenants REST; commands and status lookup remain on EventStore. Do not use the generic query route or add backend endpoints.
+- Components use server-side BFF contracts only. Six reads go directly to Tenants REST; commands and status lookup remain on EventStore. Query and command service references remain separate, each failing closed on its own side without falling back to the other. Do not use the generic query route or add backend endpoints.
 - Preserve ETag, projection-version, and freshness metadata inside the BFF. Use the shared EventStore freshness model, separate last-confirmed data from refresh intent, and reject metadata-deficient responses as proof. SignalR only triggers re-query.
 - Treat TenantId and UserId as case-sensitive caller-supplied strings, not GUIDs, ULIDs, or emails. Encode routes safely and copy authorized values literally.
 - Memories supplies ordered tenant-id candidates only. The BFF deduplicates, authorization-filters, and hydrates them through authoritative reads; indexed content is never row truth. Bind protected cursors to user and search scope; invalidation restarts at page 1 honestly.
-- The UI owns no datastore. Orchestration, health, telemetry, secrets, DataProtection, and production scaling remain platform responsibilities; do not expand transitional repository orchestration.
+- The UI owns no datastore. Orchestration, health, telemetry, secrets, DataProtection, and production scaling remain platform responsibilities; do not expand transitional repository orchestration. Multi-replica InteractiveServer remains unapproved until shared key protection, session routing, and cursor durability are verified.
 
 ## UX & Interaction Patterns
 

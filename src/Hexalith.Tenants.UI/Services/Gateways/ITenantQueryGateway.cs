@@ -28,13 +28,15 @@ public interface ITenantQueryGateway {
         TenantDetailSnapshot? previous,
         CancellationToken cancellationToken = default);
 
+    /// <remarks>
+    /// Abstract, like every other member. As a default implementation returning <c>Unavailable</c>, any
+    /// gateway, decorator, or test double that forgot to implement it compiled and resolved cleanly while
+    /// rendering "members cannot be loaded right now" — indistinguishable from a real outage.
+    /// </remarks>
     Task<TenantUsersSnapshot> GetTenantUsersAsync(
         TenantUsersRequest request,
         TenantUsersSnapshot? previous,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
-        return Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
-    }
+        CancellationToken cancellationToken = default);
 
     Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,

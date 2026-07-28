@@ -19,9 +19,14 @@ namespace Hexalith.Tenants.IntegrationTests;
 [DaprTestSerialization]
 [Trait("Category", "Integration")]
 public sealed class TenantsUiRouteSmokeTests : IDisposable {
-    private const string TenantsListUnavailableMarker = "data-testid=\"tenants-list-error\"";
-    private const string TenantsDetailUnavailableMarker = "data-testid=\"tenants-detail-error\"";
-    private const string TenantsAuditUnavailableMarker = "data-testid=\"tenants-audit-unavailable\"";
+    // Story 1.10 review: AppHost now supplies Tenants__BaseAddress, so these routes no longer render the
+    // "read surface missing" state. With a composed read surface and an unauthenticated hosted request they
+    // render authorization-safe absence instead -- which is the distinction the acceptance criteria require
+    // (empty, unauthorized, not-found, error and degraded must stay distinct). Asserting the old
+    // unavailable markers here would have re-pinned the HOST-REF-1 gap as if it were intended behavior.
+    private const string TenantsListUnauthorizedMarker = "data-testid=\"tenants-list-unauthorized\"";
+    private const string TenantsDetailUnauthorizedMarker = "data-testid=\"tenants-detail-unauthorized\"";
+    private const string TenantsAuditUnauthorizedMarker = "data-testid=\"tenants-audit-unauthorized\"";
     private static readonly TimeSpan UiRouteReadinessTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan UiRouteReadinessDelay = TimeSpan.FromMilliseconds(250);
     private readonly IDisposable _daprTestLease;
@@ -38,47 +43,46 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
     }
 
     [DaprFact]
-    public async Task Tenants_workspace_route_renders_unavailable_state_without_direct_host_reference() {
+    public async Task Tenants_workspace_route_renders_authorization_safe_absence_in_hosted_ui() {
         _fixture.SkipIfUnavailable();
 
-        string markup = await GetHostedUiMarkupWhenReadyAsync("/tenants", TenantsListUnavailableMarker)
+        string markup = await GetHostedUiMarkupWhenReadyAsync("/tenants", TenantsListUnauthorizedMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-workspace\"");
         markup.ShouldContain("data-testid=\"tenants-list-search\"");
         markup.ShouldContain("data-testid=\"tenants-list-refresh\"");
-        markup.ShouldContain(TenantsListUnavailableMarker);
-        markup.ShouldContain("Tenants unavailable");
+        markup.ShouldContain(TenantsListUnauthorizedMarker);
+        markup.ShouldContain("Sign in required");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
         markup.ShouldNotContain("tenant-1", Case.Insensitive);
+        markup.ShouldNotContain("access_token", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task Tenant_detail_route_renders_unavailable_state_without_direct_host_reference() {
+    public async Task Tenant_detail_route_renders_authorization_safe_absence_in_hosted_ui() {
         _fixture.SkipIfUnavailable();
 
         string markup = await GetHostedUiMarkupWhenReadyAsync(
                 "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha",
-                TenantsDetailUnavailableMarker)
+                TenantsDetailUnauthorizedMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-detail\"");
         markup.ShouldContain("data-testid=\"tenants-detail-back\"");
         markup.ShouldContain("href=\"/tenants?search=alpha\"");
-        markup.ShouldContain(TenantsDetailUnavailableMarker);
-        markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("Tenant detail unavailable");
+        markup.ShouldContain(TenantsDetailUnauthorizedMarker);
         markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task Tenant_audit_route_renders_scoped_context_and_unavailable_state_without_direct_host_reference() {
+    public async Task Tenant_audit_route_renders_scoped_context_and_authorization_safe_absence_in_hosted_ui() {
         _fixture.SkipIfUnavailable();
 
         string markup = await GetHostedUiMarkupWhenReadyAsync(
                 "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%3Fsearch%3Dalpha%26selected%3Dtenant.alpha&returnFocus=tenants-member-operator.support-01",
-                TenantsAuditUnavailableMarker)
+                TenantsAuditUnauthorizedMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-audit-surface\"");
@@ -89,16 +93,16 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-audit-back\"");
         markup.ShouldContain("href=\"/tenants?search=alpha");
         markup.ShouldContain("selected=tenant.alpha");
-        markup.ShouldContain(TenantsAuditUnavailableMarker);
-        markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("The tenant audit read surface is unavailable");
+        markup.ShouldContain(TenantsAuditUnauthorizedMarker);
+        markup.ShouldContain("Audit access unavailable");
+        markup.ShouldContain("You are not authorized to view tenant audit entries");
         markup.ShouldNotContain("data-testid=\"tenants-audit-row\"");
         markup.ShouldNotContain("raw payload", Case.Insensitive);
         markup.ShouldNotContain("access_token", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task My_tenants_route_renders_unavailable_self_audit_state_without_direct_host_reference() {
+    public async Task My_tenants_route_renders_unverified_self_audit_state_in_hosted_ui() {
         _fixture.SkipIfUnavailable();
 
         using HttpResponseMessage response = await _fixture.TenantsUiClient
@@ -113,7 +117,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-my-back\"");
         markup.ShouldContain("data-testid=\"tenants-my-error\"");
         markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("My Tenants is unavailable");
+        markup.ShouldContain("The signed-in user could not be verified for this self-audit view");
         markup.ShouldNotContain("data-testid=\"tenants-my-row\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
         markup.ShouldNotContain("access_token", Case.Insensitive);

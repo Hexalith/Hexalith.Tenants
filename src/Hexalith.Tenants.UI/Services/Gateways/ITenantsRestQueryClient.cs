@@ -5,7 +5,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// <summary>
 /// Provides the server-only typed Tenants REST read surface.
 /// </summary>
-internal interface ITenantsRestQueryClient
+public interface ITenantsRestQueryClient
 {
     /// <summary>Reads the authorized tenant page.</summary>
     Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> ListTenantsAsync(

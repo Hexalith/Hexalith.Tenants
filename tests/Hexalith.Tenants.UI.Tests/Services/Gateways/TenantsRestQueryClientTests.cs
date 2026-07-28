@@ -204,6 +204,79 @@ public sealed class TenantsRestQueryClientTests
             : TenantsRestQueryFailureKind.InvalidMetadata);
     }
 
+    /// <summary>
+    /// A base address carrying a path prefix must keep that prefix on every read.
+    /// </summary>
+    /// <remarks>
+    /// The URI was previously built from the authority alone, so a gateway or reverse-proxy address such as
+    /// https://host/tenants-api/ silently retargeted all six reads at https://host/api/... . Those 404s map
+    /// to NotFound, which renders as authorization-safe absence — a misconfiguration presented as "no data".
+    /// Every existing test used a path-less base address, so the case was unobservable.
+    /// </remarks>
+    [Fact]
+    public async Task Configured_base_address_path_prefix_is_preserved_on_direct_reads()
+    {
+        var handler = new RecordingHandler(Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"));
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://gateway.invalid/tenants-api/"),
+        };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        _ = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        handler.Requests[0].PathAndQuery.ShouldBe("/tenants-api/api/tenants?pageSize=20");
+    }
+
+    /// <summary>
+    /// Page-one recovery follows only an explicit contract signal, never a bare 400.
+    /// </summary>
+    /// <remarks>
+    /// The service states an invalid cursor through the Problem Details <c>reason</c> extension carrying the
+    /// shared <c>invalid-cursor</c> sentinel. Without reading it the client emitted "InvalidRequest" for
+    /// every 400, so the gateway's recovery guards — which match "invalid-cursor" — could never fire in
+    /// production even though their tests passed by constructing the reason code by hand.
+    /// </remarks>
+    [Fact]
+    public async Task Explicit_invalid_cursor_reason_is_distinguished_from_a_plain_bad_request()
+    {
+        var signalled = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                "{\"type\":\"about:blank\",\"title\":\"Bad Request\",\"status\":400,\"reason\":\"invalid-cursor\"}",
+                Encoding.UTF8,
+                "application/problem+json"),
+        };
+        var plain = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                "{\"type\":\"about:blank\",\"title\":\"Bad Request\",\"status\":400}",
+                Encoding.UTF8,
+                "application/problem+json"),
+        };
+        var handler = new RecordingHandler(signalled, plain);
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://tenants.invalid"),
+        };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> signalledResult = await client.ListTenantsAsync(
+            new ListTenantsQuery { Cursor = "expired", PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> plainResult = await client.ListTenantsAsync(
+            new ListTenantsQuery { Cursor = "expired", PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        signalledResult.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidCursor);
+        plainResult.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
+    }
+
     [Fact]
     public async Task Request_and_response_etags_are_bounded_and_malformed_values_fail_closed()
     {

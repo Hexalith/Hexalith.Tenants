@@ -522,10 +522,17 @@ hydration.
 
 Tenant member rows and paging are backed only by the dedicated tenant-users snapshot. Component tests
 cover disjoint detail/member data, projection-version action gating, visible-page labeling, Next/Previous
-history, page-one recovery, duplicate suppression, route and overlapping-load generations, retained rows
-during notification refresh, exact producer/subscriber notification pairs, lease reference counting and
-late disposal, and no unauthorized global-administrator subscription. EN/FR, accessibility, safe DOM,
-diagnostic, and command/status regressions are included in the full UI gate.
+history, route and overlapping-load generations, retained rows during notification refresh, exact
+producer/subscriber notification pairs, lease reference counting and late disposal, and no unauthorized
+global-administrator subscription. EN/FR, accessibility, safe DOM, diagnostic, and command/status
+regressions are included in the full UI gate.
+
+Corrected 2026-07-28 (code review loop 2): this paragraph previously also claimed member "page-one
+recovery" and "duplicate suppression" coverage. Neither was true. The recovery branch keyed on
+`TenantUsersReason.ListRefreshed`, which the only call site could never produce, and no test clicked twice
+while a page load was in flight. Page-one recovery is now reachable — it keys on the explicitly signalled
+`TenantUsersReason.InvalidCursor` — but neither behavior has a dedicated test yet; both remain open
+`[Review][Patch]` items on the story spec.
 
 The full `IntegrationTests` lane — never run by the earlier record, which filtered to the generated
 controller class — caught two real breaks in the hosted global-administrators route, both now fixed. The
@@ -563,3 +570,42 @@ the story range back to `baseline_commit`.
 - `HOST-REF-1` remains open: the unchanged transitional AppHost does not provide the Tenants service
   reference/`Tenants:BaseAddress`, so no authenticated live-host REST proof is claimed. See the dated
   Story 1.10 evidence report for exact producer-pair, route, metadata, host, and build-graph evidence.
+
+## Story 1.10 — code review loop 2 (2026-07-28)
+
+Executed on the reviewed tree at the current `references/` pointers (`HexalithTenantsVersion 5.0.0`,
+`HexalithMemoriesVersion 2.19.4`), not the baseline pins the original Story 1.10 record used.
+
+| Lane | Result |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror` | PASS — 0 warnings, 0 errors |
+| Solution test lane (`Hexalith.Tenants.slnx`) | PASS — 2,726 passed, 1 skipped, 0 failed |
+| UI | PASS — 1,431 passed |
+| IntegrationTests (`Category!=Performance`) | PASS — 167 passed, 1 skipped |
+| Contracts / Client / Testing / Server / Sample | PASS — 120 / 50 / 181 / 738 / 39 |
+| `validate-story-gitlinks.py` | PASS — exit 0 (declared, not reverted) |
+
+Coverage added by the review, each pinning a fix that no existing test could observe:
+
+- `Composed_read_graph_resolves_without_a_dependency_cycle` — resolves the real graph instead of inspecting
+  `ServiceDescriptor`s. The previous tests could not see the container cycle that threw as soon as
+  `Tenants:BaseAddress` was configured.
+- `Service_discovery_base_address_forms_compose_a_real_read_gateway` — `https+http://` must survive the
+  scheme gate, since `AddServiceDiscovery` is attached to the same client.
+- `Bff_composition_read_surface_fails_closed_when_availability_is_not_composed` — an unregistered read
+  surface must read as disconnected; it previously reported connected.
+- `Configured_base_address_path_prefix_is_preserved_on_direct_reads` — every prior test used a path-less
+  base address, so silently dropping a proxy path prefix was unobservable.
+- `Explicit_invalid_cursor_reason_is_distinguished_from_a_plain_bad_request` — page-one recovery now follows
+  the Problem Details `reason` sentinel; a bare 400 still does not.
+- `Get_global_administrators_unconditional_retry_failure_retains_confirmed_rows` (+ mismatched-validator
+  counterpart) — pressing Retry previously destroyed the rows it was meant to recover.
+- `Get_tenant_users_missing_payload_without_retained_rows_is_an_error_state` and
+  `Get_tenant_users_contains_unexpected_transport_faults`.
+- `Single_row_page_without_complete_evidence_keeps_removal_unavailable` — client-local cursor history is no
+  longer accepted as proof that another global administrator exists.
+- `Mobile_read_only_notice_and_mutation_launchers_are_present_in_the_rendered_dom` — replaces a regex over
+  the raw `.razor.css`, which passed while the notice was permanently visible on desktop.
+
+Known remaining test-efficacy gaps are recorded as unchecked `[Review][Patch]` items in
+`spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`.

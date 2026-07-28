@@ -3,8 +3,11 @@
 }
 
 /* fc-css-exception: the mobile-only safety notice is paired with hidden high-impact command
-   regions at the same breakpoint; Fluent components do not own responsive visibility. */
-.global-admins__mobile-readonly {
+   regions at the same breakpoint; Fluent components do not own responsive visibility.
+   ::deep is required because the class is applied to a FluentMessageBar -- a child component, whose
+   rendered element never receives this component's CSS-isolation scope attribute. Without it the rule
+   compiled to a scoped selector that matched no node and the notice showed at every width. */
+::deep .global-admins__mobile-readonly {
     display: none;
 }
 
@@ -193,14 +196,18 @@
 
 @media (max-width: 42rem) {
     /* fc-css-exception: mobile is deliberately read-only for platform-authority mutations; the
-       localized notice remains visible beside the usable review, paging, copy, and recovery UI. */
-    .global-admins__mutation-section .global-admins__mutation-initiation {
+       localized notice remains visible beside the usable review, paging, copy, and recovery UI.
+       The second selector covers the per-row Remove launcher: it is a FluentButton (so it carries no
+       scope attribute) and it renders inside the List accordion item, which is not a mutation section --
+       the descendant rule alone could never match it, leaving remove reachable on narrow viewports. */
+    .global-admins__mutation-section .global-admins__mutation-initiation,
+    ::deep .global-admins__mutation-initiation {
         display: none;
     }
 
     /* fc-css-exception: responsive visibility for the localized explanation paired with the
-       hidden mutation regions above. */
-    .global-admins__mobile-readonly {
+       hidden mutation regions above. ::deep for the same child-component reason as the base rule. */
+    ::deep .global-admins__mobile-readonly {
         display: block;
     }
 

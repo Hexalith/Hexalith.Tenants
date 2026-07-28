@@ -11,6 +11,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -269,6 +270,41 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-return']").GetAttribute("href").ShouldBe(expected);
         cut.Markup.ShouldNotContain("protected-secret");
         cut.Markup.ShouldNotContain("evil.example");
+    }
+
+    /// <summary>
+    /// Client-local paging history is not evidence that other administrators exist.
+    /// </summary>
+    /// <remarks>
+    /// On a later page the completeness gate is false, so the LastAdmin branch is skipped. The population
+    /// check then accepted a non-empty cursor history — which only records that this circuit navigated
+    /// forward at some point — and enabled Remove against what may be the platform's last global
+    /// administrator. Only server-stated evidence (complete evidence with more than one row, or HasMore)
+    /// may unlock removal.
+    /// </remarks>
+    [Fact]
+    public void Single_row_page_without_complete_evidence_keeps_removal_unavailable()
+    {
+        GlobalAdministratorsSnapshot lastPage = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            IsCompleteEvidence = false,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(lastPage));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.FindAll("[data-testid='tenants-global-admins-remove-reason']").ShouldNotBeEmpty(
+            "removal must fail closed when no server evidence proves another administrator exists");
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty(
+            "the remove launcher must not render while removal is unavailable");
     }
 
     [Fact]
@@ -973,13 +1009,54 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         styles.ShouldContain(".global-admins__remove-lifecycle:focus-visible");
         styles.ShouldContain(".global-admins__remove-state-symbol");
         styles.ShouldContain("@media (max-width: 42rem)");
-        styles.ShouldContain(".global-admins__mobile-readonly");
-        styles.ShouldContain(".global-admins__mutation-section");
-        System.Text.RegularExpressions.Regex.IsMatch(
-            styles,
-            @"@media \(max-width: 42rem\).*?\.global-admins__mutation-section\s+\.global-admins__mutation-initiation\s*\{\s*display:\s*none;\s*\}.*?\.global-admins__mobile-readonly\s*\{\s*display:\s*block;\s*\}",
-            System.Text.RegularExpressions.RegexOptions.Singleline).ShouldBeTrue();
         styles.ShouldContain("overflow-wrap: anywhere");
+
+        // The mobile read-only rules target classes applied to Fluent child components, whose rendered
+        // elements never receive this component's CSS-isolation scope attribute. Without ::deep the compiled
+        // selectors match no node, so both rules must carry it or the breakpoint silently does nothing.
+        styles.ShouldContain("::deep .global-admins__mobile-readonly");
+        styles.ShouldContain("::deep .global-admins__mutation-initiation");
+    }
+
+    /// <summary>
+    /// Pins the classes the mobile read-only breakpoint depends on to the rendered DOM.
+    /// </summary>
+    /// <remarks>
+    /// The stylesheet assertions above cannot show that any element actually carries these classes. The
+    /// previous regex-only check passed while the notice was permanently visible on desktop and while the
+    /// per-row Remove launcher sat outside every selector the breakpoint could match, so dropping a class
+    /// from the markup changed nothing it observed.
+    /// </remarks>
+    [Fact]
+    public void Mobile_read_only_notice_and_mutation_launchers_are_present_in_the_rendered_dom()
+    {
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            IsCompleteEvidence = true,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.FindAll("[data-testid='tenants-global-admins-mobile-readonly']")
+            .ShouldNotBeEmpty("the mobile read-only notice must exist for the breakpoint rule to reveal it");
+        cut.FindAll(".global-admins__mobile-readonly")
+            .ShouldNotBeEmpty("the notice must carry the class the breakpoint rule targets");
+
+        // Every per-row Remove launcher must be hideable, not just the grant/remove panel controls.
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2);
+        cut.FindAll(".global-admins__mutation-initiation").Count.ShouldBeGreaterThanOrEqualTo(3);
     }
 
     [Fact]
@@ -1053,6 +1130,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
     private sealed class StubTenantQueryGateway(params GlobalAdministratorsSnapshot[] snapshots) : ITenantQueryGateway
     {
+        /// <summary>
+        /// Explicit because <c>ITenantQueryGateway.GetTenantUsersAsync</c> is no longer a default interface
+        /// method. These stubs previously inherited a silent <c>Unavailable</c> fallback, so a member-read
+        /// regression would have rendered as an outage here rather than failing the build.
+        /// </summary>
+        public Task<TenantUsersSnapshot> GetTenantUsersAsync(
+            TenantUsersRequest request,
+            TenantUsersSnapshot? previous,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            return Task.FromResult(TenantUsersSnapshot.Unavailable(request.TenantId));
+        }
+
         private readonly Queue<GlobalAdministratorsSnapshot> _snapshots = new(snapshots);
         private readonly Queue<Task<GlobalAdministratorsSnapshot>> _queuedResponses = [];
 

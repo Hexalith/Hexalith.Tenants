@@ -4410,6 +4410,130 @@ public sealed class TenantQueryGatewayTests
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
     }
 
+    /// <summary>
+    /// An unconditional retry that fails must keep the confirmed rows it was meant to recover.
+    /// </summary>
+    /// <remarks>
+    /// Retention required a non-empty request ETag, but "Retry" deliberately refreshes without a validator.
+    /// The guard therefore evaluated false on exactly the action offered for recovery, the snapshot
+    /// collapsed to Error with an empty row set, and pressing Retry became the thing that destroyed the
+    /// confirmed data.
+    /// </remarks>
+    [Fact]
+    public async Task Get_global_administrators_unconditional_retry_failure_retains_confirmed_rows()
+    {
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: null),
+                previous,
+                CancellationToken.None);
+
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
+    }
+
+    /// <summary>
+    /// A mismatched request validator still blocks retention.
+    /// </summary>
+    [Fact]
+    public async Task Get_global_administrators_failure_with_mismatched_validator_does_not_retain_rows()
+    {
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: "\"different\""),
+                previous,
+                CancellationToken.None);
+
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A first member load with nothing retained is an error, not retained degradation.
+    /// </summary>
+    /// <remarks>
+    /// Degraded describes confirmed rows held under reduced confidence. Reporting it with no prior snapshot
+    /// rendered an empty table as though it carried previously-confirmed data. The audit sibling already
+    /// returned a true error state for the same condition.
+    /// </remarks>
+    [Fact]
+    public async Task Get_tenant_users_missing_payload_without_retained_rows_is_an_error_state()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
+                null,
+                ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current, projectionVersion: "v1"),
+                ReadModelFreshnessState.Current,
+                TenantsRestQueryFailureKind.None,
+                200));
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns("operator-user");
+
+        TenantUsersSnapshot snapshot = await new TenantQueryGateway(
+                client,
+                userContext,
+                new StubMemoriesClient(),
+                new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()))
+            .GetTenantUsersAsync(new TenantUsersRequest("tenant.alpha"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A transport fault in the member read is contained, not propagated into the render path.
+    /// </summary>
+    /// <remarks>
+    /// This was the only gateway read without exception containment, so a UriFormatException,
+    /// InvalidOperationException from URI construction, or a throw from the bearer-relay handler escaped
+    /// into OnParametersSetAsync — which catches only OperationCanceledException — and tore down the circuit.
+    /// </remarks>
+    [Fact]
+    public async Task Get_tenant_users_contains_unexpected_transport_faults()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns<TenantsRestQueryResponse<PaginatedResult<TenantMember>>>(
+                _ => throw new InvalidOperationException("the client requires an absolute base address"));
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns("operator-user");
+
+        TenantUsersSnapshot snapshot = await new TenantQueryGateway(
+                client,
+                userContext,
+                new StubMemoriesClient(),
+                new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()))
+            .GetTenantUsersAsync(new TenantUsersRequest("tenant.alpha"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Unavailable);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
     private static QueryResponseMetadata ProjectionBackedMetadata(
         bool? isStale = null,
         bool? isDegraded = null,

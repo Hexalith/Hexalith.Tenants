@@ -23,6 +23,15 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     private const int MaximumETagValueLength = 1024;
     private const int MaximumMetadataValueLength = 4096;
 
+    /// <summary>Upper bound on a Problem Details body inspected for the invalid-cursor sentinel.</summary>
+    private const int MaximumProblemDetailsLength = 8192;
+
+    /// <summary>Top-level property where ASP.NET serializes the Problem Details extension set.</summary>
+    private const string ProblemDetailsReasonProperty = "reason";
+
+    /// <summary>Shared <c>QueryAdapterFailureReason.InvalidCursor</c> sentinel value.</summary>
+    private const string InvalidCursorReason = "invalid-cursor";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() },
@@ -145,8 +154,11 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         {
             throw;
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
+            // Not the caller's token: an internal HttpClient timeout or a linked source inside a delegating
+            // handler. Only TaskCanceledException was caught before, so a plain OperationCanceledException
+            // propagated raw out of the client and past every caller's cancellation-only handler.
             return Failure<TPayload>(TenantsRestQueryFailureKind.Timeout, (int)HttpStatusCode.ServiceUnavailable);
         }
         catch (HttpRequestException)
@@ -175,7 +187,14 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                return Failure<TPayload>(MapFailure(response.StatusCode), statusCode);
+                TenantsRestQueryFailureKind failure = MapFailure(response.StatusCode);
+                if (failure == TenantsRestQueryFailureKind.InvalidRequest
+                    && await HasInvalidCursorSignalAsync(response, cancellationToken).ConfigureAwait(false))
+                {
+                    failure = TenantsRestQueryFailureKind.InvalidCursor;
+                }
+
+                return Failure<TPayload>(failure, statusCode);
             }
 
             TPayload? payload;
@@ -192,7 +211,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             {
                 throw;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 return Failure<TPayload>(TenantsRestQueryFailureKind.Timeout, statusCode);
             }
@@ -300,6 +319,13 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         {
             ProjectionLifecycleState.Current => ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Stale => ReadModelFreshnessState.Stale,
+
+            // An absent lifecycle header with a definite X-Hexalith-Is-Stale is deliberately classified from
+            // that header, not collapsed to Unknown. X-Hexalith-Is-Stale is the platform's freshness wire
+            // signal -- ToQueryResponseMetadata emits current/stale/unknown through it, and Aging is dormant
+            // on the wire -- so a projection-backed, non-degraded `false` is real freshness evidence rather
+            // than an inference from HTTP success. Absent (null) still yields Unknown, and the
+            // non-projection/degraded cases above already fail closed before reaching here.
             ProjectionLifecycleState.Unknown => metadata.IsStale switch
             {
                 false => ReadModelFreshnessState.Current,
@@ -345,6 +371,58 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             ReadModelFreshnessState.Unknown,
             failureKind,
             statusCode);
+
+    /// <summary>
+    /// Detects the shared <c>invalid-cursor</c> sentinel on a <c>400</c> response.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reads exactly one top-level Problem Details property — <c>reason</c>, where ASP.NET serializes the
+    /// extension set — and compares it to a single known literal. Nothing from the body is retained,
+    /// returned, rendered, or logged; the method yields only a boolean. That keeps the "Problem Details are
+    /// neither exposed nor logged" rule intact while still honouring the explicit contract signal the
+    /// service actually sends (<c>QueryExecutionFailedExceptionHandler</c> sets
+    /// <c>Extensions[reason] = QueryAdapterFailureReason.InvalidCursor</c>).
+    /// </para>
+    /// <para>
+    /// Any parse failure, oversized body, or absent property is treated as "no signal", so an
+    /// undifferentiated 400 stays <see cref="TenantsRestQueryFailureKind.InvalidRequest"/> and never
+    /// triggers a silent page-one retry.
+    /// </para>
+    /// </remarks>
+    private static async Task<bool> HasInvalidCursorSignalAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.Content.Headers.ContentLength > MaximumProblemDetailsLength)
+        {
+            return false;
+        }
+
+        try
+        {
+            using Stream content = await response.Content
+                .ReadAsStreamAsync(cancellationToken)
+                .ConfigureAwait(false);
+            using JsonDocument document = await JsonDocument
+                .ParseAsync(content, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty(ProblemDetailsReasonProperty, out JsonElement reason)
+                && reason.ValueKind == JsonValueKind.String
+                && string.Equals(reason.GetString(), InvalidCursorReason, StringComparison.Ordinal);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // A body that cannot be read or parsed carries no signal. Absence of proof is not proof of an
+            // invalid cursor, so the caller keeps the conservative InvalidRequest classification.
+            return false;
+        }
+    }
 
     private static TenantsRestQueryFailureKind MapFailure(HttpStatusCode statusCode)
         => statusCode switch
@@ -458,9 +536,15 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         Uri baseAddress = httpClient.BaseAddress
             ?? throw new InvalidOperationException("The Tenants REST client requires an absolute base address.");
-        string absolute = baseAddress.GetLeftPart(UriPartial.Authority) + path;
+
+        // Keep any path prefix on the configured base address. Building from the authority alone discarded
+        // it, so a gateway or reverse-proxy address such as https://host/tenants-api/ silently retargeted
+        // every read at https://host/api/... -- which 404s, and a 404 renders as authorization-safe absence
+        // rather than as the misconfiguration it is. Canonicalization stays disabled so the dot-only route
+        // escaping applied by EscapeRouteValue is not undone.
+        string basePath = baseAddress.GetLeftPart(UriPartial.Path).TrimEnd('/');
         return new Uri(
-            absolute,
+            basePath + path,
             new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
     }
 

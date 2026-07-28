@@ -186,6 +186,7 @@
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
+    private bool _readRefreshSubscriptionInFlight;
     private bool _isNotificationRefreshing;
     private bool _pageLoadInFlight;
     private bool _disposed;
@@ -418,19 +419,30 @@
             return null;
         }
 
-        if (result.Kind is TenantAuditSurfaceKind.ListRefreshed)
+        // Marshalled for the same reason the _snapshot write above is: these fields are read by
+        // NextPageAsync/PreviousPageAsync and ResolveReceiptSelection on the renderer dispatcher, but this
+        // continuation runs on a thread-pool thread after ConfigureAwait(false).
+        await InvokeAsync(() =>
         {
-            _cursorHistory.Clear();
-            _currentCursor = null;
-        }
+            if (result.Kind is TenantAuditSurfaceKind.ListRefreshed)
+            {
+                _cursorHistory.Clear();
+                _currentCursor = null;
+            }
 
-        ResolveReceiptSelection();
+            ResolveReceiptSelection();
+        }).ConfigureAwait(false);
         return result;
     }
 
     private async Task EnsureReadRefreshSubscriptionAsync(string tenantId)
     {
+        // _subscriptionTenantId is only written after the await below, so without an in-flight guard a second
+        // OnParametersSetAsync for the same tenant passes the entry check mid-setup, subscribes again and
+        // overwrites _readRefreshLease -- orphaning the first lease, whose callback stays registered until
+        // the circuit ends.
         if (_disposed
+            || _readRefreshSubscriptionInFlight
             || string.IsNullOrWhiteSpace(tenantId)
             || !BffComposition.IsReadSurfaceConnected
             || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
@@ -439,29 +451,63 @@
             return;
         }
 
-        CancellationToken cancellationToken = _loadCancellation?.Token ?? CancellationToken.None;
-        IAsyncDisposable lease;
+        _readRefreshSubscriptionInFlight = true;
         try
         {
-            lease = await refreshSubscription.SubscribeAsync(
-                GetTenantAuditQuery.ProjectionType,
-                tenantId,
-                () => InvokeAsync(() => RefreshFromNotificationAsync(tenantId)),
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
+            CancellationToken cancellationToken = _loadCancellation?.Token ?? CancellationToken.None;
+            TenantReadRefreshLease lease;
+            try
+            {
+                lease = await refreshSubscription.SubscribeAsync(
+                    GetTenantAuditQuery.ProjectionType,
+                    tenantId,
+                    () => InvokeAsync(() => RefreshFromNotificationAsync(tenantId)),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch
+            {
+                // Optional refresh only. A transport fault here must not escape OnParametersSetAsync and
+                // tear down the circuit; the surface stays usable through manual and command refresh.
+                return;
+            }
 
-        if (_disposed || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            if (_disposed || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                return;
+            }
+
+            if (!lease.IsSubscribed)
+            {
+                // Setup failed and registered no callback. Recording it would satisfy the "already
+                // subscribed" guard forever and permanently disable auto-refresh for this circuit.
+                return;
+            }
+
+            _readRefreshLease = lease;
+            _subscriptionTenantId = tenantId;
+        }
+        finally
+        {
+            _readRefreshSubscriptionInFlight = false;
+        }
+    }
+
+    /// <summary>Disposes an optional refresh lease without surfacing transport detail.</summary>
+    private static async Task DisposeLeaseSupportSafelyAsync(IAsyncDisposable lease)
+    {
+        try
         {
             await lease.DisposeAsync().ConfigureAwait(false);
-            return;
         }
-
-        _readRefreshLease = lease;
-        _subscriptionTenantId = tenantId;
+        catch
+        {
+            // Lease cleanup must never disclose transport details or block fail-closed rendering.
+        }
     }
 
     private async Task RefreshAsync()
@@ -480,13 +526,35 @@
         {
             await LoadAsync(reuseETag: true, retainConfirmed: true, requestedTenantId: tenantId).ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            // Superseded or torn down; the newer load owns the surface.
+        }
+        catch
+        {
+            // This runs on a notification callback, not on a render path. An unhandled fault here would
+            // escape into the SignalR dispatch loop rather than being rendered, and the nudge is optional
+            // anyway -- the last-confirmed rows stay visible and manual refresh still works.
+        }
         finally
         {
-            await InvokeAsync(() =>
+            // Guard disposal: a notification arriving as the circuit tears down would otherwise call
+            // InvokeAsync on a disposed component and throw ObjectDisposedException.
+            if (!_disposed)
             {
-                _isNotificationRefreshing = false;
-                StateHasChanged();
-            });
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        _isNotificationRefreshing = false;
+                        StateHasChanged();
+                    });
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Disposed between the check above and the dispatch; nothing left to update.
+                }
+            }
         }
     }
 

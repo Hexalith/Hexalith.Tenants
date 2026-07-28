@@ -87,19 +87,110 @@ public sealed class TenantsUiCompositionTests
     [Fact]
     public void Bff_composition_marks_read_and_command_surfaces_connected_after_command_gateway_story()
     {
-        ITenantsBffComposition composition = new TenantsBffComposition(new StubTenantCommandGateway());
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new StubTenantCommandGateway(),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeTrue();
     }
 
+    /// <summary>
+    /// An unregistered read surface must read as disconnected. It previously reported connected, so any
+    /// composition that did not supply the dependency claimed a working read surface with no evidence —
+    /// and that flag gates notification leases and the grant read-surface guard.
+    /// </summary>
+    [Fact]
+    public void Bff_composition_read_surface_fails_closed_when_availability_is_not_composed()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(new StubTenantCommandGateway());
+
+        composition.IsReadSurfaceConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Bff_composition_read_surface_is_disconnected_when_no_tenants_base_address_was_configured()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new StubTenantCommandGateway(),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: false));
+
+        composition.IsReadSurfaceConnected.ShouldBeFalse();
+    }
+
     [Fact]
     public void Bff_composition_keeps_command_surface_disconnected_for_unavailable_gateway()
     {
-        ITenantsBffComposition composition = new TenantsBffComposition(new UnavailableTenantCommandGateway());
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Resolves the composed graph rather than inspecting descriptors, so a container cycle is caught.
+    /// </summary>
+    /// <remarks>
+    /// TenantsBffComposition and TenantQueryGateway each took the other as an optional constructor
+    /// parameter. Optional parameters are still resolved when the service is registered, so the container
+    /// threw "A circular dependency was detected" as soon as Tenants:BaseAddress was configured — that is,
+    /// exactly when the read transport was switched on. Every existing composition test asserted on
+    /// ServiceDescriptors or resolved only ITenantsRestQueryClient, so none of them constructed the graph
+    /// and the cycle was invisible.
+    /// </remarks>
+    [Fact]
+    public void Composed_read_graph_resolves_without_a_dependency_cycle()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+
+        ITenantsBffComposition composition = scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>();
+        ITenantQueryGateway gateway = scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>();
+
+        composition.ShouldNotBeNull();
+        gateway.ShouldNotBeNull();
+        composition.IsReadSurfaceConnected.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The Aspire service-discovery base-address form must survive the scheme gate.
+    /// </summary>
+    /// <remarks>
+    /// AddServiceDiscovery is attached to the same client, so rejecting "https+http://tenants" would make
+    /// the canonical Aspire value silently resolve UnavailableTenantQueryGateway with no diagnostic.
+    /// </remarks>
+    [Theory]
+    [InlineData("https+http://tenants")]
+    [InlineData("http+https://tenants")]
+    [InlineData("http://tenants.invalid")]
+    [InlineData("https://tenants.invalid")]
+    public void Service_discovery_base_address_forms_compose_a_real_read_gateway(string baseAddress)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = baseAddress,
+            })
+            .Build();
+        ServiceCollection services = new();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway))
+            .ImplementationType.ShouldBe(typeof(TenantQueryGateway));
     }
 
     [Theory]
@@ -597,16 +688,36 @@ public sealed class TenantsUiCompositionTests
     }
 
     /// <summary>
-    /// Routable Tenants UI components must not carry endpoint authorization metadata. The standalone
-    /// host only registers an authentication scheme when OIDC is configured, while the module always
-    /// registers authorization services. An <c>[Authorize]</c> attribute therefore makes
-    /// <c>WebApplication</c> insert the authorization middleware, whose challenge path throws
-    /// <see cref="InvalidOperationException"/> for the missing <c>IAuthenticationService</c> — the route
-    /// answers 500 instead of rendering its fail-closed state. Page-level guards are the authority.
+    /// Endpoint authorization metadata is safe only when an authentication scheme is composed alongside it.
+    /// The module always registers authorization services, but the standalone host registers an
+    /// authentication scheme only when OIDC is configured. On that Keycloak-disabled topology an
+    /// <c>[Authorize]</c> attribute makes <c>WebApplication</c> insert the authorization middleware, whose
+    /// challenge path throws <see cref="InvalidOperationException"/> for the missing
+    /// <c>IAuthenticationService</c> — the route answers 500 instead of rendering its fail-closed state.
+    /// <para>
+    /// This is a pairing invariant, not a permanent architectural ban. It is enforced only while the
+    /// composed module resolves no <c>IAuthenticationService</c>. A host that configures OIDC — or a future
+    /// story that composes an authentication scheme in the module — restores endpoint authorization as
+    /// defence-in-depth without changing this test, because the guard below simply stops applying.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata()
+    public void Routable_components_carry_endpoint_authorization_only_when_an_authentication_scheme_is_composed()
     {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        bool hasAuthenticationScheme =
+            provider.GetService<Microsoft.AspNetCore.Authentication.IAuthenticationService>() is not null;
+
         Type[] routableComponents = typeof(TenantsUiServiceCollectionExtensions).Assembly
             .GetTypes()
             .Where(static type => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(type))
@@ -615,14 +726,22 @@ public sealed class TenantsUiCompositionTests
 
         routableComponents.ShouldNotBeEmpty("the routable-component scan must observe real pages to mean anything");
 
+        if (hasAuthenticationScheme)
+        {
+            // Authentication is composed, so the authorization middleware can challenge safely and endpoint
+            // authorization is permitted. Nothing to enforce.
+            return;
+        }
+
         foreach (Type routable in routableComponents)
         {
             routable
                 .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.IAuthorizeData), inherit: true)
                 .ShouldBeEmpty(
-                    $"{routable.FullName} must fail closed through its own rendered state, not through endpoint "
-                    + "authorization, because the host composes authorization without an authentication scheme "
-                    + "whenever OIDC is not configured.");
+                    $"{routable.FullName} carries endpoint authorization metadata, but this composition resolves "
+                    + "no IAuthenticationService, so the authorization middleware would answer 500 instead of "
+                    + "rendering the page's fail-closed state. Either compose an authentication scheme in the "
+                    + "module, or keep the page's rendered guard as the authority on this topology.");
         }
     }
 

@@ -37,7 +37,12 @@ public sealed partial class TenantReadRefreshSubscription(
     /// <param name="refresh">Authoritative direct-read callback.</param>
     /// <param name="cancellationToken">Subscription cancellation.</param>
     /// <returns>A reference-counted lease that detaches only its own callback.</returns>
-    public async Task<IAsyncDisposable> SubscribeAsync(
+    /// <remarks>
+    /// Returns the concrete lease so callers can distinguish a live registration from
+    /// <see cref="TenantReadRefreshLease.Empty"/> via <see cref="TenantReadRefreshLease.IsSubscribed"/>.
+    /// Recording an Empty lease as an established subscription made a transient setup failure permanent.
+    /// </remarks>
+    public async Task<TenantReadRefreshLease> SubscribeAsync(
         string projectionType,
         string tenantId,
         Func<Task> refresh,

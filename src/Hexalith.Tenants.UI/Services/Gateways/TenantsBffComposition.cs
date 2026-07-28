@@ -10,8 +10,11 @@ internal sealed class TenantsBffComposition(
     IHttpContextAccessor? httpContextAccessor = null,
     ITenantConfigurationPrincipalResolver? principalResolver = null,
     TenantConfigurationReadPolicyProvider? policyProvider = null,
-    ITenantQueryGateway? queryGateway = null) : ITenantsBffComposition {
-    public bool IsReadSurfaceConnected => queryGateway is null or not UnavailableTenantQueryGateway;
+    TenantsReadSurfaceAvailability? readSurface = null) : ITenantsBffComposition {
+    // Reads the composition decision rather than resolving ITenantQueryGateway, which would close a
+    // container cycle (this type -> gateway -> this type) the moment Tenants:BaseAddress is configured.
+    // Absence fails closed: an unregistered read surface is not evidence of a connected one.
+    public bool IsReadSurfaceConnected => readSurface?.IsConnected == true;
 
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 

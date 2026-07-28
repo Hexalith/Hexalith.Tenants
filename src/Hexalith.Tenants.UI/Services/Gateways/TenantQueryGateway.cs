@@ -62,6 +62,26 @@ internal sealed class TenantQueryGateway(
     /// <summary>Identifies the signal raised when the ordinary-list fallback was also unavailable.</summary>
     internal static readonly EventId SearchAndOrdinaryListUnavailableEvent = new(1902, "AuthoritativeTenantSearchAndListUnavailable");
 
+    /// <summary>Identifies the signal raised when one of the six direct Tenants reads failed.</summary>
+    /// <remarks>
+    /// The typed read client runs with <c>RemoveAllLoggers()</c> because request URIs carry protected
+    /// cursors, and cursor contents must never be logged. That left an operational blind spot: a Tenants
+    /// outage produced no record anywhere. This signal restores it at the only layer that can do so safely —
+    /// it names the read and the fixed failure category, and never the route, cursor, ETag, status line,
+    /// response body, or principal.
+    /// </remarks>
+    internal static readonly EventId DirectTenantsReadFailedEvent = new(1903, "DirectTenantsReadFailed");
+
+    /// <summary>Shared <c>QueryAdapterFailureReason.InvalidCursor</c> sentinel the recovery guards match.</summary>
+    internal const string InvalidCursorReasonCode = "invalid-cursor";
+
+    internal const string TenantListReadName = "tenant-list";
+    internal const string TenantDetailReadName = "tenant-detail";
+    internal const string TenantUsersReadName = "tenant-users";
+    internal const string UserTenantsReadName = "user-tenants";
+    internal const string TenantAuditReadName = "tenant-audit";
+    internal const string GlobalAdministratorsReadName = "global-administrators";
+
     private const string SearchAxis = "syntactic";
     private const string TenantSourcePrefix = "tenant:";
     private const int DefaultPageSize = 20;
@@ -269,25 +289,44 @@ internal sealed class TenantQueryGateway(
             return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.MissingTenantId);
         }
 
-        TenantsRestQueryResponse<PaginatedResult<TenantMember>> response = await queryClient
-            .GetTenantUsersAsync(
-                new GetTenantUsersQuery {
-                    TenantId = request.TenantId,
-                    Cursor = request.Cursor,
-                    PageSize = request.PageSize,
-                },
-                request.ETag ?? previous?.ETag,
-                cancellationToken)
-            .ConfigureAwait(false);
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> response;
+        try {
+            response = await queryClient
+                .GetTenantUsersAsync(
+                    new GetTenantUsersQuery {
+                        TenantId = request.TenantId,
+                        Cursor = request.Cursor,
+                        PageSize = request.PageSize,
+                    },
+                    request.ETag ?? previous?.ETag,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        }
+        catch (Exception) {
+            // Every sibling read contains its transport faults; this one did not, so an InvalidOperationException
+            // from URI construction, a UriFormatException, or a throw from the bearer-relay handler reached
+            // OnParametersSetAsync -- which catches only OperationCanceledException -- and tore down the circuit.
+            SignalReadFailure(TenantUsersReadName, TenantsRestQueryFailureKind.Unavailable);
+            return HasMatchingTenantUsers(previous, request)
+                ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
+                : TenantUsersSnapshot.Unavailable(request.TenantId);
+        }
 
         if (response is null) {
-            return previous is not null && string.Equals(previous.TenantId, request.TenantId, StringComparison.Ordinal)
+            return HasMatchingTenantUsers(previous, request)
                 ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
                 : TenantUsersSnapshot.Unavailable(request.TenantId);
         }
 
         return MapTenantUsersResponse(request, previous, response, isListRefreshed: false);
     }
+
+    private static bool HasMatchingTenantUsers(TenantUsersSnapshot? previous, TenantUsersRequest request)
+        => previous is not null
+            && string.Equals(previous.TenantId, request.TenantId, StringComparison.Ordinal);
 
     public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
         RemoveTenantConfiguration request,
@@ -489,6 +528,11 @@ internal sealed class TenantQueryGateway(
                     Reason = notModifiedLifecycle == ProjectionLifecycleState.Degraded
                         ? GlobalAdministratorsReason.ProjectionDegraded
                         : ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
+                    // Promoted deliberately. IsSupportedNotModified already required a strong exact ETag
+                    // match with projection-backed, versioned, non-degraded metadata, so the 304 proves the
+                    // retained payload is byte-identical to what the service holds at this newer version --
+                    // the rows genuinely are current at it. Pinned by
+                    // Get_global_administrators_current_not_modified_promotes_unknown_truth_and_recomputes_completeness.
                     ProjectionVersion = result.Metadata?.ProjectionVersion,
                     IsAuthorizationScopedEmpty = notModifiedKind == GlobalAdministratorsSurfaceKind.Empty,
                     IsCompleteEvidence = string.IsNullOrWhiteSpace(request.Cursor)
@@ -1272,6 +1316,22 @@ internal sealed class TenantQueryGateway(
             "Authoritative tenant search degraded and the ordinary tenant list is also unavailable. ReasonCode={SearchDegradationReasonCode}",
             reasonCode);
 
+    /// <summary>
+    /// Records that one of the six direct reads failed, using bounded values only.
+    /// </summary>
+    /// <remarks>
+    /// Both arguments are closed sets defined in this assembly, so no caller-supplied text, route identity,
+    /// cursor, ETag, tenant id, user id, or response content can reach a log sink through this path.
+    /// </remarks>
+    /// <param name="readName">One of the fixed read names declared on this type.</param>
+    /// <param name="failureKind">Fixed transport failure category.</param>
+    private void SignalReadFailure(string readName, TenantsRestQueryFailureKind failureKind)
+        => logger?.LogWarning(
+            DirectTenantsReadFailedEvent,
+            "Direct Tenants read failed. Read={DirectReadName} FailureKind={DirectReadFailureKind}",
+            readName,
+            failureKind);
+
     private static bool HasUsableMembers(TenantDetail detail)
         => detail.Members is not null && !detail.Members.Any(static member => member is null);
 
@@ -1683,6 +1743,8 @@ internal sealed class TenantQueryGateway(
                     => TenantUsersSnapshot.Unauthorized(request.TenantId),
                 TenantsRestQueryFailureKind.NotFound
                     => TenantUsersSnapshot.NotFound(request.TenantId),
+                TenantsRestQueryFailureKind.InvalidCursor
+                    => TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.InvalidCursor),
                 TenantsRestQueryFailureKind.InvalidRequest
                     => TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.GatewayFailure),
                 TenantsRestQueryFailureKind.Unavailable or TenantsRestQueryFailureKind.Timeout
@@ -1697,10 +1759,10 @@ internal sealed class TenantQueryGateway(
 
         if (response.IsNotModified) {
             if (!hasMatchingPrevious) {
-                return TenantUsersSnapshot.Degraded(
-                    request.TenantId,
-                    previous,
-                    TenantUsersReason.NotModifiedWithoutSnapshot);
+                // A 304 with nothing retained cannot be "degraded" -- degradation describes confirmed rows
+                // held under reduced confidence, and there are none. Reporting Degraded here would render an
+                // empty table as if it were previously-confirmed data.
+                return TenantUsersSnapshot.Error(request.TenantId);
             }
 
             if (!HasSupportedProjectionVersion(response.Metadata)) {
@@ -1726,10 +1788,14 @@ internal sealed class TenantQueryGateway(
         }
 
         if (response.Payload?.Items is null) {
-            return TenantUsersSnapshot.Degraded(
-                request.TenantId,
-                previous,
-                TenantUsersReason.MissingPayload);
+            // Matches the audit sibling: a first load with no retained evidence is an error, not retained
+            // degradation. Only a load that actually has matching prior rows may report Degraded.
+            return hasMatchingPrevious
+                ? TenantUsersSnapshot.Degraded(
+                    request.TenantId,
+                    previous,
+                    TenantUsersReason.MissingPayload)
+                : TenantUsersSnapshot.Error(request.TenantId);
         }
 
         ReadModelFreshnessState payloadFreshness = ResolveFreshness(response.Metadata);
@@ -1783,6 +1849,22 @@ internal sealed class TenantQueryGateway(
             and not ((int)HttpStatusCode.NotFound)
             and not ((int)HttpStatusCode.BadRequest);
 
+    /// <summary>
+    /// Decides whether a failed refresh may keep the previous snapshot's rows.
+    /// </summary>
+    /// <remarks>
+    /// An unconditional request carries no <c>If-None-Match</c> validator, so there is nothing that could
+    /// contradict the retained payload and retention is allowed. Requiring a non-empty request ETag meant
+    /// that pressing "Retry" — which deliberately refreshes without a validator — was the one action that
+    /// discarded the confirmed rows it existed to recover. A request that <i>does</i> carry a validator must
+    /// still match the retained one, so rows from a different snapshot can never be presented as retained.
+    /// </remarks>
+    /// <param name="requestETag">Validator sent with the failed request, if any.</param>
+    /// <param name="previousETag">Validator the retained snapshot was confirmed at.</param>
+    /// <returns><see langword="true"/> when the previous rows may be retained.</returns>
+    private static bool MatchesRetainedValidator(string? requestETag, string? previousETag)
+        => string.Equals(requestETag ?? previousETag, previousETag, StringComparison.Ordinal);
+
     private static bool CanRetainUserTenants(
         UserTenantMembershipSnapshot? previous,
         UserTenantMembershipRequest request,
@@ -1790,8 +1872,7 @@ internal sealed class TenantQueryGateway(
         => previous is not null
             && IsRetainableReadFailure(exception)
             && string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
-            && !string.IsNullOrWhiteSpace(request.ETag)
-            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
 
     private static UserTenantMembershipSnapshot RetainUserTenants(
         UserTenantMembershipSnapshot previous,
@@ -1815,8 +1896,7 @@ internal sealed class TenantQueryGateway(
         EventStoreGatewayException exception)
         => previous is not null
             && IsRetainableReadFailure(exception)
-            && !string.IsNullOrWhiteSpace(request.ETag)
-            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
 
     private static GlobalAdministratorsSnapshot RetainGlobalAdministrators(
         GlobalAdministratorsSnapshot previous,
@@ -1861,8 +1941,7 @@ internal sealed class TenantQueryGateway(
         => previous is not null
             && IsRetainableReadFailure(exception)
             && previous.MatchesScope(request)
-            && !string.IsNullOrWhiteSpace(request.ETag)
-            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
 
     private static TenantAuditSnapshot RetainTenantAudit(
         TenantAuditSnapshot previous,
@@ -1887,8 +1966,7 @@ internal sealed class TenantQueryGateway(
         EventStoreGatewayException exception)
         => previous is not null
             && IsRetainableReadFailure(exception)
-            && !string.IsNullOrWhiteSpace(request.ETag)
-            && string.Equals(request.ETag, previous.ETag, StringComparison.Ordinal);
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
 
     private static TenantListSnapshot RetainTenantList(
         TenantListSnapshot previous,
@@ -1913,7 +1991,7 @@ internal sealed class TenantQueryGateway(
             throw new EventStoreGatewayException(
                 response.StatusCode,
                 "Tenants read unavailable",
-                reasonCode: response.FailureKind.ToString());
+                reasonCode: ToReasonCode(response.FailureKind));
         }
 
         return new EventStoreQueryResult<TPayload>(
@@ -1924,6 +2002,23 @@ internal sealed class TenantQueryGateway(
             Metadata = response.Metadata,
         };
     }
+
+    /// <summary>
+    /// Translates a transport failure category into the reason code the recovery guards match on.
+    /// </summary>
+    /// <remarks>
+    /// The enum name alone was emitted here previously, so an explicitly signalled invalid cursor arrived as
+    /// <c>"InvalidRequest"</c> and never matched <see cref="IsInvalidListCursor"/> or
+    /// <see cref="IsInvalidAuditCursor"/>. Page-one recovery, <c>PagingRecovered</c>, the recovery live
+    /// region and the localized notice were therefore all unreachable in production while their tests passed
+    /// by constructing the reason code by hand.
+    /// </remarks>
+    /// <param name="failureKind">Fixed transport failure category.</param>
+    /// <returns>The shared sentinel for an explicitly signalled invalid cursor, otherwise the enum name.</returns>
+    private static string ToReasonCode(TenantsRestQueryFailureKind failureKind)
+        => failureKind == TenantsRestQueryFailureKind.InvalidCursor
+            ? InvalidCursorReasonCode
+            : failureKind.ToString();
 
     private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata) {
         if (metadata is null
@@ -2117,7 +2212,7 @@ internal sealed class TenantQueryGateway(
 
     private static bool IsInvalidListCursor(EventStoreGatewayException exception)
         => exception.StatusCode == (int)HttpStatusCode.BadRequest
-        && string.Equals(exception.ReasonCode, "invalid-cursor", StringComparison.OrdinalIgnoreCase);
+        && string.Equals(exception.ReasonCode, InvalidCursorReasonCode, StringComparison.OrdinalIgnoreCase);
 
     private static TenantDetailSnapshot MapDetailException(string tenantId, EventStoreGatewayException exception)
         => exception.StatusCode switch {
@@ -2162,11 +2257,11 @@ internal sealed class TenantQueryGateway(
 
     private static bool IsInvalidAuditCursor(EventStoreGatewayException exception)
         => exception.StatusCode is (int)HttpStatusCode.BadRequest
-        && (Contains(exception.ReasonCode, "invalid-cursor")
-            || Contains(exception.Reason, "invalid-cursor")
-            || Contains(exception.Title, "invalid-cursor")
-            || Contains(exception.Type, "invalid-cursor")
-            || Contains(exception.Detail, "invalid-cursor"));
+        && (Contains(exception.ReasonCode, InvalidCursorReasonCode)
+            || Contains(exception.Reason, InvalidCursorReasonCode)
+            || Contains(exception.Title, InvalidCursorReasonCode)
+            || Contains(exception.Type, InvalidCursorReasonCode)
+            || Contains(exception.Detail, InvalidCursorReasonCode));
 
     private static bool Contains(string? value, string expected)
         => value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;

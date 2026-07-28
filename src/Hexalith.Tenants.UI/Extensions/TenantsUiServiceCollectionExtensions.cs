@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Shell.Extensions;
@@ -63,13 +65,18 @@ public static class TenantsUiServiceCollectionExtensions
 
             services.TryAddScoped<ITenantsRestQueryClient>(sp => sp.GetRequiredService<TenantsRestQueryClient>());
             services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
+            services.TryAddSingleton(new TenantsReadSurfaceAvailability(IsConnected: true));
         }
         else
         {
             services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+            services.TryAddSingleton(new TenantsReadSurfaceAvailability(IsConnected: false));
         }
 
-        if (Uri.TryCreate(configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress))
+        // Same scheme gate as the read side. Without it a typo or copied service-discovery value registers a
+        // command HttpClient on a non-HTTP scheme, which fails at send time with a raw transport exception
+        // instead of resolving UnavailableTenantCommandGateway.
+        if (TryGetHttpBaseAddress(configuration["EventStore:BaseAddress"], out Uri? eventStoreBaseAddress))
         {
             _ = services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
 
@@ -103,11 +110,19 @@ public static class TenantsUiServiceCollectionExtensions
         return services;
     }
 
-    private static bool TryGetHttpBaseAddress(string? value, out Uri? baseAddress)
+    /// <summary>
+    /// Accepts only base addresses this module can actually send over: plain <c>http</c>/<c>https</c>, plus
+    /// the Aspire service-discovery compound forms such as <c>https+http://tenants</c>.
+    /// </summary>
+    /// <remarks>
+    /// The compound schemes must be accepted because <c>.AddServiceDiscovery()</c> is attached to the same
+    /// client. Rejecting them would make the canonical Aspire configuration value fail the gate, silently
+    /// resolve <see cref="UnavailableTenantQueryGateway"/>, and leave every read fail-closed with no
+    /// diagnostic — a misconfiguration indistinguishable from an outage.
+    /// </remarks>
+    private static bool TryGetHttpBaseAddress(string? value, [NotNullWhen(true)] out Uri? baseAddress)
     {
-        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed)
-            && (string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed) && IsSendableScheme(parsed.Scheme))
         {
             baseAddress = parsed;
             return true;
@@ -115,5 +130,19 @@ public static class TenantsUiServiceCollectionExtensions
 
         baseAddress = null;
         return false;
+    }
+
+    private static bool IsSendableScheme(string scheme)
+    {
+        foreach (string part in scheme.Split('+', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!string.Equals(part, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(part, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return scheme.Length > 0;
     }
 }
