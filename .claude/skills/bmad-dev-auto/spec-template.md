@@ -2,6 +2,7 @@
 title: '{title}'
 type: 'feature' # feature | bugfix | refactor | chore
 created: '{date}'
+baseline_commit: '{baseline_commit}' # `git rev-parse HEAD` captured BEFORE any implementation work; used by scripts/validate-story-gitlinks.py
 status: 'draft' # draft | ready-for-dev | in-progress | in-review | done | blocked
 review_loop_iteration: 0 # incremented by step-04 before each review loopback
 followup_review_recommended: false # set by step-04 on status: done — true if the LLM decided another review pass is worthwhile

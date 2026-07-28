@@ -118,17 +118,18 @@ def declared_paths(story_text: str) -> set[str]:
     return declared
 
 
-def gitlink_changes(baseline: str, ref: str) -> list[tuple[str, str, str]]:
-    """Return (path, old_sha, new_sha) for every changed pointer under references/."""
-    raw = run_git(
-        "diff",
-        "--ignore-submodules=dirty",
-        "--raw",
-        baseline,
-        ref,
-        "--",
-        SUBMODULE_ROOT,
-    )
+def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]]:
+    """Return (path, old_sha, new_sha) for every changed pointer under references/.
+
+    When `ref` is None the comparison runs against the working tree, so pointers
+    that moved but are not yet committed are caught too. Those are the dangerous
+    ones at completion time: a later `git add -A` sweeps them into an unrelated
+    commit, which is exactly how this drift keeps happening.
+    """
+    diff_args = ["diff", "--ignore-submodules=dirty", "--raw", baseline]
+    if ref is not None:
+        diff_args.append(ref)
+    raw = run_git(*diff_args, "--", SUBMODULE_ROOT)
     changes: list[tuple[str, str, str]] = []
     for line in raw.splitlines():
         if not line.startswith(":"):
@@ -140,7 +141,16 @@ def gitlink_changes(baseline: str, ref: str) -> list[tuple[str, str, str]]:
         old_mode, new_mode, old_sha, new_sha = fields[0].lstrip(":"), fields[1], fields[2], fields[3]
         if "160000" not in (old_mode, new_mode):
             continue
-        changes.append((path.strip(), old_sha[:7], new_sha[:7]))
+        path = path.strip()
+        # Against the working tree, --raw reports a null new SHA for a submodule
+        # whose checked-out commit moved. Resolve the real commit so the report
+        # says "moved to X" instead of the misleading "removed".
+        if ref is None and is_null_sha(new_sha) and new_mode == "160000":
+            try:
+                new_sha = run_git("-C", path, "rev-parse", "HEAD").strip()
+            except CheckError:
+                pass
+        changes.append((path, old_sha[:7], new_sha[:7]))
     return sorted(changes)
 
 
@@ -196,9 +206,11 @@ def check(story_path: Path, ref: str) -> int:
             "  The recorded baseline does not describe this working tree."
         )
 
+    # Default runs include the working tree; an explicit --ref audits that commit only.
+    compare_worktree = ref == "HEAD"
     print(f"Story:    {story_path.name}")
     print(f"Baseline: {baseline[:7]}")
-    print(f"Compared: {ref} ({head[:7]})")
+    print(f"Compared: {ref} ({head[:7]}){' + working tree' if compare_worktree else ''}")
 
     warnings: list[str] = []
     if baseline_is_mid_story(baseline, story_key):
@@ -207,7 +219,7 @@ def check(story_path: Path, ref: str) -> int:
             "  mid-story baseline. Pointer changes made earlier in the story are outside this diff."
         )
 
-    changes = gitlink_changes(baseline, head)
+    changes = gitlink_changes(baseline, None if compare_worktree else head)
     if not changes:
         print("\nNo references/ pointer changes in range.")
         for warning in warnings:

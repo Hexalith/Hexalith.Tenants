@@ -1,0 +1,26 @@
+# Team overrides for bmad-quick-dev.
+# Committed to the repo — applies to every developer on the project.
+#
+# quick-dev already records `baseline_commit` in its spec frontmatter, so the
+# gitlink check applies directly to the spec file.
+
+[workflow]
+
+persistent_facts = [
+  "A change must not move a `references/` submodule pointer silently. Before presenting work as complete, run `python3 scripts/validate-story-gitlinks.py <spec-file>` and resolve every UNDECLARED entry by declaring it (File List entry + reason) or reverting it to the baseline SHA.",
+  "Never write that `references/` was untouched, unchanged, or left alone unless `scripts/validate-story-gitlinks.py` exited 0.",
+]
+
+on_complete = """
+Run the submodule pointer declaration check against this run's spec file:
+
+  python3 scripts/validate-story-gitlinks.py <spec-file>
+
+- Exit 0 — continue.
+- Exit 1 — STOP. Do not present the work as complete. For each UNDECLARED entry,
+  either declare the path (File List entry plus the reason it belongs to this
+  change) or run the printed `git checkout <sha> -- <path>` and land the bump
+  separately as `build(deps): bump <module> submodule`. Re-run until it exits 0.
+
+Report the verdict in the completion summary.
+"""

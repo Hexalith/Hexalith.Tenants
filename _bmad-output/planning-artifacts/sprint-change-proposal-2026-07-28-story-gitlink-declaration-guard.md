@@ -143,6 +143,43 @@ with a `resolution` field recording what was built and how it was verified.
 
 ---
 
+## 4b. Follow-up (2026-07-28, after initial approval)
+
+Approval review surfaced that the original wiring covered only one of **three**
+completion paths, and that the check had a real blind spot. Both are now closed.
+
+### 4b.1 All three completion paths are covered
+
+`bmad-dev-auto` and `bmad-quick-dev` are independent lanes that close work without
+ever invoking `bmad-dev-story` or its Definition of Done. Wiring only `bmad-dev-story`
+left the unattended lane completely unguarded.
+
+| Path | Closes work by | Baseline | Now covered by |
+| ---- | -------------- | -------- | -------------- |
+| `bmad-dev-story` | Status → `review` (Step 9 DoD) | Writes `baseline_commit` at Step 4 | `_bmad/custom/bmad-dev-story.toml` |
+| `bmad-quick-dev` | `step-05-present` | Already writes `baseline_commit` | `_bmad/custom/bmad-quick-dev.toml` |
+| `bmad-dev-auto` | `step-04-review` sets spec `status: done` | **None** — now captured at activation | `_bmad/custom/bmad-dev-auto.toml` + `spec-template.md` |
+
+`bmad-dev-auto`'s override adds an `activation_steps_prepend` that captures
+`git rev-parse HEAD` **before** implementation starts, and `spec-template.md` gains a
+`baseline_commit` field, so the fail-closed posture is actionable rather than noisy.
+
+### 4b.2 Defect fixed: uncommitted pointer drift was invisible
+
+The check resolved `--ref` to a commit and diffed commit-to-commit, so a submodule
+whose checked-out commit had moved but was **not yet committed** did not register.
+Those are the dangerous ones — a later `git add -A` sweeps them into an unrelated
+commit, which is the mechanism behind every occurrence here.
+
+Found from live evidence: mid-session the working tree held two unstaged pointer
+moves (`Hexalith.EventStore` `150216c`→`5a1d277`, `Hexalith.Memories`
+`327d1a9`→`1868c8f`) that the check reported as clean.
+
+Now, a default run (`--ref HEAD`) compares baseline → **working tree**; an explicit
+`--ref <sha>` still audits that commit alone. A secondary fix resolves the submodule's
+real checked-out SHA, because `git diff --raw` emits a null new-SHA for unstaged
+submodule moves, which previously rendered as the misleading `-> removed`.
+
 ## 5. Verification
 
 Each case runs the real script against the real repository history.
@@ -156,6 +193,8 @@ Each case runs the real script against the real repository history.
 | D | Story with no drift in range | PASS | **PASS** |
 | E | Baseline predating the submodules | Honest output | `absent at baseline`, no bogus revert command |
 | F | The guard's **own** commit `c407c9e` | FAIL | **FAIL** — `references/Hexalith.Builds` `1b1c0b0`→`53d53ae` UNDECLARED |
+| G | Live **uncommitted** pointer drift (§4b.2) | FAIL | **FAIL** — EventStore + Memories, SHAs match `git submodule status` |
+| H | That same drift, declared in File List | PASS | **PASS** |
 
 Both historical occurrences are caught at exactly the moment the Definition of Done
 would have run, and the third is caught in the commit that introduced the guard.
