@@ -1,0 +1,35 @@
+# Team overrides for bmad-dev-story.
+# Committed to the repo — applies to every developer on the project.
+#
+# Merge rules: scalars override, arrays append, arrays-of-tables merge by code/id.
+# This file survives BMad skill updates; {skill-root}/customize.toml does not.
+
+[workflow]
+
+persistent_facts = [
+  "Submodule pointers are not incidental. A story commit must never move a `references/` gitlink without saying so. Before reporting a story complete, run `python3 scripts/validate-story-gitlinks.py <story-file>` and resolve every UNDECLARED entry by declaring it (File List entry + reason in Completion Notes) or reverting it to the baseline SHA.",
+  "Never write that `references/` was untouched, unchanged, or left alone unless `scripts/validate-story-gitlinks.py` exited 0. Stories 1.4 (`41e047e`) and 1.6 (`ec7ec8c`) both made that claim in their Completion Notes while their commits moved gitlinks.",
+]
+
+# Runs at the end of the workflow (Step 10), after status is set to review.
+# The Definition of Done checklist is the primary gate; this is the mechanical backstop.
+on_complete = """
+Run the submodule pointer declaration check for the story just completed:
+
+  python3 scripts/validate-story-gitlinks.py <story-file>
+
+Interpret the result:
+
+- Exit 0 — no undeclared `references/` pointer drift. Continue.
+- Exit 1 — STOP. Do not present the story as complete. For each UNDECLARED entry,
+  either add the path as a File List entry and record in Completion Notes why the
+  bump belongs to this story, or run the printed `git checkout <sha> -- <path>`
+  to restore the baseline pointer and commit that bump separately as
+  `build(deps): bump <module> submodule`. Re-run until it exits 0.
+- A WARNING about a mid-story baseline means `baseline_commit` points inside the
+  story's own work, so the diff is narrower than the story. Report the true story
+  range and re-verify the File List against it.
+
+Report the check's verdict verbatim in the completion summary. Never report a
+story complete on an unrun or failing check.
+"""

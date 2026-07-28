@@ -146,6 +146,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Release is gated on CI: the Release workflow triggers via `workflow_run` only after a successful push-event CI run on `main` (it does not re-run the test tiers), then semantic-release derives the version from commit history, packs exactly five NuGet packages, validates packages and package-only consumers, publishes to NuGet, publishes the tenants container, creates the GitHub Release, and updates `CHANGELOG.md`.
 - Run local tests by project in the same shape as CI. Use `.slnx` for restore/build, then targeted `dotnet test <test-project>`.
 - Initialize only the required root-declared submodules under `references/`; never use recursive submodule initialization.
+- A story commit must not move a `references/` gitlink silently. Before completing a story run `python3 scripts/validate-story-gitlinks.py <story-file>`; declare each moved pointer as a File List entry with a reason, or revert it and commit the bump separately as `build(deps)`. Never state that `references/` was untouched without that check passing.
 - For local distributed runs, use Aspire AppHost. Restart `aspire run` after AppHost, DAPR component, topic, or sidecar changes because the app model is built at startup.
 - In slim/VM local mode, start DAPR `placement` and `scheduler` before `aspire run`; actor-backed dependencies can fail without them.
 - The default local Tenants service URL is `http://localhost:8080`; when Keycloak is disabled, local auth falls back to symmetric-key JWT.

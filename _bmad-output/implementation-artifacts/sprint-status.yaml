@@ -105,8 +105,9 @@ action_items:
     epic: 1
     action: "Guard against undeclared submodule-pointer bumps riding along in story commits. Second occurrence: story 1.6 commit ec7ec8c bumped references/Hexalith.EventStore (c6b72ca -> 440ff4c) while its Completion Notes claimed no references/ content changed, repeating story 1.4 commit 41e047e. Add a story-completion check that diffs gitlinks against the story baseline and either declares or reverts them."
     owner: "Amelia (Developer) and Winston (System Architect)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md"
+    resolution: "Closed 2026-07-28 by sprint-change-proposal-2026-07-28-story-gitlink-declaration-guard.md. Added scripts/validate-story-gitlinks.py, which diffs references/ gitlinks between the story's baseline_commit and HEAD and fails unless each moved pointer is declared as a File List entry or reverted. Wired into the dev-story Definition of Done, _bmad/custom/bmad-dev-story.toml (persistent_facts + on_complete), and _bmad/custom/bmad-code-review.toml. Verified against both occurrences: story 1.6 at ec7ec8c and story 1.4 at 41e047e each FAIL with their historical story files; the corrected 1.6 file PASSES."
   - id: epic-5-retro-2026-06-29-global-admin-correction-verification
     epic: 5
     action: "Create a focused global-administrator correction verification story before enabling global-administrator correction."

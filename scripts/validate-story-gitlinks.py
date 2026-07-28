@@ -38,6 +38,7 @@ def run_git(*args: str) -> str:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode != 0:
         raise CheckError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
@@ -187,6 +188,7 @@ def check(story_path: Path, ref: str) -> int:
         ["git", "merge-base", "--is-ancestor", baseline, head],
         cwd=REPO_ROOT,
         capture_output=True,
+        check=False,
     )
     if ancestor.returncode != 0:
         raise CheckError(

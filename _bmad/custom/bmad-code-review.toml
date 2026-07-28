@@ -1,0 +1,13 @@
+# Team overrides for bmad-code-review.
+# Committed to the repo — applies to every developer on the project.
+#
+# Merge rules: scalars override, arrays append, arrays-of-tables merge by code/id.
+# This file survives BMad skill updates; {skill-root}/customize.toml does not.
+
+[workflow]
+
+persistent_facts = [
+  "When reviewing a story, verify its `references/` submodule pointers independently: run `python3 scripts/validate-story-gitlinks.py <story-file>`. Treat a non-zero exit as a review finding, not a note.",
+  "A story's own prose is not evidence about its gitlinks. Claims like \"references/ untouched\", \"left alone\", or \"external drift, not modified by this story\" have twice been false — stories 1.4 (`41e047e`) and 1.6 (`ec7ec8c`). Check the diff, not the claim.",
+  "A declaration is a File List entry naming the submodule path. A sentence that merely mentions the path — especially one denying the change — does not declare it.",
+]

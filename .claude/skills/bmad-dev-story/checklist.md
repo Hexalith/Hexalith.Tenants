@@ -50,6 +50,7 @@ validation-rules:
 ## 📝 Documentation & Tracking
 
 - [ ] **File List Complete:** File List includes EVERY new, modified, or deleted file (paths relative to repo root)
+- [ ] **Submodule Pointers Declared:** `python3 scripts/validate-story-gitlinks.py <story-file>` exits 0. Every `references/` gitlink that moved since `baseline_commit` is either declared as a File List entry (with the reason in Completion Notes) or reverted to its baseline SHA. Never claim `references/` was untouched without running this check
 - [ ] **Dev Agent Record Updated:** Contains relevant Implementation Notes and/or Debug Log for this work
 - [ ] **Change Log Updated:** Change Log includes clear summary of what changed and why
 - [ ] **Review Follow-ups:** All review follow-up tasks (marked [AI-Review]) completed and corresponding review items marked resolved (if applicable)
