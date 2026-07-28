@@ -2,7 +2,8 @@
 title: 'Restore the release version floor and guard registry/tag drift'
 type: 'bugfix'
 created: '2026-07-28'
-status: 'draft'
+status: 'in-progress'
+baseline_commit: 'f6ccee0'
 review_loop_iteration: 0
 context: []
 ---
@@ -85,4 +86,3 @@ The floor tag is required even though `v3.2.18` + BREAKING CHANGE alone already 
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` -- expected: all pass, including the new guard tests.
 - `git tag --merged HEAD --sort=-v:refname | head -1` -- expected: `v3.15.1` after tagging.
 - `git log v3.15.1..HEAD --format=%B | grep -c '^BREAKING CHANGE:'` -- expected: ≥ 1 after the fix commit.
-</content>
