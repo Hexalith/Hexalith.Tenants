@@ -4,7 +4,7 @@ type: 'bugfix'
 created: '2026-07-28'
 status: 'in-review'
 baseline_commit: 'f6ccee0'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context: []
 ---
 
@@ -64,8 +64,8 @@ context: []
 - [x] `.github/workflows/release.yml` -- add a `Require registry versions at or below the release tag floor` step to `verify-source`: resolve the reachable floor tag, read manifest IDs at the dispatched SHA, probe `https://api.nuget.org/v3-flatcontainer/<id>/index.json` per package, fail per the matrix -- turns a post-approval collision into a named pre-approval failure.
 - [x] `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- assert the new step and its remedy wording in the release-workflow governance test, and add a behavioural test driving the extracted run block with stubbed `gh`/`curl` across every matrix row.
 - [x] `_bmad-output/project-context.md` -- correct the release rule to name the `BREAKING CHANGE:` footer as the only major trigger.
-- [x] Commit on a `fix/…` branch with a `BREAKING CHANGE:` footer, footer lines ≤ 100 chars (`footer-max-line-length` is not relaxed in `commitlint.config.mjs`).
-- [x] Create annotated tag `v3.15.1` at `7918ac69` -- created locally; the push to `origin` is still pending human confirmation.
+- [x] Commit on a `fix/…` branch -- the `BREAKING CHANGE:` footer was DROPPED after `4.0.0` was published by run 30340676669; it would now drive 5.0.0. See the Spec Change Log.
+- [x] Create annotated tag `v3.15.1` at `7918ac69` -- created and pushed, then DELETED from `origin` and locally: `825b98c` had already declined that tag on provenance grounds and its 4.x floor made it inert. See the Spec Change Log.
 
 **Acceptance Criteria:**
 - Given the tag is pushed and the branch merged, when Release is dispatched from the `main` tip with green exact-source CI, then `verify-source` passes and semantic-release proposes `4.0.0`.
@@ -73,6 +73,32 @@ context: []
 - Given any package probe cannot be completed, when `verify-source` runs, then it exits 1 rather than assuming absence.
 
 ## Spec Change Log
+
+- **2026-07-28 — review iteration 1 — frozen block contains a factually wrong mechanism.**
+  All three review lenses independently found, and a live API call confirmed, that the
+  `<frozen-after-approval>` line "take the first whose `compare/<tag>...<sha>` status is
+  `behind` or `identical`" is inverted. `compare/{base}...{head}` reports head relative to
+  base, so a reachable ancestor tag reports `ahead`; `behind` means the tag is a descendant
+  Semantic Release will not see. Verified: `compare/v3.2.17...v3.2.18` →
+  `{"status":"ahead","ahead_by":2}`.
+  The frozen block's *intent* sentence — "Floor = highest `v<semver>` tag reachable from the
+  dispatched SHA, matching semantic-release's `git tag --merged`" — is correct, and the
+  implementation follows that intent. The frozen mechanism clause was NOT edited: only the
+  human may change frozen content. It should be corrected to `ahead` or `identical`.
+  Known-bad state avoided: the first cut implemented the frozen clause literally and would
+  have failed every dispatch with "No release tag is reachable"; it passed CI only because
+  `v4.0.0` sat on the main tip that day.
+  KEEP: the reachability walk itself (highest-first, stop at first reachable) is correct and
+  must survive re-derivation — only the accepted status values were wrong.
+
+- **2026-07-28 — world state moved during implementation.** `825b98c` landed on `main` and
+  fixed the original 3.x collision by declaring `minimum_release_version` in
+  `validate-publication-preflight.sh`; run 30340676669 then published all five packages at
+  4.0.0. The `v3.15.1` floor tag this spec called for was created, pushed, and then deleted
+  again: `825b98c` had explicitly declined to create it because it would resolve to the
+  3.2.18 tree rather than `5469a6b`, where the 3.15.1 packages were really built. The
+  `BREAKING CHANGE:` footer was dropped for the same reason — 4.0.0 is already published, so
+  it would now drive 5.0.0. The drift guard remains as the general-case protection.
 
 ## Design Notes
 

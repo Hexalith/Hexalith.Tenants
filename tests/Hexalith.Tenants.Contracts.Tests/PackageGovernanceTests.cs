@@ -707,10 +707,24 @@ public class PackageGovernanceTests {
         // published version above that floor makes every proposal collide. The guard must live in
         // the unprotected job, where an invalid dispatch cannot reach approval or release secrets.
         verifySourceJob.ShouldContain($"- name: {RegistryDriftGuardStepName}");
-        verifySourceJob.ShouldContain("api.nuget.org/v3-flatcontainer");
-        verifySourceJob.ShouldContain("PACKAGE_MANIFEST: tools/release-packages.json");
         verifySourceJob.ShouldContain("Restore the missing release tag");
         GetYamlJobBlock(workflow, "release").ShouldContain("needs: verify-source");
+
+        // The behavioural harness supplies its own environment, so the step's declared env: is
+        // only verified here. A missing name is an unbound variable under set -u at dispatch.
+        string guardStep = GetYamlStepBlock(workflow, RegistryDriftGuardStepName);
+        guardStep.ShouldContain("GH_TOKEN: ${{ github.token }}");
+        guardStep.ShouldContain("REPOSITORY: ${{ github.repository }}");
+        guardStep.ShouldContain("DISPATCH_SHA: ${{ github.sha }}");
+        guardStep.ShouldContain("PACKAGE_MANIFEST: tools/release-packages.json");
+
+        // The stub cannot see curl's flags, so the transport hardening is pinned here: --location
+        // keeps a registry redirect from reading as a hard block, --max-time bounds a hung
+        // connection, and --retry keeps one CDN blip from failing an operator-initiated release.
+        guardStep.ShouldContain("api.nuget.org/v3-flatcontainer");
+        guardStep.ShouldContain("--location");
+        guardStep.ShouldContain("--max-time 30");
+        guardStep.ShouldContain("--retry 3");
 
         // Every uses: in this workflow must stay a pinned Hexalith.Builds reusable workflow, so the
         // guard reads the manifest through the contents API rather than checking the source out.
@@ -731,11 +745,16 @@ public class PackageGovernanceTests {
 
         // A floor at or above every published version releases normally. Only the highest reachable
         // tag is compared, so one comparison call is made even though two release tags exist.
+        //
+        // compare/{base}...{head} reports head relative to base, so a tag that IS an ancestor of
+        // the dispatched source reports "ahead". Verified live against this repository:
+        // compare/v3.2.17...v3.2.18 -> {"status":"ahead","ahead_by":2}. Using "behind" as the
+        // reachable fixture would make this suite green while the guard blocked every dispatch.
         (int ExitCode, string Output, string Error) covered = await RunTagFloorGuardAsync(
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.2.18", "v3.15.1")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse(allPackages))),
             RegistryResponses([.. allPackages.Select(id => (id, 0, "200", PublishedVersions("3.2.18", "3.15.1")))]),
             [
@@ -753,7 +772,7 @@ public class PackageGovernanceTests {
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.2.18")),
-                (CompareEndpoint("v3.2.18"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.2.18"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse(allPackages))),
             RegistryResponses([.. allPackages.Select(id => id == "Hexalith.Tenants.Contracts"
                 ? (id, 0, "200", PublishedVersions("3.2.18", "3.3.0", "3.15.1"))
@@ -768,7 +787,7 @@ public class PackageGovernanceTests {
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.2.18")),
-                (CompareEndpoint("v3.2.18"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.2.18"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
             RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1"))));
         lexical.ExitCode.ShouldBe(1, lexical.Output);
@@ -791,18 +810,152 @@ public class PackageGovernanceTests {
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1", "v9.9.9")),
                 (CompareEndpoint("v9.9.9"), 0, CompareResponse("diverged")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse(allPackages))),
-            RegistryResponses([.. allPackages.Select(id => (id, 0, "200", PublishedVersions("3.15.1")))]));
+            RegistryResponses([.. allPackages.Select(id => (id, 0, "200", PublishedVersions("3.15.1")))]),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint("v9.9.9")}",
+                $"api {CompareEndpoint("v3.15.1")}",
+                $"api {ManifestEndpoint}",
+                .. sortedPackages.Select(id => $"curl {RegistryUrl(id)}"),
+            ]);
         unreachable.ExitCode.ShouldBe(0, unreachable.Error);
         unreachable.Output.ShouldContain("Release tag floor v3.15.1");
+
+        // "behind" means the tag is a DESCENDANT of the dispatched source -- a tag on an unmerged
+        // release branch, which Semantic Release will not see. Adopting it as the floor would set
+        // the floor too high and pass vacuously over real drift.
+        (int ExitCode, string Output, string Error) descendantTag = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1", "v9.9.9")),
+                (CompareEndpoint("v9.9.9"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("4.5.0"))));
+        descendantTag.ExitCode.ShouldBe(1, descendantTag.Output);
+        descendantTag.Error.ShouldContain("exceed the release tag floor v3.15.1");
+        descendantTag.Error.ShouldContain("Hexalith.Tenants.Contracts 4.5.0");
+
+        // Every violating package is reported, so one redispatch resolves them all.
+        (int ExitCode, string Output, string Error) manyViolations = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.2.18")),
+                (CompareEndpoint("v3.2.18"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(allPackages))),
+            RegistryResponses([.. allPackages.Select(id => (id, 0, "200", PublishedVersions("3.15.1")))]));
+        manyViolations.ExitCode.ShouldBe(1, manyViolations.Output);
+        foreach (string packageId in allPackages) {
+            manyViolations.Error.ShouldContain($"{packageId} 3.15.1");
+        }
+
+        // NuGet normalises 3.16.0.0 to 3.16.0, so a four-segment version occupies a three-segment
+        // one. Dropping it as unparseable would report an occupied version as free.
+        (int ExitCode, string Output, string Error) fourSegment = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1", "3.15.2.0"))));
+        fourSegment.ExitCode.ShouldBe(1, fourSegment.Output);
+        fourSegment.Error.ShouldContain("Hexalith.Tenants.Contracts 3.15.2.0");
+
+        // 4.1.0-rc.1 does not occupy 4.1.0, so treating a prerelease as a collision would block
+        // releases that cannot collide.
+        (int ExitCode, string Output, string Error) prerelease = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1", "4.1.0-rc.1"))));
+        prerelease.ExitCode.ShouldBe(0, prerelease.Error);
+
+        // An entry this cannot parse is unprovable, not absent.
+        (int ExitCode, string Output, string Error) unrecognisedVersion = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1", "latest"))));
+        unrecognisedVersion.ExitCode.ShouldBe(1, unrecognisedVersion.Output);
+        unrecognisedVersion.Error.ShouldContain("could not be validated safely");
+
+        // Only vMAJOR.MINOR.PATCH names are release tags. A two-segment tag would make the floor
+        // 3.15, reading every published 3.15.x as drift; a non-version tag would abort jq raw.
+        (int ExitCode, string Output, string Error) nonReleaseTags = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("nightly", "v3.15", "v9.9.9-rc.1", "v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1"))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint("v3.15.1")}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl("Hexalith.Tenants.Contracts")}",
+            ]);
+        nonReleaseTags.ExitCode.ShouldBe(0, nonReleaseTags.Error);
+        nonReleaseTags.Output.ShouldContain("Release tag floor v3.15.1");
+
+        // A 200 whose body is the wrong shape must not become a silent "no tags".
+        (int ExitCode, string Output, string Error) malformedTagRefs = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses((TagRefsEndpoint, 0, "[{\"ref\":\"v9.9.9\"}]")),
+            RegistryResponses());
+        malformedTagRefs.ExitCode.ShouldBe(1, malformedTagRefs.Output);
+        malformedTagRefs.Error.ShouldContain("tag refs response could not be validated safely");
+
+        // GitHub returns encoding "none" with empty content for files over 1 MB.
+        (int ExitCode, string Output, string Error) unreadableManifest = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("none", string.Empty))),
+            RegistryResponses());
+        unreadableManifest.ExitCode.ShouldBe(1, unreadableManifest.Output);
+        unreadableManifest.Error.ShouldContain("manifest response could not be validated safely");
+
+        // The contents API is asked for one specific path; a response describing anything else --
+        // a directory listing, or a different file carrying a packages array -- would validate ids
+        // from the wrong inventory and probe the wrong packages.
+        (int ExitCode, string Output, string Error) wrongManifestPath = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, JsonSerializer.Serialize(new {
+                    type = "file",
+                    path = "tools/other-packages.json",
+                    encoding = "base64",
+                    content = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                        "{\"packages\":[{\"id\":\"Hexalith.Tenants.Contracts\"}]}")),
+                }))),
+            RegistryResponses());
+        wrongManifestPath.ExitCode.ShouldBe(1, wrongManifestPath.Output);
+        wrongManifestPath.Error.ShouldContain("manifest response could not be validated safely");
+
+        // The dispatched SHA reaches three request URLs, so its shape is load bearing.
+        (int ExitCode, string Output, string Error) badSha = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses((TagRefsEndpoint, 0, TagRefsResponse("v3.15.1"))),
+            RegistryResponses(),
+            dispatchSha: "main");
+        badSha.ExitCode.ShouldBe(1, badSha.Output);
+        badSha.Error.ShouldContain("exact lowercase commit SHA");
 
         // A package with no published versions at all cannot sit above the floor.
         (int ExitCode, string Output, string Error) neverPublished = await RunTagFloorGuardAsync(
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse(allPackages))),
             RegistryResponses([.. allPackages.Select(id => (id, 0, "404", "not found"))]));
         neverPublished.ExitCode.ShouldBe(0, neverPublished.Error);
@@ -818,7 +971,7 @@ public class PackageGovernanceTests {
                 workflow,
                 GitHubResponses(
                     (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
-                    (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                    (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                     (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
                 RegistryResponses(("Hexalith.Tenants.Contracts", exitCode, status, body)));
             probe.ExitCode.ShouldBe(1, $"{description}: {probe.Output}");
@@ -830,7 +983,7 @@ public class PackageGovernanceTests {
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead"))),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind"))),
             RegistryResponses());
         noFloor.ExitCode.ShouldBe(1, noFloor.Output);
         noFloor.Error.ShouldContain("No release tag is reachable from the dispatched source");
@@ -856,7 +1009,7 @@ public class PackageGovernanceTests {
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 1, string.Empty)),
             RegistryResponses());
         manifestFailure.ExitCode.ShouldBe(1, manifestFailure.Output);
@@ -867,7 +1020,7 @@ public class PackageGovernanceTests {
             workflow,
             GitHubResponses(
                 (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
-                (CompareEndpoint("v3.15.1"), 0, CompareResponse("behind")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
                 (ManifestEndpoint, 0, ManifestResponse("../../../etc/passwd"))),
             RegistryResponses());
         hostileManifest.ExitCode.ShouldBe(1, hostileManifest.Output);
@@ -1139,6 +1292,31 @@ public class PackageGovernanceTests {
         return string.Join('\n', lines[start..end]);
     }
 
+    private static string GetYamlStepBlock(string workflow, string stepName) {
+        string[] lines = workflow.Replace("\r\n", "\n").Split('\n');
+        int start = Array.FindIndex(lines, line => line.Trim() == $"- name: {stepName}");
+        if (start < 0) {
+            throw new InvalidOperationException($"Could not find workflow step {stepName}.");
+        }
+
+        int indent = CountLeadingSpaces(lines[start]);
+        int end = lines.Length;
+        for (int index = start + 1; index < lines.Length; index++) {
+            string line = lines[index];
+            if (string.IsNullOrWhiteSpace(line)) {
+                continue;
+            }
+
+            if (CountLeadingSpaces(line) < indent
+                || (CountLeadingSpaces(line) == indent && line.TrimStart().StartsWith("- ", StringComparison.Ordinal))) {
+                end = index;
+                break;
+            }
+        }
+
+        return string.Join('\n', lines[start..end]);
+    }
+
     private static string GetYamlStepRunBlock(string workflow, string stepName) {
         string[] lines = workflow.Replace("\r\n", "\n").Split('\n');
         int stepStart = Array.FindIndex(lines, line => line.Trim() == $"- name: {stepName}");
@@ -1286,7 +1464,8 @@ public class PackageGovernanceTests {
         string workflow,
         string githubResponses,
         string registryResponses,
-        string[]? expectedInvocations = null) {
+        string[]? expectedInvocations = null,
+        string? dispatchSha = null) {
         string script = """
             gh() {
               printf '%s\n' "$*" >> "$FAKE_GH_LOG"
@@ -1351,7 +1530,7 @@ public class PackageGovernanceTests {
             process.StartInfo.ArgumentList.Add(script);
             process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
             process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
-            process.StartInfo.Environment["DISPATCH_SHA"] = GuardDispatchSha;
+            process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha ?? GuardDispatchSha;
             process.StartInfo.Environment["PACKAGE_MANIFEST"] = "tools/release-packages.json";
             process.StartInfo.Environment["FAKE_GH_RESPONSES"] = githubResponses;
             process.StartInfo.Environment["FAKE_REGISTRY_RESPONSES"] = registryResponses;
@@ -1387,14 +1566,19 @@ public class PackageGovernanceTests {
         }));
 
     private static string ManifestResponse(params string[] packageIds)
+        => ManifestResponse("base64", Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
+            packages = packageIds.Select(packageId => new {
+                id = packageId,
+                project = $"src/{packageId}/{packageId}.csproj",
+            }),
+        }))));
+
+    private static string ManifestResponse(string encoding, string content)
         => JsonSerializer.Serialize(new {
-            encoding = "base64",
-            content = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
-                packages = packageIds.Select(packageId => new {
-                    id = packageId,
-                    project = $"src/{packageId}/{packageId}.csproj",
-                }),
-            }))),
+            type = "file",
+            path = "tools/release-packages.json",
+            encoding,
+            content,
         });
 
     private static string RegistryUrl(string packageId)
