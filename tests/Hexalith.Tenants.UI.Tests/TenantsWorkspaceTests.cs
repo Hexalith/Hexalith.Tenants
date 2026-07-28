@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 
 using Bunit;
 
@@ -8,11 +9,13 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -101,6 +104,124 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
         cut.Find("[data-testid='tenants-workspace-scope']").NodeName.ShouldBe("FLUENT-DROPDOWN");
         cut.FindAll("[data-testid='tenants-user-lookup-input']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Workspace_shows_one_authorized_contextual_global_administrator_entry_with_safe_return_context()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=alpha&sort=name&desc=True");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        string? href = cut.Find("[data-testid='tenants-global-administrators-entry']").GetAttribute("href");
+        href.ShouldBe("/global-administrators?returnUrl=%2Ftenants%3Fsearch%3Dalpha%26sort%3Dname%26desc%3DTrue");
+        cut.FindAll("[data-testid='tenants-global-administrators-entry']").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Workspace_hides_global_administrator_entry_when_authority_is_not_confirmed()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Indeterminate));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Workspace_authentication_events_clear_pending_authority_restore_entry_and_ignore_late_disposed_completion()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        var authentication = new MutableAuthenticationStateProvider(NonAdministratorPrincipal());
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.Find("[data-testid='tenants-global-administrators-entry']");
+
+        TaskCompletionSource<AuthenticationState> pendingRevocation = authentication.NotifyPending();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty());
+        pendingRevocation.SetResult(new AuthenticationState(NonAdministratorPrincipal()));
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty());
+
+        authentication.Set(AdministratorPrincipal());
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-administrators-entry']"));
+        authentication.Set(NonAdministratorPrincipal());
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty());
+
+        TaskCompletionSource<AuthenticationState> lateRestore = authentication.NotifyPending();
+        cut.Dispose();
+        lateRestore.SetResult(new AuthenticationState(AdministratorPrincipal()));
+        await Task.Yield();
+    }
+
+    [Fact]
+    public void Workspace_optional_authorization_fault_fails_closed_without_aborting_the_tenant_list()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            resolver: static () => ValueTask.FromException<TenantLifecycleAuthorizationReflectionState>(
+                new InvalidOperationException("unsafe provider detail"))));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.Find("[data-testid='tenants-list-refresh']");
+        cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("unsafe provider detail");
+    }
+
+    [Fact]
+    public void Workspace_faulted_authentication_event_clears_entry_without_harming_ordinary_workspace()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        var authentication = new MutableAuthenticationStateProvider(AdministratorPrincipal());
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.Find("[data-testid='tenants-global-administrators-entry']");
+
+        authentication.NotifyFault(new InvalidOperationException("unsafe event detail"));
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-list-refresh']");
+            cut.Markup.ShouldNotContain("unsafe event detail");
+        });
     }
 
     [Fact]
@@ -500,10 +621,54 @@ public sealed class TenantsWorkspaceTests : BunitContext
             => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
     }
 
-    private sealed class StubTenantsBffComposition : ITenantsBffComposition
+    private static ClaimsPrincipal AdministratorPrincipal()
+        => new(new ClaimsIdentity(
+        [
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
+        ], "test"));
+
+    private static ClaimsPrincipal NonAdministratorPrincipal()
+        => new(new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test"));
+
+    private sealed class StubTenantsBffComposition(
+        TenantLifecycleAuthorizationReflectionState globalAdministratorReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
+        Func<ValueTask<TenantLifecycleAuthorizationReflectionState>>? resolver = null) : ITenantsBffComposition
     {
         public bool IsReadSurfaceConnected => true;
 
         public bool IsCommandSurfaceConnected => true;
+
+        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+            => globalAdministratorReflection;
+
+        public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+            CancellationToken cancellationToken = default)
+            => resolver?.Invoke() ?? ValueTask.FromResult(globalAdministratorReflection);
+    }
+
+    private sealed class MutableAuthenticationStateProvider(ClaimsPrincipal principal) : AuthenticationStateProvider
+    {
+        private AuthenticationState _state = new(principal);
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromResult(_state);
+
+        public void Set(ClaimsPrincipal updated)
+        {
+            _state = new AuthenticationState(updated);
+            NotifyAuthenticationStateChanged(Task.FromResult(_state));
+        }
+
+        public TaskCompletionSource<AuthenticationState> NotifyPending()
+        {
+            var pending = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+            NotifyAuthenticationStateChanged(pending.Task);
+            return pending;
+        }
+
+        public void NotifyFault(Exception exception)
+            => NotifyAuthenticationStateChanged(Task.FromException<AuthenticationState>(exception));
     }
 }

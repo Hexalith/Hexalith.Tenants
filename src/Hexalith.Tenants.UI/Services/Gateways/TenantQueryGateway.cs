@@ -475,16 +475,27 @@ internal sealed class TenantQueryGateway(
 
                 ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
                 ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+                GlobalAdministratorsSurfaceKind notModifiedKind = notModifiedLifecycle == ProjectionLifecycleState.Degraded
+                    ? GlobalAdministratorsSurfaceKind.Degraded
+                    : ResolveGlobalAdministratorsKindForFreshness(previous, notModifiedFreshness);
                 return previous with {
                     ETag = previous.ETag,
-                    Kind = ResolveGlobalAdministratorsKindForFreshness(previous, notModifiedFreshness),
+                    Kind = notModifiedKind,
                     Freshness = notModifiedFreshness,
                     Lifecycle = notModifiedLifecycle,
                     Rows = previous.Rows
                         .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
                         .ToArray(),
-                    Reason = ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
-                    ProjectionVersion = previous.ProjectionVersion,
+                    Reason = notModifiedLifecycle == ProjectionLifecycleState.Degraded
+                        ? GlobalAdministratorsReason.ProjectionDegraded
+                        : ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
+                    ProjectionVersion = result.Metadata?.ProjectionVersion,
+                    IsAuthorizationScopedEmpty = notModifiedKind == GlobalAdministratorsSurfaceKind.Empty,
+                    IsCompleteEvidence = string.IsNullOrWhiteSpace(request.Cursor)
+                        && !previous.HasMore
+                        && notModifiedFreshness == ReadModelFreshnessState.Current
+                        && notModifiedLifecycle == ProjectionLifecycleState.Current
+                        && HasSupportedProjectionVersion(result.Metadata),
                 };
             }
 
@@ -502,6 +513,7 @@ internal sealed class TenantQueryGateway(
                         Rows = previous.Rows
                             .Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown, Lifecycle = ProjectionLifecycleState.Unknown })
                             .ToArray(),
+                        IsCompleteEvidence = false,
                     };
             }
 
@@ -511,7 +523,7 @@ internal sealed class TenantQueryGateway(
                 .Select(m => GlobalAdministratorRow.FromSummary(m) with { Freshness = freshness, Lifecycle = lifecycle })
                 .ToArray();
 
-            if (result.Metadata?.IsDegraded == true) {
+            if (result.Metadata?.IsDegraded == true || lifecycle == ProjectionLifecycleState.Degraded) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
                 return GlobalAdministratorsSnapshot.Degraded(
                     rows,
@@ -526,8 +538,19 @@ internal sealed class TenantQueryGateway(
                 return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
             }
 
+            if (freshness is ReadModelFreshnessState.Unknown) {
+                return GlobalAdministratorsSnapshot.Unknown(rows, payload.Cursor, payload.HasMore, result.ETag) with {
+                    Lifecycle = lifecycle,
+                    ProjectionVersion = result.Metadata?.ProjectionVersion,
+                };
+            }
+
             if (rows.Count == 0) {
-                return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+                return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag) with {
+                    Lifecycle = lifecycle,
+                    ProjectionVersion = result.Metadata?.ProjectionVersion,
+                    IsCompleteEvidence = IsCompleteGlobalAdministratorsEvidence(request, payload, result.Metadata, freshness, lifecycle),
+                };
             }
 
             return GlobalAdministratorsSnapshot.Ready(
@@ -535,7 +558,25 @@ internal sealed class TenantQueryGateway(
                 payload.Cursor,
                 payload.HasMore,
                 result.ETag,
-                freshness) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+                freshness) with {
+                    Lifecycle = lifecycle,
+                    ProjectionVersion = result.Metadata?.ProjectionVersion,
+                    IsCompleteEvidence = IsCompleteGlobalAdministratorsEvidence(request, payload, result.Metadata, freshness, lifecycle),
+                };
+        }
+        catch (EventStoreGatewayException ex) when (
+            IsInvalidListCursor(ex)
+            && !string.IsNullOrWhiteSpace(request.Cursor)) {
+            GlobalAdministratorsSnapshot recovered = await GetGlobalAdministratorsAsync(
+                request with { Cursor = null, ETag = null },
+                previous: null,
+                cancellationToken).ConfigureAwait(false);
+            return IsUsableGlobalAdministratorsPage(recovered)
+                ? recovered with {
+                    PagingRecovered = true,
+                    Reason = GlobalAdministratorsReason.PageRecovered,
+                }
+                : recovered;
         }
         catch (EventStoreGatewayException ex) {
             return CanRetainGlobalAdministrators(previous, request, ex)
@@ -1791,7 +1832,27 @@ internal sealed class TenantQueryGateway(
                     Lifecycle = ProjectionLifecycleState.Unknown,
                 })
                 .ToArray(),
+            IsCompleteEvidence = false,
         };
+
+    private static bool IsCompleteGlobalAdministratorsEvidence(
+        GlobalAdministratorsRequest request,
+        PaginatedResult<GlobalAdministratorSummary> payload,
+        QueryResponseMetadata? metadata,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle)
+        => string.IsNullOrWhiteSpace(request.Cursor)
+            && !payload.HasMore
+            && freshness == ReadModelFreshnessState.Current
+            && lifecycle == ProjectionLifecycleState.Current
+            && HasSupportedProjectionVersion(metadata);
+
+    private static bool IsUsableGlobalAdministratorsPage(GlobalAdministratorsSnapshot snapshot)
+        => snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Unknown
+            or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Degraded;
 
     private static bool CanRetainTenantAudit(
         TenantAuditSnapshot? previous,
@@ -1958,10 +2019,13 @@ internal sealed class TenantQueryGateway(
         ReadModelFreshnessState freshness)
         => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Stale
                 ? freshness == ReadModelFreshnessState.Stale
                     ? GlobalAdministratorsSurfaceKind.Stale
-                    : previous.Rows.Count == 0 ? GlobalAdministratorsSurfaceKind.Empty : GlobalAdministratorsSurfaceKind.Ready
+                    : freshness == ReadModelFreshnessState.Unknown
+                        ? GlobalAdministratorsSurfaceKind.Unknown
+                        : previous.Rows.Count == 0 ? GlobalAdministratorsSurfaceKind.Empty : GlobalAdministratorsSurfaceKind.Ready
                 : previous.Kind;
 
     private static GlobalAdministratorsReason ResolveGlobalAdministratorsReasonForFreshness(
@@ -1969,6 +2033,7 @@ internal sealed class TenantQueryGateway(
         ReadModelFreshnessState freshness)
         => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Stale
                 ? freshness == ReadModelFreshnessState.Stale
                     ? GlobalAdministratorsReason.ProjectionStale
@@ -2081,7 +2146,7 @@ internal sealed class TenantQueryGateway(
                 => GlobalAdministratorsSnapshot.Invalid(GlobalAdministratorsReason.GatewayFailure),
             (int)HttpStatusCode.NotFound or (int)HttpStatusCode.NotImplemented or (int)HttpStatusCode.ServiceUnavailable
                 => GlobalAdministratorsSnapshot.Unavailable(),
-            _ => GlobalAdministratorsSnapshot.Degraded([], GlobalAdministratorsReason.GatewayFailure),
+            _ => GlobalAdministratorsSnapshot.Error(),
         };
 
     private static TenantAuditSnapshot MapTenantAuditException(TenantAuditRequest request, EventStoreGatewayException exception)

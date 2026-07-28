@@ -1,8 +1,6 @@
-using System.Security.Claims;
-using System.Text.Json;
-
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Services.Auth;
+using Hexalith.Tenants.UI.Services.Gateways;
 
 using Microsoft.AspNetCore.Components.Authorization;
 
@@ -16,205 +14,38 @@ internal sealed class TenantConfigurationPrincipalResolver(
     CircuitServicesAccessor circuitServicesAccessor,
     IUserContextAccessor userContextAccessor) : ITenantConfigurationPrincipalResolver
 {
-    private static readonly string[] AdministratorRoleValues =
-    [
-        "GlobalAdministrator",
-        "global-administrator",
-        "global-admin",
-    ];
-
     /// <inheritdoc />
     public async ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
         CancellationToken cancellationToken = default)
     {
-        ClaimsPrincipal? principal = httpContextAccessor.HttpContext?.User;
-        if (principal?.Identity?.IsAuthenticated != true
-            && circuitServicesAccessor.Services?.GetService(typeof(AuthenticationStateProvider))
-                is AuthenticationStateProvider provider)
-        {
-            AuthenticationState state = await provider.GetAuthenticationStateAsync().ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            principal = state.User;
-        }
-
-        return Resolve(principal);
-    }
-
-    private TenantConfigurationPrincipalEvidence Resolve(ClaimsPrincipal? principal)
-    {
-        if (principal is null)
-        {
-            return TenantConfigurationPrincipalEvidence.Indeterminate();
-        }
-
-        ClaimsIdentity[] authenticated = principal.Identities
-            .Where(static identity => identity.IsAuthenticated)
-            .ToArray();
-        if (authenticated.Length != 1 || HasRelevantClaimsOnOtherIdentity(principal, authenticated.Single()))
-        {
-            return TenantConfigurationPrincipalEvidence.Indeterminate();
-        }
-
-        ClaimsIdentity identity = authenticated.Single();
-        Claim[] subjects = identity.Claims
-            .Where(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))
-            .ToArray();
-        if (subjects.Length != 1 || string.IsNullOrWhiteSpace(subjects[0].Value))
-        {
-            return TenantConfigurationPrincipalEvidence.Indeterminate();
-        }
-
-        // Subject evidence is literal. If the accessor normalizes a malformed claim, the normalized
-        // value must not be allowed to corroborate that raw claim and unlock deployment grants.
-        string? authenticatedSubject = userContextAccessor.UserId;
-        if (string.IsNullOrWhiteSpace(authenticatedSubject)
-            || !string.Equals(authenticatedSubject, subjects[0].Value, StringComparison.Ordinal))
-        {
-            return TenantConfigurationPrincipalEvidence.Indeterminate();
-        }
-
-        bool? administrator = ResolveAdministratorEvidence(identity);
-        if (administrator is null)
-        {
-            return TenantConfigurationPrincipalEvidence.Indeterminate();
-        }
-
-        if (administrator.Value)
-        {
-            bool? hasSystemScope = ResolveSystemScopeEvidence(identity);
-            if (hasSystemScope is null)
-            {
-                return TenantConfigurationPrincipalEvidence.Indeterminate();
-            }
-
-            // An administrator role scoped to a non-system tenant is a well-formed claim that simply
-            // does not meet the bar for the namespace wildcard. That is proven non-administrator, not
-            // ambiguous evidence, so the caller keeps whatever explicit grants deployment gave them
-            // instead of losing the whole surface.
-            if (!hasSystemScope.Value)
-            {
-                return TenantConfigurationPrincipalEvidence.NonAdministrator(authenticatedSubject);
-            }
-
-            return TenantConfigurationPrincipalEvidence.GlobalAdministrator(authenticatedSubject);
-        }
-
-        return TenantConfigurationPrincipalEvidence.NonAdministrator(authenticatedSubject);
-    }
-
-    private static bool HasRelevantClaimsOnOtherIdentity(ClaimsPrincipal principal, ClaimsIdentity authenticated)
-        => principal.Identities
-            .Where(identity => !ReferenceEquals(identity, authenticated))
-            .SelectMany(static identity => identity.Claims)
-            .Any(static claim => IsRelevantClaimType(claim.Type));
-
-    private static bool? ResolveAdministratorEvidence(ClaimsIdentity identity)
-    {
-        bool administrator = false;
-        foreach (Claim claim in identity.Claims.Where(static claim => IsAdministratorClaimType(claim.Type)))
-        {
-            bool? evidence = ResolveClaim(claim);
-            if (evidence is null)
-            {
-                return null;
-            }
-
-            administrator |= evidence.Value;
-        }
-
-        return administrator;
-    }
-
-    private static bool? ResolveSystemScopeEvidence(ClaimsIdentity identity)
-    {
-        string[] scopes = identity.Claims
-            .Where(static claim => string.Equals(claim.Type, "eventstore:tenant", StringComparison.Ordinal))
-            .Select(static claim => claim.Value)
-            .ToArray();
-        if (scopes.Any(static scope => string.IsNullOrWhiteSpace(scope) || scope.Any(char.IsWhiteSpace))
-            || scopes.Distinct(StringComparer.Ordinal).Skip(1).Any())
-        {
-            return null;
-        }
-
-        return scopes.Any(static scope => string.Equals(scope, "system", StringComparison.Ordinal));
-    }
-
-    private static bool? ResolveClaim(Claim claim)
-    {
-        if (claim.Type is "global_admin" or "is_global_admin")
-        {
-            return bool.TryParse(claim.Value, out bool value)
-                ? value
-                : null;
-        }
-
-        if (claim.Type is ClaimTypes.Role or "role")
-        {
-            return IsMalformedScalarRole(claim.Value)
-                ? null
-                : IsAdministratorRole(claim.Value);
-        }
-
-        return ResolveRoleCollection(claim.Value);
-    }
-
-    private static bool? ResolveRoleCollection(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        string[] roles;
-        if (value.StartsWith("[", StringComparison.Ordinal))
+        cancellationToken.ThrowIfCancellationRequested();
+        System.Security.Claims.ClaimsPrincipal? principal;
+        if (circuitServicesAccessor.Services?.GetService(typeof(AuthenticationStateProvider))
+            is AuthenticationStateProvider provider)
         {
             try
             {
-                roles = JsonSerializer.Deserialize<string[]>(value) ?? [];
+                AuthenticationState state = await provider.GetAuthenticationStateAsync().ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                principal = state.User;
             }
-            catch (JsonException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return null;
+                throw;
             }
-
-            if (roles.Length == 0 || roles.Any(string.IsNullOrWhiteSpace))
+            catch
             {
-                return null;
+                return TenantConfigurationPrincipalEvidence.Indeterminate();
             }
         }
         else
         {
-            if (value.StartsWith("{", StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            roles = value.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
-            if (roles.Length == 0)
-            {
-                return null;
-            }
+            principal = httpContextAccessor.HttpContext?.User;
         }
 
-        return roles.Any(IsAdministratorRole);
+        return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
+            principal,
+            userContextAccessor.UserId,
+            requireCorroboration: true);
     }
-
-    private static bool IsMalformedScalarRole(string value)
-        => string.IsNullOrWhiteSpace(value)
-        || value.StartsWith("[", StringComparison.Ordinal)
-        || value.StartsWith("{", StringComparison.Ordinal);
-
-    private static bool IsAdministratorRole(string value)
-        => AdministratorRoleValues.Contains(value, StringComparer.OrdinalIgnoreCase);
-
-    private static bool IsRelevantClaimType(string type)
-        => string.Equals(type, "sub", StringComparison.Ordinal)
-        || string.Equals(type, "eventstore:tenant", StringComparison.Ordinal)
-        || IsAdministratorClaimType(type);
-
-    private static bool IsAdministratorClaimType(string type)
-        => type is "global_admin" or "is_global_admin" or "role" or "roles"
-        || string.Equals(type, ClaimTypes.Role, StringComparison.Ordinal);
-
 }

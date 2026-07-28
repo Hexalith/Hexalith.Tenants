@@ -2610,6 +2610,24 @@
   <data name="Tenants.GlobalAdministrators.Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Return" xml:space="preserve">
+    <value>Return to Tenants</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Retry" xml:space="preserve">
+    <value>Retry review</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Reset" xml:space="preserve">
+    <value>Reset to first page</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.PageRecovered" xml:space="preserve">
+    <value>The protected page could not be restored. The review restarted at the first page.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Title" xml:space="preserve">
+    <value>Read-only on narrow screens</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Message" xml:space="preserve">
+    <value>Review, paging, copy, and recovery remain available. Grant and remove controls require a wider viewport.</value>
+  </data>
   <data name="Tenants.GlobalAdministrators.Row.Scope" xml:space="preserve">
     <value>Platform authority, not tenant ownership</value>
   </data>
@@ -2648,6 +2666,18 @@
   </data>
   <data name="Tenants.GlobalAdministrators.State.Ready.Title" xml:space="preserve">
     <value>Global administrators loaded</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unknown.Message" xml:space="preserve">
+    <value>Projection freshness is unknown. Previously confirmed rows may be reviewed, but no current or complete claim is made.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unknown.Title" xml:space="preserve">
+    <value>Global administrator truth unknown</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Error.Message" xml:space="preserve">
+    <value>The review could not be refreshed. Retry or reset to the first page; no current projection claim is made.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Error.Title" xml:space="preserve">
+    <value>Global administrator review failed</value>
   </data>
   <data name="Tenants.GlobalAdministrators.State.Stale.Message" xml:space="preserve">
     <value>Projection freshness is stale. Last confirmed administrators remain visible and actions are unavailable.</value>
@@ -2750,6 +2780,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
     <value>Another platform authority command is in flight.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Incomplete" xml:space="preserve">
+    <value>Current complete projection evidence is required before granting platform authority.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
     <value>The global administrator read projection must be available before grant can be submitted.</value>
@@ -2903,6 +2936,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.InFlight" xml:space="preserve">
     <value>Another platform authority command is in flight.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete" xml:space="preserve">
+    <value>Current complete projection evidence is required before removing platform authority.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin" xml:space="preserve">
     <value>The last global administrator cannot be removed.</value>

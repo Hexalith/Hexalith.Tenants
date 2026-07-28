@@ -8,6 +8,7 @@ using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -46,7 +47,8 @@ public static class TenantsUiServiceCollectionExtensions
             options.AddPolicy(
                 TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
                 policy => policy.RequireAssertion(context =>
-                    TenantsGlobalAdministratorClaims.IsGlobalAdministrator(context.User))));
+                    TenantsGlobalAdministratorClaims.Evaluate(context.User)
+                        == TenantLifecycleAuthorizationReflectionState.Authorized)));
 
         if (TryGetHttpBaseAddress(configuration["Tenants:BaseAddress"], out Uri? tenantsBaseAddress))
         {

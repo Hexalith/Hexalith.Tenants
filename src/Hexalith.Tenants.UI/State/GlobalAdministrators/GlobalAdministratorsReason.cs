@@ -9,6 +9,7 @@ public enum GlobalAdministratorsReason {
     NotModifiedWithoutSnapshot,
     ProjectionDegraded,
     ProjectionStale,
+    PageRecovered,
     MissingPayload,
     GatewayFailure,
 }

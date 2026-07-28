@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -135,6 +136,17 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify) {
             return this;
+        }
+
+        if (snapshot.Freshness is not ReadModelFreshnessState.Current
+            || snapshot.Kind is not (GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty)) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = "Current projection evidence is required before confirming the global administrator grant.",
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
         }
 
         GlobalAdministratorRow? row = snapshot.Rows.FirstOrDefault(row => string.Equals(row.UserId, Intent.UserId, StringComparison.Ordinal));

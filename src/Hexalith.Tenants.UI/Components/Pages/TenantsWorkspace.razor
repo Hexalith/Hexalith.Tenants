@@ -32,6 +32,15 @@
                 <FluentTab Id="@UsersTabId" Header="@Localizer["Tenants.Workspace.Tabs.Users"]" />
             </FluentTabs>
 
+            @if (_canReviewGlobalAdministrators)
+            {
+                <FluentAnchorButton Href="@GlobalAdministratorsHref"
+                                    Appearance="ButtonAppearance.Outline"
+                                    data-testid="tenants-global-administrators-entry">
+                    @Localizer["Tenants.Navigation.GlobalAdministrators"]
+                </FluentAnchorButton>
+            }
+
             @if (IsTenantsTab)
             {
                 <FluentStack Orientation="Orientation.Horizontal"
@@ -313,6 +322,9 @@
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
+    private bool _canReviewGlobalAdministrators;
+    private AuthenticationStateProvider? _authenticationStateProvider;
+    private long _authorizationVersion;
 
     // Blazor Server does not serialise async event handlers, and a pager button stays live until the
     // render batch that disables it is acknowledged. Without this guard a second click landed while
@@ -418,6 +430,15 @@
     private string? AuthenticatedUserId
         => (Services.GetService(typeof(IUserContextAccessor)) as IUserContextAccessor)?.UserId;
 
+    private string GlobalAdministratorsHref
+    {
+        get
+        {
+            TenantWorkspaceState safeReturnState = CurrentWorkspaceState() with { Cursor = null };
+            return $"/global-administrators?returnUrl={Uri.EscapeDataString(safeReturnState.ToCanonicalUrl())}";
+        }
+    }
+
     private string StatusFilterLabelKey
         => _snapshot.IsAuthoritativeSearch
             ? "Tenants.List.StatusFilterLabel.Authoritative"
@@ -494,6 +515,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+
+        await ResolveGlobalAdministratorsEntryAsync();
         bool querySearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         RestoreContextFromQuery();
         NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
@@ -507,6 +535,84 @@
         if (IsTenantListView)
         {
             await LoadAsync(reuseETag: false, searchTermTooLong: querySearchTermTooLong);
+        }
+    }
+
+    private async Task ResolveGlobalAdministratorsEntryAsync()
+    {
+        long version = Interlocked.Increment(ref _authorizationVersion);
+        _canReviewGlobalAdministrators = false;
+        if (Services.GetService(typeof(ITenantsBffComposition)) is not ITenantsBffComposition bffComposition)
+        {
+            return;
+        }
+
+        TenantLifecycleAuthorizationReflectionState reflection;
+        try
+        {
+            reflection = await bffComposition.ResolveGlobalAdministratorsAuthorizationAsync();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        {
+            return;
+        }
+
+        _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        long version = Interlocked.Increment(ref _authorizationVersion);
+        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
+        _ = ObserveAuthenticationCallbackAsync(callback);
+    }
+
+    private async Task ApplyAuthenticationStateChangedAsync(
+        Task<AuthenticationState> authenticationStateTask,
+        long version)
+    {
+        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        {
+            return;
+        }
+
+        _canReviewGlobalAdministrators = false;
+        StateHasChanged();
+
+        AuthenticationState authenticationState;
+        try
+        {
+            authenticationState = await authenticationStateTask;
+        }
+        catch
+        {
+            return;
+        }
+
+        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        {
+            return;
+        }
+
+        _canReviewGlobalAdministrators = TenantsGlobalAdministratorClaims.Evaluate(authenticationState.User)
+            == TenantLifecycleAuthorizationReflectionState.Authorized;
+        StateHasChanged();
+    }
+
+    private static async Task ObserveAuthenticationCallbackAsync(Task callback)
+    {
+        try
+        {
+            await callback;
+        }
+        catch
+        {
+            // Authentication transitions fail closed in the component callback.
         }
     }
 
@@ -1212,6 +1318,12 @@
         // came back to a silently restarted search with no notice -- the invariant ExplainsSearchRestart
         // exists to prevent. A later load for a different scope discards it through EnsureScope.
         _disposed = true;
+        Interlocked.Increment(ref _authorizationVersion);
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+            _authenticationStateProvider = null;
+        }
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
     }

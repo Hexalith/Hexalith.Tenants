@@ -70,6 +70,32 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     }
 
     [Theory]
+    [InlineData(GlobalAdministratorsSurfaceKind.Stale)]
+    [InlineData(GlobalAdministratorsSurfaceKind.Unknown)]
+    [InlineData(GlobalAdministratorsSurfaceKind.Degraded)]
+    public void Target_presence_on_non_current_projection_cannot_confirm_grant(GlobalAdministratorsSurfaceKind kind)
+    {
+        GlobalAdministratorGrantCommandSnapshot pending = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(new SetGlobalAdministrator("target-user"))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        GlobalAdministratorRow[] rows = [new("target-user", ReadModelFreshnessState.Stale)];
+        GlobalAdministratorsSnapshot evidence = kind switch
+        {
+            GlobalAdministratorsSurfaceKind.Stale => GlobalAdministratorsSnapshot.Stale(rows, null, false, "\"etag\""),
+            GlobalAdministratorsSurfaceKind.Unknown => GlobalAdministratorsSnapshot.Unknown(rows, null, false, "\"etag\""),
+            GlobalAdministratorsSurfaceKind.Degraded => GlobalAdministratorsSnapshot.Degraded(rows, GlobalAdministratorsReason.ProjectionDegraded, "\"etag\""),
+            _ => throw new InvalidOperationException(),
+        };
+
+        GlobalAdministratorGrantCommandSnapshot result = pending.ConfirmProjection(evidence);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.LastConfirmedProjection.ShouldBeNull();
+    }
+
+    [Theory]
     [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable)]
     [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed)]
     [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed)]

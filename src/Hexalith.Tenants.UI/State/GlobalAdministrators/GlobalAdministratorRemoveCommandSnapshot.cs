@@ -167,7 +167,7 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
         }
 
         GlobalAdministratorRow? row = snapshot.Rows.FirstOrDefault(row => string.Equals(row.UserId, Intent.UserId, StringComparison.Ordinal));
-        if (row is null) {
+        if (row is null && snapshot.IsCompleteEvidence) {
             return this with {
                 State = TenantCommandLifecycleState.Confirmed,
                 LastConfirmedProjection = null,
@@ -175,6 +175,17 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
                 AuditState = TenantCommandAuditState.AuditPending,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
+        if (row is null) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                LastConfirmedProjection = null,
+                SafeMessage = "Current complete projection evidence is required before confirming global administrator removal.",
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
         }
 

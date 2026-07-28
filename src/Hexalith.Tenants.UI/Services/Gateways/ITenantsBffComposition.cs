@@ -16,6 +16,10 @@ public interface ITenantsBffComposition {
     TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
+    ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection);
+
     ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
         TenantDetail detail,
         CancellationToken cancellationToken = default) {

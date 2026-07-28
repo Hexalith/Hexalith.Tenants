@@ -50,6 +50,48 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public async Task Resolver_contains_non_cancellation_authentication_provider_faults_as_indeterminate()
+    {
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            circuitProvider: new FaultingAuthenticationStateProvider(
+                new InvalidOperationException("unsafe provider detail"))).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Resolver_still_propagates_caller_cancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Should.ThrowAsync<OperationCanceledException>(async () =>
+            await Resolver(circuitPrincipal: Principal(new Claim("sub", "operator.circuit")))
+                .ResolveAsync(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Resolver_prefers_current_circuit_identity_over_stale_authenticated_http_identity()
+    {
+        ClaimsPrincipal staleHttpPrincipal = Principal(
+            new Claim("sub", "operator.http"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "[\"global-admin\"]"));
+        ClaimsPrincipal currentCircuitPrincipal = Principal(
+            new Claim("sub", "operator.circuit"),
+            new Claim("roles", "[\"tenant-reader\"]"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            httpPrincipal: staleHttpPrincipal,
+            circuitPrincipal: currentCircuitPrincipal,
+            userContextSubject: "operator.circuit").ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+        evidence.Subject.ShouldBe("operator.circuit");
+    }
+
+    [Fact]
     public async Task Resolver_fails_closed_for_multiple_authenticated_identities_and_malformed_role_collections()
     {
         ClaimsPrincipal multiple = new(
@@ -66,6 +108,19 @@ public sealed class TenantConfigurationReadPolicyTests
         malformed.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         crossIdentity.Subject.ShouldBeNull();
         malformed.Subject.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Resolver_treats_conflicting_explicit_administrator_evidence_as_indeterminate()
+    {
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: Principal(
+            new Claim("sub", "operator-1"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
+            new Claim("is_global_admin", "false"))).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
     }
 
     [Fact]
@@ -721,6 +776,7 @@ public sealed class TenantConfigurationReadPolicyTests
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? httpPrincipal = null,
         ClaimsPrincipal? circuitPrincipal = null,
+        AuthenticationStateProvider? circuitProvider = null,
         bool supplyUserContext = true,
         string? userContextSubject = null)
     {
@@ -729,10 +785,10 @@ public sealed class TenantConfigurationReadPolicyTests
             HttpContext = httpPrincipal is null ? null : new DefaultHttpContext { User = httpPrincipal },
         };
         CircuitServicesAccessor circuit = new();
-        if (circuitPrincipal is not null)
+        if (circuitPrincipal is not null || circuitProvider is not null)
         {
             circuit.Services = new ServiceCollection()
-                .AddSingleton<AuthenticationStateProvider>(new StubAuthenticationStateProvider(circuitPrincipal))
+                .AddSingleton(circuitProvider ?? new StubAuthenticationStateProvider(circuitPrincipal!))
                 .BuildServiceProvider();
         }
 
@@ -768,6 +824,12 @@ public sealed class TenantConfigurationReadPolicyTests
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
             => Task.FromResult(new AuthenticationState(principal));
+    }
+
+    private sealed class FaultingAuthenticationStateProvider(Exception exception) : AuthenticationStateProvider
+    {
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromException<AuthenticationState>(exception);
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

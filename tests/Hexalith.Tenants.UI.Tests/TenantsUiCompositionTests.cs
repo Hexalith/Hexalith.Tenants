@@ -486,6 +486,7 @@ public sealed class TenantsUiCompositionTests
         ITenantsBffComposition composition = new TenantsBffComposition(
             new StubTenantCommandGateway(),
             ContextAccessor(
+                new Claim("sub", "operator.alpha"),
                 new Claim("eventstore:tenant", "system"),
                 new Claim(ClaimTypes.Role, "GlobalAdministrator")));
 
@@ -499,6 +500,7 @@ public sealed class TenantsUiCompositionTests
         ITenantsBffComposition composition = new TenantsBffComposition(
             new StubTenantCommandGateway(),
             ContextAccessor(
+                new Claim("sub", "operator.alpha"),
                 new Claim("eventstore:tenant", "system"),
                 new Claim("global_admin", "true")));
 
@@ -510,21 +512,27 @@ public sealed class TenantsUiCompositionTests
     public void Global_administrator_claim_helper_matches_navigation_and_bff_authorization_shapes()
     {
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("global_admin", "true"))).ShouldBeTrue();
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("roles", "[\"tenant-reader\",\"global-admin\"]"))).ShouldBeTrue();
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim(ClaimTypes.Role, "GlobalAdministrator"))).ShouldBeTrue();
 
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("global_admin", "false"))).ShouldBeFalse();
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
             new Claim("global_admin", "true"))).ShouldBeFalse();
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(false,
+            new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("global_admin", "true"))).ShouldBeFalse();
     }
@@ -534,10 +542,12 @@ public sealed class TenantsUiCompositionTests
     {
         ITenantsBffComposition composition = new TenantsBffComposition(
             new StubTenantCommandGateway(),
-            ContextAccessor(new Claim(ClaimTypes.Role, "GlobalAdministrator")));
+            ContextAccessor(
+                new Claim("sub", "operator.alpha"),
+                new Claim(ClaimTypes.Role, "GlobalAdministrator")));
 
-        composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
-        composition.GlobalAdministratorsAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        composition.GlobalAdministratorsAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
     }
 
     [Fact]

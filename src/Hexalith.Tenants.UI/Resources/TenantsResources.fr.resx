@@ -2610,6 +2610,24 @@
   <data name="Tenants.GlobalAdministrators.Refresh" xml:space="preserve">
     <value>Actualiser</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Return" xml:space="preserve">
+    <value>Retour aux locataires</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Retry" xml:space="preserve">
+    <value>Réessayer la revue</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Reset" xml:space="preserve">
+    <value>Réinitialiser à la première page</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.PageRecovered" xml:space="preserve">
+    <value>La page protégée n'a pas pu être restaurée. La revue a repris à la première page.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Title" xml:space="preserve">
+    <value>Lecture seule sur écran étroit</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Message" xml:space="preserve">
+    <value>La revue, la pagination, la copie et la récupération restent disponibles. Les contrôles d'octroi et de retrait exigent un écran plus large.</value>
+  </data>
   <data name="Tenants.GlobalAdministrators.Row.Scope" xml:space="preserve">
     <value>Autorite plateforme, pas proprietaire de locataire</value>
   </data>
@@ -2648,6 +2666,18 @@
   </data>
   <data name="Tenants.GlobalAdministrators.State.Ready.Title" xml:space="preserve">
     <value>Administrateurs globaux charges</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unknown.Message" xml:space="preserve">
+    <value>La fraîcheur de la projection est inconnue. Les lignes précédemment confirmées peuvent être consultées, sans affirmation d'un état actuel ou complet.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unknown.Title" xml:space="preserve">
+    <value>État de vérité des administrateurs globaux inconnu</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Error.Message" xml:space="preserve">
+    <value>La revue n'a pas pu être actualisée. Réessayez ou revenez à la première page ; aucun état actuel de la projection n'est affirmé.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Error.Title" xml:space="preserve">
+    <value>Échec de la revue des administrateurs globaux</value>
   </data>
   <data name="Tenants.GlobalAdministrators.State.Stale.Message" xml:space="preserve">
     <value>La fraicheur de projection est perimee. Les administrateurs confirmes restent visibles et les actions sont indisponibles.</value>
@@ -2750,6 +2780,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
     <value>Une autre commande d'autorite plateforme est en cours.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Incomplete" xml:space="preserve">
+    <value>Une preuve de projection actuelle et complète est requise avant d'accorder l'autorité de la plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
     <value>La projection de lecture des administrateurs globaux doit etre disponible avant la soumission.</value>
@@ -2903,6 +2936,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.InFlight" xml:space="preserve">
     <value>Une autre commande d'autorite plateforme est en cours.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete" xml:space="preserve">
+    <value>Une preuve de projection actuelle et complète est requise avant de retirer l'autorité de la plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin" xml:space="preserve">
     <value>Le dernier administrateur global ne peut pas etre retire.</value>

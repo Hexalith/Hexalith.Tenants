@@ -2,6 +2,12 @@
     min-width: 0;
 }
 
+/* fc-css-exception: the mobile-only safety notice is paired with hidden high-impact command
+   regions at the same breakpoint; Fluent components do not own responsive visibility. */
+.global-admins__mobile-readonly {
+    display: none;
+}
+
 /* fc-css-exception: vertical region gap on semantic <section> landmarks and the <EditForm> grant
    form; keeping the landmarks/form precludes replacing them with a FluentStack wrapper. */
 .global-admins__scope,
@@ -186,6 +192,18 @@
 }
 
 @media (max-width: 42rem) {
+    /* fc-css-exception: mobile is deliberately read-only for platform-authority mutations; the
+       localized notice remains visible beside the usable review, paging, copy, and recovery UI. */
+    .global-admins__mutation-section .global-admins__mutation-initiation {
+        display: none;
+    }
+
+    /* fc-css-exception: responsive visibility for the localized explanation paired with the
+       hidden mutation regions above. */
+    .global-admins__mobile-readonly {
+        display: block;
+    }
+
     /* fc-css-exception: responsive breakpoint collapsing the content-sized label/value columns to a
        single column; no Fluent layout primitive expresses this content-sized column behaviour. */
     .global-admins__scope div,

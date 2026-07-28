@@ -21,6 +21,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.UserTenants;
 
@@ -1112,18 +1113,56 @@ public sealed class TenantQueryGatewayTests
         snapshot.Reason.ShouldBe(GlobalAdministratorsReason.ProjectionStale);
     }
 
+    [Theory]
+    [InlineData(false, GlobalAdministratorsSurfaceKind.Ready)]
+    [InlineData(true, GlobalAdministratorsSurfaceKind.Empty)]
+    public async Task Get_global_administrators_current_not_modified_promotes_unknown_truth_and_recomputes_completeness(
+        bool empty,
+        GlobalAdministratorsSurfaceKind expectedKind)
+    {
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Unknown(
+            empty ? [] : [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Unknown)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"") with
+        {
+            ProjectionVersion = "projection-old",
+        };
+        CapturingGatewayClient client = new();
+        client.EnqueueGlobalAdministratorsNotModified(
+            "\"known\"",
+            isStale: false,
+            lifecycle: ProjectionLifecycleState.Current,
+            projectionVersion: "projection-current");
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: "\"known\""),
+                previous,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        snapshot.ProjectionVersion.ShouldBe("projection-current");
+        snapshot.IsCompleteEvidence.ShouldBeTrue();
+        snapshot.IsAuthorizationScopedEmpty.ShouldBe(empty);
+        snapshot.Reason.ShouldBe(GlobalAdministratorsReason.None);
+        snapshot.Rows.ShouldAllBe(static row => row.Freshness == ReadModelFreshnessState.Current);
+    }
+
     // ResolveNotModifiedFreshness carries its own AD-15 provenance gate, because its fall-through
     // returns the retained `previous` freshness WITHOUT passing through ResolveFreshness. Without
     // these rows, deleting either the provenance gate or the lifecycle clause leaves the suite green
     // while a non-projection-backed 304 keeps re-affirming a Current claim.
     [Theory]
     [InlineData(false, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Unknown, null, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Degraded, GlobalAdministratorsReason.GatewayFailure)]
-    [InlineData(true, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Ready, GlobalAdministratorsReason.None)]
-    [InlineData(true, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Ready, GlobalAdministratorsReason.None)]
-    [InlineData(true, (QueryResponseProvenance)999, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Ready, GlobalAdministratorsReason.None)]
+    [InlineData(true, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Unknown, GlobalAdministratorsReason.None)]
+    [InlineData(true, QueryResponseProvenance.Unknown, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Unknown, GlobalAdministratorsReason.None)]
+    [InlineData(true, (QueryResponseProvenance)999, ProjectionLifecycleState.Stale, true, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Unknown, GlobalAdministratorsReason.None)]
     [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Stale, false, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Stale, GlobalAdministratorsSurfaceKind.Stale, GlobalAdministratorsReason.ProjectionStale)]
     [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, true, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, GlobalAdministratorsReason.None)]
-    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Degraded, false, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Degraded, GlobalAdministratorsSurfaceKind.Ready, GlobalAdministratorsReason.None)]
+    [InlineData(true, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Degraded, false, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Degraded, GlobalAdministratorsSurfaceKind.Degraded, GlobalAdministratorsReason.ProjectionDegraded)]
     public async Task Get_global_administrators_not_modified_gates_freshness_on_provenance_and_lifecycle(
         bool emitMetadata,
         QueryResponseProvenance provenance,
@@ -1158,7 +1197,7 @@ public sealed class TenantQueryGatewayTests
     [Theory]
     [InlineData(ProjectionLifecycleState.Current, true, ReadModelFreshnessState.Current, GlobalAdministratorsSurfaceKind.Ready)]
     [InlineData(ProjectionLifecycleState.Stale, false, ReadModelFreshnessState.Stale, GlobalAdministratorsSurfaceKind.Stale)]
-    [InlineData(ProjectionLifecycleState.Rebuilding, true, ReadModelFreshnessState.Unknown, GlobalAdministratorsSurfaceKind.Ready)]
+    [InlineData(ProjectionLifecycleState.Rebuilding, true, ReadModelFreshnessState.Unknown, GlobalAdministratorsSurfaceKind.Unknown)]
     public async Task Get_global_administrators_projection_lifecycle_precedes_legacy_stale_evidence(
         ProjectionLifecycleState lifecycle,
         bool isStale,
@@ -1223,9 +1262,194 @@ public sealed class TenantQueryGatewayTests
         GlobalAdministratorsSnapshot snapshot = await gateway
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
 
-        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unknown);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_only_marks_current_first_page_without_more_rows_complete()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "global-admin-v7"));
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-2")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "global-admin-v8"));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        GlobalAdministratorsSnapshot firstPage = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot laterPage = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(Cursor: "opaque-page-two"),
+            previous: null,
+            CancellationToken.None);
+
+        firstPage.IsCompleteEvidence.ShouldBeTrue();
+        laterPage.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Get_global_administrators_requires_a_non_blank_projection_version_for_complete_evidence(
+        string? projectionVersion)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: projectionVersion));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_invalid_later_cursor_recovers_to_page_one_honestly()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(400, "Invalid request", reasonCode: "invalid-cursor"));
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "global-admin-v9"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(Cursor: "expired-protected-cursor"),
+            previous: null,
+            CancellationToken.None);
+
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.PagingRecovered.ShouldBeTrue();
+        snapshot.Reason.ShouldBe(GlobalAdministratorsReason.PageRecovered);
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+    }
+
+    [Theory]
+    [InlineData(500, GlobalAdministratorsSurfaceKind.Error, GlobalAdministratorsReason.GatewayFailure)]
+    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid, GlobalAdministratorsReason.GatewayFailure)]
+    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable, GlobalAdministratorsReason.GatewayUnavailable)]
+    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized, GlobalAdministratorsReason.Unauthorized)]
+    public async Task Get_global_administrators_failed_first_page_retry_preserves_the_real_failure(
+        int retryStatus,
+        GlobalAdministratorsSurfaceKind expectedKind,
+        GlobalAdministratorsReason expectedReason)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(400, "Invalid request", reasonCode: "invalid-cursor"));
+        client.EnqueueException(new EventStoreGatewayException(retryStatus, "Retry failed", reasonCode: "retry-failed"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(Cursor: "expired-protected-cursor"),
+            previous: null,
+            CancellationToken.None);
+
+        client.SubmittedQueries.Count.ShouldBe(2);
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Reason.ShouldBe(expectedReason);
+        snapshot.PagingRecovered.ShouldBeFalse();
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Incomplete_gateway_page_cannot_confirm_absence_for_a_remove_consumer()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("other-admin")], "next-page", true),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "projection-v10"));
+        GlobalAdministratorsSnapshot page = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+        GlobalAdministratorRemoveCommandSnapshot pending = GlobalAdministratorRemoveCommandSnapshot
+            .Idle()
+            .Preview(
+                new RemoveGlobalAdministrator("target-admin"),
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ])
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        GlobalAdministratorRemoveCommandSnapshot confirmation = pending.ConfirmProjection(page);
+
+        page.IsCompleteEvidence.ShouldBeFalse();
+        confirmation.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        confirmation.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        confirmation.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_does_not_recover_an_unrecognized_bad_request()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            400,
+            "Invalid request",
+            reasonCode: "validation-failed",
+            detail: "invalid-cursor appears only in unsafe detail"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(Cursor: "protected-cursor"),
+            previous: null,
+            CancellationToken.None);
+
+        client.SubmittedQueries.ShouldHaveSingleItem();
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Invalid);
+        snapshot.PagingRecovered.ShouldBeFalse();
+        snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
+    }
+
+    [Fact]
+    public void Global_administrator_diagnostics_omit_protected_and_identity_values()
+    {
+        GlobalAdministratorsRequest request = new("opaque-cursor-secret", 20, "etag-secret");
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("literal-admin-secret", ReadModelFreshnessState.Current)],
+            "next-cursor-secret",
+            hasMore: true,
+            "etag-secret",
+            ReadModelFreshnessState.Current) with
+        {
+            ProjectionVersion = "projection-secret",
+        };
+
+        string diagnostics = $"{request} {snapshot}";
+
+        diagnostics.ShouldNotContain("opaque-cursor-secret");
+        diagnostics.ShouldNotContain("next-cursor-secret");
+        diagnostics.ShouldNotContain("etag-secret");
+        diagnostics.ShouldNotContain("literal-admin-secret");
+        diagnostics.ShouldNotContain("projection-secret");
     }
 
     [Theory]
@@ -1235,6 +1459,7 @@ public sealed class TenantQueryGatewayTests
     [InlineData(404, GlobalAdministratorsSurfaceKind.Unavailable)]
     [InlineData(501, GlobalAdministratorsSurfaceKind.Unavailable)]
     [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable)]
+    [InlineData(500, GlobalAdministratorsSurfaceKind.Error)]
     public async Task Get_global_administrators_maps_gateway_status_to_safe_snapshot_state(
         int statusCode,
         GlobalAdministratorsSurfaceKind expected)
@@ -1252,6 +1477,10 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(expected);
         snapshot.Rows.ShouldBeEmpty();
+        if (statusCode == 500)
+        {
+            snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
+        }
         client.SubmittedQueries.Count.ShouldBe(1);
         client.SubmittedQueries[0].Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
         string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
@@ -4363,7 +4592,8 @@ public sealed class TenantQueryGatewayTests
             bool? isStale = null,
             ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
             QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
-            bool emitMetadata = true)
+            bool emitMetadata = true,
+            string? projectionVersion = "projection-v1")
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>>(
                 null,
                 null,
@@ -4377,7 +4607,7 @@ public sealed class TenantQueryGatewayTests
                         isStale: isStale,
                         lifecycle: lifecycle,
                         provenance: provenance,
-                        projectionVersion: "projection-v1")
+                        projectionVersion: projectionVersion)
                     : null,
             });
 

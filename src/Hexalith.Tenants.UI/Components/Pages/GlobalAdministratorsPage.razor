@@ -1,4 +1,5 @@
 @page "/global-administrators"
+@attribute [Authorize(Policy = TenantsFrontComposerRegistration.GlobalAdministratorPolicy)]
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
@@ -7,6 +8,25 @@
 @implements IAsyncDisposable
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    @if (!IsAuthorized)
+    {
+        <FluentStack Orientation="Orientation.Vertical"
+                     VerticalGap="12px"
+                     data-testid="tenants-global-admins-unavailable"
+                     role="alert">
+            <FcPageHeader PageTitle="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
+                          Heading="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
+                          HeadingId="global-admins-restricted-heading"
+                          TestId="tenants-global-admins-restricted-header" />
+            <FluentMessageBar Intent="MessageBarIntent.Warning"
+                              Title="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
+                              data-testid="tenants-global-admins-denied-message">
+                @Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Message"]
+            </FluentMessageBar>
+        </FluentStack>
+    }
+    else
+    {
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="20px"
                  Class="global-admins"
@@ -18,6 +38,19 @@
                   Eyebrow="@Localizer["Tenants.GlobalAdministrators.Eyebrow"]"
                   Description="@Localizer["Tenants.GlobalAdministrators.Description"]"
                   TestId="tenants-global-admins-page-header" />
+
+    <FluentAnchorButton Href="@SafeReturnUrl"
+                        Appearance="ButtonAppearance.Outline"
+                        data-testid="tenants-global-admins-return">
+        @Localizer["Tenants.GlobalAdministrators.Return"]
+    </FluentAnchorButton>
+
+    <FluentMessageBar Class="global-admins__mobile-readonly"
+                      Intent="MessageBarIntent.Info"
+                      Title="@Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Title"]"
+                      data-testid="tenants-global-admins-mobile-readonly">
+        @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
+    </FluentMessageBar>
 
     <FluentAccordion Class="global-admins__sections"
                      ExpandMode="AccordionExpandMode.Multi"
@@ -63,11 +96,33 @@
                             @Localizer["Tenants.GlobalAdministrators.Freshness.Refreshing"]
                         </p>
                     }
+                    @if (_snapshot.PagingRecovered)
+                    {
+                        <p role="status" aria-live="polite" data-testid="tenants-global-admins-page-recovered">
+                            @Localizer["Tenants.GlobalAdministrators.Recovery.PageRecovered"]
+                        </p>
+                    }
+                    @if (CanRecover)
+                    {
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-global-admins-retry"
+                                          OnClick="RetryAsync">
+                                @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-global-admins-reset"
+                                          OnClick="ResetPagingAsync">
+                                @Localizer["Tenants.GlobalAdministrators.Recovery.Reset"]
+                            </FluentButton>
+                        </FluentStack>
+                    }
                 </FluentStack>
             </section>
         </FluentAccordionItem>
 
-        <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Grant.Title"]"
+        <FluentAccordionItem Class="global-admins__mutation-section"
+                             Header="@Localizer["Tenants.GlobalAdministrators.Grant.Title"]"
                              Expanded="true">
             <section class="global-admins__grant"
                      aria-labelledby="global-admins-grant-heading"
@@ -91,7 +146,7 @@
                   class="global-admins__grant-form"
                   data-testid="tenants-global-admin-grant-form"
                   OnSubmit="SubmitGrantAsync">
-            <div class="global-admins__grant-field">
+            <div class="global-admins__grant-field global-admins__mutation-initiation">
                 <FluentTextInput Id="tenants-global-admin-grant-user-id"
                                  @ref="_grantUserIdElement"
                                  name="global-administrator-user-id"
@@ -105,7 +160,7 @@
                 </span>
             </div>
 
-            <dl class="global-admins__grant-scope" data-testid="tenants-global-admin-grant-scope">
+            <dl class="global-admins__grant-scope global-admins__mutation-initiation" data-testid="tenants-global-admin-grant-scope">
                 <div>
                     <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
                     <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
@@ -131,7 +186,7 @@
             }
 
             <div class="global-admins__grant-actions">
-                <span class="global-admins__grant-submit-focus" tabindex="-1" @ref="_grantLauncherElement">
+                <span class="global-admins__grant-submit-focus global-admins__mutation-initiation" tabindex="-1" @ref="_grantLauncherElement">
                     <FluentButton Type="ButtonType.Submit"
                                   Appearance="ButtonAppearance.Primary"
                                   data-testid="tenants-global-admin-grant-submit"
@@ -180,7 +235,8 @@
             </section>
         </FluentAccordionItem>
 
-        <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Remove.Title"]"
+        <FluentAccordionItem Class="global-admins__mutation-section"
+                             Header="@Localizer["Tenants.GlobalAdministrators.Remove.Title"]"
                              Expanded="true">
             <section class="global-admins__remove"
                      aria-labelledby="global-admins-remove-heading"
@@ -249,7 +305,7 @@
                     </div>
                 </dl>
                 <div class="global-admins__remove-actions">
-                    <span class="global-admins__remove-submit-focus" tabindex="-1" @ref="_removeSubmitElement">
+                    <span class="global-admins__remove-submit-focus global-admins__mutation-initiation" tabindex="-1" @ref="_removeSubmitElement">
                         <FluentButton Appearance="ButtonAppearance.Primary"
                                       data-testid="tenants-global-admin-remove-submit"
                                       Disabled="@IsRemoveSubmitDisabled"
@@ -369,6 +425,7 @@
                             else
                             {
                                 <FluentButton Appearance="ButtonAppearance.Outline"
+                                              Class="global-admins__mutation-initiation"
                                               data-testid="tenants-global-admin-remove"
                                               OnClick="() => PreviewRemove(context.UserId)">
                                     @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
@@ -379,10 +436,10 @@
                 </FluentDataGrid>
             </div>
             <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Previous"]
                 </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore)" OnClick="NextPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Next"]
                 </FluentButton>
             </nav>
@@ -391,6 +448,7 @@
         }
     </FluentAccordion>
     </FluentStack>
+    }
 </FcPageLayout>
 
 @code {
@@ -408,9 +466,13 @@
     private bool _isRemoveSubmitting;
     private bool _isNotificationRefreshing;
     private bool _pageLoadInFlight;
+    private bool _readRefreshSubscriptionInFlight;
     private bool _disposed;
     private long _loadGeneration;
+    private long _mutationGeneration;
+    private long _authorizationTransitionVersion;
     private CancellationTokenSource? _loadCancellation;
+    private CancellationTokenSource? _mutationCancellation;
     private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
@@ -422,13 +484,20 @@
     private bool _focusGrantLifecyclePending;
     private bool _focusRemoveSubmitPending;
     private bool _focusRemoveLifecyclePending;
+    private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+    private AuthenticationStateProvider? _authenticationStateProvider;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
 
     private bool IsAuthorized
-        => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
+        => _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
 
     private bool ShouldRenderRows
         => (_snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Degraded)
             && _snapshot.Rows.Count > 0;
 
@@ -452,8 +521,10 @@
         GlobalAdministratorsSurfaceKind.Loading => "Loading",
         GlobalAdministratorsSurfaceKind.Ready => "Ready",
         GlobalAdministratorsSurfaceKind.Empty => "Empty",
+        GlobalAdministratorsSurfaceKind.Unknown => "Unknown",
         GlobalAdministratorsSurfaceKind.Stale => "Stale",
         GlobalAdministratorsSurfaceKind.Degraded => "Degraded",
+        GlobalAdministratorsSurfaceKind.Error => "Error",
         GlobalAdministratorsSurfaceKind.Unauthorized => "Unauthorized",
         GlobalAdministratorsSurfaceKind.Unavailable => "Unavailable",
         GlobalAdministratorsSurfaceKind.Invalid => "Invalid",
@@ -472,7 +543,9 @@
         => !IsAuthorized
             || _snapshot.Kind is GlobalAdministratorsSurfaceKind.Invalid
                 or GlobalAdministratorsSurfaceKind.Stale
+                or GlobalAdministratorsSurfaceKind.Unknown
                 or GlobalAdministratorsSurfaceKind.Degraded
+                or GlobalAdministratorsSurfaceKind.Error
                 or GlobalAdministratorsSurfaceKind.Unauthorized
                 or GlobalAdministratorsSurfaceKind.Unavailable
             ? "alert"
@@ -486,7 +559,9 @@
         GlobalAdministratorsSurfaceKind.Empty => "0",
         GlobalAdministratorsSurfaceKind.Loading => "...",
         GlobalAdministratorsSurfaceKind.Stale => "!",
+        GlobalAdministratorsSurfaceKind.Unknown => "?",
         GlobalAdministratorsSurfaceKind.Degraded => "!",
+        GlobalAdministratorsSurfaceKind.Error => "!",
         GlobalAdministratorsSurfaceKind.Invalid => "!",
         _ => "?",
     };
@@ -508,6 +583,17 @@
             or TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending;
 
+    private string SafeReturnUrl => NormalizeReturnUrl(ReturnUrl);
+
+    private bool CanRecover
+        => IsAuthorized
+        && (_snapshot.Kind is GlobalAdministratorsSurfaceKind.Unknown
+            or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Degraded
+            or GlobalAdministratorsSurfaceKind.Error
+            or GlobalAdministratorsSurfaceKind.Unavailable
+            or GlobalAdministratorsSurfaceKind.Invalid);
+
     private string? GrantUnavailableReason
         => !IsAuthorized
             ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Authorization"].Value
@@ -518,7 +604,9 @@
                     : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                            or GlobalAdministratorsSurfaceKind.Unknown
                             or GlobalAdministratorsSurfaceKind.Degraded
+                            or GlobalAdministratorsSurfaceKind.Error
                             or GlobalAdministratorsSurfaceKind.Unauthorized
                             or GlobalAdministratorsSurfaceKind.Unavailable
                             or GlobalAdministratorsSurfaceKind.Invalid
@@ -539,7 +627,9 @@
                     : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                            or GlobalAdministratorsSurfaceKind.Unknown
                             or GlobalAdministratorsSurfaceKind.Degraded
+                            or GlobalAdministratorsSurfaceKind.Error
                             or GlobalAdministratorsSurfaceKind.Unauthorized
                             or GlobalAdministratorsSurfaceKind.Unavailable
                             or GlobalAdministratorsSurfaceKind.Invalid
@@ -548,11 +638,18 @@
                                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
                                 : IsRemoveInFlight
                                     ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
-                                    : _snapshot.Rows.Count <= 1
-                                        ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
-                                        : row is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, row.UserId, StringComparison.Ordinal))
+                                    : row is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, row.UserId, StringComparison.Ordinal))
                                             ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"].Value
+                                        : _snapshot.IsCompleteEvidence && _snapshot.Rows.Count <= 1
+                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
+                                        : !HasPositiveRemovalPopulationEvidence
+                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"].Value
                                             : null;
+
+    private bool HasPositiveRemovalPopulationEvidence
+        => (_snapshot.IsCompleteEvidence && _snapshot.Rows.Count > 1)
+        || _snapshot.HasMore
+        || _cursorHistory.Count > 0;
 
     private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
 
@@ -638,6 +735,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _authorizationReflection = await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+
         if (!IsAuthorized)
         {
             _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
@@ -655,25 +759,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender
-            && IsAuthorized
-            && BffComposition.IsReadSurfaceConnected
-            && !_disposed
-            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        if (firstRender)
         {
-            IAsyncDisposable lease = await refreshSubscription.SubscribeAsync(
-                GetGlobalAdministratorsQuery.ProjectionType,
-                "system",
-                () => InvokeAsync(RefreshFromNotificationAsync),
-                _loadCancellation?.Token ?? CancellationToken.None);
-            if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected)
-            {
-                await lease.DisposeAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                _readRefreshLease = lease;
-            }
+            await EnsureReadRefreshLeaseAsync().ConfigureAwait(false);
         }
 
         if (_focusGrantUserIdPending)
@@ -711,8 +799,14 @@
         bool reuseETag,
         bool retainConfirmed = false,
         string? requestedCursor = null,
-        bool useRequestedCursor = false)
+        bool useRequestedCursor = false,
+        bool reauthorize = true)
     {
+        if (reauthorize && !await ReauthorizeAsync().ConfigureAwait(false))
+        {
+            return null;
+        }
+
         (long generation, CancellationToken cancellationToken) = BeginLoad();
         GlobalAdministratorsSnapshot previous = _snapshot;
         if (!retainConfirmed)
@@ -735,7 +829,22 @@
                 return null;
             }
 
-            await InvokeAsync(() => _snapshot = result).ConfigureAwait(false);
+            if (result.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
+            {
+                await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                    .ConfigureAwait(false);
+                return result;
+            }
+
+            await InvokeAsync(() =>
+            {
+                _snapshot = result;
+                if (result.PagingRecovered)
+                {
+                    _cursorHistory.Clear();
+                    _currentCursor = null;
+                }
+            }).ConfigureAwait(false);
             return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -746,6 +855,20 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task RetryAsync()
+        => await LoadAsync(reuseETag: false, retainConfirmed: true).ConfigureAwait(false);
+
+    private async Task ResetPagingAsync()
+    {
+        _cursorHistory.Clear();
+        _currentCursor = null;
+        await LoadAsync(
+            reuseETag: false,
+            retainConfirmed: false,
+            requestedCursor: null,
+            useRequestedCursor: true).ConfigureAwait(false);
+    }
 
     private async Task RefreshFromNotificationAsync()
     {
@@ -762,25 +885,79 @@
         }
         finally
         {
-            await InvokeAsync(() =>
+            if (!_disposed)
             {
-                _isNotificationRefreshing = false;
-                StateHasChanged();
-            });
+                await InvokeAsync(() =>
+                {
+                    _isNotificationRefreshing = false;
+                    StateHasChanged();
+                });
+            }
+        }
+    }
+
+    private async Task EnsureReadRefreshLeaseAsync()
+    {
+        if (_disposed
+            || !IsAuthorized
+            || !BffComposition.IsReadSurfaceConnected
+            || _readRefreshLease is not null
+            || _readRefreshSubscriptionInFlight
+            || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
+        {
+            return;
+        }
+
+        _readRefreshSubscriptionInFlight = true;
+        IAsyncDisposable? lease = null;
+        try
+        {
+            lease = await refreshSubscription.SubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                () => InvokeAsync(RefreshFromNotificationAsync),
+                CancellationToken.None).ConfigureAwait(false);
+            if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected || _readRefreshLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                return;
+            }
+
+            _readRefreshLease = lease;
+            lease = null;
+        }
+        catch
+        {
+            if (lease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _readRefreshSubscriptionInFlight = false;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        Interlocked.Increment(ref _authorizationTransitionVersion);
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+            _authenticationStateProvider = null;
+        }
         _loadGeneration++;
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
         _loadCancellation = null;
-        if (_readRefreshLease is not null)
+        InvalidateMutations();
+        IAsyncDisposable? lease = _readRefreshLease;
+        _readRefreshLease = null;
+        if (lease is not null)
         {
-            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
-            _readRefreshLease = null;
+            await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
     }
 
@@ -800,7 +977,7 @@
                 reuseETag: false,
                 requestedCursor: nextCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result))
+            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result) && !result!.PagingRecovered)
             {
                 _cursorHistory.Push(priorCursor);
                 _currentCursor = nextCursor;
@@ -827,7 +1004,7 @@
                 reuseETag: false,
                 requestedCursor: previousCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result))
+            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result) && !result!.PagingRecovered)
             {
                 _currentCursor = _cursorHistory.Pop();
             }
@@ -849,10 +1026,251 @@
     private bool CanApply(long generation)
         => !_disposed && generation == _loadGeneration;
 
+    private (long Generation, CancellationToken CancellationToken) BeginMutation()
+    {
+        _mutationCancellation?.Cancel();
+        _mutationCancellation?.Dispose();
+        _mutationCancellation = new CancellationTokenSource();
+        return (++_mutationGeneration, _mutationCancellation.Token);
+    }
+
+    private void InvalidateMutations()
+    {
+        _mutationGeneration++;
+        _mutationCancellation?.Cancel();
+        _mutationCancellation?.Dispose();
+        _mutationCancellation = null;
+    }
+
+    private bool CanApplyMutation(long generation)
+        => !_disposed && IsAuthorized && generation == _mutationGeneration;
+
     private static bool IsSuccessfulPage(GlobalAdministratorsSnapshot? snapshot)
         => snapshot?.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Empty;
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        long version = Interlocked.Increment(ref _authorizationTransitionVersion);
+        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
+        _ = ObserveAuthenticationCallbackAsync(callback);
+    }
+
+    private async Task ApplyAuthenticationStateChangedAsync(
+        Task<AuthenticationState> authenticationStateTask,
+        long version)
+    {
+        if (!CanApplyAuthorizationTransition(version))
+        {
+            return;
+        }
+
+        await CollapseAuthorizationAsync(
+            TenantLifecycleAuthorizationReflectionState.Indeterminate,
+            invalidateTransition: false).ConfigureAwait(false);
+        if (!CanApplyAuthorizationTransition(version))
+        {
+            return;
+        }
+
+        AuthenticationState authenticationState;
+        try
+        {
+            authenticationState = await authenticationStateTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (!CanApplyAuthorizationTransition(version))
+        {
+            return;
+        }
+
+        TenantLifecycleAuthorizationReflectionState reflection = TenantsGlobalAdministratorClaims.Evaluate(authenticationState.User);
+        if (reflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
+        {
+            await CollapseAuthorizationAsync(reflection, invalidateTransition: false).ConfigureAwait(false);
+            return;
+        }
+
+        await InvokeAsync(() =>
+        {
+            _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Authorized;
+            _snapshot = BffComposition.IsReadSurfaceConnected
+                ? GlobalAdministratorsSnapshot.Loading()
+                : GlobalAdministratorsSnapshot.Unavailable();
+            StateHasChanged();
+        }).ConfigureAwait(false);
+        if (!CanApplyAuthorizationTransition(version) || !BffComposition.IsReadSurfaceConnected)
+        {
+            return;
+        }
+
+        _ = await LoadAsync(reuseETag: false, reauthorize: false).ConfigureAwait(false);
+        if (!CanApplyAuthorizationTransition(version) || !IsAuthorized)
+        {
+            return;
+        }
+
+        await EnsureReadRefreshLeaseAsync().ConfigureAwait(false);
+    }
+
+    private bool CanApplyAuthorizationTransition(long version)
+        => !_disposed && version == Volatile.Read(ref _authorizationTransitionVersion);
+
+    private static async Task ObserveAuthenticationCallbackAsync(Task callback)
+    {
+        try
+        {
+            await callback.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Authentication transitions contain faults and leave the surface failed closed.
+        }
+    }
+
+    private async Task<bool> ReauthorizeAsync()
+    {
+        TenantLifecycleAuthorizationReflectionState reflection = await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
+        {
+            _authorizationReflection = reflection;
+            return true;
+        }
+
+        await CollapseAuthorizationAsync(reflection).ConfigureAwait(false);
+        return false;
+    }
+
+    private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationReflectionAsync()
+    {
+        try
+        {
+            return await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+    }
+
+    private async Task CollapseAuthorizationAsync(
+        TenantLifecycleAuthorizationReflectionState reflection,
+        bool invalidateTransition = true)
+    {
+        if (invalidateTransition)
+        {
+            Interlocked.Increment(ref _authorizationTransitionVersion);
+        }
+
+        _loadGeneration++;
+        _loadCancellation?.Cancel();
+        InvalidateMutations();
+        IAsyncDisposable? lease = _readRefreshLease;
+        _readRefreshLease = null;
+        await InvokeAsync(() =>
+        {
+            _authorizationReflection = reflection;
+            _cursorHistory.Clear();
+            _currentCursor = null;
+            _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
+            _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
+            _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
+            _grantUserId = null;
+            _grantValidationMessage = null;
+            _isGrantSubmitting = false;
+            _isRemoveSubmitting = false;
+            _isNotificationRefreshing = false;
+            _pageLoadInFlight = false;
+            _focusGrantUserIdPending = false;
+            _focusGrantLauncherPending = false;
+            _focusGrantLifecyclePending = false;
+            _focusRemoveSubmitPending = false;
+            _focusRemoveLifecyclePending = false;
+            StateHasChanged();
+        }).ConfigureAwait(false);
+
+        try
+        {
+            if (lease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task DisposeLeaseSupportSafelyAsync(IAsyncDisposable lease)
+    {
+        try
+        {
+            await lease.DisposeAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            // Lease cleanup must never disclose transport details or block fail-closed rendering.
+        }
+    }
+
+    private static string NormalizeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl)
+            || returnUrl.Any(char.IsControl)
+            || returnUrl.Contains('\\')
+            || returnUrl.Contains('#')
+            || returnUrl.StartsWith("//", StringComparison.Ordinal)
+            || (!string.Equals(returnUrl, "/tenants", StringComparison.Ordinal)
+                && !returnUrl.StartsWith("/tenants?", StringComparison.Ordinal)))
+        {
+            return "/tenants";
+        }
+
+        int queryIndex = returnUrl.IndexOf('?', StringComparison.Ordinal);
+        if (queryIndex < 0)
+        {
+            return "/tenants";
+        }
+
+        Dictionary<string, Microsoft.Extensions.Primitives.StringValues> query = QueryHelpers
+            .ParseQuery(returnUrl[(queryIndex + 1)..]);
+        string[] allowedKeys = ["tab", "scope", "userId", "search", "status", "sort", "desc", "selected", "anchor"];
+        if (query.Count == 0
+            || query.Any(pair => !allowedKeys.Contains(pair.Key, StringComparer.Ordinal) || pair.Value.Count != 1))
+        {
+            return "/tenants";
+        }
+
+        string? Get(string key)
+            => query.TryGetValue(key, out Microsoft.Extensions.Primitives.StringValues value)
+                ? value[0]
+                : null;
+        TenantWorkspaceState state = TenantWorkspaceState.FromQuery(
+            Get("tab"),
+            Get("scope"),
+            Get("userId"),
+            Get("search"),
+            Get("status"),
+            Get("sort"),
+            Get("desc"),
+            cursor: null,
+            Get("selected"),
+            Get("anchor"));
+        string canonical = state.ToCanonicalUrl();
+        return string.Equals(canonical, returnUrl, StringComparison.Ordinal)
+            ? canonical
+            : "/tenants";
+    }
 
     private void OnGrantUserIdInput(string? value)
         => _grantUserId = value;
@@ -860,6 +1278,11 @@
     private async Task SubmitGrantAsync()
     {
         _grantValidationMessage = null;
+
+        if (!await ReauthorizeAsync().ConfigureAwait(false))
+        {
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
         {
@@ -875,59 +1298,104 @@
         }
 
         var request = new SetGlobalAdministrator(_grantUserId.Trim());
+        (long generation, CancellationToken cancellationToken) = BeginMutation();
         SetGrantSnapshot(_grantSnapshot.RequestSent(request));
         _isGrantSubmitting = true;
 
         try
         {
             TenantCommandSubmissionResult result = await CommandGateway
-                .SetGlobalAdministratorAsync(request, CancellationToken.None)
+                .SetGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
+            if (!CanApplyMutation(generation))
+            {
+                return;
+            }
 
             SetGrantSnapshot(_grantSnapshot.ApplySubmission(result));
             if (result.State is TenantCommandLifecycleState.Accepted)
             {
-                await RefreshGrantStatusAsync().ConfigureAwait(false);
+                await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Authorization collapse and explicit cancellation invalidate late command continuations.
         }
         finally
         {
-            _isGrantSubmitting = false;
+            if (CanApplyMutation(generation))
+            {
+                _isGrantSubmitting = false;
+            }
         }
     }
 
     private async Task RefreshGrantStatusAsync()
     {
-        if (_grantSnapshot.MessageId is null || _grantSnapshot.CorrelationId is null)
+        if (!await ReauthorizeAsync().ConfigureAwait(false)
+            || _grantSnapshot.MessageId is null
+            || _grantSnapshot.CorrelationId is null)
         {
             return;
         }
 
-        TenantCommandStatusResult status = await CommandGateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(_grantSnapshot.MessageId, _grantSnapshot.CorrelationId), CancellationToken.None)
-            .ConfigureAwait(false);
+        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task RefreshGrantStatusCoreAsync(long generation, CancellationToken cancellationToken)
+    {
+        if (!CanApplyMutation(generation)
+            || _grantSnapshot.MessageId is not { } messageId
+            || _grantSnapshot.CorrelationId is not { } correlationId)
+        {
+            return;
+        }
+
+        TenantCommandStatusResult status;
+        try
+        {
+            status = await CommandGateway
+                .GetStatusAsync(new TenantCommandTrackingHandle(messageId, correlationId), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!CanApplyMutation(generation))
+        {
+            return;
+        }
+
         SetGrantSnapshot(_grantSnapshot.ApplyStatus(status));
 
         if (_grantSnapshot.Intent is not null
             && _grantSnapshot.State is TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.ProjectionPending)
         {
-            await RequeryGrantProjectionAsync().ConfigureAwait(false);
+            await RequeryGrantProjectionAsync(generation).ConfigureAwait(false);
         }
     }
 
-    private async Task RequeryGrantProjectionAsync()
+    private async Task RequeryGrantProjectionAsync(long generation)
     {
-        GlobalAdministratorsSnapshot previous = _snapshot;
-        GlobalAdministratorsRequest request = new(Cursor: null, PageSize: PageSize, ETag: null);
-        _snapshot = await QueryGateway
-            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
-        SetGrantSnapshot(_grantSnapshot.ConfirmProjection(_snapshot));
+        GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
+            reuseETag: false,
+            retainConfirmed: true,
+            requestedCursor: null,
+            useRequestedCursor: true).ConfigureAwait(false);
+        if (snapshot is not null && CanApplyMutation(generation))
+        {
+            SetGrantSnapshot(_grantSnapshot.ConfirmProjection(snapshot));
+        }
     }
 
     private async Task CancelGrantAsync()
     {
+        InvalidateMutations();
         _grantUserId = null;
         _grantValidationMessage = null;
         SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
@@ -969,64 +1437,112 @@
 
     private async Task SubmitRemoveAsync()
     {
-        if (_removeSnapshot.Intent is null || IsRemoveSubmitDisabled)
+        if (!await ReauthorizeAsync().ConfigureAwait(false)
+            || _removeSnapshot.Intent is null
+            || IsRemoveSubmitDisabled)
         {
             return;
         }
 
+        RemoveGlobalAdministrator request = _removeSnapshot.Intent;
+        (long generation, CancellationToken cancellationToken) = BeginMutation();
         SetRemoveSnapshot(_removeSnapshot.RequestSent());
         _isRemoveSubmitting = true;
 
         try
         {
             TenantCommandSubmissionResult result = await CommandGateway
-                .RemoveGlobalAdministratorAsync(_removeSnapshot.Intent, CancellationToken.None)
+                .RemoveGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
+            if (!CanApplyMutation(generation))
+            {
+                return;
+            }
 
             SetRemoveSnapshot(_removeSnapshot.ApplySubmission(result));
             if (result.State is TenantCommandLifecycleState.Accepted)
             {
-                await RefreshRemoveStatusAsync().ConfigureAwait(false);
+                await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Authorization collapse and explicit cancellation invalidate late command continuations.
         }
         finally
         {
-            _isRemoveSubmitting = false;
+            if (CanApplyMutation(generation))
+            {
+                _isRemoveSubmitting = false;
+            }
         }
     }
 
     private async Task RefreshRemoveStatusAsync()
     {
-        if (_removeSnapshot.MessageId is null || _removeSnapshot.CorrelationId is null)
+        if (!await ReauthorizeAsync().ConfigureAwait(false)
+            || _removeSnapshot.MessageId is null
+            || _removeSnapshot.CorrelationId is null)
         {
             return;
         }
 
-        TenantCommandStatusResult status = await CommandGateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(_removeSnapshot.MessageId, _removeSnapshot.CorrelationId), CancellationToken.None)
-            .ConfigureAwait(false);
+        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task RefreshRemoveStatusCoreAsync(long generation, CancellationToken cancellationToken)
+    {
+        if (!CanApplyMutation(generation)
+            || _removeSnapshot.MessageId is not { } messageId
+            || _removeSnapshot.CorrelationId is not { } correlationId)
+        {
+            return;
+        }
+
+        TenantCommandStatusResult status;
+        try
+        {
+            status = await CommandGateway
+                .GetStatusAsync(new TenantCommandTrackingHandle(messageId, correlationId), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!CanApplyMutation(generation))
+        {
+            return;
+        }
+
         SetRemoveSnapshot(_removeSnapshot.ApplyStatus(status));
 
         if (_removeSnapshot.Intent is not null
             && _removeSnapshot.State is TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.ProjectionPending)
         {
-            await RequeryRemoveProjectionAsync().ConfigureAwait(false);
+            await RequeryRemoveProjectionAsync(generation).ConfigureAwait(false);
         }
     }
 
-    private async Task RequeryRemoveProjectionAsync()
+    private async Task RequeryRemoveProjectionAsync(long generation)
     {
-        GlobalAdministratorsSnapshot previous = _snapshot;
-        GlobalAdministratorsRequest request = new(Cursor: null, PageSize: PageSize, ETag: null);
-        _snapshot = await QueryGateway
-            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
-        SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(_snapshot));
+        GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
+            reuseETag: false,
+            retainConfirmed: true,
+            requestedCursor: null,
+            useRequestedCursor: true).ConfigureAwait(false);
+        if (snapshot is not null && CanApplyMutation(generation))
+        {
+            SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(snapshot));
+        }
     }
 
     private async Task CancelRemoveAsync()
     {
+        InvalidateMutations();
         SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Idle());
         _focusRemoveLifecyclePending = true;
         await Task.CompletedTask.ConfigureAwait(false);

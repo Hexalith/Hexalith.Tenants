@@ -16,14 +16,29 @@ internal sealed class TenantsBffComposition(
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 
     public TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
-        => IsCommandSurfaceConnected && TenantsGlobalAdministratorClaims.IsGlobalAdministrator(httpContextAccessor?.HttpContext?.User)
-            ? TenantLifecycleAuthorizationReflectionState.Authorized
+        => IsCommandSurfaceConnected
+            ? TenantsGlobalAdministratorClaims.Evaluate(httpContextAccessor?.HttpContext?.User)
             : TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
     public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
-        => TenantsGlobalAdministratorClaims.IsGlobalAdministrator(httpContextAccessor?.HttpContext?.User)
-            ? TenantLifecycleAuthorizationReflectionState.Authorized
-            : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        => TenantsGlobalAdministratorClaims.Evaluate(httpContextAccessor?.HttpContext?.User);
+
+    public async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+        CancellationToken cancellationToken = default) {
+        if (principalResolver is null) {
+            return GlobalAdministratorsAuthorizationReflection;
+        }
+
+        TenantConfigurationPrincipalEvidence evidence = await principalResolver.ResolveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return evidence.State switch {
+            TenantConfigurationPrincipalEvidenceState.GlobalAdministrator
+                => TenantLifecycleAuthorizationReflectionState.Authorized,
+            TenantConfigurationPrincipalEvidenceState.NonAdministrator
+                => TenantLifecycleAuthorizationReflectionState.MissingPermission,
+            _ => TenantLifecycleAuthorizationReflectionState.Indeterminate,
+        };
+    }
 
     public async ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
         TenantDetail detail,

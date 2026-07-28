@@ -13,7 +13,9 @@ public sealed record GlobalAdministratorsSnapshot(
     bool IsAuthorizationScopedEmpty,
     GlobalAdministratorsReason Reason,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    string? ProjectionVersion = null) {
+    string? ProjectionVersion = null,
+    bool IsCompleteEvidence = false,
+    bool PagingRecovered = false) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,
@@ -53,6 +55,21 @@ public sealed record GlobalAdministratorsSnapshot(
             eTag,
             freshness,
             isAuthorizationScoped,
+            GlobalAdministratorsReason.None);
+
+    public static GlobalAdministratorsSnapshot Unknown(
+        IReadOnlyList<GlobalAdministratorRow> rows,
+        string? nextCursor,
+        bool hasMore,
+        string? eTag)
+        => new(
+            GlobalAdministratorsSurfaceKind.Unknown,
+            rows,
+            nextCursor,
+            hasMore,
+            eTag,
+            ReadModelFreshnessState.Unknown,
+            false,
             GlobalAdministratorsReason.None);
 
     public static GlobalAdministratorsSnapshot Stale(
@@ -110,6 +127,18 @@ public sealed record GlobalAdministratorsSnapshot(
             false,
             reason);
 
+    public static GlobalAdministratorsSnapshot Error(
+        GlobalAdministratorsReason reason = GlobalAdministratorsReason.GatewayFailure)
+        => new(
+            GlobalAdministratorsSurfaceKind.Error,
+            [],
+            null,
+            false,
+            null,
+            ReadModelFreshnessState.Unknown,
+            false,
+            reason);
+
     public static GlobalAdministratorsSnapshot Invalid(
         GlobalAdministratorsReason reason = GlobalAdministratorsReason.InvalidCursor)
         => new(
@@ -121,4 +150,11 @@ public sealed record GlobalAdministratorsSnapshot(
             ReadModelFreshnessState.Unknown,
             false,
             reason);
+
+    /// <summary>
+    /// Returns a support-safe description that omits rows, identities, cursors, validators, and versions.
+    /// </summary>
+    /// <returns>A bounded support-safe snapshot description.</returns>
+    public override string ToString()
+        => $"{nameof(GlobalAdministratorsSnapshot)} {{ Kind = {Kind}, Freshness = {Freshness}, Reason = {Reason}, Lifecycle = {Lifecycle}, IsCompleteEvidence = {IsCompleteEvidence}, PagingRecovered = {PagingRecovered} }}";
 }

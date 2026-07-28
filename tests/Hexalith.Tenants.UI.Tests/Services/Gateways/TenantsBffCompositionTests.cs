@@ -122,6 +122,29 @@ public sealed class TenantsBffCompositionTests
         authorized.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(0, TenantLifecycleAuthorizationReflectionState.Authorized)]
+    [InlineData(1, TenantLifecycleAuthorizationReflectionState.MissingPermission)]
+    [InlineData(2, TenantLifecycleAuthorizationReflectionState.Indeterminate)]
+    public async Task Global_administrator_reflection_uses_the_strict_principal_resolution(
+        int evidenceKind,
+        TenantLifecycleAuthorizationReflectionState expected)
+    {
+        TenantConfigurationPrincipalEvidence evidence = evidenceKind switch
+        {
+            0
+                => TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"),
+            1
+                => TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"),
+            _ => TenantConfigurationPrincipalEvidence.Indeterminate(),
+        };
+
+        TenantLifecycleAuthorizationReflectionState reflection = await Composition(RevokedPolicy, evidence)
+            .ResolveGlobalAdministratorsAuthorizationAsync();
+
+        reflection.ShouldBe(expected);
+    }
+
     private static TenantsBffComposition Composition(
         string json,
         TenantConfigurationPrincipalEvidence? evidence = null)

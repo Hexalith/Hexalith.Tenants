@@ -36,6 +36,29 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         confirmed.LastConfirmedProjection.ShouldBeNull();
     }
 
+    [Fact]
+    public void Incomplete_current_absence_cannot_confirm_removal()
+    {
+        GlobalAdministratorRemoveCommandSnapshot pending = GlobalAdministratorRemoveCommandSnapshot
+            .Idle()
+            .Preview(new RemoveGlobalAdministrator("target-admin"), CurrentRows("target-admin", "other-admin"))
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        GlobalAdministratorsSnapshot incompleteAbsence = GlobalAdministratorsSnapshot.Ready(
+            CurrentRows("other-admin"),
+            nextCursor: "protected-next",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current);
+
+        GlobalAdministratorRemoveCommandSnapshot result = pending.ConfirmProjection(incompleteAbsence);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.LastConfirmedProjection.ShouldBeNull();
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("complete", Case.Insensitive);
+    }
+
     [Theory]
     [InlineData("LastGlobalAdministrator", "last global administrator")]
     [InlineData("GlobalAdministratorNotFound", "not a global administrator")]
@@ -102,5 +125,5 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current) with { IsCompleteEvidence = true };
 }
