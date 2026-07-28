@@ -137,42 +137,174 @@ public class PackageGovernanceTests {
         const string SourceCondition = "'$(HexalithEventStoreFromSource)' == 'true'";
         const string PackageCondition = "'$(HexalithEventStoreFromSource)' != 'true'";
         const string VersionMetadata = "Version=$(HexalithEventStoreVersion)";
+        const string HostProjectPath = "src/Hexalith.Tenants/Hexalith.Tenants.csproj";
 
         string repoRoot = FindRepoRoot();
-        XDocument hostProject = XDocument.Load(Path.Combine(
-            repoRoot,
-            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"));
+        XDocument hostProject = XDocument.Load(Path.Combine(repoRoot, HostProjectPath));
 
-        XElement gatewayProject = hostProject.Descendants("ProjectReference").Single(reference =>
-            ((string?)reference.Attribute("Include"))?.EndsWith(
-                "\\Hexalith.EventStore.Gateway.csproj",
-                StringComparison.Ordinal) == true);
-        XElement domainServiceProject = hostProject.Descendants("ProjectReference").Single(reference =>
-            ((string?)reference.Attribute("Include"))?.EndsWith(
-                "\\Hexalith.EventStore.DomainService.csproj",
-                StringComparison.Ordinal) == true);
-        XElement gatewayPackage = hostProject.Descendants("PackageReference").Single(reference =>
-            string.Equals(
-                (string?)reference.Attribute("Include"),
-                "Hexalith.EventStore.Gateway",
-                StringComparison.Ordinal));
-        XElement domainServicePackage = hostProject.Descendants("PackageReference").Single(reference =>
-            string.Equals(
-                (string?)reference.Attribute("Include"),
-                "Hexalith.EventStore.DomainService",
-                StringComparison.Ordinal));
+        // Enumerated rather than looked up by literal package id: a rule naming individual packages
+        // cannot see a newly added EventStore reference, which is exactly how a mixed
+        // source/package graph would reappear after this story closed.
+        List<(string PackageId, XElement Element)> projectEdges =
+            EventStoreReferences(hostProject, "ProjectReference");
+        List<(string PackageId, XElement Element)> packageEdges =
+            EventStoreReferences(hostProject, "PackageReference");
 
-        foreach (XElement projectReference in new[] { gatewayProject, domainServiceProject }) {
-            ((string?)projectReference.Attribute("Condition")).ShouldBe(SourceCondition);
-            ((string?)projectReference.Attribute("AdditionalProperties")).ShouldBe(VersionMetadata);
+        List<string> violations = [];
+
+        foreach (IGrouping<string, (string PackageId, XElement Element)> duplicate in projectEdges
+            .GroupBy(edge => edge.PackageId, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)) {
+            violations.Add($"{HostProjectPath}: {duplicate.Key} is referenced as a project {duplicate.Count()} times.");
         }
 
-        foreach (XElement packageReference in new[] { gatewayPackage, domainServicePackage }) {
-            ((string?)packageReference.Attribute("Condition")).ShouldBe(PackageCondition);
-            packageReference.Attribute("Version").ShouldBeNull();
-            packageReference.Attribute("VersionOverride").ShouldBeNull();
+        HashSet<string> projectIds = [.. projectEdges.Select(edge => edge.PackageId)];
+        HashSet<string> packageIds = [.. packageEdges.Select(edge => edge.PackageId)];
+
+        foreach (string packageId in projectIds.Except(packageIds, StringComparer.Ordinal).Order(StringComparer.Ordinal)) {
+            violations.Add(
+                $"{HostProjectPath}: {packageId} has a ProjectReference with no complementary PackageReference, "
+                + "so package mode would drop it or resolve a mixed graph.");
         }
+
+        foreach (string packageId in packageIds.Except(projectIds, StringComparer.Ordinal).Order(StringComparer.Ordinal)) {
+            violations.Add(
+                $"{HostProjectPath}: {packageId} has a PackageReference with no complementary ProjectReference, "
+                + "so source mode would resolve a package for a host dependency.");
+        }
+
+        foreach ((string packageId, XElement projectReference) in projectEdges.OrderBy(edge => edge.PackageId, StringComparer.Ordinal)) {
+            string condition = EffectiveCondition(projectReference);
+            if (!string.Equals(condition, SourceCondition, StringComparison.Ordinal)) {
+                violations.Add($"{HostProjectPath}: {packageId} ProjectReference condition is '{condition}', expected '{SourceCondition}'.");
+            }
+
+            if (!string.Equals((string?)projectReference.Attribute("AdditionalProperties"), VersionMetadata, StringComparison.Ordinal)) {
+                violations.Add($"{HostProjectPath}: {packageId} ProjectReference must carry AdditionalProperties=\"{VersionMetadata}\".");
+            }
+        }
+
+        foreach ((string packageId, XElement packageReference) in packageEdges.OrderBy(edge => edge.PackageId, StringComparer.Ordinal)) {
+            string condition = EffectiveCondition(packageReference);
+            if (!string.Equals(condition, PackageCondition, StringComparison.Ordinal)) {
+                violations.Add($"{HostProjectPath}: {packageId} PackageReference condition is '{condition}', expected '{PackageCondition}'.");
+            }
+
+            if (HasLocalVersionAuthority(packageReference)) {
+                violations.Add($"{HostProjectPath}: {packageId} PackageReference declares a local version; the Builds catalog is the only authority.");
+            }
+        }
+
+        projectEdges.ShouldNotBeEmpty("The domain host must declare its EventStore dependencies; an empty result would pass vacuously.");
+        violations.ShouldBeEmpty(
+            "EventStore host dependencies must arrive as complementary source/package pairs.");
     }
+
+    /// <summary>
+    /// Rejects any EventStore <c>ProjectReference</c> that could still be live when the graph
+    /// resolves from packages. AC3 forbids an EventStore project edge in Release/package mode
+    /// anywhere in the consumer, not only in the domain host.
+    /// </summary>
+    [Fact]
+    public void No_EventStore_project_reference_is_reachable_in_package_mode() {
+        const string EventStoreSourceIntent = "'$(HexalithEventStoreFromSource)' == 'true'";
+        const string ProjectReferenceIntent = "'$(UseHexalithProjectReferences)' == 'true'";
+
+        string repoRoot = FindRepoRoot();
+        List<string> violations = [];
+        int inspected = 0;
+
+        foreach (string projectPath in GetOwnedProjectFiles(repoRoot)) {
+            XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
+
+            foreach ((string packageId, XElement projectReference) in EventStoreReferences(project, "ProjectReference")) {
+                inspected++;
+
+                // The effective condition includes every ancestor ItemGroup condition: the AppHost
+                // gates its host references at the ItemGroup rather than the item.
+                string condition = EffectiveCondition(projectReference);
+                if (!condition.Contains(EventStoreSourceIntent, StringComparison.Ordinal)
+                    && !condition.Contains(ProjectReferenceIntent, StringComparison.Ordinal)) {
+                    violations.Add(
+                        $"{projectPath}: EventStore ProjectReference {packageId} is not gated on source intent "
+                        + $"(effective condition: '{condition}'), so it stays live in package mode.");
+                }
+            }
+
+            foreach ((string packageId, XElement packageReference) in EventStoreReferences(project, "PackageReference")) {
+                if (HasLocalVersionAuthority(packageReference)) {
+                    violations.Add(
+                        $"{projectPath}: EventStore PackageReference {packageId} declares a local version; "
+                        + "the Builds catalog is the only version authority.");
+                }
+            }
+        }
+
+        inspected.ShouldBeGreaterThan(0, "No EventStore ProjectReference was inspected; the rule would pass vacuously.");
+        violations.ShouldBeEmpty("No EventStore project edge may survive into package mode.");
+    }
+
+    /// <summary>
+    /// Collects the <c>Hexalith.EventStore*</c> references of the requested item type, keyed by
+    /// package id. A <c>ProjectReference</c> id is derived from its project file name so the rule is
+    /// independent of path separator and repository layout.
+    /// </summary>
+    private static List<(string PackageId, XElement Element)> EventStoreReferences(
+        XDocument project,
+        string elementName) {
+        List<(string PackageId, XElement Element)> references = [];
+
+        foreach (XElement element in project.Descendants(elementName)) {
+            string include = (string?)element.Attribute("Include") ?? string.Empty;
+            if (include.Length == 0) {
+                continue;
+            }
+
+            string packageId = string.Equals(elementName, "ProjectReference", StringComparison.Ordinal)
+                ? ProjectFileToPackageId(include)
+                : include;
+
+            if (!packageId.StartsWith("Hexalith.EventStore", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            references.Add((packageId, element));
+        }
+
+        return references;
+    }
+
+    private static string ProjectFileToPackageId(string include) {
+        string normalized = include.Replace('\\', '/');
+        string fileName = normalized[(normalized.LastIndexOf('/') + 1)..];
+        return fileName.EndsWith(".csproj", StringComparison.Ordinal)
+            ? fileName[..^".csproj".Length]
+            : fileName;
+    }
+
+    /// <summary>
+    /// Combines the item condition with every ancestor condition, outermost first. Inspecting only
+    /// the item attribute would miss a reference moved into a conditional <c>ItemGroup</c>.
+    /// </summary>
+    private static string EffectiveCondition(XElement element) {
+        IEnumerable<string> conditions = element
+            .AncestorsAndSelf()
+            .Reverse()
+            .Select(node => (string?)node.Attribute("Condition"))
+            .Where(condition => !string.IsNullOrWhiteSpace(condition))
+            .Select(condition => condition!.Trim());
+
+        return string.Join(" and ", conditions);
+    }
+
+    /// <summary>
+    /// Detects consumer-local version authority supplied either as an attribute or as a child
+    /// element; AC3 forbids both.
+    /// </summary>
+    private static bool HasLocalVersionAuthority(XElement packageReference)
+        => packageReference.Attribute("Version") is not null
+        || packageReference.Attribute("VersionOverride") is not null
+        || packageReference.Elements().Any(child => child.Name.LocalName is "Version" or "VersionOverride");
 
     [Fact]
     public void Shared_build_defaults_keep_language_warning_metadata_and_EventStore_governance() {
