@@ -509,3 +509,27 @@ its "shipped" value back from the same `ResourceManager` the gate compares it ag
   `fix/release-stale-source-guard` merge (`8e84bf1`) and is not owned by Story 1.9 — a bare
   `dotnet restore` of any project fails identically. Recorded as `BUILDS-EVENTSTORE-PIN` in the dated
   Story 1.9 evidence report.
+
+## Story 1.10 — Direct Tenants Reads and Authoritative Freshness (2026-07-28)
+
+The Tenants UI's six reads now use a server-side typed REST client over `Tenants:BaseAddress`; generic
+EventStore query submission is absent from production UI source, while command submission and status
+remain on EventStore. Read and command dependencies register independently, and enabled server-side
+authorization adds bearer relay to the direct Tenants client.
+
+Tenant member rows and paging now come only from a dedicated tenant-users snapshot with its own ETag,
+projection version, lifecycle, and freshness. Detail remains owner/risk and command-confirmation context.
+Sensitive member actions require mutually current, lifecycle-current, version-consistent evidence.
+Projection notifications are optional, scoped, cleaned up, and coalesced; they retain last-confirmed
+data under a local refreshing indicator and only request an authoritative re-query.
+
+- UI: **1,351/1,351** passed with no skips.
+- Generated-controller PLAT-FRESH-1 lane: **26/26** passed with no skips.
+- Full `Hexalith.Tenants.slnx`: Contracts **120**, Client **50**, Server **738**, Testing **181**,
+  Sample **39**, UI **1,351**, Integration **167** passed; no failures; one explicit 500K-event
+  performance test skipped.
+- Negative production-source scan found no `/api/v1/queries`, `SubmitQueryAsync`, `QueryRouter`, or
+  `HandlerAwareQueryRouter` usage. Story gitlink validation and `git diff --check` passed.
+- `HOST-REF-1` remains open: the transitional AppHost supplies no `Tenants:BaseAddress` to `tenants-ui`.
+  Hosted route tests prove fail-closed unavailable behavior without EventStore fallback; no live direct
+  call is claimed. See the dated Story 1.10 evidence report for the exact commands and safety findings.

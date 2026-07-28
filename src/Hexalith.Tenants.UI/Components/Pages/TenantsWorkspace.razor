@@ -113,6 +113,12 @@
         </FluentStack>
     </Toolbar>
     <HeaderMetadata>
+        @if (_isNotificationRefreshing)
+        {
+            <p role="status" aria-live="polite" data-testid="tenants-list-notification-refreshing">
+                @Localizer["Tenants.List.Freshness.Refreshing"]
+            </p>
+        }
         @if (IsTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
         {
             <FluentText As="TextTag.Paragraph"
@@ -272,6 +278,7 @@
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
     private TenantListSnapshot? _lastConfirmedSnapshot;
+    private IAsyncDisposable? _readRefreshLease;
     private TenantWorkspaceState _workspaceState = TenantWorkspaceState.FromQuery(
         tab: null,
         scope: null,
@@ -312,6 +319,7 @@
     private bool _focusHeadingPending;
     private bool _initialized;
     private bool _disposed;
+    private bool _isNotificationRefreshing;
     private bool _restoreSearchPagingContextPending = true;
 
     // Blazor Server does not serialise async event handlers, and a pager button stays live until the
@@ -540,6 +548,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender
+            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        {
+            _readRefreshLease = await refreshSubscription.SubscribeAsync(
+                ListTenantsQuery.ProjectionType,
+                "system",
+                () => InvokeAsync(RefreshFromNotificationAsync));
+        }
+
         if (_focusHeadingPending)
         {
             _focusHeadingPending = false;
@@ -547,7 +564,7 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false)
+    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false, bool retainConfirmed = false)
     {
         // A disposed component must never issue another load: it would keep consuming and mutating the
         // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
@@ -563,7 +580,10 @@
         _loadCancellation = new CancellationTokenSource();
         CancellationToken cancellationToken = _loadCancellation.Token;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
-        _snapshot = TenantListSnapshot.Loading();
+        if (!retainConfirmed)
+        {
+            _snapshot = TenantListSnapshot.Loading();
+        }
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
@@ -760,6 +780,21 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true);
+
+    private async Task RefreshFromNotificationAsync()
+    {
+        _isNotificationRefreshing = true;
+        StateHasChanged();
+        try
+        {
+            await LoadAsync(reuseETag: true, retainConfirmed: true);
+        }
+        finally
+        {
+            _isNotificationRefreshing = false;
+            StateHasChanged();
+        }
+    }
 
     // Reconciles the two search paging modes. Crossing the authoritative/fallback boundary retires the
     // mode that is no longer active, so its Previous affordance cannot offer unreachable pages and a
@@ -1211,5 +1246,10 @@
         _disposed = true;
         _loadCancellation?.Cancel();
         _loadCancellation?.Dispose();
+        if (_readRefreshLease is not null)
+        {
+            _ = _readRefreshLease.DisposeAsync();
+            _readRefreshLease = null;
+        }
     }
 }

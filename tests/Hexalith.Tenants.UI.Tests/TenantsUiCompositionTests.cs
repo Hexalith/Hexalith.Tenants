@@ -32,6 +32,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -97,6 +98,59 @@ public sealed class TenantsUiCompositionTests
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Read_and_command_dependencies_register_independently(
+        bool hasTenants,
+        bool hasEventStore)
+    {
+        var settings = new Dictionary<string, string?>();
+        if (hasTenants)
+        {
+            settings["Tenants:BaseAddress"] = "https://tenants.invalid";
+        }
+
+        if (hasEventStore)
+        {
+            settings["EventStore:BaseAddress"] = "https://eventstore.invalid";
+        }
+
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings)
+            .Build();
+        ServiceCollection services = new();
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor query = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway));
+        ServiceDescriptor command = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway));
+        query.ImplementationType.ShouldBe(
+            hasTenants ? typeof(TenantQueryGateway) : typeof(UnavailableTenantQueryGateway));
+        if (hasEventStore)
+        {
+            command.ImplementationFactory.ShouldNotBeNull();
+        }
+        else
+        {
+            command.ImplementationType.ShouldBe(typeof(UnavailableTenantCommandGateway));
+        }
+
+        services.Any(descriptor => descriptor.ServiceType == typeof(ITenantsRestQueryClient))
+            .ShouldBe(hasTenants);
+    }
+
+    [Fact]
+    public void Direct_tenants_client_adds_the_server_side_bearer_handler_only_when_authorization_is_enabled()
+    {
+        int withoutAuthorization = DirectTenantsClientBuilderActionCount(enableGatewayAuthorization: false);
+        int withAuthorization = DirectTenantsClientBuilderActionCount(enableGatewayAuthorization: true);
+
+        withAuthorization.ShouldBe(withoutAuthorization + 1);
     }
 
     [Fact]
@@ -760,6 +814,22 @@ public sealed class TenantsUiCompositionTests
             blockerRecord.ShouldContain("Consequence:");
             blockerRecord.ShouldContain("Reopen trigger:");
         }
+    }
+
+    private static int DirectTenantsClientBuilderActionCount(bool enableGatewayAuthorization)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        IOptionsMonitor<HttpClientFactoryOptions> options = provider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>();
+        return options.Get(nameof(TenantsRestQueryClient)).HttpMessageHandlerBuilderActions.Count;
     }
 
     private static string EvidenceRecord(string report, string recordId)

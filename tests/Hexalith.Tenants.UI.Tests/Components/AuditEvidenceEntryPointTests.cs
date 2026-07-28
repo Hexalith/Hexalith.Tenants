@@ -17,6 +17,8 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -169,7 +171,18 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(component => component.Detail, detail)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.ProjectionVersion, "v1")
+            .Add(component => component.Members, TenantUsersSnapshot.Ready(
+                detail.TenantId,
+                detail.Members,
+                nextCursor: null,
+                hasMore: false,
+                eTag: "members-etag",
+                projectionVersion: "v1",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)));
 
         string auditHref = RequiredAttribute(EntryPointFromMarker(cut, "tenants-member-audit-entrypoint"), "href");
         auditHref.ShouldContain("/tenants/tenant.alpha/audit?");
@@ -394,7 +407,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Members.Column.Role"] = "Role",
             ["Tenants.Members.Column.Status"] = "Tenant status",
             ["Tenants.Members.Column.UserId"] = "User id",
-            ["Tenants.Members.Description"] = "Read-only member access context from the authorized tenant detail projection.",
+            ["Tenants.Members.Description"] = "Read-only member access context from the dedicated authorized member projection.",
             ["Tenants.Members.OwnerContext.LastOwner"] = "{0} visible owner; last-owner changes require a later high-impact flow.",
             ["Tenants.Members.ReasonCatalogLabel"] = "Canonical unavailable action reason categories",
             ["Tenants.Members.ReasonListLabel"] = "Unavailable action reasons for {0}",

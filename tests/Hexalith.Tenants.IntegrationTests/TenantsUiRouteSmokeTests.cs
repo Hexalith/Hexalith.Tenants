@@ -10,18 +10,18 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Aspire route smoke coverage for the Tenants UI bootstrap surface.
 /// </summary>
 /// <remarks>
-/// The Aspire topology runs with Keycloak disabled, so the hosted UI has no authenticated user.
-/// Every read surface therefore renders its fail-closed <c>unauthorized</c> state (no tenant, user, or
+/// The transitional Aspire topology intentionally has no direct Tenants API reference for the UI.
+/// Every read surface therefore renders its fail-closed <c>unavailable</c> state (no tenant, user, or
 /// audit data is revealed). These smoke tests assert that each route renders, preserves its scoped
-/// navigation context, and fails closed without leaking data.
+/// navigation context, and reports the missing read dependency without falling back to EventStore.
 /// </remarks>
 [Collection("AspireTopology")]
 [DaprTestSerialization]
 [Trait("Category", "Integration")]
 public sealed class TenantsUiRouteSmokeTests : IDisposable {
-    private const string TenantsListUnauthorizedMarker = "data-testid=\"tenants-list-unauthorized\"";
-    private const string TenantsDetailUnauthorizedMarker = "data-testid=\"tenants-detail-unauthorized\"";
-    private const string TenantsAuditUnauthorizedMarker = "data-testid=\"tenants-audit-unauthorized\"";
+    private const string TenantsListUnavailableMarker = "data-testid=\"tenants-list-error\"";
+    private const string TenantsDetailUnavailableMarker = "data-testid=\"tenants-detail-error\"";
+    private const string TenantsAuditUnavailableMarker = "data-testid=\"tenants-audit-unavailable\"";
     private static readonly TimeSpan UiRouteReadinessTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan UiRouteReadinessDelay = TimeSpan.FromMilliseconds(250);
     private readonly IDisposable _daprTestLease;
@@ -38,47 +38,47 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
     }
 
     [DaprFact]
-    public async Task Tenants_workspace_route_renders_unauthorized_state_in_hosted_ui() {
+    public async Task Tenants_workspace_route_renders_unavailable_state_without_direct_host_reference() {
         _fixture.SkipIfUnavailable();
 
-        string markup = await GetHostedUiMarkupWhenReadyAsync("/tenants", TenantsListUnauthorizedMarker)
+        string markup = await GetHostedUiMarkupWhenReadyAsync("/tenants", TenantsListUnavailableMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-workspace\"");
         markup.ShouldContain("data-testid=\"tenants-list-search\"");
         markup.ShouldContain("data-testid=\"tenants-list-refresh\"");
-        markup.ShouldContain(TenantsListUnauthorizedMarker);
-        markup.ShouldContain("Sign in required");
+        markup.ShouldContain(TenantsListUnavailableMarker);
+        markup.ShouldContain("Tenants unavailable");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
         markup.ShouldNotContain("tenant-1", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task Tenant_detail_route_renders_unauthorized_state_in_hosted_ui() {
+    public async Task Tenant_detail_route_renders_unavailable_state_without_direct_host_reference() {
         _fixture.SkipIfUnavailable();
 
         string markup = await GetHostedUiMarkupWhenReadyAsync(
                 "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha",
-                TenantsDetailUnauthorizedMarker)
+                TenantsDetailUnavailableMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-detail\"");
         markup.ShouldContain("data-testid=\"tenants-detail-back\"");
         markup.ShouldContain("href=\"/tenants?search=alpha\"");
-        markup.ShouldContain(TenantsDetailUnauthorizedMarker);
+        markup.ShouldContain(TenantsDetailUnavailableMarker);
         markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("Tenant detail unauthorized");
+        markup.ShouldContain("Tenant detail unavailable");
         markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task Tenant_audit_route_renders_scoped_context_and_unauthorized_state_in_hosted_ui() {
+    public async Task Tenant_audit_route_renders_scoped_context_and_unavailable_state_without_direct_host_reference() {
         _fixture.SkipIfUnavailable();
 
         string markup = await GetHostedUiMarkupWhenReadyAsync(
                 "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%3Fsearch%3Dalpha%26selected%3Dtenant.alpha&returnFocus=tenants-member-operator.support-01",
-                TenantsAuditUnauthorizedMarker)
+                TenantsAuditUnavailableMarker)
             .ConfigureAwait(false);
 
         markup.ShouldContain("data-testid=\"tenants-audit-surface\"");
@@ -89,16 +89,16 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-audit-back\"");
         markup.ShouldContain("href=\"/tenants?search=alpha");
         markup.ShouldContain("selected=tenant.alpha");
-        markup.ShouldContain(TenantsAuditUnauthorizedMarker);
+        markup.ShouldContain(TenantsAuditUnavailableMarker);
         markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("You are not authorized to view tenant audit entries");
+        markup.ShouldContain("The tenant audit read surface is unavailable");
         markup.ShouldNotContain("data-testid=\"tenants-audit-row\"");
         markup.ShouldNotContain("raw payload", Case.Insensitive);
         markup.ShouldNotContain("access_token", Case.Insensitive);
     }
 
     [DaprFact]
-    public async Task My_tenants_route_renders_unauthorized_self_audit_state_in_hosted_ui() {
+    public async Task My_tenants_route_renders_unavailable_self_audit_state_without_direct_host_reference() {
         _fixture.SkipIfUnavailable();
 
         using HttpResponseMessage response = await _fixture.TenantsUiClient
@@ -113,7 +113,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-my-back\"");
         markup.ShouldContain("data-testid=\"tenants-my-error\"");
         markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("My Tenants is unauthorized");
+        markup.ShouldContain("My Tenants is unavailable");
         markup.ShouldNotContain("data-testid=\"tenants-my-row\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
         markup.ShouldNotContain("access_token", Case.Insensitive);

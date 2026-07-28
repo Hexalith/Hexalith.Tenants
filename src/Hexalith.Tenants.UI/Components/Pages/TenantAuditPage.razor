@@ -11,6 +11,7 @@
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
 @inject IJSRuntime JS
+@inject IServiceProvider Services
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical"
@@ -108,6 +109,12 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+                    @if (_isNotificationRefreshing)
+                    {
+                        <p role="status" aria-live="polite" data-testid="tenants-audit-notification-refreshing">
+                            @Localizer["Tenants.Audit.Freshness.Refreshing"]
+                        </p>
+                    }
                 </div>
             </section>
         </FluentAccordionItem>
@@ -177,6 +184,8 @@
     private int _correctionOpenGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
+    private IAsyncDisposable? _readRefreshLease;
+    private bool _isNotificationRefreshing;
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
@@ -301,6 +310,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender
+            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        {
+            _readRefreshLease = await refreshSubscription.SubscribeAsync(
+                GetTenantAuditQuery.ProjectionType,
+                TenantId,
+                () => InvokeAsync(RefreshFromNotificationAsync));
+        }
+
         if (string.IsNullOrWhiteSpace(_pendingCorrectionFocusReference))
         {
             return;
@@ -324,10 +342,13 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag)
+    private async Task LoadAsync(bool reuseETag, bool retainConfirmed = false)
     {
         TenantAuditSnapshot previous = _snapshot;
-        _snapshot = TenantAuditSnapshot.Loading(TenantId);
+        if (!retainConfirmed)
+        {
+            _snapshot = TenantAuditSnapshot.Loading(TenantId);
+        }
 
         TenantAuditRequest request = CreateRequest(reuseETag ? previous.ETag : null);
         _snapshot = await QueryGateway
@@ -362,6 +383,20 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task RefreshFromNotificationAsync()
+    {
+        _isNotificationRefreshing = true;
+        StateHasChanged();
+        try
+        {
+            await LoadAsync(reuseETag: true, retainConfirmed: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() => _isNotificationRefreshing = false);
+        }
+    }
 
     private async Task ResetFiltersAsync()
     {
@@ -687,6 +722,12 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (_readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
+        }
+
         if (_focusModule is null)
         {
             return;

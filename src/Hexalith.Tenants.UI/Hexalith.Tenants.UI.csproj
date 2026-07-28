@@ -11,6 +11,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Hexalith.Tenants.IntegrationTests" />
     <InternalsVisibleTo Include="Hexalith.Tenants.UI.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

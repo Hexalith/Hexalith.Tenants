@@ -2,6 +2,8 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup">
     <FluentAccordion Class="user-lookup-page__sections"
@@ -63,6 +65,12 @@
                     @StatusHeading
                 </h2>
                 <p>@StatusMessage</p>
+                @if (_isNotificationRefreshing)
+                {
+                    <p role="status" aria-live="polite" data-testid="tenants-user-lookup-notification-refreshing">
+                        @Localizer["Tenants.UserLookup.Freshness.Refreshing"]
+                    </p>
+                }
                 @if (!string.IsNullOrEmpty(_targetUserId))
                 {
                     <p data-testid="tenants-user-lookup-target">
@@ -167,6 +175,7 @@
     private const int PageSize = 20;
     private readonly object _formModel = new();
     private UserTenantMembershipSnapshot? _snapshot;
+    private IAsyncDisposable? _readRefreshLease;
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
     private string _inputUserId = string.Empty;
@@ -177,6 +186,7 @@
     private bool _focusStatusPending;
     private bool _focusInputPending;
     private bool _parametersInitialized;
+    private bool _isNotificationRefreshing;
     private string _announcement = string.Empty;
     private long _loadVersion;
 
@@ -309,6 +319,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender
+            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        {
+            _readRefreshLease = await refreshSubscription.SubscribeAsync(
+                GetUserTenantsQuery.ProjectionType,
+                "system",
+                () => InvokeAsync(RefreshFromNotificationAsync));
+        }
+
         if (_focusStatusPending)
         {
             _focusStatusPending = false;
@@ -339,6 +358,15 @@
         if (!string.IsNullOrEmpty(_targetUserId))
         {
             await RunLookupAsync(_targetUserId, reuseETag: true).ConfigureAwait(false);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_readRefreshLease is not null)
+        {
+            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            _readRefreshLease = null;
         }
     }
 
@@ -399,7 +427,7 @@
         Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
     }
 
-    private async Task<bool> RunLookupAsync(string? targetUserId, bool reuseETag)
+    private async Task<bool> RunLookupAsync(string? targetUserId, bool reuseETag, bool retainConfirmed = false)
     {
         // Invalidate any in-flight lookup so its continuation cannot resurrect stale results over a newer
         // lookup or a Clear (the panel calls the gateway with no cancellation token).
@@ -428,11 +456,14 @@
         }
 
         UserTenantMembershipSnapshot? previous = _snapshot;
-        _snapshot = UserTenantMembershipSnapshot.Loading() with
+        if (!retainConfirmed)
         {
-            TargetUserId = validTargetUserId,
-        };
-        _announcement = Localizer["Tenants.UserLookup.Announcement.Loading", validTargetUserId];
+            _snapshot = UserTenantMembershipSnapshot.Loading() with
+            {
+                TargetUserId = validTargetUserId,
+            };
+            _announcement = Localizer["Tenants.UserLookup.Announcement.Loading", validTargetUserId];
+        }
 
         UserTenantMembershipRequest request = new(
             TargetUserId: validTargetUserId,
@@ -463,6 +494,25 @@
         });
 
         return applied;
+    }
+
+    private async Task RefreshFromNotificationAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_targetUserId) || _snapshot is null)
+        {
+            return;
+        }
+
+        _isNotificationRefreshing = true;
+        StateHasChanged();
+        try
+        {
+            _ = await RunLookupAsync(_targetUserId, reuseETag: true, retainConfirmed: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() => _isNotificationRefreshing = false);
+        }
     }
 
     private string AnnouncementFor(UserTenantMembershipSnapshot snapshot, string targetUserId)

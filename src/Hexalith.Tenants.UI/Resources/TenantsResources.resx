@@ -1633,7 +1633,7 @@
     <value>User id</value>
   </data>
   <data name="Tenants.Members.Description" xml:space="preserve">
-    <value>Read-only member access context from the authorized tenant detail projection.</value>
+    <value>Read-only member access context from the dedicated authorized member projection.</value>
   </data>
   <data name="Tenants.Members.Empty.Message" xml:space="preserve">
     <value>No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}.</value>
@@ -1692,8 +1692,35 @@
   <data name="Tenants.Members.State.Degraded" xml:space="preserve">
     <value>Member evidence is degraded.</value>
   </data>
+  <data name="Tenants.Members.State.Loading" xml:space="preserve">
+    <value>Loading visible members.</value>
+  </data>
+  <data name="Tenants.Members.State.NotFound" xml:space="preserve">
+    <value>The tenant member read was not found.</value>
+  </data>
   <data name="Tenants.Members.State.Stale" xml:space="preserve">
     <value>Member evidence is stale.</value>
+  </data>
+  <data name="Tenants.Members.State.Title" xml:space="preserve">
+    <value>Member read unavailable</value>
+  </data>
+  <data name="Tenants.Members.State.Unauthorized" xml:space="preserve">
+    <value>You are not authorized to view these members.</value>
+  </data>
+  <data name="Tenants.Members.State.Unavailable" xml:space="preserve">
+    <value>Visible members cannot be loaded right now.</value>
+  </data>
+  <data name="Tenants.Members.State.Unknown" xml:space="preserve">
+    <value>Member freshness cannot be established.</value>
+  </data>
+  <data name="Tenants.Members.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Tenants.Members.Paging.Label" xml:space="preserve">
+    <value>Member pages</value>
+  </data>
+  <data name="Tenants.Members.Previous" xml:space="preserve">
+    <value>Previous</value>
   </data>
   <data name="Tenants.Members.Status.Active" xml:space="preserve">
     <value>Active</value>
