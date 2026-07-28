@@ -139,7 +139,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Development Workflow Rules
 
-- Use Conventional Commits. `feat` triggers a minor release, `fix` triggers a patch release, and `feat!` or `BREAKING CHANGE:` triggers a major release. Do not use `feat` for refactors or test-only work.
+- Use Conventional Commits. `feat` triggers a minor release and `fix` triggers a patch release. A major release requires the space-spelled `BREAKING CHANGE:` footer, and nothing else works — measured against the pinned `conventional-changelog-angular` parser: `feat!:` and `fix!:` → no release at all (no `breakingHeaderPattern`, so the `!` header fails `headerPattern` and the commit is unclassified); `BREAKING-CHANGE:` → patch, not major (the preset overrides `noteKeywords` to the space-spelled form only). Do not use `feat` for refactors or test-only work.
+- Semantic Release derives the next version from the highest release tag reachable from `main`, while nuget.org keeps every version ever published. If release tags are deleted, the two drift apart and every proposal collides; the `verify-source` job proves the tag floor still covers the registry before the release job runs.
 - Use branch names like `feat/...`, `fix/...`, or `docs/...`; do not commit directly to `main`.
 - CI runs on push/PR to `main`: restore, Release build with warnings as errors, package metadata/consumer validation, Tier 1 tests, DAPR init, Tier 2 tests, and coverage gates.
 - Release is gated on CI: the Release workflow triggers via `workflow_run` only after a successful push-event CI run on `main` (it does not re-run the test tiers), then semantic-release derives the version from commit history, packs exactly five NuGet packages, validates packages and package-only consumers, publishes to NuGet, publishes the tenants container, creates the GitHub Release, and updates `CHANGELOG.md`.
