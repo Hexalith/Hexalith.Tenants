@@ -2,7 +2,7 @@
 
 Date: 2026-07-28  
 Story baseline commit: `8d64563c75423c861b0be0e3a7cc4de18f673d37`  
-Repository revision under the working tree: `54fabf9852168b7e1f1639f9253472889397915a`
+Repository revision under the working tree: `7d7b701` + uncommitted working-tree changes
 
 ## Outcome
 
@@ -104,27 +104,89 @@ surface test proves an unauthorized page never calls `SubscribeAsync("global-adm
 - EN/FR copy and accessible loading, stale, degraded, unknown, unavailable, empty, visible-page count,
   and action-disabled states are covered by the UI regression suite.
 
-## Verification record
+## Hosted fail-closed route regression (found and fixed 2026-07-28)
 
-The dependency gitlinks in the final working tree are the story baseline values:
+The full `IntegrationTests` lane — which the earlier record never ran, having filtered to
+`TenantsApiGeneratedControllerTests` — failed two tests. Both were real, both are fixed.
+
+**`TenantsUiRouteSmokeTests.Global_administrators_route_renders_fail_closed_unavailable_state_in_hosted_ui`
+answered HTTP 500 instead of the required fail-closed render.** The story had added
+`@attribute [Authorize(Policy = …)]` to `GlobalAdministratorsPage.razor` and an `AuthorizeRouteView`
+wrapper to `Routes.razor`. That attribute is the only endpoint authorization metadata in the module, and
+it makes `WebApplication` insert the authorization middleware. The host calls `AddAuthentication` /
+`UseAuthentication` only when OIDC is configured, so on the Keycloak-disabled topology the middleware's
+challenge path threw:
 
 ```text
-references/Hexalith.Builds     53d53ae42abf7c87d385a078ab260531480bbf8a
-references/Hexalith.EventStore 5a1d277ec0583e304986488d299eb3e6e5022487
-references/Hexalith.Memories   1868c8f94ca1ec723a30b256a29c7c8495bc8cca
+System.InvalidOperationException: Unable to find the required 'IAuthenticationService' service.
+  at Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.ChallengeAsync(HttpContext)
+  at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext)
 ```
 
-Project-scoped restores were serialized (`-m:1 -nr:false`) immediately before the focused
-`--no-restore` commands because the current solution restore generates a conflicting source-reference
-asset graph. Results on the final implementation were:
+Reproduced out of band against the standalone host (`/global-administrators` → 500 while `/tenants` →
+200), so the diagnosis is a captured stack trace, not an inference. Platform authority is now enforced
+solely by the page's rendered fail-closed state — the mechanism the acceptance criteria and the
+component tests already exercise — and the unreachable `AuthorizeRouteView` fragments were removed.
+`TenantsUiCompositionTests.Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata`
+pins the invariant in the fast lane so the Aspire lane is no longer the only detector. It was confirmed
+red against the defect before the fix landed.
+
+Removing the 500 exposed a second, independent break in the same route: the story's new restricted
+branch replaced the whole page, dropping the `tenants-global-admins-area` container and the
+`tenants-global-admins-live-region` announcement element that the unauthorized state published before
+this story. The spec's KEEP list preserves existing accessibility work, so the restricted branch now
+nests inside the page area and carries the live region, while keeping the story's
+`tenants-global-admins-denied-message` contract. The restricted copy is unchanged, so both the
+component test asserting "fails closed" and the hosted contract asserting "Platform area unavailable" /
+"The area fails closed" hold against one rendering. The message text appears once, inside the live
+region within the alert region — it is not duplicated for screen readers.
+
+**`AspireTopologyTests.Aha_moment_demo_revokes_sample_access_from_tenant_events` asserted superseded
+audit semantics.** It still expected `Degraded` / `MissingPayload` for a first load that returns no
+payload. Review repair loop 1 deliberately changed that to a true error state, which
+`Get_tenant_audit_maps_missing_payload_without_retained_rows_to_safe_error_state` already pins. The
+assertion was updated to `Error` / `GatewayFailure`; its essential invariant — empty rows, unknown
+freshness and lifecycle, no correction-eligible evidence — is unchanged.
+
+## Verification record
+
+The dependency gitlinks were **not** at baseline when this session started, contrary to the earlier
+version of this record. Four pointers had moved inside the story range and none belonged to Story 1.10
+(dependency version bumps, a release-workflow edit, a lane script, and OpenBao documentation tests):
+
+```text
+references/Hexalith.Builds        53d53ae -> 86aa4cb   REVERTED
+references/Hexalith.EventStore    5a1d277 -> 589da8b   REVERTED
+references/Hexalith.FrontComposer 7870526 -> b6efcad   REVERTED
+references/Hexalith.Memories      1868c8f -> 115d30b   REVERTED
+```
+
+All four were restored to `baseline_commit` per the story's KEEP constraint, and every result below was
+produced against that restored tree. The `Hexalith.Builds` revert also restores
+`HexalithMemoriesVersion` to `2.16.2` and `HexalithTenantsVersion` to `3.2.18`; the full gate passes on
+those baseline versions. The final gitlinks are:
+
+```text
+references/Hexalith.Builds        53d53ae42abf7c87d385a078ab260531480bbf8a
+references/Hexalith.EventStore    5a1d277ec0583e304986488d299eb3e6e5022487
+references/Hexalith.FrontComposer 7870526090a8596082e3df034ecacf4c07881a04
+references/Hexalith.Memories      1868c8f94ca1ec723a30b256a29c7c8495bc8cca
+```
+
+Project-scoped restores were serialized and forced (`-m:1 -nr:false --force`) immediately before each
+focused `--no-restore` command. That is required, not cosmetic: the `IntegrationTests` graph reaches the
+AppHost and restores shared source projects in source-reference mode, while every other lane evaluates
+in package mode, so the two cannot share `obj` state. Results on the final tree were:
 
 | Command | Result |
 | --- | --- |
-| `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` | **PASS — 1,373 passed, 0 failed, 0 skipped** |
+| `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` | **PASS — 1,416 passed, 0 failed, 0 skipped** |
 | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~TenantsApiGeneratedControllerTests` | **PASS — 26 passed, 0 failed, 0 skipped** |
-| `dotnet test Hexalith.Tenants.slnx --no-restore` | **BLOCKED before test execution — `SOLUTION-GRAPH-1` below** |
+| `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-restore --filter "Category!=Performance"` | **PASS — 167 passed, 0 failed, 0 skipped** |
+| `dotnet test Hexalith.Tenants.slnx --no-restore` | **PASS — 2,711 passed, 1 skipped (`Category=Performance`), 0 failed, 0 warnings** |
+| Regression lanes: Contracts / Client / Testing / Server / Sample | **PASS — 120 / 50 / 181 / 738 / 39, 0 failed** |
 | `rg -n "SubmitQueryAsync\|/api/v1/queries\|QueryRouter\|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | **PASS — no matches** |
-| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | **PASS — all three gitlinks match `baseline_commit`** |
+| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | **PASS — exit 0 against the final tree, after the four reverts above** |
 | `git diff --check` and `git diff --cached --check` | **PASS** |
 
 The generated-controller lane is executable `PLAT-FRESH-1` evidence for all six route/controller and
@@ -146,20 +208,44 @@ prove the resulting read surfaces fail closed with no EventStore query fallback,
 live-host direct REST call is claimed. The composing-host owner must provide the Tenants service
 reference and configuration before that runtime proof can be collected.
 
-### SOLUTION-GRAPH-1 — solution asset-graph mismatch
+### SOLUTION-GRAPH-1 — CLOSED, was an `obj`-state effect
 
-`dotnet restore Hexalith.Tenants.slnx -m:1 -nr:false` succeeds (3 projects restored, 42 up to date), but
-the required subsequent `dotnet test Hexalith.Tenants.slnx --no-restore` fails during compilation before
-any tests run. The solution restore writes source-project entries such as
-`src/Hexalith.Tenants.Contracts/obj/project.assets.json` with project/placeholder assets while normal
-evaluation has `UseHexalithProjectReferences=false` and expects package assemblies. The result is the
-same large set of missing EventStore contract/type errors on repeated and serialized test attempts.
+This was previously recorded as an unowned build-graph blocker that stopped
+`dotnet test Hexalith.Tenants.slnx --no-restore` before any test ran. It does not reproduce. On the
+final tree the solution lane passes outright: **2,711 passed, 1 skipped, 0 failed, 0 warnings**, the
+skip being the `Category=Performance` test that runs only on the nightly schedule.
 
-The permitted source-reference diagnostic fallback
-`dotnet test Hexalith.Tenants.slnx --no-restore -p:UseHexalithProjectReferences=true -m:1 -nr:false`
-also fails before tests for an independent dependency conflict: compiler `CS1704` reports duplicate
-`Hexalith.Commons.UniqueIds` assemblies (the source graph exposes version 1.0.0/3.83.0 dependencies
-alongside package version 2.29.0), followed by downstream `MSB4181` failures. No dependency, build,
-solution, or gitlink change is authorized by Story 1.10, so this owned external/build-graph blocker is
-recorded rather than worked around. Direct project restores select the intended package asset and are
-the prerequisite used for the passing focused UI and PLAT-FRESH-1 gates above.
+The failure was a stale-`obj` artifact, not a property of the solution. Anything that restores the
+AppHost graph — the `IntegrationTests` project, or a bare `dotnet run` on a UI project, which restores
+implicitly even with `--no-build` — rewrites shared entries such as
+`src/Hexalith.Tenants.Contracts/obj/project.assets.json` in source-reference mode. Package-mode
+evaluation (`UseHexalithProjectReferences=false`) then cannot resolve the EventStore contract types, and
+every subsequent lane fails with the same wall of `CS0234`/`CS0246` errors until the assets are rebuilt.
+It was reproduced and cleared twice in this session by exactly that mechanism.
+
+The remedy is a forced package-mode restore per project (`dotnet restore <project> -m:1 -nr:false
+--force`) before the `--no-restore` lane, which also leaves the subsequent solution restore a no-op
+(`44 of 45 projects are up-to-date`). The `CS1704` duplicate-`Hexalith.Commons.UniqueIds` conflict on
+the `-p:UseHexalithProjectReferences=true` diagnostic fallback is a separate, still-real source-mode
+conflict; it is not on any required path, since the package-mode solution lane now passes.
+
+## File list — closing session (2026-07-28)
+
+Changes made after the earlier record, all uncommitted in the working tree:
+
+| Path | Change |
+| --- | --- |
+| `references/Hexalith.Builds` | Gitlink reverted to `baseline_commit` (`53d53ae`) |
+| `references/Hexalith.EventStore` | Gitlink reverted to `baseline_commit` (`5a1d277`) |
+| `references/Hexalith.FrontComposer` | Gitlink reverted to `baseline_commit` (`7870526`) |
+| `references/Hexalith.Memories` | Gitlink reverted to `baseline_commit` (`1868c8f`) |
+| `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` | Removed the `[Authorize]` endpoint attribute; restricted branch nests in the page area and republishes the live region |
+| `src/Hexalith.Tenants.UI/Components/Routes.razor` | Reverted to `RouteView`; the `AuthorizeRouteView` fragments were unreachable and untested |
+| `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs` | Added `Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata` |
+| `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` | Route contract now asserts the absence of authorize metadata |
+| `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` | Audit assertion moved to the first-load `Error`/`GatewayFailure` truth |
+| `tests/test-summary.md` | Story 1.10 totals, the two fixed regressions, and the closed `SOLUTION-GRAPH-1` |
+| `_bmad-output/implementation-artifacts/story-1-10-…-evidence-2026-07-28.md` | This record |
+
+The four gitlink reverts are staged; everything else is unstaged. No `references/` submodule *content*
+was modified — only the superproject pointers, and only back to baseline.

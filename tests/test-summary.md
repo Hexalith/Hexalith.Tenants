@@ -527,18 +527,39 @@ during notification refresh, exact producer/subscriber notification pairs, lease
 late disposal, and no unauthorized global-administrator subscription. EN/FR, accessibility, safe DOM,
 diagnostic, and command/status regressions are included in the full UI gate.
 
+The full `IntegrationTests` lane — never run by the earlier record, which filtered to the generated
+controller class — caught two real breaks in the hosted global-administrators route, both now fixed. The
+route answered HTTP 500 because a story-added `[Authorize]` attribute was the module's only endpoint
+authorization metadata, and the host registers an authentication scheme only when OIDC is configured;
+platform authority is now the page's rendered fail-closed state, guarded in the fast lane by
+`Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata`. The restricted branch
+had also dropped the `tenants-global-admins-area` container and the live region it published before this
+story, and now nests inside both. A superseded `AspireTopologyTests` audit assertion was moved to the
+first-load error truth that review repair loop 1 introduced.
+
+Every result below was produced after restoring the four `references/` gitlinks that had drifted inside
+the story range back to `baseline_commit`.
+
 - UI: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` —
-  **1,373/1,373 passed** after a serialized project restore.
+  **1,416/1,416 passed** after a serialized project restore.
 - PLAT-FRESH-1: `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~TenantsApiGeneratedControllerTests`
   — **26/26 passed** after a serialized project restore.
-- Static: generic-query scan had no matches; invented `tenant-index:system` scan had no matches; exact
-  story gitlink validator passed for all three baseline dependency pointers; staged and unstaged
-  `git diff --check` passed.
-- Solution: `dotnet test Hexalith.Tenants.slnx --no-restore` is blocked before test execution by
-  `SOLUTION-GRAPH-1`: solution restore emits a source-project/placeholder asset graph while default
-  evaluation expects packages, causing missing EventStore contract symbols. The source-reference
-  diagnostic fallback is independently blocked by duplicate `Hexalith.Commons.UniqueIds` assembly
-  versions (`CS1704`). This is recorded, not claimed as a pass.
+- Integration (Tier 3, `Category!=Performance`): **167/167 passed**, including the hosted UI route smoke
+  and Aspire topology suites.
+- Regression lanes: Contracts **120/120**, Client **50/50**, Testing **181/181**, Server **738/738**,
+  Sample **39/39**. Each needs its own serialized restore; the `IntegrationTests` graph and the
+  package-mode graph cannot share `obj` state (`SOLUTION-GRAPH-1` below).
+- Static: generic-query scan had no matches; invented `tenant-index:system` scan had no matches; the
+  exact story gitlink validator exits 0 against the final tree; staged and unstaged `git diff --check`
+  passed.
+- Solution: `dotnet test Hexalith.Tenants.slnx --no-restore` — **2,711 passed, 1 skipped, 0 failed, 0
+  warnings** (the skip is the `Category=Performance` test that only runs on the nightly schedule).
+  `SOLUTION-GRAPH-1` did **not** reproduce and is no longer claimed as a blocker. It is an `obj`-state
+  effect, not a property of the solution: the missing-EventStore-symbol build failure appears when a
+  source-reference restore (anything pulling the AppHost graph, including `dotnet run` on a UI project)
+  has rewritten `src/*/obj/project.assets.json` while evaluation expects package assets. Forcing a
+  package-mode restore per project first (`dotnet restore <project> -m:1 -nr:false --force`) makes the
+  subsequent solution restore a no-op and the solution lane passes.
 - `HOST-REF-1` remains open: the unchanged transitional AppHost does not provide the Tenants service
   reference/`Tenants:BaseAddress`, so no authenticated live-host REST proof is claimed. See the dated
   Story 1.10 evidence report for exact producer-pair, route, metadata, host, and build-graph evidence.

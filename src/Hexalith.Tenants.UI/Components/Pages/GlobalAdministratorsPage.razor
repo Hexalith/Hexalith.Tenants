@@ -1,5 +1,7 @@
 @page "/global-administrators"
-@attribute [Authorize(Policy = TenantsFrontComposerRegistration.GlobalAdministratorPolicy)]
+@* Platform authority is enforced by the rendered fail-closed state below, not by endpoint
+   authorization: the host registers an authentication scheme only when OIDC is configured, so an
+   [Authorize] attribute would make the authorization middleware challenge and fault the route. *@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
@@ -10,19 +12,29 @@
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     @if (!IsAuthorized)
     {
+        @* The restricted surface keeps the page area and the live region the authorized surface
+           publishes. Only the read contract, navigation, and administrator data are withheld. *@
         <FluentStack Orientation="Orientation.Vertical"
-                     VerticalGap="12px"
-                     data-testid="tenants-global-admins-unavailable"
-                     role="alert">
+                     VerticalGap="20px"
+                     Class="global-admins"
+                     data-testid="tenants-global-admins-area"
+                     aria-labelledby="global-admins-restricted-heading">
             <FcPageHeader PageTitle="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
                           Heading="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
                           HeadingId="global-admins-restricted-heading"
                           TestId="tenants-global-admins-restricted-header" />
-            <FluentMessageBar Intent="MessageBarIntent.Warning"
-                              Title="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
-                              data-testid="tenants-global-admins-denied-message">
-                @Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Message"]
-            </FluentMessageBar>
+            <FluentStack Orientation="Orientation.Vertical"
+                         VerticalGap="12px"
+                         data-testid="tenants-global-admins-unavailable"
+                         role="alert">
+                <FluentMessageBar Intent="MessageBarIntent.Warning"
+                                  Title="@Localizer["Tenants.GlobalAdministrators.RestrictedTitle"]"
+                                  data-testid="tenants-global-admins-denied-message">
+                    <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">
+                        @Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Message"]
+                    </p>
+                </FluentMessageBar>
+            </FluentStack>
         </FluentStack>
     }
     else

@@ -1002,8 +1002,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Routes.razor"));
 
         page.ShouldContain("@page \"/global-administrators\"");
-        page.ShouldContain("@attribute [Authorize(Policy = TenantsFrontComposerRegistration.GlobalAdministratorPolicy)]");
-        routes.ShouldContain("<AuthorizeRouteView");
+
+        // Platform authority is a rendered fail-closed state, never endpoint authorization. The host
+        // registers an authentication scheme only when OIDC is configured, so authorize metadata on the
+        // route would fault the request instead of rendering the restricted surface.
+        page.ShouldNotContain("@attribute [Authorize");
+        routes.ShouldNotContain("<AuthorizeRouteView");
+        routes.ShouldContain("<RouteView");
         myTenantsPage.ShouldContain("@page \"/tenants/my\"");
         userLookupPage.ShouldContain("@page \"/tenants/users\"");
 

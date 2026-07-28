@@ -2,7 +2,7 @@
 title: 'Story 1.10: Direct Tenants Reads and Authoritative Freshness'
 type: 'feature'
 created: '2026-07-28'
-status: 'in-progress'
+status: 'review'
 baseline_commit: '8d64563c75423c861b0be0e3a7cc4de18f673d37'
 baseline_revision: '54fabf9852168b7e1f1639f9253472889397915a'
 review_loop_iteration: 1

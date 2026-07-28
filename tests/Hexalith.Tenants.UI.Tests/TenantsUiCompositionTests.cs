@@ -597,6 +597,36 @@ public sealed class TenantsUiCompositionTests
     }
 
     /// <summary>
+    /// Routable Tenants UI components must not carry endpoint authorization metadata. The standalone
+    /// host only registers an authentication scheme when OIDC is configured, while the module always
+    /// registers authorization services. An <c>[Authorize]</c> attribute therefore makes
+    /// <c>WebApplication</c> insert the authorization middleware, whose challenge path throws
+    /// <see cref="InvalidOperationException"/> for the missing <c>IAuthenticationService</c> — the route
+    /// answers 500 instead of rendering its fail-closed state. Page-level guards are the authority.
+    /// </summary>
+    [Fact]
+    public void Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata()
+    {
+        Type[] routableComponents = typeof(TenantsUiServiceCollectionExtensions).Assembly
+            .GetTypes()
+            .Where(static type => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(type))
+            .Where(static type => type.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: true).Length > 0)
+            .ToArray();
+
+        routableComponents.ShouldNotBeEmpty("the routable-component scan must observe real pages to mean anything");
+
+        foreach (Type routable in routableComponents)
+        {
+            routable
+                .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.IAuthorizeData), inherit: true)
+                .ShouldBeEmpty(
+                    $"{routable.FullName} must fail closed through its own rendered state, not through endpoint "
+                    + "authorization, because the host composes authorization without an authentication scheme "
+                    + "whenever OIDC is not configured.");
+        }
+    }
+
+    /// <summary>
     /// Complements the resolved dependency-closure test with compiled-artifact assertions: the REST
     /// generator is opt-in on an assembly-level <c>RestApi</c> attribute, and the referenced-assembly
     /// set proves which client and contract seams the compiled UI actually binds to.

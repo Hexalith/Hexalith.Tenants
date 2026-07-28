@@ -204,8 +204,10 @@ public class AspireTopologyTests : IDisposable {
             tenantId,
             token,
             timeout.Token);
-        auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
-        auditSnapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
+        // A first load that returns no payload has no prior evidence to retain, so it reports a true
+        // error state rather than a retained degradation.
+        auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        auditSnapshot.Reason.ShouldBe(TenantAuditReason.GatewayFailure);
         auditSnapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         auditSnapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
         auditSnapshot.Rows.ShouldBeEmpty(
