@@ -3,10 +3,12 @@ using System.Xml.Linq;
 
 using Bunit;
 
+using Hexalith.FrontComposer.Contracts.Communication;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantUsers;
@@ -22,12 +24,157 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class TenantAuditPageTests : BunitContext
 {
+    [Fact]
+    public async Task Notification_refreshing_affordance_retains_rows_until_the_authoritative_read_completes()
+    {
+        TenantAuditSnapshot confirmed = ReadySnapshot([Row("event-confirmed", AuditEventCategory.Access)]);
+        StubTenantQueryGateway gateway = RegisterServices(confirmed);
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+        gateway.QueueResponse(pending.Task);
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha");
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-audit-notification-refreshing']")
+                .GetAttribute("role").ShouldBe("status");
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-confirmed");
+        });
+
+        pending.SetResult(ReadySnapshot([Row("event-refreshed", AuditEventCategory.Access)]));
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll("[data-testid='tenants-audit-notification-refreshing']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-refreshed");
+        });
+    }
+
+    [Fact]
+    public async Task Tenant_rebinding_disposes_the_previous_subscription_and_only_the_new_scope_refreshes()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-alpha", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-beta", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-beta-refreshed", AuditEventCategory.Access)]));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(2);
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-beta");
+        });
+        await subscription.Received(1).UnsubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.beta",
+            Arg.Any<CancellationToken>());
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha");
+        gateway.Requests.Count.ShouldBe(2);
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.beta");
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(3);
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-beta-refreshed");
+        });
+    }
+
+    [Fact]
+    public async Task Newer_notification_refresh_rejects_a_late_cursor_result_and_preserves_cursor_history()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot(
+                [Row("event-first", AuditEventCategory.Access)],
+                nextCursor: "protected-next",
+                hasMore: true),
+            ReadySnapshot([Row("event-newest", AuditEventCategory.Access)]));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        var latePage = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+        gateway.QueueResponse(latePage.Task);
+
+        Task nextNavigation = cut.Find("[data-testid='tenants-audit-next']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha");
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(3);
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-newest");
+        });
+
+        latePage.SetResult(ReadySnapshot([Row("event-late", AuditEventCategory.Access)]));
+        await nextNavigation;
+
+        cut.Find("[data-testid='tenants-audit-row']")
+            .GetAttribute("data-audit-reference").ShouldBe("event-newest");
+        cut.Markup.ShouldNotContain("event-late");
+        gateway.Requests[1].Cursor.ShouldBe("protected-next");
+        gateway.Requests[2].Cursor.ShouldBeNull();
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
     [Fact]
     public void Tenant_audit_page_renders_grid_filters_paging_and_support_safe_rows()
     {
@@ -678,9 +825,13 @@ public sealed class TenantAuditPageTests : BunitContext
         }
 
         private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
+        private readonly Queue<Task<TenantAuditSnapshot>> _queuedResponses = [];
 
         public List<TenantAuditRequest> Requests { get; } = [];
         public List<TenantDetailRequest> DetailRequests { get; } = [];
+
+        public void QueueResponse(Task<TenantAuditSnapshot> response)
+            => _queuedResponses.Enqueue(response);
 
         public Task<TenantDetailSnapshot> GetTenantAsync(
             TenantDetailRequest request,
@@ -741,7 +892,9 @@ public sealed class TenantAuditPageTests : BunitContext
             CancellationToken cancellationToken = default)
         {
             Requests.Add(request);
-            return Task.FromResult(_snapshots.Dequeue());
+            return _queuedResponses.Count > 0
+                ? _queuedResponses.Dequeue()
+                : Task.FromResult(_snapshots.Dequeue());
         }
     }
 

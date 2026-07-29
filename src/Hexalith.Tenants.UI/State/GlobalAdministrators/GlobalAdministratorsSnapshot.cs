@@ -15,7 +15,9 @@ public sealed record GlobalAdministratorsSnapshot(
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
     string? ProjectionVersion = null,
     bool IsCompleteEvidence = false,
-    bool PagingRecovered = false) {
+    bool PagingRecovered = false,
+    string? RequestCursor = null,
+    int RequestPageSize = 20) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

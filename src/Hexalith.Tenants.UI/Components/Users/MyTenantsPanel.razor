@@ -154,6 +154,12 @@
             if (loadVersion == _loadVersion)
             {
                 _snapshot = snapshot;
+                if (snapshot.PagingRecovered)
+                {
+                    _currentCursor = null;
+                    _cursorHistory.Clear();
+                    Navigation.NavigateTo(BuildReturnUrl(), replace: true);
+                }
             }
         }).ConfigureAwait(false);
     }

@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
-using System.Globalization;
 using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
@@ -21,6 +21,7 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -39,6 +40,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -159,10 +162,78 @@ public sealed class TenantsUiCompositionTests
 
         ITenantsBffComposition composition = scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>();
         ITenantQueryGateway gateway = scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>();
+        TenantReadRefreshSubscription refreshSubscription = scope.ServiceProvider
+            .GetRequiredService<TenantReadRefreshSubscription>();
 
         composition.ShouldNotBeNull();
         gateway.ShouldNotBeNull();
+        refreshSubscription.ShouldNotBeNull();
         composition.IsReadSurfaceConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Host_query_gateway_override_requires_and_uses_matching_availability_contract()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        ITenantQueryGateway overrideGateway = Substitute.For<ITenantQueryGateway>();
+        services.AddSingleton(configuration);
+        services.AddSingleton(overrideGateway);
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(
+            new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>().ShouldBeSameAs(overrideGateway);
+        scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>()
+            .IsReadSurfaceConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Partial_host_query_gateway_override_is_rejected_during_composition()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(Substitute.For<ITenantQueryGateway>());
+
+        InvalidOperationException exception = Should.Throw<InvalidOperationException>(() =>
+            services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
+
+        exception.Message.ShouldContain(nameof(ITenantsReadSurfaceAvailability));
+    }
+
+    [Fact]
+    public void Partial_host_read_availability_override_is_rejected_during_composition()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(
+            new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        InvalidOperationException exception = Should.Throw<InvalidOperationException>(() =>
+            services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
+
+        exception.Message.ShouldContain(nameof(ITenantQueryGateway));
+    }
+
+    [Fact]
+    public void Keyed_gateway_registration_does_not_count_as_the_unkeyed_host_override()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        ITenantQueryGateway keyedGateway = Substitute.For<ITenantQueryGateway>();
+        services.AddKeyedSingleton("sidecar", keyedGateway);
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+        scope.ServiceProvider.GetRequiredKeyedService<ITenantQueryGateway>("sidecar")
+            .ShouldBeSameAs(keyedGateway);
     }
 
     /// <summary>
@@ -194,6 +265,43 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Theory]
+    [InlineData("https+http://tenants")]
+    [InlineData("http+https://tenants")]
+    public async Task Compound_service_discovery_address_executes_through_the_registered_handler_pipeline(
+        string baseAddress)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = baseAddress,
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddServiceDiscovery();
+        services.AddPassThroughServiceEndpointProvider();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        var primaryHandler = new AuthorizationRecordingHandler();
+        services.AddHttpClient<TenantsRestQueryClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        primaryHandler.RequestUri.ShouldNotBeNull();
+        primaryHandler.RequestUri.Scheme.ShouldBeOneOf(Uri.UriSchemeHttp, Uri.UriSchemeHttps);
+        primaryHandler.RequestUri.Host.ShouldBe("tenants");
+        primaryHandler.RequestUri.PathAndQuery.ShouldBe("/api/tenants?pageSize=20");
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -220,26 +328,25 @@ public sealed class TenantsUiCompositionTests
 
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
 
-        ServiceDescriptor query = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway));
-        ServiceDescriptor command = services.Last(descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway));
-        query.ImplementationType.ShouldBe(
-            hasTenants ? typeof(TenantQueryGateway) : typeof(UnavailableTenantQueryGateway));
-        if (hasEventStore)
-        {
-            command.ImplementationFactory.ShouldNotBeNull();
-        }
-        else
-        {
-            command.ImplementationType.ShouldBe(typeof(UnavailableTenantCommandGateway));
-        }
+        services.AddSingleton(configuration);
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
 
-        services.Any(descriptor => descriptor.ServiceType == typeof(ITenantsRestQueryClient))
-            .ShouldBe(hasTenants);
+        ITenantQueryGateway query = scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>();
+        ITenantCommandGateway command = scope.ServiceProvider.GetRequiredService<ITenantCommandGateway>();
+        query.ShouldBeOfType(hasTenants ? typeof(TenantQueryGateway) : typeof(UnavailableTenantQueryGateway));
+        command.ShouldBeOfType(hasEventStore ? typeof(TenantCommandGateway) : typeof(UnavailableTenantCommandGateway));
+        (scope.ServiceProvider.GetService<ITenantsRestQueryClient>() is not null).ShouldBe(hasTenants);
     }
 
     [Theory]
+    [InlineData("http++https://tenants.invalid")]
     [InlineData("ftp://tenants.invalid")]
     [InlineData("file:///tmp/tenants")]
+    [InlineData("https://user:secret@tenants.invalid")]
+    [InlineData("https://tenants.invalid?target=other")]
+    [InlineData("https://tenants.invalid#fragment")]
+    [InlineData("https:/missing-host")]
     [InlineData("not an absolute URI")]
     public void Malformed_or_non_http_tenants_base_address_fails_closed(string baseAddress)
     {
@@ -259,6 +366,38 @@ public sealed class TenantsUiCompositionTests
         services.Any(descriptor => descriptor.ServiceType == typeof(ITenantsRestQueryClient)).ShouldBeFalse();
         services.Last(descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway))
             .ImplementationFactory.ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData("http++https://eventstore.invalid")]
+    [InlineData("ftp://eventstore.invalid")]
+    [InlineData("https://user:secret@eventstore.invalid")]
+    [InlineData("https://eventstore.invalid?target=other")]
+    [InlineData("https://eventstore.invalid#fragment")]
+    [InlineData("https:/missing-host")]
+    public void Invalid_event_store_address_does_not_disable_the_independent_read_gateway(string baseAddress)
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+                ["EventStore:BaseAddress"] = baseAddress,
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<TenantQueryGateway>();
+        scope.ServiceProvider.GetRequiredService<ITenantCommandGateway>()
+            .ShouldBeOfType<UnavailableTenantCommandGateway>();
+        ITenantsBffComposition composition = scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.ShouldBeTrue();
+        composition.IsCommandSurfaceConnected.ShouldBeFalse();
     }
 
     [Theory]
@@ -1486,12 +1625,15 @@ public sealed class TenantsUiCompositionTests
     {
         public string? Authorization { get; private set; }
 
+        public Uri? RequestUri { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Authorization = request.Headers.Authorization?.ToString();
+            RequestUri = request.RequestUri;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),

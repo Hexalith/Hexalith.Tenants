@@ -1117,6 +1117,130 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Invalid_member_cursor_recovers_page_one_and_clears_failed_history()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        List<TenantUsersRequest> memberRequests = [];
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantUsersRequest request = call.Arg<TenantUsersRequest>()
+                    ?? throw new InvalidOperationException("A tenant-users request is required.");
+                memberRequests.Add(request);
+                return Task.FromResult(memberRequests.Count switch
+                {
+                    1 => TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-before", TenantRole.TenantOwner)],
+                        nextCursor: "expired-page-2",
+                        hasMore: true,
+                        eTag: "members-page-1-before",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current),
+                    2 => TenantUsersSnapshot.Invalid("tenant.alpha", TenantUsersReason.InvalidCursor),
+                    3 => TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-recovered", TenantRole.TenantOwner)],
+                        nextCursor: null,
+                        hasMore: false,
+                        eTag: "members-page-1-recovered",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current),
+                    _ => throw new InvalidOperationException("Unexpected tenant-users request."),
+                });
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-next']").Click();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-member-table']")
+            .TextContent.ShouldContain("page-1-recovered"));
+        memberRequests.Select(static request => request.Cursor).ShouldBe([null, "expired-page-2", null]);
+        cut.FindAll("[data-testid='tenants-member-previous']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("page-1-before");
+    }
+
+    [Fact]
+    public async Task Repeated_member_next_click_while_loading_starts_only_one_page_read()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        List<TenantUsersRequest> memberRequests = [];
+        var pendingPage = new TaskCompletionSource<TenantUsersSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantUsersRequest request = call.Arg<TenantUsersRequest>()
+                    ?? throw new InvalidOperationException("A tenant-users request is required.");
+                memberRequests.Add(request);
+                return memberRequests.Count == 1
+                    ? Task.FromResult(TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-user", TenantRole.TenantOwner)],
+                        nextCursor: "cursor-page-2",
+                        hasMore: true,
+                        eTag: "members-page-1",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current))
+                    : pendingPage.Task;
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        IElement next = cut.WaitForElement("[data-testid='tenants-member-next']");
+
+        Task firstClick = next.ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() =>
+        {
+            memberRequests.Count.ShouldBe(2);
+            cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeTrue();
+        });
+        await cut.Find("[data-testid='tenants-member-next']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        memberRequests.Count.ShouldBe(2);
+
+        pendingPage.SetResult(TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("page-2-user", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "members-page-2",
+            projectionVersion: "projection-v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current));
+        await firstClick;
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-member-table']")
+            .TextContent.ShouldContain("page-2-user"));
+        memberRequests.Select(static request => request.Cursor).ShouldBe([null, "cursor-page-2"]);
+    }
+
+    [Fact]
     public void Workspace_detail_link_preserves_non_cursor_context_in_return_url()
     {
         TenantListSnapshot snapshot = TenantListSnapshot.Ready(

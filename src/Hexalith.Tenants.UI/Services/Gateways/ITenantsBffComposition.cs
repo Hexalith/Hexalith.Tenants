@@ -16,6 +16,11 @@ public interface ITenantsBffComposition {
     TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
+    /// <summary>
+    /// Resolves global-administrator authorization from the current authoritative principal evidence.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for principal resolution.</param>
+    /// <returns>The fail-closed authorization reflection state for the current principal.</returns>
     ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
         CancellationToken cancellationToken = default)
         => ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection);

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -23,8 +24,11 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     private const int MaximumETagValueLength = 1024;
     private const int MaximumMetadataValueLength = 4096;
 
+    /// <summary>Maximum number of response-body bytes accepted for one typed read.</summary>
+    internal const int MaximumPayloadLength = 16 * 1024 * 1024;
+
     /// <summary>Upper bound on a Problem Details body inspected for the invalid-cursor sentinel.</summary>
-    private const int MaximumProblemDetailsLength = 8192;
+    internal const int MaximumProblemDetailsLength = 8192;
 
     /// <summary>Top-level property where ASP.NET serializes the Problem Details extension set.</summary>
     private const string ProblemDetailsReasonProperty = "reason";
@@ -34,7 +38,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: false) },
     };
 
     /// <inheritdoc />
@@ -58,8 +62,13 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        {
+            return UnsupportedRouteIdentifier<TenantDetail>();
+        }
+
         return SendAsync<TenantDetail>(
-            $"/api/tenants/{EscapeRouteValue(query.TenantId)}",
+            $"/api/tenants/{tenantId}",
             eTag,
             cancellationToken);
     }
@@ -72,9 +81,14 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        {
+            return UnsupportedRouteIdentifier<PaginatedResult<TenantMember>>();
+        }
+
         return SendAsync<PaginatedResult<TenantMember>>(
             BuildUri(
-                $"/api/tenants/{EscapeRouteValue(query.TenantId)}/users",
+                $"/api/tenants/{tenantId}/users",
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
@@ -89,9 +103,14 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.UserId);
+        if (!TryEscapeRouteValue(query.UserId, out string? userId))
+        {
+            return UnsupportedRouteIdentifier<PaginatedResult<UserTenantMembership>>();
+        }
+
         return SendAsync<PaginatedResult<UserTenantMembership>>(
             BuildUri(
-                $"/api/users/{EscapeRouteValue(query.UserId)}/tenants",
+                $"/api/users/{userId}/tenants",
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
@@ -99,23 +118,42 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     }
 
     /// <inheritdoc />
-    public Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
+    public async Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
         GetTenantAuditQuery query,
         string? eTag,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        return SendAsync<PaginatedResult<TenantAuditEntry>>(
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        {
+            return await UnsupportedRouteIdentifier<PaginatedResult<TenantAuditEntry>>().ConfigureAwait(false);
+        }
+
+        TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> response = await SendAsync<PaginatedResult<TenantAuditEntry>>(
             BuildUri(
-                $"/api/tenants/{EscapeRouteValue(query.TenantId)}/audit",
+                $"/api/tenants/{tenantId}/audit",
                 ("from", query.From?.ToString("O", CultureInfo.InvariantCulture)),
                 ("to", query.To?.ToString("O", CultureInfo.InvariantCulture)),
                 ("category", query.Category?.ToString()),
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        if (response.IsSuccess
+            && !response.IsNotModified
+            && response.Payload?.Items.Any(entry => !string.Equals(
+                entry.TenantId,
+                query.TenantId,
+                StringComparison.Ordinal)) == true)
+        {
+            return Failure<PaginatedResult<TenantAuditEntry>>(
+                TenantsRestQueryFailureKind.InvalidPayload,
+                response.StatusCode);
+        }
+
+        return response;
     }
 
     /// <inheritdoc />
@@ -136,6 +174,13 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         string? eTag,
         CancellationToken cancellationToken)
     {
+        using CancellationTokenSource transportDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (httpClient.Timeout != Timeout.InfiniteTimeSpan)
+        {
+            transportDeadline.CancelAfter(httpClient.Timeout);
+        }
+
+        CancellationToken transportToken = transportDeadline.Token;
         using var request = new HttpRequestMessage(HttpMethod.Get, CreateRequestUri(path));
         EntityTagHeaderValue? validator = NormalizeValidator(eTag);
         if (validator is not null)
@@ -147,7 +192,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         try
         {
             response = await httpClient
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, transportToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -188,10 +233,23 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 TenantsRestQueryFailureKind failure = MapFailure(response.StatusCode);
-                if (failure == TenantsRestQueryFailureKind.InvalidRequest
-                    && await HasInvalidCursorSignalAsync(response, cancellationToken).ConfigureAwait(false))
+                if (failure == TenantsRestQueryFailureKind.InvalidRequest)
                 {
-                    failure = TenantsRestQueryFailureKind.InvalidCursor;
+                    InvalidCursorSignal signal = await ReadInvalidCursorSignalAsync(
+                        response,
+                        transportToken,
+                        cancellationToken).ConfigureAwait(false);
+                    failure = signal switch
+                    {
+                        InvalidCursorSignal.Present => TenantsRestQueryFailureKind.InvalidCursor,
+                        InvalidCursorSignal.Timeout => TenantsRestQueryFailureKind.Timeout,
+                        InvalidCursorSignal.Unavailable => TenantsRestQueryFailureKind.Unavailable,
+                        _ => failure,
+                    };
+                    if (failure is TenantsRestQueryFailureKind.Timeout or TenantsRestQueryFailureKind.Unavailable)
+                    {
+                        statusCode = (int)HttpStatusCode.ServiceUnavailable;
+                    }
                 }
 
                 return Failure<TPayload>(failure, statusCode);
@@ -200,12 +258,11 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             TPayload? payload;
             try
             {
-                using Stream content = await response.Content
-                    .ReadAsStreamAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                payload = await JsonSerializer
-                    .DeserializeAsync<TPayload>(content, JsonOptions, cancellationToken)
-                    .ConfigureAwait(false);
+                byte[] content = await ReadBoundedContentAsync(
+                    response.Content,
+                    MaximumPayloadLength,
+                    transportToken).ConfigureAwait(false);
+                payload = JsonSerializer.Deserialize<TPayload>(content, JsonOptions);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -213,15 +270,25 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             }
             catch (OperationCanceledException)
             {
-                return Failure<TPayload>(TenantsRestQueryFailureKind.Timeout, statusCode);
+                return Failure<TPayload>(
+                    TenantsRestQueryFailureKind.Timeout,
+                    (int)HttpStatusCode.ServiceUnavailable);
             }
             catch (HttpRequestException)
             {
-                return Failure<TPayload>(TenantsRestQueryFailureKind.Unavailable, statusCode);
+                return Failure<TPayload>(
+                    TenantsRestQueryFailureKind.Unavailable,
+                    (int)HttpStatusCode.ServiceUnavailable);
             }
             catch (IOException)
             {
-                return Failure<TPayload>(TenantsRestQueryFailureKind.Unavailable, statusCode);
+                return Failure<TPayload>(
+                    TenantsRestQueryFailureKind.Unavailable,
+                    (int)HttpStatusCode.ServiceUnavailable);
+            }
+            catch (ResponseContentTooLargeException)
+            {
+                return Failure<TPayload>(TenantsRestQueryFailureKind.InvalidPayload, statusCode);
             }
             catch (JsonException)
             {
@@ -351,16 +418,51 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     private static bool HasValidPayloadShape<TPayload>(TPayload payload)
         => payload switch
         {
-            PaginatedResult<TenantSummary> page => IsValidPage(page.Items, page.Cursor, page.HasMore),
-            PaginatedResult<TenantMember> page => IsValidPage(page.Items, page.Cursor, page.HasMore),
-            PaginatedResult<UserTenantMembership> page => IsValidPage(page.Items, page.Cursor, page.HasMore),
-            PaginatedResult<TenantAuditEntry> page => IsValidPage(page.Items, page.Cursor, page.HasMore),
-            PaginatedResult<GlobalAdministratorSummary> page => IsValidPage(page.Items, page.Cursor, page.HasMore),
+            PaginatedResult<TenantSummary> page => IsValidPage(
+                page.Items,
+                page.Cursor,
+                page.HasMore,
+                static item => !string.IsNullOrWhiteSpace(item.TenantId) && item.Name is not null),
+            PaginatedResult<TenantMember> page => IsValidPage(
+                page.Items,
+                page.Cursor,
+                page.HasMore,
+                static item => !string.IsNullOrWhiteSpace(item.UserId)),
+            PaginatedResult<UserTenantMembership> page => IsValidPage(
+                page.Items,
+                page.Cursor,
+                page.HasMore,
+                static item => !string.IsNullOrWhiteSpace(item.TenantId) && item.Name is not null),
+            PaginatedResult<TenantAuditEntry> page => IsValidPage(
+                page.Items,
+                page.Cursor,
+                page.HasMore,
+                static item => !string.IsNullOrWhiteSpace(item.EventId)
+                    && !string.IsNullOrWhiteSpace(item.EventType)
+                    && !string.IsNullOrWhiteSpace(item.ActorId)
+                    && !string.IsNullOrWhiteSpace(item.TenantId)
+                    && item.NarrativePayload is not null),
+            PaginatedResult<GlobalAdministratorSummary> page => IsValidPage(
+                page.Items,
+                page.Cursor,
+                page.HasMore,
+                static item => !string.IsNullOrWhiteSpace(item.UserId)),
+            TenantDetail detail => !string.IsNullOrWhiteSpace(detail.TenantId)
+                && detail.Name is not null
+                && detail.Members is not null
+                && detail.Members.All(static member => member is not null && !string.IsNullOrWhiteSpace(member.UserId))
+                && detail.Configuration is not null,
             _ => true,
         };
 
-    private static bool IsValidPage<TItem>(IReadOnlyList<TItem>? items, string? cursor, bool hasMore)
-        => items is not null && (!hasMore || !string.IsNullOrWhiteSpace(cursor));
+    private static bool IsValidPage<TItem>(
+        IReadOnlyList<TItem>? items,
+        string? cursor,
+        bool hasMore,
+        Func<TItem, bool> isUsable)
+        => items is not null
+            && items.All(item => item is not null && isUsable(item))
+            && (!hasMore || !string.IsNullOrWhiteSpace(cursor));
 
     private static TenantsRestQueryResponse<TPayload> Failure<TPayload>(
         TenantsRestQueryFailureKind failureKind,
@@ -379,7 +481,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     /// <para>
     /// Reads exactly one top-level Problem Details property — <c>reason</c>, where ASP.NET serializes the
     /// extension set — and compares it to a single known literal. Nothing from the body is retained,
-    /// returned, rendered, or logged; the method yields only a boolean. That keeps the "Problem Details are
+    /// returned, rendered, or logged; the method yields only a fixed signal. That keeps the "Problem Details are
     /// neither exposed nor logged" rule intact while still honouring the explicit contract signal the
     /// service actually sends (<c>QueryExecutionFailedExceptionHandler</c> sets
     /// <c>Extensions[reason] = QueryAdapterFailureReason.InvalidCursor</c>).
@@ -390,37 +492,95 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     /// triggers a silent page-one retry.
     /// </para>
     /// </remarks>
-    private static async Task<bool> HasInvalidCursorSignalAsync(
+    private static async Task<InvalidCursorSignal> ReadInvalidCursorSignalAsync(
         HttpResponseMessage response,
-        CancellationToken cancellationToken)
+        CancellationToken transportToken,
+        CancellationToken callerCancellationToken)
     {
         if (response.Content.Headers.ContentLength > MaximumProblemDetailsLength)
         {
-            return false;
+            return InvalidCursorSignal.Absent;
         }
 
         try
         {
-            using Stream content = await response.Content
-                .ReadAsStreamAsync(cancellationToken)
-                .ConfigureAwait(false);
-            using JsonDocument document = await JsonDocument
-                .ParseAsync(content, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            byte[] content = await ReadBoundedContentAsync(
+                response.Content,
+                MaximumProblemDetailsLength,
+                transportToken).ConfigureAwait(false);
+            using JsonDocument document = JsonDocument.Parse(content);
             return document.RootElement.ValueKind == JsonValueKind.Object
                 && document.RootElement.TryGetProperty(ProblemDetailsReasonProperty, out JsonElement reason)
                 && reason.ValueKind == JsonValueKind.String
-                && string.Equals(reason.GetString(), InvalidCursorReason, StringComparison.Ordinal);
+                && string.Equals(reason.GetString(), InvalidCursorReason, StringComparison.Ordinal)
+                    ? InvalidCursorSignal.Present
+                    : InvalidCursorSignal.Absent;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (callerCancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception)
+        catch (OperationCanceledException)
+        {
+            return InvalidCursorSignal.Timeout;
+        }
+        catch (HttpRequestException)
+        {
+            return InvalidCursorSignal.Unavailable;
+        }
+        catch (IOException)
+        {
+            return InvalidCursorSignal.Unavailable;
+        }
+        catch (ResponseContentTooLargeException)
+        {
+            return InvalidCursorSignal.Absent;
+        }
+        catch (JsonException)
+        {
+            return InvalidCursorSignal.Absent;
+        }
+        catch (NotSupportedException)
         {
             // A body that cannot be read or parsed carries no signal. Absence of proof is not proof of an
             // invalid cursor, so the caller keeps the conservative InvalidRequest classification.
-            return false;
+            return InvalidCursorSignal.Absent;
+        }
+    }
+
+    private static async Task<byte[]> ReadBoundedContentAsync(
+        HttpContent content,
+        int maximumLength,
+        CancellationToken cancellationToken)
+    {
+        if (content.Headers.ContentLength > maximumLength)
+        {
+            throw new ResponseContentTooLargeException();
+        }
+
+        using Stream source = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        int capacity = content.Headers.ContentLength is long contentLength
+            ? (int)Math.Min(contentLength, maximumLength)
+            : 0;
+        using var destination = new MemoryStream(capacity);
+        var buffer = new byte[Math.Min(81920, maximumLength + 1)];
+        while (true)
+        {
+            int nextReadLength = (int)Math.Min(buffer.Length, (long)maximumLength - destination.Length + 1);
+            int read = await source
+                .ReadAsync(buffer.AsMemory(0, nextReadLength), cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0)
+            {
+                return destination.ToArray();
+            }
+
+            if (destination.Length + read > maximumLength)
+            {
+                throw new ResponseContentTooLargeException();
+            }
+
+            destination.Write(buffer, 0, read);
         }
     }
 
@@ -481,8 +641,9 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         string? value = GetBoundedHeader(response, name);
         return value is not null
-            && Enum.TryParse(value, ignoreCase: true, out TEnum parsed)
+            && Enum.TryParse(value, ignoreCase: false, out TEnum parsed)
             && Enum.IsDefined(parsed)
+            && string.Equals(Enum.GetName(parsed), value, StringComparison.Ordinal)
             ? parsed
             : default;
     }
@@ -527,10 +688,24 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             : value;
     }
 
-    private static string EscapeRouteValue(string value)
-        => value.All(static character => character == '.')
+    private static bool TryEscapeRouteValue(string value, [NotNullWhen(true)] out string? escaped)
+    {
+        if (value.Contains('/', StringComparison.Ordinal))
+        {
+            escaped = null;
+            return false;
+        }
+
+        escaped = value.All(static character => character == '.')
             ? string.Concat(Enumerable.Repeat("%2E", value.Length))
             : Uri.EscapeDataString(value);
+        return true;
+    }
+
+    private static Task<TenantsRestQueryResponse<TPayload>> UnsupportedRouteIdentifier<TPayload>()
+        => Task.FromResult(Failure<TPayload>(
+            TenantsRestQueryFailureKind.Unavailable,
+            (int)HttpStatusCode.ServiceUnavailable));
 
     private Uri CreateRequestUri(string path)
     {
@@ -556,4 +731,5 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             .ToArray();
         return fields.Length == 0 ? path : $"{path}?{string.Join('&', fields)}";
     }
+
 }

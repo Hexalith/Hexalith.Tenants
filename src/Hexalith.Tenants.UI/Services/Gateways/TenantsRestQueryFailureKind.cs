@@ -1,12 +1,18 @@
+using System.Text.Json.Serialization;
+
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 /// <summary>
 /// Identifies fixed support-safe Tenants REST query failure categories.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<TenantsRestQueryFailureKind>))]
 public enum TenantsRestQueryFailureKind
 {
+    /// <summary>The value is absent or was not recognized; callers must fail closed.</summary>
+    Unknown = 0,
+
     /// <summary>No failure occurred.</summary>
-    None = 0,
+    None,
 
     /// <summary>The caller is not authenticated.</summary>
     Unauthorized,

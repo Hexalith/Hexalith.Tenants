@@ -19,7 +19,9 @@ public sealed record TenantUsersSnapshot(
     ProjectionLifecycleState Lifecycle,
     bool IsAuthorizationScopedEmpty,
     TenantUsersReason Reason,
-    bool IsRefreshing = false)
+    bool IsRefreshing = false,
+    string? RequestCursor = null,
+    int RequestPageSize = 20)
 {
     /// <summary>Creates a first-load state without discarding a separate prior snapshot.</summary>
     public static TenantUsersSnapshot Loading(string? tenantId = null)

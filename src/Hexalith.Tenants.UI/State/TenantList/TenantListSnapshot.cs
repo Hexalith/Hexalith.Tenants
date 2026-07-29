@@ -19,7 +19,9 @@ public sealed record TenantListSnapshot(
     bool FallbackPagingRecovered = false,
     TenantListReason PagingNotice = TenantListReason.None,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    string? ProjectionVersion = null) {
+    string? ProjectionVersion = null,
+    string? RequestCursor = null,
+    int RequestPageSize = 20) {
     /// <summary>Returns a support-safe description that omits cursor, ETag, and indexed material.</summary>
     public override string ToString()
         => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered}, FallbackPagingRecovered = {FallbackPagingRecovered}, PagingNotice = {PagingNotice} }}";

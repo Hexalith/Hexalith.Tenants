@@ -168,12 +168,31 @@ public sealed class TenantsWorkspaceTests : BunitContext
         authentication.Set(AdministratorPrincipal());
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-administrators-entry']"));
         authentication.Set(NonAdministratorPrincipal());
-        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty());
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+            PrivateField<bool>(cut.Instance, "_canReviewGlobalAdministrators").ShouldBeFalse();
+        });
+        await Task.Yield();
+        await cut.InvokeAsync(() => { });
 
         TaskCompletionSource<AuthenticationState> lateRestore = authentication.NotifyPending();
+        TenantsWorkspace instance = cut.Instance;
         cut.Dispose();
+        // bUnit's rendered-handle disposal removes inspection immediately; invoke the component's
+        // IDisposable lifecycle explicitly so the late completion is observed after production teardown.
+        instance.Dispose();
+        PrivateField<bool>(instance, "_disposed").ShouldBeTrue();
+        long authorizationVersionAtDisposal = PrivateField<long>(instance, "_authorizationVersion");
         lateRestore.SetResult(new AuthenticationState(AdministratorPrincipal()));
         await Task.Yield();
+        await Task.Delay(20, Xunit.TestContext.Current.CancellationToken);
+
+        PrivateField<bool>(instance, "_canReviewGlobalAdministrators").ShouldBeFalse();
+
+        authentication.Set(AdministratorPrincipal());
+        await Task.Yield();
+        PrivateField<long>(instance, "_authorizationVersion").ShouldBe(authorizationVersionAtDisposal);
     }
 
     [Fact]
@@ -631,6 +650,12 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private static ClaimsPrincipal NonAdministratorPrincipal()
         => new(new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test"));
+
+    private static T PrivateField<T>(TenantsWorkspace instance, string name)
+        => (T)(typeof(TenantsWorkspace)
+            .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?.GetValue(instance)
+            ?? throw new InvalidOperationException($"Field {name} was not found."));
 
     private sealed class StubTenantsBffComposition(
         TenantLifecycleAuthorizationReflectionState globalAdministratorReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,

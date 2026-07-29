@@ -11,6 +11,115 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantUsersSnapshotTests
 {
     [Fact]
+    public void Factory_matrix_covers_every_non_collapsing_surface_kind()
+    {
+        TenantUsersSnapshot current = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.alpha", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "etag-current",
+            projectionVersion: "version-current",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+        Dictionary<TenantUsersSurfaceKind, TenantUsersSnapshot> snapshots = new()
+        {
+            [TenantUsersSurfaceKind.Loading] = TenantUsersSnapshot.Loading("tenant.alpha"),
+            [TenantUsersSurfaceKind.Ready] = current,
+            [TenantUsersSurfaceKind.Empty] = TenantUsersSnapshot.Empty(
+                "tenant.alpha",
+                isAuthorizationScoped: true,
+                eTag: "etag-empty",
+                projectionVersion: "version-empty",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current),
+            [TenantUsersSurfaceKind.Stale] = TenantUsersSnapshot.Ready(
+                "tenant.alpha",
+                current.Rows,
+                nextCursor: null,
+                hasMore: false,
+                eTag: "etag-stale",
+                projectionVersion: "version-stale",
+                ReadModelFreshnessState.Stale,
+                ProjectionLifecycleState.Stale),
+            [TenantUsersSurfaceKind.Degraded] = TenantUsersSnapshot.Degraded(
+                "tenant.alpha",
+                current,
+                TenantUsersReason.ProjectionDegraded),
+            [TenantUsersSurfaceKind.Unknown] = TenantUsersSnapshot.Ready(
+                "tenant.alpha",
+                current.Rows,
+                nextCursor: null,
+                hasMore: false,
+                eTag: "etag-unknown",
+                projectionVersion: "version-unknown",
+                ReadModelFreshnessState.Unknown,
+                ProjectionLifecycleState.Unknown),
+            [TenantUsersSurfaceKind.Unauthorized] = TenantUsersSnapshot.Unauthorized("tenant.alpha"),
+            [TenantUsersSurfaceKind.NotFound] = TenantUsersSnapshot.NotFound("tenant.alpha"),
+            [TenantUsersSurfaceKind.Invalid] = TenantUsersSnapshot.Invalid("tenant.alpha"),
+            [TenantUsersSurfaceKind.Unavailable] = TenantUsersSnapshot.Unavailable("tenant.alpha"),
+            [TenantUsersSurfaceKind.Error] = TenantUsersSnapshot.Error("tenant.alpha"),
+        };
+
+        snapshots.Keys.ShouldBe(Enum.GetValues<TenantUsersSurfaceKind>(), ignoreOrder: true);
+        snapshots.ShouldAllBe(pair => pair.Key == pair.Value.Kind);
+        snapshots[TenantUsersSurfaceKind.Empty].IsAuthorizationScopedEmpty.ShouldBeTrue();
+        snapshots[TenantUsersSurfaceKind.Degraded].Rows.ShouldBeSameAs(current.Rows);
+        snapshots[TenantUsersSurfaceKind.Stale].Reason.ShouldBe(TenantUsersReason.ProjectionStale);
+        snapshots[TenantUsersSurfaceKind.Unauthorized].Reason.ShouldBe(TenantUsersReason.Unauthorized);
+        snapshots[TenantUsersSurfaceKind.NotFound].Reason.ShouldBe(TenantUsersReason.NotFound);
+        snapshots[TenantUsersSurfaceKind.Invalid].Reason.ShouldBe(TenantUsersReason.InvalidCursor);
+        snapshots[TenantUsersSurfaceKind.Unavailable].Reason.ShouldBe(TenantUsersReason.GatewayUnavailable);
+        snapshots[TenantUsersSurfaceKind.Error].Reason.ShouldBe(TenantUsersReason.GatewayFailure);
+    }
+
+    [Fact]
+    public void Every_reason_has_a_support_safe_diagnostic_representation()
+    {
+        foreach (TenantUsersReason reason in Enum.GetValues<TenantUsersReason>())
+        {
+            TenantUsersSnapshot snapshot = TenantUsersSnapshot.Loading("tenant.secret") with { Reason = reason };
+
+            snapshot.Reason.ShouldBe(reason);
+            snapshot.ToString().ShouldBe(
+                $"TenantUsersSnapshot {{ Kind = Loading, RowCount = 0, HasMore = False, Freshness = Unknown, "
+                + $"Lifecycle = Unknown, IsAuthorizationScopedEmpty = False, Reason = {reason}, IsRefreshing = False }}");
+        }
+    }
+
+    [Theory]
+    [InlineData(false, TenantUsersSurfaceKind.Degraded, TenantUsersReason.ProjectionDegraded)]
+    [InlineData(true, TenantUsersSurfaceKind.Error, TenantUsersReason.GatewayFailure)]
+    public void Retention_rejects_a_previous_snapshot_from_another_tenant(
+        bool isError,
+        TenantUsersSurfaceKind expectedKind,
+        TenantUsersReason expectedReason)
+    {
+        TenantUsersSnapshot previous = TenantUsersSnapshot.Ready(
+            "tenant.previous",
+            [new TenantMember("user.secret", TenantRole.TenantOwner)],
+            "cursor-secret",
+            hasMore: true,
+            "etag-secret",
+            "version-secret",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+
+        TenantUsersSnapshot snapshot = isError
+            ? TenantUsersSnapshot.Error("tenant.requested", previous)
+            : TenantUsersSnapshot.Degraded("tenant.requested", previous, TenantUsersReason.ProjectionDegraded);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.TenantId.ShouldBe("tenant.requested");
+        snapshot.Reason.ShouldBe(expectedReason);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.NextCursor.ShouldBeNull();
+        snapshot.ETag.ShouldBeNull();
+        snapshot.ProjectionVersion.ShouldBeNull();
+    }
+
+    [Fact]
     public void Refreshing_retains_last_confirmed_members_and_independent_metadata()
     {
         TenantUsersSnapshot ready = TenantUsersSnapshot.Ready(

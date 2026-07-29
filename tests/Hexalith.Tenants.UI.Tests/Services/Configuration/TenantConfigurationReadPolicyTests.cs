@@ -61,7 +61,7 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
-    public async Task Resolver_still_propagates_caller_cancellation()
+    public async Task Resolver_propagates_entry_caller_cancellation()
     {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -69,6 +69,24 @@ public sealed class TenantConfigurationReadPolicyTests
         await Should.ThrowAsync<OperationCanceledException>(async () =>
             await Resolver(circuitPrincipal: Principal(new Claim("sub", "operator.circuit")))
                 .ResolveAsync(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Resolver_propagates_caller_cancellation_after_authentication_read_starts()
+    {
+        var provider = new PendingAuthenticationStateProvider();
+        using var cancellation = new CancellationTokenSource();
+        Task<TenantConfigurationPrincipalEvidence> resolution = Resolver(
+            circuitProvider: provider,
+            userContextSubject: "operator.circuit")
+            .ResolveAsync(cancellation.Token)
+            .AsTask();
+        await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        cancellation.Cancel();
+        provider.Complete(Principal(new Claim("sub", "operator.circuit")));
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(resolution);
     }
 
     [Fact]
@@ -830,6 +848,24 @@ public sealed class TenantConfigurationReadPolicyTests
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
             => Task.FromException<AuthenticationState>(exception);
+    }
+
+    private sealed class PendingAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        private readonly TaskCompletionSource<AuthenticationState> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Entered { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            Entered.TrySetResult();
+            return _completion.Task;
+        }
+
+        public void Complete(ClaimsPrincipal principal)
+            => _completion.SetResult(new AuthenticationState(principal));
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

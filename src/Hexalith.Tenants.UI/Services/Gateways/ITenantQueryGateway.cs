@@ -28,11 +28,16 @@ public interface ITenantQueryGateway {
         TenantDetailSnapshot? previous,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Gets one authorization-scoped page of members for a tenant.</summary>
     /// <remarks>
     /// Abstract, like every other member. As a default implementation returning <c>Unavailable</c>, any
     /// gateway, decorator, or test double that forgot to implement it compiled and resolved cleanly while
     /// rendering "members cannot be loaded right now" — indistinguishable from a real outage.
     /// </remarks>
+    /// <param name="request">Tenant and opaque paging scope to read.</param>
+    /// <param name="previous">Last confirmed snapshot that may be retained only for the same request scope.</param>
+    /// <param name="cancellationToken">Cancellation token for the server-side read.</param>
+    /// <returns>The fail-closed tenant-members snapshot.</returns>
     Task<TenantUsersSnapshot> GetTenantUsersAsync(
         TenantUsersRequest request,
         TenantUsersSnapshot? previous,

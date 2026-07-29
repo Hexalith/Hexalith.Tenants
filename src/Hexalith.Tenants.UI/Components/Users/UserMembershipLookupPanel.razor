@@ -456,6 +456,11 @@
             }
 
             _snapshot = snapshot;
+            if (snapshot.PagingRecovered)
+            {
+                _currentCursor = null;
+                _cursorHistory.Clear();
+            }
             _announcement = AnnouncementFor(snapshot, validTargetUserId);
             _focusStatusPending = true;
             Navigation.NavigateTo(UserLookupReturnUrl, replace: true);

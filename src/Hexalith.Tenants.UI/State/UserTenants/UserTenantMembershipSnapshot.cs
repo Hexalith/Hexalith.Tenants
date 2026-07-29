@@ -14,7 +14,10 @@ public sealed record UserTenantMembershipSnapshot(
     UserTenantMembershipReason Reason,
     string? TargetUserId = null,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    string? ProjectionVersion = null) {
+    string? ProjectionVersion = null,
+    string? RequestCursor = null,
+    int RequestPageSize = 20,
+    bool PagingRecovered = false) {
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

@@ -6,6 +6,8 @@ public enum UserTenantMembershipReason {
     InvalidTargetUser,
     MissingAuthenticatedUser,
     Unauthorized,
+    InvalidCursor,
+    PageRecovered,
     GatewayUnavailable,
     NotModifiedWithoutSnapshot,
     ProjectionDegraded,

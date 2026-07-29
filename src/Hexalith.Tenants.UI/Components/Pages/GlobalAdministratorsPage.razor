@@ -869,6 +869,8 @@
                     _cursorHistory.Clear();
                     _currentCursor = null;
                 }
+
+                StateHasChanged();
             }).ConfigureAwait(false);
             return result;
         }

@@ -2,7 +2,7 @@
 
 Date: 2026-07-28  
 Story baseline commit: `8d64563c75423c861b0be0e3a7cc4de18f673d37`  
-Repository revision under the working tree: `7d7b701` + uncommitted working-tree changes
+Repository revision under the working tree: `96bdfd8` + uncommitted working-tree changes
 
 ## Outcome
 
@@ -150,34 +150,36 @@ freshness and lifecycle, no correction-eligible evidence — is unchanged.
 
 ## Verification record
 
-> **CORRECTED 2026-07-28 (review loop 2).** The paragraphs below previously stated that four gitlinks had
+> **CORRECTED 2026-07-29 (review loop 3).** The paragraphs below previously stated that four gitlinks had
 > been reverted to `baseline_commit` and that the gitlink validator exited 0 against the final tree. Both
-> statements were false against the reviewed tree. The pointers were never reverted; commit `f425b49`
-> (`build(deps): bump submodule references for Hexalith components`) moved all four, and it is published
-> on `origin/main`. Two of the end-SHAs this record originally named (`589da8b`, `115d30b`) do not exist
-> in the tree at all, so the verification section was not written against the tree it describes.
+> statements were false against the reviewed tree. The pointers were never reverted; published commits
+> `f425b49` and `96bdfd8` moved five pointers in the final story range. Two of the end-SHAs this record
+> originally named (`589da8b`, `115d30b`) do not exist in the tree at all, so the initial verification
+> section was not written against the tree it describes.
 
-The dependency gitlinks were **not** at baseline when this session started. Four pointers moved inside the
-story range and none belongs to Story 1.10 (a dependency version bump, an upstream docs closure, a
-release-workflow edit, and a lane script):
+The dependency gitlinks were **not** at baseline when this session started. Five pointers moved inside the
+final story range. They are dependency/workflow/documentation provenance carried by published commits,
+not review-loop-3 runtime implementation:
 
 ```text
 references/Hexalith.Builds        53d53ae -> 86aa4cb   DECLARED (not reverted)
-references/Hexalith.EventStore    5a1d277 -> 7ab1f08   DECLARED (not reverted)
+references/Hexalith.Commons       427530e -> f2b5f1b   DECLARED (not reverted)
+references/Hexalith.EventStore    5a1d277 -> b1d08da   DECLARED (not reverted)
 references/Hexalith.FrontComposer 7870526 -> b6efcad   DECLARED (not reverted)
-references/Hexalith.Memories      1868c8f -> a451765   DECLARED (not reverted)
+references/Hexalith.Memories      1868c8f -> fc92c4d   DECLARED (not reverted; user-owned working pointer)
 ```
 
-They are declared in the spec's File List and Completion Notes List rather than reverted: the bump already
-lives in its own separate `build(deps)` commit, which is the remedy the guard prescribes, and that commit
-is published. All four SHAs are reachable on their respective `origin/main`, so the superproject remains
-cloneable. The actual gitlinks on the reviewed tree are:
+They are declared in the spec's File List and Completion Notes List rather than reverted. The committed
+movements live in published commits, and the additional Memories working pointer pre-dated this loop and
+is user-owned. All five SHAs are reachable on their respective `origin/main`, so the superproject remains
+cloneable. The actual gitlinks in the final reviewed working tree are:
 
 ```text
 references/Hexalith.Builds        86aa4cbdee5e6b3f94d3ec2d95c85fa9593e64bd
-references/Hexalith.EventStore    7ab1f08d345464cab192de37e4f6eac817e4dd25
+references/Hexalith.Commons       f2b5f1b12b478dce902756876138a60cde4fde65
+references/Hexalith.EventStore    b1d08dac328ee6a2f9b4ef07a1a14ad5756ba94e
 references/Hexalith.FrontComposer b6efcad5b293017f9805e4fc7dc982b92abff678
-references/Hexalith.Memories      a4517654e7993237c3bfba473fae6b6a027e3ad1
+references/Hexalith.Memories      fc92c4d8ac63601cbc01741bd92b91ee7e6bcdfe
 ```
 
 **Consequence for every result below.** The `Hexalith.Builds` pointer at HEAD sets
@@ -250,17 +252,14 @@ behavior, and the corresponding changes were reverted:
   population evidence; only removal does. The unused `Grant.Unavailable.Incomplete` resource key was dead
   copy and was removed from both `.resx` files (EN/FR parity re-verified: 1,206 / 1,206, zero one-sided).
 
-## Open evidence and environment blockers
+## Historical evidence and environment blockers
 
-### HOST-REF-1 — live composing host
+### HOST-REF-1 — CLOSED in review loop 2
 
-This evidence remains open and is not claimed closed. The transitional repository AppHost's
-`tenants-ui` resource references EventStore and Memories and sets their base addresses at
-`src/Hexalith.Tenants.AppHost/Program.cs:135-144`; it does not reference the Tenants API or supply
-`Tenants:BaseAddress`. The AppHost is unchanged from the story baseline, as required. Hosted smoke tests
-prove the resulting read surfaces fail closed with no EventStore query fallback, but no authenticated
-live-host direct REST call is claimed. The composing-host owner must provide the Tenants service
-reference and configuration before that runtime proof can be collected.
+The original blocker text stated that the AppHost did not reference the Tenants API. That state is
+superseded by review loop 2: the owner-approved AppHost change wires `tenants-ui` to `tenants-api` and
+sets `Tenants__BaseAddress`, as recorded at lines 227-237 above. HOST-REF-1 is closed and is not an open
+Story 1.10 evidence limitation.
 
 ### SOLUTION-GRAPH-1 — CLOSED, was an `obj`-state effect
 
@@ -290,6 +289,7 @@ Changes made after the earlier record, all uncommitted in the working tree:
 | Path | Change |
 | --- | --- |
 | `references/Hexalith.Builds` | Gitlink moved `53d53ae -> 86aa4cb` by `f425b49`; **declared**, not reverted |
+| `references/Hexalith.Commons` | Historical table note: later moved `427530e -> f2b5f1b` by published commit `96bdfd8`; **declared**, not reverted |
 | `references/Hexalith.EventStore` | Gitlink moved `5a1d277 -> 7ab1f08` by `f425b49`; **declared**, not reverted |
 | `references/Hexalith.FrontComposer` | Gitlink moved `7870526 -> b6efcad` by `f425b49`; **declared**, not reverted |
 | `references/Hexalith.Memories` | Gitlink moved `1868c8f -> a451765` by `f425b49`; **declared**, not reverted |
@@ -304,3 +304,62 @@ Changes made after the earlier record, all uncommitted in the working tree:
 No `references/` submodule *content* was modified — only the superproject pointers. Those pointers were
 moved forward (not back to baseline) by the separate published commit `f425b49`, and are declared in the
 spec's File List and Completion Notes List. The gitlink validator exits 0 on that declaration.
+
+## Review loop 3 — 2026-07-29 (development of remaining review patches)
+
+This loop closed all 13 test-efficacy patches left by review loop 2. Each assertion was first shown red
+against a temporary mutation of the behavior it guards and then green after restoration. The mutations
+covered direct failure mapping, snapshot kind/reason/scope state, authentication transition attachment and
+rendering, recovery selectors, audit lease/generation guards, member invalid-cursor recovery and duplicate
+suppression, independent request/response ETag limits, body-phase and resolver mid-flight cancellation,
+exception-free logging, direct typed-client query arguments, authentication teardown, and canonical return
+URL keys.
+
+One production defect was exposed: a background global-administrator authorization restore applied the
+new snapshot but did not publish a render. `GlobalAdministratorsPage` now invokes `StateHasChanged()` after
+that background result is accepted. All other changes in this loop are executable test/evidence artifacts.
+
+Every test project was restored and tested individually as required by the repository baseline. The
+package-mode projects used this exact restore shape immediately before their Release test:
+
+```text
+dotnet restore <project.csproj> -p:Configuration=Release -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 -nr:false --verbosity minimal
+dotnet test <project.csproj> --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 -nr:false --verbosity minimal
+```
+
+The authoritative final results are:
+
+| Lane / exact command | Result |
+| --- | --- |
+| `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 -nr:false --verbosity minimal` | **PASS — 1,452 passed, 0 failed, 0 skipped** |
+| `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 -nr:false --verbosity minimal --filter FullyQualifiedName~TenantsApiGeneratedControllerTests` | **PASS — 26 passed, 0 failed, 0 skipped** |
+| `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 -nr:false --verbosity minimal --filter "Category!=Performance"` | **PASS — 167 passed, 0 failed, 0 skipped** |
+| Contracts / Client / Testing / Server / Sample, each via the package-mode command above | **PASS — 120 / 50 / 181 / 738 / 39; 0 failed, 0 skipped** |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -warnaserror -m:1 -nr:false --verbosity minimal` | **PASS — 0 warnings, 0 errors** |
+| `rg -n "SubmitQueryAsync\|/api/v1/queries\|QueryRouter\|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | **PASS — no matches (expected exit 1)** |
+| `rg -n 'tenant-index:system\|"tenant-index"' src/Hexalith.Tenants.UI tests/Hexalith.Tenants.UI.Tests` | **PASS — no matches (expected exit 1)** |
+| `git diff --check` and `git diff --cached --check` | **PASS** |
+| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | **PASS — exit 0; all moved pointers declared** |
+
+`references/Hexalith.Memories` currently has an additional unstaged, user-owned pointer movement from the
+published `a451765` gitlink to `fc92c4d`. It pre-dated review-loop-3 work, was not modified or reverted,
+and remains explicitly declared in the story File List. No dependency submodule content was changed.
+
+### File list — review loop 3 (2026-07-29)
+
+- `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md`
+- `references/Hexalith.Commons` (published commit-range pointer, declared)
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `tests/test-summary.md`
+- `references/Hexalith.Memories` (pre-existing user-owned gitlink movement, preserved)

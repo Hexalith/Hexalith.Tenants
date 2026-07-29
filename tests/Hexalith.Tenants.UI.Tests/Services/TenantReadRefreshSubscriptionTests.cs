@@ -196,11 +196,14 @@ public sealed class TenantReadRefreshSubscriptionTests
         logged.ShouldContain(TenantReadRefreshSubscription.SetupFailureReasonCode);
         logged.ShouldNotContain("tenant.alpha");
         logged.ShouldNotContain("unsafe");
+        logger.Exceptions.ShouldHaveSingleItem().ShouldBeNull();
     }
 
     private sealed class CapturingLogger : ILogger<TenantReadRefreshSubscription>
     {
         public List<string> Messages { get; } = [];
+
+        public List<Exception?> Exceptions { get; } = [];
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
@@ -215,6 +218,9 @@ public sealed class TenantReadRefreshSubscriptionTests
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter)
-            => Messages.Add(formatter(state, exception));
+        {
+            Messages.Add(formatter(state, exception));
+            Exceptions.Add(exception);
+        }
     }
 }

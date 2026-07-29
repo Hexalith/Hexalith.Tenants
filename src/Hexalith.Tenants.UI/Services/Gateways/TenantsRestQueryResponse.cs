@@ -7,6 +7,11 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// Contains one typed Tenants REST read result and its conservatively normalized metadata.
 /// </summary>
 /// <typeparam name="TPayload">Expected response payload contract.</typeparam>
+/// <param name="Payload">Typed payload when the read succeeded; otherwise <see langword="null"/>.</param>
+/// <param name="Metadata">Conservatively normalized response metadata.</param>
+/// <param name="Freshness">Freshness proven by supported projection metadata.</param>
+/// <param name="FailureKind">Fixed support-safe failure category.</param>
+/// <param name="StatusCode">Effective HTTP status used by downstream gateway mappings.</param>
 public sealed record TenantsRestQueryResponse<TPayload>(
     TPayload? Payload,
     QueryResponseMetadata Metadata,

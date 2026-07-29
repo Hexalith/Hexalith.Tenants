@@ -2,8 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
+using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
 using Hexalith.FrontComposer.Shell.Options;
+using Hexalith.FrontComposer.Shell.Services;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
@@ -39,7 +41,20 @@ public static class TenantsUiServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        bool hasQueryGatewayOverride = services.Any(
+            static descriptor => !descriptor.IsKeyedService
+                && descriptor.ServiceType == typeof(ITenantQueryGateway));
+        bool hasReadAvailabilityOverride = services.Any(
+            static descriptor => !descriptor.IsKeyedService
+                && descriptor.ServiceType == typeof(ITenantsReadSurfaceAvailability));
+        if (hasQueryGatewayOverride != hasReadAvailabilityOverride)
+        {
+            throw new InvalidOperationException(
+                "A host-provided ITenantQueryGateway and ITenantsReadSurfaceAvailability must be registered together before AddHexalithTenantsUiModule.");
+        }
+
         _ = services.AddDataProtection();
+        services.TryAddScoped<IUserContextAccessor, NullUserContextAccessor>();
         services.AddTenantConfigurationReadPolicy(configuration);
         services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
         services.TryAddScoped<TenantSearchPagingState>();
@@ -65,12 +80,14 @@ public static class TenantsUiServiceCollectionExtensions
 
             services.TryAddScoped<ITenantsRestQueryClient>(sp => sp.GetRequiredService<TenantsRestQueryClient>());
             services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
-            services.TryAddSingleton(new TenantsReadSurfaceAvailability(IsConnected: true));
+            services.TryAddSingleton<ITenantsReadSurfaceAvailability>(
+                new TenantsReadSurfaceAvailability(IsConnected: true));
         }
         else
         {
             services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
-            services.TryAddSingleton(new TenantsReadSurfaceAvailability(IsConnected: false));
+            services.TryAddSingleton<ITenantsReadSurfaceAvailability>(
+                new TenantsReadSurfaceAvailability(IsConnected: false));
         }
 
         // Same scheme gate as the read side. Without it a typo or copied service-discovery value registers a
@@ -122,7 +139,12 @@ public static class TenantsUiServiceCollectionExtensions
     /// </remarks>
     private static bool TryGetHttpBaseAddress(string? value, [NotNullWhen(true)] out Uri? baseAddress)
     {
-        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed) && IsSendableScheme(parsed.Scheme))
+        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed)
+            && IsSendableScheme(parsed.Scheme)
+            && !string.IsNullOrWhiteSpace(parsed.Host)
+            && string.IsNullOrEmpty(parsed.UserInfo)
+            && string.IsNullOrEmpty(parsed.Query)
+            && string.IsNullOrEmpty(parsed.Fragment))
         {
             baseAddress = parsed;
             return true;
@@ -134,15 +156,17 @@ public static class TenantsUiServiceCollectionExtensions
 
     private static bool IsSendableScheme(string scheme)
     {
-        foreach (string part in scheme.Split('+', StringSplitOptions.RemoveEmptyEntries))
+        string[] parts = scheme.Split('+', StringSplitOptions.None);
+        foreach (string part in parts)
         {
-            if (!string.Equals(part, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(part, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            if (part.Length == 0
+                || (!string.Equals(part, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(part, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
             {
                 return false;
             }
         }
 
-        return scheme.Length > 0;
+        return parts.Length > 0;
     }
 }

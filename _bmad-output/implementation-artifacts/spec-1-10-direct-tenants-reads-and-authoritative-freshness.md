@@ -5,7 +5,7 @@ created: '2026-07-28'
 status: 'in-progress'
 baseline_commit: '8d64563c75423c861b0be0e3a7cc4de18f673d37'
 baseline_revision: '54fabf9852168b7e1f1639f9253472889397915a'
-review_loop_iteration: 2
+review_loop_iteration: 3
 followup_review_recommended: true
 context:
   - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -72,7 +72,7 @@ warnings:
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs` -- additionally prove no-validator and different-validator 304 rejection, exact-validator acceptance, non-200 2xx rejection, oversized ETag rejection, dot-only route escaping, null paginated items, `HasMore` without cursor, header/body timeout and transport exceptions, and caller-cancellation propagation.
 - `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs` -- execute a real configured typed read through the registered Tenants client and a recording primary handler; assert the expected relayed `Authorization: Bearer` header when enabled and its absence when disabled, rather than counting handler registrations.
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`, `Services/TenantReadRefreshSubscriptionTests.cs`, `Components/TenantDetailSurfaceTests.cs`, member/page tests, and command regression tests -- prove independent dependency registration; first-load versus retained failure truth; reference-counted subscription cleanup and late-disposal safety; exact producer/subscriber projection pairs; no unauthorized privileged subscription; route-change and overlapping-load stale-completion rejection; member paging clicks, cursor recovery/history, and duplicate-click suppression; disjoint detail-only versus tenant-users-only fixtures proving visible rows/actions use the dedicated read; last-confirmed refreshing; EN/FR/accessibility selectors; no unsafe DOM/log/diagnostic data; and unchanged command/status endpoints.
-- `_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md` and `tests/test-summary.md` -- record exact commands/results, six-route negative proof for `/api/v1/queries`, PLAT-FRESH-1 evidence, HOST-REF-1 live-host status, notification producer/subscriber compatibility, support-safety findings, and any owned external blocker without claiming it closed. The three `references/` gitlinks must remain at `baseline_commit`; do not record a gitlink PASS until the exact validator command has exited 0 against the final tree.
+- `_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md` and `tests/test-summary.md` -- record exact commands/results, six-route negative proof for `/api/v1/queries`, PLAT-FRESH-1 evidence, HOST-REF-1 live-host status, notification producer/subscriber compatibility, support-safety findings, and any owned external blocker without claiming it closed. Every moved `references/` gitlink must either remain at `baseline_commit` or be declared with its provenance; do not record a gitlink PASS until the exact validator command has exited 0 against the final tree.
 
 **Acceptance Criteria:**
 - Given any of the six UI reads, when the BFF executes it, then the exact direct Tenants REST GET is used with server-side bearer relay and no generic EventStore query path, projection actor, or browser backend client is reachable.
@@ -91,6 +91,13 @@ warnings:
 - **Amendment:** Tightened transport/status/payload/ETag invariants; made prior-state retention and first-load truth explicit; added exact route/load-generation, paging, subscription reference-count/disposal/producer-compatibility, authorization, and member-summary rules; required outbound bearer observation and component-level negative evidence; and bound evidence completion to a real final gitlink-validator exit code.
 - **Known-bad state avoided:** Old payload can no longer be certified by unrelated cache metadata; cross-route or late refreshes cannot overwrite the active tenant/page; one lease cannot detach another; synthetic `tenant-index:system` subscriptions cannot masquerade as live refresh; transient failures cannot erase confirmed rows; and story completion cannot silently absorb dependency pointer changes.
 - **KEEP:** Preserve the six typed direct REST methods and exact routes; independent `Tenants:BaseAddress` versus `EventStore:BaseAddress` registration; absence of generic query calls from production Tenants UI; server-only bearer relay/service discovery; conservative shared metadata/lifecycle types; dedicated immutable tenant-users snapshots and version-consistent action gating; optional nudge-only refresh semantics; existing EN/FR/accessibility work; focused controller/UI verification; unchanged AppHost, public backend/query contracts, command/status endpoints, and baseline submodule pointers.
+
+### 2026-07-29 — Review repair loop 3
+
+- **Triggering findings:** Thirteen unchecked review items identified test-efficacy gaps around production-boundary failure mapping, snapshot state coverage, authorization transitions, rendered recovery affordances, audit rebinding/generation safety, member cursor recovery, independent ETag bounds, mid-flight cancellation, safe logging, direct gateway arguments, teardown behavior, and canonical return URLs.
+- **Amendment:** Added focused tests at the production seams and component boundaries, then mutation-verified each assertion by temporarily removing or reversing the guarded behavior. The authorization-transition test exposed one production defect: a background administrator restore updated `_snapshot` without publishing a render; the page now calls `StateHasChanged()` after applying that result.
+- **Known-bad state avoided:** Adapter-generated expectations can no longer substitute for direct typed-client arguments; entry cancellation cannot stand in for body-phase cancellation; formatted log text cannot hide an attached exception; late disposed authentication completions and stale audit generations are observable; cursor recovery, duplicate suppression, ETag limits, and canonical return-key coverage each fail when their production guard is removed.
+- **KEEP:** Preserve the review-loop-2 transport, composition, freshness, authorization, paging, and host decisions. No public contract, command/status route, AppHost, or dependency content changed in this loop.
 
 ## Review Triage Log
 
@@ -174,9 +181,9 @@ source before rating.
 - [x] [Review][Patch] Last-admin hard stop fails open: `HasPositiveRemovalPopulationEvidence` accepts client-local `_cursorHistory.Count > 0` and `HasMore` as proof other administrators exist [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:661-664]
 - [x] [Review][Patch] `GetTenantUsersAsync` is the only gateway read with no exception containment; a `UriFormatException`/`InvalidOperationException`/handler fault tears down the circuit [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:258-290]
 - [x] [Review][Patch] Invalid-cursor page-one recovery is unreachable in production — `ToEventStoreResult` emits `reasonCode = "InvalidRequest"`, never `"invalid-cursor"`; the passing tests fabricate the reason code at a seam production cannot reach [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2118-2120]
-- [ ] [Review][Patch] `ToEventStoreResult`'s failure branch is executed by zero tests; every read-failure test injects the exception upstream of it via `RestQueryClientAdapter`, which hardcodes `FailureKind.None` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1910-1918]
-- [ ] [Review][Patch] The story's new sixth read is asserted against 2 of 11 surface kinds and 1 of 12 reasons; `Degraded`/`Error`/`Empty`/`NotFound`/`Unauthorized` and the tenant-id-mismatch retention rule are unverified [tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs]
-- [ ] [Review][Patch] The whole `GlobalAdministratorsPage` authorization-transition machinery never executes in any test — no `AuthenticationStateProvider` is registered in that fixture, so the handler is never attached [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:750-756]
+- [x] [Review][Patch] `ToEventStoreResult`'s failure branch is executed by zero tests; every read-failure test injects the exception upstream of it via `RestQueryClientAdapter`, which hardcodes `FailureKind.None` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1910-1918]
+- [x] [Review][Patch] The story's new sixth read is asserted against 2 of 11 surface kinds and 1 of 12 reasons; `Degraded`/`Error`/`Empty`/`NotFound`/`Unauthorized` and the tenant-id-mismatch retention rule are unverified [tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs]
+- [x] [Review][Patch] The whole `GlobalAdministratorsPage` authorization-transition machinery never executes in any test — no `AuthenticationStateProvider` is registered in that fixture, so the handler is never attached [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:750-756]
 - [x] [Review][Patch] Tenant-users first-load failure renders `Degraded` with zero retained rows instead of a true error state; the audit sibling returns `Error` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1698-1704]
 - [x] [Review][Patch] Mobile read-only banner is permanently visible on desktop — `.global-admins__mobile-readonly` is applied to a `FluentMessageBar`, which receives no CSS-isolation scope attribute, and the file has zero `::deep` selectors [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:7]
 - [x] [Review][Patch] The per-row Remove launcher is not inside any `.global-admins__mutation-section` and sits on a Fluent component, so the mobile hide rule cannot match it [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:440]
@@ -204,16 +211,16 @@ source before rating.
 - [x] [Review][Patch] `ITenantQueryGateway.GetTenantUsersAsync` is a default interface method returning `Unavailable`; any implementation that omits it degrades the member table with no compile error, unlike every other member [src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs:31-38]
 - [x] [Review][Patch] `Tenants.GlobalAdministrators.Grant.Unavailable.Incomplete` was added to both resx files but has no call site; the grant path has no completeness gate while the mirror-image remove path does [src/Hexalith.Tenants.UI/Resources/TenantsResources.resx]
 - [x] [Review][Patch] `UnavailableTenantQueryGateway.GetTenantUsersAsync` has no test and is the only method on the type that dereferences its request without `ArgumentNullException.ThrowIfNull` [src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs:17-21]
-- [ ] [Review][Patch] Five new recovery/refresh affordances have zero test references (`tenants-global-admins-notification-refreshing`, `-page-recovered`, `-retry`, `-reset`, `tenants-audit-notification-refreshing`) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:751]
-- [ ] [Review][Patch] `TenantAuditPage`'s new subscription, tenant rebinding and load-generation guards are untested; its test file was not touched by the story [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs]
-- [ ] [Review][Patch] `tests/test-summary.md` claims member "page-one recovery" and "duplicate suppression" coverage; the recovery branch is unreachable (`isListRefreshed: false` at the only call site) and no test clicks twice while a load is in flight [tests/test-summary.md]
-- [ ] [Review][Patch] `Request_and_response_etags_are_bounded_and_malformed_values_fail_closed` passes because of the validator mismatch, not the bound; deleting both ETag bounds keeps it green [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:207-231]
-- [ ] [Review][Patch] Body-phase caller-cancellation propagation is never exercised — the test cancels before the request, so the header stage throws first [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:398-411]
-- [ ] [Review][Patch] The principal resolver's mid-flight cancellation filter is untested; the cancellation test short-circuits at the entry guard [tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs:53]
-- [ ] [Review][Patch] The subscription "no unsafe detail" assertion cannot observe an attached exception — `CapturingLogger` records only the formatted message, and the default formatter ignores the exception argument [tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:176-199]
-- [ ] [Review][Patch] Gateway route/query assertions describe a shape only `RestQueryClientAdapter` produces; `QueryType`/`Domain`/`ProjectionType`/`EntityId` are hardcoded by the harness, so those assertions hold for any production behavior [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:4641-4744]
-- [ ] [Review][Patch] The "ignore late disposed completion" half of the workspace auth test asserts nothing after `cut.Dispose()` [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:147-181]
-- [ ] [Review][Patch] `NormalizeReturnUrl`'s nine-key allowlist silently degrades return context to `/tenants` on any query key outside it, with no test coupling the allowlist to `TenantWorkspaceState.ToCanonicalUrl()` output [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1468-1515]
+- [x] [Review][Patch] Five new recovery/refresh affordances have zero test references (`tenants-global-admins-notification-refreshing`, `-page-recovered`, `-retry`, `-reset`, `tenants-audit-notification-refreshing`) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:751]
+- [x] [Review][Patch] `TenantAuditPage`'s new subscription, tenant rebinding and load-generation guards are untested; its test file was not touched by the story [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs]
+- [x] [Review][Patch] `tests/test-summary.md` claims member "page-one recovery" and "duplicate suppression" coverage; the recovery branch is unreachable (`isListRefreshed: false` at the only call site) and no test clicks twice while a load is in flight [tests/test-summary.md]
+- [x] [Review][Patch] `Request_and_response_etags_are_bounded_and_malformed_values_fail_closed` passes because of the validator mismatch, not the bound; deleting both ETag bounds keeps it green [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:207-231]
+- [x] [Review][Patch] Body-phase caller-cancellation propagation is never exercised — the test cancels before the request, so the header stage throws first [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:398-411]
+- [x] [Review][Patch] The principal resolver's mid-flight cancellation filter is untested; the cancellation test short-circuits at the entry guard [tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs:53]
+- [x] [Review][Patch] The subscription "no unsafe detail" assertion cannot observe an attached exception — `CapturingLogger` records only the formatted message, and the default formatter ignores the exception argument [tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:176-199]
+- [x] [Review][Patch] Gateway route/query assertions describe a shape only `RestQueryClientAdapter` produces; `QueryType`/`Domain`/`ProjectionType`/`EntityId` are hardcoded by the harness, so those assertions hold for any production behavior [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:4641-4744]
+- [x] [Review][Patch] The "ignore late disposed completion" half of the workspace auth test asserts nothing after `cut.Dispose()` [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:147-181]
+- [x] [Review][Patch] `NormalizeReturnUrl`'s nine-key allowlist silently degrades return context to `/tenants` on any query key outside it, with no test coupling the allowlist to `TenantWorkspaceState.ToCanonicalUrl()` output [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1468-1515]
 
 #### Rejected after verification
 
@@ -224,7 +231,78 @@ source before rating.
 
 - [x] [Review][Defer] BMAD workflow render files were modified inside the story diff [_bmad/render/bmad-quick-dev/workflow.md] — deferred, tooling change unrelated to the story's ACs
 
+### Review Findings — chunk 1 follow-up (2026-07-29)
+
+- [x] [Review][Defer] Literal tenant/user identifiers containing `/` are not proven round-trippable through the six route-segment endpoints — deferred as a future feature requiring an explicit backend route contract; until then, this identifier class remains unsupported by the direct-read transport. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
+- [x] [Review][Patch] Keep host-overridden query gateways supported and introduce an explicit matching read-surface availability contract, so a custom `ITenantQueryGateway` cannot disagree with the connected/disconnected state consumed by the UI; preserve the module-provided configuration-backed default and add override regression tests. [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:66]
+- [x] [Review][Patch] Detect tenant/user identifiers containing `/` before constructing a route and fail closed with an explicit, deterministic client result plus regression tests, instead of issuing an ambiguous encoded-slash request that can surface as a misleading not-found response. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
+- [x] [Review][Patch] Reject malformed compound schemes with empty segments instead of accepting values such as `http++https` [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:135]
+- [x] [Review][Patch] Reject base addresses carrying user info, query strings, fragments, or no usable host instead of silently retargeting them [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:123]
+- [x] [Review][Patch] Parse provenance and lifecycle headers only from the platform's exact canonical enum names so numeric or case-variant values cannot prove current projection truth [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:479]
+- [x] [Review][Patch] Reject numeric payload enum values so malformed roles cannot become privileged `TenantOwner` evidence [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:35]
+- [x] [Review][Patch] Enforce an actual byte bound and body-read deadline for both successful and Problem Details response streams, including chunked responses without `Content-Length` [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:200]
+- [x] [Review][Patch] Map bad-request body cancellation, HTTP, and I/O failures to Timeout/Unavailable instead of swallowing them into InvalidRequest [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:393]
+- [x] [Review][Patch] Preserve an effective service-unavailable status when Timeout/Unavailable failures occur after a 200 response so downstream gateway mappings do not misclassify first-load failures [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:214]
+- [x] [Review][Patch] Reject null page elements and other structurally unusable DTOs before successful snapshots reach gateway row mapping [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:351]
+- [x] [Review][Patch] Give the public failure enum an `Unknown = 0` fail-closed sentinel and string-enum serialization instead of treating the default value as success [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryFailureKind.cs:6]
+- [x] [Review][Patch] Add a module-composition test that resolves `TenantReadRefreshSubscription` without manually registering it [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:46]
+- [x] [Review][Patch] Exercise an actual request through the compound service-discovery handler pipeline instead of checking only the query-gateway descriptor [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:175]
+- [x] [Review][Patch] Test malformed and non-HTTP `EventStore:BaseAddress` values while the independent Tenants read gateway remains available [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:196]
+- [x] [Review][Patch] Pin `X-Hexalith-Is-Degraded` parsing for 200 and 304 responses so degraded evidence cannot regress to current [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:80]
+- [x] [Review][Patch] Test plain non-caller `OperationCanceledException` at both header and body phases, not only `TaskCanceledException` [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:421]
+- [x] [Review][Patch] Pin the supported lifecycle-absent 304 shape where projection-backed `X-Hexalith-Is-Stale: false` proves current freshness [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:134]
+- [x] [Review][Patch] Resolve both gateways for all four Tenants/EventStore base-address combinations instead of validating only their service descriptors [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:196]
+- [x] [Review][Patch] Complete XML documentation for the new public BFF method, REST-client methods, and positional response-record parameters [src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs:19]
+- [x] [Review][Defer] EventStore compound service-discovery addresses are accepted without attaching service discovery to the command/status clients [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79] — deferred, pre-existing
+
+### Review Findings — gateway transport and composition follow-up (2026-07-29)
+
+- [x] [Review][Patch] [high] Stop tenant-users paging from sending the retained page's projection-wide ETag for a different cursor, and bind every retained 304 to matching request scope [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:294]
+- [x] [Review][Patch] [high] Reject audit payload rows whose tenant identity differs from the requested tenant before they reach UI state [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:422]
+- [x] [Review][Patch] [medium] Retry safely or return a true error/unavailable state when a paginated 304 has no matching retained snapshot instead of reporting empty retained degradation [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:400]
+- [x] [Review][Patch] [medium] Preserve the explicit invalid-cursor signal and page-one recovery for My Tenants and user-membership reads [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:477]
+- [x] [Review][Patch] [medium] Emit bounded failure telemetry for normal failure results across all six direct reads, not only unexpected tenant-users exceptions [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1988]
+- [x] [Review][Patch] [medium] Contain unexpected typed-client and HTTP-pipeline failures consistently on list, user-tenants, global-administrator, and audit reads [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:477]
+- [x] [Review][Patch] [medium] Add successful payload/deserialization coverage for detail, tenant-users, user-tenants, audit, and global-administrator REST responses [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs:33]
+- [x] [Review][Patch] [medium] Pin the tenant-users gateway mappings for authorization, absence, explicit invalid cursor, timeout/unavailability, and retained failures [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:204]
+- [x] [Review][Patch] [medium] Ignore keyed DI registrations when detecting unkeyed host gateway/availability overrides [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:44]
+- [x] [Review][Patch] [medium] Add the missing availability-only partial-override regression so both composition mismatch directions are enforced [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:195]
+- [x] [Review][Patch] [low] Move the added availability interface, record, cursor-signal enum, and response-size exception into one-type-per-file declarations [src/Hexalith.Tenants.UI/Services/Gateways/TenantsReadSurfaceAvailability.cs:11]
+- [x] [Review][Patch] [low] Complete required XML documentation for the new tenant-users gateway member and direct-read name constants [src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs:31]
+
 ## File List
+
+- `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
+- `tests/test-summary.md`
+- `src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor`
+- `src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor`
+- `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsReadSurfaceAvailability.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/InvalidCursorSignal.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ResponseContentTooLargeException.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsReadSurfaceAvailability.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/UserTenants/UserTenantMembershipReason.cs`
+- `src/Hexalith.Tenants.UI/State/UserTenants/UserTenantMembershipSnapshot.cs`
 
 Dependency pointers that moved inside this story's baseline range. They are declared here, not reverted:
 the bump is already carried by its own separate `build(deps)` commit (`f425b49`), which is the remedy the
@@ -232,23 +310,93 @@ gitlink guard prescribes. That commit is published on `origin/main`, so revertin
 undoing a legitimate dependency bump rather than un-bundling anything.
 
 - `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
 - `references/Hexalith.EventStore`
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
+- `references/Hexalith.AI.Tools`
 
 ## Completion Notes List
+
+- ✅ The Administrator explicitly accepted the `references/Hexalith.AI.Tools` pointer move from
+  `991e8ea` to `859d53b` as part of Story 1.10, so the move is declared in this story's File List and
+  retained rather than reverted.
+- ✅ Gateway transport/composition follow-up: all 12 actionable findings are patched. Page validators are
+  bound to exact request scope, unmatched 304s recover unconditionally, audit identity is enforced at both
+  transport and gateway boundaries, My/User Tenants recover explicit invalid cursors to page one, all six
+  read failures emit bounded diagnostics, unexpected transport failures are contained, keyed overrides are
+  ignored by unkeyed composition detection, and the new declarations/documentation follow repository rules.
+  Focused gateway/composition tests pass 582/582 and the full UI suite passes 1,507/1,507.
+
+- ✅ Resolved review finding: a direct typed-client invalid-cursor response now executes and mutation-pins
+  `ToEventStoreResult` failure mapping before page-one recovery. Focused test and full UI suite pass
+  (1,432/1,432).
+- ✅ Resolved review finding: tenant-users snapshot tests now cover all 11 non-collapsing surface kinds,
+  all 12 support-safe reasons, and cross-tenant retention rejection. Both the scope guard and factory
+  matrix were mutation-verified; full UI suite passes (1,436/1,436).
+- ✅ Resolved review finding: the global-administrator page fixture now registers a mutable
+  `AuthenticationStateProvider` and proves pending revocation clears privileged state before an authorized,
+  claim-correct restore re-queries and renders it. The test exposed and now pins the missing background-read
+  render publication; handler attachment was mutation-verified and the full Release UI suite passes
+  (1,441/1,441).
+- ✅ Resolved review finding: the five global-administrator and audit notification/recovery affordances now
+  have executable component coverage for retained rows, refresh completion, page-one recovery, reset, and
+  retry. All selector mutations failed the focused tests; the full Release UI suite passes (1,441/1,441).
+- ✅ Resolved review finding: audit subscription rebinding now proves the previous tenant lease is released
+  and only the new scope refreshes; a concurrent paging/notification test proves late generations cannot
+  replace the newest rows or corrupt cursor history. Both guards were mutation-verified; the full Release
+  UI suite passes (1,443/1,443).
+- ✅ Resolved review finding: member invalid-cursor recovery and duplicate in-flight Next suppression now
+  have dedicated component tests, and `tests/test-summary.md` describes only the executable evidence. The
+  recovery branch and combined UI/handler guard were mutation-verified; the full Release UI suite passes
+  (1,445/1,445).
+- ✅ Resolved review finding: request and response ETag length bounds are now tested independently on 200
+  responses, so validator mismatch can no longer mask either guard. Removing either bound fails its focused
+  test; the full Release UI suite passes (1,446/1,446).
+- ✅ Resolved review finding: caller cancellation now has separate pre-request and response-body tests; the
+  latter proves headers completed and content consumption began before cancellation propagated. Reversing
+  the body-phase cancellation filter fails the focused test; the full Release UI suite passes (1,447/1,447).
+- ✅ Resolved review finding: principal resolution now cancels after the asynchronous circuit identity read
+  has entered and before it completes, proving the post-await propagation guard. Removing that guard fails
+  the focused test; the full Release UI suite passes (1,448/1,448).
+- ✅ Resolved review finding: notification logging capture now records the exception argument separately
+  and asserts it is null, in addition to checking the bounded formatted reason. Attaching an otherwise
+  formatter-invisible exception fails the focused test; the full Release UI suite passes (1,448/1,448).
+- ✅ Resolved review finding: one production-boundary test now captures all six typed Tenants client calls
+  (including self/explicit user variants) and pins literal scope, filters, cursor, page size, validator, and
+  cancellation independently of `RestQueryClientAdapter`. Mutating a gateway query argument fails the test;
+  the full Release UI suite passes (1,449/1,449).
+- ✅ Resolved review finding: the workspace authorization test now inspects state after production teardown,
+  proving a pending administrator completion stays discarded and later provider events are unsubscribed.
+  Removing the unsubscribe fails the focused test; the full Release UI suite passes (1,449/1,449).
+- ✅ Resolved review finding: canonical all-tenants, My Tenants, and user-lookup states now flow from
+  `TenantWorkspaceState.ToCanonicalUrl()` into the global-administrator return link, covering every allowed
+  cursor-free key while preserving the explicit cursor rejection. Removing an emitted key from the allowlist
+  fails the theory; the full Release UI suite passes (1,452/1,452).
+- ✅ Review loop 3 closure: all 13 review patches are checked and mutation-verified. Release validation passes
+  for UI 1,452/1,452; generated-controller integration 26/26; non-performance integration 167/167;
+  Contracts 120/120; Client 50/50; Testing 181/181; Server 738/738; and Sample 39/39. The Release
+  solution build passes with 0 warnings and 0 errors; forbidden generic-query and invented tenant-index
+  scans return no matches; staged and unstaged diff checks pass; and the final story gitlink validator exits 0.
 
 - `references/Hexalith.Builds` — `53d53ae -> 86aa4cb`. Carries `HexalithMemoriesVersion 2.16.2 -> 2.19.4`
   and `HexalithTenantsVersion 3.2.18 -> 5.0.0`. Not Story 1.10 work; external dependency maintenance.
   The major Tenants bump means every verification lane recorded in the evidence file must be re-run
   against this pointer before the story can close.
-- `references/Hexalith.EventStore` — `5a1d277 -> 7ab1f08` ("Docs/story 3 1 closure (#334)"). Not Story
-  1.10 work; upstream documentation closure.
+- `references/Hexalith.Commons` — `427530e -> f2b5f1b` ("feat(workflow): enhance commitlint configuration
+  for pull request title handling"). This upstream workflow-only bump was carried by the published Story
+  1.10 review commit `96bdfd8`; it belongs to the story's declared commit range and provenance record, not
+  its runtime implementation. Reverting published `origin/main` is outside this review repair.
+- `references/Hexalith.EventStore` — `5a1d277 -> b1d08da`. The final pointer includes the earlier
+  "Docs/story 3 1 closure (#334)" bump and a later upstream Story 3.1 post-merge documentation closure
+  carried by published commit `96bdfd8`. Not Story 1.10 runtime work; declared as commit-range provenance.
 - `references/Hexalith.FrontComposer` — `7870526 -> b6efcad` (release-workflow SHA pin and identifier
   inventory metrics). Not Story 1.10 work; upstream release tooling.
-- `references/Hexalith.Memories` — `1868c8f -> a451765` ("add story slice scope validation script"). Not
-  Story 1.10 work; upstream tooling.
+- `references/Hexalith.Memories` — `1868c8f -> a451765` in the published dependency commit ("add story
+  slice scope validation script"). The current working tree additionally points to user-owned
+  `fc92c4d`; that unstaged movement pre-dated this loop and was preserved unchanged. Neither pointer move
+  is Story 1.10 work.
 
-All four are reachable on their respective `origin/main`, so the superproject remains cloneable. The
+All five are reachable on their respective `origin/main`, so the superproject remains cloneable. The
 earlier evidence record claimed these were reverted and that the validator exited 0; that claim was false
 against this tree and has been corrected in the evidence file.

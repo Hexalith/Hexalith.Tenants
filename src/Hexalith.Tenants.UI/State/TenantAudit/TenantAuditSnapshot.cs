@@ -17,7 +17,9 @@ public sealed record TenantAuditSnapshot(
     DateTimeOffset? To = null,
     string? Category = null,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    string? ProjectionVersion = null) {
+    string? ProjectionVersion = null,
+    string? RequestCursor = null,
+    int RequestPageSize = 50) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,
@@ -198,7 +200,9 @@ public sealed record TenantAuditSnapshot(
         return string.Equals(TenantId, request.TenantId, StringComparison.Ordinal)
             && From == request.From
             && To == request.To
-            && string.Equals(Category, request.Category?.ToString(), StringComparison.Ordinal);
+            && string.Equals(Category, request.Category?.ToString(), StringComparison.Ordinal)
+            && string.Equals(RequestCursor, request.Cursor, StringComparison.Ordinal)
+            && RequestPageSize == request.PageSize;
     }
 
     private static TenantAuditSnapshot FromRequest(
@@ -223,7 +227,9 @@ public sealed record TenantAuditSnapshot(
             request.TenantId,
             request.From,
             request.To,
-            request.Category?.ToString());
+            request.Category?.ToString(),
+            RequestCursor: request.Cursor,
+            RequestPageSize: request.PageSize);
 
     private static bool HasFilters(TenantAuditRequest request)
         => request.From is not null || request.To is not null || request.Category is not null;

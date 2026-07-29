@@ -23,4 +23,4 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// <see langword="true"/> when a usable <c>Tenants:BaseAddress</c> produced a real query gateway;
 /// <see langword="false"/> when the module fell back to <see cref="UnavailableTenantQueryGateway"/>.
 /// </param>
-public sealed record TenantsReadSurfaceAvailability(bool IsConnected);
+public sealed record TenantsReadSurfaceAvailability(bool IsConnected) : ITenantsReadSurfaceAvailability;

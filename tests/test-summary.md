@@ -527,12 +527,11 @@ producer/subscriber notification pairs, lease reference counting and late dispos
 global-administrator subscription. EN/FR, accessibility, safe DOM, diagnostic, and command/status
 regressions are included in the full UI gate.
 
-Corrected 2026-07-28 (code review loop 2): this paragraph previously also claimed member "page-one
-recovery" and "duplicate suppression" coverage. Neither was true. The recovery branch keyed on
-`TenantUsersReason.ListRefreshed`, which the only call site could never produce, and no test clicked twice
-while a page load was in flight. Page-one recovery is now reachable — it keys on the explicitly signalled
-`TenantUsersReason.InvalidCursor` — but neither behavior has a dedicated test yet; both remain open
-`[Review][Patch]` items on the story spec.
+Corrected 2026-07-29 (code review loop 3): member page-one recovery and duplicate suppression now have
+dedicated component tests. An explicitly signalled `TenantUsersReason.InvalidCursor` triggers one
+cursor-free page-one read, replaces the expired page, and clears failed history. A second Next click while
+that read is pending observes the disabled refreshing control and starts no duplicate gateway call. Both
+the recovery reason branch and the combined UI/handler in-flight guard were mutation-verified.
 
 The full `IntegrationTests` lane — never run by the earlier record, which filtered to the generated
 controller class — caught two real breaks in the hosted global-administrators route, both now fixed. The
@@ -544,8 +543,8 @@ had also dropped the `tenants-global-admins-area` container and the live region 
 story, and now nests inside both. A superseded `AspireTopologyTests` audit assertion was moved to the
 first-load error truth that review repair loop 1 introduced.
 
-Every result below was produced after restoring the four `references/` gitlinks that had drifted inside
-the story range back to `baseline_commit`.
+The initial results below were produced against earlier dependency pins. Review loop 2 corrected the
+gitlink record and superseded these figures with results from the actual reviewed pointers.
 
 - UI: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` —
   **1,416/1,416 passed** after a serialized project restore.
@@ -567,9 +566,8 @@ the story range back to `baseline_commit`.
   has rewritten `src/*/obj/project.assets.json` while evaluation expects package assets. Forcing a
   package-mode restore per project first (`dotnet restore <project> -m:1 -nr:false --force`) makes the
   subsequent solution restore a no-op and the solution lane passes.
-- `HOST-REF-1` remains open: the unchanged transitional AppHost does not provide the Tenants service
-  reference/`Tenants:BaseAddress`, so no authenticated live-host REST proof is claimed. See the dated
-  Story 1.10 evidence report for exact producer-pair, route, metadata, host, and build-graph evidence.
+- `HOST-REF-1` was closed by review loop 2: the owner-approved AppHost change references `tenants-api` and
+  supplies `Tenants__BaseAddress`. See the dated Story 1.10 evidence report for the superseding record.
 
 ## Story 1.10 — code review loop 2 (2026-07-28)
 
@@ -607,5 +605,30 @@ Coverage added by the review, each pinning a fix that no existing test could obs
 - `Mobile_read_only_notice_and_mutation_launchers_are_present_in_the_rendered_dom` — replaces a regex over
   the raw `.razor.css`, which passed while the notice was permanently visible on desktop.
 
-Known remaining test-efficacy gaps are recorded as unchecked `[Review][Patch]` items in
-`spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`.
+All previously recorded test-efficacy gaps are closed by review loop 3 below; the story has no unchecked
+review patch.
+
+## Story 1.10 — development review loop 3 (2026-07-29)
+
+All 13 review-loop-2 test-efficacy findings are mutation-verified and checked. Coverage now reaches the
+direct production client boundary, all tenant-users states/reasons, real authorization transitions and
+teardown, rendered recovery affordances, audit rebinding and late generations, member cursor recovery and
+in-flight suppression, independent ETag limits, body/resolver mid-flight cancellation, exception capture,
+and every cursor-free canonical workspace return shape. One production defect surfaced and was fixed:
+background global-administrator authorization restoration now publishes its accepted snapshot to the
+renderer.
+
+| Lane | Result |
+| --- | --- |
+| Release solution build (`-warnaserror`) | PASS — 0 warnings, 0 errors |
+| UI | PASS — 1,452 passed, 0 failed, 0 skipped |
+| Generated-controller integration | PASS — 26 passed, 0 failed, 0 skipped |
+| IntegrationTests (`Category!=Performance`) | PASS — 167 passed, 0 failed, 0 skipped |
+| Contracts / Client / Testing / Server / Sample | PASS — 120 / 50 / 181 / 738 / 39; 0 failed |
+| Generic-query and invented tenant-index scans | PASS — no matches |
+| Staged and unstaged `git diff --check` | PASS |
+| `validate-story-gitlinks.py` | PASS — exit 0; moved pointers declared |
+
+The dated evidence report contains the exact Release commands. The pre-existing user-owned
+`references/Hexalith.Memories` working-tree pointer remains preserved and declared; no dependency content
+was changed by this loop.
