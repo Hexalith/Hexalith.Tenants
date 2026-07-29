@@ -5,8 +5,8 @@ created: '2026-07-28'
 status: 'in-progress'
 baseline_commit: '8d64563c75423c861b0be0e3a7cc4de18f673d37'
 baseline_revision: '54fabf9852168b7e1f1639f9253472889397915a'
-review_loop_iteration: 5
-followup_review_recommended: true
+review_loop_iteration: 6
+followup_review_recommended: false
 context:
   - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
   - '{project-root}/_bmad-output/project-context.md'
@@ -105,7 +105,24 @@ warnings:
 - **Validation:** Re-ran every repository test project individually in Release package mode, the generated-controller and non-performance integration lanes, the warning-as-error Release solution build, the two prohibited-symbol scans, whitespace checks, and the story gitlink validator against `09947a2` plus the completion metadata changes.
 - **Result:** UI 1,507/1,507; generated-controller integration 26/26; non-performance integration 167/167; Contracts 120/120; Client 50/50; Testing 181/181; Server 738/738; Sample 39/39; solution build 0 warnings/0 errors; no prohibited generic-query or invented tenant-index symbols; all six moved gitlinks declared.
 
+### 2026-07-29 — Review repair loop 6 (open-decision closure)
+
+- **Triggering findings:** The two `[Review][Decision]` items left unchecked by review loop 4 — a lifecycle-less `Current` freshness gating destructive global-administrator commands, and an inconsistent File List boundary after the Story 1.11 split.
+- **Amendment:** Mutation gating for the global-administrator surface now requires projection-backed `Lifecycle == Current` in addition to `Freshness == Current`, expressed once as `GlobalAdministratorsSnapshot.IsMutationEvidenceBacked` and consumed by the grant gate, the remove gate, the action-reason selector, and grant projection confirmation. Display classification (`ResolveFreshness`, decision D6) is deliberately unchanged. Story File Lists were re-cut so each file is declared by the story whose work it carries, with the genuinely shared files declared by both and labelled as such.
+- **Known-bad state avoided:** A non-conforming producer sending `X-Hexalith-Is-Stale: false` without lifecycle evidence can no longer enable a grant or a removal, nor certify a grant as projection-confirmed. Test fixtures can no longer model a `Current` page with no lifecycle evidence and pass as if it were normal. A reader of either story's File List no longer gets a boundary that contradicts the other's.
+- **KEEP:** Preserve the loop-2 through loop-5 transport, composition, freshness, authorization, paging and host decisions, decision D6's display classification, `ResolveFreshness` and `IsSupportedNotModified` as they stand, and the `references/` gitlink declarations. No public contract, command/status route, query contract, resource string or dependency pointer changed in this loop.
+
 ## Review Triage Log
+
+### 2026-07-29 — Review loop 6 (scoped: open decisions only)
+- intent_gap: 0
+- bad_spec: 0
+- patch: 6 (high 3, medium 3, low 0)
+- defer: 0
+- reject: 0
+- decisions_resolved: 2 (high 1, medium 1)
+- corrections_to_prior_findings: 2 — the D-A finding named `MemberAccessReview.ActionsAreEvidenceBacked` as exposed (it already required lifecycle evidence), and did not establish that the exposure is unreachable against the owned server (it is; see the resolution note).
+
 
 ### 2026-07-28 — Review pass
 - intent_gap: 0
@@ -286,8 +303,10 @@ chunks were not reviewed as primary targets; test files were read only as eviden
 #### Decisions needed
 
 - [x] [Review][Decision] Global-administrators 304 promotes the response `ProjectionVersion` while the normative Task text forbids it — **RESOLVED (option 1, 2026-07-29):** amend the normative Task with a narrow global-administrators exception for an exact strong-ETag `304`, conditional on the sent validator matching the retained snapshot and on projection-backed, non-degraded current metadata. The contract amendment is recorded above; enforcement is consolidated into the review-loop-5 validator-binding patch.
-- [ ] [Review][Decision] A 304 is accepted as authoritative on freshness derived from the legacy `X-Hexalith-Is-Stale` boolean when the platform reported no lifecycle evidence — When `X-Hexalith-Projection-Lifecycle` is absent, `lifecycle` is `Unknown` ("no authoritative projection lifecycle evidence"), yet `ResolveFreshness` falls through to `IsStale: false => Current` (`TenantsRestQueryClient.cs:396`) and `IsSupportedNotModified` (`:406`) accepts it. That `Current` then satisfies the freshness gate on grant/remove and on `MemberAccessReview.ActionsAreEvidenceBacked`. Review loop 2 decision D6 settled the classification question ("platform contract governs; behavior kept as-is"); this pass adds new downstream evidence that the same value now gates destructive commands, which D6 did not consider. Owner call: keep D6 as-is, or require projection-backed lifecycle evidence specifically for mutation-gating freshness.
+- [x] [Review][Decision] A 304 is accepted as authoritative on freshness derived from the legacy `X-Hexalith-Is-Stale` boolean when the platform reported no lifecycle evidence — When `X-Hexalith-Projection-Lifecycle` is absent, `lifecycle` is `Unknown` ("no authoritative projection lifecycle evidence"), yet `ResolveFreshness` falls through to `IsStale: false => Current` (`TenantsRestQueryClient.cs:396`) and `IsSupportedNotModified` (`:406`) accepts it. That `Current` then satisfies the freshness gate on grant/remove and on `MemberAccessReview.ActionsAreEvidenceBacked`. Review loop 2 decision D6 settled the classification question ("platform contract governs; behavior kept as-is"); this pass adds new downstream evidence that the same value now gates destructive commands, which D6 did not consider. Owner call: keep D6 as-is, or require projection-backed lifecycle evidence specifically for mutation-gating freshness.
+  **RESOLVED (2026-07-29, owner decision D-A): tighten mutation gating only; D6 stands for display classification.** Two corrections to the finding, both verified against source before deciding. (1) `MemberAccessReview.ActionsAreEvidenceBacked` (`:407`) already requires `Lifecycle is ProjectionLifecycleState.Current` on *both* the detail and tenant-users snapshots, so the member surface was never exposed; only the global-administrator surface was. (2) The exposure is unreachable against the owned server: the generated controller derives `X-Hexalith-Is-Stale` from `ProjectIsStale(lifecycle, …)` and emits the lifecycle header whenever lifecycle is known (`RestApiControllerEmitter.cs:464-480`), and all six Tenants query handlers build metadata through `ToQueryResponseMetadata` (`TenantQueryResult.cs:50`), where `IsStale: false` implies `Lifecycle: Current`. A lifecycle-less `Current` can therefore only come from a non-conforming producer. Tightening costs nothing today and closes the fail-open. Enforcement is the new `GlobalAdministratorsSnapshot.IsMutationEvidenceBacked` (`Freshness == Current && Lifecycle == Current`, matching the platform-owned `ProjectionLifecyclePolicy.CanMutate`), consumed by the grant gate, the remove gate, the action-reason selector, and `GlobalAdministratorGrantCommandSnapshot.ConfirmProjection`. `ResolveFreshness` is unchanged: display classification stays honest, mutation gating fails closed. See patch items below.
 - [ ] [Review][Decision] The Story 1.11 split leaves 1.10 declaring files whose in-range content is 1.11 work — Decision D1 extracted the global-administrator authorization work to Story 1.11, but `TenantsWorkspace.razor` is declared in 1.10's File List while its entire net change in the range is the 1.11 privileged entry point (`_canReviewGlobalAdministrators`, `GlobalAdministratorsHref`, the `AuthenticationStateProvider` subscription, `TenantsGlobalAdministratorClaims.Evaluate`). `GlobalAdministratorsPage.razor` and `TenantsBffComposition.cs` legitimately carry both stories' work, but `TenantsGlobalAdministratorClaims.cs` and `TenantConfigurationPrincipalResolver.cs` — same commit, same concern — are excluded. The boundary is drawn inconsistently within one commit. Owner call: re-cut both File Lists, or record that shared files are declared by both stories.
+  **RESOLVED (2026-07-29, owner decision D-B): re-cut both File Lists.** Three files whose entire in-range net change is 1.11's privileged entry were removed from 1.10 and declared by 1.11: `TenantsWorkspace.razor` (+112/-0, all `_canReviewGlobalAdministrators` / `GlobalAdministratorsHref` / `AuthenticationStateChanged`), `TenantsWorkspaceTests.cs` (four added tests, every one a global-administrator-entry test), and `TenantConfigurationReadPolicyTests.cs` (all added tests exercise `TenantConfigurationPrincipalResolver`, which 1.11 owns). Story 1.11 had no File List at all; it now has one, split into files it declares alone and files it shares with 1.10. Genuinely shared files (`GlobalAdministratorsPage.razor`, `{I,}TenantsBffComposition.cs`, `State/GlobalAdministrators/*` and their tests) stay declared in both specs, and both now say so explicitly. No `references/` declaration was touched.
 
 #### Patch
 
@@ -352,7 +371,46 @@ Four independent review layers produced 41 raw reports, normalized to 27 claims.
 
 - [x] [Review][Defer] [high] Retained direct-read snapshots are scoped by entity/filter/paging but not by authenticated subject, so a principal change inside the same scoped circuit can expose the prior subject's authorized rows during a failure or insensitive `304` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075] — deferred, pre-existing
 
+### Review Findings — review loop 6, open-decision closure (2026-07-29)
+
+Scoped run: the two unchecked `[Review][Decision]` items left open by review loop 4 were the whole target.
+No new adversarial layers were run over the diff; loop 5 already covered it. Both decisions were verified
+against source and against the owned EventStore producer before being put to the owner, and both were
+resolved by owner call.
+
+#### Decisions resolved
+
+- [x] [Review][Decision] [high] [D-A] Lifecycle-less `Current` freshness gates destructive global-administrator commands — **RESOLVED: tighten mutation gating only.** Full rationale and the two corrections to the original finding are recorded under "Decisions needed" above.
+- [x] [Review][Decision] [medium] [D-B] The 1.11 split leaves 1.10 declaring files whose in-range content is 1.11 work — **RESOLVED: re-cut both File Lists.** Full rationale recorded under "Decisions needed" above.
+
+#### Patch
+
+- [x] [Review][Patch] [from D-A] Add `IsMutationEvidenceBacked` (`Freshness == Current && Lifecycle == Current`) as the single mutation-evidence predicate, documenting why freshness alone is insufficient [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSnapshot.cs:156]
+- [x] [Review][Patch] [from D-A] Gate the grant availability reason, the remove availability reason, and the shared action-unavailable reason on `IsMutationEvidenceBacked` instead of freshness alone [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:596]
+- [x] [Review][Patch] [from D-A] Require the same evidence before a grant may be certified as projection-confirmed [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:141]
+- [x] [Review][Patch] [from D-A] Add regression coverage: an `IsMutationEvidenceBacked` freshness/lifecycle matrix, a rendered page test proving grant and remove both fail closed on a lifecycle-less `Current` page, and a `ConfirmProjection` test proving the same page cannot certify a grant [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs:29]
+- [x] [Review][Patch] [from D-A] Correct 41 global-administrator test fixtures that modelled a server response the platform cannot emit (`Current` freshness with `Unknown` lifecycle); they now state `Lifecycle = ProjectionLifecycleState.Current` as the real gateway does [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:47]
+- [x] [Review][Patch] [from D-B] Re-cut Story 1.10's File List and give Story 1.11 its own, with the shared-file overlap stated explicitly in both [_bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md:90]
+
+#### Verification
+
+Mutation-verified, not merely green. Reverting `IsMutationEvidenceBacked` to `Freshness is Current` fails all
+five new assertions (page test, `ConfirmProjection` test, three matrix cases). Reverting only the two page
+gates while keeping the predicate fails the page test alone, proving the page is wired to the predicate and
+not merely the property being tested in isolation. Both mutations were reverted and the suite re-run green:
+UI 1,553/1,553, Debug build 0 warnings / 0 errors.
+
 ## File List
+
+Scope boundary after the Story 1.11 split (review decision D-B, 2026-07-29). Three files whose entire
+in-range net change is 1.11's privileged global-administrator entry were removed from this list and are
+declared by Story 1.11 instead: `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` (+112/-0,
+all `_canReviewGlobalAdministrators` / `GlobalAdministratorsHref` / `AuthenticationStateChanged`),
+`tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`, and
+`tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`. Files that
+genuinely carry both stories' work — `GlobalAdministratorsPage.razor`, `{I,}TenantsBffComposition.cs`,
+`State/GlobalAdministrators/*` and their tests — stay declared here **and** in 1.11; that overlap is
+intentional, not a duplicate declaration.
 
 - `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/epic-1-context.md`
@@ -364,7 +422,6 @@ Four independent review layers produced 41 raw reports, normalized to 27 claims.
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor`
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor`
 - `src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor`
 - `src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor`
@@ -410,14 +467,14 @@ Four independent review layers produced 41 raw reports, normalized to 27 claims.
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/TenantConfigurationEndToEndTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
 - `tests/test-summary.md`
 
 Dependency pointers that moved inside this story's baseline range. They are declared here, not reverted:

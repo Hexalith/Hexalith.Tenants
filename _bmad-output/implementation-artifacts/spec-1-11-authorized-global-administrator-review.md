@@ -87,6 +87,56 @@ The registered policy controls discoverability and route presentation, while `GE
 - `rg -n "SubmitQueryAsync|/api/v1/queries|QueryRouter|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` -- expected: no production generic-query read path.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md` -- expected: exit 0.
 
+## File List
+
+Re-cut by the Story 1.10 code review (decision D-B, 2026-07-29) so the boundary between the two stories is
+stated once, consistently. This story has not run its own dev loop, so this list records the files that
+already carry its implementation inside the 1.10 commit range.
+
+Declared here only — their entire in-range net change is this story's work, and they were removed from
+Story 1.10's File List:
+
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`
+- `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+
+Declared here **and** in Story 1.10 — these files carry both stories' work in the same range, so the overlap
+is intentional rather than a duplicate declaration:
+
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsReason.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsRequest.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSurfaceKind.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
+
+Dependency pointers that moved inside this story's baseline range (`2e61f57..HEAD`). This story's baseline
+sits *inside* Story 1.10's range, so it inherits the same six movements, which are carried by the published
+dependency commits `f425b49` and `09947a2`. They are declared here for the same reason 1.10 declares them —
+the commits are published, so reverting would mean creating new dependency reversions rather than
+un-bundling unpublished work. Story 1.10 owns the range and records the provenance; this declaration is a
+cross-reference, not a second claim of authorship.
+
+Before this re-cut, Story 1.11 had no File List at all, so
+`python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md`
+exited 1 with all six pointers UNDECLARED. It now exits 0.
+
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Memories`
+
 ## Scope Attribution — added by code review of Story 1.10 (2026-07-28)
 
 This story's implementation landed inside Story 1.10's commit range rather than under its own key. The

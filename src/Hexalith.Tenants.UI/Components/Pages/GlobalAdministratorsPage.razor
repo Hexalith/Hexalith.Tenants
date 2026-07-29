@@ -592,8 +592,12 @@
         _ => "?",
     };
 
+    // IsMutationEvidenceBacked, not Freshness alone: a projection-backed response carrying only the legacy
+    // X-Hexalith-Is-Stale: false compatibility signal classifies as Current without any lifecycle evidence,
+    // and that is not projection-confirmed enough to enable a grant or a removal. See
+    // GlobalAdministratorsSnapshot.IsMutationEvidenceBacked.
     private string UnavailableActionReason
-        => _snapshot.Freshness is ReadModelFreshnessState.Current
+        => _snapshot.IsMutationEvidenceBacked
             ? Localizer["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"]
             : Localizer["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"];
 
@@ -633,7 +637,7 @@
                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"].Value
-                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
+                    : !_snapshot.IsMutationEvidenceBacked
                         ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
                             or GlobalAdministratorsSurfaceKind.Unknown
@@ -663,7 +667,7 @@
                 ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"].Value
-                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
+                    : !_snapshot.IsMutationEvidenceBacked
                         ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
                             or GlobalAdministratorsSurfaceKind.Unknown

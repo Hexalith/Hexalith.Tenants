@@ -154,6 +154,23 @@ public sealed record GlobalAdministratorsSnapshot(
             reason);
 
     /// <summary>
+    /// Gets a value indicating whether this snapshot carries projection-confirmed evidence strong enough to
+    /// enable or confirm a global administrator mutation.
+    /// </summary>
+    /// <remarks>
+    /// Freshness alone is not sufficient. <c>ResolveFreshness</c> deliberately classifies a projection-backed
+    /// response carrying only the legacy <c>X-Hexalith-Is-Stale: false</c> compatibility signal as
+    /// <see cref="ReadModelFreshnessState.Current"/> even when no <c>X-Hexalith-Projection-Lifecycle</c>
+    /// evidence was supplied, which is correct for honest display but is not projection-confirmed evidence.
+    /// Mutation gating therefore also requires <see cref="ProjectionLifecycleState.Current"/>, matching the
+    /// platform-owned <c>ProjectionLifecyclePolicy.CanMutate</c> contract and the equivalent detail/member
+    /// gate in <c>MemberAccessReview.ActionsAreEvidenceBacked</c>.
+    /// </remarks>
+    public bool IsMutationEvidenceBacked
+        => Freshness is ReadModelFreshnessState.Current
+            && Lifecycle is ProjectionLifecycleState.Current;
+
+    /// <summary>
     /// Returns a support-safe description that omits rows, identities, cursors, validators, and versions.
     /// </summary>
     /// <returns>A bounded support-safe snapshot description.</returns>

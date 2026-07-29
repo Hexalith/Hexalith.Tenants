@@ -138,7 +138,10 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             return this;
         }
 
-        if (snapshot.Freshness is not ReadModelFreshnessState.Current
+        // IsMutationEvidenceBacked, not Freshness alone: a Current classified only from the legacy
+        // X-Hexalith-Is-Stale compatibility signal carries no projection lifecycle evidence, so it cannot
+        // certify that the grant reached the projection.
+        if (!snapshot.IsMutationEvidenceBacked
             || snapshot.Kind is not (GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty)) {
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,

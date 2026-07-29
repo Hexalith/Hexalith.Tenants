@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -33,6 +34,29 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedProjection.ShouldNotBeNull().UserId.ShouldBe("User/CaseSensitive.01");
+    }
+
+    // A projection re-query whose Current freshness came only from the legacy X-Hexalith-Is-Stale
+    // compatibility signal carries no lifecycle evidence, so it cannot certify that the grant reached the
+    // projection even when the target row is present.
+    [Fact]
+    public void Completed_status_without_projection_lifecycle_evidence_stays_unable_to_verify()
+    {
+        var intent = new SetGlobalAdministrator("target-admin");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+
+        GlobalAdministratorGrantCommandSnapshot result = snapshot.ConfirmProjection(
+            Ready("target-admin") with { Lifecycle = ProjectionLifecycleState.Unknown });
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.LastConfirmedProjection.ShouldBeNull();
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
     }
 
     [Fact]
@@ -118,11 +142,13 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         withProjectionEvidence.LastConfirmedProjection.ShouldBeNull();
     }
 
+    // Lifecycle is stated explicitly because ConfirmProjection gates on IsMutationEvidenceBacked: a snapshot
+    // whose Current freshness carries no projection lifecycle evidence cannot certify the grant.
     private static GlobalAdministratorsSnapshot Ready(string userId)
         => GlobalAdministratorsSnapshot.Ready(
             [new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
 }

@@ -407,3 +407,46 @@ No live `HOST-REF-1`, dependency, test, build, support-safety, or gitlink blocke
 File List was re-audited and expanded to include the implementation, host wiring, state, localization,
 integration, regression, and evidence files represented by the completed Story 1.10 work; Story 1.11 and
 unrelated BMAD render files remain outside this story's ownership.
+
+## Review loop 6 — open-decision closure (2026-07-29)
+
+Scoped run: only the two `[Review][Decision]` items left unchecked by review loop 4 were in scope. No new
+adversarial layers were run over the diff.
+
+**D-A source verification, before the owner call.** Two claims in the original finding were checked and one
+was corrected:
+
+| Claim under test | Result |
+| --- | --- |
+| `MemberAccessReview.ActionsAreEvidenceBacked` is exposed by lifecycle-less `Current` | **False.** `MemberAccessReview.razor:407` already requires `Lifecycle is ProjectionLifecycleState.Current` on both the detail and tenant-users snapshots. Only the global-administrator surface was exposed. |
+| The exposure is reachable against the owned server | **False.** `RestApiControllerEmitter.cs:464-480` derives `X-Hexalith-Is-Stale` from `ProjectIsStale(lifecycle, …)` and emits the lifecycle header whenever lifecycle is known; all six handlers build metadata via `ToQueryResponseMetadata` (`TenantQueryResult.cs:50`), where `IsStale: false` implies `Lifecycle: Current`. A lifecycle-less `Current` can only come from a non-conforming producer. |
+
+**Mutation verification of the D-A patch.** Green alone is not evidence; each guard was removed and the
+suite re-run:
+
+| Mutation applied | Result |
+| --- | --- |
+| `IsMutationEvidenceBacked` reverted to `Freshness is Current` | **5 failures** — page grant/remove test, `ConfirmProjection` test, and 3 matrix cases (`Current`+`Unknown`, `Current`+`Stale`, `Current`+`Degraded`) |
+| Only the two page gates reverted, predicate kept | **1 failure** — the rendered page test, proving the page consumes the predicate rather than the predicate being tested in isolation |
+| Both mutations reverted | **0 failures** |
+
+**Commands and results:**
+
+| Check | Result |
+| --- | --- |
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/... --configuration Release -warnaserror -m:1 -nr:false` | **PASS — 0 warnings, 0 errors** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | **PASS — 1,553 passed, 0 failed, 0 skipped** (1,544 before this loop, +9 new) |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false` | **PASS — 0 warnings, 0 errors** |
+| `grep -rn "SubmitQueryAsync\|/api/v1/queries\|QueryRouter\|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | **PASS — no matches** |
+| `python3 scripts/validate-story-gitlinks.py <1.10 spec>` | **PASS — exit 0; all six moved pointers declared** |
+| `python3 scripts/validate-story-gitlinks.py <1.11 spec>` | **PASS — exit 0** (was **FAIL — exit 1, all six UNDECLARED** before this loop; see below) |
+
+Not re-run, and why: the change is confined to `src/Hexalith.Tenants.UI`. Contracts, Client, Server, Testing,
+Sample and the integration lanes have no dependency on the edited files, and no public contract, query
+contract, command/status route, resource string or dependency pointer changed in this loop.
+
+**Pre-existing blocker surfaced and closed by D-B.** Story 1.11 had no `## File List` section at all, so its
+gitlink validator exited 1 with all six `references/` pointers UNDECLARED — a live blocker for a story
+already sitting in `review`. Its baseline (`2e61f57`) is inside Story 1.10's range, so it inherits the same
+six movements from the published dependency commits `f425b49` and `09947a2`. The re-cut File List declares
+them with an explicit cross-reference to Story 1.10, which owns the range; the validator now exits 0.
