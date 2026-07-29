@@ -205,6 +205,10 @@ public sealed record TenantAuditSnapshot(
             && RequestPageSize == request.PageSize;
     }
 
+    /// <summary>Returns a support-safe description that omits rows, identities, filters, cursors, validators, and versions.</summary>
+    public override string ToString()
+        => $"{nameof(TenantAuditSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason} }}";
+
     private static TenantAuditSnapshot FromRequest(
         TenantAuditSurfaceKind kind,
         IReadOnlyList<TenantAuditRow> rows,

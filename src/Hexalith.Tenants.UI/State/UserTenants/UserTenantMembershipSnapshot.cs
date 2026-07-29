@@ -139,4 +139,8 @@ public sealed record UserTenantMembershipSnapshot(
             false,
             reason,
             targetUserId);
+
+    /// <summary>Returns a support-safe description that omits rows, identities, cursors, validators, and versions.</summary>
+    public override string ToString()
+        => $"{nameof(UserTenantMembershipSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, PagingRecovered = {PagingRecovered} }}";
 }

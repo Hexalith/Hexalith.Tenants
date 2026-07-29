@@ -109,16 +109,19 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
+            string? requestValidator = request.ETag ?? previous?.ETag;
             // A matching retained snapshot can safely consume a metadata-complete 304. A conditional
             // response without matching retained state is retried unconditionally below.
             EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
                 .GetTenantAsync(
                     new GetTenantQuery { TenantId = request.TenantId },
-                    request.ETag ?? previous?.ETag,
+                    requestValidator,
                     cancellationToken)
                 .ConfigureAwait(false), TenantDetailReadName);
 
-            if (result.IsNotModified && !HasSameTenantDetail(previous, request.TenantId)) {
+            bool hasMatchingPrevious = HasSameTenantDetail(previous, request.TenantId)
+                && MatchesRetainedValidator(requestValidator, previous!.ETag);
+            if (result.IsNotModified && !hasMatchingPrevious) {
                 result = ToEventStoreResult(await queryClient
                     .GetTenantAsync(
                         new GetTenantQuery { TenantId = request.TenantId },
@@ -131,7 +134,7 @@ internal sealed class TenantQueryGateway(
              * A supported 304 retains the separately held server-side snapshot. Only a 304 without a
              * matching retained detail requires the unconditional recovery read above.
              */
-            if (result.IsNotModified && HasSameTenantDetail(previous, request.TenantId)) {
+            if (result.IsNotModified && hasMatchingPrevious) {
                 if (!HasSupportedProjectionVersion(result.Metadata)) {
                     return await RetainPreviousTenantDetailAsync(
                         request.TenantId,
@@ -301,18 +304,25 @@ internal sealed class TenantQueryGateway(
             return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.MissingTenantId);
         }
 
+        var query = new GetTenantUsersQuery {
+            TenantId = request.TenantId,
+            Cursor = request.Cursor,
+            PageSize = request.PageSize,
+        };
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> response;
         try {
             response = await queryClient
                 .GetTenantUsersAsync(
-                    new GetTenantUsersQuery {
-                        TenantId = request.TenantId,
-                        Cursor = request.Cursor,
-                        PageSize = request.PageSize,
-                    },
+                    query,
                     request.ETag,
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            if (response.IsNotModified && !CanRetainTenantUsers(previous, request)) {
+                response = await queryClient
+                    .GetTenantUsersAsync(query, eTag: null, cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
@@ -322,14 +332,14 @@ internal sealed class TenantQueryGateway(
             // from URI construction, a UriFormatException, or a throw from the bearer-relay handler reached
             // OnParametersSetAsync -- which catches only OperationCanceledException -- and tore down the circuit.
             SignalReadFailure(TenantUsersReadName, TenantsRestQueryFailureKind.Unavailable);
-            return HasMatchingTenantUsers(previous, request)
+            return CanRetainTenantUsers(previous, request)
                 ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
                 : TenantUsersSnapshot.Unavailable(request.TenantId);
         }
 
         if (response is null) {
             SignalReadFailure(TenantUsersReadName, TenantsRestQueryFailureKind.Unavailable);
-            return HasMatchingTenantUsers(previous, request)
+            return CanRetainTenantUsers(previous, request)
                 ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
                 : TenantUsersSnapshot.Unavailable(request.TenantId);
         }
@@ -343,6 +353,7 @@ internal sealed class TenantQueryGateway(
 
     private static bool HasMatchingTenantUsers(TenantUsersSnapshot? previous, TenantUsersRequest request)
         => previous is not null
+            && IsRetainableTenantUsers(previous)
             && string.Equals(previous.TenantId, request.TenantId, StringComparison.Ordinal)
             && MatchesPageScope(
                 previous.RequestCursor,
@@ -354,6 +365,7 @@ internal sealed class TenantQueryGateway(
         UserTenantMembershipSnapshot? previous,
         UserTenantMembershipRequest request)
         => previous is not null
+            && IsRetainableUserTenants(previous)
             && string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
             && MatchesPageScope(
                 previous.RequestCursor,
@@ -431,7 +443,8 @@ internal sealed class TenantQueryGateway(
                     cancellationToken)
                 .ConfigureAwait(false), UserTenantsReadName);
 
-            bool hasMatchingPrevious = HasMatchingUserTenants(previous, request);
+            bool hasMatchingPrevious = HasMatchingUserTenants(previous, request)
+                && MatchesRetainedValidator(request.ETag, previous!.ETag);
             if (result.IsNotModified && !hasMatchingPrevious) {
                 result = ToEventStoreResult(await queryClient
                     .GetUserTenantsAsync(query, eTag: null, cancellationToken)
@@ -583,11 +596,13 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false), GlobalAdministratorsReadName);
 
             bool hasMatchingPrevious = previous is not null
+                && IsRetainableGlobalAdministrators(previous)
                 && MatchesPageScope(
                     previous.RequestCursor,
                     previous.RequestPageSize,
                     request.Cursor,
-                    request.PageSize);
+                    request.PageSize)
+                && MatchesRetainedValidator(request.ETag, previous.ETag);
             if (result.IsNotModified && !hasMatchingPrevious) {
                 result = ToEventStoreResult(await queryClient
                     .GetGlobalAdministratorsAsync(query, eTag: null, cancellationToken)
@@ -740,6 +755,7 @@ internal sealed class TenantQueryGateway(
         catch (Exception) {
             SignalReadFailure(GlobalAdministratorsReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
+                && IsRetainableGlobalAdministrators(previous)
                 && MatchesPageScope(
                     previous.RequestCursor,
                     previous.RequestPageSize,
@@ -801,6 +817,7 @@ internal sealed class TenantQueryGateway(
         catch (Exception) {
             SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
+                && IsRetainableTenantAudit(previous)
                 && previous.MatchesScope(request)
                 && MatchesRetainedValidator(request.ETag, previous.ETag)
                     ? RetainTenantAudit(previous, TenantAuditReason.GatewayFailure)
@@ -828,7 +845,10 @@ internal sealed class TenantQueryGateway(
                 cancellationToken)
             .ConfigureAwait(false), TenantAuditReadName);
 
-        bool hasMatchingPrevious = previous?.MatchesScope(request) == true;
+        bool hasMatchingPrevious = previous is not null
+            && IsRetainableTenantAudit(previous)
+            && previous.MatchesScope(request)
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
         if (result.IsNotModified && !hasMatchingPrevious) {
             result = ToEventStoreResult(await queryClient
                 .GetTenantAuditAsync(query, eTag: null, cancellationToken)
@@ -1621,6 +1641,7 @@ internal sealed class TenantQueryGateway(
         {
             SignalReadFailure(TenantListReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
+                && IsRetainableTenantList(previous)
                 && MatchesPageScope(
                     previous.RequestCursor,
                     previous.RequestPageSize,
@@ -1646,11 +1667,13 @@ internal sealed class TenantQueryGateway(
             .ConfigureAwait(false), TenantListReadName);
 
         bool hasMatchingPrevious = previous is not null
+            && IsRetainableTenantList(previous)
             && MatchesPageScope(
                 previous.RequestCursor,
                 previous.RequestPageSize,
                 request.Cursor,
-                request.PageSize);
+                request.PageSize)
+            && MatchesRetainedValidator(request.ETag, previous.ETag);
         if (result.IsNotModified && !hasMatchingPrevious)
         {
             result = ToEventStoreResult(await queryClient
@@ -1678,6 +1701,7 @@ internal sealed class TenantQueryGateway(
                 Kind = kind,
                 Freshness = notModifiedFreshness,
                 Lifecycle = notModifiedLifecycle,
+                IsDegraded = kind == TenantListSurfaceKind.Degraded,
                 Rows = previous.Rows
                     .Select(row => row with { Freshness = notModifiedFreshness, Lifecycle = notModifiedLifecycle })
                     .ToArray(),
@@ -1937,8 +1961,7 @@ internal sealed class TenantQueryGateway(
         TenantUsersSnapshot? previous,
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> response,
         bool isListRefreshed) {
-        bool hasMatchingPrevious = HasMatchingTenantUsers(previous, request)
-            && MatchesRetainedValidator(request.ETag, previous!.ETag);
+        bool hasMatchingPrevious = CanRetainTenantUsers(previous, request);
         if (!response.IsSuccess) {
             return response.FailureKind switch {
                 TenantsRestQueryFailureKind.Unauthorized or TenantsRestQueryFailureKind.Forbidden
@@ -2080,11 +2103,52 @@ internal sealed class TenantQueryGateway(
         => string.Equals(previousCursor, requestCursor, StringComparison.Ordinal)
             && previousPageSize == requestPageSize;
 
+    private static bool IsRetainableTenantUsers(TenantUsersSnapshot snapshot)
+        => snapshot.Kind is TenantUsersSurfaceKind.Ready
+            or TenantUsersSurfaceKind.Empty
+            or TenantUsersSurfaceKind.Stale
+            or TenantUsersSurfaceKind.Degraded
+            or TenantUsersSurfaceKind.Unknown;
+
+    private static bool CanRetainTenantUsers(TenantUsersSnapshot? previous, TenantUsersRequest request)
+        => HasMatchingTenantUsers(previous, request)
+            && MatchesRetainedValidator(request.ETag, previous!.ETag);
+
+    private static bool IsRetainableUserTenants(UserTenantMembershipSnapshot snapshot)
+        => snapshot.Kind is UserTenantMembershipSurfaceKind.Ready
+            or UserTenantMembershipSurfaceKind.Empty
+            or UserTenantMembershipSurfaceKind.Stale
+            or UserTenantMembershipSurfaceKind.Degraded;
+
+    private static bool IsRetainableGlobalAdministrators(GlobalAdministratorsSnapshot snapshot)
+        => snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Unknown
+            or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Degraded;
+
+    private static bool IsRetainableTenantAudit(TenantAuditSnapshot snapshot)
+        => snapshot.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.ListRefreshed;
+
+    private static bool IsRetainableTenantList(TenantListSnapshot snapshot)
+        => snapshot.Kind is TenantListSurfaceKind.Ready
+            or TenantListSurfaceKind.Empty
+            or TenantListSurfaceKind.FilteredEmpty
+            or TenantListSurfaceKind.Stale
+            or TenantListSurfaceKind.Degraded
+            or TenantListSurfaceKind.SearchPageEmpty;
+
     private static bool CanRetainUserTenants(
         UserTenantMembershipSnapshot? previous,
         UserTenantMembershipRequest request,
         EventStoreGatewayException exception)
         => previous is not null
+            && IsRetainableUserTenants(previous)
             && IsRetainableReadFailure(exception)
             && string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
             && MatchesPageScope(
@@ -2114,13 +2178,8 @@ internal sealed class TenantQueryGateway(
         GlobalAdministratorsSnapshot? previous,
         GlobalAdministratorsRequest request,
         EventStoreGatewayException exception)
-        // Rows.Count > 0 is required: degradation describes confirmed rows held under reduced confidence,
-        // and a failed first read holds none. Without it, Unavailable() (Rows [], cursor null, page size 20)
-        // matched its own scope and validator on Retry, so the surface reported Degraded and rendered
-        // "Last confirmed administrators remain visible" over an empty table. The tenant-users mapper
-        // already guards the equivalent 304 path for the same reason.
         => previous is not null
-            && previous.Rows.Count > 0
+            && IsRetainableGlobalAdministrators(previous)
             && IsRetainableReadFailure(exception)
             && MatchesPageScope(
                 previous.RequestCursor,
@@ -2176,6 +2235,7 @@ internal sealed class TenantQueryGateway(
         TenantAuditRequest request,
         EventStoreGatewayException exception)
         => previous is not null
+            && IsRetainableTenantAudit(previous)
             && IsRetainableReadFailure(exception)
             && previous.MatchesScope(request)
             && MatchesRetainedValidator(request.ETag, previous.ETag);
@@ -2202,6 +2262,7 @@ internal sealed class TenantQueryGateway(
         TenantListRequest request,
         EventStoreGatewayException exception)
         => previous is not null
+            && IsRetainableTenantList(previous)
             && IsRetainableReadFailure(exception)
             && MatchesPageScope(
                 previous.RequestCursor,
@@ -2232,8 +2293,12 @@ internal sealed class TenantQueryGateway(
         string readName) {
         if (!response.IsSuccess) {
             SignalReadFailure(readName, response.FailureKind);
+            int statusCode = response.FailureKind is TenantsRestQueryFailureKind.Unavailable
+                or TenantsRestQueryFailureKind.Timeout
+                    ? (int)HttpStatusCode.ServiceUnavailable
+                    : response.StatusCode;
             throw new EventStoreGatewayException(
-                response.StatusCode,
+                statusCode,
                 "Tenants read unavailable",
                 reasonCode: ToReasonCode(response.FailureKind));
         }
@@ -2334,7 +2399,13 @@ internal sealed class TenantQueryGateway(
     private static UserTenantMembershipSurfaceKind ResolveUserTenantsKindForFreshness(
         UserTenantMembershipSnapshot previous,
         ReadModelFreshnessState freshness)
-        => previous.Kind is UserTenantMembershipSurfaceKind.Ready
+        => previous.Kind == UserTenantMembershipSurfaceKind.Degraded
+            ? freshness == ReadModelFreshnessState.Current
+                ? previous.Rows.Count == 0
+                    ? UserTenantMembershipSurfaceKind.Empty
+                    : UserTenantMembershipSurfaceKind.Ready
+                : UserTenantMembershipSurfaceKind.Degraded
+            : previous.Kind is UserTenantMembershipSurfaceKind.Ready
             or UserTenantMembershipSurfaceKind.Empty
             or UserTenantMembershipSurfaceKind.Stale
                 ? freshness == ReadModelFreshnessState.Stale
@@ -2345,7 +2416,11 @@ internal sealed class TenantQueryGateway(
     private static UserTenantMembershipReason ResolveUserTenantsReasonForFreshness(
         UserTenantMembershipSnapshot previous,
         ReadModelFreshnessState freshness)
-        => previous.Kind is UserTenantMembershipSurfaceKind.Ready
+        => previous.Kind == UserTenantMembershipSurfaceKind.Degraded
+            ? freshness == ReadModelFreshnessState.Current
+                ? UserTenantMembershipReason.None
+                : previous.Reason
+            : previous.Kind is UserTenantMembershipSurfaceKind.Ready
             or UserTenantMembershipSurfaceKind.Empty
             or UserTenantMembershipSurfaceKind.Stale
                 ? freshness == ReadModelFreshnessState.Stale
@@ -2356,7 +2431,13 @@ internal sealed class TenantQueryGateway(
     private static GlobalAdministratorsSurfaceKind ResolveGlobalAdministratorsKindForFreshness(
         GlobalAdministratorsSnapshot previous,
         ReadModelFreshnessState freshness)
-        => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
+        => previous.Kind == GlobalAdministratorsSurfaceKind.Degraded
+            ? freshness == ReadModelFreshnessState.Current
+                ? previous.Rows.Count == 0
+                    ? GlobalAdministratorsSurfaceKind.Empty
+                    : GlobalAdministratorsSurfaceKind.Ready
+                : GlobalAdministratorsSurfaceKind.Degraded
+            : previous.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Empty
             or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Stale
@@ -2370,7 +2451,11 @@ internal sealed class TenantQueryGateway(
     private static GlobalAdministratorsReason ResolveGlobalAdministratorsReasonForFreshness(
         GlobalAdministratorsSnapshot previous,
         ReadModelFreshnessState freshness)
-        => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
+        => previous.Kind == GlobalAdministratorsSurfaceKind.Degraded
+            ? freshness == ReadModelFreshnessState.Current
+                ? GlobalAdministratorsReason.None
+                : previous.Reason
+            : previous.Kind is GlobalAdministratorsSurfaceKind.Ready
             or GlobalAdministratorsSurfaceKind.Empty
             or GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Stale
@@ -2382,6 +2467,18 @@ internal sealed class TenantQueryGateway(
     private static TenantAuditSurfaceKind ResolveTenantAuditKindForFreshness(
         TenantAuditSnapshot previous,
         ReadModelFreshnessState freshness) {
+        if (previous.Kind == TenantAuditSurfaceKind.Degraded) {
+            if (freshness != ReadModelFreshnessState.Current) {
+                return TenantAuditSurfaceKind.Degraded;
+            }
+
+            return previous.Rows.Count != 0
+                ? TenantAuditSurfaceKind.Ready
+                : HasAuditFilters(previous)
+                    ? TenantAuditSurfaceKind.FilteredEmpty
+                    : TenantAuditSurfaceKind.Empty;
+        }
+
         if (previous.Kind is not (TenantAuditSurfaceKind.Ready
             or TenantAuditSurfaceKind.Empty
             or TenantAuditSurfaceKind.FilteredEmpty
@@ -2408,7 +2505,11 @@ internal sealed class TenantQueryGateway(
     private static TenantAuditReason ResolveTenantAuditReasonForFreshness(
         TenantAuditSnapshot previous,
         ReadModelFreshnessState freshness)
-        => previous.Kind is TenantAuditSurfaceKind.Ready
+        => previous.Kind == TenantAuditSurfaceKind.Degraded
+            ? freshness == ReadModelFreshnessState.Current
+                ? TenantAuditReason.None
+                : previous.Reason
+            : previous.Kind is TenantAuditSurfaceKind.Ready
             or TenantAuditSurfaceKind.Empty
             or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.Stale
@@ -2424,7 +2525,11 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot previous,
         ReadModelFreshnessState freshness) {
         if (previous.Kind == TenantListSurfaceKind.Degraded) {
-            return TenantListSurfaceKind.Degraded;
+            return freshness == ReadModelFreshnessState.Current
+                ? previous.Rows.Count == 0
+                    ? TenantListSurfaceKind.Empty
+                    : TenantListSurfaceKind.Ready
+                : TenantListSurfaceKind.Degraded;
         }
 
         if (freshness == ReadModelFreshnessState.Stale) {

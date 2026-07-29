@@ -60,16 +60,33 @@ public sealed partial class TenantReadRefreshSubscription(
         }
 
         (string ProjectionType, string TenantId) key = (projectionType, tenantId);
+        Guid callbackId = Guid.NewGuid();
         await _subscriptionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            bool alreadySubscribed;
+            bool needsBackendSubscription;
             lock (_sync)
             {
-                alreadySubscribed = _callbacks.ContainsKey(key);
+                needsBackendSubscription = !_callbacks.TryGetValue(
+                    key,
+                    out Dictionary<Guid, Func<Task>>? callbacks);
+                if (needsBackendSubscription)
+                {
+                    callbacks = [];
+                    _callbacks.Add(key, callbacks);
+                }
+
+                if (_callbacks.Count == 1 && callbacks!.Count == 0)
+                {
+                    notifier.ProjectionChangedForTenant += OnProjectionChanged;
+                }
+
+                callbacks!.Add(callbackId, refresh);
+                _subscription = subscription;
+                _notifier = notifier;
             }
 
-            if (!alreadySubscribed)
+            if (needsBackendSubscription)
             {
                 try
                 {
@@ -78,48 +95,22 @@ public sealed partial class TenantReadRefreshSubscription(
                         .ConfigureAwait(false);
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        try
-                        {
-                            await subscription
-                                .UnsubscribeAsync(projectionType, tenantId, CancellationToken.None)
-                                .ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            LogReason(CleanupFailureReasonCode);
-                        }
-
                         cancellationToken.ThrowIfCancellationRequested();
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
+                    RollBackRegistration(key, callbackId, notifier);
+                    await UnsubscribeAfterFailedSetupAsync(subscription, key).ConfigureAwait(false);
                     throw;
                 }
                 catch
                 {
+                    RollBackRegistration(key, callbackId, notifier);
+                    await UnsubscribeAfterFailedSetupAsync(subscription, key).ConfigureAwait(false);
                     LogReason(SetupFailureReasonCode);
                     return TenantReadRefreshLease.Empty;
                 }
-            }
-
-            Guid callbackId = Guid.NewGuid();
-            lock (_sync)
-            {
-                if (_callbacks.Count == 0)
-                {
-                    notifier.ProjectionChangedForTenant += OnProjectionChanged;
-                }
-
-                if (!_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks))
-                {
-                    callbacks = [];
-                    _callbacks.Add(key, callbacks);
-                }
-
-                callbacks.Add(callbackId, refresh);
-                _subscription = subscription;
-                _notifier = notifier;
             }
 
             return new TenantReadRefreshLease(() => ReleaseAsync(key, callbackId));
@@ -127,6 +118,48 @@ public sealed partial class TenantReadRefreshSubscription(
         finally
         {
             _subscriptionGate.Release();
+        }
+    }
+
+    private void RollBackRegistration(
+        (string ProjectionType, string TenantId) key,
+        Guid callbackId,
+        IProjectionChangeNotifierWithTenant notifier)
+    {
+        lock (_sync)
+        {
+            if (_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks))
+            {
+                _ = callbacks.Remove(callbackId);
+                if (callbacks.Count == 0)
+                {
+                    _callbacks.Remove(key);
+                    _pending.Remove(key);
+                }
+            }
+
+            if (_callbacks.Count == 0)
+            {
+                notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+                _subscription = null;
+                _notifier = null;
+            }
+        }
+    }
+
+    private async Task UnsubscribeAfterFailedSetupAsync(
+        IProjectionSubscription subscription,
+        (string ProjectionType, string TenantId) key)
+    {
+        try
+        {
+            await subscription
+                .UnsubscribeAsync(key.ProjectionType, key.TenantId, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            LogReason(CleanupFailureReasonCode);
         }
     }
 

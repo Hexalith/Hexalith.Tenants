@@ -139,6 +139,495 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Conditional_not_modified_reuse_requires_the_retained_validator_on_every_direct_read()
+    {
+        const string retainedETag = "\"retained-a\"";
+        const string requestETag = "\"request-b\"";
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(Detail("tenant.alpha"))
+                : NotModifiedResponse<TenantDetail>(requestETag));
+        client.GetTenantUsersAsync(Arg.Any<GetTenantUsersQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(new PaginatedResult<TenantMember>(
+                    [new TenantMember("member-new", TenantRole.TenantReader)],
+                    null,
+                    false))
+                : NotModifiedResponse<PaginatedResult<TenantMember>>(requestETag));
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(new PaginatedResult<UserTenantMembership>(
+                    [new UserTenantMembership("tenant.new", "New", TenantStatus.Active, TenantRole.TenantReader)],
+                    null,
+                    false))
+                : NotModifiedResponse<PaginatedResult<UserTenantMembership>>(requestETag));
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(new PaginatedResult<GlobalAdministratorSummary>(
+                    [new GlobalAdministratorSummary("admin-new")],
+                    null,
+                    false))
+                : NotModifiedResponse<PaginatedResult<GlobalAdministratorSummary>>(requestETag));
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(new PaginatedResult<TenantAuditEntry>(
+                    [AuditEntry("event-new", AuditEventCategory.Access)],
+                    null,
+                    false))
+                : NotModifiedResponse<PaginatedResult<TenantAuditEntry>>(requestETag));
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(new PaginatedResult<TenantSummary>([], null, false))
+                : NotModifiedResponse<PaginatedResult<TenantSummary>>(requestETag));
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantAuditRequest auditRequest = new("tenant.alpha", ETag: requestETag);
+
+        TenantDetailSnapshot detail = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", requestETag),
+            TenantDetailSnapshot.Ready(
+                Detail("tenant.alpha"),
+                retainedETag,
+                ReadModelFreshnessState.Current),
+            CancellationToken.None);
+        TenantUsersSnapshot users = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", ETag: requestETag),
+            TenantUsersSnapshot.Ready(
+                "tenant.alpha",
+                [new TenantMember("member-old", TenantRole.TenantReader)],
+                null,
+                false,
+                retainedETag,
+                "members-v1",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current),
+            CancellationToken.None);
+        UserTenantMembershipSnapshot memberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", ETag: requestETag),
+            UserTenantMembershipSnapshot.Ready(
+                [new UserTenantMembershipRow(
+                    "tenant.old",
+                    "Old",
+                    TenantStatus.Active,
+                    TenantRole.TenantReader,
+                    ReadModelFreshnessState.Current)],
+                null,
+                false,
+                retainedETag,
+                ReadModelFreshnessState.Current,
+                "target.user"),
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot administrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(ETag: requestETag),
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-old", ReadModelFreshnessState.Current)],
+                null,
+                false,
+                retainedETag,
+                ReadModelFreshnessState.Current),
+            CancellationToken.None);
+        TenantAuditSnapshot audit = await gateway.GetTenantAuditAsync(
+            auditRequest,
+            TenantAuditSnapshot.Ready(
+                [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+                null,
+                false,
+                retainedETag,
+                ReadModelFreshnessState.Current,
+                auditRequest with { ETag = retainedETag }),
+            CancellationToken.None);
+        TenantListSnapshot list = await gateway.ListTenantsAsync(
+            new TenantListRequest(ETag: requestETag),
+            TenantListSnapshot.Ready(
+                [TenantListRow.FromSummary(new TenantSummary("tenant.old", "Old", TenantStatus.Active))],
+                null,
+                false,
+                retainedETag,
+                ReadModelFreshnessState.Current,
+                isDegraded: false),
+            CancellationToken.None);
+
+        detail.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        users.Rows.ShouldHaveSingleItem().UserId.ShouldBe("member-new");
+        memberships.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.new");
+        administrators.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-new");
+        audit.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-new");
+        list.Kind.ShouldBe(TenantListSurfaceKind.Empty);
+        _ = client.Received(1).GetTenantAsync(Arg.Any<GetTenantQuery>(), null, Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetTenantUsersAsync(Arg.Any<GetTenantUsersQuery>(), null, Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), null, Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetGlobalAdministratorsAsync(
+            Arg.Any<GetGlobalAdministratorsQuery>(), null, Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), null, Arg.Any<CancellationToken>());
+        _ = client.Received(1).ListTenantsAsync(Arg.Any<ListTenantsQuery>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Retention_requires_a_confirmed_snapshot_kind_instead_of_a_matching_default_scope()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(Arg.Any<GetTenantUsersQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<TenantMember>>(TenantsRestQueryFailureKind.Unavailable));
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<UserTenantMembership>>(TenantsRestQueryFailureKind.Unavailable));
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<GlobalAdministratorSummary>>(TenantsRestQueryFailureKind.Unavailable));
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<TenantAuditEntry>>(TenantsRestQueryFailureKind.Unavailable));
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<TenantSummary>>(TenantsRestQueryFailureKind.Unavailable));
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantAuditRequest auditRequest = new("tenant.alpha");
+
+        TenantUsersSnapshot users = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha"),
+            TenantUsersSnapshot.Unavailable("tenant.alpha"),
+            CancellationToken.None);
+        UserTenantMembershipSnapshot memberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user"),
+            UserTenantMembershipSnapshot.Unavailable(targetUserId: "target.user"),
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot administrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            GlobalAdministratorsSnapshot.Unavailable(),
+            CancellationToken.None);
+        TenantAuditSnapshot audit = await gateway.GetTenantAuditAsync(
+            auditRequest,
+            TenantAuditSnapshot.Unavailable(auditRequest),
+            CancellationToken.None);
+        TenantListSnapshot list = await gateway.ListTenantsAsync(
+            new TenantListRequest(),
+            TenantListSnapshot.Error(),
+            CancellationToken.None);
+
+        users.Kind.ShouldBe(TenantUsersSurfaceKind.Unavailable);
+        memberships.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Unavailable);
+        administrators.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        audit.Kind.ShouldBe(TenantAuditSurfaceKind.Unavailable);
+        list.Kind.ShouldBe(TenantListSurfaceKind.Error);
+    }
+
+    [Fact]
+    public async Task Confirmed_empty_global_administrators_are_retained_on_a_transient_refresh_failure()
+    {
+        const string eTag = "\"confirmed-empty\"";
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<GlobalAdministratorSummary>>(TenantsRestQueryFailureKind.Unavailable));
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Empty(
+            isAuthorizationScoped: true,
+            ReadModelFreshnessState.Current,
+            eTag) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "global-v1",
+            IsCompleteEvidence = true,
+        };
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(ETag: eTag),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Degraded);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.ETag.ShouldBe(eTag);
+        snapshot.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Unavailable_failure_category_maps_raw_server_statuses_to_first_load_unavailable_states()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<TenantDetail>(
+                TenantsRestQueryFailureKind.Unavailable,
+                (int)HttpStatusCode.InternalServerError));
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<UserTenantMembership>>(
+                TenantsRestQueryFailureKind.Unavailable,
+                (int)HttpStatusCode.NoContent));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot detail = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+        UserTenantMembershipSnapshot memberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user"),
+            previous: null,
+            CancellationToken.None);
+
+        detail.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        memberships.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Unavailable);
+    }
+
+    [Fact]
+    public async Task Current_not_modified_evidence_clears_prior_transport_degradation()
+    {
+        const string eTag = "\"known\"";
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(NotModifiedResponse<PaginatedResult<UserTenantMembership>>(eTag));
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(NotModifiedResponse<PaginatedResult<GlobalAdministratorSummary>>(eTag, "global-v2"));
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(NotModifiedResponse<PaginatedResult<TenantAuditEntry>>(eTag));
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(NotModifiedResponse<PaginatedResult<TenantSummary>>(eTag));
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantAuditRequest auditRequest = new("tenant.alpha", ETag: eTag);
+        UserTenantMembershipSnapshot previousMemberships = UserTenantMembershipSnapshot.Degraded(
+            [new UserTenantMembershipRow(
+                "tenant.alpha",
+                "Alpha",
+                TenantStatus.Active,
+                TenantRole.TenantReader,
+                ReadModelFreshnessState.Unknown)],
+            UserTenantMembershipReason.GatewayFailure,
+            eTag,
+            targetUserId: "target.user") with
+        {
+            ProjectionVersion = "memberships-v1",
+        };
+        GlobalAdministratorsSnapshot previousAdministrators = GlobalAdministratorsSnapshot.Degraded(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Unknown)],
+            GlobalAdministratorsReason.GatewayFailure,
+            eTag) with
+        {
+            ProjectionVersion = "global-v1",
+        };
+        TenantAuditSnapshot previousAudit = TenantAuditSnapshot.Degraded(
+            [TenantAuditRow.FromEntry(AuditEntry("event-1", AuditEventCategory.Access), ReadModelFreshnessState.Unknown)],
+            TenantAuditReason.GatewayFailure,
+            auditRequest,
+            eTag) with
+        {
+            ProjectionVersion = "audit-v1",
+        };
+        TenantListSnapshot previousList = TenantListSnapshot.Degraded(
+            [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
+            TenantListReason.GatewayUnavailable) with
+        {
+            ETag = eTag,
+            ProjectionVersion = "list-v1",
+        };
+
+        UserTenantMembershipSnapshot memberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", ETag: eTag),
+            previousMemberships,
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot administrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(ETag: eTag),
+            previousAdministrators,
+            CancellationToken.None);
+        TenantAuditSnapshot audit = await gateway.GetTenantAuditAsync(
+            auditRequest,
+            previousAudit,
+            CancellationToken.None);
+        TenantListSnapshot list = await gateway.ListTenantsAsync(
+            new TenantListRequest(ETag: eTag),
+            previousList,
+            CancellationToken.None);
+
+        memberships.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
+        memberships.Reason.ShouldBe(UserTenantMembershipReason.None);
+        memberships.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        administrators.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        administrators.Reason.ShouldBe(GlobalAdministratorsReason.None);
+        administrators.ProjectionVersion.ShouldBe("global-v2");
+        administrators.IsCompleteEvidence.ShouldBeTrue();
+        audit.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        audit.Reason.ShouldBe(TenantAuditReason.None);
+        list.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        list.Reason.ShouldBe(TenantListReason.None);
+        list.IsDegraded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Paged_sibling_reads_reject_mismatched_cursor_or_page_size_retention()
+    {
+        const string eTag = "\"known\"";
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                ListTenantsQuery query = call.ArgAt<ListTenantsQuery>(0);
+                string? validator = call.ArgAt<string?>(1);
+                return query.PageSize == 21
+                    ? FailureResponse<PaginatedResult<TenantSummary>>(TenantsRestQueryFailureKind.Unavailable)
+                    : validator is null
+                        ? DirectResponse(new PaginatedResult<TenantSummary>([], null, false))
+                        : NotModifiedResponse<PaginatedResult<TenantSummary>>(eTag);
+            });
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GetUserTenantsQuery query = call.ArgAt<GetUserTenantsQuery>(0);
+                string? validator = call.ArgAt<string?>(1);
+                return query.PageSize == 21
+                    ? FailureResponse<PaginatedResult<UserTenantMembership>>(TenantsRestQueryFailureKind.Unavailable)
+                    : validator is null
+                        ? DirectResponse(new PaginatedResult<UserTenantMembership>(
+                            [new UserTenantMembership("tenant.new", "New", TenantStatus.Active, TenantRole.TenantReader)],
+                            null,
+                            false))
+                        : NotModifiedResponse<PaginatedResult<UserTenantMembership>>(eTag);
+            });
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GetGlobalAdministratorsQuery query = call.ArgAt<GetGlobalAdministratorsQuery>(0);
+                string? validator = call.ArgAt<string?>(1);
+                return query.PageSize == 21
+                    ? FailureResponse<PaginatedResult<GlobalAdministratorSummary>>(TenantsRestQueryFailureKind.Unavailable)
+                    : validator is null
+                        ? DirectResponse(new PaginatedResult<GlobalAdministratorSummary>(
+                            [new GlobalAdministratorSummary("admin-new")],
+                            null,
+                            false))
+                        : NotModifiedResponse<PaginatedResult<GlobalAdministratorSummary>>(eTag);
+            });
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GetTenantAuditQuery query = call.ArgAt<GetTenantAuditQuery>(0);
+                string? validator = call.ArgAt<string?>(1);
+                return query.PageSize == 21
+                    ? FailureResponse<PaginatedResult<TenantAuditEntry>>(TenantsRestQueryFailureKind.Unavailable)
+                    : validator is null
+                        ? DirectResponse(new PaginatedResult<TenantAuditEntry>(
+                            [AuditEntry("event-new", AuditEventCategory.Access)],
+                            null,
+                            false))
+                        : NotModifiedResponse<PaginatedResult<TenantAuditEntry>>(eTag);
+            });
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantListSnapshot previousList = TenantListSnapshot.Ready(
+            [TenantListRow.FromSummary(new TenantSummary("tenant.old", "Old", TenantStatus.Active))],
+            null,
+            false,
+            eTag,
+            ReadModelFreshnessState.Current,
+            isDegraded: false) with
+        {
+            RequestCursor = "old-page",
+            RequestPageSize = 20,
+        };
+        UserTenantMembershipSnapshot previousMemberships = UserTenantMembershipSnapshot.Ready(
+            [new UserTenantMembershipRow(
+                "tenant.old",
+                "Old",
+                TenantStatus.Active,
+                TenantRole.TenantReader,
+                ReadModelFreshnessState.Current)],
+            null,
+            false,
+            eTag,
+            ReadModelFreshnessState.Current,
+            "target.user") with
+        {
+            RequestCursor = "old-page",
+            RequestPageSize = 20,
+        };
+        GlobalAdministratorsSnapshot previousAdministrators = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-old", ReadModelFreshnessState.Current)],
+            null,
+            false,
+            eTag,
+            ReadModelFreshnessState.Current) with
+        {
+            RequestCursor = "old-page",
+            RequestPageSize = 20,
+        };
+        TenantAuditRequest previousAuditRequest = new(
+            "tenant.alpha",
+            Cursor: "old-page",
+            PageSize: 20,
+            ETag: eTag);
+        TenantAuditSnapshot previousAudit = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            null,
+            false,
+            eTag,
+            ReadModelFreshnessState.Current,
+            previousAuditRequest);
+
+        TenantListSnapshot recoveredList = await gateway.ListTenantsAsync(
+            new TenantListRequest(Cursor: "new-page", PageSize: 20, ETag: eTag),
+            previousList,
+            CancellationToken.None);
+        UserTenantMembershipSnapshot recoveredMemberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", "new-page", 20, eTag),
+            previousMemberships,
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot recoveredAdministrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest("new-page", 20, eTag),
+            previousAdministrators,
+            CancellationToken.None);
+        TenantAuditSnapshot recoveredAudit = await gateway.GetTenantAuditAsync(
+            new TenantAuditRequest("tenant.alpha", Cursor: "new-page", PageSize: 20, ETag: eTag),
+            previousAudit,
+            CancellationToken.None);
+        TenantListSnapshot rejectedList = await gateway.ListTenantsAsync(
+            new TenantListRequest(Cursor: "old-page", PageSize: 21, ETag: eTag),
+            previousList,
+            CancellationToken.None);
+        UserTenantMembershipSnapshot rejectedMemberships = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", "old-page", 21, eTag),
+            previousMemberships,
+            CancellationToken.None);
+        GlobalAdministratorsSnapshot rejectedAdministrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest("old-page", 21, eTag),
+            previousAdministrators,
+            CancellationToken.None);
+        TenantAuditSnapshot rejectedAudit = await gateway.GetTenantAuditAsync(
+            new TenantAuditRequest("tenant.alpha", Cursor: "old-page", PageSize: 21, ETag: eTag),
+            previousAudit,
+            CancellationToken.None);
+
+        recoveredList.Kind.ShouldBe(TenantListSurfaceKind.Empty);
+        recoveredMemberships.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.new");
+        recoveredAdministrators.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-new");
+        recoveredAudit.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-new");
+        rejectedList.Kind.ShouldBe(TenantListSurfaceKind.Error);
+        rejectedMemberships.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Unavailable);
+        rejectedAdministrators.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        rejectedAudit.Kind.ShouldBe(TenantAuditSurfaceKind.Unavailable);
+        _ = client.Received(1).ListTenantsAsync(
+            Arg.Is<ListTenantsQuery>(query => query != null && query.Cursor == "new-page"),
+            null,
+            Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetUserTenantsAsync(
+            Arg.Is<GetUserTenantsQuery>(query => query != null && query.Cursor == "new-page"),
+            null,
+            Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetGlobalAdministratorsAsync(
+            Arg.Is<GetGlobalAdministratorsQuery>(query => query != null && query.Cursor == "new-page"),
+            null,
+            Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetTenantAuditAsync(
+            Arg.Is<GetTenantAuditQuery>(query => query != null && query.Cursor == "new-page"),
+            null,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Get_tenant_users_uses_dedicated_typed_read_and_retains_independent_evidence()
     {
         CapturingGatewayClient client = new();
@@ -410,7 +899,10 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            metadata: ProjectionBackedMetadata(isStale: false, servedAt: DateTimeOffset.UtcNow));
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                servedAt: DateTimeOffset.UtcNow,
+                projectionVersion: "detail-v7"));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -429,6 +921,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.ProjectionVersion.ShouldBe("detail-v7");
     }
 
     [Theory]
@@ -499,7 +992,8 @@ public sealed class TenantQueryGatewayTests
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
             eTag: "\"known\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current,
+            projectionVersion: "detail-v6");
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"");
 
@@ -511,6 +1005,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.ProjectionVersion.ShouldBe("detail-v6");
         client.SubmittedQueries.Count.ShouldBe(1);
         client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
     }
@@ -4594,6 +5089,51 @@ public sealed class TenantQueryGatewayTests
             + "FallbackPagingRecovered = True, PagingNotice = ListRefreshed }");
     }
 
+    [Fact]
+    public void Audit_and_user_membership_snapshot_diagnostics_omit_protected_state()
+    {
+        TenantAuditRequest auditRequest = new(
+            "tenant.audit-secret",
+            Category: AuditEventCategory.Access,
+            Cursor: "audit-cursor-secret",
+            PageSize: 25,
+            ETag: "audit-etag-secret");
+        TenantAuditSnapshot audit = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-secret", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            nextCursor: "audit-next-secret",
+            hasMore: true,
+            eTag: "audit-etag-secret",
+            ReadModelFreshnessState.Current,
+            auditRequest) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "audit-version-secret",
+        };
+        UserTenantMembershipSnapshot memberships = UserTenantMembershipSnapshot.Ready(
+            [new UserTenantMembershipRow(
+                "tenant.membership-secret",
+                "Secret tenant",
+                TenantStatus.Active,
+                TenantRole.TenantReader,
+                ReadModelFreshnessState.Current)],
+            nextCursor: "membership-next-secret",
+            hasMore: true,
+            eTag: "membership-etag-secret",
+            ReadModelFreshnessState.Current,
+            targetUserId: "target-user-secret") with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "membership-version-secret",
+            RequestCursor = "membership-cursor-secret",
+            PagingRecovered = true,
+        };
+
+        audit.ToString().ShouldBe(
+            "TenantAuditSnapshot { Kind = Ready, RowCount = 1, HasMore = True, Freshness = Current, Lifecycle = Current, IsAuthorizationScopedEmpty = False, Reason = None }");
+        memberships.ToString().ShouldBe(
+            "UserTenantMembershipSnapshot { Kind = Ready, RowCount = 1, HasMore = True, Freshness = Current, Lifecycle = Current, IsAuthorizationScopedEmpty = False, Reason = None, PagingRecovered = True }");
+    }
+
     /// <summary>The exact surfacing set the gateway's containment predicate excludes before any base match.</summary>
     private static Exception SurfacingCodecDefect(string exceptionKind)
         => exceptionKind switch
@@ -5105,6 +5645,21 @@ public sealed class TenantQueryGatewayTests
             ReadModelFreshnessState.Current,
             TenantsRestQueryFailureKind.None,
             (int)HttpStatusCode.OK);
+
+    private static TenantsRestQueryResponse<TPayload> NotModifiedResponse<TPayload>(
+        string eTag,
+        string projectionVersion = "projection-v2")
+        => new(
+            default,
+            ProjectionBackedMetadata(
+                isStale: false,
+                eTag: eTag,
+                isNotModified: true,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: projectionVersion),
+            ReadModelFreshnessState.Current,
+            TenantsRestQueryFailureKind.None,
+            (int)HttpStatusCode.NotModified);
 
     private static TenantsRestQueryResponse<TPayload> FailureResponse<TPayload>(
         TenantsRestQueryFailureKind failureKind,

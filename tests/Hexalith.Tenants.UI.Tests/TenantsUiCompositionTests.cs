@@ -592,6 +592,56 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public async Task Registered_tenants_client_emits_no_default_http_logs_that_could_carry_a_protected_cursor()
+    {
+        const string sentinelCursor = "protected-cursor-sentinel";
+        CapturingLoggerProvider capture = new();
+        ServiceCollection services = new();
+        services.AddLogging(builder =>
+        {
+            _ = builder.SetMinimumLevel(LogLevel.Trace);
+            _ = builder.AddProvider(capture);
+        });
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            })
+            .Build();
+        services.AddSingleton(configuration);
+        services.AddServiceDiscovery();
+        services.AddPassThroughServiceEndpointProvider();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        var primaryHandler = new AuthorizationRecordingHandler();
+        services.AddHttpClient<TenantsRestQueryClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
+        AddStubPrimaryHandler(services, ControlHttpClientName);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
+        using (HttpClient control = factory.CreateClient(ControlHttpClientName))
+        {
+            using HttpResponseMessage controlResponse = await control.GetAsync(
+                new Uri($"https://tenants.invalid/api/v1/tenants?cursor={sentinelCursor}"));
+            controlResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        capture.Messages.ShouldNotBeEmpty();
+        capture.Clear();
+
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> response = await client.ListTenantsAsync(
+            new ListTenantsQuery { Cursor = sentinelCursor, PageSize = 20 },
+            eTag: null,
+            TestContext.Current.CancellationToken);
+
+        response.IsSuccess.ShouldBeTrue();
+        primaryHandler.RequestUri.ShouldNotBeNull().Query.ShouldContain(sentinelCursor);
+        capture.Messages.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Standalone_ui_host_resolves_the_same_server_side_search_composition()
     {
         CapturingLoggerProvider capture = new();

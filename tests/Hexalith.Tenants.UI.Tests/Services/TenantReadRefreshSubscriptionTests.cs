@@ -27,7 +27,7 @@ public sealed class TenantReadRefreshSubscriptionTests
         TaskCompletionSource secondCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         int refreshCount = 0;
 
-        IAsyncDisposable lease = await sut.SubscribeAsync(
+        TenantReadRefreshLease lease = await sut.SubscribeAsync(
             "tenants",
             "tenant.alpha",
             async () =>
@@ -43,6 +43,8 @@ public sealed class TenantReadRefreshSubscriptionTests
                     secondCompleted.SetResult();
                 }
             });
+
+        lease.IsSubscribed.ShouldBeTrue();
 
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
         await firstEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -87,10 +89,11 @@ public sealed class TenantReadRefreshSubscriptionTests
         refreshCount.ShouldBe(0);
 
         TenantReadRefreshSubscription unavailable = new(new ServiceCollection().BuildServiceProvider());
-        await using IAsyncDisposable noOp = await unavailable.SubscribeAsync(
+        await using TenantReadRefreshLease noOp = await unavailable.SubscribeAsync(
             "tenants",
             "tenant.alpha",
             () => throw new InvalidOperationException("must not run"));
+        noOp.IsSubscribed.ShouldBeFalse();
     }
 
     [Fact]
@@ -187,16 +190,137 @@ public sealed class TenantReadRefreshSubscriptionTests
             .BuildServiceProvider();
         TenantReadRefreshSubscription sut = new(services, logger);
 
-        await using IAsyncDisposable lease = await sut.SubscribeAsync(
+        await using TenantReadRefreshLease lease = await sut.SubscribeAsync(
             "tenants",
             "tenant.alpha",
             () => Task.CompletedTask);
 
+        lease.IsSubscribed.ShouldBeFalse();
         string logged = string.Join(" ", logger.Messages);
         logged.ShouldContain(TenantReadRefreshSubscription.SetupFailureReasonCode);
         logged.ShouldNotContain("tenant.alpha");
         logged.ShouldNotContain("unsafe");
         logger.Exceptions.ShouldHaveSingleItem().ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Registration_is_live_before_backend_setup_can_publish_a_notification()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        TaskCompletionSource refreshed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+                    "tenants",
+                    "tenant.alpha");
+                return Task.CompletedTask;
+            });
+        ServiceProvider services = new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .BuildServiceProvider();
+        TenantReadRefreshSubscription sut = new(services);
+
+        await using TenantReadRefreshLease lease = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () =>
+            {
+                refreshed.TrySetResult();
+                return Task.CompletedTask;
+            });
+
+        lease.IsSubscribed.ShouldBeTrue();
+        await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public async Task Failed_setup_returns_an_empty_lease_and_a_later_retry_can_subscribe()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(
+                Task.FromException(new InvalidOperationException("first setup fails")),
+                Task.CompletedTask);
+        ServiceProvider services = new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .BuildServiceProvider();
+        TenantReadRefreshSubscription sut = new(services);
+
+        await using TenantReadRefreshLease failed = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () => Task.CompletedTask);
+        await using TenantReadRefreshLease retried = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () => Task.CompletedTask);
+
+        failed.IsSubscribed.ShouldBeFalse();
+        retried.IsSubscribed.ShouldBeTrue();
+        await subscription.Received(2).SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Throwing_callback_does_not_block_siblings_or_later_nudges_and_logs_only_a_reason_code()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var logger = new CapturingLogger();
+        ServiceProvider services = new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .BuildServiceProvider();
+        TenantReadRefreshSubscription sut = new(services, logger);
+        int successfulCallbacks = 0;
+        TaskCompletionSource secondNudgeCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using TenantReadRefreshLease throwing = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () => throw new InvalidOperationException("unsafe tenant.alpha callback detail"));
+        await using TenantReadRefreshLease succeeding = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () =>
+            {
+                if (Interlocked.Increment(ref successfulCallbacks) == 2)
+                {
+                    secondNudgeCompleted.TrySetResult();
+                }
+
+                return Task.CompletedTask;
+            });
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await WaitForAsync(() => Volatile.Read(ref successfulCallbacks) == 1);
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await secondNudgeCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        successfulCallbacks.ShouldBe(2);
+        logger.Messages.Count(message => message.Contains(
+            TenantReadRefreshSubscription.CallbackFailureReasonCode,
+            StringComparison.Ordinal)).ShouldBe(2);
+        string logged = string.Join(" ", logger.Messages);
+        logged.ShouldNotContain("tenant.alpha");
+        logged.ShouldNotContain("unsafe");
+        logger.Exceptions.ShouldAllBe(static exception => exception == null);
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (!condition())
+        {
+            await Task.Delay(10, timeout.Token);
+        }
     }
 
     private sealed class CapturingLogger : ILogger<TenantReadRefreshSubscription>
