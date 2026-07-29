@@ -317,6 +317,31 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }
 
+    /// <summary>
+    /// A protected cursor that expired must be reported, not silently swallowed.
+    /// </summary>
+    /// <remarks>
+    /// epic-1-context.md: "invalid or stale cursor state restarts at page 1 with an honest localized
+    /// notice". The panel reset _currentCursor/_cursorHistory and replaced the URL, but rendered from Kind
+    /// alone, so a user on page 4 whose cursor expired saw page-1 rows announced as a normal result and
+    /// believed they had advanced.
+    /// </remarks>
+    [Fact]
+    public void My_tenants_page_one_recovery_is_announced_instead_of_restarting_silently()
+    {
+        RegisterServices(ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)]) with
+        {
+            PagingRecovered = true,
+            Reason = UserTenantMembershipReason.PageRecovered,
+        });
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+
+        AngleSharp.Dom.IElement notice = cut.WaitForElement("[data-testid='tenants-my-page-recovered']");
+        notice.GetAttribute("aria-live").ShouldBe("polite");
+        notice.TextContent.ShouldContain("restarted at the first page");
+    }
+
     private void RegisterServices(UserTenantMembershipSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
 
@@ -408,6 +433,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.PaginationLabel"] = "My Tenants pages",
             ["Tenants.MyTenants.Previous"] = "Previous",
             ["Tenants.MyTenants.Refresh"] = "Refresh",
+            ["Tenants.MyTenants.Recovery.PageRecovered"] = "The list restarted at the first page because the previous page reference expired.",
             ["Tenants.MyTenants.Role.TenantContributor"] = "Tenant contributor",
             ["Tenants.MyTenants.Role.TenantOwner"] = "Tenant owner",
             ["Tenants.MyTenants.Role.TenantReader"] = "Tenant reader",

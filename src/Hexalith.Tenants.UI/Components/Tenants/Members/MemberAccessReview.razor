@@ -55,6 +55,13 @@
                          OnCommandActivityChanged="@OnCommandActivityChanged"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
+    @if (Members.PagingRecovered)
+    {
+        <p role="status" aria-live="polite" data-testid="tenants-member-page-recovered">
+            @Localizer["Tenants.Members.Recovery.PageRecovered"]
+        </p>
+    }
+
     @if (Rows.Count == 0)
     {
         <section class="tenant-members__state"
@@ -241,13 +248,13 @@
              data-testid="tenants-member-paging"
              aria-label="@Localizer["Tenants.Members.Paging.Label"]">
             <FluentButton Appearance="ButtonAppearance.Outline"
-                          Disabled="@(!CanGoPrevious || Members.IsRefreshing)"
+                          Disabled="@(!CanGoPrevious || Members.IsRefreshing || HasOpenMemberCommandFlow)"
                           data-testid="tenants-member-previous"
                           OnClick="RequestPreviousPageAsync">
                 @Localizer["Tenants.Members.Previous"]
             </FluentButton>
             <FluentButton Appearance="ButtonAppearance.Outline"
-                          Disabled="@(!Members.HasMore || Members.IsRefreshing)"
+                          Disabled="@(!Members.HasMore || Members.IsRefreshing || HasOpenMemberCommandFlow)"
                           data-testid="tenants-member-next"
                           OnClick="RequestNextPageAsync">
                 @Localizer["Tenants.Members.Next"]
@@ -269,6 +276,7 @@
 
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
+    private string? _renderedMemberCursor;
 
     // One launch button is rendered per actionable member row, so a single shared reference would
     // be overwritten by the last row in the loop and return focus to the wrong member on close.
@@ -385,6 +393,8 @@
             TenantUsersSurfaceKind.Unknown => Localizer["Tenants.Members.State.Unknown"],
             TenantUsersSurfaceKind.Unauthorized => Localizer["Tenants.Members.State.Unauthorized"],
             TenantUsersSurfaceKind.NotFound => Localizer["Tenants.Members.State.NotFound"],
+            TenantUsersSurfaceKind.Invalid => Localizer["Tenants.Members.State.Invalid"],
+            TenantUsersSurfaceKind.Error => Localizer["Tenants.Members.State.Error"],
             _ => Localizer["Tenants.Members.State.Unavailable"],
         };
 
@@ -410,13 +420,35 @@
     private ReadModelFreshnessState EffectiveFreshness
         => ActionsAreEvidenceBacked ? Freshness : ReadModelFreshnessState.Unknown;
 
+    // AC6 requires empty, unauthorized, not-found, error, degraded, stale and unknown to stay distinct. A
+    // single "tenants-member-state" id and a single "Member read unavailable" title collapsed all of them
+    // into one indistinguishable surface -- including Loading -- and left selector-based tests unable to
+    // tell an authorization-safe absence from a failed read.
     private string EmptyStateTestId
-        => Members.Kind is TenantUsersSurfaceKind.Empty ? "tenants-member-empty" : "tenants-member-state";
+        => Members.Kind switch
+        {
+            TenantUsersSurfaceKind.Empty => "tenants-member-empty",
+            TenantUsersSurfaceKind.Loading => "tenants-member-loading",
+            TenantUsersSurfaceKind.Unauthorized => "tenants-member-unauthorized",
+            TenantUsersSurfaceKind.NotFound => "tenants-member-not-found",
+            TenantUsersSurfaceKind.Invalid => "tenants-member-invalid",
+            TenantUsersSurfaceKind.Unavailable => "tenants-member-unavailable",
+            TenantUsersSurfaceKind.Error => "tenants-member-error",
+            TenantUsersSurfaceKind.Degraded => "tenants-member-degraded",
+            TenantUsersSurfaceKind.Stale => "tenants-member-stale",
+            _ => "tenants-member-state",
+        };
 
     private string EmptyStateTitle
-        => Members.Kind is TenantUsersSurfaceKind.Empty
-            ? Localizer["Tenants.Members.Empty.Title"]
-            : Localizer["Tenants.Members.State.Title"];
+        => Members.Kind switch
+        {
+            TenantUsersSurfaceKind.Empty => Localizer["Tenants.Members.Empty.Title"],
+            TenantUsersSurfaceKind.Loading => Localizer["Tenants.Members.State.Loading.Title"],
+            TenantUsersSurfaceKind.Unauthorized => Localizer["Tenants.Members.State.Unauthorized.Title"],
+            TenantUsersSurfaceKind.NotFound => Localizer["Tenants.Members.State.NotFound.Title"],
+            TenantUsersSurfaceKind.Invalid => Localizer["Tenants.Members.State.Invalid.Title"],
+            _ => Localizer["Tenants.Members.State.Title"],
+        };
 
     private string EmptyStateMessage
         => Members.Kind is TenantUsersSurfaceKind.Empty
@@ -488,15 +520,36 @@
         return [];
     }
 
+    // Paging while a member command flow is open unmounts that flow: ActiveChangeRoleMember and
+    // ActiveRemoveMember resolve against Members.Rows, and the target is absent from the next page, so the
+    // @if guard tears the component down mid-command and its lifecycle state, receipt and projection
+    // confirmation go with it. The active user id also survives paging, so returning silently re-opened a
+    // flow the operator never re-initiated.
+    private bool HasOpenMemberCommandFlow
+        => _activeChangeRoleUserId is not null || _activeRemoveMemberUserId is not null;
+
     private Task RequestNextPageAsync()
-        => Members.HasMore && !Members.IsRefreshing
+        => Members.HasMore && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnNextPageRequested.InvokeAsync()
             : Task.CompletedTask;
 
     private Task RequestPreviousPageAsync()
-        => CanGoPrevious && !Members.IsRefreshing
+        => CanGoPrevious && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnPreviousPageRequested.InvokeAsync()
             : Task.CompletedTask;
+
+    protected override void OnParametersSet()
+    {
+        // Clear any open flow target when the rendered page changes. Without this the active user id
+        // outlives the page it belonged to, so returning to that page re-opens a change-role or remove flow
+        // the operator never re-initiated.
+        if (!string.Equals(_renderedMemberCursor, Members.RequestCursor, StringComparison.Ordinal))
+        {
+            _renderedMemberCursor = Members.RequestCursor;
+            _activeChangeRoleUserId = null;
+            _activeRemoveMemberUserId = null;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

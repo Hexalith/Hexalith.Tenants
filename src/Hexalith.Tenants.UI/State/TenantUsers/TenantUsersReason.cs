@@ -17,9 +17,6 @@ public enum TenantUsersReason
     /// <summary>The requested tenant was not found.</summary>
     NotFound,
 
-    /// <summary>A conditional response had no reusable matching snapshot.</summary>
-    NotModifiedWithoutSnapshot,
-
     /// <summary>The protected paging cursor was invalid.</summary>
     InvalidCursor,
 

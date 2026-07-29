@@ -76,6 +76,13 @@
         {
             <FluentAccordionItem Header="@ResultsHeading"
                                  Expanded="true">
+                @if (_snapshot.PagingRecovered)
+                {
+                    <p role="status" aria-live="polite" data-testid="tenants-user-page-recovered">
+                        @Localizer["Tenants.UserLookup.Recovery.PageRecovered"]
+                    </p>
+                }
+
                 @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
                 {
                     <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Loading"
@@ -461,7 +468,12 @@
                 _currentCursor = null;
                 _cursorHistory.Clear();
             }
-            _announcement = AnnouncementFor(snapshot, validTargetUserId);
+            // epic-1-context: invalid or stale cursor state restarts at page 1 with an honest localized
+            // notice. AnnouncementFor switches on Kind alone, so after recovery it announced a plain
+            // "N tenants" and the operator had no way to know paging had been reset.
+            _announcement = snapshot.PagingRecovered
+                ? Localizer["Tenants.UserLookup.Announcement.PageRecovered", validTargetUserId]
+                : AnnouncementFor(snapshot, validTargetUserId);
             _focusStatusPending = true;
             Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
             applied = true;

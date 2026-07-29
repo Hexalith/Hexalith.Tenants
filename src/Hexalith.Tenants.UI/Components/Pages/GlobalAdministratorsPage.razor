@@ -58,12 +58,17 @@
         @Localizer["Tenants.GlobalAdministrators.Return"]
     </FluentAnchorButton>
 
-    <FluentMessageBar Class="global-admins__mobile-readonly"
-                      Intent="MessageBarIntent.Info"
-                      Title="@Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Title"]"
-                      data-testid="tenants-global-admins-mobile-readonly">
-        @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
-    </FluentMessageBar>
+    @* Plain-HTML host so CSS isolation has something to scope. ::deep compiles to "[b-xxx] <selector>" and
+       needs a scoped ancestor rendered by THIS component; a FluentMessageBar written directly under
+       FcPageLayout has none, so the rule matched nothing and the notice showed at every width. *@
+    <div class="global-admins__mobile-readonly-host">
+        <FluentMessageBar Class="global-admins__mobile-readonly"
+                          Intent="MessageBarIntent.Info"
+                          Title="@Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Title"]"
+                          data-testid="tenants-global-admins-mobile-readonly">
+            @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
+        </FluentMessageBar>
+    </div>
 
     <FluentAccordion Class="global-admins__sections"
                      ExpandMode="AccordionExpandMode.Multi"
@@ -493,6 +498,7 @@
     // cancellation-only handler. They are cancelled immediately (which is what callers observe) and disposed
     // once clearly finished, or at teardown.
     private readonly List<CancellationTokenSource> _supersededCancellations = [];
+    private readonly Lock _supersededCancellationsLock = new();
     private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
@@ -605,6 +611,11 @@
 
     private string SafeReturnUrl => NormalizeReturnUrl(ReturnUrl);
 
+    // Empty is included deliberately. ShouldRenderRows requires Rows.Count > 0, and the pager, Refresh and
+    // grid all live inside that branch, so an Empty page renders no controls at all. Paging into a page that
+    // was emptied by a concurrent removal is a normal outcome (IsSuccessfulPage accepts Empty, so the cursor
+    // commits), and without Reset the operator is stranded on that cursor with only a browser reload to
+    // recover.
     private bool CanRecover
         => IsAuthorized
         && (_snapshot.Kind is GlobalAdministratorsSurfaceKind.Unknown
@@ -612,7 +623,8 @@
             or GlobalAdministratorsSurfaceKind.Degraded
             or GlobalAdministratorsSurfaceKind.Error
             or GlobalAdministratorsSurfaceKind.Unavailable
-            or GlobalAdministratorsSurfaceKind.Invalid);
+            or GlobalAdministratorsSurfaceKind.Invalid
+            or GlobalAdministratorsSurfaceKind.Empty);
 
     private string? GrantUnavailableReason
         => !IsAuthorized
@@ -638,6 +650,13 @@
                                     : null;
 
     private string? RemoveUnavailableReason(GlobalAdministratorRow? row)
+        => RemoveUnavailableReasonForUser(row?.UserId);
+
+    // Evaluated against a user id rather than a row so the submit path can re-check the previewed intent
+    // against the *current* snapshot. Preview alone is not a durable authorization: a notification refresh
+    // replaces _snapshot underneath a Previewed intent without resetting it, so the last-administrator,
+    // freshness and completeness gates must be re-evaluated at submit or Remove fails open through them.
+    private string? RemoveUnavailableReasonForUser(string? userId)
         => !IsAuthorized
             ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Authorization"].Value
             : !BffComposition.IsReadSurfaceConnected
@@ -658,7 +677,7 @@
                                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
                                 : IsRemoveInFlight
                                     ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
-                                    : row is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, row.UserId, StringComparison.Ordinal))
+                                    : userId is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, userId, StringComparison.Ordinal))
                                             ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"].Value
                                         : _snapshot.IsCompleteEvidence && _snapshot.Rows.Count <= 1
                                             ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
@@ -678,11 +697,18 @@
 
     private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
 
+    // The reason the previewed intent cannot be submitted *now*, re-derived from the current snapshot.
+    private string? RemoveIntentUnavailableReason
+        => _removeSnapshot.Intent is null
+            ? null
+            : RemoveUnavailableReasonForUser(_removeSnapshot.Intent.UserId);
+
     private bool IsRemoveSubmitDisabled
         => _removeSnapshot.State is not TenantCommandLifecycleState.Previewed
         || IsGrantInFlight
         || IsRemoveInFlight
-        || _removeSnapshot.Intent is null;
+        || _removeSnapshot.Intent is null
+        || !string.IsNullOrWhiteSpace(RemoveIntentUnavailableReason);
 
     private bool CanCancelGrant
         => _grantSnapshot.State is not TenantCommandLifecycleState.Idle || !string.IsNullOrWhiteSpace(_grantUserId);
@@ -836,7 +862,17 @@
         GlobalAdministratorsSnapshot previous = _snapshot;
         if (!retainConfirmed)
         {
-            _snapshot = GlobalAdministratorsSnapshot.Loading();
+            // ReauthorizeAsync above is awaited with ConfigureAwait(false), so this runs on a thread-pool
+            // thread whenever it actually suspends. Marshalled and generation-guarded like the result write
+            // below: an unguarded write here can overwrite a newer applied snapshot with Loading, and
+            // Loading is not in CanRecover, so the page would offer neither Retry nor Reset.
+            await InvokeAsync(() =>
+            {
+                if (CanApply(generation))
+                {
+                    _snapshot = GlobalAdministratorsSnapshot.Loading();
+                }
+            }).ConfigureAwait(false);
         }
 
         GlobalAdministratorsRequest request = new(
@@ -1014,12 +1050,17 @@
             await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
 
-        foreach (CancellationTokenSource superseded in _supersededCancellations)
+        CancellationTokenSource[] superseded;
+        lock (_supersededCancellationsLock)
         {
-            superseded.Dispose();
+            superseded = [.. _supersededCancellations];
+            _supersededCancellations.Clear();
         }
 
-        _supersededCancellations.Clear();
+        foreach (CancellationTokenSource source in superseded)
+        {
+            source.Dispose();
+        }
     }
 
     private async Task NextPageAsync()
@@ -1092,15 +1133,24 @@
         }
 
         source.Cancel();
-        _supersededCancellations.Add(source);
 
-        // Anything older than the two most recent supersessions cannot still be awaited: each entry was
-        // cancelled before the next one was created. Disposing them here keeps the list bounded on a
-        // long-lived circuit without reintroducing the dispose-while-in-flight race.
-        while (_supersededCancellations.Count > 2)
+        // Locked because Retire reaches this list from thread-pool continuations (LoadAsync awaits with
+        // ConfigureAwait(false), and its Unauthorized branch calls InvalidateMutations off the dispatcher)
+        // while DisposeAsync enumerates and clears it on the dispatcher. Unsynchronised, that pairing throws
+        // "Collection was modified" out of component teardown, and two concurrent Retire calls can drop an
+        // entry or index past the end. Every other shared counter on this page is already Interlocked.
+        lock (_supersededCancellationsLock)
         {
-            _supersededCancellations[0].Dispose();
-            _supersededCancellations.RemoveAt(0);
+            _supersededCancellations.Add(source);
+
+            // Anything older than the two most recent supersessions cannot still be awaited: each entry was
+            // cancelled before the next one was created. Disposing them here keeps the list bounded on a
+            // long-lived circuit without reintroducing the dispose-while-in-flight race.
+            while (_supersededCancellations.Count > 2)
+            {
+                _supersededCancellations[0].Dispose();
+                _supersededCancellations.RemoveAt(0);
+            }
         }
     }
 
@@ -1530,8 +1580,23 @@
     private async Task SubmitRemoveAsync()
     {
         if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || _removeSnapshot.Intent is null
-            || IsRemoveSubmitDisabled)
+            || _removeSnapshot.Intent is null)
+        {
+            return;
+        }
+
+        // Re-check the previewed intent against the current snapshot. The preview may have been taken before
+        // a notification refresh replaced _snapshot, so this is where the last-administrator hard stop,
+        // freshness and completeness gates actually bind. Report the reason instead of failing silently.
+        if (RemoveIntentUnavailableReason is { Length: > 0 } blockedReason)
+        {
+            await InvokeAsync(() => SetRemoveSnapshot(
+                GlobalAdministratorRemoveCommandSnapshot.Blocked(blockedReason, TenantCommandFocusTarget.Lifecycle)))
+                .ConfigureAwait(false);
+            return;
+        }
+
+        if (IsRemoveSubmitDisabled)
         {
             return;
         }

@@ -4,10 +4,13 @@
 
 /* fc-css-exception: the mobile-only safety notice is paired with hidden high-impact command
    regions at the same breakpoint; Fluent components do not own responsive visibility.
-   ::deep is required because the class is applied to a FluentMessageBar -- a child component, whose
-   rendered element never receives this component's CSS-isolation scope attribute. Without it the rule
-   compiled to a scoped selector that matched no node and the notice showed at every width. */
-::deep .global-admins__mobile-readonly {
+   Scoped to the plain <div class="global-admins__mobile-readonly-host"> wrapper in the markup. ::deep
+   alone was NOT sufficient: it compiles to "[b-xxx] .global-admins__mobile-readonly" and still needs an
+   ancestor rendered by this component to carry the scope attribute. The FluentMessageBar sat directly
+   under FcPageLayout, so no ancestor had it, the selector matched nothing, and the notice was visible at
+   every width -- including desktop, where grant and remove are fully functional. Hiding the host element
+   itself needs no ::deep at all, because the host IS this component's own markup. */
+.global-admins__mobile-readonly-host {
     display: none;
 }
 
@@ -206,8 +209,9 @@
     }
 
     /* fc-css-exception: responsive visibility for the localized explanation paired with the
-       hidden mutation regions above. ::deep for the same child-component reason as the base rule. */
-    ::deep .global-admins__mobile-readonly {
+       hidden mutation regions above. Targets the plain-HTML host, which carries this component's scope
+       attribute; see the base rule for why ::deep on the FluentMessageBar itself could never match. */
+    .global-admins__mobile-readonly-host {
         display: block;
     }
 

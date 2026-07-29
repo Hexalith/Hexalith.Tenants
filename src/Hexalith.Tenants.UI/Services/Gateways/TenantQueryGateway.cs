@@ -2114,7 +2114,13 @@ internal sealed class TenantQueryGateway(
         GlobalAdministratorsSnapshot? previous,
         GlobalAdministratorsRequest request,
         EventStoreGatewayException exception)
+        // Rows.Count > 0 is required: degradation describes confirmed rows held under reduced confidence,
+        // and a failed first read holds none. Without it, Unavailable() (Rows [], cursor null, page size 20)
+        // matched its own scope and validator on Retry, so the surface reported Degraded and rendered
+        // "Last confirmed administrators remain visible" over an empty table. The tenant-users mapper
+        // already guards the equivalent 304 path for the same reason.
         => previous is not null
+            && previous.Rows.Count > 0
             && IsRetainableReadFailure(exception)
             && MatchesPageScope(
                 previous.RequestCursor,

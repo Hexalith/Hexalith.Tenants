@@ -22,6 +22,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.Gateways;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -612,6 +613,206 @@ public sealed class TenantsApiGeneratedControllerTests
         problem.GetProperty("tenantId").GetString().ShouldBe(TenantIdentity.DefaultTenantId);
         problem.GetProperty("reasonCode").GetString().ShouldBe("tenant-forbidden");
         gateway.SubmittedCommands.ShouldHaveSingleItem();
+    }
+
+    /// <summary>
+    /// Cross-checks the real <see cref="TenantsRestQueryClient"/> against the real generated controllers:
+    /// the client builds the URIs, the controllers answer them, and the client parses what they emit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Story 1.10's whole point is that the six UI reads go direct to these routes over this typed client.
+    /// Every other test either drives the controller with a hand-written URL, or drives the client against a
+    /// stub handler; the one live-stack read test substitutes an adapter that re-implements the pre-1.10
+    /// SubmitQueryAsync path. Nothing checked the client's own route construction, or its header parsing,
+    /// against the service that actually answers it -- so a renamed header or a changed route shape would
+    /// break every read in a real deployment with the suite green.
+    /// </para>
+    /// <para>
+    /// The client cannot be pointed straight at <c>factory.CreateClient()</c>: it builds request URIs with
+    /// <c>UriCreationOptions.DangerousDisablePathAndQueryCanonicalization</c> so that dot-only tenant ids
+    /// cannot be normalized into a different resource, and <c>Microsoft.AspNetCore.TestHost</c> throws
+    /// <c>InvalidOperationException</c> on such a URI in <c>PathString.FromUriComponent</c>. Exercising the
+    /// client in-process against the controllers therefore requires this three-stage cross-check rather than
+    /// a single call; a real-socket harness would be needed to collapse it into one.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        DateTimeOffset servedAt = DateTimeOffset.Parse("2026-07-29T10:00:00Z", CultureInfo.InvariantCulture);
+
+        // Stage 1: let the production client build every route, and capture exactly what it would send.
+        var recorder = new RouteRecordingHandler();
+        using (var recordingClient = new HttpClient(recorder) { BaseAddress = new Uri("https://tenants.invalid") })
+        {
+            var probe = new TenantsRestQueryClient(recordingClient);
+            _ = await probe.ListTenantsAsync(new ListTenantsQuery { Cursor = "opaque", PageSize = 25 }, null, cancellationToken);
+            _ = await probe.GetTenantAsync(new GetTenantQuery { TenantId = "tenant.alpha" }, null, cancellationToken);
+            _ = await probe.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 }, null, cancellationToken);
+            _ = await probe.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = "user.alpha", PageSize = 12 }, null, cancellationToken);
+            _ = await probe.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 50 }, null, cancellationToken);
+            _ = await probe.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 20 }, null, cancellationToken);
+        }
+
+        recorder.Paths.Count.ShouldBe(6);
+
+        // Stage 2: the generated controllers must answer those exact paths -- not hand-written equivalents.
+        CapturingEventStoreGatewayClient gateway = new();
+        QueryResponseMetadata Metadata(string version) => new(
+            ETag: version,
+            IsStale: false,
+            ProjectionVersion: version,
+            ServedAt: servedAt)
+        {
+            Provenance = QueryResponseProvenance.ProjectionBacked,
+        };
+
+        gateway.EnqueueQueryResult(
+            new PaginatedResult<TenantSummary>([new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)], null, false),
+            eTag: "list-v1",
+            Metadata("list-v1"));
+        gateway.EnqueueQueryResult(
+            new TenantDetail(
+                "tenant.alpha",
+                "Alpha",
+                "Alpha description",
+                TenantStatus.Active,
+                [new TenantMember("user.alpha", TenantRole.TenantOwner)],
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                servedAt),
+            eTag: "detail-v1",
+            Metadata("detail-v1"));
+        gateway.EnqueueQueryResult(
+            new PaginatedResult<TenantMember>([new TenantMember("user.alpha", TenantRole.TenantOwner)], null, false),
+            eTag: "members-v1",
+            Metadata("members-v1"));
+        gateway.EnqueueQueryResult(
+            new PaginatedResult<UserTenantMembership>([], null, false),
+            eTag: "user-tenants-v1",
+            Metadata("user-tenants-v1"));
+        gateway.EnqueueQueryResult(
+            new PaginatedResult<TenantAuditEntry>([], null, false),
+            eTag: "audit-v1",
+            Metadata("audit-v1"));
+        gateway.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin.alpha")], null, false),
+            eTag: "admins-v1",
+            Metadata("admins-v1"));
+
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient serviceClient = CreateAuthenticatedClient(factory);
+
+        List<HttpResponseMessage> realResponses = [];
+        foreach (string path in recorder.Paths)
+        {
+            HttpResponseMessage response = await serviceClient.GetAsync(path, cancellationToken);
+            response.StatusCode.ShouldBe(HttpStatusCode.OK, $"the generated controllers must serve the route the client builds: {path}");
+            realResponses.Add(response);
+        }
+
+        gateway.SubmittedQueries.Select(static query => query.Request.QueryType).ShouldBe(
+        [
+            ListTenantsQuery.QueryType,
+            GetTenantQuery.QueryType,
+            GetTenantUsersQuery.QueryType,
+            GetUserTenantsQuery.QueryType,
+            GetTenantAuditQuery.QueryType,
+            GetGlobalAdministratorsQuery.QueryType,
+        ]);
+
+        // Stage 3: replay each REAL response -- real status, real X-Hexalith-* headers, real body -- through
+        // the production client, so its metadata parsing is proven against what the service actually emits.
+        async Task<TenantsRestQueryResponse<TPayload>> ReplayAsync<TPayload>(
+            int index,
+            Func<TenantsRestQueryClient, Task<TenantsRestQueryResponse<TPayload>>> read)
+        {
+            using var replay = new HttpClient(new ReplayHandler(realResponses[index]))
+            {
+                BaseAddress = new Uri("https://tenants.invalid"),
+            };
+            return await read(new TenantsRestQueryClient(replay));
+        }
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> list = await ReplayAsync(
+            0, client => client.ListTenantsAsync(new ListTenantsQuery { Cursor = "opaque", PageSize = 25 }, null, cancellationToken));
+        list.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        list.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        list.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("list-v1");
+        list.Metadata!.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        // GetStrongETag returns the unquoted strong tag content, so this is the controller's ETag as the
+        // client stores it -- the same shape TenantsRestQueryClientTests pins against a stub handler.
+        list.ETag.ShouldBe("list-v1");
+
+        TenantsRestQueryResponse<TenantDetail> detail = await ReplayAsync(
+            1, client => client.GetTenantAsync(new GetTenantQuery { TenantId = "tenant.alpha" }, null, cancellationToken));
+        detail.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        detail.Payload.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        detail.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("detail-v1");
+
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> members = await ReplayAsync(
+            2, client => client.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 }, null, cancellationToken));
+        members.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        members.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().UserId.ShouldBe("user.alpha");
+        members.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("members-v1");
+
+        TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>> userTenants = await ReplayAsync(
+            3, client => client.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = "user.alpha", PageSize = 12 }, null, cancellationToken));
+        userTenants.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        userTenants.Payload.ShouldNotBeNull().Items.ShouldBeEmpty();
+
+        TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> audit = await ReplayAsync(
+            4, client => client.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 50 }, null, cancellationToken));
+        audit.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        audit.Payload.ShouldNotBeNull().Items.ShouldBeEmpty();
+
+        TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> admins = await ReplayAsync(
+            5, client => client.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 20 }, null, cancellationToken));
+        admins.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        admins.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().UserId.ShouldBe("admin.alpha");
+        admins.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("admins-v1");
+
+        foreach (HttpResponseMessage response in realResponses)
+        {
+            response.Dispose();
+        }
+    }
+
+    /// <summary>Captures the paths the production client builds, without answering them meaningfully.</summary>
+    private sealed class RouteRecordingHandler : HttpMessageHandler
+    {
+        public List<string> Paths { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Paths.Add(request.RequestUri!.PathAndQuery);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }
+    }
+
+    /// <summary>Replays one captured real service response so the client parses genuine headers and body.</summary>
+    private sealed class ReplayHandler(HttpResponseMessage captured) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            byte[] body = await captured.Content.ReadAsByteArrayAsync(cancellationToken);
+            var replayed = new HttpResponseMessage(captured.StatusCode)
+            {
+                Content = new ByteArrayContent(body),
+            };
+            foreach (KeyValuePair<string, IEnumerable<string>> header in captured.Headers)
+            {
+                _ = replayed.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            foreach (KeyValuePair<string, IEnumerable<string>> header in captured.Content.Headers)
+            {
+                _ = replayed.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return replayed;
+        }
     }
 
     private static HttpClient CreateAuthenticatedClient(

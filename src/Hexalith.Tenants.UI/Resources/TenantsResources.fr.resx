@@ -618,9 +618,6 @@
   <data name="Tenants.Detail.LifecycleLabel" xml:space="preserve">
     <value>Cycle de vie</value>
   </data>
-  <data name="Tenants.Detail.Members.Summary" xml:space="preserve">
-    <value>{0} membres, dont {1} propriétaires.</value>
-  </data>
   <data name="Tenants.Detail.Members.VisiblePageSummary" xml:space="preserve">
     <value>{0} membres visibles sur cette page. Le contexte des propriétaires est indisponible tant que les deux lectures ne sont pas actuelles et cohérentes en version.</value>
   </data>
@@ -3629,5 +3626,35 @@
   </data>
   <data name="Tenants.Correction.State.UnableToVerify" xml:space="preserve">
     <value>La correction ne peut pas être vérifiée avec les preuves courantes.</value>
+  </data>
+  <data name="Tenants.Members.Recovery.PageRecovered" xml:space="preserve">
+    <value>La liste des membres a redémarré à la première page car la référence de page précédente a expiré.</value>
+  </data>
+  <data name="Tenants.Members.State.Error" xml:space="preserve">
+    <value>La lecture des membres a échoué. Réessayez ou actualisez le locataire.</value>
+  </data>
+  <data name="Tenants.Members.State.Invalid" xml:space="preserve">
+    <value>La référence de page des membres n'est plus valide.</value>
+  </data>
+  <data name="Tenants.Members.State.Invalid.Title" xml:space="preserve">
+    <value>Référence de page des membres expirée</value>
+  </data>
+  <data name="Tenants.Members.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des membres</value>
+  </data>
+  <data name="Tenants.Members.State.NotFound.Title" xml:space="preserve">
+    <value>Membres introuvables</value>
+  </data>
+  <data name="Tenants.Members.State.Unauthorized.Title" xml:space="preserve">
+    <value>Membres non disponibles pour vous</value>
+  </data>
+  <data name="Tenants.MyTenants.Recovery.PageRecovered" xml:space="preserve">
+    <value>La liste a redémarré à la première page car la référence de page précédente a expiré.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.PageRecovered" xml:space="preserve">
+    <value>Les locataires pour {0} ont redémarré à la première page car la référence de page précédente a expiré.</value>
+  </data>
+  <data name="Tenants.UserLookup.Recovery.PageRecovered" xml:space="preserve">
+    <value>Les résultats ont redémarré à la première page car la référence de page précédente a expiré.</value>
   </data>
 </root>

@@ -220,6 +220,8 @@
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
     private CancellationTokenSource? _loadCancellation;
+    private readonly List<CancellationTokenSource> _supersededCancellations = [];
+    private readonly Lock _supersededCancellationsLock = new();
     private long _loadGeneration;
     private bool _disposed;
     private bool _memberPageLoadInFlight;
@@ -509,10 +511,11 @@
         {
             TenantUsersSnapshot snapshot = await QueryGateway
                 .GetTenantUsersAsync(
-                    // Pass the retained page so the gateway's tested conditional-read and retention path
-                    // applies to paging too. Sending previous: null made hasMatchingPrevious false, which
-                    // bypassed gateway retention entirely and left this method hand-rolling a narrower
-                    // substitute for only three of the failing kinds.
+                    // `retained` is passed so the gateway sees the prior page, but note it does NOT reach the
+                    // gateway's conditional-read retention on a paging request: HasMatchingTenantUsers gates
+                    // on MatchesPageScope, which compares the retained page's cursor to the requested one and
+                    // is therefore false by construction whenever the cursor moves. Gateway retention applies
+                    // to same-scope refreshes; the explicit retention below is what covers paging.
                     new TenantUsersRequest(tenantId, requestedCursor),
                     retained,
                     cancellationToken)
@@ -527,54 +530,83 @@
             // table on an Invalid surface with no way back.
             if (snapshot.Reason is TenantUsersReason.InvalidCursor)
             {
-                _memberCursor = null;
-                _memberCursorHistory.Clear();
                 TenantUsersSnapshot recovered = await QueryGateway
                     .GetTenantUsersAsync(new TenantUsersRequest(tenantId), retained, cancellationToken)
                     .ConfigureAwait(false);
-                if (CanApply(generation, tenantId))
+
+                // The recovery read gets the same usability guard as the primary read. Assigning it
+                // unconditionally meant a transient failure on page one emptied the table *after* the history
+                // had already been cleared, leaving neither rows nor a Previous control.
+                await InvokeAsync(() =>
                 {
-                    _tenantUsersSnapshot = recovered;
+                    if (!CanApply(generation, tenantId))
+                    {
+                        return;
+                    }
+
+                    if (IsUsableMemberPage(recovered))
+                    {
+                        _memberCursor = null;
+                        _memberCursorHistory.Clear();
+                        _tenantUsersSnapshot = recovered with
+                        {
+                            PagingRecovered = true,
+                            Reason = TenantUsersReason.ListRefreshed,
+                        };
+                    }
+                    else
+                    {
+                        _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(tenantId, retained, recovered.Reason);
+                    }
+                }).ConfigureAwait(false);
+
+                return;
+            }
+
+            // Marshalled and re-checked inside InvokeAsync. These writes previously ran on the thread-pool
+            // continuation after a single CanApply check, so a superseded member page could overwrite newer
+            // rows and mutate _memberCursorHistory while the renderer was reading its Count for CanGoPrevious.
+            await InvokeAsync(() =>
+            {
+                if (!CanApply(generation, tenantId))
+                {
+                    return;
                 }
 
-                return;
-            }
-
-            // Any non-usable page must leave paging state untouched. Advancing the cursor and pushing history
-            // on Unauthorized/NotFound/Invalid built a history out of failed reads, so Previous then walked
-            // back through pages that never rendered.
-            if (snapshot.Kind is not TenantUsersSurfaceKind.Ready
-                and not TenantUsersSurfaceKind.Empty
-                and not TenantUsersSurfaceKind.Stale)
-            {
-                _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(
-                    tenantId,
-                    retained,
-                    snapshot.Reason);
-                return;
-            }
-
-            _tenantUsersSnapshot = snapshot;
-            _memberCursor = requestedCursor;
-            if (moveForward)
-            {
-                _memberCursorHistory.Push(priorCursor);
-
-                // Bound the history so a long paging session cannot grow it without limit.
-                if (_memberCursorHistory.Count > MaximumMemberCursorHistory)
+                // Any non-usable page must leave paging state untouched. Advancing the cursor and pushing
+                // history on Unauthorized/NotFound/Invalid built a history out of failed reads, so Previous
+                // then walked back through pages that never rendered.
+                if (!IsUsableMemberPage(snapshot))
                 {
-                    string?[] retainedHistory = [.. _memberCursorHistory.Take(MaximumMemberCursorHistory)];
-                    _memberCursorHistory.Clear();
-                    for (int index = retainedHistory.Length - 1; index >= 0; index--)
+                    _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(
+                        tenantId,
+                        retained,
+                        snapshot.Reason);
+                    return;
+                }
+
+                _tenantUsersSnapshot = snapshot;
+                _memberCursor = requestedCursor;
+                if (moveForward)
+                {
+                    _memberCursorHistory.Push(priorCursor);
+
+                    // Bound the history so a long paging session cannot grow it without limit.
+                    if (_memberCursorHistory.Count > MaximumMemberCursorHistory)
                     {
-                        _memberCursorHistory.Push(retainedHistory[index]);
+                        string?[] retainedHistory = [.. _memberCursorHistory.Take(MaximumMemberCursorHistory)];
+                        _memberCursorHistory.Clear();
+                        for (int index = retainedHistory.Length - 1; index >= 0; index--)
+                        {
+                            _memberCursorHistory.Push(retainedHistory[index]);
+                        }
                     }
                 }
-            }
-            else if (_memberCursorHistory.Count > 0)
-            {
-                _ = _memberCursorHistory.Pop();
-            }
+                else if (_memberCursorHistory.Count > 0)
+                {
+                    _ = _memberCursorHistory.Pop();
+                }
+            }).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -589,11 +621,41 @@
         }
     }
 
+    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
+    private void Retire(CancellationTokenSource? source)
+    {
+        if (source is null)
+        {
+            return;
+        }
+
+        source.Cancel();
+
+        // Deferred disposal: a single CTS is shared by the detail, member-paging and notification loads, so a
+        // superseded token is routinely still inside SendAsync. Disposing it there makes a later Register
+        // throw ObjectDisposedException, which is not an OperationCanceledException and escapes the catch
+        // filters on this page.
+        lock (_supersededCancellationsLock)
+        {
+            _supersededCancellations.Add(source);
+            while (_supersededCancellations.Count > 2)
+            {
+                _supersededCancellations[0].Dispose();
+                _supersededCancellations.RemoveAt(0);
+            }
+        }
+    }
+
+    /// <summary>A page whose rows and paging state may be applied.</summary>
+    private static bool IsUsableMemberPage(TenantUsersSnapshot snapshot)
+        => snapshot.Kind is TenantUsersSurfaceKind.Ready
+            or TenantUsersSurfaceKind.Empty
+            or TenantUsersSurfaceKind.Stale;
+
     private (long Generation, CancellationToken CancellationToken) BeginLoad()
     {
         long generation = Interlocked.Increment(ref _loadGeneration);
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Retire(_loadCancellation);
         _loadCancellation = new CancellationTokenSource();
         _memberPageLoadInFlight = false;
         if (_tenantUsersSnapshot.IsRefreshing)
@@ -704,9 +766,21 @@
     {
         _disposed = true;
         _ = Interlocked.Increment(ref _loadGeneration);
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Retire(_loadCancellation);
         _loadCancellation = null;
+
+        CancellationTokenSource[] superseded;
+        lock (_supersededCancellationsLock)
+        {
+            superseded = [.. _supersededCancellations];
+            _supersededCancellations.Clear();
+        }
+
+        foreach (CancellationTokenSource source in superseded)
+        {
+            source.Dispose();
+        }
+
         if (_readRefreshLease is not null)
         {
             await _readRefreshLease.DisposeAsync().ConfigureAwait(false);

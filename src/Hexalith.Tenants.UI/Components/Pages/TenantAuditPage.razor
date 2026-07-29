@@ -156,10 +156,10 @@
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.Audit.Previous"]
                     </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore)" OnClick="NextPageAsync">
                         @Localizer["Tenants.Audit.Next"]
                     </FluentButton>
                 </FluentStack>
@@ -187,11 +187,14 @@
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
     private bool _readRefreshSubscriptionInFlight;
+    private string? _pendingSubscriptionTenantId;
     private bool _isNotificationRefreshing;
     private bool _pageLoadInFlight;
     private bool _disposed;
     private long _loadGeneration;
     private CancellationTokenSource? _loadCancellation;
+    private readonly List<CancellationTokenSource> _supersededCancellations = [];
+    private readonly Lock _supersededCancellationsLock = new();
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
@@ -396,7 +399,20 @@
         }
 
         await InvokeAsync(() => _snapshot = result).ConfigureAwait(false);
-        await RefreshTenantProjectionForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
+
+        // Page-load enrichment only, same contract as the global-administrator refresh below. The gateway
+        // rethrows OperationCanceledException unfiltered, so without this handler a Refresh or paging click
+        // during the in-flight detail read let the cancellation escape LoadAsync and OnParametersSetAsync
+        // and tear down the circuit. The audit list itself has already been applied above.
+        try
+        {
+            await RefreshTenantProjectionForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException or OperationCanceledException)
+        {
+            // Supplementary tenant-detail evidence unavailable; the audit page stays usable.
+        }
+
         if (result.Rows.Any(IsGlobalAdministratorRow))
         {
             // Page-load enrichment only: the audit list already rendered. A transport/parse fault that
@@ -442,7 +458,6 @@
         // overwrites _readRefreshLease -- orphaning the first lease, whose callback stays registered until
         // the circuit ends.
         if (_disposed
-            || _readRefreshSubscriptionInFlight
             || string.IsNullOrWhiteSpace(tenantId)
             || !BffComposition.IsReadSurfaceConnected
             || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
@@ -451,10 +466,48 @@
             return;
         }
 
+        // An in-flight setup for a DIFFERENT tenant must not be dropped. The original guard covered only the
+        // duplicate-same-tenant case its comment describes: navigating A -> B mid-setup returned early for B,
+        // and A's completion then saw TenantId != A, disposed its lease and returned without ever recording a
+        // subscription -- leaving B with no auto-refresh for the rest of the circuit. Handing B to the owning
+        // call preserves the duplicate suppression and closes that gap.
+        if (_readRefreshSubscriptionInFlight)
+        {
+            _pendingSubscriptionTenantId = tenantId;
+            return;
+        }
+
         _readRefreshSubscriptionInFlight = true;
         try
         {
-            CancellationToken cancellationToken = _loadCancellation?.Token ?? CancellationToken.None;
+            string? target = tenantId;
+            while (target is not null)
+            {
+                _pendingSubscriptionTenantId = null;
+                await SubscribeReadRefreshAsync(refreshSubscription, target).ConfigureAwait(false);
+                target = _disposed ? null : _pendingSubscriptionTenantId;
+                if (target is not null && string.Equals(_subscriptionTenantId, target, StringComparison.Ordinal))
+                {
+                    target = null;
+                }
+            }
+        }
+        finally
+        {
+            _readRefreshSubscriptionInFlight = false;
+            _pendingSubscriptionTenantId = null;
+        }
+    }
+
+    private async Task SubscribeReadRefreshAsync(TenantReadRefreshSubscription refreshSubscription, string tenantId)
+    {
+        {
+            // Deliberately NOT _loadCancellation.Token. Subscription setup is independent of any one load:
+            // binding it to the load token meant a Refresh during setup cancelled SubscribeAsync, the catch
+            // below returned without recording _subscriptionTenantId, and nothing retried for the same
+            // tenant -- silently disabling projection auto-refresh for the rest of the circuit. Reading
+            // _loadCancellation?.Token here could also throw ObjectDisposedException on a concurrent
+            // supersession. The sibling global-administrators page already passes None.
             TenantReadRefreshLease lease;
             try
             {
@@ -462,9 +515,9 @@
                     GetTenantAuditQuery.ProjectionType,
                     tenantId,
                     () => InvokeAsync(() => RefreshFromNotificationAsync(tenantId)),
-                    cancellationToken).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
                 return;
             }
@@ -488,12 +541,13 @@
                 return;
             }
 
+            IAsyncDisposable? previousLease = _readRefreshLease;
             _readRefreshLease = lease;
             _subscriptionTenantId = tenantId;
-        }
-        finally
-        {
-            _readRefreshSubscriptionInFlight = false;
+            if (previousLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(previousLease).ConfigureAwait(false);
+            }
         }
     }
 
@@ -966,10 +1020,22 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-        _loadGeneration++;
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Interlocked.Increment(ref _loadGeneration);
+        Retire(_loadCancellation);
         _loadCancellation = null;
+
+        CancellationTokenSource[] superseded;
+        lock (_supersededCancellationsLock)
+        {
+            superseded = [.. _supersededCancellations];
+            _supersededCancellations.Clear();
+        }
+
+        foreach (CancellationTokenSource source in superseded)
+        {
+            source.Dispose();
+        }
+
         if (_readRefreshLease is not null)
         {
             await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
@@ -995,15 +1061,43 @@
 
     private (long Generation, CancellationToken CancellationToken) BeginLoad()
     {
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        Retire(_loadCancellation);
         _loadCancellation = new CancellationTokenSource();
-        return (++_loadGeneration, _loadCancellation.Token);
+
+        // Interlocked, not ++: OnParametersSetAsync reaches BeginLoad from a ConfigureAwait(false)
+        // continuation (it awaits the previous lease's DisposeAsync, a remote unsubscribe) while Refresh
+        // reaches it on the dispatcher. A lost increment gives two loads the same generation, and the older
+        // completion then passes CanApply and writes its stale page over the newer rows.
+        return (Interlocked.Increment(ref _loadGeneration), _loadCancellation.Token);
+    }
+
+    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
+    private void Retire(CancellationTokenSource? source)
+    {
+        if (source is null)
+        {
+            return;
+        }
+
+        source.Cancel();
+
+        // Disposal is deferred because the token is routinely still inside SendAsync when it is superseded.
+        // Disposing it there makes a later Register throw ObjectDisposedException, which is NOT an
+        // OperationCanceledException and so escapes every catch filter on this page.
+        lock (_supersededCancellationsLock)
+        {
+            _supersededCancellations.Add(source);
+            while (_supersededCancellations.Count > 2)
+            {
+                _supersededCancellations[0].Dispose();
+                _supersededCancellations.RemoveAt(0);
+            }
+        }
     }
 
     private bool CanApply(string tenantId, long generation)
         => !_disposed
-            && generation == _loadGeneration
+            && generation == Volatile.Read(ref _loadGeneration)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
     private static bool IsSuccessfulPage(TenantAuditSnapshot? snapshot)

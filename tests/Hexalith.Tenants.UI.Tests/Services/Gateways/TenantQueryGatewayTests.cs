@@ -1497,6 +1497,65 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldHaveSingleItem().Lifecycle.ShouldBe(lifecycle);
     }
 
+    // Degradation describes confirmed rows held under reduced confidence. A failed FIRST read holds none, so
+    // retaining from it produced Kind = Degraded with an empty row set, and the page then rendered
+    // "Last confirmed administrators remain visible" over an empty table. Unavailable() has a null cursor and
+    // the default page size, so it matched its own page scope and validator on Retry and slipped through.
+    [Fact]
+    public async Task Get_global_administrators_first_load_failure_cannot_be_retained_as_degraded()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        GlobalAdministratorsSnapshot first = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
+
+        first.Rows.ShouldBeEmpty();
+        first.Kind.ShouldNotBe(GlobalAdministratorsSurfaceKind.Degraded);
+
+        // Retry with the same scope and no validator, still failing. The empty prior snapshot must not be
+        // promoted into "last confirmed" evidence.
+        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        GlobalAdministratorsSnapshot retried = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), first, CancellationToken.None);
+
+        retried.Rows.ShouldBeEmpty();
+        retried.Kind.ShouldNotBe(GlobalAdministratorsSurfaceKind.Degraded);
+        retried.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        retried.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_retains_confirmed_rows_as_degraded_on_a_later_failure()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "global-admin-v7"));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        GlobalAdministratorsSnapshot confirmed = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
+        confirmed.Rows.ShouldHaveSingleItem();
+
+        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        GlobalAdministratorsSnapshot degraded = await gateway
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: confirmed.ETag),
+                confirmed,
+                CancellationToken.None);
+
+        // Real retention: rows genuinely were confirmed, so Degraded is honest here.
+        degraded.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Degraded);
+        degraded.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+        degraded.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        degraded.IsCompleteEvidence.ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData(true, false, GlobalAdministratorsSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
     [InlineData(false, true, GlobalAdministratorsSurfaceKind.Degraded, ReadModelFreshnessState.Unknown)]

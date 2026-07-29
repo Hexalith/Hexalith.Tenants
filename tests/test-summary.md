@@ -632,3 +632,23 @@ renderer.
 The dated evidence report contains the exact Release commands. The pre-existing user-owned
 `references/Hexalith.Memories` working-tree pointer remains preserved and declared; no dependency content
 was changed by this loop.
+
+## Story 1.10 — completion revalidation (2026-07-29)
+
+Published commit `09947a2` advanced the Memories gitlink after review-loop-3 validation, so all required
+lanes were re-run against that exact dependency graph plus the final completion metadata changes.
+
+| Lane | Result |
+| --- | --- |
+| Release solution build (`-warnaserror`) | PASS — 0 warnings, 0 errors |
+| UI | PASS — 1,507 passed, 0 failed, 0 skipped |
+| Generated-controller integration | PASS — 26 passed, 0 failed, 0 skipped |
+| IntegrationTests (`Category!=Performance`) | PASS — 167 passed, 0 failed, 0 skipped |
+| Contracts / Client / Testing / Server / Sample | PASS — 120 / 50 / 181 / 738 / 39; 0 failed |
+| Generic-query and invented tenant-index scans | PASS — no matches |
+| Staged and unstaged whitespace checks | PASS |
+| `validate-story-gitlinks.py` | PASS — exit 0; all six moved pointers declared |
+
+The validator's current pointer endpoints are AI.Tools `859d53b`, Builds `13cad86`, Commons `f2b5f1b`,
+EventStore `1d42528`, FrontComposer `b6efcad`, and Memories `ccd8efa`. Earlier Story 1.10 pointer tables
+and test counts are historical records, not completion evidence for `09947a2`.

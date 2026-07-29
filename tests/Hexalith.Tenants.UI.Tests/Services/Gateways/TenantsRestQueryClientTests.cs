@@ -588,6 +588,54 @@ public sealed class TenantsRestQueryClientTests
         result.Payload.ShouldBeNull();
     }
 
+    // The TenantDetail arm of HasValidPayloadShape was reachable but never driven with a malformed detail:
+    // every payload-shape test fed a PaginatedResult. A detail that deserializes with a null/blank tenant id,
+    // a null Members collection, a null member, a blank member id, or a null Configuration would reach
+    // TenantDetailSnapshot.Ready and then MemberAccessReview's OwnerCount/Detail.Members enumeration.
+    [Theory]
+    [InlineData("{\"tenantId\":null,\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"   \",\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":null,\"members\":[],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":null,\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[null],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":null,\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":\"   \",\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":null}")]
+    public async Task Tenant_detail_payload_shape_is_rejected_when_identity_members_or_configuration_are_malformed(string json)
+    {
+        var handler = new RecordingHandler(Success(json));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
+            new GetTenantQuery { TenantId = "tenant.alpha" },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Well_formed_tenant_detail_payload_is_accepted()
+    {
+        var handler = new RecordingHandler(Success(
+            "{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\","
+            + "\"members\":[{\"userId\":\"user.alpha\",\"role\":\"TenantOwner\"}],\"configuration\":{}}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
+            new GetTenantQuery { TenantId = "tenant.alpha" },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+        result.Payload.ShouldNotBeNull();
+        result.Payload!.TenantId.ShouldBe("tenant.alpha");
+        result.Payload.Members.Count.ShouldBe(1);
+    }
+
     [Fact]
     public async Task Numeric_payload_enum_values_are_rejected_instead_of_becoming_privileged_roles()
     {

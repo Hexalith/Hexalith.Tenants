@@ -889,6 +889,39 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
     }
 
+    /// <summary>
+    /// Paging must not unmount an open member command flow.
+    /// </summary>
+    /// <remarks>
+    /// ActiveChangeRoleMember and ActiveRemoveMember resolve against Members.Rows, so once the next page no
+    /// longer contains the target the @if guard tears the flow component down mid-command and its lifecycle
+    /// state, receipt and projection confirmation are destroyed with no announcement. The pager consulted
+    /// only CanGoPrevious/HasMore/IsRefreshing and never the open-flow state.
+    /// </remarks>
+    [Fact]
+    public void Member_paging_is_blocked_while_a_member_command_flow_is_open()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot members = MemberSnapshot(detail) with { HasMore = true, NextCursor = "page-2" };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, members));
+
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+
+        cut.Find("[data-testid='tenants-change-role-open']").Click();
+        cut.Find("[data-testid='tenants-change-role-flow']");
+
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeTrue(
+            "paging away from an open change-role flow destroys its lifecycle state and receipt");
+    }
+
     [Fact]
     public void Member_access_review_opens_change_role_flow_without_removing_add_or_remove_action_slots()
     {
@@ -1026,6 +1059,142 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("does not reveal hidden memberships");
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("stale data");
         cut.Markup.ShouldNotContain("tenants-member-row");
+    }
+
+    // AC6: empty, unauthorized, not-found, error, degraded, stale and unknown remain distinct. The surface
+    // previously routed every non-Empty kind through one "tenants-member-state" id and one
+    // "Member read unavailable" title, so an authorization denial, a missing tenant, an expired cursor and a
+    // failed read were indistinguishable to an operator and to any selector-based test.
+    [Theory]
+    [InlineData(TenantUsersSurfaceKind.Unauthorized, "tenants-member-unauthorized", "not authorized to view these members")]
+    [InlineData(TenantUsersSurfaceKind.NotFound, "tenants-member-not-found", "member read was not found")]
+    [InlineData(TenantUsersSurfaceKind.Invalid, "tenants-member-invalid", "no longer valid")]
+    [InlineData(TenantUsersSurfaceKind.Unavailable, "tenants-member-unavailable", "cannot be loaded right now")]
+    [InlineData(TenantUsersSurfaceKind.Error, "tenants-member-error", "member read failed")]
+    [InlineData(TenantUsersSurfaceKind.Loading, "tenants-member-loading", "Loading visible members")]
+    public void Member_access_review_renders_each_non_empty_read_state_distinctly(
+        TenantUsersSurfaceKind kind,
+        string expectedTestId,
+        string expectedMessageFragment)
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot members = MemberSnapshot(detail) with
+        {
+            Kind = kind,
+            Rows = [],
+        };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, members));
+
+        cut.Find($"[data-testid='{expectedTestId}']").TextContent.ShouldContain(expectedMessageFragment);
+
+        // Never the authorization-safe absence id, which claims the tenant genuinely has no visible members.
+        cut.FindAll("[data-testid='tenants-member-empty']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("tenants-member-row");
+    }
+
+    // The shared MemberSnapshot fixture is built FROM detail.Members, so every test using it would still pass
+    // if Rows, ActiveChangeRoleMember and ActiveRemoveMember were reverted to the pre-1.10 Detail.Members
+    // source -- the exact defect this story exists to fix. This fixture is deliberately disjoint so the
+    // authoritative read is the only thing that can produce the rendered rows and the flow targets.
+    [Fact]
+    public void Member_rows_and_command_flow_targets_come_only_from_the_authoritative_member_read()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(),
+            TenantStatus.Active,
+            [new TenantMember("user.embedded", TenantRole.TenantOwner)]);
+        TenantUsersSnapshot authoritative = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.authoritative", TenantRole.TenantOwner)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "members-etag",
+            projectionVersion: "v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, authoritative));
+
+        cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("user.authoritative");
+
+        // The embedded detail member must not reach any rendered surface, including the flow targets.
+        cut.Markup.ShouldNotContain("user.embedded");
+    }
+
+    [Fact]
+    public void Member_access_review_announces_page_one_recovery_after_an_expired_cursor()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot members = MemberSnapshot(detail) with
+        {
+            PagingRecovered = true,
+            Reason = TenantUsersReason.ListRefreshed,
+        };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, members));
+
+        // epic-1-context: invalid or stale cursor state restarts at page 1 with an honest localized notice.
+        IElement notice = cut.Find("[data-testid='tenants-member-page-recovered']");
+        notice.GetAttribute("aria-live").ShouldBe("polite");
+        notice.TextContent.ShouldContain("restarted at the first page");
+    }
+
+    // The owner context is computed from Detail.Members, which is a different read at a possibly different
+    // projection version than the authoritative member page. When the two disagree it must not be rendered
+    // as fact. This guard previously had no assertion anywhere in the suite.
+    [Fact]
+    public void Member_access_review_withholds_owner_context_when_member_and_detail_evidence_disagree()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot mismatched = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
+
+        IRenderedComponent<MemberAccessReview> mismatch = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "detail-v1")
+            .Add(view => view.Members, mismatched));
+
+        string withheld = mismatch.Find("[data-testid='tenants-member-owner-context']").TextContent;
+        withheld.ShouldContain("unavailable");
+        withheld.ShouldNotContain("visible owner");
+
+        IRenderedComponent<MemberAccessReview> agreeing = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail)));
+
+        agreeing.Find("[data-testid='tenants-member-owner-context']").TextContent
+            .ShouldNotContain("unavailable");
     }
 
     [Fact]
@@ -2001,7 +2170,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Detail.FullTenantIdLabel"] = "Full tenant identifier {0}",
             ["Tenants.Detail.IdentityLabel"] = "Tenant identity",
             ["Tenants.Detail.LifecycleLabel"] = "Lifecycle",
-            ["Tenants.Detail.Members.Summary"] = "{0} members, including {1} owners.",
             ["Tenants.Detail.Members.VisiblePageSummary"] = "{0} members visible on this page. Owner context is unavailable until both reads are current and version-consistent.",
             ["Tenants.Detail.Members.VisiblePageSummaryWithOwners"] = "{0} members visible on this page; authoritative tenant detail reports {1} owners.",
             ["Tenants.Detail.Members.Title"] = "Member summary",
@@ -2258,6 +2426,20 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Members.ScopeNotice"] = "Visible members only. Orphan context is unavailable in this read model; disabled lifecycle is shown from tenant status.",
             ["Tenants.Members.State.Degraded"] = "Member evidence is degraded.",
             ["Tenants.Members.State.Stale"] = "Member evidence is stale.",
+            ["Tenants.Members.State.Loading"] = "Loading visible members.",
+            ["Tenants.Members.State.Unknown"] = "Member freshness cannot be established.",
+            ["Tenants.Members.State.Unauthorized"] = "You are not authorized to view these members.",
+            ["Tenants.Members.State.NotFound"] = "The tenant member read was not found.",
+            ["Tenants.Members.State.Invalid"] = "The member page reference is no longer valid.",
+            ["Tenants.Members.State.Error"] = "The member read failed. Retry, or refresh the tenant.",
+            ["Tenants.Members.State.Unavailable"] = "Visible members cannot be loaded right now.",
+            ["Tenants.Members.State.Title"] = "Member read unavailable",
+            ["Tenants.Members.State.Loading.Title"] = "Loading members",
+            ["Tenants.Members.State.Invalid.Title"] = "Member page reference expired",
+            ["Tenants.Members.State.NotFound.Title"] = "Members not found",
+            ["Tenants.Members.State.Unauthorized.Title"] = "Members not available to you",
+            ["Tenants.Members.Recovery.PageRecovered"] = "The member list restarted at the first page because the previous page reference expired.",
+            ["Tenants.Members.OwnerContext.Unavailable"] = "Owner context is unavailable until tenant detail and member evidence are current and version-consistent.",
             ["Tenants.Members.Status.Active"] = "Active",
             ["Tenants.Members.Status.Disabled"] = "Disabled",
             ["Tenants.Members.Status.Unknown"] = "Unknown",

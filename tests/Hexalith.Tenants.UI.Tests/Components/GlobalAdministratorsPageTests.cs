@@ -331,8 +331,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         {
             gateway.GlobalAdministratorCalls.ShouldBe(3);
             cut.Find("[data-testid='tenants-global-admins-empty']");
-            cut.FindAll("[data-testid='tenants-global-admins-retry']").ShouldBeEmpty();
-            cut.FindAll("[data-testid='tenants-global-admins-reset']").ShouldBeEmpty();
+
+            // Recovery affordances must SURVIVE an empty page. ShouldRenderRows requires Rows.Count > 0 and
+            // owns the pager, Refresh and grid, so an Empty page renders no controls of its own; if Retry and
+            // Reset also disappeared, an operator who paged into a page emptied by a concurrent removal would
+            // be stranded on that cursor with only a browser reload to recover.
+            cut.FindAll("[data-testid='tenants-global-admins-retry']").ShouldNotBeEmpty();
+            cut.FindAll("[data-testid='tenants-global-admins-reset']").ShouldNotBeEmpty();
         });
         gateway.Requests[2].ETag.ShouldBeNull();
     }
@@ -760,6 +765,57 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-remove-recovery']").TextContent.ShouldContain("grant", Case.Insensitive);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
         cut.Markup.ShouldNotContain("tenant-member", Case.Insensitive);
+    }
+
+    /// <summary>
+    /// The last-administrator hard stop must bind at SUBMIT, not only at preview time.
+    /// </summary>
+    /// <remarks>
+    /// A projection notification replaces the snapshot underneath a Previewed intent without resetting the
+    /// remove flow, so a preview taken while two administrators were visible could be submitted after the
+    /// page had refreshed to a complete single-administrator page. IsRemoveSubmitDisabled consulted only the
+    /// lifecycle state, and SubmitRemoveAsync re-checked only authorization -- the grant path already
+    /// re-evaluated its full unavailable reason, so the asymmetry was the defect.
+    /// </remarks>
+    [Fact]
+    public async Task Remove_submission_is_blocked_when_a_refresh_makes_the_target_the_last_administrator()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        var gateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current) with
+            { IsCompleteEvidence = true },
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag-2\"",
+                freshness: ReadModelFreshnessState.Current) with
+            { IsCompleteEvidence = true });
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
+
+        // Refresh under the open preview: the page now holds a complete single-administrator page.
+        await cut.Find("[data-testid='tenants-global-admins-refresh']").ClickAsync(new MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(2));
+
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeTrue());
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
     }
 
     [Fact]
@@ -1231,11 +1287,18 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         styles.ShouldContain("@media (max-width: 42rem)");
         styles.ShouldContain("overflow-wrap: anywhere");
 
-        // The mobile read-only rules target classes applied to Fluent child components, whose rendered
-        // elements never receive this component's CSS-isolation scope attribute. Without ::deep the compiled
-        // selectors match no node, so both rules must carry it or the breakpoint silently does nothing.
-        styles.ShouldContain("::deep .global-admins__mobile-readonly");
+        // The per-row Remove launcher is a FluentButton, so it carries no scope attribute of its own, but it
+        // renders inside a plain scoped ancestor -- ::deep is both necessary and sufficient there.
         styles.ShouldContain("::deep .global-admins__mutation-initiation");
+
+        // The read-only notice is different: ::deep alone was NOT enough, because ::deep still compiles to
+        // "[b-xxx] <selector>" and the FluentMessageBar had no ancestor rendered by this component to carry
+        // the scope attribute. It is now hidden via its own plain-HTML host element, which does. Asserting
+        // the host selector (and the absence of the ::deep form) keeps the inert construct from returning.
+        styles.ShouldContain(".global-admins__mobile-readonly-host");
+        styles.ShouldNotContain("::deep .global-admins__mobile-readonly ");
+        styles.ShouldNotContain("::deep .global-admins__mobile-readonly{");
+        styles.ShouldNotContain("::deep .global-admins__mobile-readonly {");
     }
 
     /// <summary>
@@ -1271,8 +1334,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         cut.FindAll("[data-testid='tenants-global-admins-mobile-readonly']")
             .ShouldNotBeEmpty("the mobile read-only notice must exist for the breakpoint rule to reveal it");
-        cut.FindAll(".global-admins__mobile-readonly")
-            .ShouldNotBeEmpty("the notice must carry the class the breakpoint rule targets");
+
+        // The host wrapper is the element the breakpoint actually hides and reveals. It must be plain HTML
+        // rendered by this component, because that is the only thing CSS isolation will scope; asserting the
+        // class on the FluentMessageBar alone is what let the permanently-visible-on-desktop defect survive.
+        cut.FindAll("div.global-admins__mobile-readonly-host")
+            .ShouldNotBeEmpty("the notice must sit inside a plain scoped host for the breakpoint rule to match");
 
         // Every per-row Remove launcher must be hideable, not just the grant/remove panel controls.
         cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2);

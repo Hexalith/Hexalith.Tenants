@@ -89,8 +89,28 @@ public class EventPublicationConfigurationTests {
         // The previous assertion here (ShouldNotContain("Tenants__BaseAddress")) described the pre-1.10
         // architecture and is retired -- keeping it would have made the read transport unreachable in every
         // deployment while still passing CI.
-        program.ShouldContain("Tenants__BaseAddress");
-        program.ShouldContain(".WithReference(tenantsApi)");
+        // Asserted as exact wiring lines, not bare substrings. "Tenants__BaseAddress" also appears in the
+        // explanatory comment beside this wiring, so ShouldContain("Tenants__BaseAddress") stayed green even
+        // if the WithEnvironment call were deleted -- and neither substring pinned the value to the
+        // tenants-api https endpoint, so binding it to eventStoreHttps would also have passed while every
+        // read resolved UnavailableTenantQueryGateway. That is exactly the HOST-REF-1 reopening this guard
+        // exists to prevent.
+        normalizedProgram.ShouldContain(
+            "    .WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
+        normalizedProgram.ShouldContain("    .WithReference(tenantsApi)");
+        normalizedProgram.ShouldContain("    .WaitFor(tenantsApi)");
+
+        // ...and attached to the UI resource, not to some other builder in the file.
+        int tenantsUiStart = normalizedProgram.IndexOf(
+            "IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>(\"tenants-ui\")",
+            StringComparison.Ordinal);
+        tenantsUiStart.ShouldBeGreaterThan(-1, "the tenants-ui resource declaration must be present");
+        int tenantsUiEnd = normalizedProgram.IndexOf("\n\n", tenantsUiStart, StringComparison.Ordinal);
+        string tenantsUiBlock = tenantsUiEnd < 0
+            ? normalizedProgram[tenantsUiStart..]
+            : normalizedProgram[tenantsUiStart..tenantsUiEnd];
+        tenantsUiBlock.ShouldContain(".WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
+        tenantsUiBlock.ShouldContain(".WithReference(tenantsApi)");
 
         // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
         // AppHost composition (the helper adds only the service runtime).

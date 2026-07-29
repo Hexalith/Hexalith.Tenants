@@ -21,7 +21,8 @@ public sealed record TenantUsersSnapshot(
     TenantUsersReason Reason,
     bool IsRefreshing = false,
     string? RequestCursor = null,
-    int RequestPageSize = 20)
+    int RequestPageSize = 20,
+    bool PagingRecovered = false)
 {
     /// <summary>Creates a first-load state without discarding a separate prior snapshot.</summary>
     public static TenantUsersSnapshot Loading(string? tenantId = null)
@@ -133,7 +134,7 @@ public sealed record TenantUsersSnapshot(
 
     /// <summary>Returns a support-safe description that omits identities, cursors, ETags, and versions.</summary>
     public override string ToString()
-        => $"{nameof(TenantUsersSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, IsRefreshing = {IsRefreshing} }}";
+        => $"{nameof(TenantUsersSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, IsRefreshing = {IsRefreshing}, PagingRecovered = {PagingRecovered} }}";
 
     private static TenantUsersSnapshot EmptyState(
         TenantUsersSurfaceKind kind,

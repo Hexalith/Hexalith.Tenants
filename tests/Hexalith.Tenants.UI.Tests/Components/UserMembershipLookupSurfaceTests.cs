@@ -146,6 +146,35 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
     }
 
+    /// <summary>
+    /// An expired protected cursor must be reported, not silently swallowed.
+    /// </summary>
+    /// <remarks>
+    /// epic-1-context.md: "invalid or stale cursor state restarts at page 1 with an honest localized
+    /// notice". AnnouncementFor switched on Kind alone, so after recovery the panel announced a plain
+    /// "N tenants" while the view had jumped back to page one.
+    /// </remarks>
+    [Fact]
+    public void User_lookup_page_one_recovery_is_announced_instead_of_restarting_silently()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            targetUserId: "target.user") with
+        {
+            PagingRecovered = true,
+            Reason = UserTenantMembershipReason.PageRecovered,
+        });
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
+
+        AngleSharp.Dom.IElement notice = cut.WaitForElement("[data-testid='tenants-user-page-recovered']");
+        notice.GetAttribute("aria-live").ShouldBe("polite");
+        notice.TextContent.ShouldContain("restarted at the first page");
+        cut.Markup.ShouldContain("restarted at the first page");
+    }
+
     [Fact]
     public void User_lookup_activates_copy_for_the_authorized_projection_literal_only()
     {
@@ -420,6 +449,8 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Announcement.Invalid"] = "Enter a user identifier before running the lookup.",
             ["Tenants.UserLookup.Announcement.Loading"] = "Looking up visible memberships for {0}.",
             ["Tenants.UserLookup.Announcement.Ready"] = "{0} visible memberships loaded for {1}.",
+            ["Tenants.UserLookup.Recovery.PageRecovered"] = "The results restarted at the first page because the previous page reference expired.",
+            ["Tenants.UserLookup.Announcement.PageRecovered"] = "The tenant results for {0} restarted at the first page because the previous page reference expired.",
             ["Tenants.UserLookup.Announcement.Sorted"] = "Visible memberships sorted.",
             ["Tenants.UserLookup.Announcement.Stale"] = "Membership evidence for {0} is stale.",
             ["Tenants.UserLookup.Announcement.Unauthorized"] = "The user membership lookup is not authorized for {0}.",

@@ -2,7 +2,7 @@
 
 Date: 2026-07-28  
 Story baseline commit: `8d64563c75423c861b0be0e3a7cc4de18f673d37`  
-Repository revision under the working tree: `96bdfd8` + uncommitted working-tree changes
+Repository revision under the working tree: `09947a2` + completion metadata changes
 
 ## Outcome
 
@@ -31,7 +31,8 @@ confirmation, or audit availability.
 5. `/api/tenants/{tenantId}/audit?from=…&to=…&category=…&cursor=…&pageSize=…`
 6. `/api/global-administrators?cursor=…&pageSize=…`
 
-The six path-building sites were lines 39, 53, 68, 85, 102, and 120 at verification time. Literal
+The six path-building sites are lines 52, 71, 91, 113, 135, and 167 (corrected in review loop 4; the
+previously recorded 39/53/68/85/102/120 no longer resolved to the code they described). Literal
 route identities and query values are escaped; dot-only route identities cannot be normalized into a
 different resource. The client accepts only HTTP/HTTPS base addresses, payloads only from `200 OK`, and
 conditional retention only from `304 Not Modified`. Every other 2xx is rejected.
@@ -363,3 +364,46 @@ and remains explicitly declared in the story File List. No dependency submodule 
 - `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
 - `tests/test-summary.md`
 - `references/Hexalith.Memories` (pre-existing user-owned gitlink movement, preserved)
+
+## Completion revalidation — 2026-07-29
+
+The published `09947a2` dependency commit advanced `references/Hexalith.Memories` after review-loop-3
+validation. The completion workflow therefore treated every earlier result as historical and re-ran the
+required lanes against `09947a2` plus the final documentation/status changes, using .NET SDK `10.0.302`.
+
+Each test project was restored and tested individually in Release package mode with
+`UseHexalithProjectReferences=false`, `NuGetAudit=false`, serialized MSBuild, and `--no-restore` on the
+test command. The generated-controller proof and the complete non-performance integration lane were run
+separately from the same freshly built integration assembly.
+
+| Lane | Result |
+| --- | --- |
+| UI | **PASS — 1,507 passed, 0 failed, 0 skipped** |
+| Generated-controller integration | **PASS — 26 passed, 0 failed, 0 skipped** |
+| IntegrationTests (`Category!=Performance`) | **PASS — 167 passed, 0 failed, 0 skipped** |
+| Contracts | **PASS — 120 passed, 0 failed, 0 skipped** |
+| Client | **PASS — 50 passed, 0 failed, 0 skipped** |
+| Testing | **PASS — 181 passed, 0 failed, 0 skipped** |
+| Server | **PASS — 738 passed, 0 failed, 0 skipped** |
+| Sample | **PASS — 39 passed, 0 failed, 0 skipped** |
+| Release solution build (`-warnaserror`) | **PASS — 0 warnings, 0 errors** |
+| Generic-query scan | **PASS — no matches (expected `rg` exit 1)** |
+| Invented tenant-index scan | **PASS — no matches (expected `rg` exit 1)** |
+| Staged and unstaged whitespace checks | **PASS** |
+| `validate-story-gitlinks.py` | **PASS — exit 0; all six moved pointers declared** |
+
+The gitlink validator compared story baseline `8d64563` to `09947a2` plus the completion tree and reported:
+
+```text
+[declared] references/Hexalith.AI.Tools  991e8ea -> 859d53b
+[declared] references/Hexalith.Builds  53d53ae -> 13cad86
+[declared] references/Hexalith.Commons  427530e -> f2b5f1b
+[declared] references/Hexalith.EventStore  5a1d277 -> 1d42528
+[declared] references/Hexalith.FrontComposer  7870526 -> b6efcad
+[declared] references/Hexalith.Memories  1868c8f -> ccd8efa
+```
+
+No live `HOST-REF-1`, dependency, test, build, support-safety, or gitlink blocker remains. The story-owned
+File List was re-audited and expanded to include the implementation, host wiring, state, localization,
+integration, regression, and evidence files represented by the completed Story 1.10 work; Story 1.11 and
+unrelated BMAD render files remain outside this story's ownership.

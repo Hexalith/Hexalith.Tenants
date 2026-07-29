@@ -84,7 +84,8 @@ public sealed class TenantUsersSnapshotTests
             snapshot.Reason.ShouldBe(reason);
             snapshot.ToString().ShouldBe(
                 $"TenantUsersSnapshot {{ Kind = Loading, RowCount = 0, HasMore = False, Freshness = Unknown, "
-                + $"Lifecycle = Unknown, IsAuthorizationScopedEmpty = False, Reason = {reason}, IsRefreshing = False }}");
+                + $"Lifecycle = Unknown, IsAuthorizationScopedEmpty = False, Reason = {reason}, IsRefreshing = False, "
+                + $"PagingRecovered = False }}");
         }
     }
 

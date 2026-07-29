@@ -5,7 +5,7 @@ created: '2026-07-28'
 status: 'in-progress'
 baseline_commit: '8d64563c75423c861b0be0e3a7cc4de18f673d37'
 baseline_revision: '54fabf9852168b7e1f1639f9253472889397915a'
-review_loop_iteration: 3
+review_loop_iteration: 4
 followup_review_recommended: true
 context:
   - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -62,7 +62,7 @@ warnings:
 - `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsRestQueryClient.cs`, `TenantsRestQueryClient.cs`, `TenantsRestQueryResponse.cs`, and `TenantsRestQueryFailureKind.cs` -- implement the typed server-side GET seam for exactly list, detail, tenant users, user tenants, audit, and global administrators; build only the documented paths/query fields; send conditional ETags; parse supported response headers case-insensitively into shared metadata; validate 304 evidence; map status/transport failures to fixed support-safe categories; avoid response-content/default HTTP logging.
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs` -- accept only HTTP/HTTPS base addresses; encode literal route segments so dot-only identifiers cannot be normalized as `.` or `..`; bound both request and response ETags; accept payloads only from `200 OK`; reject every other non-304 status, including other 2xx responses; validate paginated payload shape (`Items`, `HasMore`, continuation cursor); and map header-stage plus body-stream `TaskCanceledException`, `HttpRequestException`, and `IOException` to fixed timeout/unavailable results while propagating caller cancellation.
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs` and `TenantQueryGateway.cs` -- accept `304 Not Modified` only when a supported strong request validator was actually sent and the response repeats the exact normalized strong ETag with projection-backed, non-degraded version/freshness evidence. Never relabel retained payload with a different ETag or projection version. Do not infer `invalid-cursor` from an undifferentiated HTTP 400 or automatically retry it as page one without an explicit safe contract signal.
-- `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs` -- register the REST client from `Tenants:BaseAddress` with FrontComposer bearer relay and service discovery, independently register command/status dependencies from `EventStore:BaseAddress`, and resolve unavailable gateways per missing side without fallback. Do not edit AppHost.
+- `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs` -- register the REST client from `Tenants:BaseAddress` with FrontComposer bearer relay and service discovery, independently register command/status dependencies from `EventStore:BaseAddress`, and resolve unavailable gateways per missing side without fallback. ~~Do not edit AppHost.~~ **Superseded by review decision D2 (2026-07-28):** the constraint is waived for the single purpose of wiring `Tenants__BaseAddress` and the `tenants-api` reference onto the `tenants-ui` resource, which is what closes `HOST-REF-1`. No other AppHost change is authorized.
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` and `ITenantQueryGateway.cs` -- replace every generic query submission with its direct typed GET; retain existing conservative snapshot semantics and Memories candidate hydration; add the tenant-users operation; delete query-client dependency without changing command/status behavior. Every transient failure during a refresh must retain the matching read's last-confirmed rows, ETag, paging context, and honest degraded/unknown state; a first-load failure with no retained evidence must use a true unavailable/error state rather than claiming retained degradation.
 - `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersRequest.cs`, `TenantUsersSnapshot.cs`, `TenantUsersReason.cs`, and `TenantUsersSurfaceKind.cs` -- add immutable cursor paging, ETag/projection version, shared freshness/lifecycle, last-confirmed preservation, authorization-safe absence, and support-safe `ToString`; no rendered/internal metadata leakage.
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` and `Components/Tenants/Members/MemberAccessReview.razor` -- load and refresh detail and tenant users independently; render member loading/empty/unavailable/stale/degraded/unknown and cursor navigation; source rows only from tenant users, but preserve detail-owned owner count and existing detail-based command confirmation. Enable member actions and show combined owner/total governance claims only when the required detail/member evidence is current and projection-version consistent; label a paged row count as the visible-page count. Retain last-confirmed rows while refreshing, reset cursor/history after page-one recovery, reject `HasMore` without a usable continuation cursor, and suppress duplicate paging requests while a load is active.
@@ -90,14 +90,20 @@ warnings:
 - **Triggering findings:** The first implementation accepted mismatched/no-validator 304s, let body-stream failures escape, inferred cursor recovery from every 400, dropped retained reads on refresh failure, allowed stale route/paging completions, used unroutable or uncoordinated notification subscriptions, exposed misleading member totals, and lacked security/user-surface tests for bearer relay, member authority, paging, and notification wiring. It also committed three undeclared `references/` gitlinks while the evidence claimed the gitlink guard passed.
 - **Amendment:** Tightened transport/status/payload/ETag invariants; made prior-state retention and first-load truth explicit; added exact route/load-generation, paging, subscription reference-count/disposal/producer-compatibility, authorization, and member-summary rules; required outbound bearer observation and component-level negative evidence; and bound evidence completion to a real final gitlink-validator exit code.
 - **Known-bad state avoided:** Old payload can no longer be certified by unrelated cache metadata; cross-route or late refreshes cannot overwrite the active tenant/page; one lease cannot detach another; synthetic `tenant-index:system` subscriptions cannot masquerade as live refresh; transient failures cannot erase confirmed rows; and story completion cannot silently absorb dependency pointer changes.
-- **KEEP:** Preserve the six typed direct REST methods and exact routes; independent `Tenants:BaseAddress` versus `EventStore:BaseAddress` registration; absence of generic query calls from production Tenants UI; server-only bearer relay/service discovery; conservative shared metadata/lifecycle types; dedicated immutable tenant-users snapshots and version-consistent action gating; optional nudge-only refresh semantics; existing EN/FR/accessibility work; focused controller/UI verification; unchanged AppHost, public backend/query contracts, command/status endpoints, and baseline submodule pointers.
+- **KEEP:** Preserve the six typed direct REST methods and exact routes; independent `Tenants:BaseAddress` versus `EventStore:BaseAddress` registration; absence of generic query calls from production Tenants UI; server-only bearer relay/service discovery; conservative shared metadata/lifecycle types; dedicated immutable tenant-users snapshots and version-consistent action gating; optional nudge-only refresh semantics; existing EN/FR/accessibility work; focused controller/UI verification; public backend/query contracts, command/status endpoints, and baseline submodule pointers. AppHost is no longer "unchanged": review decision D2 authorized the `Tenants__BaseAddress` / `tenants-api` wiring on `tenants-ui`, and that wiring must be preserved — removing it reopens `HOST-REF-1`.
 
 ### 2026-07-29 — Review repair loop 3
 
 - **Triggering findings:** Thirteen unchecked review items identified test-efficacy gaps around production-boundary failure mapping, snapshot state coverage, authorization transitions, rendered recovery affordances, audit rebinding/generation safety, member cursor recovery, independent ETag bounds, mid-flight cancellation, safe logging, direct gateway arguments, teardown behavior, and canonical return URLs.
 - **Amendment:** Added focused tests at the production seams and component boundaries, then mutation-verified each assertion by temporarily removing or reversing the guarded behavior. The authorization-transition test exposed one production defect: a background administrator restore updated `_snapshot` without publishing a render; the page now calls `StateHasChanged()` after applying that result.
 - **Known-bad state avoided:** Adapter-generated expectations can no longer substitute for direct typed-client arguments; entry cancellation cannot stand in for body-phase cancellation; formatted log text cannot hide an attached exception; late disposed authentication completions and stale audit generations are observable; cursor recovery, duplicate suppression, ETag limits, and canonical return-key coverage each fail when their production guard is removed.
-- **KEEP:** Preserve the review-loop-2 transport, composition, freshness, authorization, paging, and host decisions. No public contract, command/status route, AppHost, or dependency content changed in this loop.
+- **KEEP:** Preserve the review-loop-2 transport, composition, freshness, authorization, paging, and host decisions. No public contract, command/status route, or dependency content changed in this loop. (AppHost *was* changed earlier in the range, by review decision D2 — see the Tasks entry above. The original "unchanged AppHost" wording was never amended after the waiver and is corrected here.)
+
+### 2026-07-29 — Completion revalidation
+
+- **Trigger:** The published `09947a2` dependency commit advanced `references/Hexalith.Memories` after the review-loop-3 evidence was recorded.
+- **Validation:** Re-ran every repository test project individually in Release package mode, the generated-controller and non-performance integration lanes, the warning-as-error Release solution build, the two prohibited-symbol scans, whitespace checks, and the story gitlink validator against `09947a2` plus the completion metadata changes.
+- **Result:** UI 1,507/1,507; generated-controller integration 26/26; non-performance integration 167/167; Contracts 120/120; Client 50/50; Testing 181/181; Server 738/738; Sample 39/39; solution build 0 warnings/0 errors; no prohibited generic-query or invented tenant-index symbols; all six moved gitlinks declared.
 
 ## Review Triage Log
 
@@ -270,44 +276,154 @@ source before rating.
 - [x] [Review][Patch] [low] Move the added availability interface, record, cursor-signal enum, and response-size exception into one-type-per-file declarations [src/Hexalith.Tenants.UI/Services/Gateways/TenantsReadSurfaceAvailability.cs:11]
 - [x] [Review][Patch] [low] Complete required XML documentation for the new tenant-users gateway member and direct-read name constants [src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs:31]
 
+### Review Findings — review loop 4, production `src/` chunk (2026-07-29)
+
+Four layers (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) over `8d64563..worktree -- src/`
+(46 files, +4,820/-534). 42 raw findings deduped to 33 and re-verified against post-change source before rating.
+Scope note: this pass covered production `src/` only. The `tests/` (22 files, +5,020/-185) and `_bmad-output/`
+chunks were not reviewed as primary targets; test files were read only as evidence for verification-gap findings.
+
+#### Decisions needed
+
+- [ ] [Review][Decision] Global-administrators 304 promotes the response `ProjectionVersion` while the normative Task text forbids it — Task line 64 reads "Never relabel retained payload with a different ETag or projection version", but `TenantQueryGateway.cs:625` sets `ProjectionVersion = result.Metadata?.ProjectionVersion` and recomputes `IsCompleteEvidence` from it, diverging from all five sibling reads which keep `previous.ProjectionVersion`. Review loop 3 dismissed this as a code defect and added a rationale comment plus a pinning test; the retained `ETag` genuinely is preserved. The unresolved item is the contradiction itself: either amend the Task text to carve out the exact-strong-ETag case, or bring the branch back in line with its siblings. Leaving both as-is means the spec and the tree disagree on a rule that gates a destructive command.
+- [ ] [Review][Decision] A 304 is accepted as authoritative on freshness derived from the legacy `X-Hexalith-Is-Stale` boolean when the platform reported no lifecycle evidence — When `X-Hexalith-Projection-Lifecycle` is absent, `lifecycle` is `Unknown` ("no authoritative projection lifecycle evidence"), yet `ResolveFreshness` falls through to `IsStale: false => Current` (`TenantsRestQueryClient.cs:396`) and `IsSupportedNotModified` (`:406`) accepts it. That `Current` then satisfies the freshness gate on grant/remove and on `MemberAccessReview.ActionsAreEvidenceBacked`. Review loop 2 decision D6 settled the classification question ("platform contract governs; behavior kept as-is"); this pass adds new downstream evidence that the same value now gates destructive commands, which D6 did not consider. Owner call: keep D6 as-is, or require projection-backed lifecycle evidence specifically for mutation-gating freshness.
+- [ ] [Review][Decision] The Story 1.11 split leaves 1.10 declaring files whose in-range content is 1.11 work — Decision D1 extracted the global-administrator authorization work to Story 1.11, but `TenantsWorkspace.razor` is declared in 1.10's File List while its entire net change in the range is the 1.11 privileged entry point (`_canReviewGlobalAdministrators`, `GlobalAdministratorsHref`, the `AuthenticationStateProvider` subscription, `TenantsGlobalAdministratorClaims.Evaluate`). `GlobalAdministratorsPage.razor` and `TenantsBffComposition.cs` legitimately carry both stories' work, but `TenantsGlobalAdministratorClaims.cs` and `TenantConfigurationPrincipalResolver.cs` — same commit, same concern — are excluded. The boundary is drawn inconsistently within one commit. Owner call: re-cut both File Lists, or record that shared files are declared by both stories.
+
+#### Patch
+
+- [x] [Review][Patch] [high] Remove-global-administrator submit re-checks nothing: the last-admin hard stop, freshness and completeness gates are render-time only, so a notification refresh under a `Previewed` intent leaves Submit enabled and the last administrator removable [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:681]
+- [x] [Review][Patch] [high] Paging into an emptied global-administrators page strands the operator with no controls at all — `Empty` is in `IsSuccessfulPage` (so the cursor commits) but absent from both `ShouldRenderRows` and `CanRecover`, removing pager, Refresh, Retry and Reset together [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:517]
+- [x] [Review][Patch] [high] Global-administrator retention fabricates a `Degraded` surface with zero retained rows and renders "Last confirmed administrators remain visible" when none are; the tenant-users mapper has the guard this path lacks [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2113]
+- [x] [Review][Patch] [high] `TenantAuditPage.LoadAsync` leaves the tenant-detail enrichment call unguarded, so a Refresh during initial load lets `OperationCanceledException` escape `OnParametersSetAsync` and tear down the circuit; the sibling call one line below has the filter [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:399]
+- [x] [Review][Patch] [high] Page-one cursor recovery is silent on the member, My Tenants and user-membership surfaces, violating the `epic-1-context.md:27` notice constraint that decision D7 restored specifically to force this repair; `TenantUsersReason.ListRefreshed` is unreachable (its only producer is gated by `isListRefreshed`, and the sole call site passes `false`) and `UserTenantMembershipReason.PageRecovered` has no consumer [src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor:157]
+- [x] [Review][Patch] [high] The member pager stays live during an in-flight member command, so paging unmounts `RemoveTenantMemberFlow` mid-command and destroys its lifecycle state and receipt; `_activeRemoveMemberUserId` is not cleared by paging, so returning silently re-opens a flow the user never re-initiated [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:243]
+- [x] [Review][Patch] [high] The only live-stack read test substitutes an adapter that re-implements the pre-1.10 `SubmitQueryAsync` path, so nothing exercises `TenantsRestQueryClient` against a running topology — no route, no `X-Hexalith-*` header parsing, no base-path preservation, no failure mapping [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:379]
+- [x] [Review][Patch] [medium] The member-paging retention fix is inoperative: `HasMatchingTenantUsers` gates on `MatchesPageScope(previous.RequestCursor, …, request.Cursor, …)`, which is false by construction on every paging request, so passing `retained` cannot reach gateway retention and the in-component substitute remains the only path — while the code comment asserts the opposite [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:512]
+- [x] [Review][Patch] [medium] Member invalid-cursor recovery assigns the recovered snapshot unconditionally, bypassing the non-usable-kind guard directly below it, so a transient failure on the recovery read empties the table after history was already cleared — leaving no Previous and no way back [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:528]
+- [x] [Review][Patch] [medium] The mobile read-only notice is still permanently visible on desktop: `::deep` compiles to `[b-xxx] .global-admins__mobile-readonly` and the `FluentMessageBar` has no plain-HTML scoped ancestor from this component, so the rule matches nothing. Needs a scoped wrapper element, not `::deep` alone. The loop-3 patch and its stylesheet assertion both pin the inert construct [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:10]
+- [x] [Review][Patch] [medium] `_supersededCancellations` is an unsynchronized `List<T>` mutated off the renderer dispatcher by `Retire` and enumerated during `DisposeAsync`, so a disposal concurrent with an authorization collapse throws `InvalidOperationException` out of component teardown; every other shared counter on this page uses `Interlocked`/`Volatile` [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:495]
+- [x] [Review][Patch] [medium] The loop-3 cancellation fixes were applied only to `GlobalAdministratorsPage`: `TenantAuditPage` still uses plain `++_loadGeneration` with an unsynchronized read in `CanApply`, and both `TenantAuditPage` and `TenantDetailPage` still dispose a `CancellationTokenSource` whose token is in flight — the resulting `ObjectDisposedException` is not an `OperationCanceledException` and escapes every catch filter on those pages [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1001]
+- [x] [Review][Patch] [medium] The audit refresh subscription is bound to the load cancellation token, so a Refresh during setup cancels `SubscribeAsync` and returns without recording `_subscriptionTenantId`; nothing retries for the same tenant, permanently disabling projection auto-refresh for the circuit. The sibling page passes `CancellationToken.None` [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:457]
+- [x] [Review][Patch] [medium] The `_readRefreshSubscriptionInFlight` guard drops the changed-tenant case it does not cover: switching tenants mid-setup returns early for the new tenant, and the old tenant's completion disposes its lease without ever subscribing the new one [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:445]
+- [x] [Review][Patch] [medium] `LoadMemberPageAsync` applies snapshot, cursor and history writes off the renderer dispatcher after its `CanApply` check with no re-check inside `InvokeAsync`, so a superseded member page can overwrite newer rows and mutate `_memberCursorHistory` concurrently with the renderer reading it; `RefreshTenantReadsAsync` re-checks inside `InvokeAsync` precisely to avoid this [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:521]
+- [x] [Review][Patch] [medium] `GlobalAdministratorsPage.LoadAsync` writes `_snapshot = Loading()` on a thread-pool continuation after `await ReauthorizeAsync().ConfigureAwait(false)` and outside the generation guard, while the result write 30 lines later is deliberately marshalled; a stalled load can overwrite a newer applied snapshot and strand the page on `Loading`, which `CanRecover` excludes [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:838]
+- [x] [Review][Patch] [medium] The member surface collapses distinct read states: `EmptyStateTestId` and `EmptyStateTitle` return the single `tenants-member-state` id and `Tenants.Members.State.Title` for every non-`Empty` kind, and `StateMessage`'s default arm merges `Invalid`, `Unavailable` and `Error` into one string — AC6 requires these to remain distinguishable, and the shared selector also blocks selector-based tests [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:413]
+- [x] [Review][Patch] [medium] The AppHost `Tenants__BaseAddress` wiring that closes HOST-REF-1 is pinned only by `ShouldContain` substring matches over the raw `Program.cs` text; the literal string also appears in the adjacent comment at `Program.cs:147`, so deleting the `WithEnvironment` call keeps the test green, and nothing asserts the value resolves to the `tenants-api` https endpoint [tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs:92]
+- [x] [Review][Patch] [medium] `UnavailableTenantQueryGateway.GetTenantUsersAsync` is the only one of the seven reads with no fail-closed test, and it is exactly the HOST-REF-1 misconfiguration path; an `Empty`-instead-of-`Unavailable` regression would render authorization-safe absence for members that simply could not be read [src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs:17]
+- [x] [Review][Patch] [medium] The shared member fixture is built from `detail.Members`, so no `MemberAccessReview` test can prove rows, `ActiveChangeRoleMember` or `ActiveRemoveMember` come from the authoritative tenant-users read — reverting the story's central change would fail nothing those nine renders observe [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1900]
+- [x] [Review][Patch] [medium] The owner-context fail-closed guard has no assertions: `tenants-member-owner-context` appears in no test, so dropping it would let a detail-derived `OwnerCount` render beside members read at a different projection version [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:106]
+- [x] [Review][Patch] [medium] `HasValidPayloadShape`'s `TenantDetail` arm is never driven with a malformed detail payload, so removing it — or its non-blank member-id clause — would let a detail with null or blank-id members deserialize as success and reach `TenantDetailSnapshot.Ready` [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:450]
+- [x] [Review][Patch] [medium] `MemberAccessReview`'s entire non-`Empty` state branch is never rendered by any test (`tenants-member-state` appears nowhere under `tests/`), and the localizer double stubs only two of the eight state keys this change added [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:29]
+- [x] [Review][Patch] [medium] Five changed `src/` files are absent from the File List — `GlobalAdministratorGrantCommandSnapshot.cs`, `GlobalAdministratorRemoveCommandSnapshot.cs`, `GlobalAdministratorsReason.cs`, `GlobalAdministratorsRequest.cs`, `GlobalAdministratorsSurfaceKind.cs` — while the declared `GlobalAdministratorsSnapshot.cs` returns members defined in them [_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md:318]
+- [x] [Review][Patch] [low] The audit pager keeps `_pageLoadInFlight` out of its `Disabled` expressions, unlike the global-administrators pager, so the buttons stay clickable during a load and the guard exists only inside the handlers with no test asserting pager state mid-load [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:159]
+- [x] [Review][Patch] [low] The intent contract still forbids what the tree ships: Task line 65 ("Do not edit AppHost"), the KEEP list line 93 ("unchanged AppHost") and Spec Change Log line 100 ("No … AppHost … content changed in this loop") were never amended after decision D2 waived the constraint; a reader of the contract alone gets the opposite answer [_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md:65]
+- [x] [Review][Patch] [low] The evidence record's six-route proof cites path-building sites at lines 39, 53, 68, 85, 102 and 120; the actual sites at HEAD are 52, 71, 91, 113, 135 and 167. Separately, `Tenants.Detail.Members.Summary` is now dead in production, referenced only by a test stub localizer [_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md:34]
+
+#### Deferred
+
+- [x] [Review][Defer] [high] `ApplyAuthenticationStateChangedAsync` authorizes with the uncorroborated `TenantsGlobalAdministratorClaims.Evaluate` (no `sub` corroboration against `IUserContextAccessor`), then calls `LoadAsync(reauthorize: false)` to skip the corroborated check, so a token refresh whose `sub` does not match the server-side user context unlocks the mutation surface for the circuit [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1178] — deferred to Story 1.11's review loop; global-administrator authorization is 1.11-owned scope per decision D1
+- [x] [Review][Defer] [high] `ResolveSystemScopeEvidence` now requires exactly one distinct `eventstore:tenant` claim value, so a token carrying both `system` and a tenant scope resolves `Indeterminate`; combined with the `GlobalAdministratorPolicy` switch to `Evaluate(...) == Authorized`, every policy-gated surface disappears for multi-scope platform administrators. The `authenticated.Length != 1` guard likewise denies cookie+bearer principals the previous any-match check tolerated [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:116] — deferred to Story 1.11's review loop; 1.11-owned scope per decision D1
+- [x] [Review][Defer] [medium] A single transient authorization-resolution fault collapses the page to the restricted surface permanently: `ResolveAuthorizationReflectionAsync` swallows every exception to `Indeterminate`, and the `!IsAuthorized` branch offers no Refresh, Retry or Reset while `EnsureReadRefreshLeaseAsync` and `CanRecover` are both gated on `IsAuthorized` [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1235] — deferred to Story 1.11's review loop; 1.11-owned scope per decision D1
+- [x] [Review][Defer] [medium] The workspace's Global Administrators entry link evaluates authorization uncorroborated (`:602`) while initial resolution uses the corroborated resolver (`:553`), so the link and the page it targets desynchronize in both directions after any `AuthenticationStateChanged` [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:602] — deferred to Story 1.11's review loop; 1.11-owned scope per decision D1
+
+### Review Findings — review loop 5, core transport/state follow-up (2026-07-29)
+
+Four independent review layers produced 41 raw reports, normalized to 27 claims. Thirteen findings survived triage; 14 reports were dismissed after call-site and owned-server verification. The mandatory story gitlink validator passed with all six declared moves accounted for.
+
+#### Decisions needed
+
+- [ ] [Review][Decision] [high] Resolve the still-open global-administrators `304 Not Modified` projection-version contract: the gateway promotes the response `ProjectionVersion` and can mark the retained snapshot complete, while the normative task forbids relabeling retained payload with a different projection version. This follow-up independently reconfirmed the review-loop-4 decision above; amend the contract for an exact strong-ETag current `304`, or preserve the retained version and keep completeness closed [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:622]
+
+#### Patch
+
+- [ ] [Review][Patch] [high] Bind every conditional `304` reuse path to the retained snapshot's validator—not merely its scope—and give tenant-users the same unconditional retry used by sibling surfaces so a response for validator B can never relabel payload A [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:121]
+- [ ] [Review][Patch] [high] Replace non-null/default-scope and `Rows.Count > 0` retention heuristics with explicit last-confirmed snapshot kinds: current predicates can promote an initial failure to `Degraded`, while a genuinely confirmed empty global-administrator result cannot be retained on a transient refresh failure [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075]
+- [ ] [Review][Patch] [high] Preserve the fixed `Unavailable` failure category through raw HTTP status wrapping; a first-load `500` or non-success `2xx` currently falls through exception mapping to `Degraded` despite having no retained payload [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:587]
+- [ ] [Review][Patch] [high] Let a metadata-complete current `304` clear prior transport degradation for user-tenants, global administrators, audit and tenant-list snapshots; the current resolvers can leave `Kind=Degraded` after freshness becomes `Current`, permanently blocking destructive actions [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2334]
+- [ ] [Review][Patch] [high] Add support-safe `ToString()` overrides for audit and user-membership snapshots so generated record formatting cannot disclose request cursors, projection versions, ETags, target identifiers or row contents [src/Hexalith.Tenants.UI/Services/State/TenantAudit/TenantAuditSnapshot.cs:6]
+- [ ] [Review][Patch] [medium] Close the refresh-subscription registration race: a backend notification can arrive after `SubscribeAsync` succeeds but before the notifier handler and callback are registered, and is then lost [src/Hexalith.Tenants.UI/Services/Gateways/TenantReadRefreshSubscription.cs:72]
+- [ ] [Review][Patch] [medium] Add a DI-level regression test proving the registered Tenants REST client emits no `System.Net.Http.HttpClient.*` logs containing a sentinel cursor after `.RemoveAllLoggers()` [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:72]
+- [ ] [Review][Patch] [medium] Exercise the new `TenantReadRefreshLease.IsSubscribed` contract for missing services, failed setup, successful registration and successful retry after a failed setup [src/Hexalith.Tenants.UI/Services/Gateways/TenantReadRefreshLease.cs:27]
+- [ ] [Review][Patch] [medium] Add callback-isolation coverage proving that one throwing refresh callback neither prevents the next callback nor poisons later nudges, and that only a support-safe reason-code log is emitted [src/Hexalith.Tenants.UI/Services/Gateways/TenantReadRefreshSubscription.cs:226]
+- [ ] [Review][Patch] [medium] Cover tenant-detail projection-version mapping on `200` and preservation on supported `304`; member action consistency consumes this bridge, but existing gateway tests assert only identity and freshness [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:242]
+- [ ] [Review][Patch] [medium] Add mismatched cursor/page-size `304` and failure tests for list, user-tenants, global-administrator and audit surfaces, proving scoped retention cannot reuse rows from another page [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:491]
+
+#### Deferred
+
+- [x] [Review][Defer] [high] Retained direct-read snapshots are scoped by entity/filter/paging but not by authenticated subject, so a principal change inside the same scoped circuit can expose the prior subject's authorized rows during a failure or insensitive `304` [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075] — deferred, pre-existing
+
 ## File List
 
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/epic-1-context.md`
 - `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/story-1-10-direct-tenants-reads-and-authoritative-freshness-evidence-2026-07-28.md`
-- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`
+- `src/Hexalith.Tenants.AppHost/Program.cs`
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
-- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
-- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
-- `tests/test-summary.md`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`
+- `src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor`
 - `src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor`
 - `src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor`
+- `src/Hexalith.Tenants.UI/Components/_Imports.razor`
 - `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`
+- `src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`
 - `src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsReadSurfaceAvailability.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsRestQueryClient.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/InvalidCursorSignal.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/ResponseContentTooLargeException.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsReadSurfaceAvailability.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryFailureKind.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryResponse.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/TenantReadRefreshLease.cs`
+- `src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsReason.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsRequest.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSurfaceKind.cs`
 - `src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantDetail/TenantDetailSnapshot.cs`
 - `src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersReason.cs`
+- `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersRequest.cs`
 - `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersSurfaceKind.cs`
 - `src/Hexalith.Tenants.UI/State/UserTenants/UserTenantMembershipReason.cs`
 - `src/Hexalith.Tenants.UI/State/UserTenants/UserTenantMembershipSnapshot.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceEntryPointTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantUsersSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantConfigurationEndToEndTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `tests/test-summary.md`
 
 Dependency pointers that moved inside this story's baseline range. They are declared here, not reverted:
-the bump is already carried by its own separate `build(deps)` commit (`f425b49`), which is the remedy the
-gitlink guard prescribes. That commit is published on `origin/main`, so reverting would mean a new commit
-undoing a legitimate dependency bump rather than un-bundling anything.
+the movements are carried by published commits in the story range, including the dedicated dependency
+commits `f425b49` and `09947a2`. Reverting them would mean creating new dependency reversions rather than
+un-bundling unpublished work.
 
 - `references/Hexalith.Builds`
 - `references/Hexalith.Commons`
@@ -327,6 +443,10 @@ undoing a legitimate dependency bump rather than un-bundling anything.
   read failures emit bounded diagnostics, unexpected transport failures are contained, keyed overrides are
   ignored by unkeyed composition detection, and the new declarations/documentation follow repository rules.
   Focused gateway/composition tests pass 582/582 and the full UI suite passes 1,507/1,507.
+- ✅ Completion revalidation at `09947a2`: all seven repository test projects pass individually in Release
+  package mode (2,802 tests across UI, Integration, Contracts, Client, Testing, Server, and Sample), the
+  warning-as-error Release solution build has 0 warnings and 0 errors, both prohibited-symbol scans have no
+  matches, and the exact story gitlink validator exits 0 with all six pointer movements declared.
 
 - ✅ Resolved review finding: a direct typed-client invalid-cursor response now executes and mutation-pins
   `ToEventStoreResult` failure mapping before page-one recovery. Focused test and full UI suite pass
@@ -379,24 +499,19 @@ undoing a legitimate dependency bump rather than un-bundling anything.
   solution build passes with 0 warnings and 0 errors; forbidden generic-query and invented tenant-index
   scans return no matches; staged and unstaged diff checks pass; and the final story gitlink validator exits 0.
 
-- `references/Hexalith.Builds` — `53d53ae -> 86aa4cb`. Carries `HexalithMemoriesVersion 2.16.2 -> 2.19.4`
-  and `HexalithTenantsVersion 3.2.18 -> 5.0.0`. Not Story 1.10 work; external dependency maintenance.
-  The major Tenants bump means every verification lane recorded in the evidence file must be re-run
-  against this pointer before the story can close.
+- `references/Hexalith.Builds` — `53d53ae -> 13cad86`. Published dependency maintenance; the completion
+  gates were re-run against this exact pointer.
 - `references/Hexalith.Commons` — `427530e -> f2b5f1b` ("feat(workflow): enhance commitlint configuration
   for pull request title handling"). This upstream workflow-only bump was carried by the published Story
   1.10 review commit `96bdfd8`; it belongs to the story's declared commit range and provenance record, not
   its runtime implementation. Reverting published `origin/main` is outside this review repair.
-- `references/Hexalith.EventStore` — `5a1d277 -> b1d08da`. The final pointer includes the earlier
-  "Docs/story 3 1 closure (#334)" bump and a later upstream Story 3.1 post-merge documentation closure
-  carried by published commit `96bdfd8`. Not Story 1.10 runtime work; declared as commit-range provenance.
+- `references/Hexalith.EventStore` — `5a1d277 -> 1d42528`. Published dependency maintenance; declared as
+  commit-range provenance and included in the completion validation graph.
 - `references/Hexalith.FrontComposer` — `7870526 -> b6efcad` (release-workflow SHA pin and identifier
   inventory metrics). Not Story 1.10 work; upstream release tooling.
-- `references/Hexalith.Memories` — `1868c8f -> a451765` in the published dependency commit ("add story
-  slice scope validation script"). The current working tree additionally points to user-owned
-  `fc92c4d`; that unstaged movement pre-dated this loop and was preserved unchanged. Neither pointer move
-  is Story 1.10 work.
+- `references/Hexalith.Memories` — `1868c8f -> ccd8efa`. The final movement is carried by the published
+  dependency commit `09947a2`; every completion gate was re-run after that movement.
 
-All five are reachable on their respective `origin/main`, so the superproject remains cloneable. The
-earlier evidence record claimed these were reverted and that the validator exited 0; that claim was false
-against this tree and has been corrected in the evidence file.
+All six moved pointers are declared and the validator passes against the completion tree. Earlier pointer
+tables are retained as historical evidence only; the current values above and in the dated evidence report
+are authoritative.

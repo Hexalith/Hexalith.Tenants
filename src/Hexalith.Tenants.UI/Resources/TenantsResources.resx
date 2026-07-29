@@ -618,9 +618,6 @@
   <data name="Tenants.Detail.LifecycleLabel" xml:space="preserve">
     <value>Lifecycle</value>
   </data>
-  <data name="Tenants.Detail.Members.Summary" xml:space="preserve">
-    <value>{0} members, including {1} owners.</value>
-  </data>
   <data name="Tenants.Detail.Members.VisiblePageSummary" xml:space="preserve">
     <value>{0} members visible on this page. Owner context is unavailable until both reads are current and version-consistent.</value>
   </data>
@@ -3629,5 +3626,35 @@
   </data>
   <data name="Tenants.Correction.State.UnableToVerify" xml:space="preserve">
     <value>Correction cannot be verified from current evidence.</value>
+  </data>
+  <data name="Tenants.Members.Recovery.PageRecovered" xml:space="preserve">
+    <value>The member list restarted at the first page because the previous page reference expired.</value>
+  </data>
+  <data name="Tenants.Members.State.Error" xml:space="preserve">
+    <value>The member read failed. Retry, or refresh the tenant.</value>
+  </data>
+  <data name="Tenants.Members.State.Invalid" xml:space="preserve">
+    <value>The member page reference is no longer valid.</value>
+  </data>
+  <data name="Tenants.Members.State.Invalid.Title" xml:space="preserve">
+    <value>Member page reference expired</value>
+  </data>
+  <data name="Tenants.Members.State.Loading.Title" xml:space="preserve">
+    <value>Loading members</value>
+  </data>
+  <data name="Tenants.Members.State.NotFound.Title" xml:space="preserve">
+    <value>Members not found</value>
+  </data>
+  <data name="Tenants.Members.State.Unauthorized.Title" xml:space="preserve">
+    <value>Members not available to you</value>
+  </data>
+  <data name="Tenants.MyTenants.Recovery.PageRecovered" xml:space="preserve">
+    <value>The list restarted at the first page because the previous page reference expired.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.PageRecovered" xml:space="preserve">
+    <value>The tenant results for {0} restarted at the first page because the previous page reference expired.</value>
+  </data>
+  <data name="Tenants.UserLookup.Recovery.PageRecovered" xml:space="preserve">
+    <value>The results restarted at the first page because the previous page reference expired.</value>
   </data>
 </root>

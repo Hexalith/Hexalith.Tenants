@@ -1,9 +1,11 @@
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
@@ -153,4 +155,44 @@ public sealed class UnavailableTenantQueryGatewayTests
     public async Task Get_tenant_audit_rejects_null_request()
         => await Should.ThrowAsync<ArgumentNullException>(() =>
             CreateGateway().GetTenantAuditAsync(null!, previous: null, CancellationToken.None));
+
+    // The members read is the HOST-REF-1 misconfiguration path for the member table. Unavailable and Empty
+    // must stay distinct here: Empty renders "No visible members are available" -- authorization-safe
+    // absence -- for a tenant whose members simply could not be read.
+    [Fact]
+    public async Task Get_tenant_users_fails_closed_to_unavailable_and_never_collapses_to_empty()
+    {
+        UnavailableTenantQueryGateway gateway = CreateGateway();
+        TenantUsersSnapshot previous = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.alpha", TenantRole.TenantOwner)],
+            nextCursor: "opaque-next",
+            hasMore: true,
+            eTag: "\"confirmed\"",
+            projectionVersion: "42",
+            ReadModelFreshnessState.Current,
+            Hexalith.EventStore.Contracts.Queries.ProjectionLifecycleState.Current);
+
+        TenantUsersSnapshot snapshot = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", Cursor: "opaque-cursor", ETag: "\"secret-etag\""),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Unavailable);
+        snapshot.Kind.ShouldNotBe(TenantUsersSurfaceKind.Empty);
+        snapshot.Reason.ShouldBe(TenantUsersReason.GatewayUnavailable);
+        snapshot.TenantId.ShouldBe("tenant.alpha");
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeFalse();
+        snapshot.NextCursor.ShouldBeNull();
+        snapshot.ETag.ShouldBeNull();
+        snapshot.ProjectionVersion.ShouldBeNull();
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.IsAuthorizationScopedEmpty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Get_tenant_users_rejects_null_request()
+        => await Should.ThrowAsync<ArgumentNullException>(() =>
+            CreateGateway().GetTenantUsersAsync(null!, previous: null, CancellationToken.None));
 }
