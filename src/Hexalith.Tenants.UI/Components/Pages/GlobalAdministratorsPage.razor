@@ -487,16 +487,18 @@
     private bool _readRefreshSubscriptionInFlight;
     private bool _disposed;
     private long _loadGeneration;
-    private long _mutationGeneration;
+    private long _grantMutationGeneration;
+    private long _removeMutationGeneration;
     private long _authorizationTransitionVersion;
     private CancellationTokenSource? _loadCancellation;
-    private CancellationTokenSource? _mutationCancellation;
+    private CancellationTokenSource? _grantMutationCancellation;
+    private CancellationTokenSource? _removeMutationCancellation;
 
     // Superseded cancellation sources awaiting disposal. Disposing one at the moment it is replaced races
     // the request still inside SendAsync: a CancellationToken.Register performed after Dispose throws
     // ObjectDisposedException, which is not an OperationCanceledException and so slips past every caller's
     // cancellation-only handler. They are cancelled immediately (which is what callers observe) and disposed
-    // once clearly finished, or at teardown.
+    // when the operation that owns the token finishes.
     private readonly List<CancellationTokenSource> _supersededCancellations = [];
     private readonly Lock _supersededCancellationsLock = new();
     private FluentTextInput _grantUserIdElement = default!;
@@ -814,10 +816,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await EnsureReadRefreshLeaseAsync().ConfigureAwait(false);
-        }
+        // Retry optional notification setup after later renders when an earlier transient setup returned no
+        // lease. The method's in-flight and existing-lease guards keep successful setup single-instance.
+        await EnsureReadRefreshLeaseAsync().ConfigureAwait(false);
 
         if (_focusGrantUserIdPending)
         {
@@ -862,7 +863,9 @@
             return null;
         }
 
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         GlobalAdministratorsSnapshot previous = _snapshot;
         if (!retainConfirmed)
         {
@@ -1044,9 +1047,8 @@
             _authenticationStateProvider = null;
         }
         Interlocked.Increment(ref _loadGeneration);
-        Retire(_loadCancellation);
-        _loadCancellation = null;
-        InvalidateMutations();
+        CancelActiveCancellation(ref _loadCancellation);
+        InvalidateAllMutations();
         IAsyncDisposable? lease = _readRefreshLease;
         _readRefreshLease = null;
         if (lease is not null)
@@ -1054,17 +1056,6 @@
             await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
 
-        CancellationTokenSource[] superseded;
-        lock (_supersededCancellationsLock)
-        {
-            superseded = [.. _supersededCancellations];
-            _supersededCancellations.Clear();
-        }
-
-        foreach (CancellationTokenSource source in superseded)
-        {
-            source.Dispose();
-        }
     }
 
     private async Task NextPageAsync()
@@ -1083,7 +1074,9 @@
                 reuseETag: false,
                 requestedCursor: nextCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result) && !result!.PagingRecovered)
+            if (IsAppliedRequestedPage(result, nextCursor)
+                && ReferenceEquals(_snapshot, result)
+                && !result!.PagingRecovered)
             {
                 _cursorHistory.Push(priorCursor);
                 _currentCursor = nextCursor;
@@ -1110,7 +1103,9 @@
                 reuseETag: false,
                 requestedCursor: previousCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result) && ReferenceEquals(_snapshot, result) && !result!.PagingRecovered)
+            if (IsAppliedRequestedPage(result, previousCursor)
+                && ReferenceEquals(_snapshot, result)
+                && !result!.PagingRecovered)
             {
                 _currentCursor = _cursorHistory.Pop();
             }
@@ -1121,15 +1116,37 @@
         }
     }
 
-    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    private PendingOperation BeginLoad()
     {
-        Retire(_loadCancellation);
-        _loadCancellation = new CancellationTokenSource();
-        return (Interlocked.Increment(ref _loadGeneration), _loadCancellation.Token);
+        CancellationTokenSource source = ReplaceActiveCancellation(ref _loadCancellation);
+        return new(
+            Interlocked.Increment(ref _loadGeneration),
+            source,
+            () => CompleteCancellation(ref _loadCancellation, source));
     }
 
-    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
-    private void Retire(CancellationTokenSource? source)
+    private CancellationTokenSource ReplaceActiveCancellation(ref CancellationTokenSource? active)
+    {
+        var source = new CancellationTokenSource();
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(active);
+            active = source;
+        }
+
+        return source;
+    }
+
+    private void CancelActiveCancellation(ref CancellationTokenSource? active)
+    {
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(active);
+            active = null;
+        }
+    }
+
+    private void RetireCancellationCore(CancellationTokenSource? source)
     {
         if (source is null)
         {
@@ -1137,58 +1154,88 @@
         }
 
         source.Cancel();
+        _supersededCancellations.Add(source);
+    }
 
-        // Locked because Retire reaches this list from thread-pool continuations (LoadAsync awaits with
-        // ConfigureAwait(false), and its Unauthorized branch calls InvalidateMutations off the dispatcher)
-        // while DisposeAsync enumerates and clears it on the dispatcher. Unsynchronised, that pairing throws
-        // "Collection was modified" out of component teardown, and two concurrent Retire calls can drop an
-        // entry or index past the end. Every other shared counter on this page is already Interlocked.
+    private void CompleteCancellation(
+        ref CancellationTokenSource? active,
+        CancellationTokenSource source)
+    {
         lock (_supersededCancellationsLock)
         {
-            _supersededCancellations.Add(source);
-
-            // Anything older than the two most recent supersessions cannot still be awaited: each entry was
-            // cancelled before the next one was created. Disposing them here keeps the list bounded on a
-            // long-lived circuit without reintroducing the dispose-while-in-flight race.
-            while (_supersededCancellations.Count > 2)
+            if (ReferenceEquals(active, source))
             {
-                _supersededCancellations[0].Dispose();
-                _supersededCancellations.RemoveAt(0);
+                active = null;
             }
+
+            _ = _supersededCancellations.Remove(source);
         }
+
+        source.Dispose();
     }
 
     private bool CanApply(long generation)
         => !_disposed && generation == Volatile.Read(ref _loadGeneration);
 
-    private (long Generation, CancellationToken CancellationToken) BeginMutation()
+    private PendingOperation BeginGrantMutation()
     {
-        Retire(_mutationCancellation);
-        _mutationCancellation = new CancellationTokenSource();
-        return (Interlocked.Increment(ref _mutationGeneration), _mutationCancellation.Token);
+        CancellationTokenSource source = ReplaceActiveCancellation(ref _grantMutationCancellation);
+        return new(
+            Interlocked.Increment(ref _grantMutationGeneration),
+            source,
+            () => CompleteCancellation(ref _grantMutationCancellation, source));
     }
 
-    private void InvalidateMutations()
+    private PendingOperation BeginRemoveMutation()
     {
-        Interlocked.Increment(ref _mutationGeneration);
-        Retire(_mutationCancellation);
-        _mutationCancellation = null;
+        CancellationTokenSource source = ReplaceActiveCancellation(ref _removeMutationCancellation);
+        return new(
+            Interlocked.Increment(ref _removeMutationGeneration),
+            source,
+            () => CompleteCancellation(ref _removeMutationCancellation, source));
+    }
 
-        // Cancelling or superseding an in-flight submit moves the generation forward, so the owning
-        // submit's finally can no longer clear its own flag (CanApplyMutation is false). Clearing here
-        // keeps grant/remove reachable; leaving it set pinned "in flight" for the rest of the circuit.
+    private void InvalidateGrantMutation()
+    {
+        Interlocked.Increment(ref _grantMutationGeneration);
+        CancelActiveCancellation(ref _grantMutationCancellation);
+
         _isGrantSubmitting = false;
+    }
+
+    private void InvalidateRemoveMutation()
+    {
+        Interlocked.Increment(ref _removeMutationGeneration);
+        CancelActiveCancellation(ref _removeMutationCancellation);
+
         _isRemoveSubmitting = false;
     }
 
-    private bool CanApplyMutation(long generation)
-        => !_disposed && IsAuthorized && generation == Volatile.Read(ref _mutationGeneration);
+    private void InvalidateAllMutations()
+    {
+        // Cancelling or superseding an in-flight submit moves its generation forward, so the owning
+        // submit's finally can no longer clear its own flag. Each invalidation clears the matching flag so
+        // that grant and remove stay independently reachable.
+        InvalidateGrantMutation();
+        InvalidateRemoveMutation();
+    }
 
-    private static bool IsSuccessfulPage(GlobalAdministratorsSnapshot? snapshot)
-        => snapshot?.Kind is GlobalAdministratorsSurfaceKind.Ready
-            or GlobalAdministratorsSurfaceKind.Stale
-            or GlobalAdministratorsSurfaceKind.Unknown
-            or GlobalAdministratorsSurfaceKind.Empty;
+    private bool CanApplyGrantMutation(long generation)
+        => !_disposed && IsAuthorized && generation == Volatile.Read(ref _grantMutationGeneration);
+
+    private bool CanApplyRemoveMutation(long generation)
+        => !_disposed && IsAuthorized && generation == Volatile.Read(ref _removeMutationGeneration);
+
+    private static bool IsAppliedRequestedPage(
+        GlobalAdministratorsSnapshot? snapshot,
+        string? requestedCursor)
+        => snapshot is not null
+            && (snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
+                or GlobalAdministratorsSurfaceKind.Stale
+                or GlobalAdministratorsSurfaceKind.Unknown
+                or GlobalAdministratorsSurfaceKind.Empty
+                or GlobalAdministratorsSurfaceKind.Degraded)
+            && string.Equals(snapshot.RequestCursor, requestedCursor, StringComparison.Ordinal);
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
@@ -1308,8 +1355,8 @@
         }
 
         Interlocked.Increment(ref _loadGeneration);
-        _loadCancellation?.Cancel();
-        InvalidateMutations();
+        CancelActiveCancellation(ref _loadCancellation);
+        InvalidateAllMutations();
         IAsyncDisposable? lease = _readRefreshLease;
         _readRefreshLease = null;
         await InvokeAsync(() =>
@@ -1437,7 +1484,9 @@
         }
 
         var request = new SetGlobalAdministrator(_grantUserId.Trim());
-        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        using PendingOperation operation = BeginGrantMutation();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         SetGrantSnapshot(_grantSnapshot.RequestSent(request));
         _isGrantSubmitting = true;
 
@@ -1446,7 +1495,7 @@
             TenantCommandSubmissionResult result = await CommandGateway
                 .SetGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
-            if (!CanApplyMutation(generation))
+            if (!CanApplyGrantMutation(generation))
             {
                 return;
             }
@@ -1463,7 +1512,7 @@
         }
         finally
         {
-            if (CanApplyMutation(generation))
+            if (CanApplyGrantMutation(generation))
             {
                 _isGrantSubmitting = false;
             }
@@ -1479,13 +1528,15 @@
             return;
         }
 
-        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        using PendingOperation operation = BeginGrantMutation();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RefreshGrantStatusCoreAsync(long generation, CancellationToken cancellationToken)
     {
-        if (!CanApplyMutation(generation)
+        if (!CanApplyGrantMutation(generation)
             || _grantSnapshot.MessageId is not { } messageId
             || _grantSnapshot.CorrelationId is not { } correlationId)
         {
@@ -1504,7 +1555,7 @@
             return;
         }
 
-        if (!CanApplyMutation(generation))
+        if (!CanApplyGrantMutation(generation))
         {
             return;
         }
@@ -1533,7 +1584,7 @@
             retainConfirmed: true,
             requestedCursor: null,
             useRequestedCursor: true).ConfigureAwait(false);
-        if (snapshot is not null && CanApplyMutation(generation))
+        if (snapshot is not null && CanApplyGrantMutation(generation))
         {
             SetGrantSnapshot(_grantSnapshot.ConfirmProjection(snapshot));
         }
@@ -1541,7 +1592,7 @@
 
     private async Task CancelGrantAsync()
     {
-        InvalidateMutations();
+        InvalidateGrantMutation();
         _grantUserId = null;
         _grantValidationMessage = null;
         SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
@@ -1606,7 +1657,9 @@
         }
 
         RemoveGlobalAdministrator request = _removeSnapshot.Intent;
-        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        using PendingOperation operation = BeginRemoveMutation();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         SetRemoveSnapshot(_removeSnapshot.RequestSent());
         _isRemoveSubmitting = true;
 
@@ -1615,7 +1668,7 @@
             TenantCommandSubmissionResult result = await CommandGateway
                 .RemoveGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
-            if (!CanApplyMutation(generation))
+            if (!CanApplyRemoveMutation(generation))
             {
                 return;
             }
@@ -1632,7 +1685,7 @@
         }
         finally
         {
-            if (CanApplyMutation(generation))
+            if (CanApplyRemoveMutation(generation))
             {
                 _isRemoveSubmitting = false;
             }
@@ -1648,13 +1701,15 @@
             return;
         }
 
-        (long generation, CancellationToken cancellationToken) = BeginMutation();
+        using PendingOperation operation = BeginRemoveMutation();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RefreshRemoveStatusCoreAsync(long generation, CancellationToken cancellationToken)
     {
-        if (!CanApplyMutation(generation)
+        if (!CanApplyRemoveMutation(generation)
             || _removeSnapshot.MessageId is not { } messageId
             || _removeSnapshot.CorrelationId is not { } correlationId)
         {
@@ -1673,7 +1728,7 @@
             return;
         }
 
-        if (!CanApplyMutation(generation))
+        if (!CanApplyRemoveMutation(generation))
         {
             return;
         }
@@ -1702,7 +1757,7 @@
             retainConfirmed: true,
             requestedCursor: null,
             useRequestedCursor: true).ConfigureAwait(false);
-        if (snapshot is not null && CanApplyMutation(generation))
+        if (snapshot is not null && CanApplyRemoveMutation(generation))
         {
             SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(snapshot));
         }
@@ -1710,7 +1765,7 @@
 
     private async Task CancelRemoveAsync()
     {
-        InvalidateMutations();
+        InvalidateRemoveMutation();
         SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Idle());
         _focusRemoveLifecyclePending = true;
         await Task.CompletedTask.ConfigureAwait(false);
@@ -1743,5 +1798,27 @@
         {
             _focusRemoveLifecyclePending = true;
         }
+    }
+
+    private sealed class PendingOperation : IDisposable
+    {
+        private Action? _complete;
+
+        public PendingOperation(
+            long generation,
+            CancellationTokenSource cancellation,
+            Action complete)
+        {
+            Generation = generation;
+            CancellationToken = cancellation.Token;
+            _complete = complete;
+        }
+
+        public long Generation { get; }
+
+        public CancellationToken CancellationToken { get; }
+
+        public void Dispose()
+            => Interlocked.Exchange(ref _complete, null)?.Invoke();
     }
 }

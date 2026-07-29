@@ -276,6 +276,7 @@
 
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
+    private string? _renderedTenantId;
     private string? _renderedMemberCursor;
 
     // One launch button is rendered per actionable member row, so a single shared reference would
@@ -543,11 +544,15 @@
         // Clear any open flow target when the rendered page changes. Without this the active user id
         // outlives the page it belonged to, so returning to that page re-opens a change-role or remove flow
         // the operator never re-initiated.
-        if (!string.Equals(_renderedMemberCursor, Members.RequestCursor, StringComparison.Ordinal))
+        if (!string.Equals(_renderedTenantId, Detail.TenantId, StringComparison.Ordinal)
+            || !string.Equals(_renderedMemberCursor, Members.RequestCursor, StringComparison.Ordinal))
         {
+            _renderedTenantId = Detail.TenantId;
             _renderedMemberCursor = Members.RequestCursor;
             _activeChangeRoleUserId = null;
             _activeRemoveMemberUserId = null;
+            _focusChangeRoleLaunchUserId = null;
+            _focusRemoveMemberLaunchUserId = null;
         }
     }
 

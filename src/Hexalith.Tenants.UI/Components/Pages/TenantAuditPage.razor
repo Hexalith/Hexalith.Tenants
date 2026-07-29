@@ -185,9 +185,11 @@
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private IAsyncDisposable? _readRefreshLease;
+    private string? _loadedTenantId;
     private string? _subscriptionTenantId;
     private bool _readRefreshSubscriptionInFlight;
     private string? _pendingSubscriptionTenantId;
+    private readonly Lock _readRefreshSubscriptionLock = new();
     private bool _isNotificationRefreshing;
     private bool _pageLoadInFlight;
     private bool _disposed;
@@ -317,11 +319,12 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
-        if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal))
+        if (!string.Equals(_loadedTenantId, tenantId, StringComparison.Ordinal))
         {
             IAsyncDisposable? previousLease = _readRefreshLease;
             _readRefreshLease = null;
             _subscriptionTenantId = null;
+            _loadedTenantId = tenantId;
             if (previousLease is not null)
             {
                 await previousLease.DisposeAsync().ConfigureAwait(false);
@@ -370,7 +373,9 @@
         bool useRequestedCursor = false)
     {
         string tenantId = requestedTenantId ?? TenantId;
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         TenantAuditSnapshot previous = _snapshot;
         if (!retainConfirmed)
         {
@@ -466,36 +471,58 @@
             return;
         }
 
-        // An in-flight setup for a DIFFERENT tenant must not be dropped. The original guard covered only the
-        // duplicate-same-tenant case its comment describes: navigating A -> B mid-setup returned early for B,
-        // and A's completion then saw TenantId != A, disposed its lease and returned without ever recording a
-        // subscription -- leaving B with no auto-refresh for the rest of the circuit. Handing B to the owning
-        // call preserves the duplicate suppression and closes that gap.
-        if (_readRefreshSubscriptionInFlight)
+        // Claim setup and hand a later tenant to the current owner atomically. Clearing a pending target in a
+        // finally block used to race a navigation arriving between the owner's last read and that clear,
+        // silently losing the newer tenant's subscription request.
+        lock (_readRefreshSubscriptionLock)
         {
-            _pendingSubscriptionTenantId = tenantId;
-            return;
+            if (_disposed || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (_readRefreshSubscriptionInFlight)
+            {
+                _pendingSubscriptionTenantId = tenantId;
+                return;
+            }
+
+            _readRefreshSubscriptionInFlight = true;
         }
 
-        _readRefreshSubscriptionInFlight = true;
+        bool released = false;
         try
         {
             string? target = tenantId;
             while (target is not null)
             {
-                _pendingSubscriptionTenantId = null;
                 await SubscribeReadRefreshAsync(refreshSubscription, target).ConfigureAwait(false);
-                target = _disposed ? null : _pendingSubscriptionTenantId;
-                if (target is not null && string.Equals(_subscriptionTenantId, target, StringComparison.Ordinal))
+                lock (_readRefreshSubscriptionLock)
                 {
-                    target = null;
+                    target = _disposed ? null : _pendingSubscriptionTenantId;
+                    _pendingSubscriptionTenantId = null;
+                    if (target is not null && string.Equals(_subscriptionTenantId, target, StringComparison.Ordinal))
+                    {
+                        target = null;
+                    }
+
+                    if (target is null)
+                    {
+                        _readRefreshSubscriptionInFlight = false;
+                        released = true;
+                    }
                 }
             }
         }
         finally
         {
-            _readRefreshSubscriptionInFlight = false;
-            _pendingSubscriptionTenantId = null;
+            if (!released)
+            {
+                lock (_readRefreshSubscriptionLock)
+                {
+                    _readRefreshSubscriptionInFlight = false;
+                }
+            }
         }
     }
 
@@ -639,7 +666,7 @@
                 requestedTenantId: tenantId,
                 requestedCursor: nextCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result)
+            if (IsAppliedRequestedPage(result, nextCursor)
                 && ReferenceEquals(_snapshot, result)
                 && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
             {
@@ -670,7 +697,7 @@
                 requestedTenantId: tenantId,
                 requestedCursor: previousCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsSuccessfulPage(result)
+            if (IsAppliedRequestedPage(result, previousCursor)
                 && ReferenceEquals(_snapshot, result)
                 && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
             {
@@ -1021,20 +1048,7 @@
     {
         _disposed = true;
         Interlocked.Increment(ref _loadGeneration);
-        Retire(_loadCancellation);
-        _loadCancellation = null;
-
-        CancellationTokenSource[] superseded;
-        lock (_supersededCancellationsLock)
-        {
-            superseded = [.. _supersededCancellations];
-            _supersededCancellations.Clear();
-        }
-
-        foreach (CancellationTokenSource source in superseded)
-        {
-            source.Dispose();
-        }
+        CancelActiveCancellation();
 
         if (_readRefreshLease is not null)
         {
@@ -1043,6 +1057,7 @@
         }
 
         _subscriptionTenantId = null;
+        _loadedTenantId = null;
 
         if (_focusModule is null)
         {
@@ -1059,20 +1074,35 @@
         }
     }
 
-    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    private PendingOperation BeginLoad()
     {
-        Retire(_loadCancellation);
-        _loadCancellation = new CancellationTokenSource();
+        var source = new CancellationTokenSource();
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(_loadCancellation);
+            _loadCancellation = source;
+        }
 
         // Interlocked, not ++: OnParametersSetAsync reaches BeginLoad from a ConfigureAwait(false)
         // continuation (it awaits the previous lease's DisposeAsync, a remote unsubscribe) while Refresh
         // reaches it on the dispatcher. A lost increment gives two loads the same generation, and the older
         // completion then passes CanApply and writes its stale page over the newer rows.
-        return (Interlocked.Increment(ref _loadGeneration), _loadCancellation.Token);
+        return new(
+            Interlocked.Increment(ref _loadGeneration),
+            source,
+            () => CompleteCancellation(source));
     }
 
-    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
-    private void Retire(CancellationTokenSource? source)
+    private void CancelActiveCancellation()
+    {
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(_loadCancellation);
+            _loadCancellation = null;
+        }
+    }
+
+    private void RetireCancellationCore(CancellationTokenSource? source)
     {
         if (source is null)
         {
@@ -1080,19 +1110,22 @@
         }
 
         source.Cancel();
+        _supersededCancellations.Add(source);
+    }
 
-        // Disposal is deferred because the token is routinely still inside SendAsync when it is superseded.
-        // Disposing it there makes a later Register throw ObjectDisposedException, which is NOT an
-        // OperationCanceledException and so escapes every catch filter on this page.
+    private void CompleteCancellation(CancellationTokenSource source)
+    {
         lock (_supersededCancellationsLock)
         {
-            _supersededCancellations.Add(source);
-            while (_supersededCancellations.Count > 2)
+            if (ReferenceEquals(_loadCancellation, source))
             {
-                _supersededCancellations[0].Dispose();
-                _supersededCancellations.RemoveAt(0);
+                _loadCancellation = null;
             }
+
+            _ = _supersededCancellations.Remove(source);
         }
+
+        source.Dispose();
     }
 
     private bool CanApply(string tenantId, long generation)
@@ -1100,9 +1133,34 @@
             && generation == Volatile.Read(ref _loadGeneration)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
-    private static bool IsSuccessfulPage(TenantAuditSnapshot? snapshot)
-        => snapshot?.Kind is TenantAuditSurfaceKind.Ready
-            or TenantAuditSurfaceKind.Stale
-            or TenantAuditSurfaceKind.Empty
-            or TenantAuditSurfaceKind.FilteredEmpty;
+    private static bool IsAppliedRequestedPage(TenantAuditSnapshot? snapshot, string? requestedCursor)
+        => snapshot is not null
+            && (snapshot.Kind is TenantAuditSurfaceKind.Ready
+                or TenantAuditSurfaceKind.Stale
+                or TenantAuditSurfaceKind.Empty
+                or TenantAuditSurfaceKind.FilteredEmpty
+                or TenantAuditSurfaceKind.Degraded)
+            && string.Equals(snapshot.RequestCursor, requestedCursor, StringComparison.Ordinal);
+
+    private sealed class PendingOperation : IDisposable
+    {
+        private Action? _complete;
+
+        public PendingOperation(
+            long generation,
+            CancellationTokenSource cancellation,
+            Action complete)
+        {
+            Generation = generation;
+            CancellationToken = cancellation.Token;
+            _complete = complete;
+        }
+
+        public long Generation { get; }
+
+        public CancellationToken CancellationToken { get; }
+
+        public void Dispose()
+            => Interlocked.Exchange(ref _complete, null)?.Invoke();
+    }
 }

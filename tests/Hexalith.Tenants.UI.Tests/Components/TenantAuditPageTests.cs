@@ -127,6 +127,45 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public async Task Tenant_arriving_during_subscription_setup_is_handed_to_the_setup_owner()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-alpha", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-beta", AuditEventCategory.Access)]));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var alphaSetup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription
+            .SubscribeAsync(GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(alphaSetup.Task);
+        subscription
+            .SubscribeAsync(GetTenantAuditQuery.ProjectionType, "tenant.beta", Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+        alphaSetup.SetResult();
+
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        cut.WaitForAssertion(() => subscription.ReceivedCalls()
+            .Count(call => string.Equals(call.GetArguments()[1] as string, "tenant.beta", StringComparison.Ordinal))
+            .ShouldBe(1));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.beta",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Newer_notification_refresh_rejects_a_late_cursor_result_and_preserves_cursor_history()
     {
         StubTenantQueryGateway gateway = RegisterServices(
@@ -459,7 +498,7 @@ public sealed class TenantAuditPageTests : BunitContext
     {
         StubTenantQueryGateway gateway = RegisterServices(
             ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
-            ReadySnapshot([Row("event-2", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Access)], requestCursor: "opaque-next"),
             ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
@@ -472,6 +511,29 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-previous']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
         gateway.Requests[2].Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Metadata_degraded_requested_page_advances_cursor_and_can_return_to_page_one()
+    {
+        TenantAuditSnapshot degradedPage = TenantAuditSnapshot.Degraded(
+            [Row("event-2", AuditEventCategory.Access)],
+            TenantAuditReason.ProjectionDegraded,
+            new TenantAuditRequest("tenant.alpha", Cursor: "opaque-next"));
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            degradedPage,
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-grid']").TextContent.ShouldContain("event-2"));
+
+        cut.Find("[data-testid='tenants-audit-previous']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+        gateway.Requests.Select(static request => request.Cursor).ShouldBe([null, "opaque-next", null]);
     }
 
     [Theory]
@@ -741,7 +803,8 @@ public sealed class TenantAuditPageTests : BunitContext
     private static TenantAuditSnapshot ReadySnapshot(
         IReadOnlyList<TenantAuditRow> rows,
         string? nextCursor = null,
-        bool hasMore = false)
+        bool hasMore = false,
+        string? requestCursor = null)
         => TenantAuditSnapshot.Ready(
             rows,
             nextCursor,
@@ -750,7 +813,7 @@ public sealed class TenantAuditPageTests : BunitContext
             freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
                 ? ReadModelFreshnessState.Stale
                 : ReadModelFreshnessState.Current,
-            new TenantAuditRequest("tenant.alpha"));
+            new TenantAuditRequest("tenant.alpha", Cursor: requestCursor));
 
     private static TenantAuditSnapshot SnapshotFor(TenantAuditSurfaceKind kind)
     {

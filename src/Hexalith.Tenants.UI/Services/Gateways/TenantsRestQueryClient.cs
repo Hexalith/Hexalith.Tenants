@@ -443,10 +443,14 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                     && !string.IsNullOrWhiteSpace(item.TenantId)
                     && item.NarrativePayload is not null),
             PaginatedResult<GlobalAdministratorSummary> page => IsValidPage(
-                page.Items,
-                page.Cursor,
-                page.HasMore,
-                static item => !string.IsNullOrWhiteSpace(item.UserId)),
+                    page.Items,
+                    page.Cursor,
+                    page.HasMore,
+                    static item => !string.IsNullOrWhiteSpace(item.UserId))
+                && page.Items
+                    .Select(static item => item.UserId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Count() == page.Items.Count,
             TenantDetail detail => !string.IsNullOrWhiteSpace(detail.TenantId)
                 && detail.Name is not null
                 && detail.Members is not null

@@ -295,7 +295,9 @@
             _subscriptionTenantId = null;
         }
 
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         _snapshot = TenantDetailSnapshot.Loading();
         _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
         _memberCursor = null;
@@ -387,7 +389,9 @@
     private async Task RefreshTenantDetailAsync()
     {
         string tenantId = TenantId;
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         TenantDetailSnapshot previous = _snapshot;
         TenantDetailSnapshot snapshot;
         try
@@ -420,7 +424,9 @@
             return;
         }
 
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         TenantDetailSnapshot retainedDetail = _snapshot;
         TenantUsersSnapshot retainedMembers = _tenantUsersSnapshot;
         _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retainedMembers);
@@ -451,6 +457,41 @@
 
         TenantDetailSnapshot detail = await detailTask.ConfigureAwait(false);
         TenantUsersSnapshot members = await membersTask.ConfigureAwait(false);
+        bool resetMemberPaging = false;
+        if (members.Reason is TenantUsersReason.InvalidCursor)
+        {
+            TenantUsersSnapshot recovered;
+            try
+            {
+                recovered = await QueryGateway
+                    .GetTenantUsersAsync(new TenantUsersRequest(tenantId), retainedMembers, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (IsUsableMemberPage(recovered, requestedCursor: null))
+            {
+                members = recovered with
+                {
+                    PagingRecovered = true,
+                    Reason = TenantUsersReason.ListRefreshed,
+                };
+                resetMemberPaging = true;
+            }
+            else if (IsTerminalMemberPage(recovered))
+            {
+                members = recovered;
+                resetMemberPaging = true;
+            }
+            else
+            {
+                members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, recovered.Reason);
+            }
+        }
+
         await InvokeAsync(() =>
         {
             if (!CanApply(generation, tenantId))
@@ -460,6 +501,12 @@
 
             _snapshot = detail;
             _tenantUsersSnapshot = members;
+            if (resetMemberPaging)
+            {
+                _memberCursor = null;
+                _memberCursorHistory.Clear();
+            }
+
             StateHasChanged();
         }).ConfigureAwait(false);
     }
@@ -503,7 +550,9 @@
     {
         string tenantId = TenantId;
         string? priorCursor = _memberCursor;
-        (long generation, CancellationToken cancellationToken) = BeginLoad();
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
         _memberPageLoadInFlight = true;
         TenantUsersSnapshot retained = _tenantUsersSnapshot;
         _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retained);
@@ -544,7 +593,7 @@
                         return;
                     }
 
-                    if (IsUsableMemberPage(recovered))
+                    if (IsUsableMemberPage(recovered, requestedCursor: null))
                     {
                         _memberCursor = null;
                         _memberCursorHistory.Clear();
@@ -553,6 +602,12 @@
                             PagingRecovered = true,
                             Reason = TenantUsersReason.ListRefreshed,
                         };
+                    }
+                    else if (IsTerminalMemberPage(recovered))
+                    {
+                        _memberCursor = null;
+                        _memberCursorHistory.Clear();
+                        _tenantUsersSnapshot = recovered;
                     }
                     else
                     {
@@ -576,7 +631,13 @@
                 // Any non-usable page must leave paging state untouched. Advancing the cursor and pushing
                 // history on Unauthorized/NotFound/Invalid built a history out of failed reads, so Previous
                 // then walked back through pages that never rendered.
-                if (!IsUsableMemberPage(snapshot))
+                if (IsTerminalMemberPage(snapshot))
+                {
+                    _tenantUsersSnapshot = snapshot;
+                    return;
+                }
+
+                if (!IsUsableMemberPage(snapshot, requestedCursor))
                 {
                     _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(
                         tenantId,
@@ -592,15 +653,7 @@
                     _memberCursorHistory.Push(priorCursor);
 
                     // Bound the history so a long paging session cannot grow it without limit.
-                    if (_memberCursorHistory.Count > MaximumMemberCursorHistory)
-                    {
-                        string?[] retainedHistory = [.. _memberCursorHistory.Take(MaximumMemberCursorHistory)];
-                        _memberCursorHistory.Clear();
-                        for (int index = retainedHistory.Length - 1; index >= 0; index--)
-                        {
-                            _memberCursorHistory.Push(retainedHistory[index]);
-                        }
-                    }
+                    TrimMemberCursorHistory();
                 }
                 else if (_memberCursorHistory.Count > 0)
                 {
@@ -621,8 +674,28 @@
         }
     }
 
-    /// <summary>Cancels a superseded source now and defers its disposal.</summary>
-    private void Retire(CancellationTokenSource? source)
+    private CancellationTokenSource ReplaceActiveCancellation()
+    {
+        var source = new CancellationTokenSource();
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(_loadCancellation);
+            _loadCancellation = source;
+        }
+
+        return source;
+    }
+
+    private void CancelActiveCancellation()
+    {
+        lock (_supersededCancellationsLock)
+        {
+            RetireCancellationCore(_loadCancellation);
+            _loadCancellation = null;
+        }
+    }
+
+    private void RetireCancellationCore(CancellationTokenSource? source)
     {
         if (source is null)
         {
@@ -630,40 +703,70 @@
         }
 
         source.Cancel();
+        _supersededCancellations.Add(source);
+    }
 
-        // Deferred disposal: a single CTS is shared by the detail, member-paging and notification loads, so a
-        // superseded token is routinely still inside SendAsync. Disposing it there makes a later Register
-        // throw ObjectDisposedException, which is not an OperationCanceledException and escapes the catch
-        // filters on this page.
+    private void CompleteCancellation(CancellationTokenSource source)
+    {
         lock (_supersededCancellationsLock)
         {
-            _supersededCancellations.Add(source);
-            while (_supersededCancellations.Count > 2)
+            if (ReferenceEquals(_loadCancellation, source))
             {
-                _supersededCancellations[0].Dispose();
-                _supersededCancellations.RemoveAt(0);
+                _loadCancellation = null;
             }
+
+            _ = _supersededCancellations.Remove(source);
         }
+
+        source.Dispose();
     }
 
     /// <summary>A page whose rows and paging state may be applied.</summary>
-    private static bool IsUsableMemberPage(TenantUsersSnapshot snapshot)
-        => snapshot.Kind is TenantUsersSurfaceKind.Ready
+    private static bool IsUsableMemberPage(TenantUsersSnapshot snapshot, string? requestedCursor)
+        => (snapshot.Kind is TenantUsersSurfaceKind.Ready
             or TenantUsersSurfaceKind.Empty
-            or TenantUsersSurfaceKind.Stale;
+            or TenantUsersSurfaceKind.Stale)
+            || (snapshot.Kind is TenantUsersSurfaceKind.Degraded
+                && string.Equals(snapshot.RequestCursor, requestedCursor, StringComparison.Ordinal));
 
-    private (long Generation, CancellationToken CancellationToken) BeginLoad()
+    /// <summary>A terminal response that must replace retained rows to avoid disclosure.</summary>
+    private static bool IsTerminalMemberPage(TenantUsersSnapshot snapshot)
+        => snapshot.Kind is TenantUsersSurfaceKind.Unauthorized
+            or TenantUsersSurfaceKind.NotFound
+            or TenantUsersSurfaceKind.Invalid;
+
+    private void TrimMemberCursorHistory()
+    {
+        if (_memberCursorHistory.Count <= MaximumMemberCursorHistory)
+        {
+            return;
+        }
+
+        string?[] history = [.. _memberCursorHistory];
+        string? firstPageCursor = history[^1];
+        string?[] retainedHistory =
+        [
+            .. history.Take(MaximumMemberCursorHistory - 1),
+            firstPageCursor,
+        ];
+        _memberCursorHistory.Clear();
+        for (int index = retainedHistory.Length - 1; index >= 0; index--)
+        {
+            _memberCursorHistory.Push(retainedHistory[index]);
+        }
+    }
+
+    private PendingOperation BeginLoad()
     {
         long generation = Interlocked.Increment(ref _loadGeneration);
-        Retire(_loadCancellation);
-        _loadCancellation = new CancellationTokenSource();
+        CancellationTokenSource source = ReplaceActiveCancellation();
         _memberPageLoadInFlight = false;
         if (_tenantUsersSnapshot.IsRefreshing)
         {
             _tenantUsersSnapshot = _tenantUsersSnapshot with { IsRefreshing = false };
         }
 
-        return (generation, _loadCancellation.Token);
+        return new(generation, source, () => CompleteCancellation(source));
     }
 
     private bool CanApply(long generation, string tenantId)
@@ -766,25 +869,34 @@
     {
         _disposed = true;
         _ = Interlocked.Increment(ref _loadGeneration);
-        Retire(_loadCancellation);
-        _loadCancellation = null;
-
-        CancellationTokenSource[] superseded;
-        lock (_supersededCancellationsLock)
-        {
-            superseded = [.. _supersededCancellations];
-            _supersededCancellations.Clear();
-        }
-
-        foreach (CancellationTokenSource source in superseded)
-        {
-            source.Dispose();
-        }
+        CancelActiveCancellation();
 
         if (_readRefreshLease is not null)
         {
             await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
             _readRefreshLease = null;
         }
+    }
+
+    private sealed class PendingOperation : IDisposable
+    {
+        private Action? _complete;
+
+        public PendingOperation(
+            long generation,
+            CancellationTokenSource cancellation,
+            Action complete)
+        {
+            Generation = generation;
+            CancellationToken = cancellation.Token;
+            _complete = complete;
+        }
+
+        public long Generation { get; }
+
+        public CancellationToken CancellationToken { get; }
+
+        public void Dispose()
+            => Interlocked.Exchange(ref _complete, null)?.Invoke();
     }
 }

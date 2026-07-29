@@ -131,6 +131,24 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Fact]
+    public async Task Global_administrators_reject_duplicate_user_identities()
+    {
+        var handler = new RecordingHandler(Success(
+            "{\"items\":[{\"userId\":\"admin.alpha\"},{\"userId\":\"admin.alpha\"}],\"cursor\":null,\"hasMore\":false}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> result = await client
+            .GetGlobalAdministratorsAsync(
+                new GetGlobalAdministratorsQuery { PageSize = 20 },
+                null,
+                TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Slash_route_identifiers_fail_closed_without_sending_an_ambiguous_request()
     {
         var handler = new RecordingHandler();

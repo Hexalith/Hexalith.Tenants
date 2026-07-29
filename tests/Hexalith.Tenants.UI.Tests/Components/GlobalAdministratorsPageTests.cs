@@ -298,6 +298,54 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Manual_refresh_retries_notification_setup_after_a_transient_empty_lease()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        int setupAttempts = 0;
+        subscription
+            .SubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Interlocked.Increment(ref setupAttempts) == 1
+                ? Task.FromException(new HttpRequestException("transient setup failure"))
+                : Task.CompletedTask);
+        var gateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin.confirmed", ReadModelFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin.confirmed", ReadModelFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.WaitForAssertion(() => setupAttempts.ShouldBe(1));
+
+        cut.Find("[data-testid='tenants-global-admins-refresh']").Click();
+
+        cut.WaitForAssertion(() => setupAttempts.ShouldBe(2));
+        await subscription.Received(2).SubscribeAsync(
+            GetGlobalAdministratorsQuery.ProjectionType,
+            "system",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Recovery_affordances_announce_page_recovery_and_execute_reset_then_retry()
     {
         GlobalAdministratorsSnapshot recoverable = GlobalAdministratorsSnapshot.Error() with
@@ -692,6 +740,98 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public void Previous_page_returns_to_page_one_after_a_confirmed_next_page()
+    {
+        var gateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+                "protected-next-cursor",
+                true,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+                RequestCursor = "protected-next-cursor",
+            },
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+                "protected-next-cursor",
+                true,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admins-next']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("admin-2"));
+
+        cut.Find("[data-testid='tenants-global-admins-previous']").Click();
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(3));
+        gateway.Requests.Select(static request => request.Cursor).ShouldBe([null, "protected-next-cursor", null]);
+    }
+
+    [Fact]
+    public void Failed_previous_keeps_history_so_the_operator_can_retry_page_one()
+    {
+        GlobalAdministratorsSnapshot pageTwo = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current)],
+            null,
+            false,
+            "\"etag-2\"",
+            ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            RequestCursor = "protected-next-cursor",
+        };
+        var gateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+                "protected-next-cursor",
+                true,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+            pageTwo,
+            GlobalAdministratorsSnapshot.Degraded(
+                pageTwo.Rows,
+                GlobalAdministratorsReason.GatewayUnavailable) with
+            {
+                RequestCursor = "protected-next-cursor",
+            },
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+                "protected-next-cursor",
+                true,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admins-next']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("admin-2"));
+
+        cut.Find("[data-testid='tenants-global-admins-previous']").Click();
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(3));
+        cut.Find("[data-testid='tenants-global-admins-previous']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-global-admins-previous']").Click();
+
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(4));
+        gateway.Requests.Select(static request => request.Cursor)
+            .ShouldBe([null, "protected-next-cursor", null, null]);
+    }
+
+    [Fact]
     public void Grant_flow_renders_fixed_scope_form_without_tenant_membership_inputs()
     {
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
@@ -896,6 +1036,57 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
                 .ShouldNotContain("target-admin");
         });
+    }
+
+    [Fact]
+    public async Task Cancelling_grant_does_not_cancel_in_flight_remove_status_tracking()
+    {
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken removeStatusToken = default;
+        commandGateway
+            .RemoveGlobalAdministratorAsync(Arg.Any<RemoveGlobalAdministrator>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-remove", "correlation-remove")));
+        commandGateway
+            .GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                removeStatusToken = call.ArgAt<CancellationToken>(1);
+                return pendingStatus.Task;
+            });
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ],
+                null,
+                false,
+                "\"etag\"",
+                ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+                IsCompleteEvidence = true,
+            }));
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("grant-candidate");
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        Task removeSubmit = cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        cut.WaitForAssertion(() => removeStatusToken.CanBeCanceled.ShouldBeTrue());
+
+        cut.Find("[data-testid='tenants-global-admin-grant-cancel']").Click();
+
+        removeStatusToken.IsCancellationRequested.ShouldBeFalse();
+        pendingStatus.SetResult(TenantCommandStatusResult.Unknown("Status remains pending."));
+        await removeSubmit;
+        cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent
+            .ShouldNotContain("No global administrator remove command");
     }
 
     [Theory]
