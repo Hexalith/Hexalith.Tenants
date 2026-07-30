@@ -155,8 +155,8 @@ Work belonging to this story, already present in the tree:
   `GlobalAdministratorsHref`, `tenants-global-administrators-entry`.
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/*` — `IsCompleteEvidence` and surface/reason additions.
 
-Two decisions were transferred here from the 1.10 review because no acceptance criterion in either spec
-covers them. Both are security-relevant and must be resolved against this story's ACs before it closes:
+Three decisions were transferred here from the 1.10 review because no acceptance criterion in either spec
+covers them. All are security-relevant and must be resolved against this story's ACs before it closes:
 
 - [ ] [Review][Decision] Principal-resolution precedence was inverted — the circuit `AuthenticationStateProvider`
   now outranks `HttpContext.User`, where `HttpContext` was previously primary. A circuit whose provider
@@ -167,6 +167,16 @@ covers them. Both are security-relevant and must be resolved against this story'
   `ClaimTypes.NameIdentifier` (the ASP.NET default), or any principal with two authenticated identities
   (cookie + bearer), denies a genuine global administrator. Confirm against
   `docs/production-auth-claim-contract.md`. [TenantsGlobalAdministratorClaims.cs:36-46]
+- [ ] [Review][Decision] `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which
+  is null for the whole interactive circuit, so `Evaluate(null)` returns `Indeterminate` permanently and
+  `TenantDetailPage.razor:149` gates tenant lifecycle actions off for a signed-in global administrator for the rest of
+  the session. Story 1.10 added `ResolveGlobalAdministratorsAuthorizationAsync` to the same type and migrated the
+  workspace and global-administrators pages to circuit-aware resolution, but left the tenant-detail consumer on the
+  synchronous `HttpContext`-only path. Transferred here by owner decision during the 1.10 chunk-A+B review
+  (2026-07-30) so that this story's two principal-resolution decisions above and this one are settled as one coherent
+  authorization change rather than two stories patching the same evaluator. Accepted interim consequence: tenant
+  lifecycle actions stay `Indeterminate` for global administrators until this story lands.
+  [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21-27]
 
 This story has not yet had a review loop (`review_loop_iteration: 0`). Sprint status was moved
 `backlog -> review` to reflect that its code exists and is awaiting that loop.

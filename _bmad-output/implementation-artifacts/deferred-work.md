@@ -527,3 +527,47 @@ than in 1.10's patch set.
   summary: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response.
   evidence: The gateway retention helpers at `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075` have no subject dimension, while the scoped server-circuit user context can resolve a new principal instance. The generic retained-snapshot behavior predates Story 1.10's direct-read change.
   status: open — pre-existing security debt; bind retained evidence to a stable authenticated-subject identity or invalidate all retained snapshots when that identity changes.
+
+## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-30, chunk A+B transport/gateway)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+  summary: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. `https+http://eventstore`) by the same `TryGetHttpBaseAddress` gate used for the read side, but no service discovery is attached to the command/status clients, so such a value can only fail at send time.
+  evidence: The scheme gate is shared at `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:96`, while `.AddServiceDiscovery()` is attached only to the Tenants read client at `:74`. Pre-existing: the command-side gate predates Story 1.10's read transport.
+  status: open — pre-existing; reaffirms the same item already deferred in the 2026-07-29 chunk-1 follow-up. Resolve together with the read-side service-discovery provider decision recorded in the 2026-07-30 review findings, since both concern whether this module or its composing host owns service-discovery registration.
+
+## Architectural decision recorded by code review of spec-1-10 (2026-07-30) — BFF read transport vs DAPR service invocation
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+  summary: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Raised by the owner during the 1.10 review: DAPR is the intended discovery mechanism for services with sidecars. Not actionable inside 1.10 — it is a topology and security-posture change, not a base-address swap.
+  evidence: |
+    Current topology (verified 2026-07-30):
+      - `tenants-api` HAS a DAPR sidecar, `AppId = "tenants-api"` (src/Hexalith.Tenants.AppHost/Program.cs:104-106).
+      - `tenants-ui` has NO sidecar, no app-id, and no Dapr package references anywhere in
+        src/Hexalith.Tenants.UI. It is not a DAPR app; it is a Blazor front end / BFF.
+      - `deploy/dapr/accesscontrol.tenants.yaml` is `defaultAction: deny` and allows exactly one caller,
+        `appId: eventstore`, on five POST operations (/process, /project, /query, /replay-state,
+        /admin/operational-index-metadata). None of the six `GET /api/tenants*` read routes are allowed and
+        `tenants-ui` has no policy entry.
+      - Because the reads go direct HTTPS to `tenants-api` (which is `.WithExternalHttpEndpoints()`), they
+        bypass the DAPR access-control plane and mTLS entirely. That is a deviation from the documented
+        deny-by-default posture and was not recorded anywhere in Story 1.10.
+    What a move to DAPR invoke would require:
+      1. A sidecar + app-id for `tenants-ui`.
+      2. A `tenants-ui` policy in accesscontrol.tenants.yaml allowing GET on the six read routes, plus the
+         route tests project-context.md requires to change alongside any app-id/topic change.
+      3. Base address becomes `http://localhost:{daprHttpPort}/v1.0/invoke/tenants-api/method/` + route.
+         Route identity at the API is preserved so the six-path acceptance criterion survives, but the
+         client's URI building, base-path retention and scheme gate all assume a direct service address.
+      4. Reconciling `deploy/dapr/resiliency.yaml`, which applies `defaultRetry` (constant, 3 retries), a 5s
+         `daprSidecar` timeout and a circuit breaker to invoke targets, with Story 1.10's deliberate transport
+         semantics: the hand-built linked deadline, the fixed support-safe failure categories, and the explicit
+         never-silently-retry invariant (notably the invalid-cursor rule). A retried conditional GET re-sends
+         `If-None-Match`, so 304/ETag behaviour through the sidecar must be verified, not assumed.
+    Not verified, flagged for that work: how `%2E%2E` behaves through a DAPR invoke path. If anything it is
+    worse than direct HTTP — a resolved `..` could traverse out of the `/v1.0/invoke/{appId}/method/` prefix —
+    so the reject-all-dot route-value patch is required regardless of the transport chosen.
+  status: open — owner-raised architectural decision for its own story. Story 1.10 proceeds with the resolved
+    option (c): no discovery mechanism, consuming the AppHost-injected resolved endpoint URL, matching the
+    EventStore command/status and Memories clients.
+
+- **Deferred to Story 1.11** (owner decision, 1.10 chunk-A+B review 2026-07-30) — `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which is null for the whole interactive circuit, so `Evaluate(null)` returns `Indeterminate` permanently and `TenantDetailPage.razor:149` gates tenant lifecycle actions off for a signed-in global administrator for the rest of the session. Story 1.10 added `ResolveGlobalAdministratorsAuthorizationAsync` to the same type and migrated the workspace and global-administrators pages to circuit-aware resolution, leaving the tenant-detail consumer on the synchronous path. Reason for deferral: 1.11 already owns two open principal-resolution decisions on the same evaluator, so all three are settled together rather than by two stories patching it independently. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21-27]
