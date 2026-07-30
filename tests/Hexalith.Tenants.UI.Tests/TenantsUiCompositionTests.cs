@@ -237,39 +237,24 @@ public sealed class TenantsUiCompositionTests
     }
 
     /// <summary>
-    /// The Aspire service-discovery base-address form must survive the scheme gate.
+    /// The Aspire service-discovery base-address form must be rejected loudly, not accepted or ignored.
     /// </summary>
     /// <remarks>
-    /// AddServiceDiscovery is attached to the same client, so rejecting "https+http://tenants" would make
-    /// the canonical Aspire value silently resolve UnavailableTenantQueryGateway with no diagnostic.
+    /// No service discovery is registered, so a compound scheme cannot be sent. Silently failing closed to
+    /// UnavailableTenantQueryGateway would leave every read unavailable with no diagnostic, which an
+    /// operator cannot tell apart from an outage.
     /// </remarks>
     [Theory]
     [InlineData("https+http://tenants")]
     [InlineData("http+https://tenants")]
-    [InlineData("http://tenants.invalid")]
-    [InlineData("https://tenants.invalid")]
-    public void Service_discovery_base_address_forms_compose_a_real_read_gateway(string baseAddress)
+    [InlineData("https+http://tenants.invalid:8443")]
+    public void Compound_service_discovery_address_is_rejected_at_composition_time(string baseAddress)
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Tenants:BaseAddress"] = baseAddress,
-            })
-            .Build();
-        ServiceCollection services = new();
-
-        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
-
-        services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway))
-            .ImplementationType.ShouldBe(typeof(TenantQueryGateway));
-    }
-
-    [Theory]
-    [InlineData("https+http://tenants")]
-    [InlineData("http+https://tenants")]
-    public async Task Compound_service_discovery_address_executes_through_the_registered_handler_pipeline(
-        string baseAddress)
-    {
+        // Superseded premise. This theory previously registered AddServiceDiscovery() and
+        // AddPassThroughServiceEndpointProvider() itself and asserted the compound address executed -- but
+        // production registers neither, so it proved a pipeline that existed only in the harness. With
+        // discovery removed a compound scheme can never be sent, and failing closed silently would be
+        // indistinguishable from an outage, so it must fail loudly at boot.
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -278,28 +263,32 @@ public sealed class TenantsUiCompositionTests
             .Build();
         ServiceCollection services = new();
         services.AddSingleton(configuration);
-        services.AddServiceDiscovery();
-        services.AddPassThroughServiceEndpointProvider();
-        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
-        var primaryHandler = new AuthorizationRecordingHandler();
-        services.AddHttpClient<TenantsRestQueryClient>()
-            .ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
 
-        using ServiceProvider provider = services.BuildServiceProvider();
-        using IServiceScope scope = provider.CreateScope();
-        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+        InvalidOperationException error = Should.Throw<InvalidOperationException>(
+            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
 
-        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
-            new ListTenantsQuery { PageSize = 20 },
-            null,
-            TestContext.Current.CancellationToken);
-
-        result.IsSuccess.ShouldBeTrue();
-        primaryHandler.RequestUri.ShouldNotBeNull();
-        primaryHandler.RequestUri.Scheme.ShouldBeOneOf(Uri.UriSchemeHttp, Uri.UriSchemeHttps);
-        primaryHandler.RequestUri.Host.ShouldBe("tenants");
-        primaryHandler.RequestUri.PathAndQuery.ShouldBe("/api/tenants?pageSize=20");
+        error.Message.ShouldContain("Tenants:BaseAddress");
+        error.Message.ShouldContain("service-discovery compound scheme");
     }
+
+    [Fact]
+    public void Compound_event_store_address_is_rejected_at_composition_time()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+                ["EventStore:BaseAddress"] = "https+http://eventstore",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+
+        Should.Throw<InvalidOperationException>(
+            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
+            .Message.ShouldContain("EventStore:BaseAddress");
+    }
+
 
     [Theory]
     [InlineData(false, false)]
@@ -416,8 +405,6 @@ public sealed class TenantsUiCompositionTests
         ServiceCollection services = new();
         services.AddSingleton(configuration);
         services.AddHexalithFrontComposerTokenRelay();
-        services.AddServiceDiscovery();
-        services.AddPassThroughServiceEndpointProvider();
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization);
         var primaryHandler = new AuthorizationRecordingHandler();
         services.AddHttpClient<TenantsRestQueryClient>()
@@ -609,8 +596,6 @@ public sealed class TenantsUiCompositionTests
             })
             .Build();
         services.AddSingleton(configuration);
-        services.AddServiceDiscovery();
-        services.AddPassThroughServiceEndpointProvider();
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
         var primaryHandler = new AuthorizationRecordingHandler();
         services.AddHttpClient<TenantsRestQueryClient>()
@@ -1734,5 +1719,96 @@ public sealed class TenantsUiCompositionTests
             "Hexalith.Tenants.UI");
         Directory.Exists(root).ShouldBeTrue($"The Tenants UI project source must be discoverable at {root}.");
         return root;
+    }
+
+    [Fact]
+    public void Unconfigured_read_surface_resolves_as_disconnected_through_the_composed_container()
+    {
+        // Mutation-verified gap: flipping the no-base-address branch to IsConnected: true kept the whole
+        // suite green. The two tests naming this behaviour construct TenantsBffComposition directly with a
+        // hand-built availability record and never call AddHexalithTenantsUiModule; a third asserted only
+        // the ServiceDescriptor. Only the connected branch was ever observed through a real container.
+        // This flag gates the grant read-surface guard and both notification leases.
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ITenantsReadSurfaceAvailability>().IsConnected.ShouldBeFalse();
+        scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>().IsReadSurfaceConnected.ShouldBeFalse();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+    }
+
+    [Fact]
+    public void Configured_read_surface_resolves_as_connected_through_the_composed_container()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ITenantsReadSurfaceAvailability>().IsConnected.ShouldBeTrue();
+        scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>().IsReadSurfaceConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Host_override_declaring_a_connected_surface_over_the_unavailable_gateway_is_rejected()
+    {
+        // The presence-only XOR accepted this pairing, which is precisely the outcome requiring the pair is
+        // documented to prevent: a host could claim a working read surface while registering the gateway
+        // that cannot serve one.
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        Should.Throw<InvalidOperationException>(
+            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
+            .Message.ShouldContain("IsConnected: true");
+    }
+
+    [Fact]
+    public void Host_override_declaring_a_disconnected_surface_over_a_connected_gateway_is_rejected()
+    {
+        // The converse direction, which no test covered at all.
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddScoped<ITenantQueryGateway, TenantQueryGateway>();
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(new TenantsReadSurfaceAvailability(IsConnected: false));
+
+        Should.Throw<InvalidOperationException>(
+            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
+            .Message.ShouldContain("IsConnected: false");
+    }
+
+    [Fact]
+    public void Host_override_with_an_agreeing_pair_is_accepted()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(new TenantsReadSurfaceAvailability(IsConnected: false));
+
+        Should.NotThrow(() => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
     }
 }

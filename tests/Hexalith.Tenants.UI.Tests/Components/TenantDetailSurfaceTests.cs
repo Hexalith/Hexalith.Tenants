@@ -87,7 +87,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-actions']");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
-        cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
+        // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
+        // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
+        // snapshot with the default Unknown lifecycle and no projection version, so the evidence is not
+        // version-consistent and the owner-context variant is correctly withheld. Both branches are covered
+        // by Member_governance_claims_require_current_lifecycle_and_a_stated_matching_projection_version.
+        cut.Find("[data-testid='tenants-detail-member-summary']").TextContent
+            .ShouldContain("2 members visible on this page. Owner context is unavailable");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 visible configuration keys");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Find(".tenant-detail__literal").GetAttribute("aria-label").ShouldBe($"Full tenant identifier {tenantId}");
@@ -799,7 +805,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(page => page.TenantId, "tenant.alpha"));
         cut.WaitForElement("[data-testid='tenants-member-table']");
 
-        cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
+        // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
+        // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
+        // snapshot with the default Unknown lifecycle and no projection version, so the evidence is not
+        // version-consistent and the owner-context variant is correctly withheld. Both branches are covered
+        // by Member_governance_claims_require_current_lifecycle_and_a_stated_matching_projection_version.
+        cut.Find("[data-testid='tenants-detail-member-summary']").TextContent
+            .ShouldContain("2 members visible on this page. Owner context is unavailable");
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain("Member access review");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
@@ -2717,5 +2729,412 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.Workspace.Eyebrow"] = "Tenant workspace",
         };
+    }
+
+    [Theory]
+    // Each row removes exactly one clause of MemberEvidenceIsVersionConsistent / ActionsAreEvidenceBacked.
+    // Every one of these survived the whole suite before: the two summary assertions matched on a prefix
+    // both variants share, and nothing pinned the lifecycle or blank-version clauses at all.
+    [InlineData(ProjectionLifecycleState.Current, ProjectionLifecycleState.Current, "projection-v1", "projection-v1", true)]
+    [InlineData(ProjectionLifecycleState.Unknown, ProjectionLifecycleState.Current, "projection-v1", "projection-v1", false)]
+    [InlineData(ProjectionLifecycleState.Current, ProjectionLifecycleState.Unknown, "projection-v1", "projection-v1", false)]
+    [InlineData(ProjectionLifecycleState.Current, ProjectionLifecycleState.Current, null, null, false)]
+    [InlineData(ProjectionLifecycleState.Current, ProjectionLifecycleState.Current, "  ", "  ", false)]
+    [InlineData(ProjectionLifecycleState.Current, ProjectionLifecycleState.Current, "projection-v1", "projection-v2", false)]
+    public void Member_governance_claims_require_current_lifecycle_and_a_stated_matching_projection_version(
+        ProjectionLifecycleState detailLifecycle,
+        ProjectionLifecycleState memberLifecycle,
+        string? detailVersion,
+        string? memberVersion,
+        bool expectOwnerContext)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" },
+            TenantStatus.Active,
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ]);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(detail, detailLifecycle, detailVersion)));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantUsersSnapshot.Ready(
+                "tenant.alpha",
+                detail.Members,
+                nextCursor: null,
+                hasMore: false,
+                eTag: "members-etag",
+                projectionVersion: memberVersion,
+                ReadModelFreshnessState.Current,
+                memberLifecycle)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-member-summary']");
+
+        string summary = cut.Find("[data-testid='tenants-detail-member-summary']").TextContent;
+        if (expectOwnerContext)
+        {
+            summary.ShouldContain("2 members visible on this page; authoritative tenant detail reports 1 owners.");
+        }
+        else
+        {
+            summary.ShouldContain("2 members visible on this page. Owner context is unavailable");
+            summary.ShouldNotContain("reports 1 owners");
+        }
+
+        // The same evidence gate drives member action availability, so a short clause must also close the
+        // change-role and remove launchers rather than only the summary wording.
+        cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(expectOwnerContext ? 2 : 0);
+    }
+
+    [Fact]
+    public void Member_page_with_unresolvable_freshness_is_applied_and_advances_paging()
+    {
+        // Unknown freshness is a successful read whose projection lifecycle could not be resolved. Excluding
+        // it from IsUsableMemberPage sent the page down the degraded-retention path, which re-presented page
+        // one's rows and left the cursor untouched -- so Next could never leave page one.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        List<TenantUsersRequest> memberRequests = [];
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantUsersRequest request = call.Arg<TenantUsersRequest>()
+                    ?? throw new InvalidOperationException("A tenant-users request is required.");
+                memberRequests.Add(request);
+                return memberRequests.Count == 1
+                    ? Task.FromResult(TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-user", TenantRole.TenantOwner)],
+                        nextCursor: "cursor-page-2",
+                        hasMore: true,
+                        eTag: "members-page-1",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current))
+                    : Task.FromResult(TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-2-user", TenantRole.TenantReader)],
+                        nextCursor: null,
+                        hasMore: false,
+                        eTag: "members-page-2",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Unknown,
+                        ProjectionLifecycleState.Unknown) with { RequestCursor = request.Cursor });
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-next']").Click();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-member-table']")
+            .TextContent.ShouldContain("page-2-user"));
+
+        // The requested page rendered, so paging state committed: Previous is now available.
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+        memberRequests.Select(static request => request.Cursor).ShouldBe([null, "cursor-page-2"]);
+    }
+
+    [Fact]
+    public void Degraded_member_page_describing_another_cursor_is_not_committed_as_the_requested_page()
+    {
+        // The reject side of the Degraded clause in IsUsableMemberPage. A degraded snapshot retaining the
+        // prior page's rows and RequestCursor must not advance _memberCursor to a page that never rendered.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        List<TenantUsersRequest> memberRequests = [];
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantUsersRequest request = call.Arg<TenantUsersRequest>()
+                    ?? throw new InvalidOperationException("A tenant-users request is required.");
+                memberRequests.Add(request);
+                return memberRequests.Count == 1
+                    ? Task.FromResult(TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-user", TenantRole.TenantOwner)],
+                        nextCursor: "cursor-page-2",
+                        hasMore: true,
+                        eTag: "members-page-1",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current) with { RequestCursor = null })
+                    // Degraded retention of page one: rows and RequestCursor still describe the PRIOR page.
+                    : Task.FromResult(TenantUsersSnapshot.Ready(
+                        "tenant.alpha",
+                        [new TenantMember("page-1-user", TenantRole.TenantOwner)],
+                        nextCursor: "cursor-page-2",
+                        hasMore: true,
+                        eTag: "members-page-1",
+                        projectionVersion: "projection-v1",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current) with
+                    {
+                        Kind = TenantUsersSurfaceKind.Degraded,
+                        RequestCursor = null,
+                        Reason = TenantUsersReason.GatewayUnavailable,
+                    });
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-next']").Click();
+
+        cut.WaitForAssertion(() => memberRequests.Count.ShouldBe(2));
+
+        // Paging state must not have advanced: Previous stays unavailable because page one is still current.
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-member-previous']")
+            .All(static element => element.HasAttribute("disabled")).ShouldBeTrue());
+    }
+
+    [Fact]
+    public void Member_next_is_a_no_op_when_has_more_carries_no_continuation_cursor()
+    {
+        // Spec rule: reject HasMore without a usable continuation cursor. No fixture in the suite paired
+        // HasMore = true with a blank cursor, so the guard was never exercised.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        List<TenantUsersRequest> memberRequests = [];
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                memberRequests.Add(call.Arg<TenantUsersRequest>()!);
+                return Task.FromResult(TenantUsersSnapshot.Ready(
+                    "tenant.alpha",
+                    [new TenantMember("page-1-user", TenantRole.TenantOwner)],
+                    nextCursor: "   ",
+                    hasMore: true,
+                    eTag: "members-page-1",
+                    projectionVersion: "projection-v1",
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current));
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-next']").Click();
+
+        // One read only: the initial load. The click cannot start a page read without a usable cursor.
+        memberRequests.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Authorization_safe_empty_member_page_keeps_absence_wording_at_stale_freshness()
+    {
+        // A successful authorized-empty page at non-Current freshness maps onto the Stale/Unknown kind,
+        // which used to select the "Member read unavailable" failure copy -- reporting a read that
+        // succeeded and authoritatively returned nothing as a failure.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }, TenantStatus.Active, []),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantUsersSnapshot.Empty(
+                "tenant.alpha",
+                isAuthorizationScoped: true,
+                eTag: "members-etag",
+                projectionVersion: "projection-v1",
+                ReadModelFreshnessState.Stale,
+                ProjectionLifecycleState.Stale)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        IElement empty = cut.WaitForElement("[data-testid='tenants-member-empty']");
+        empty.TextContent.ShouldContain("No visible members");
+
+        // The freshness channel is not lost to the absence channel: both are stated.
+        empty.TextContent.ShouldContain("stale");
+        cut.FindAll("[data-testid='tenants-member-stale']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Member_command_flow_survives_its_target_row_leaving_the_page_on_the_same_cursor()
+    {
+        // The confirmation re-query for a successful removal re-reads the SAME cursor and the target row is
+        // gone. Resolving the open flow against Members.Rows unmounted it at exactly that moment, throwing
+        // away the receipt and pending projection confirmation -- while the active user id survived, so
+        // HasOpenMemberCommandFlow stayed true and BOTH pager buttons were disabled with no rendered flow
+        // to close and no reset control. Only a full page reload recovered.
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot page = TenantUsersSnapshot.Ready(
+            detail.TenantId,
+            detail.Members,
+            nextCursor: "cursor-page-2",
+            hasMore: true,
+            eTag: "members-etag",
+            projectionVersion: "v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, page));
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[0].Click();
+        cut.Find("[data-testid='tenants-remove-member-flow']");
+
+        // Same tenant, same cursor, target row removed: the removal succeeded.
+        TenantUsersSnapshot afterRemoval = page with
+        {
+            Rows = [.. detail.Members.Where(static member => member.UserId != "owner-user")],
+        };
+        cut.Render(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, afterRemoval));
+
+        // The flow keeps rendering from its captured intent, so the receipt survives...
+        cut.Find("[data-testid='tenants-remove-member-flow']");
+        cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(1);
+
+        // ...and closing it -- which is only possible because it is still rendered -- releases the pager.
+        cut.Find("[data-testid='tenants-remove-member-cancel']").Click();
+        cut.FindAll("[data-testid='tenants-remove-member-flow']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Member_command_flow_survives_a_refresh_that_empties_the_page_entirely()
+    {
+        // The flow regions render outside the empty/non-empty branch for the same reason the pager does.
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail)));
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        cut.Find("[data-testid='tenants-change-role-flow']");
+
+        cut.Render(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail) with { Rows = [] }));
+
+        cut.Find("[data-testid='tenants-change-role-flow']");
+    }
+
+    [Fact]
+    public async Task Member_paging_handlers_reject_a_click_dispatched_before_the_disabled_attribute_renders()
+    {
+        // The Disabled bindings are observed by two existing tests, but the handler guards exist for the
+        // click dispatched BEFORE the re-render lands. Invoking the callbacks directly is the only way to
+        // observe them; removing any of the three guards previously kept the whole suite green.
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int nextRequests = 0;
+        int previousRequests = 0;
+        TenantUsersSnapshot refreshing = TenantUsersSnapshot.Ready(
+            detail.TenantId,
+            detail.Members,
+            nextCursor: "cursor-page-2",
+            hasMore: true,
+            eTag: "members-etag",
+            projectionVersion: "v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current) with { IsRefreshing = true };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.CanGoPrevious, true)
+            .Add(view => view.Members, refreshing)
+            .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
+            .Add(view => view.OnPreviousPageRequested, EventCallback.Factory.Create(this, () => previousRequests++)));
+
+        // A load is in flight (IsRefreshing): neither handler may start a second page read.
+        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
+        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
+        nextRequests.ShouldBe(0);
+        previousRequests.ShouldBe(0);
+
+        // Not refreshing, but a member command flow is open: still blocked, because paging unmounts it.
+        cut.Render(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.CanGoPrevious, true)
+            .Add(view => view.Members, refreshing with { IsRefreshing = false })
+            .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
+            .Add(view => view.OnPreviousPageRequested, EventCallback.Factory.Create(this, () => previousRequests++)));
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+
+        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
+        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
+        nextRequests.ShouldBe(0);
+        previousRequests.ShouldBe(0);
+
+        // Nothing in flight and no open flow: both handlers proceed.
+        cut.Find("[data-testid='tenants-change-role-cancel']").Click();
+        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
+        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
+        nextRequests.ShouldBe(1);
+        previousRequests.ShouldBe(1);
     }
 }

@@ -5,6 +5,7 @@
 @using Hexalith.Tenants.UI.Components.Tenants.Lifecycle
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
+@using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantUsers
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -213,19 +214,26 @@
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
     private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
     /// <summary>Upper bound on retained member paging history.</summary>
-    private const int MaximumMemberCursorHistory = 50;
+    private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
 
     private readonly Stack<string?> _memberCursorHistory = new();
     private string? _memberCursor;
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
     private CancellationTokenSource? _loadCancellation;
-    private readonly List<CancellationTokenSource> _supersededCancellations = [];
-    private readonly Lock _supersededCancellationsLock = new();
+    // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
+    // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
+    // request still inside SendAsync, where a CancellationToken.Register after Dispose throws
+    // ObjectDisposedException, which is not an OperationCanceledException and so slips past every caller's
+    // cancellation-only handler. Disposal is owned solely by CompleteCancellation, which the owning
+    // PendingOperation calls when its operation finishes. A prior version also tracked superseded sources in
+    // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
+    private readonly Lock _cancellationLock = new();
     private long _loadGeneration;
     private bool _disposed;
     private bool _memberPageLoadInFlight;
     private bool _commandInFlight;
+    private bool _readRefreshSubscriptionInFlight;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -298,10 +306,23 @@
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        _snapshot = TenantDetailSnapshot.Loading();
-        _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
-        _memberCursor = null;
-        _memberCursorHistory.Clear();
+
+        // Marshalled for the same reason the result application below is: the optional lease dispose above
+        // can genuinely suspend, so this continuation may run on a thread-pool thread while the render
+        // ComponentBase queued for the incomplete task is in flight. _memberCursorHistory is a Stack the
+        // renderer reads for CanGoPrevious, so clearing it unsynchronised races that read.
+        await InvokeAsync(() =>
+        {
+            if (!CanApply(generation, tenantId))
+            {
+                return;
+            }
+
+            _snapshot = TenantDetailSnapshot.Loading();
+            _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
+            _memberCursor = null;
+            _memberCursorHistory.Clear();
+        }).ConfigureAwait(false);
 
         Task<TenantDetailSnapshot> detailTask = QueryGateway
             .GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
@@ -343,33 +364,66 @@
             return;
         }
 
-        // A faulted read resolves to its own terminal state rather than leaving the surface on Loading.
-        _snapshot = detailResult ?? TenantDetailSnapshot.Unavailable(tenantId);
-        _tenantUsersSnapshot = membersResult ?? TenantUsersSnapshot.Unavailable(tenantId);
-
-        if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
-            && Services.GetService(typeof(TenantReadRefreshSubscription)) is TenantReadRefreshSubscription refreshSubscription)
+        // Marshalled with a re-check inside the dispatcher callback: CanApply above ran on a thread-pool
+        // continuation, so a newer load can win between that check and this write.
+        await InvokeAsync(() =>
         {
-            TenantReadRefreshLease lease;
-            try
+            if (!CanApply(generation, tenantId))
             {
-                lease = await refreshSubscription.SubscribeAsync(
-                    GetTenantQuery.ProjectionType,
-                    tenantId,
-                    () => InvokeAsync(() => RefreshTenantReadsAsync(tenantId)),
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch
-            {
-                // Optional refresh only; a transport fault must not escape OnParametersSetAsync.
                 return;
             }
 
-            if (!CanApply(generation, tenantId))
+            // A faulted read resolves to its own terminal state rather than leaving the surface on Loading.
+            _snapshot = detailResult ?? TenantDetailSnapshot.Unavailable(tenantId);
+            _tenantUsersSnapshot = membersResult ?? TenantUsersSnapshot.Unavailable(tenantId);
+            StateHasChanged();
+        }).ConfigureAwait(false);
+
+        await EnsureReadRefreshLeaseAsync(tenantId).ConfigureAwait(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Retry optional notification setup after later renders when an earlier attempt was superseded or
+        // returned no lease. The method's in-flight and existing-lease guards keep successful setup
+        // single-instance. Without this, one cancelled or empty setup disabled projection auto-refresh for
+        // the rest of the circuit, because OnParametersSetAsync was its only entry point.
+        await EnsureReadRefreshLeaseAsync(TenantId).ConfigureAwait(false);
+    }
+
+    /// <summary>Subscribes this tenant's reads to projection notifications, at most once per tenant.</summary>
+    /// <remarks>
+    /// Deliberately does NOT take the load cancellation token. Binding setup to a load meant any Refresh,
+    /// command-driven re-query or member pager click during setup cancelled <c>SubscribeAsync</c>, the catch
+    /// returned without recording <c>_subscriptionTenantId</c>, and nothing retried for the same tenant --
+    /// silently disabling projection auto-refresh for the rest of the circuit. Both sibling pages already
+    /// pass <see cref="CancellationToken.None"/> for this reason.
+    /// </remarks>
+    private async Task EnsureReadRefreshLeaseAsync(string tenantId)
+    {
+        if (_disposed
+            || string.IsNullOrWhiteSpace(tenantId)
+            || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+            || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
+            || _readRefreshLease is not null
+            || _readRefreshSubscriptionInFlight
+            || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
+        {
+            return;
+        }
+
+        _readRefreshSubscriptionInFlight = true;
+        TenantReadRefreshLease? lease = null;
+        try
+        {
+            lease = await refreshSubscription.SubscribeAsync(
+                GetTenantQuery.ProjectionType,
+                tenantId,
+                () => InvokeAsync(() => RefreshTenantReadsAsync(tenantId)),
+                CancellationToken.None).ConfigureAwait(false);
+            if (_disposed
+                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                || _readRefreshLease is not null)
             {
                 await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
                 return;
@@ -377,18 +431,47 @@
 
             if (!lease.IsSubscribed)
             {
-                // No callback was registered; recording it would block every later attempt for this circuit.
+                // Setup registered no callback. Recording it would satisfy the guards above forever and
+                // permanently disable auto-refresh; leaving both fields unset lets the next render retry.
                 return;
             }
 
             _readRefreshLease = lease;
             _subscriptionTenantId = tenantId;
+            lease = null;
+        }
+        catch
+        {
+            // Optional refresh only; a transport fault must not escape the render lifecycle. The next
+            // render retries.
+            if (lease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _readRefreshSubscriptionInFlight = false;
         }
     }
 
     private async Task RefreshTenantDetailAsync()
     {
         string tenantId = TenantId;
+
+        // BeginLoad cancels the shared load token and clears _memberPageLoadInFlight / IsRefreshing, so a
+        // member page navigation that was in flight is aborted here. This method never re-reads members, so
+        // the abort was silent: the refresh indicator vanished, the pager re-enabled (its Disabled binding
+        // reads Members.IsRefreshing, not _memberPageLoadInFlight) and the table sat on the old page with no
+        // error and no retry, while the superseded load's finally could restore nothing because its
+        // generation no longer matched. Route those cases through the read refresh, which restores
+        // Refreshing and re-issues the member read for the current cursor.
+        if (_memberPageLoadInFlight)
+        {
+            await RefreshTenantReadsAsync(tenantId).ConfigureAwait(false);
+            return;
+        }
+
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
@@ -490,6 +573,14 @@
             {
                 members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, recovered.Reason);
             }
+        }
+        else if (!IsUsableMemberPage(members, _memberCursor) && !IsTerminalMemberPage(members))
+        {
+            // Symmetric with LoadMemberPageAsync. A terminal result (unauthorized, not-found, invalid) must
+            // replace the retained rows so a refresh cannot keep showing membership the caller may no longer
+            // be allowed to see; an operational failure must not blank a surface that was serving confirmed
+            // rows a moment ago. Previously every non-usable result was applied verbatim on this path.
+            members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, members.Reason);
         }
 
         await InvokeAsync(() =>
@@ -653,7 +744,7 @@
                     _memberCursorHistory.Push(priorCursor);
 
                     // Bound the history so a long paging session cannot grow it without limit.
-                    TrimMemberCursorHistory();
+                    CursorHistory.Trim(_memberCursorHistory, MaximumMemberCursorHistory);
                 }
                 else if (_memberCursorHistory.Count > 0)
                 {
@@ -677,7 +768,7 @@
     private CancellationTokenSource ReplaceActiveCancellation()
     {
         var source = new CancellationTokenSource();
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(_loadCancellation);
             _loadCancellation = source;
@@ -688,7 +779,7 @@
 
     private void CancelActiveCancellation()
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(_loadCancellation);
             _loadCancellation = null;
@@ -703,29 +794,35 @@
         }
 
         source.Cancel();
-        _supersededCancellations.Add(source);
     }
 
     private void CompleteCancellation(CancellationTokenSource source)
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             if (ReferenceEquals(_loadCancellation, source))
             {
                 _loadCancellation = null;
             }
-
-            _ = _supersededCancellations.Remove(source);
         }
 
         source.Dispose();
     }
 
     /// <summary>A page whose rows and paging state may be applied.</summary>
+    /// <remarks>
+    /// <see cref="TenantUsersSurfaceKind.Unknown"/> is a successful read whose projection freshness could
+    /// not be resolved, not a failure. Omitting it sent every such page down the degraded-retention path,
+    /// which re-presented the previous page's rows and cursor while leaving Next enabled -- so the operator
+    /// could never leave page one and was told the evidence was degraded on a read that succeeded. Every
+    /// sibling predicate (IsRetainableTenantUsers, IsUsableGlobalAdministratorsPage, CanOpenMemberAudit,
+    /// IsAppliedRequestedPage) admits it.
+    /// </remarks>
     private static bool IsUsableMemberPage(TenantUsersSnapshot snapshot, string? requestedCursor)
         => (snapshot.Kind is TenantUsersSurfaceKind.Ready
             or TenantUsersSurfaceKind.Empty
-            or TenantUsersSurfaceKind.Stale)
+            or TenantUsersSurfaceKind.Stale
+            or TenantUsersSurfaceKind.Unknown)
             || (snapshot.Kind is TenantUsersSurfaceKind.Degraded
                 && string.Equals(snapshot.RequestCursor, requestedCursor, StringComparison.Ordinal));
 
@@ -735,26 +832,6 @@
             or TenantUsersSurfaceKind.NotFound
             or TenantUsersSurfaceKind.Invalid;
 
-    private void TrimMemberCursorHistory()
-    {
-        if (_memberCursorHistory.Count <= MaximumMemberCursorHistory)
-        {
-            return;
-        }
-
-        string?[] history = [.. _memberCursorHistory];
-        string? firstPageCursor = history[^1];
-        string?[] retainedHistory =
-        [
-            .. history.Take(MaximumMemberCursorHistory - 1),
-            firstPageCursor,
-        ];
-        _memberCursorHistory.Clear();
-        for (int index = retainedHistory.Length - 1; index >= 0; index--)
-        {
-            _memberCursorHistory.Push(retainedHistory[index]);
-        }
-    }
 
     private PendingOperation BeginLoad()
     {
@@ -769,9 +846,11 @@
         return new(generation, source, () => CompleteCancellation(source));
     }
 
+    // Volatile.Read matches the two sibling pages: this guard is read from thread-pool continuations and is
+    // the sole defence against a superseded completion overwriting newer member rows.
     private bool CanApply(long generation, string tenantId)
         => !_disposed
-            && generation == _loadGeneration
+            && generation == Volatile.Read(ref _loadGeneration)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
     private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
@@ -860,10 +939,14 @@
             _ => FcFluentIcons.QuestionCircle16(),
         };
 
+    // The "/tenants" prefix check already rejects every protocol-relative value: a string starting "//" has
+    // '/' at index 1, where the prefix requires 't'. The former explicit "//" clause was unreachable by
+    // construction, so deleting it changes nothing -- it is removed rather than kept, because a guard that
+    // cannot decide anything reads as protection that is not there. Any future relaxation of the prefix
+    // check must re-add an explicit scheme-relative rejection.
     private static bool IsSafeReturnUrl(string? returnUrl)
         => !string.IsNullOrWhiteSpace(returnUrl)
-            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
-            && !returnUrl.StartsWith("//", StringComparison.Ordinal);
+            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal);
 
     public async ValueTask DisposeAsync()
     {

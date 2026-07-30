@@ -1321,13 +1321,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                // IsCompleteEvidence matches what the gateway computes for this shape (null cursor,
+                // HasMore false, Current freshness and lifecycle). Without it the re-query reads as
+                // page-scoped evidence, which is a different terminal message from a genuine
+                // "did not confirm" -- and this test is asserting the latter.
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
@@ -1657,7 +1661,29 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public TenantLifecycleAuthorizationReflectionState Reflection { get; set; } = reflection;
 
-        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection => Reflection;
+        /// <summary>Set to make the async resolver throw, exercising the page's fail-closed catch.</summary>
+        public bool ThrowFromAsyncResolution { get; set; }
+
+        /// <summary>Counts async resolutions, proving the page does not fall back to the sync property.</summary>
+        public int AsyncResolutionCount { get; private set; }
+
+        /// <summary>
+        /// Deliberately NOT the value the page should read. Overriding the async resolver below was the
+        /// missing piece: without it every test here hit the default interface implementation, which
+        /// returns this property, so swapping the page's call back to claims-only authorization kept the
+        /// whole suite green and the fail-closed catch was unreachable because the default cannot throw.
+        /// </summary>
+        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+            => TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+        public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+            CancellationToken cancellationToken = default)
+        {
+            AsyncResolutionCount++;
+            return ThrowFromAsyncResolution
+                ? throw new InvalidOperationException("principal resolution failed")
+                : ValueTask.FromResult(Reflection);
+        }
     }
 
     private sealed class StubTenantQueryGateway(params GlobalAdministratorsSnapshot[] snapshots) : ITenantQueryGateway
@@ -1840,8 +1866,6 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         {
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
-            ["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"] = "Unavailable until projection freshness is current.",
-            ["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"] = "Unavailable in this read-only review.",
             ["Tenants.GlobalAdministrators.Aggregate.Domain.Label"] = "Domain",
             ["Tenants.GlobalAdministrators.Aggregate.Domain.Value"] = "global-administrators",
             ["Tenants.GlobalAdministrators.Aggregate.Id.Label"] = "Aggregate id",
@@ -1937,6 +1961,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"] = "The command surface is unavailable for platform governance changes.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"] = "Refresh projection freshness before removing platform authority.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"] = "Another platform authority command is in flight.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"] = "Current complete projection evidence is required before removing platform authority.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"] = "The last global administrator cannot be removed.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"] = "The global administrator read projection must be available before removal can be submitted.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"] = "The target administrator is not visible in the current projection.",
@@ -1993,5 +2018,210 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
             => Values.Select(static v => new LocalizedString(v.Key, v.Value));
+    }
+
+    [Fact]
+    public async Task Cancelling_a_previewed_remove_does_not_cancel_in_flight_grant_status_tracking()
+    {
+        // The converse of Cancelling_grant_does_not_cancel_in_flight_remove_status_tracking. Only the
+        // grant->remove direction was covered, so restoring the shared-invalidation defect in the
+        // remove->grant direction kept the whole suite green -- while in production it discarded an accepted
+        // grant's tracking handle and left its snapshot stuck at RequestSent.
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken grantStatusToken = default;
+        commandGateway
+            .SetGlobalAdministratorAsync(Arg.Any<SetGlobalAdministrator>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant")));
+        commandGateway
+            .GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                grantStatusToken = call.ArgAt<CancellationToken>(1);
+                return pendingStatus.Task;
+            });
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ],
+                null,
+                false,
+                "\"etag\"",
+                ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+                IsCompleteEvidence = true,
+            }));
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        // Preview a removal without submitting it, then submit a grant.
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("grant-candidate");
+        Task grantSubmit = cut.Find("[data-testid='tenants-global-admin-grant-form']").SubmitAsync();
+        cut.WaitForAssertion(() => grantStatusToken.CanBeCanceled.ShouldBeTrue());
+
+        cut.Find("[data-testid='tenants-global-admin-remove-cancel']").Click();
+
+        grantStatusToken.IsCancellationRequested.ShouldBeFalse();
+        pendingStatus.SetResult(TenantCommandStatusResult.Unknown("Status remains pending."));
+        await grantSubmit;
+        cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent
+            .ShouldNotContain("No global administrator grant command");
+    }
+
+    [Fact]
+    public void Client_local_paging_history_is_not_population_evidence_for_the_last_administrator_stop()
+    {
+        // The removed fail-open. On page 2+ the completeness gate is false, so the LastAdmin branch is
+        // skipped; treating a non-empty cursor history as evidence that other administrators exist then
+        // re-enabled Remove against a platform that may have exactly one administrator left. Only
+        // server-stated population counts may satisfy the gate.
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            // Page one: HasMore, so paging forward is offered.
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-page-1", ReadModelFreshnessState.Current)],
+                "cursor-page-2",
+                true,
+                "\"etag-1\"",
+                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+            // Page two: the last page (HasMore false) and a cursor was used, so IsCompleteEvidence is false.
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-page-2", ReadModelFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+                RequestCursor = "cursor-page-2",
+            }));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.WaitForElement("[data-testid='tenants-global-admins-next']").Click();
+
+        // On page two the history is non-empty, HasMore is false and evidence is incomplete: Remove must
+        // stay unavailable rather than trusting client-local paging bookkeeping.
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldContain("admin-page-2");
+
+            // The launcher is replaced by its unavailability reason rather than rendered disabled.
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent
+                .ShouldContain("Current complete projection evidence is required before removing platform authority.");
+        });
+    }
+
+    [Fact]
+    public async Task Remove_submission_is_blocked_when_a_refresh_removes_the_previewed_target_from_the_page()
+    {
+        // The TargetMissing re-check. Preview is not a durable authorization: a refresh replaces _snapshot
+        // underneath an open preview without resetting the intent, so the submit path must re-derive the
+        // gates against the CURRENT snapshot. Only the LastAdmin branch was covered, so replacing this
+        // condition with `false` kept the suite green.
+        var commandGateway = new StubTenantCommandGateway();
+        var gateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("third-admin", ReadModelFreshnessState.Current),
+                ],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current) with
+            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true },
+            // The previewed target is gone, but two administrators remain -- so the LastAdmin branch cannot
+            // be what blocks the submit. Only the TargetMissing re-check can.
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("third-admin", ReadModelFreshnessState.Current),
+                ],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag-2\"",
+                freshness: ReadModelFreshnessState.Current) with
+            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-remove-target']").TextContent.ShouldContain("target-admin");
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
+
+        await cut.Find("[data-testid='tenants-global-admins-refresh']").ClickAsync(new MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(2));
+
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeTrue());
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void The_page_authorizes_through_the_async_resolver_not_the_synchronous_claims_property()
+    {
+        // The stub's synchronous property returns Indeterminate while its async resolver returns Authorized.
+        // A page that reverted to claims-only authorization would render the denied surface.
+        StubTenantsBffComposition composition = new(TenantLifecycleAuthorizationReflectionState.Authorized);
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldContain("admin-1"));
+        composition.AsyncResolutionCount.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void A_throwing_principal_resolution_fails_closed_to_the_denied_surface()
+    {
+        // The page's `catch { return Indeterminate; }` was unreachable in test, because the default
+        // interface implementation it was hitting cannot throw.
+        StubTenantsBffComposition composition = new(TenantLifecycleAuthorizationReflectionState.Authorized)
+        {
+            ThrowFromAsyncResolution = true,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.WaitForAssertion(() =>
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").ShouldBeEmpty());
+        composition.AsyncResolutionCount.ShouldBeGreaterThan(0);
     }
 }

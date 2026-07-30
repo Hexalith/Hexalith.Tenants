@@ -2,6 +2,7 @@
 @* Platform authority is enforced by the rendered fail-closed state below, not by endpoint
    authorization: the host registers an authentication scheme only when OIDC is configured, so an
    [Authorize] attribute would make the authorization middleware challenge and fault the route. *@
+@using Hexalith.Tenants.UI.State
 @using Microsoft.Extensions.Logging
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
@@ -108,27 +109,17 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__state-copy">
                     <h2>@StatusHeading</h2>
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
-                    @if (_isNotificationRefreshing)
-                    {
-                        <p role="status" aria-live="polite" data-testid="tenants-global-admins-notification-refreshing">
-                            @Localizer["Tenants.GlobalAdministrators.Freshness.Refreshing"]
-                        </p>
-                    }
-                    @if (_snapshot.PagingRecovered)
-                    {
-                        <p role="status" aria-live="polite" data-testid="tenants-global-admins-page-recovered">
-                            @Localizer["Tenants.GlobalAdministrators.Recovery.PageRecovered"]
-                        </p>
-                    }
                     @if (CanRecover)
                     {
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
                             <FluentButton Appearance="ButtonAppearance.Outline"
+                                          Disabled="@_pageLoadInFlight"
                                           data-testid="tenants-global-admins-retry"
                                           OnClick="RetryAsync">
                                 @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
                             </FluentButton>
                             <FluentButton Appearance="ButtonAppearance.Outline"
+                                          Disabled="@_pageLoadInFlight"
                                           data-testid="tenants-global-admins-reset"
                                           OnClick="ResetPagingAsync">
                                 @Localizer["Tenants.GlobalAdministrators.Recovery.Reset"]
@@ -137,6 +128,23 @@
                     }
                 </FluentStack>
             </section>
+            @* Rendered as siblings of the state section, not children. StatusRole/StatusLive resolve to
+               alert/assertive for Invalid, Stale, Unknown, Degraded, Error, Unauthorized and Unavailable,
+               and inserting or removing a child mutates that region's own subtree -- so every projection
+               nudge re-announced the whole state block assertively and interrupted the screen-reader user.
+               These are polite, non-authoritative signals and must own their live regions. *@
+            @if (_isNotificationRefreshing)
+            {
+                <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-notification-refreshing">
+                    @Localizer["Tenants.GlobalAdministrators.Freshness.Refreshing"]
+                </p>
+            }
+            @if (_snapshot.PagingRecovered)
+            {
+                <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-page-recovered">
+                    @Localizer["Tenants.GlobalAdministrators.Recovery.PageRecovered"]
+                </p>
+            }
         </FluentAccordionItem>
 
         <FluentAccordionItem Class="global-admins__mutation-section"
@@ -290,8 +298,14 @@
                         <dd data-testid="tenants-global-admin-remove-target">@_removeSnapshot.Intent?.UserId</dd>
                     </div>
                     <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count"]</dt>
-                        <dd>@(_removeSnapshot.PreviewRows?.Count ?? 0)</dd>
+                        @* PreviewRows is one PageSize-bounded page, not the platform total. Labelling a
+                           paged count "Current administrator count" overstated the evidence on exactly the
+                           incomplete-evidence path Remove stays enabled for (HasMore alone), so the label
+                           follows IsCompleteEvidence -- the flag that distinguishes the two. *@
+                        <dt data-testid="tenants-global-admin-remove-count-label">@(_snapshot.IsCompleteEvidence
+                            ? Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count"]
+                            : Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count.VisiblePage"])</dt>
+                        <dd data-testid="tenants-global-admin-remove-count">@(_removeSnapshot.PreviewRows?.Count ?? 0)</dd>
                     </div>
                     <div>
                         <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Freshness"]</dt>
@@ -476,6 +490,9 @@
     private IAsyncDisposable? _readRefreshLease;
     private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
     private GlobalAdministratorRemoveCommandSnapshot _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
+    /// <summary>Upper bound on retained paging history.</summary>
+    private const int MaximumCursorHistory = CursorHistory.DefaultMaximum;
+
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
     private string? _grantUserId;
@@ -494,13 +511,14 @@
     private CancellationTokenSource? _grantMutationCancellation;
     private CancellationTokenSource? _removeMutationCancellation;
 
-    // Superseded cancellation sources awaiting disposal. Disposing one at the moment it is replaced races
-    // the request still inside SendAsync: a CancellationToken.Register performed after Dispose throws
+    // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
+    // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
+    // request still inside SendAsync, where a CancellationToken.Register after Dispose throws
     // ObjectDisposedException, which is not an OperationCanceledException and so slips past every caller's
-    // cancellation-only handler. They are cancelled immediately (which is what callers observe) and disposed
-    // when the operation that owns the token finishes.
-    private readonly List<CancellationTokenSource> _supersededCancellations = [];
-    private readonly Lock _supersededCancellationsLock = new();
+    // cancellation-only handler. Disposal is owned solely by CompleteCancellation, which the owning
+    // PendingOperation calls when its operation finishes. A prior version also tracked superseded sources in
+    // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
+    private readonly Lock _cancellationLock = new();
     private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
@@ -594,15 +612,12 @@
         _ => "?",
     };
 
-    // IsMutationEvidenceBacked, not Freshness alone: a projection-backed response carrying only the legacy
-    // X-Hexalith-Is-Stale: false compatibility signal classifies as Current without any lifecycle evidence,
-    // and that is not projection-confirmed enough to enable a grant or a removal. See
-    // GlobalAdministratorsSnapshot.IsMutationEvidenceBacked.
-    private string UnavailableActionReason
-        => _snapshot.IsMutationEvidenceBacked
-            ? Localizer["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"]
-            : Localizer["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"];
-
+    // Removed: UnavailableActionReason had no call site anywhere in src/ or tests/, so the surface never
+    // rendered either of its two strings, and a mutation swapping its IsMutationEvidenceBacked gate for
+    // Freshness alone could not fail a test -- while the same swap in the grant and remove gates is caught.
+    // The loop-6 change log listed it as a consumer of IsMutationEvidenceBacked; the real consumers are
+    // GrantUnavailableReason, RemoveUnavailableReasonForUser and grant projection confirmation. Its two
+    // resource keys were removed with it.
     private bool IsGrantInFlight
         => _isGrantSubmitting
         || _grantSnapshot.State is TenantCommandLifecycleState.RequestSent
@@ -904,8 +919,17 @@
                 return result;
             }
 
+            // Re-checked inside the dispatcher callback: the CanApply above ran on a thread-pool
+            // continuation, so a newer load -- or ResetPagingAsync, which clears the cursor state -- can win
+            // between that check and this write and have page-N rows land on top of a newer page-one
+            // snapshot. The Loading write earlier in this method already guards this way.
             await InvokeAsync(() =>
             {
+                if (!CanApply(generation))
+                {
+                    return;
+                }
+
                 _snapshot = result;
                 if (result.PagingRecovered)
                 {
@@ -926,18 +950,56 @@
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
 
+    // Retry and Reset share the pager's in-flight gate. Both render alongside the pager whenever a rows-
+    // bearing snapshot is also recoverable (Stale, for example), and neither used to set or read it: a Next
+    // click followed by Reset cleared the cursor state synchronously, Next's LoadAsync then returned null as
+    // superseded and its finally re-enabled the pager against the pre-reset snapshot, so the next Next
+    // pushed a null prior cursor and recorded page one for a view showing page four.
     private async Task RetryAsync()
-        => await LoadAsync(reuseETag: false, retainConfirmed: true).ConfigureAwait(false);
+    {
+        if (_pageLoadInFlight)
+        {
+            return;
+        }
+
+        _pageLoadInFlight = true;
+        try
+        {
+            _ = await LoadAsync(reuseETag: false, retainConfirmed: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
+        }
+    }
 
     private async Task ResetPagingAsync()
     {
-        _cursorHistory.Clear();
-        _currentCursor = null;
-        await LoadAsync(
-            reuseETag: false,
-            retainConfirmed: false,
-            requestedCursor: null,
-            useRequestedCursor: true).ConfigureAwait(false);
+        if (_pageLoadInFlight)
+        {
+            return;
+        }
+
+        _pageLoadInFlight = true;
+        try
+        {
+            // Marshalled: the renderer reads _cursorHistory.Count for the Previous button's Disabled
+            // binding, so this non-thread-safe Stack must not be cleared from a pool thread.
+            await InvokeAsync(() =>
+            {
+                _cursorHistory.Clear();
+                _currentCursor = null;
+            }).ConfigureAwait(false);
+            _ = await LoadAsync(
+                reuseETag: false,
+                retainConfirmed: false,
+                requestedCursor: null,
+                useRequestedCursor: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            _pageLoadInFlight = false;
+        }
     }
 
     private async Task RefreshFromNotificationAsync()
@@ -957,11 +1019,20 @@
         {
             if (!_disposed)
             {
-                await InvokeAsync(() =>
+                try
                 {
-                    _isNotificationRefreshing = false;
-                    StateHasChanged();
-                });
+                    await InvokeAsync(() =>
+                    {
+                        _isNotificationRefreshing = false;
+                        StateHasChanged();
+                    });
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Disposed between the check above and the dispatch; nothing left to update. Without
+                    // this the throw escaped an unobserved fire-and-forget path, leaving
+                    // _isNotificationRefreshing set and the surface announcing "refreshing" for good.
+                }
             }
         }
     }
@@ -1074,19 +1145,33 @@
                 reuseETag: false,
                 requestedCursor: nextCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsAppliedRequestedPage(result, nextCursor)
-                && ReferenceEquals(_snapshot, result)
-                && !result!.PagingRecovered)
+            // Marshalled: this continuation resumes on a thread-pool thread while the render LoadAsync
+            // queued through InvokeAsync is in flight, and that render reads _cursorHistory.Count for the
+            // Previous button's Disabled binding. Pushing onto a non-thread-safe Stack concurrently with
+            // that read is a data race, and could render page-2 rows with Previous still disabled.
+            //
+            // No PagingRecovered check here: page-one recovery re-requests with Cursor = null and every
+            // snapshot is stamped RequestCursor = request.Cursor, so a recovered snapshot always carries a
+            // null RequestCursor -- which IsAppliedRequestedPage already rejects, since this method returns
+            // early on a blank NextCursor. The clause was unreachable. PreviousPageAsync keeps it, where a
+            // null previousCursor is legitimate.
+            await InvokeAsync(() =>
             {
-                _cursorHistory.Push(priorCursor);
-                _currentCursor = nextCursor;
-            }
+                if (IsAppliedRequestedPage(result, nextCursor)
+                    && ReferenceEquals(_snapshot, result))
+                {
+                    _cursorHistory.Push(priorCursor);
+                    _currentCursor = nextCursor;
+                    CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                }
+            }).ConfigureAwait(false);
         }
         finally
         {
             _pageLoadInFlight = false;
         }
     }
+
 
     private async Task PreviousPageAsync()
     {
@@ -1103,12 +1188,17 @@
                 reuseETag: false,
                 requestedCursor: previousCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsAppliedRequestedPage(result, previousCursor)
-                && ReferenceEquals(_snapshot, result)
-                && !result!.PagingRecovered)
+            // Marshalled for the same reason as NextPageAsync: Pop mutates the Stack the renderer reads.
+            await InvokeAsync(() =>
             {
-                _currentCursor = _cursorHistory.Pop();
-            }
+                if (IsAppliedRequestedPage(result, previousCursor)
+                    && ReferenceEquals(_snapshot, result)
+                    && !result!.PagingRecovered
+                    && _cursorHistory.Count > 0)
+                {
+                    _currentCursor = _cursorHistory.Pop();
+                }
+            }).ConfigureAwait(false);
         }
         finally
         {
@@ -1128,7 +1218,7 @@
     private CancellationTokenSource ReplaceActiveCancellation(ref CancellationTokenSource? active)
     {
         var source = new CancellationTokenSource();
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(active);
             active = source;
@@ -1139,7 +1229,7 @@
 
     private void CancelActiveCancellation(ref CancellationTokenSource? active)
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(active);
             active = null;
@@ -1154,21 +1244,18 @@
         }
 
         source.Cancel();
-        _supersededCancellations.Add(source);
     }
 
     private void CompleteCancellation(
         ref CancellationTokenSource? active,
         CancellationTokenSource source)
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             if (ReferenceEquals(active, source))
             {
                 active = null;
             }
-
-            _ = _supersededCancellations.Remove(source);
         }
 
         source.Dispose();

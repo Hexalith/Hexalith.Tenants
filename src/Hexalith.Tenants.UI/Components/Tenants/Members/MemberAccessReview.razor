@@ -156,7 +156,7 @@
                                                   data-testid="tenants-change-role-open"
                                                   aria-controls="tenants-change-role-flow-region"
                                                   aria-describedby="@context.ReasonElementId"
-                                                  OnClick="() => OpenChangeRole(context.Member.UserId)">
+                                                  OnClick="() => OpenChangeRole(context.Member)">
                                         @ActionLabel(slot.Action)
                                     </FluentButton>
                                 </span>
@@ -169,7 +169,7 @@
                                                   data-testid="tenants-remove-member-open"
                                                   aria-controls="tenants-remove-member-flow-region"
                                                   aria-describedby="@context.ReasonElementId"
-                                                  OnClick="() => OpenRemoveMember(context.Member.UserId)">
+                                                  OnClick="() => OpenRemoveMember(context.Member)">
                                         @ActionLabel(slot.Action)
                                     </FluentButton>
                                 </span>
@@ -204,39 +204,44 @@
             </FluentDataGrid>
         </div>
 
-        @if (ActiveChangeRoleMember is not null)
-        {
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
-                <ChangeTenantMemberRoleFlow Detail="@Detail"
-                                            Member="@ActiveChangeRoleMember"
-                                            SurfaceKind="@EffectiveSurfaceKind"
-                                            Freshness="@EffectiveFreshness"
-                                            IsAuthorized="@IsChangeRoleAuthorized"
-                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                            OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                            OnCloseRequested="@CloseChangeRoleAsync"
-                                            OnCommandActivityChanged="@OnCommandActivityChanged"
-                                            ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
-            </FluentStack>
-        }
+    }
 
-        @if (ActiveRemoveMember is not null)
-        {
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
-                <RemoveTenantMemberFlow Detail="@Detail"
-                                        Member="@ActiveRemoveMember"
+    @* Rendered outside the empty/non-empty branches on purpose, for the same reason as the pager below:
+       a confirmation re-query that removes the target row -- which for a removal is the success signal --
+       previously emptied Rows, took the branch above, and unmounted the flow mid-command, discarding its
+       lifecycle state, receipt and pending projection confirmation while leaving the pager permanently
+       disabled. The flow now renders from its captured intent until the operator closes it. *@
+    @if (ActiveChangeRoleMember is not null)
+    {
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
+            <ChangeTenantMemberRoleFlow Detail="@Detail"
+                                        Member="@ActiveChangeRoleMember"
                                         SurfaceKind="@EffectiveSurfaceKind"
                                         Freshness="@EffectiveFreshness"
-                                        IsAuthorized="@IsRemoveMemberAuthorized"
+                                        IsAuthorized="@IsChangeRoleAuthorized"
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                        TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
                                         OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                        OnCloseRequested="@CloseRemoveMemberAsync"
+                                        OnCloseRequested="@CloseChangeRoleAsync"
                                         OnCommandActivityChanged="@OnCommandActivityChanged"
-                                        ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
-            </FluentStack>
-        }
+                                        ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
+        </FluentStack>
+    }
 
+    @if (ActiveRemoveMember is not null)
+    {
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
+            <RemoveTenantMemberFlow Detail="@Detail"
+                                    Member="@ActiveRemoveMember"
+                                    SurfaceKind="@EffectiveSurfaceKind"
+                                    Freshness="@EffectiveFreshness"
+                                    IsAuthorized="@IsRemoveMemberAuthorized"
+                                    IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
+                                    OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                    OnCloseRequested="@CloseRemoveMemberAsync"
+                                    OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
+        </FluentStack>
     }
 
     @* Rendered outside the empty/non-empty branches on purpose. Paging forward into a page emptied by
@@ -276,6 +281,16 @@
 
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
+
+    // The member record captured when the flow was launched. Resolving the open flow's target against
+    // Members.Rows on every render made a successful removal destroy its own evidence: the confirmation
+    // re-query removes the row, the @if guard tears the flow down mid-command, and its lifecycle state,
+    // receipt and pending projection confirmation go with it -- while the active user id survives, leaving
+    // HasOpenMemberCommandFlow stuck true and both pager buttons disabled with no rendered flow to close.
+    // The row leaving the page IS the confirmation, so the flow renders from this captured intent and the
+    // live row is used only to pick up in-place changes (a role edit) while the member is still visible.
+    private TenantMember? _activeChangeRoleCapture;
+    private TenantMember? _activeRemoveMemberCapture;
     private string? _renderedTenantId;
     private string? _renderedMemberCursor;
 
@@ -349,11 +364,20 @@
             .Select((member, index) => ToRow(member, index))
             .ToArray();
 
+    // Prefer the live row so an in-place role change is picked up while the member is still visible, and
+    // fall back to the captured record once the row leaves the page -- which for a removal is the
+    // confirmation itself, not a reason to tear the flow down. See _activeRemoveMemberCapture.
     private TenantMember? ActiveChangeRoleMember
-        => Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal));
+        => _activeChangeRoleUserId is null
+            ? null
+            : Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal))
+                ?? _activeChangeRoleCapture;
 
     private TenantMember? ActiveRemoveMember
-        => Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal));
+        => _activeRemoveMemberUserId is null
+            ? null
+            : Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal))
+                ?? _activeRemoveMemberCapture;
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
@@ -425,36 +449,58 @@
     // single "tenants-member-state" id and a single "Member read unavailable" title collapsed all of them
     // into one indistinguishable surface -- including Loading -- and left selector-based tests unable to
     // tell an authorization-safe absence from a failed read.
+    // An authorized read that returned no rows is an authorization-safe absence whatever its freshness.
+    // TenantUsersSnapshot.Empty maps Stale/Unknown freshness onto the Stale/Unknown kind -- the kind IS the
+    // freshness channel, matching Ready -- so keying the empty surface on Kind alone reported a successful
+    // authorized-empty page as "Member read unavailable". IsAuthorizationScopedEmpty is set only by that
+    // factory (every failure path goes through EmptyState, which sets it false), so it is the precise
+    // signal for the absence channel; freshness stays visible through the truth badge and the qualifier
+    // below.
+    private bool IsAuthorizationSafeAbsence
+        => Members.IsAuthorizationScopedEmpty && Members.Rows.Count == 0;
+
     private string EmptyStateTestId
-        => Members.Kind switch
-        {
-            TenantUsersSurfaceKind.Empty => "tenants-member-empty",
-            TenantUsersSurfaceKind.Loading => "tenants-member-loading",
-            TenantUsersSurfaceKind.Unauthorized => "tenants-member-unauthorized",
-            TenantUsersSurfaceKind.NotFound => "tenants-member-not-found",
-            TenantUsersSurfaceKind.Invalid => "tenants-member-invalid",
-            TenantUsersSurfaceKind.Unavailable => "tenants-member-unavailable",
-            TenantUsersSurfaceKind.Error => "tenants-member-error",
-            TenantUsersSurfaceKind.Degraded => "tenants-member-degraded",
-            TenantUsersSurfaceKind.Stale => "tenants-member-stale",
-            _ => "tenants-member-state",
-        };
+        => IsAuthorizationSafeAbsence
+            ? "tenants-member-empty"
+            : Members.Kind switch
+            {
+                TenantUsersSurfaceKind.Empty => "tenants-member-empty",
+                TenantUsersSurfaceKind.Loading => "tenants-member-loading",
+                TenantUsersSurfaceKind.Unauthorized => "tenants-member-unauthorized",
+                TenantUsersSurfaceKind.NotFound => "tenants-member-not-found",
+                TenantUsersSurfaceKind.Invalid => "tenants-member-invalid",
+                TenantUsersSurfaceKind.Unavailable => "tenants-member-unavailable",
+                TenantUsersSurfaceKind.Error => "tenants-member-error",
+                TenantUsersSurfaceKind.Degraded => "tenants-member-degraded",
+                TenantUsersSurfaceKind.Stale => "tenants-member-stale",
+                TenantUsersSurfaceKind.Unknown => "tenants-member-unknown",
+                _ => "tenants-member-state",
+            };
 
     private string EmptyStateTitle
-        => Members.Kind switch
-        {
-            TenantUsersSurfaceKind.Empty => Localizer["Tenants.Members.Empty.Title"],
-            TenantUsersSurfaceKind.Loading => Localizer["Tenants.Members.State.Loading.Title"],
-            TenantUsersSurfaceKind.Unauthorized => Localizer["Tenants.Members.State.Unauthorized.Title"],
-            TenantUsersSurfaceKind.NotFound => Localizer["Tenants.Members.State.NotFound.Title"],
-            TenantUsersSurfaceKind.Invalid => Localizer["Tenants.Members.State.Invalid.Title"],
-            _ => Localizer["Tenants.Members.State.Title"],
-        };
+        => IsAuthorizationSafeAbsence
+            ? Localizer["Tenants.Members.Empty.Title"]
+            : Members.Kind switch
+            {
+                TenantUsersSurfaceKind.Empty => Localizer["Tenants.Members.Empty.Title"],
+                TenantUsersSurfaceKind.Loading => Localizer["Tenants.Members.State.Loading.Title"],
+                TenantUsersSurfaceKind.Unauthorized => Localizer["Tenants.Members.State.Unauthorized.Title"],
+                TenantUsersSurfaceKind.NotFound => Localizer["Tenants.Members.State.NotFound.Title"],
+                TenantUsersSurfaceKind.Invalid => Localizer["Tenants.Members.State.Invalid.Title"],
+                TenantUsersSurfaceKind.Unknown => Localizer["Tenants.Members.State.Unknown.Title"],
+                _ => Localizer["Tenants.Members.State.Title"],
+            };
 
+    // A stale or unknown-freshness authorized-empty page keeps the absence wording and appends the
+    // freshness qualifier, so neither channel is lost to the other.
     private string EmptyStateMessage
-        => Members.Kind is TenantUsersSurfaceKind.Empty
-            ? Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
-            : StateMessage;
+        => IsAuthorizationSafeAbsence
+            ? Members.Kind is TenantUsersSurfaceKind.Stale or TenantUsersSurfaceKind.Unknown
+                ? $"{Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]} {StateMessage}"
+                : Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
+            : Members.Kind is TenantUsersSurfaceKind.Empty
+                ? Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
+                : StateMessage;
 
     private string MemberReturnUrl
         => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
@@ -529,12 +575,15 @@
     private bool HasOpenMemberCommandFlow
         => _activeChangeRoleUserId is not null || _activeRemoveMemberUserId is not null;
 
-    private Task RequestNextPageAsync()
+    // internal, not private: these guards exist for the click dispatched BEFORE the Disabled re-render
+    // lands, so asserting the rendered `disabled` attribute cannot observe them -- every guard here could be
+    // deleted with the suite still green. The test project has InternalsVisibleTo and invokes them directly.
+    internal Task RequestNextPageAsync()
         => Members.HasMore && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnNextPageRequested.InvokeAsync()
             : Task.CompletedTask;
 
-    private Task RequestPreviousPageAsync()
+    internal Task RequestPreviousPageAsync()
         => CanGoPrevious && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnPreviousPageRequested.InvokeAsync()
             : Task.CompletedTask;
@@ -551,6 +600,8 @@
             _renderedMemberCursor = Members.RequestCursor;
             _activeChangeRoleUserId = null;
             _activeRemoveMemberUserId = null;
+            _activeChangeRoleCapture = null;
+            _activeRemoveMemberCapture = null;
             _focusChangeRoleLaunchUserId = null;
             _focusRemoveMemberLaunchUserId = null;
         }
@@ -573,16 +624,20 @@
         }
     }
 
-    private void OpenChangeRole(string userId)
+    private void OpenChangeRole(TenantMember member)
     {
         _activeRemoveMemberUserId = null;
-        _activeChangeRoleUserId = userId;
+        _activeRemoveMemberCapture = null;
+        _activeChangeRoleUserId = member.UserId;
+        _activeChangeRoleCapture = member;
     }
 
-    private void OpenRemoveMember(string userId)
+    private void OpenRemoveMember(TenantMember member)
     {
         _activeChangeRoleUserId = null;
-        _activeRemoveMemberUserId = userId;
+        _activeChangeRoleCapture = null;
+        _activeRemoveMemberUserId = member.UserId;
+        _activeRemoveMemberCapture = member;
     }
 
     private async Task CloseChangeRoleAsync()
@@ -591,6 +646,7 @@
         // "Change role" control once the flow region is removed and the table re-renders.
         _focusChangeRoleLaunchUserId = _activeChangeRoleUserId;
         _activeChangeRoleUserId = null;
+        _activeChangeRoleCapture = null;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -598,6 +654,7 @@
     {
         _focusRemoveMemberLaunchUserId = _activeRemoveMemberUserId;
         _activeRemoveMemberUserId = null;
+        _activeRemoveMemberCapture = null;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 

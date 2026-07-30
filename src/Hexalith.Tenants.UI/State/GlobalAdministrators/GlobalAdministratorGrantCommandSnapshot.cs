@@ -167,7 +167,14 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
         return State is TenantCommandLifecycleState.ProjectionPending
             ? this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = "Projection re-query did not confirm the target global administrator.",
+
+                // The re-query reads page one only. On a deployment with more global administrators than one
+                // page holds, a granted user id that sorts past the page boundary is never in this payload,
+                // so "did not confirm" would report a permanent false negative for an outcome this page
+                // simply cannot see. Both arms stay UnableToVerify -- the difference is honesty about why.
+                SafeMessage = snapshot.IsCompleteEvidence
+                    ? "Projection re-query did not confirm the target global administrator."
+                    : "The projection re-query covers only the first page of global administrators, which does not include this user, so the grant cannot be confirmed from this page. Confirm the outcome from the tenant audit trail.",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

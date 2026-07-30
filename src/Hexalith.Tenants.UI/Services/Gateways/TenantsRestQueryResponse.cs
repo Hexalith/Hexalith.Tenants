@@ -1,4 +1,3 @@
-using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -6,16 +5,22 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// <summary>
 /// Contains one typed Tenants REST read result and its conservatively normalized metadata.
 /// </summary>
+/// <remarks>
+/// Deliberately carries no Freshness member. It previously did, and nothing outside this type ever read it:
+/// the rendered stale/current banners come from <c>TenantQueryGateway.ResolveFreshness</c>, a second and
+/// stricter implementation that normalizes through <c>ProjectionLifecyclePolicy</c>. Publishing an
+/// independently-maintained freshness value here made the client's tests read as if they pinned the
+/// rendered freshness. The client still resolves freshness internally, where it IS load-bearing -- as the
+/// input to the supported-304 gate.
+/// </remarks>
 /// <typeparam name="TPayload">Expected response payload contract.</typeparam>
 /// <param name="Payload">Typed payload when the read succeeded; otherwise <see langword="null"/>.</param>
 /// <param name="Metadata">Conservatively normalized response metadata.</param>
-/// <param name="Freshness">Freshness proven by supported projection metadata.</param>
 /// <param name="FailureKind">Fixed support-safe failure category.</param>
 /// <param name="StatusCode">Effective HTTP status used by downstream gateway mappings.</param>
 public sealed record TenantsRestQueryResponse<TPayload>(
     TPayload? Payload,
     QueryResponseMetadata Metadata,
-    ReadModelFreshnessState Freshness,
     TenantsRestQueryFailureKind FailureKind,
     int StatusCode)
 {
@@ -30,5 +35,5 @@ public sealed record TenantsRestQueryResponse<TPayload>(
 
     /// <summary>Returns a fixed support-safe description that omits payload and metadata values.</summary>
     public override string ToString()
-        => $"{nameof(TenantsRestQueryResponse<TPayload>)} {{ IsSuccess = {IsSuccess}, IsNotModified = {IsNotModified}, Freshness = {Freshness}, FailureKind = {FailureKind}, StatusCode = {StatusCode} }}";
+        => $"{nameof(TenantsRestQueryResponse<TPayload>)} {{ IsSuccess = {IsSuccess}, IsNotModified = {IsNotModified}, FailureKind = {FailureKind}, StatusCode = {StatusCode} }}";
 }

@@ -86,6 +86,12 @@ public sealed record TenantUsersSnapshot(
                 : TenantUsersReason.None);
 
     /// <summary>Retains last-confirmed data while recording client-only refresh intent.</summary>
+    /// <remarks>
+    /// <see cref="PagingRecovered"/> is deliberately carried forward: the retained rows still are the
+    /// page-one payload a recovery produced, so the "paging restarted at the first page" notice remains
+    /// true for what is on screen. Only a retention that replaces the *reason* for showing those rows --
+    /// see <see cref="Degraded"/> -- has to clear it.
+    /// </remarks>
     public static TenantUsersSnapshot Refreshing(TenantUsersSnapshot previous)
     {
         ArgumentNullException.ThrowIfNull(previous);
@@ -93,6 +99,11 @@ public sealed record TenantUsersSnapshot(
     }
 
     /// <summary>Creates a degraded state while retaining any applicable last-confirmed rows.</summary>
+    /// <remarks>
+    /// Clears <see cref="PagingRecovered"/>: this snapshot exists because a read failed, not because paging
+    /// restarted at the first page. Carrying the flag re-rendered the polite "restarted at the first page"
+    /// notice for a read that recovered nothing and in fact failed.
+    /// </remarks>
     public static TenantUsersSnapshot Degraded(
         string tenantId,
         TenantUsersSnapshot? previous,
@@ -105,6 +116,7 @@ public sealed record TenantUsersSnapshot(
                 Lifecycle = ProjectionLifecycleState.Unknown,
                 Reason = reason,
                 IsRefreshing = false,
+                PagingRecovered = false,
             }
             : EmptyState(TenantUsersSurfaceKind.Degraded, tenantId, reason);
 

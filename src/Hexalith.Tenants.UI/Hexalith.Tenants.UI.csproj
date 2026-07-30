@@ -27,7 +27,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

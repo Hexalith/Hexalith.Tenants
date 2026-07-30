@@ -481,7 +481,6 @@ public class AspireTopologyTests : IDisposable {
             return new(
                 result.Payload,
                 metadata,
-                ReadModelFreshnessState.Unknown,
                 TenantsRestQueryFailureKind.None,
                 result.IsNotModified ? (int)HttpStatusCode.NotModified : (int)HttpStatusCode.OK);
         }

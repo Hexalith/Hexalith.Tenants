@@ -347,4 +347,76 @@ public sealed class TenantReadRefreshSubscriptionTests
             Exceptions.Add(exception);
         }
     }
+
+    [Fact]
+    public async Task A_throwing_refresh_loop_still_releases_its_running_key_so_later_notifications_restart_it()
+    {
+        // OnProjectionChanged starts the loop only when _running.Add(key) succeeds, and removal used to
+        // happen on exactly one path -- the normal return inside the lock. Any throw from the loop body
+        // outside the inner try left the key in _running forever, so every later notification saw
+        // start == false and auto-refresh never restarted. The task is fire-and-forget, so nothing observed
+        // the fault. A throwing logger reproduces that shape: LogReason runs outside the inner try.
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+
+        // A hand-written stub, not a substitute: the LoggerMessage-generated code checks IsEnabled first,
+        // and a substitute returns false there, so the Log call -- and the throw -- never happen.
+        ThrowingLogger logger = new();
+        ServiceProvider services = new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .BuildServiceProvider();
+
+        // The logger is an explicit constructor parameter, not resolved from the provider.
+        TenantReadRefreshSubscription sut = new(services, logger);
+
+        int refreshCount = 0;
+        TaskCompletionSource firstFailed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource secondRan = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using TenantReadRefreshLease lease = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () =>
+            {
+                int count = Interlocked.Increment(ref refreshCount);
+                if (count == 1)
+                {
+                    firstFailed.SetResult();
+
+                    // Faults the callback, so the loop reaches LogReason -- which throws.
+                    throw new InvalidOperationException("callback failed");
+                }
+
+                secondRan.SetResult();
+                return Task.CompletedTask;
+            });
+        lease.IsSubscribed.ShouldBeTrue();
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await firstFailed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // The key must have been released despite the throw, so a later notification starts a new loop.
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await secondRan.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        refreshCount.ShouldBe(2);
+    }
+
+    /// <summary>A logger whose Log throws, standing in for one from a torn-down circuit scope.</summary>
+    private sealed class ThrowingLogger : ILogger<TenantReadRefreshSubscription>
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => throw new ObjectDisposedException(nameof(ThrowingLogger));
+    }
 }

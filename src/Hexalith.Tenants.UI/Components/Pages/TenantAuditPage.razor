@@ -1,6 +1,7 @@
 @page "/tenants/{TenantId}/audit"
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.EventStore.Client.Gateway
 @using Microsoft.JSInterop
@@ -109,14 +110,19 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
-                    @if (_isNotificationRefreshing)
-                    {
-                        <p role="status" aria-live="polite" data-testid="tenants-audit-notification-refreshing">
-                            @Localizer["Tenants.Audit.Freshness.Refreshing"]
-                        </p>
-                    }
                 </div>
             </section>
+            @* Rendered as a sibling of the state section, not a child. StatusRole/StatusLive resolve to
+               alert/assertive for the non-Ready states, and inserting or removing a child mutates that
+               region's own subtree -- so every projection nudge re-announced the whole state block
+               assertively and interrupted the screen-reader user. The nudge is a polite, non-authoritative
+               signal and must own its live region. *@
+            @if (_isNotificationRefreshing)
+            {
+                <p class="tenant-audit__nudge" role="status" aria-live="polite" data-testid="tenants-audit-notification-refreshing">
+                    @Localizer["Tenants.Audit.Freshness.Refreshing"]
+                </p>
+            }
         </FluentAccordionItem>
     </FluentAccordion>
 
@@ -172,6 +178,9 @@
 @code {
     private const string FocusModulePath = "./js/tenantsFocus.js";
     private const int PageSize = 50;
+    /// <summary>Upper bound on retained paging history.</summary>
+    private const int MaximumCursorHistory = CursorHistory.DefaultMaximum;
+
     private readonly Stack<string?> _cursorHistory = new();
     private TenantAuditSnapshot _snapshot = TenantAuditSnapshot.Loading();
     private string? _currentCursor;
@@ -195,8 +204,14 @@
     private bool _disposed;
     private long _loadGeneration;
     private CancellationTokenSource? _loadCancellation;
-    private readonly List<CancellationTokenSource> _supersededCancellations = [];
-    private readonly Lock _supersededCancellationsLock = new();
+    // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
+    // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
+    // request still inside SendAsync, where a CancellationToken.Register after Dispose throws
+    // ObjectDisposedException, which is not an OperationCanceledException and so slips past every caller's
+    // cancellation-only handler. Disposal is owned solely by CompleteCancellation, which the owning
+    // PendingOperation calls when its operation finishes. A prior version also tracked superseded sources in
+    // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
+    private readonly Lock _cancellationLock = new();
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
@@ -319,7 +334,8 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
-        if (!string.Equals(_loadedTenantId, tenantId, StringComparison.Ordinal))
+        bool tenantChanged = !string.Equals(_loadedTenantId, tenantId, StringComparison.Ordinal);
+        if (tenantChanged)
         {
             IAsyncDisposable? previousLease = _readRefreshLease;
             _readRefreshLease = null;
@@ -330,13 +346,30 @@
                 await previousLease.DisposeAsync().ConfigureAwait(false);
             }
 
-            ClearPaging();
-            _tenantDetailSnapshot = null;
-            _globalAdministratorsSnapshot = null;
-            _snapshot = TenantAuditSnapshot.Loading(tenantId);
+            // Marshalled: the lease dispose above is a remote unsubscribe that can genuinely suspend, so
+            // this block may run on a thread-pool thread while the render ComponentBase queued for the
+            // incomplete task is still in flight. ClearPaging clears _cursorHistory and, critically,
+            // _selectedCorrectionRoles -- a plain Dictionary the renderer reads via TryGetValue, which can
+            // throw InvalidOperationException on a concurrent mutation and tear down the circuit.
+            await InvokeAsync(() =>
+            {
+                ClearPaging();
+                _tenantDetailSnapshot = null;
+                _globalAdministratorsSnapshot = null;
+                _snapshot = TenantAuditSnapshot.Loading(tenantId);
+            }).ConfigureAwait(false);
         }
 
-        await LoadAsync(reuseETag: false, requestedTenantId: tenantId).ConfigureAwait(false);
+        // Only a tenant change may discard the retained validator and blank the grid. The route carries six
+        // [SupplyParameterFromQuery] parameters, none of which feed CreateRequest -- it is built from the
+        // filter fields (_fromText/_toText/_categoryText) -- so the member "open audit for this user" entry
+        // point re-enters here with an unchanged TenantId and an identical request. Re-reading
+        // unconditionally discarded the conditional-read validator, reset the grid to Loading and cancelled
+        // any in-flight notification or paging load on every such navigation.
+        await LoadAsync(
+            reuseETag: !tenantChanged,
+            retainConfirmed: !tenantChanged,
+            requestedTenantId: tenantId).ConfigureAwait(false);
         await EnsureReadRefreshSubscriptionAsync(tenantId).ConfigureAwait(false);
     }
 
@@ -379,7 +412,18 @@
         TenantAuditSnapshot previous = _snapshot;
         if (!retainConfirmed)
         {
-            _snapshot = TenantAuditSnapshot.Loading(tenantId);
+            // Marshalled and generation-guarded like every other _snapshot write in this file. Callers reach
+            // here from ConfigureAwait(false) continuations, so a manual Refresh or filter change running on
+            // the dispatcher could interleave between this call's BeginLoad and this write and have its
+            // applied page overwritten with Loading. The sibling global-administrators page guards its
+            // equivalent write for the same reason.
+            await InvokeAsync(() =>
+            {
+                if (CanApply(tenantId, generation))
+                {
+                    _snapshot = TenantAuditSnapshot.Loading(tenantId);
+                }
+            }).ConfigureAwait(false);
         }
 
         TenantAuditRequest request = CreateRequest(
@@ -403,7 +447,15 @@
             return null;
         }
 
-        await InvokeAsync(() => _snapshot = result).ConfigureAwait(false);
+        // Re-checked inside the dispatcher callback: the CanApply above ran on a thread-pool continuation,
+        // so a newer load can win between that check and this write.
+        await InvokeAsync(() =>
+        {
+            if (CanApply(tenantId, generation))
+            {
+                _snapshot = result;
+            }
+        }).ConfigureAwait(false);
 
         // Page-load enrichment only, same contract as the global-administrator refresh below. The gateway
         // rethrows OperationCanceledException unfiltered, so without this handler a Refresh or paging click
@@ -666,19 +718,35 @@
                 requestedTenantId: tenantId,
                 requestedCursor: nextCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsAppliedRequestedPage(result, nextCursor)
-                && ReferenceEquals(_snapshot, result)
-                && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            // Marshalled: this continuation resumes on a thread-pool thread while the render LoadAsync
+            // queued through InvokeAsync is in flight, and that render reads _cursorHistory.Count for the
+            // Previous button's Disabled binding. Pushing onto a non-thread-safe Stack concurrently with
+            // that read is a data race, and could render page-2 rows with Previous still disabled.
+            await InvokeAsync(() =>
             {
-                _cursorHistory.Push(priorCursor);
-                _currentCursor = nextCursor;
-            }
+                // The tenant-identity clause is defence in depth, not the load-bearing guard: after a route
+                // change LoadAsync's own CanApply already refuses to publish the late result, so
+                // ReferenceEquals(_snapshot, result) is false and rejects it first. Removing the clause
+                // therefore changes no observable behaviour and no test can isolate it -- kept so the rule
+                // survives any future loosening of the reference check.
+                // A_next_page_completing_after_the_route_moved_does_not_commit_its_cursor_onto_the_new_tenant
+                // pins the behaviour these three clauses jointly provide.
+                if (IsAppliedRequestedPage(result, nextCursor)
+                    && ReferenceEquals(_snapshot, result)
+                    && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+                {
+                    _cursorHistory.Push(priorCursor);
+                    _currentCursor = nextCursor;
+                    CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                }
+            }).ConfigureAwait(false);
         }
         finally
         {
             _pageLoadInFlight = false;
         }
     }
+
 
     private async Task PreviousPageAsync()
     {
@@ -1077,7 +1145,7 @@
     private PendingOperation BeginLoad()
     {
         var source = new CancellationTokenSource();
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(_loadCancellation);
             _loadCancellation = source;
@@ -1095,7 +1163,7 @@
 
     private void CancelActiveCancellation()
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             RetireCancellationCore(_loadCancellation);
             _loadCancellation = null;
@@ -1110,19 +1178,16 @@
         }
 
         source.Cancel();
-        _supersededCancellations.Add(source);
     }
 
     private void CompleteCancellation(CancellationTokenSource source)
     {
-        lock (_supersededCancellationsLock)
+        lock (_cancellationLock)
         {
             if (ReferenceEquals(_loadCancellation, source))
             {
                 _loadCancellation = null;
             }
-
-            _ = _supersededCancellations.Remove(source);
         }
 
         source.Dispose();

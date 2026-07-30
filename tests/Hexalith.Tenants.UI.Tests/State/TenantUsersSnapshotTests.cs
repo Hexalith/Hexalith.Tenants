@@ -165,4 +165,108 @@ public sealed class TenantUsersSnapshotTests
         diagnostic.ShouldNotContain("etag-secret", Case.Sensitive);
         diagnostic.ShouldNotContain("version-secret", Case.Sensitive);
     }
+
+    [Fact]
+    public void Degraded_retention_clears_paging_recovered_so_a_failed_read_is_not_announced_as_a_restart()
+    {
+        TenantUsersSnapshot recovered = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.alpha", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            "\"etag\"",
+            "version-1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current) with
+        {
+            PagingRecovered = true,
+            Reason = TenantUsersReason.ListRefreshed,
+        };
+
+        TenantUsersSnapshot degraded = TenantUsersSnapshot.Degraded(
+            "tenant.alpha",
+            recovered,
+            TenantUsersReason.GatewayUnavailable);
+
+        degraded.Rows.ShouldBeSameAs(recovered.Rows);
+        degraded.Kind.ShouldBe(TenantUsersSurfaceKind.Degraded);
+        degraded.PagingRecovered.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Refreshing_retention_keeps_paging_recovered_because_the_rows_are_still_the_recovered_page()
+    {
+        TenantUsersSnapshot recovered = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.alpha", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            "\"etag\"",
+            "version-1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current) with
+        {
+            PagingRecovered = true,
+        };
+
+        TenantUsersSnapshot.Refreshing(recovered).PagingRecovered.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Error_retention_also_clears_paging_recovered()
+    {
+        TenantUsersSnapshot recovered = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("user.alpha", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            "\"etag\"",
+            "version-1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current) with
+        {
+            PagingRecovered = true,
+        };
+
+        TenantUsersSnapshot.Error("tenant.alpha", recovered).PagingRecovered.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Current, TenantUsersSurfaceKind.Empty)]
+    [InlineData(ReadModelFreshnessState.Stale, TenantUsersSurfaceKind.Stale)]
+    [InlineData(ReadModelFreshnessState.Unknown, TenantUsersSurfaceKind.Unknown)]
+    public void Authorization_scoped_empty_survives_every_freshness(
+        ReadModelFreshnessState freshness,
+        TenantUsersSurfaceKind expectedKind)
+    {
+        // The kind is the freshness channel, matching Ready. IsAuthorizationScopedEmpty is the separate
+        // absence channel and must survive intact, or a successful authorized-empty page at stale/unknown
+        // freshness renders as a failed read.
+        TenantUsersSnapshot snapshot = TenantUsersSnapshot.Empty(
+            "tenant.alpha",
+            isAuthorizationScoped: true,
+            "\"etag\"",
+            "version-1",
+            freshness,
+            ProjectionLifecycleState.Current);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.IsAuthorizationScopedEmpty.ShouldBeTrue();
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Failure_states_are_never_authorization_scoped_empty()
+    {
+        // The component keys its authorization-safe absence copy on this flag, so every failure factory
+        // must leave it false or a failed read would render as "no visible members".
+        TenantUsersSnapshot.Unauthorized("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.NotFound("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.Invalid("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.Unavailable("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.Error("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.Loading("tenant.alpha").IsAuthorizationScopedEmpty.ShouldBeFalse();
+        TenantUsersSnapshot.Degraded("tenant.alpha", null, TenantUsersReason.GatewayFailure)
+            .IsAuthorizationScopedEmpty.ShouldBeFalse();
+    }
 }

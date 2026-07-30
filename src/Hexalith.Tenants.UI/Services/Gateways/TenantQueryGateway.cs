@@ -37,6 +37,13 @@ internal sealed class TenantQueryGateway(
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
+    /// <summary>Whole-page bound on supplementary list enrichment reads.</summary>
+    /// <remarks>
+    /// The Tenants read client configures only BaseAddress, so HttpClient.Timeout is the 100 s default. This
+    /// keeps one list render's supplementary reads inside an operator-tolerable window regardless.
+    /// </remarks>
+    internal static readonly TimeSpan MaximumEnrichmentDuration = TimeSpan.FromSeconds(10);
+
     /// <summary>
     /// Maximum accepted canonical search length. This is the workspace URL-state bound itself, not a copy of
     /// it: a second literal could drift, and a gateway that rejected a term the workspace accepted would
@@ -108,8 +115,23 @@ internal sealed class TenantQueryGateway(
             return TenantDetailSnapshot.Unauthorized(request.TenantId);
         }
 
+        // Guarded like the tenant-users and audit reads. Without it a blank id threw inside the typed
+        // client, was swallowed by the generic handler, and surfaced as Unavailable plus a
+        // DirectTenantsReadFailed warning -- a malformed request reported as the API being down, in the UI
+        // and in the operational log. TenantDetailPage builds this request straight from the route value,
+        // so /tenants/%20 reaches here.
+        if (string.IsNullOrWhiteSpace(request.TenantId)) {
+            return TenantDetailSnapshot.NotFound(request.TenantId);
+        }
+
         try {
-            string? requestValidator = request.ETag ?? previous?.ETag;
+            // Computed AFTER the tenant-identity check below would be ideal, but the check needs the
+            // validator's own value; instead the retained validator is only adopted when it belongs to the
+            // same tenant. On a route change tenant alpha's projection-wide ETag is otherwise sent as
+            // If-None-Match on tenant beta's read -- a wasted round trip, and the send-side pattern the
+            // review-loop-4 patch forbids. The tenant-users read already avoids it.
+            string? requestValidator = request.ETag
+                ?? (HasSameTenantDetail(previous, request.TenantId) ? previous!.ETag : null);
             // A matching retained snapshot can safely consume a metadata-complete 304. A conditional
             // response without matching retained state is retried unconditionally below.
             EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
@@ -307,7 +329,12 @@ internal sealed class TenantQueryGateway(
         var query = new GetTenantUsersQuery {
             TenantId = request.TenantId,
             Cursor = request.Cursor,
-            PageSize = request.PageSize,
+
+            // Normalized like the list read. BuildUri always emits pageSize because the property is a
+            // non-nullable int, so an out-of-range value such as 0 reached the service verbatim and came
+            // back a 400 that renders as Invalid/GatewayFailure -- an operator-facing invalid-request state
+            // for a value the list read silently corrects.
+            PageSize = NormalizePageSize(request.PageSize),
         };
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> response;
         try {
@@ -346,6 +373,46 @@ internal sealed class TenantQueryGateway(
 
         if (!response.IsSuccess) {
             SignalReadFailure(TenantUsersReadName, response.FailureKind);
+        }
+
+        // Page-one recovery, mirroring the audit read and the four other paged siblings. An expired or
+        // scope-invalidated member cursor previously mapped to a terminal Invalid snapshot with no rows and
+        // no retry, so after a DataProtection key rotation the member surface stayed unusable until paging
+        // state was cleared by hand. isListRefreshed also stamps TenantUsersReason.ListRefreshed, which had
+        // no producer while this call site always passed false.
+        if (response.FailureKind is TenantsRestQueryFailureKind.InvalidCursor
+            && !string.IsNullOrWhiteSpace(request.Cursor)) {
+            TenantUsersRequest firstPageRequest = request with { Cursor = null, ETag = null };
+            TenantsRestQueryResponse<PaginatedResult<TenantMember>> recovered;
+            try {
+                recovered = await queryClient
+                    .GetTenantUsersAsync(
+                        new GetTenantUsersQuery {
+                            TenantId = firstPageRequest.TenantId,
+                            Cursor = null,
+                            PageSize = NormalizePageSize(firstPageRequest.PageSize),
+                        },
+                        eTag: null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                throw;
+            }
+            catch (Exception) {
+                SignalReadFailure(TenantUsersReadName, TenantsRestQueryFailureKind.Unavailable);
+                return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.InvalidCursor);
+            }
+
+            if (!recovered.IsSuccess) {
+                SignalReadFailure(TenantUsersReadName, recovered.FailureKind);
+
+                // A failed recovery must not masquerade as a fresh page; the surface stays honest about the
+                // invalid cursor it started from.
+                return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.InvalidCursor);
+            }
+
+            return MapTenantUsersResponse(firstPageRequest, null, recovered, isListRefreshed: true);
         }
 
         return MapTenantUsersResponse(request, previous, response, isListRefreshed: false);
@@ -434,7 +501,7 @@ internal sealed class TenantQueryGateway(
             var query = new GetUserTenantsQuery {
                 UserId = request.TargetUserId ?? authenticatedUserId,
                 Cursor = request.Cursor,
-                PageSize = request.PageSize,
+                PageSize = NormalizePageSize(request.PageSize),
             };
             EventStoreQueryResult<PaginatedResult<UserTenantMembership>> result = ToEventStoreResult(await queryClient
                 .GetUserTenantsAsync(
@@ -587,7 +654,7 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
-            var query = new GetGlobalAdministratorsQuery { Cursor = request.Cursor, PageSize = request.PageSize };
+            var query = new GetGlobalAdministratorsQuery { Cursor = request.Cursor, PageSize = NormalizePageSize(request.PageSize) };
             EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>> result = ToEventStoreResult(await queryClient
                 .GetGlobalAdministratorsAsync(
                     query,
@@ -634,12 +701,16 @@ internal sealed class TenantQueryGateway(
                     Reason = notModifiedLifecycle == ProjectionLifecycleState.Degraded
                         ? GlobalAdministratorsReason.ProjectionDegraded
                         : ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
-                    // Promoted deliberately. IsSupportedNotModified already required a strong exact ETag
-                    // match with projection-backed, versioned, non-degraded metadata, so the 304 proves the
-                    // retained payload is byte-identical to what the service holds at this newer version --
-                    // the rows genuinely are current at it. Pinned by
+                    // Promoted only for an exact strong-ETag CURRENT 304, which is the scope review loop 5
+                    // authorized. IsSupportedNotModified accepts Current or Stale, so promoting
+                    // unconditionally advanced the retained version on a stale 304 as well -- and that
+                    // version is what IsCompleteEvidence and the mutation gates are read against. A stale
+                    // 304 proves the payload is unchanged; it does not prove it is current at the newer
+                    // version, so the previously-asserted version is retained instead. Pinned by
                     // Get_global_administrators_current_not_modified_promotes_unknown_truth_and_recomputes_completeness.
-                    ProjectionVersion = result.Metadata?.ProjectionVersion,
+                    ProjectionVersion = notModifiedFreshness == ReadModelFreshnessState.Current
+                        ? result.Metadata?.ProjectionVersion
+                        : previous.ProjectionVersion,
                     IsAuthorizationScopedEmpty = notModifiedKind == GlobalAdministratorsSurfaceKind.Empty,
                     IsCompleteEvidence = string.IsNullOrWhiteSpace(request.Cursor)
                         && !previous.HasMore
@@ -785,7 +856,9 @@ internal sealed class TenantQueryGateway(
             return await GetTenantAuditCoreAsync(request, previous, isListRefreshed: false, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (EventStoreGatewayException ex) when (IsInvalidAuditCursor(ex)) {
+        catch (EventStoreGatewayException ex) when (
+            IsInvalidAuditCursor(ex)
+            && !string.IsNullOrWhiteSpace(request.Cursor)) {
             TenantAuditRequest firstPageRequest = request with {
                 Cursor = null,
                 ETag = null,
@@ -836,7 +909,7 @@ internal sealed class TenantQueryGateway(
             To = request.To,
             Category = request.Category,
             Cursor = request.Cursor,
-            PageSize = request.PageSize,
+            PageSize = NormalizePageSize(request.PageSize),
         };
         EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = ToEventStoreResult(await queryClient
             .GetTenantAuditAsync(
@@ -965,7 +1038,15 @@ internal sealed class TenantQueryGateway(
 
         TenantListRequest canonicalRequest = CanonicalizeListRequest(request);
         if (canonicalRequest.Search is null) {
-            return await ListByCursorAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+            // Clearing the search must not retain the search snapshot as the ordinary authorized list.
+            // Search snapshots are built without RequestCursor/RequestPageSize, so they default to
+            // (null, 20): on page one at the default page size MatchesPageScope and MatchesRetainedValidator
+            // both pass, IsRetainableTenantList accepts the kind, and retention re-presented the
+            // search-filtered subset as the authorized list -- carrying the search page's HasMore, its
+            // protected search NextCursor and IsAuthoritativeSearch onto the ordinary-list surface.
+            // FallBackFromSearchAsync guards the reverse direction the same way.
+            TenantListSnapshot? ordinaryPrevious = previous?.IsAuthoritativeSearch == true ? null : previous;
+            return await ListByCursorAsync(canonicalRequest, ordinaryPrevious, cancellationToken).ConfigureAwait(false);
         }
 
         string userId = userContextAccessor.UserId!;
@@ -1094,8 +1175,12 @@ internal sealed class TenantQueryGateway(
         }
     }
 
+    /// <summary>Clamps a caller-supplied page size into the range the service accepts.</summary>
+    private static int NormalizePageSize(int pageSize)
+        => pageSize is >= 1 and <= MaximumPageSize ? pageSize : DefaultPageSize;
+
     private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
-        int pageSize = request.PageSize is >= 1 and <= MaximumPageSize ? request.PageSize : DefaultPageSize;
+        int pageSize = NormalizePageSize(request.PageSize);
         // Mirrors TenantWorkspaceState.NormalizeSearch so a direct gateway caller cannot bypass the trim
         // and length bound that keep the cursor scope stable and the Memories request line finite.
         string? trimmedSearch = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
@@ -1218,7 +1303,11 @@ internal sealed class TenantQueryGateway(
             }
 
             string tenantId = sourceUri[TenantSourcePrefix.Length..];
-            if (tenantId.Any(char.IsControl) || !seen.Add(tenantId)) {
+
+            // Whitespace-only is rejected here as well as by the widened hydration containment: a
+            // "tenant:   " hit previously passed this filter (which rejected null, empty and control
+            // characters but not whitespace) and hard-threw ArgumentException inside the typed client.
+            if (string.IsNullOrWhiteSpace(tenantId) || tenantId.Any(char.IsControl) || !seen.Add(tenantId)) {
                 continue;
             }
 
@@ -1581,11 +1670,25 @@ internal sealed class TenantQueryGateway(
                 or ArithmeticException
                 || exception is OperationCanceledException);
 
+    /// <summary>Recognises a hydration failure that must degrade the search page rather than escape it.</summary>
+    /// <remarks>
+    /// Includes the argument/state/URI families deliberately. A Memories hit whose SourceUri is
+    /// whitespace-only passes the candidate filter -- which rejects null, empty and control characters but
+    /// not whitespace -- and then hard-throws ArgumentException inside the typed client. Unlike the
+    /// cursor-paged branch, the search branch has no catch-all, so such an exception escaped Task.WhenAll,
+    /// the gateway, and TenantsWorkspace (which catches only a cancelled OperationCanceledException),
+    /// tearing down the circuit. Genuine surfacing defects are still excluded by IsSurfacingDefect at the
+    /// call site.
+    /// </remarks>
     private static bool IsHydrationAvailabilityFailure(Exception exception)
         => exception is EventStoreGatewayException
             or HttpRequestException
             or TimeoutException
             or JsonException
+            or ArgumentException
+            or InvalidOperationException
+            or UriFormatException
+            or FormatException
             || exception is OperationCanceledException;
 
     private async Task<TenantListSnapshot> ListByCursorAsync(
@@ -1597,7 +1700,12 @@ internal sealed class TenantQueryGateway(
         {
             return await ListByCursorCoreAsync(request, previous, cancellationToken).ConfigureAwait(false);
         }
-        catch (EventStoreGatewayException ex) when (IsInvalidListCursor(ex))
+        // The !IsNullOrWhiteSpace(request.Cursor) guard matches the user-tenants and global-administrator
+        // siblings. Without it the recovery path stamped TenantListReason.ListRefreshed on a first-page load
+        // that never paged, telling the operator paging had restarted when nothing had.
+        catch (EventStoreGatewayException ex) when (
+            IsInvalidListCursor(ex)
+            && !string.IsNullOrWhiteSpace(request.Cursor))
         {
             TenantListRequest firstPageRequest = request with
             {
@@ -1658,7 +1766,7 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? previous,
         CancellationToken cancellationToken)
     {
-        var query = new ListTenantsQuery { Cursor = request.Cursor, PageSize = request.PageSize };
+        var query = new ListTenantsQuery { Cursor = request.Cursor, PageSize = NormalizePageSize(request.PageSize) };
         EventStoreQueryResult<PaginatedResult<TenantSummary>> result = ToEventStoreResult(await queryClient
             .ListTenantsAsync(
                 query,
@@ -1790,45 +1898,84 @@ internal sealed class TenantQueryGateway(
             };
     }
 
+    /// <summary>Adds member and owner counts to a confirmed list page, bounded and fail-soft.</summary>
+    /// <remarks>
+    /// Bounded on purpose. This previously issued up to MaximumPageSize strictly sequential detail reads per
+    /// list render against a client whose only configured option is BaseAddress -- so HttpClient.Timeout was
+    /// the 100 s default, which the typed client adopts as the whole-read deadline. One slow Tenants API
+    /// could block a single list render for up to ~100 x 100 s, and a projection notification could
+    /// retrigger it. Search hydration already bounded itself at MaximumHydrationConcurrency; the ordinary
+    /// list had no concurrency, batching, or time bound at all, against an Epic 1 target of roughly
+    /// one-second warm list reads.
+    /// </remarks>
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
         IReadOnlyList<TenantSummary> summaries,
         ReadModelFreshnessState freshness,
         ProjectionLifecycleState lifecycle,
         CancellationToken cancellationToken) {
-        List<TenantListRow> rows = new(summaries.Count);
+        TenantListRow[] rows = new TenantListRow[summaries.Count];
         bool degraded = false;
 
-        foreach (TenantSummary summary in summaries) {
+        using var enrichmentDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        enrichmentDeadline.CancelAfter(MaximumEnrichmentDuration);
+        using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
+
+        await Task.WhenAll(summaries.Select(async (summary, index) => {
             TenantListRow row = TenantListRow.FromSummary(summary) with {
                 Freshness = freshness,
                 Lifecycle = lifecycle,
             };
 
             try {
-                TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, cancellationToken)
-                    .ConfigureAwait(false);
-                if (detail is not null) {
-                    // The ordinary list path dereferences the same detail payload as authoritative search
-                    // hydration, so it applies the identical null-shape rejection instead of throwing.
-                    if (!HasUsableMembers(detail)) {
+                await concurrency.WaitAsync(enrichmentDeadline.Token).ConfigureAwait(false);
+                try {
+                    TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, enrichmentDeadline.Token)
+                        .ConfigureAwait(false);
+
+                    // Identity is verified here as it is at every sibling call site. The count is written
+                    // onto a row whose identity came from the *list* summary, so a cache or proxy mix-up, a
+                    // server routing defect, or route confusion would otherwise display tenant B's member
+                    // and owner counts on tenant A's row with no signal at all.
+                    if (detail is not null
+                        && !string.Equals(detail.TenantId, summary.TenantId, StringComparison.Ordinal)) {
                         degraded = true;
                     }
-                    else {
-                        int memberCount = detail.Members.Count;
-                        int ownerCount = detail.Members.Count(static m => m.Role == TenantRole.TenantOwner);
-                        row = row with {
-                            MemberCount = TenantCountValue.Known(memberCount),
-                            OwnerCount = TenantCountValue.Known(ownerCount),
-                        };
+                    else if (detail is not null) {
+                        // The ordinary list path dereferences the same detail payload as authoritative
+                        // search hydration, so it applies the identical null-shape rejection.
+                        if (!HasUsableMembers(detail)) {
+                            degraded = true;
+                        }
+                        else {
+                            row = row with {
+                                MemberCount = TenantCountValue.Known(detail.Members.Count),
+                                OwnerCount = TenantCountValue.Known(
+                                    detail.Members.Count(static m => m.Role == TenantRole.TenantOwner)),
+                            };
+                        }
                     }
                 }
+                finally {
+                    _ = concurrency.Release();
+                }
             }
-            catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound or (int)HttpStatusCode.ServiceUnavailable) {
+
+            // Every per-row failure degrades that row only -- including the enrichment deadline elapsing.
+            // The status filter here previously admitted just 403/404/503, so an InvalidPayload rejection
+            // (which ToEventStoreResult rethrows carrying the raw 200) escaped, unwound
+            // ListByCursorCoreAsync, and discarded an otherwise-successful page over one supplementary
+            // member-count read; a 401 on a single row's detail read rendered the whole list as "sign in
+            // required". A supplementary read must never be able to collapse a confirmed page. The caller's
+            // own cancellation still propagates.
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
+                degraded = true;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException) {
                 degraded = true;
             }
 
-            rows.Add(row);
-        }
+            rows[index] = row;
+        })).ConfigureAwait(false);
 
         return (rows, degraded);
     }
@@ -2293,8 +2440,17 @@ internal sealed class TenantQueryGateway(
         string readName) {
         if (!response.IsSuccess) {
             SignalReadFailure(readName, response.FailureKind);
+            // InvalidPayload carries the raw 200 and InvalidMetadata the raw 304, so without this override
+            // both reached the per-read exception mappers as non-error statuses: their default arms return
+            // Degraded over zero retained rows on a first load, and neither status is in
+            // IsRetainableReadFailure's excluded set, so with a matching previous they re-presented
+            // confirmed rows as "last confirmed remain visible" on a corrupt payload. A response the client
+            // could not validate is an unavailable read, not a successful one.
             int statusCode = response.FailureKind is TenantsRestQueryFailureKind.Unavailable
                 or TenantsRestQueryFailureKind.Timeout
+                or TenantsRestQueryFailureKind.InvalidPayload
+                or TenantsRestQueryFailureKind.InvalidMetadata
+                or TenantsRestQueryFailureKind.Unknown
                     ? (int)HttpStatusCode.ServiceUnavailable
                     : response.StatusCode;
             throw new EventStoreGatewayException(
@@ -2384,9 +2540,17 @@ internal sealed class TenantQueryGateway(
             return ProjectionLifecycleState.Unknown;
         }
 
-        return metadata.Lifecycle is ProjectionLifecycleState.Unknown
-            ? previous
-            : ResolveLifecycle(metadata);
+        // An omitted lifecycle header is a real wire state: RestApiControllerEmitter emits it only when it
+        // normalizes to non-Unknown, while X-Hexalith-Is-Stale is emitted whenever staleness is known.
+        // Carrying `previous` forward regardless let IsCompleteEvidence become true at a projection version
+        // whose lifecycle was never asserted -- and that flag is what makes "this user is not a global
+        // administrator" conclusive. The retained lifecycle is only reusable when the response also proves
+        // the retained payload is still current; otherwise the lifecycle is unknown at this version.
+        if (metadata.Lifecycle is not ProjectionLifecycleState.Unknown) {
+            return ResolveLifecycle(metadata);
+        }
+
+        return metadata.IsStale == false ? previous : ProjectionLifecycleState.Unknown;
     }
 
     private static TenantDetailSurfaceKind ResolveDetailKindForFreshness(

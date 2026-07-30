@@ -173,10 +173,13 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
 
         handler.Requests.ShouldBeEmpty();
+
+        // InvalidRequest, not Unavailable: a caller-side input defect must stay distinguishable from the
+        // Tenants API being down, both in the rendered surface and in the operational log.
         new[] { detail.FailureKind, users.FailureKind, memberships.FailureKind, audit.FailureKind }
-            .ShouldAllBe(static kind => kind == TenantsRestQueryFailureKind.Unavailable);
+            .ShouldAllBe(static kind => kind == TenantsRestQueryFailureKind.InvalidRequest);
         new[] { detail.StatusCode, users.StatusCode, memberships.StatusCode, audit.StatusCode }
-            .ShouldAllBe(static status => status == (int)HttpStatusCode.ServiceUnavailable);
+            .ShouldAllBe(static status => status == (int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -203,7 +206,6 @@ public sealed class TenantsRestQueryClientTests
         result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
         result.Metadata.ProjectionVersion.ShouldBe("index-v7");
         result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
     }
 
     [Theory]
@@ -229,7 +231,6 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         if (!string.Equals(provenance, "ProjectionBacked", StringComparison.Ordinal))
         {
             result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
@@ -275,7 +276,6 @@ public sealed class TenantsRestQueryClientTests
         {
             result.IsSuccess.ShouldBeTrue();
             result.Metadata.IsDegraded.ShouldBe(true);
-            result.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         }
     }
 
@@ -296,8 +296,11 @@ public sealed class TenantsRestQueryClientTests
             "list-etag",
             TestContext.Current.CancellationToken);
 
+        // This IS the load-bearing assertion for the client's freshness resolver: the supported-304 gate
+        // accepts only Current or Stale, so a retained 304 on Lifecycle=Unknown + IsStale=false proves the
+        // resolver classified it Current. The response no longer publishes a Freshness member, because the
+        // rendered value comes from TenantQueryGateway.ResolveFreshness, not from here.
         result.IsNotModified.ShouldBeTrue();
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
         result.Metadata.IsStale.ShouldBe(false);
     }
@@ -326,7 +329,6 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
     }
 
@@ -564,25 +566,49 @@ public sealed class TenantsRestQueryClientTests
 
         result.IsSuccess.ShouldBeTrue();
         result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         result.ETag.ShouldBeNull();
     }
 
-    [Fact]
-    public async Task Dot_only_route_identifiers_are_percent_encoded_instead_of_being_normalized_as_path_navigation()
+    [Theory]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("...")]
+    [InlineData("\\")]
+    [InlineData("tenant\\alpha")]
+    public async Task Dot_only_and_separator_route_identifiers_are_rejected_without_sending_a_request(string tenantId)
     {
-        var handler = new RecordingHandler(Success("{}"), Success("{}"));
+        // Superseded: these used to be percent-escaped to %2E and sent. Escaping is not a durable guarantee
+        // -- the upstream API may normalize %2E during routing, and a resolved ".." under a future DAPR
+        // invoke path could traverse out of the /v1.0/invoke/{appId}/method/ prefix. A route identity that
+        // is only dots, or carries a separator, is not a usable identity, so it is refused here.
+        var handler = new RecordingHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
-        _ = await client.GetTenantAsync(new GetTenantQuery { TenantId = "." }, null, TestContext.Current.CancellationToken);
-        _ = await client.GetTenantAsync(new GetTenantQuery { TenantId = ".." }, null, TestContext.Current.CancellationToken);
+        TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
+            new GetTenantQuery { TenantId = tenantId },
+            null,
+            TestContext.Current.CancellationToken);
 
-        handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(
-        [
-            "/api/tenants/%2E",
-            "/api/tenants/%2E%2E",
-        ]);
+        handler.Requests.ShouldBeEmpty();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
+        result.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task An_identifier_containing_dots_among_other_characters_is_still_escaped_and_sent()
+    {
+        // The rejection is for identities that are ONLY dots; ordinary dotted ids must keep working.
+        var handler = new RecordingHandler(Success("{}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        _ = await client.GetTenantAsync(
+            new GetTenantQuery { TenantId = "tenant.alpha" },
+            null,
+            TestContext.Current.CancellationToken);
+
+        handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(["/api/tenants/tenant.alpha"]);
     }
 
     [Theory]
@@ -718,7 +744,7 @@ public sealed class TenantsRestQueryClientTests
 
         result.FailureKind.ShouldBe(expected);
         result.ToString().ShouldBe(
-            $"TenantsRestQueryResponse {{ IsSuccess = False, IsNotModified = False, Freshness = Unknown, FailureKind = {expected}, StatusCode = {(int)statusCode} }}");
+            $"TenantsRestQueryResponse {{ IsSuccess = False, IsNotModified = False, FailureKind = {expected}, StatusCode = {(int)statusCode} }}");
     }
 
     [Fact]
@@ -735,7 +761,6 @@ public sealed class TenantsRestQueryClientTests
 
         result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
         result.Payload.ShouldBeNull();
-        result.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -782,7 +807,7 @@ public sealed class TenantsRestQueryClientTests
 
         result.FailureKind.ShouldBe(expected);
         result.ToString().ShouldBe(
-            $"TenantsRestQueryResponse {{ IsSuccess = False, IsNotModified = False, Freshness = Unknown, FailureKind = {expected}, StatusCode = 503 }}");
+            $"TenantsRestQueryResponse {{ IsSuccess = False, IsNotModified = False, FailureKind = {expected}, StatusCode = 503 }}");
     }
 
     [Fact]
@@ -883,10 +908,17 @@ public sealed class TenantsRestQueryClientTests
         };
         var client = new TenantsRestQueryClient(httpClient);
 
-        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+        // Bounded on purpose. The blocking stream awaits only the token production supplies, so removing
+        // the linked transport deadline makes this read block forever -- and under `-parallel none` with
+        // no per-test timeout that surfaces as a stuck CI job with no attribution rather than a red test.
+        // WaitAsync turns the regression into a failure the runner can name.
+        Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> read = client.ListTenantsAsync(
             new ListTenantsQuery { PageSize = 20 },
             null,
             TestContext.Current.CancellationToken);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result =
+            await read.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.Timeout);
         result.StatusCode.ShouldBe((int)HttpStatusCode.ServiceUnavailable);

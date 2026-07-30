@@ -227,7 +227,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                     return Failure<TPayload>(TenantsRestQueryFailureKind.InvalidMetadata, statusCode);
                 }
 
-                return new(default, notModifiedMetadata, freshness, TenantsRestQueryFailureKind.None, statusCode);
+                return new(default, notModifiedMetadata, TenantsRestQueryFailureKind.None, statusCode);
             }
 
             if (response.StatusCode != HttpStatusCode.OK)
@@ -313,7 +313,6 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             return new(
                 payload,
                 responseMetadata,
-                ResolveFreshness(responseMetadata),
                 TenantsRestQueryFailureKind.None,
                 statusCode);
         }
@@ -407,8 +406,11 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         QueryResponseMetadata metadata,
         ReadModelFreshnessState freshness,
         EntityTagHeaderValue? requestValidator)
+        // No IsWeak re-check: NormalizeValidator only ever emits strong validators, so `requestValidator is
+        // { IsWeak: false }` could not decide anything here. It is removed rather than kept, because a guard
+        // that cannot fail reads as protection that is not there -- see Not_modified_requires_strong_etag.
         => metadata.Provenance == QueryResponseProvenance.ProjectionBacked
-            && requestValidator is { IsWeak: false }
+            && requestValidator is not null
             && metadata.ETag is not null
             && string.Equals(metadata.ETag, requestValidator.Tag.Trim('"'), StringComparison.Ordinal)
             && metadata.ProjectionVersion is not null
@@ -474,7 +476,6 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         => new(
             default,
             new QueryResponseMetadata(),
-            ReadModelFreshnessState.Unknown,
             failureKind,
             statusCode);
 
@@ -630,11 +631,12 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             return null;
         }
 
+        // The raw-header bound above already caps the trimmed tag at MaximumETagValueLength, so a second
+        // length check here is unreachable by construction and is not repeated.
         string? tag = eTag.Tag.Trim('"');
         return eTag.IsWeak
             || string.Equals(eTag.Tag, "*", StringComparison.Ordinal)
             || string.IsNullOrWhiteSpace(tag)
-            || tag.Length > MaximumETagValueLength
             || tag.Any(char.IsControl)
             ? null
             : tag;
@@ -692,24 +694,39 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             : value;
     }
 
+    /// <summary>
+    /// Escapes a route identity, rejecting values that cannot safely occupy a single path segment.
+    /// </summary>
+    /// <remarks>
+    /// All-dot values are REJECTED rather than escaped. Percent-escaping them to <c>%2E</c> was defence
+    /// against a value that resolves to a relative path segment, but escaping is not a durable guarantee:
+    /// the upstream API may normalize <c>%2E</c> during routing, and any move to DAPR service invocation
+    /// would make a resolved <c>..</c> strictly worse, because it could traverse out of the
+    /// <c>/v1.0/invoke/{appId}/method/</c> prefix. A route identity that is only dots, or that carries a
+    /// path separator, is not a usable identity in the first place -- so it is refused here rather than
+    /// transported and hoped about.
+    /// </remarks>
     private static bool TryEscapeRouteValue(string value, [NotNullWhen(true)] out string? escaped)
     {
-        if (value.Contains('/', StringComparison.Ordinal))
+        if (value.Contains('/', StringComparison.Ordinal)
+            || value.Contains('\\', StringComparison.Ordinal)
+            || value.All(static character => character == '.'))
         {
             escaped = null;
             return false;
         }
 
-        escaped = value.All(static character => character == '.')
-            ? string.Concat(Enumerable.Repeat("%2E", value.Length))
-            : Uri.EscapeDataString(value);
+        escaped = Uri.EscapeDataString(value);
         return true;
     }
 
+    // InvalidRequest, not Unavailable: an unusable route identity is a caller-side input defect. Reporting
+    // it as 503 made it indistinguishable from the Tenants API being down, both in the rendered surface and
+    // in the operational log.
     private static Task<TenantsRestQueryResponse<TPayload>> UnsupportedRouteIdentifier<TPayload>()
         => Task.FromResult(Failure<TPayload>(
-            TenantsRestQueryFailureKind.Unavailable,
-            (int)HttpStatusCode.ServiceUnavailable));
+            TenantsRestQueryFailureKind.InvalidRequest,
+            (int)HttpStatusCode.BadRequest));
 
     private Uri CreateRequestUri(string path)
     {

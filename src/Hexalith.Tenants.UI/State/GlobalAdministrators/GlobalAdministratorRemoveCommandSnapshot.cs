@@ -179,10 +179,21 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
         }
 
         if (row is null) {
+            // Absence proves removal only against complete evidence, and the re-query reads page one only,
+            // so IsCompleteEvidence requires a blank cursor plus !HasMore. On a deployment with more global
+            // administrators than one page holds, HasMore is permanently true and *every* successful removal
+            // reached this arm reading as a verification failure. Separate the two: a good, current,
+            // projection-backed page that simply does not span the population is page-scoped evidence, not a
+            // failed read. Both stay UnableToVerify -- absence is still not proven -- but only one of them
+            // implies something went wrong.
+            bool isPageScopedEvidence = snapshot.IsMutationEvidenceBacked
+                && snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty;
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 LastConfirmedProjection = null,
-                SafeMessage = "Current complete projection evidence is required before confirming global administrator removal.",
+                SafeMessage = isPageScopedEvidence
+                    ? "The projection re-query covers only the first page of global administrators, which cannot prove this administrator was removed platform-wide. Confirm the outcome from the tenant audit trail."
+                    : "Current complete projection evidence is required before confirming global administrator removal.",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

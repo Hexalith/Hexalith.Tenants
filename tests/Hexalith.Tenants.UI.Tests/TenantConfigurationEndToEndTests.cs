@@ -110,7 +110,6 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
                     Provenance = QueryResponseProvenance.ProjectionBacked,
                     Lifecycle = ProjectionLifecycleState.Current,
                 },
-                ReadModelFreshnessState.Current,
                 TenantsRestQueryFailureKind.None,
                 StatusCodes.Status200OK));
         ITenantQueryGateway queryGateway = new TenantQueryGateway(

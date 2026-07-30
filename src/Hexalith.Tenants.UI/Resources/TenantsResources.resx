@@ -2550,12 +2550,6 @@
   <data name="Tenants.GlobalAdministrators.Title" xml:space="preserve">
     <value>Global Administrators</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Action.Unavailable.Freshness" xml:space="preserve">
-    <value>Unavailable until projection freshness is current.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly" xml:space="preserve">
-    <value>Unavailable in this read-only review.</value>
-  </data>
   <data name="Tenants.GlobalAdministrators.Column.Actions" xml:space="preserve">
     <value>Grant/remove availability</value>
   </data>
@@ -2834,6 +2828,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Preview.Count" xml:space="preserve">
     <value>Current administrator count</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Count.VisiblePage" xml:space="preserve">
+    <value>Administrators visible on this page</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Preview.Freshness" xml:space="preserve">
     <value>Projection freshness</value>
@@ -3647,6 +3644,9 @@
   </data>
   <data name="Tenants.Members.State.Unauthorized.Title" xml:space="preserve">
     <value>Members not available to you</value>
+  </data>
+  <data name="Tenants.Members.State.Unknown.Title" xml:space="preserve">
+    <value>Member freshness unknown</value>
   </data>
   <data name="Tenants.MyTenants.Recovery.PageRecovered" xml:space="preserve">
     <value>The list restarted at the first page because the previous page reference expired.</value>

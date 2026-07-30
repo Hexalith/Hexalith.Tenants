@@ -54,4 +54,58 @@ public sealed class GlobalAdministratorsSnapshotTests
 
         snapshot.IsMutationEvidenceBacked.ShouldBe(expected);
     }
+
+    [Fact]
+    public void Diagnostics_omit_rows_identities_cursors_validators_and_versions()
+    {
+        // Pins both new support-safe ToString overrides. Deleting either restores the compiler-generated
+        // record ToString, which prints Rows (every administrator user id), NextCursor (the protected
+        // cursor), ETag, ProjectionVersion and RequestCursor.
+        GlobalAdministratorsRequest request = new("cursor-secret", 20, "etag-secret");
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin.alpha", ReadModelFreshnessState.Current)],
+            nextCursor: "cursor-secret",
+            hasMore: true,
+            eTag: "etag-secret",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "version-secret",
+            RequestCursor = "cursor-secret",
+        };
+
+        string diagnostic = $"{request} {snapshot}";
+
+        diagnostic.ShouldNotContain("admin.alpha", Case.Sensitive);
+        diagnostic.ShouldNotContain("cursor-secret", Case.Sensitive);
+        diagnostic.ShouldNotContain("etag-secret", Case.Sensitive);
+        diagnostic.ShouldNotContain("version-secret", Case.Sensitive);
+    }
+
+    [Fact]
+    public void Snapshot_diagnostics_state_the_evidence_fields_a_reviewer_needs()
+    {
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin.alpha", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        };
+
+        snapshot.ToString().ShouldBe(
+            "GlobalAdministratorsSnapshot { Kind = Ready, Freshness = Current, Reason = None, "
+            + "Lifecycle = Current, IsCompleteEvidence = True, PagingRecovered = False }");
+    }
+
+    [Fact]
+    public void Request_diagnostics_state_only_unprotected_shape()
+    {
+        GlobalAdministratorsRequest request = new("cursor-secret", 20, "etag-secret");
+
+        request.ToString().ShouldBe("GlobalAdministratorsRequest { PageSize = 20 }");
+    }
 }

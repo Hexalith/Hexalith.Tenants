@@ -1099,4 +1099,113 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
         };
     }
+
+    [Fact]
+    public void Metadata_degraded_page_describing_the_prior_cursor_is_not_committed_as_the_requested_page()
+    {
+        // The reject side of the degraded-page cursor rule. The existing coverage builds its degraded
+        // snapshot with a RequestCursor that MATCHES the request, so only the accept path ran and dropping
+        // the equality check kept the suite green. A degraded snapshot retaining the PRIOR page's rows and
+        // cursor must not advance _currentCursor to a page that never rendered.
+        TenantAuditSnapshot degradedPriorPage = TenantAuditSnapshot.Degraded(
+            [Row("event-1", AuditEventCategory.Access)],
+            TenantAuditReason.ProjectionDegraded,
+            new TenantAuditRequest("tenant.alpha", Cursor: null));
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            degradedPriorPage,
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+
+        // Paging state must not have advanced, so Previous stays unavailable: page one is still current.
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-previous']")
+            .All(static element => element.HasAttribute("disabled")).ShouldBeTrue());
+    }
+
+    [Fact]
+    public void A_query_string_only_navigation_does_not_discard_the_retained_validator_or_blank_the_grid()
+    {
+        // The audit route carries six query-string parameters, none of which feed the request. The member
+        // "open audit for this user" entry point therefore re-enters OnParametersSetAsync with an unchanged
+        // TenantId and an identical request; re-reading unconditionally discarded the conditional-read
+        // validator, reset the grid to Loading and cancelled any in-flight load.
+        StubTenantQueryGateway gateway = RegisterServices(
+            [.. Enumerable.Repeat(
+                ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: null, hasMore: false),
+                6)]);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        gateway.Requests.Count.ShouldBe(1);
+        gateway.Requests[0].ETag.ShouldBeNull();
+
+        // Query-string parameters must be supplied through navigation, exactly as the member audit entry
+        // point does it: same route, same tenant, new query string.
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha/audit?targetUserId=user.alpha&returnFocus=tenants-member-row");
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBeGreaterThan(1));
+
+        // Every same-tenant re-entry is conditional on the retained validator, and the grid never blanked.
+        gateway.Requests.Skip(1).ShouldAllBe(static request => request.ETag != null);
+        cut.Find("[data-testid='tenants-audit-grid']").TextContent.ShouldContain("event-1");
+    }
+
+    [Fact]
+    public async Task A_next_page_completing_after_the_route_moved_does_not_commit_its_cursor_onto_the_new_tenant()
+    {
+        // NextPageAsync's tenant-identity clause guards a LATE completion, so the alpha page read is held
+        // pending across the route change. Without the clause, alpha's cursor and history entry are
+        // committed onto tenant beta's surface and beta's Previous walks back through alpha's paging.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var pendingAlphaPage2 = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<TenantAuditRequest> requests = [];
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.Arg<TenantAuditRequest>()!;
+                requests.Add(request);
+                return request.Cursor == "alpha-next"
+                    ? pendingAlphaPage2.Task
+                    : Task.FromResult(ReadySnapshot(
+                        [Row($"{request.TenantId}-event-1", AuditEventCategory.Access)],
+                        nextCursor: "alpha-next",
+                        hasMore: true));
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        Task nextClick = cut.Find("[data-testid='tenants-audit-next']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+
+        // Route to beta while alpha's page-two read is still in flight, then let it complete.
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-grid']")
+            .TextContent.ShouldContain("tenant.beta-event-1"));
+
+        pendingAlphaPage2.SetResult(ReadySnapshot(
+            [Row("alpha-event-2", AuditEventCategory.Access)],
+            nextCursor: null,
+            hasMore: false));
+        await nextClick;
+
+        // Beta must still be on its own first page: no inherited cursor, no inherited history.
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-previous']")
+            .All(static element => element.HasAttribute("disabled")).ShouldBeTrue());
+        cut.Find("[data-testid='tenants-audit-grid']").TextContent.ShouldNotContain("alpha-event-2");
+    }
 }

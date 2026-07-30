@@ -141,8 +141,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Conditional_not_modified_reuse_requires_the_retained_validator_on_every_direct_read()
     {
-        const string retainedETag = "\"retained-a\"";
-        const string requestETag = "\"request-b\"";
+        const string retainedETag = "retained-a";
+        const string requestETag = "request-b";
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(call => call.ArgAt<string?>(1) is null
@@ -316,7 +316,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Confirmed_empty_global_administrators_are_retained_on_a_transient_refresh_failure()
     {
-        const string eTag = "\"confirmed-empty\"";
+        const string eTag = "confirmed-empty";
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.GetGlobalAdministratorsAsync(
                 Arg.Any<GetGlobalAdministratorsQuery>(),
@@ -374,7 +374,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Current_not_modified_evidence_clears_prior_transport_degradation()
     {
-        const string eTag = "\"known\"";
+        const string eTag = "known";
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(NotModifiedResponse<PaginatedResult<UserTenantMembership>>(eTag));
@@ -459,7 +459,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Paged_sibling_reads_reject_mismatched_cursor_or_page_size_retention()
     {
-        const string eTag = "\"known\"";
+        const string eTag = "known";
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(call =>
@@ -636,10 +636,10 @@ public sealed class TenantQueryGatewayTests
                 [new TenantMember("member-user", TenantRole.TenantReader)],
                 "next-page",
                 HasMore: true),
-            eTag: "\"members-etag\"",
+            eTag: "members-etag",
             metadata: ProjectionBackedMetadata(
                 isStale: false,
-                eTag: "\"members-etag\"",
+                eTag: "members-etag",
                 lifecycle: ProjectionLifecycleState.Current,
                 projectionVersion: "members-v7"));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -650,13 +650,12 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         SubmittedQuery submitted = client.SubmittedQueries.ShouldHaveSingleItem();
-        submitted.Request.QueryType.ShouldBe(GetTenantUsersQuery.QueryType);
         submitted.Request.AggregateId.ShouldBe("tenant/alpha");
         submitted.Request.EntityId.ShouldBe("tenant/alpha");
         submitted.Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("cursor-value");
         submitted.Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(12);
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("member-user");
-        snapshot.ETag.ShouldBe("\"members-etag\"");
+        snapshot.ETag.ShouldBe("members-etag");
         snapshot.ProjectionVersion.ShouldBe("members-v7");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
@@ -670,21 +669,21 @@ public sealed class TenantQueryGatewayTests
             [new TenantMember("member-user", TenantRole.TenantReader)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"members-old\"",
+            eTag: "members-old",
             projectionVersion: "members-v6",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueTenantUsersNotModified("\"members-new\"", "members-v7");
+        client.EnqueueTenantUsersNotModified("members-new", "members-v7");
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantUsersSnapshot snapshot = await gateway.GetTenantUsersAsync(
-            new TenantUsersRequest("tenant.alpha", ETag: "\"members-old\""),
+            new TenantUsersRequest("tenant.alpha", ETag: "members-old"),
             previous,
             CancellationToken.None);
 
         snapshot.Rows.ShouldBeSameAs(previous.Rows);
-        snapshot.ETag.ShouldBe("\"members-old\"");
+        snapshot.ETag.ShouldBe("members-old");
         snapshot.ProjectionVersion.ShouldBe("members-v6");
         snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Ready);
     }
@@ -723,7 +722,6 @@ public sealed class TenantQueryGatewayTests
                         isNotModified: true,
                         lifecycle: ProjectionLifecycleState.Current,
                         projectionVersion: "members-v1"),
-                    ReadModelFreshnessState.Current,
                     TenantsRestQueryFailureKind.None,
                     (int)HttpStatusCode.NotModified));
 
@@ -762,7 +760,6 @@ public sealed class TenantQueryGatewayTests
             .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
                 null,
                 new QueryResponseMetadata(),
-                ReadModelFreshnessState.Unknown,
                 failureKind,
                 failureKind is TenantsRestQueryFailureKind.Unauthorized ? 401
                     : failureKind is TenantsRestQueryFailureKind.Forbidden ? 403
@@ -804,7 +801,6 @@ public sealed class TenantQueryGatewayTests
             .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
                 null,
                 new QueryResponseMetadata(),
-                ReadModelFreshnessState.Unknown,
                 TenantsRestQueryFailureKind.Unavailable,
                 503));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -836,7 +832,6 @@ public sealed class TenantQueryGatewayTests
                 new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
                     null,
                     new QueryResponseMetadata(),
-                    ReadModelFreshnessState.Unknown,
                     TenantsRestQueryFailureKind.InvalidRequest,
                     (int)HttpStatusCode.BadRequest),
                 new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
@@ -848,7 +843,6 @@ public sealed class TenantQueryGatewayTests
                         isStale: false,
                         lifecycle: ProjectionLifecycleState.Current,
                         projectionVersion: "members-v8"),
-                    ReadModelFreshnessState.Current,
                     TenantsRestQueryFailureKind.None,
                     (int)HttpStatusCode.OK));
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
@@ -907,16 +901,14 @@ public sealed class TenantQueryGatewayTests
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
         query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetTenantQuery.Domain);
-        query.Request.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
-        query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
-        query.IfNoneMatch.ShouldBe("\"known\"");
+        query.IfNoneMatch.ShouldBe("known");
         client.SubmittedQueries.Count.ShouldBe(1);
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -991,23 +983,23 @@ public sealed class TenantQueryGatewayTests
     {
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             projectionVersion: "detail-v6");
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("\"known\"");
+        client.EnqueueDetailNotModified("known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
-        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.ETag.ShouldBe("known");
         snapshot.ProjectionVersion.ShouldBe("detail-v6");
         client.SubmittedQueries.Count.ShouldBe(1);
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
+        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
     }
 
     [Fact]
@@ -1015,19 +1007,19 @@ public sealed class TenantQueryGatewayTests
     {
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("\"known\"", isStale: true);
+        client.EnqueueDetailNotModified("known", isStale: true);
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            eTag: "\"known\"",
+            eTag: "known",
             metadata: ProjectionBackedMetadata(isStale: true));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Stale);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -1038,16 +1030,16 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_not_modified_without_matching_snapshot_refetches_unconditionally()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("\"known\"", isStale: false, lifecycle: ProjectionLifecycleState.Current);
+        client.EnqueueDetailNotModified("known", isStale: false, lifecycle: ProjectionLifecycleState.Current);
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            eTag: "\"known\"",
+            eTag: "known",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous: null, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), previous: null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
@@ -1160,7 +1152,7 @@ public sealed class TenantQueryGatewayTests
                 [priorRow]));
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             priorComposition,
-            "\"prior\"",
+            "prior",
             ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueException(new InvalidOperationException("gateway unavailable"));
@@ -1216,7 +1208,7 @@ public sealed class TenantQueryGatewayTests
                 [priorRow]));
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             priorComposition,
-            "\"prior\"",
+            "prior",
             ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
@@ -1334,7 +1326,6 @@ public sealed class TenantQueryGatewayTests
         proof.TenantId.ShouldBe("tenant.alpha");
         proof.Kind.ShouldBe(expectedKind);
         SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.IfNoneMatch.ShouldBeNull();
     }
@@ -1485,7 +1476,7 @@ public sealed class TenantQueryGatewayTests
                 client.EnqueueDetailResult(null, ProjectionBackedMetadata(isStale: false));
                 break;
             case "not-modified":
-                client.EnqueueDetailNotModified("\"etag\"");
+                client.EnqueueDetailNotModified("etag");
                 break;
             case "stale":
                 client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: true));
@@ -1529,12 +1520,12 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_without_previous_snapshot_reports_unavailable_when_unconditional_refetch_fails()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("\"known\"");
+        client.EnqueueDetailNotModified("known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
@@ -1547,8 +1538,8 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            eTag: "\"tenant-etag\"",
-            metadata: new QueryResponseMetadata(ETag: "\"tenant-etag\""));
+            eTag: "tenant-etag",
+            metadata: new QueryResponseMetadata(ETag: "tenant-etag"));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -1658,7 +1649,6 @@ public sealed class TenantQueryGatewayTests
 
         SubmittedQuery listQuery = client.SubmittedQueries[0];
         listQuery.Request.Tenant.ShouldBe("system");
-        listQuery.Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
         JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
         payload.TryGetProperty("offset", out _).ShouldBeFalse();
@@ -1687,13 +1677,13 @@ public sealed class TenantQueryGatewayTests
             new TenantListRequest(
                 Cursor: "expired-protected-cursor",
                 PageSize: 50,
-                ETag: "\"stale-etag\""),
+                ETag: "stale-etag"),
             previous: null,
             CancellationToken.None);
 
         client.SubmittedQueries.Count.ShouldBe(3);
         client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("expired-protected-cursor");
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"stale-etag\"");
+        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("stale-etag");
         client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
         client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(50);
         client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
@@ -1714,7 +1704,6 @@ public sealed class TenantQueryGatewayTests
                 new TenantsRestQueryResponse<PaginatedResult<TenantSummary>>(
                     null,
                     new QueryResponseMetadata(),
-                    ReadModelFreshnessState.Unknown,
                     TenantsRestQueryFailureKind.InvalidCursor,
                     (int)HttpStatusCode.BadRequest),
                 new TenantsRestQueryResponse<PaginatedResult<TenantSummary>>(
@@ -1723,7 +1712,6 @@ public sealed class TenantQueryGatewayTests
                         isStale: false,
                         lifecycle: ProjectionLifecycleState.Current,
                         projectionVersion: "tenant-list-v1"),
-                    ReadModelFreshnessState.Current,
                     TenantsRestQueryFailureKind.None,
                     (int)HttpStatusCode.OK));
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
@@ -1735,13 +1723,13 @@ public sealed class TenantQueryGatewayTests
             new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
-            new TenantListRequest(Cursor: "expired-protected-cursor", ETag: "\"stale-etag\""),
+            new TenantListRequest(Cursor: "expired-protected-cursor", ETag: "stale-etag"),
             previous: null,
             CancellationToken.None);
 
         await client.Received(1).ListTenantsAsync(
             Arg.Is<ListTenantsQuery>(query => query != null && query.Cursor == "expired-protected-cursor"),
-            "\"stale-etag\"",
+            "stale-etag",
             Arg.Any<CancellationToken>());
         await client.Received(1).ListTenantsAsync(
             Arg.Is<ListTenantsQuery>(query => query != null && query.Cursor == null),
@@ -1823,16 +1811,12 @@ public sealed class TenantQueryGatewayTests
         TenantQueryGateway gateway = CreateGateway(client);
 
         GlobalAdministratorsSnapshot snapshot = await gateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(Cursor: "opaque-cursor", PageSize: 10, ETag: "\"known\""), null, CancellationToken.None);
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(Cursor: "opaque-cursor", PageSize: 10, ETag: "known"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
         query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetGlobalAdministratorsQuery.Domain);
-        query.Request.AggregateId.ShouldBe("global-administrators");
-        query.Request.EntityId.ShouldBe("global-administrators");
-        query.Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
-        query.Request.ProjectionType.ShouldBe(GetGlobalAdministratorsQuery.ProjectionType);
-        query.IfNoneMatch.ShouldBe("\"known\"");
+        query.IfNoneMatch.ShouldBe("known");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(10);
@@ -1849,19 +1833,19 @@ public sealed class TenantQueryGatewayTests
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("\"known\"");
+        client.EnqueueGlobalAdministratorsNotModified("known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         GlobalAdministratorsSnapshot snapshot = await gateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "\"known\""), previous, CancellationToken.None);
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
-        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.ETag.ShouldBe("known");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
 
@@ -1872,15 +1856,15 @@ public sealed class TenantQueryGatewayTests
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("\"known\"", isStale: true);
+        client.EnqueueGlobalAdministratorsNotModified("known", isStale: true);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         GlobalAdministratorsSnapshot snapshot = await gateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "\"known\""), previous, CancellationToken.None);
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Stale);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
@@ -1898,20 +1882,20 @@ public sealed class TenantQueryGatewayTests
             empty ? [] : [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Unknown)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"") with
+            eTag: "known") with
         {
             ProjectionVersion = "projection-old",
         };
         CapturingGatewayClient client = new();
         client.EnqueueGlobalAdministratorsNotModified(
-            "\"known\"",
+            "known",
             isStale: false,
             lifecycle: ProjectionLifecycleState.Current,
             projectionVersion: "projection-current");
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
             .GetGlobalAdministratorsAsync(
-                new GlobalAdministratorsRequest(ETag: "\"known\""),
+                new GlobalAdministratorsRequest(ETag: "known"),
                 previous,
                 CancellationToken.None);
 
@@ -1951,15 +1935,15 @@ public sealed class TenantQueryGatewayTests
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("\"known\"", isStale, lifecycle, provenance, emitMetadata);
+        client.EnqueueGlobalAdministratorsNotModified("known", isStale, lifecycle, provenance, emitMetadata);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         GlobalAdministratorsSnapshot snapshot = await gateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "\"known\""), previous, CancellationToken.None);
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Lifecycle.ShouldBe(expectedLifecycle);
@@ -2357,7 +2341,7 @@ public sealed class TenantQueryGatewayTests
                     Category: AuditEventCategory.Access,
                     Cursor: "opaque-audit-cursor",
                     PageSize: 25,
-                    ETag: "\"known\""),
+                    ETag: "known"),
                 null,
                 CancellationToken.None);
 
@@ -2366,9 +2350,7 @@ public sealed class TenantQueryGatewayTests
         query.Request.Domain.ShouldBe(GetTenantAuditQuery.Domain);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
-        query.Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
-        query.Request.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
-        query.IfNoneMatch.ShouldBe("\"known\"");
+        query.IfNoneMatch.ShouldBe("known");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("from").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
         payload.GetProperty("to").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-02T00:00:00Z", CultureInfo.InvariantCulture));
@@ -2466,17 +2448,17 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_reuses_not_modified_snapshot_only_for_same_scope()
     {
-        TenantAuditRequest originalRequest = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
+        TenantAuditRequest originalRequest = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "known");
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
             [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             originalRequest);
         CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("\"known\"");
-        client.EnqueueAuditNotModified("\"known\"");
+        client.EnqueueAuditNotModified("known");
+        client.EnqueueAuditNotModified("known");
         client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-5", AuditEventCategory.Administrative)],
             Cursor: null,
@@ -2497,16 +2479,16 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_applies_stale_freshness_from_not_modified_response()
     {
-        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
+        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "known");
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
             [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("\"known\"", isStale: true);
+        client.EnqueueAuditNotModified("known", isStale: true);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -2536,16 +2518,16 @@ public sealed class TenantQueryGatewayTests
         TenantAuditSurfaceKind expectedKind,
         TenantAuditReason expectedReason)
     {
-        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
+        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "known");
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
             [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("\"known\"", isStale, lifecycle, provenance, emitMetadata);
+        client.EnqueueAuditNotModified("known", isStale, lifecycle, provenance, emitMetadata);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -2621,7 +2603,7 @@ public sealed class TenantQueryGatewayTests
     {
         // A 304 must never inherit provenance from the retained snapshot: the evidence that matters is
         // what THIS response declared. A non-projection-backed 304 fails closed to Unknown provenance.
-        TenantAuditRequest request = new("tenant.alpha", ETag: "\"known\"");
+        TenantAuditRequest request = new("tenant.alpha", ETag: "known");
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
             [
                 TenantAuditRow.FromEntry(AuditEntry("event-retained", AuditEventCategory.Access), ReadModelFreshnessState.Current)
@@ -2629,11 +2611,11 @@ public sealed class TenantQueryGatewayTests
             ],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("\"known\"", provenance: QueryResponseProvenance.HandlerComputed);
+        client.EnqueueAuditNotModified("known", provenance: QueryResponseProvenance.HandlerComputed);
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(request, previous, CancellationToken.None);
@@ -2695,7 +2677,7 @@ public sealed class TenantQueryGatewayTests
             ],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
@@ -2755,7 +2737,7 @@ public sealed class TenantQueryGatewayTests
                         ["key"] = "billing.mode",
                         ["rawPayload"] = "raw payload token secret",
                         ["correlationId"] = "correlation-123",
-                        ["etag"] = "\"etag\"",
+                        ["etag"] = "etag",
                     }),
             ],
             null,
@@ -2856,18 +2838,18 @@ public sealed class TenantQueryGatewayTests
             [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("\"known\"");
+        client.EnqueueNotModified("known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
-            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
+        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
@@ -2894,16 +2876,16 @@ public sealed class TenantQueryGatewayTests
             [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("\"known\"", isStale, lifecycle, provenance, emitMetadata);
+        client.EnqueueNotModified("known", isStale, lifecycle, provenance, emitMetadata);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
-            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Lifecycle.ShouldBe(expectedLifecycle);
@@ -2967,16 +2949,16 @@ public sealed class TenantQueryGatewayTests
             [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Unknown,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("\"known\"");
+        client.EnqueueNotModified("known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
-            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
@@ -2989,16 +2971,16 @@ public sealed class TenantQueryGatewayTests
             [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
             nextCursor: "next",
             hasMore: true,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("\"known\"", isStale: true);
+        client.EnqueueNotModified("known", isStale: true);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
-            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Stale);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
@@ -3080,10 +3062,7 @@ public sealed class TenantQueryGatewayTests
         SubmittedQuery query = client.SubmittedQueries[0];
         query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
-        query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
-        query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("user.self");
-        query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
@@ -3125,18 +3104,15 @@ public sealed class TenantQueryGatewayTests
                     TargetUserId: "target.user@example",
                     Cursor: "signed-target-cursor",
                     PageSize: 12,
-                    ETag: "\"known\""),
+                    ETag: "known"),
                 null,
                 CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
         query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
-        query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
-        query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("target.user@example");
-        query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
-        query.IfNoneMatch.ShouldBe("\"known\"");
+        query.IfNoneMatch.ShouldBe("known");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-target-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
@@ -3153,12 +3129,12 @@ public sealed class TenantQueryGatewayTests
             [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: "next",
             hasMore: true,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             targetUserId: "target.one");
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("\"known\"");
-        client.EnqueueUserTenantsNotModified("\"known\"");
+        client.EnqueueUserTenantsNotModified("known");
+        client.EnqueueUserTenantsNotModified("known");
         client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantReader)],
             Cursor: null,
@@ -3166,9 +3142,9 @@ public sealed class TenantQueryGatewayTests
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot sameTarget = await gateway
-            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "known"), previous, CancellationToken.None);
         UserTenantMembershipSnapshot differentTarget = await gateway
-            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.two", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.two", ETag: "known"), previous, CancellationToken.None);
 
         sameTarget.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         sameTarget.TargetUserId.ShouldBe("target.one");
@@ -3185,15 +3161,15 @@ public sealed class TenantQueryGatewayTests
             [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: "next",
             hasMore: true,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             targetUserId: "target.one");
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("\"known\"", isStale: true);
+        client.EnqueueUserTenantsNotModified("known", isStale: true);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
-            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Stale);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
@@ -3350,21 +3326,21 @@ public sealed class TenantQueryGatewayTests
             [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: "next",
             hasMore: true,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             targetUserId: "operator-user");
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("\"known\"");
+        client.EnqueueUserTenantsNotModified("known");
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
-            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "\"known\""), previous, CancellationToken.None);
+            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "known"), previous, CancellationToken.None);
 
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
+        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.NextCursor.ShouldBe("next");
         snapshot.HasMore.ShouldBeTrue();
-        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.ETag.ShouldBe("known");
     }
 
     [Theory]
@@ -3389,15 +3365,15 @@ public sealed class TenantQueryGatewayTests
             [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             targetUserId: "operator-user");
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("\"known\"", isStale, lifecycle, provenance, emitMetadata);
+        client.EnqueueUserTenantsNotModified("known", isStale, lifecycle, provenance, emitMetadata);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
-            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "\"known\""), previous, CancellationToken.None);
+            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Lifecycle.ShouldBe(expectedLifecycle);
@@ -3437,7 +3413,7 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_my_tenants_without_previous_snapshot_refetches_not_modified_unconditionally()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("\"known\"");
+        client.EnqueueUserTenantsNotModified("known");
         client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader)],
             Cursor: null,
@@ -3445,7 +3421,7 @@ public sealed class TenantQueryGatewayTests
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
-            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "\"known\""), null, CancellationToken.None);
+            .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "known"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
@@ -5069,7 +5045,7 @@ public sealed class TenantQueryGatewayTests
             ],
             NextCursor: "protected-next-cursor",
             HasMore: true,
-            ETag: "\"secret-etag\"",
+            ETag: "secret-etag",
             ReadModelFreshnessState.Stale,
             IsDegraded: true,
             IsAuthorizationScopedEmpty: false,
@@ -5223,7 +5199,7 @@ public sealed class TenantQueryGatewayTests
                 [priorRow]));
         return TenantDetailSnapshot.Ready(
             priorComposition,
-            "\"prior\"",
+            "prior",
             ReadModelFreshnessState.Current);
     }
 
@@ -5339,7 +5315,7 @@ public sealed class TenantQueryGatewayTests
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
@@ -5351,7 +5327,7 @@ public sealed class TenantQueryGatewayTests
                 CancellationToken.None);
 
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
-        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.ETag.ShouldBe("known");
         snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
     }
 
@@ -5365,14 +5341,14 @@ public sealed class TenantQueryGatewayTests
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
             .GetGlobalAdministratorsAsync(
-                new GlobalAdministratorsRequest(ETag: "\"different\""),
+                new GlobalAdministratorsRequest(ETag: "different"),
                 previous,
                 CancellationToken.None);
 
@@ -5398,7 +5374,6 @@ public sealed class TenantQueryGatewayTests
             .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
                 null,
                 ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current, projectionVersion: "v1"),
-                ReadModelFreshnessState.Current,
                 TenantsRestQueryFailureKind.None,
                 200));
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
@@ -5486,22 +5461,22 @@ public sealed class TenantQueryGatewayTests
     public async Task Paginated_not_modified_without_matching_evidence_refetches_unconditionally()
     {
         CapturingGatewayClient listClient = new();
-        listClient.EnqueueNotModified("\"list-etag\"");
+        listClient.EnqueueNotModified("list-etag");
         listClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], Cursor: null, HasMore: false));
         TenantListSnapshot list = await CreateGateway(listClient).ListTenantsAsync(
-            new TenantListRequest(ETag: "\"list-etag\""),
+            new TenantListRequest(ETag: "list-etag"),
             previous: null,
             CancellationToken.None);
 
         CapturingGatewayClient administratorClient = new();
-        administratorClient.EnqueueGlobalAdministratorsNotModified("\"admin-etag\"");
+        administratorClient.EnqueueGlobalAdministratorsNotModified("admin-etag");
         administratorClient.EnqueueQueryResult(new PaginatedResult<GlobalAdministratorSummary>(
             [new GlobalAdministratorSummary("admin.alpha")],
             Cursor: null,
             HasMore: false));
         GlobalAdministratorsSnapshot administrators = await CreateGateway(administratorClient)
             .GetGlobalAdministratorsAsync(
-                new GlobalAdministratorsRequest(ETag: "\"admin-etag\""),
+                new GlobalAdministratorsRequest(ETag: "admin-etag"),
                 previous: null,
                 CancellationToken.None);
 
@@ -5642,7 +5617,6 @@ public sealed class TenantQueryGatewayTests
                 isStale: false,
                 lifecycle: ProjectionLifecycleState.Current,
                 projectionVersion: "projection-v1"),
-            ReadModelFreshnessState.Current,
             TenantsRestQueryFailureKind.None,
             (int)HttpStatusCode.OK);
 
@@ -5657,7 +5631,6 @@ public sealed class TenantQueryGatewayTests
                 isNotModified: true,
                 lifecycle: ProjectionLifecycleState.Current,
                 projectionVersion: projectionVersion),
-            ReadModelFreshnessState.Current,
             TenantsRestQueryFailureKind.None,
             (int)HttpStatusCode.NotModified);
 
@@ -5667,7 +5640,6 @@ public sealed class TenantQueryGatewayTests
         => new(
             default,
             new QueryResponseMetadata(),
-            ReadModelFreshnessState.Unknown,
             failureKind,
             statusCode);
 
@@ -5730,7 +5702,7 @@ public sealed class TenantQueryGatewayTests
 
         public void EnqueueQueryResult<T>(
             T payload,
-            string? eTag = "\"etag\"",
+            string? eTag = "etag",
             QueryResponseMetadata? metadata = null,
             bool emitDefaultMetadata = true)
             => _responses.Enqueue(new EventStoreQueryResult<T>(
@@ -5884,6 +5856,19 @@ public sealed class TenantQueryGatewayTests
             => _responses.Enqueue(exception);
     }
 
+    /// <summary>
+    /// Drives gateway tests by translating typed read calls into recorded <c>SubmitQueryRequest</c>s.
+    /// </summary>
+    /// <remarks>
+    /// This is a RESPONSE-DRIVING harness, not a contract check. Production no longer builds
+    /// <c>SubmitQueryRequest</c> at all -- <c>grep SubmitQueryRequest TenantQueryGateway.cs</c> returns
+    /// nothing -- so the aggregate id, query type, projection type and payload shape below are this class's
+    /// own invention. Assertions that pinned those hardcoded values ("system", "index",
+    /// "global-administrators", the QueryType/ProjectionType constants) could not fail for any production
+    /// change and have been removed. What remains observable through this seam IS real: the values the
+    /// gateway passed in -- tenant ids, cursors, page sizes, ETags -- and the number of reads it issued.
+    /// New coverage of transport behaviour belongs on the real typed-client substitute instead.
+    /// </remarks>
     private sealed class RestQueryClientAdapter(IEventStoreGatewayClient client) : ITenantsRestQueryClient
     {
         public Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> ListTenantsAsync(
@@ -6014,7 +5999,6 @@ public sealed class TenantQueryGatewayTests
             return new(
                 result.Payload,
                 metadata,
-                freshness,
                 TenantsRestQueryFailureKind.None,
                 result.IsNotModified ? (int)HttpStatusCode.NotModified : (int)HttpStatusCode.OK);
         }
