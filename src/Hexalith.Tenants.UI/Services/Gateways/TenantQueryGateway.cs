@@ -145,7 +145,7 @@ internal sealed class TenantQueryGateway(
                 }
 
                 ReadModelFreshnessState retainedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-                ProjectionLifecycleState retainedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+                ProjectionLifecycleState retainedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
                 TenantConfigurationComposition retainedComposition = bffComposition is null
                     ? new(
                         TenantConfigurationSafeComposer.SanitizeDetail(previous.Detail!),
@@ -226,8 +226,10 @@ internal sealed class TenantQueryGateway(
                     ? TenantDetailSnapshot.Degraded(
                         previous!.Detail,
                         "Tenant configuration authorization could not be refreshed.",
-                        previous.ETag)
-                    : TenantDetailSnapshot.Unavailable("Tenant configuration read is unavailable.");
+                        previous.ETag,
+                        lifecycle,
+                        result.Metadata?.ProjectionVersion ?? previous.ProjectionVersion)
+                    : TenantDetailSnapshot.Unavailable("Tenant configuration read is unavailable.", lifecycle);
             }
             if (freshness is ReadModelFreshnessState.Stale) {
                 return TenantDetailSnapshot.Stale(
@@ -461,7 +463,7 @@ internal sealed class TenantQueryGateway(
                 }
 
                 ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-                ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+                ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
                 return previous with {
                     ETag = previous.ETag,
                     Kind = ResolveUserTenantsKindForFreshness(previous, notModifiedFreshness),
@@ -619,7 +621,7 @@ internal sealed class TenantQueryGateway(
                 }
 
                 ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-                ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+                ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
                 GlobalAdministratorsSurfaceKind notModifiedKind = notModifiedLifecycle == ProjectionLifecycleState.Degraded
                     ? GlobalAdministratorsSurfaceKind.Degraded
                     : ResolveGlobalAdministratorsKindForFreshness(previous, notModifiedFreshness);
@@ -865,7 +867,7 @@ internal sealed class TenantQueryGateway(
             }
 
             ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-            ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+            ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
             QueryResponseProvenance notModifiedProvenance = ResolveProvenance(result.Metadata);
             return previous with {
                 ETag = previous.ETag,
@@ -1694,7 +1696,7 @@ internal sealed class TenantQueryGateway(
             }
 
             ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-            ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata, previous.Lifecycle);
+            ProjectionLifecycleState notModifiedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
             TenantListSurfaceKind kind = ResolveTenantListKindForFreshness(previous, notModifiedFreshness);
             return previous with
             {
@@ -1939,7 +1941,7 @@ internal sealed class TenantQueryGateway(
                 previous!.Detail,
                 "Tenant configuration authorization could not be refreshed.",
                 previous.ETag,
-                ProjectionLifecycleState.Unknown,
+                lifecycle,
                 previous.ProjectionVersion);
         }
 
@@ -1998,7 +2000,7 @@ internal sealed class TenantQueryGateway(
             }
 
             ReadModelFreshnessState freshness = ResolveNotModifiedFreshness(response.Metadata, previous!.Freshness);
-            ProjectionLifecycleState lifecycle = ResolveNotModifiedLifecycle(response.Metadata, previous.Lifecycle);
+            ProjectionLifecycleState lifecycle = ResolveNotModifiedLifecycle(response.Metadata);
             return previous with {
                 Kind = ResolveTenantUsersKind(previous, freshness),
                 ETag = previous.ETag,
@@ -2376,16 +2378,14 @@ internal sealed class TenantQueryGateway(
             ? ResolveFreshness(metadata)
             : previous;
 
-    private static ProjectionLifecycleState ResolveNotModifiedLifecycle(
-        QueryResponseMetadata? metadata,
-        ProjectionLifecycleState previous) {
+    private static ProjectionLifecycleState ResolveNotModifiedLifecycle(QueryResponseMetadata? metadata) {
         if (metadata is null
             || metadata.Provenance is not QueryResponseProvenance.ProjectionBacked) {
             return ProjectionLifecycleState.Unknown;
         }
 
         return metadata.Lifecycle is ProjectionLifecycleState.Unknown
-            ? previous
+            ? ProjectionLifecycleState.Unknown
             : ResolveLifecycle(metadata);
     }
 

@@ -1011,6 +1011,25 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_not_modified_without_lifecycle_fails_closed_instead_of_inheriting_previous_lifecycle()
+    {
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current,
+            lifecycle: ProjectionLifecycleState.Current,
+            projectionVersion: "detail-v6");
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("\"known\"");
+
+        TenantDetailSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+    }
+
+    [Fact]
     public async Task Get_tenant_applies_stale_freshness_from_not_modified_response()
     {
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
@@ -1104,7 +1123,9 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_initial_composition_failure_is_unavailable_without_raw_fallback()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(lifecycle: ProjectionLifecycleState.Current));
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
         composition
             .ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), Arg.Any<CancellationToken>())
@@ -1118,6 +1139,7 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
         snapshot.Detail.ShouldBeNull();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
         snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("raw secret policy details", Case.Sensitive);
@@ -1221,7 +1243,10 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
-            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                isDegraded: true,
+                lifecycle: ProjectionLifecycleState.Degraded));
         TenantQueryGateway gateway = CreateGateway(
             client,
             bffComposition: ConfigurationComposition(
@@ -1244,12 +1269,13 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Degraded);
         snapshot.Configuration.IsDegraded.ShouldBeTrue();
         snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
         snapshot.ToString().ShouldBe(
             "TenantDetailSnapshot { Kind = Degraded, HasDetail = True, Freshness = Unknown, "
-            + "Lifecycle = Unknown, HasErrorMessage = True }");
+            + "Lifecycle = Degraded, HasErrorMessage = True }");
     }
 
     [Fact]
@@ -1259,7 +1285,10 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
-            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                isDegraded: true,
+                lifecycle: ProjectionLifecycleState.Degraded));
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
         composition
             .ReauthorizeTenantDetailAsync(
@@ -1277,6 +1306,7 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Degraded);
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
         snapshot.Configuration.Rows.ShouldBeEmpty();

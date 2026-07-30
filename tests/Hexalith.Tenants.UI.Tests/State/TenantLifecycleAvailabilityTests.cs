@@ -94,6 +94,7 @@ public sealed class TenantLifecycleAvailabilityTests
     }
 
     [Theory]
+    [InlineData(ProjectionLifecycleState.Unknown)]
     [InlineData(ProjectionLifecycleState.Stale)]
     [InlineData(ProjectionLifecycleState.Rebuilding)]
     [InlineData(ProjectionLifecycleState.Degraded)]
@@ -175,7 +176,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
-                TenantLifecycleAuthorizationReflectionState.Indeterminate)
+                TenantLifecycleAuthorizationReflectionState.Indeterminate,
+                Lifecycle: ProjectionLifecycleState.Current)
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -192,7 +194,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: false,
                 TenantLifecycleGovernanceReadiness.Ready,
-                TenantLifecycleAuthorizationReflectionState.Authorized)
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: ProjectionLifecycleState.Current)
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -211,7 +214,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized,
-                IsNarrowSafetyContext: true)
+                IsNarrowSafetyContext: true,
+                Lifecycle: ProjectionLifecycleState.Current)
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -231,5 +235,6 @@ public sealed class TenantLifecycleAvailabilityTests
             surfaceKind,
             IsCommandSurfaceConnected: true,
             governanceReadiness,
-            TenantLifecycleAuthorizationReflectionState.Authorized);
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            Lifecycle: ProjectionLifecycleState.Current);
 }

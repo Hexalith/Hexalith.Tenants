@@ -49,7 +49,7 @@
     <value>Le shell de l'espace de travail est disponible, mais les listes, les détails et les commandes des locataires ne sont pas implémentés dans ce bootstrap.</value>
   </data>
   <data name="Tenants.List.Column.Freshness" xml:space="preserve">
-    <value>État de vérité</value>
+    <value>Fraîcheur</value>
   </data>
   <data name="Tenants.List.Column.Members" xml:space="preserve">
     <value>Membres</value>
@@ -89,6 +89,18 @@
   </data>
   <data name="Tenants.ProjectionLifecycle.Rebuilding" xml:space="preserve">
     <value>Reconstruction en cours</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Label" xml:space="preserve">
+    <value>Cycle de vie de la projection</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Current" xml:space="preserve">
+    <value>Actuel</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Stale" xml:space="preserve">
+    <value>Périmé</value>
   </data>
   <data name="Tenants.ProjectionLifecycle.Degraded" xml:space="preserve">
     <value>Dégradé</value>
@@ -1101,6 +1113,9 @@
   <data name="Tenants.Configuration.Management.Unavailable.ProjectionState" xml:space="preserve">
     <value>Actualisez un détail de locataire disponible avant de gérer la configuration.</value>
   </data>
+  <data name="Tenants.Configuration.Management.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>La gestion de la configuration exige un cycle de vie de projection actuel et confirmé.</value>
+  </data>
   <data name="Tenants.Configuration.Management.Unavailable.Freshness" xml:space="preserve">
     <value>Actualisez le détail actuel du locataire avant de gérer la configuration.</value>
   </data>
@@ -1160,6 +1175,9 @@
   </data>
   <data name="Tenants.Configuration.Set.Unavailable.ProjectionState" xml:space="preserve">
     <value>Le détail du locataire est indisponible ou dégradé. Actualisez le détail actuel du locataire avant de modifier la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>La modification de la configuration exige un cycle de vie de projection actuel et confirmé.</value>
   </data>
   <data name="Tenants.Configuration.Set.Unavailable.Freshness" xml:space="preserve">
     <value>Actualisez le détail actuel du locataire avant de modifier la configuration.</value>
@@ -1403,6 +1421,9 @@
   </data>
   <data name="Tenants.Configuration.Remove.Unavailable.ProjectionState" xml:space="preserve">
     <value>Le détail du tenant est indisponible ou dégradé. Actualisez le détail courant avant de supprimer la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>La suppression de la configuration exige un cycle de vie de projection actuel et confirmé.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Unavailable.Freshness" xml:space="preserve">
     <value>Actualisez le détail courant du tenant avant de supprimer la configuration.</value>
@@ -2405,6 +2426,9 @@
   </data>
   <data name="Tenants.EditMetadata.Unavailable.Freshness" xml:space="preserve">
     <value>Actualisez le detail courant du locataire avant de modifier les metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>La modification des métadonnées exige un cycle de vie de projection actuel et confirmé.</value>
   </data>
   <data name="Tenants.EditMetadata.Unavailable.TenantLifecycle" xml:space="preserve">
     <value>Cet etat de cycle de vie du locataire ne permet pas la modification des metadonnees.</value>

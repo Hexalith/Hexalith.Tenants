@@ -1082,18 +1082,17 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData(ProjectionLifecycleState.Rebuilding, "truth-state-badge--rebuilding")]
-    [InlineData(ProjectionLifecycleState.Degraded, "truth-state-badge--degraded")]
-    [InlineData(ProjectionLifecycleState.Unavailable, "truth-state-badge--unavailable")]
-    [InlineData(ProjectionLifecycleState.LocalOnly, "truth-state-badge--localonly")]
-    public void Row_lifecycle_reaches_the_rendered_truth_badge_on_the_tenant_list(
+    [InlineData(ProjectionLifecycleState.Stale, "projection-lifecycle-badge--stale")]
+    [InlineData(ProjectionLifecycleState.Rebuilding, "projection-lifecycle-badge--rebuilding")]
+    [InlineData(ProjectionLifecycleState.Degraded, "projection-lifecycle-badge--degraded")]
+    [InlineData(ProjectionLifecycleState.Unavailable, "projection-lifecycle-badge--unavailable")]
+    [InlineData(ProjectionLifecycleState.LocalOnly, "projection-lifecycle-badge--localonly")]
+    public void Row_lifecycle_reaches_the_independent_lifecycle_badge_on_the_tenant_list(
         ProjectionLifecycleState lifecycle,
         string expectedClass)
     {
-        // TruthStateBadge was only ever rendered directly with an explicit Lifecycle parameter, so no test
-        // observed the grid's Lifecycle="@..." binding. Deleting that binding compiled and defaulted to
-        // Unknown, rendering ordinary freshness copy over a Rebuilding or Unavailable projection with
-        // nothing failing. This drives the real surface instead.
+        // Drive the real consumer so deleting the grid's Lifecycle binding cannot compile while a direct
+        // component test still passes. Freshness remains independently visible in the adjacent column.
         RegisterServices(_ => Task.FromResult(ReadySnapshot(
         [
             Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)
@@ -1103,12 +1102,31 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
-        // An operational lifecycle must win over the row's Current freshness: the badge may not claim the
-        // data is current while the projection behind it is rebuilding or unavailable.
-        cut.Find("[data-testid='tenants-list-truth-state']")
+        cut.Find("[data-testid='tenants-projection-lifecycle']")
             .GetAttribute("class")
             .ShouldNotBeNull()
             .ShouldContain(expectedClass);
+        cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Current");
+    }
+
+    [Fact]
+    public void Empty_tenant_collection_still_renders_snapshot_lifecycle_evidence()
+    {
+        RegisterServices(TenantListSnapshot.Empty(
+            isAuthorizationScoped: true,
+            ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Rebuilding,
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        cut.Find("[data-testid='tenants-list-empty']");
+        cut.Find("[data-testid='tenants-list-projection-lifecycle-status']")
+            .GetAttribute("class")
+            .ShouldNotBeNull()
+            .ShouldContain("projection-lifecycle-badge--rebuilding");
+        cut.FindAll("[data-testid='tenants-list-grid']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -2550,7 +2568,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
             ["Tenants.List.Column.Pending"] = "Pending",
-            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Count.Unknown"] = "Unknown",
             ["Tenants.List.DetailLinkLabel"] = "Open tenant details for {0}",
             ["Tenants.List.Pending.None"] = "No pending changes",

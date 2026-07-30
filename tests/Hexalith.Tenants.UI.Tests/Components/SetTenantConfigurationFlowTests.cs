@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
@@ -32,6 +33,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
                 ["billing.mode"] = "sibling-row-value",
@@ -67,6 +69,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -84,6 +87,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -104,6 +108,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -124,6 +129,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -144,6 +150,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -167,6 +174,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -197,6 +205,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -222,6 +231,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -254,6 +264,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             "tenant.alpha",
             new Dictionary<string, string> { ["billing.mode"] = "trial" });
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, current)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.ReauthorizeProvider, () => Task.FromResult(current))
@@ -281,6 +292,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -313,6 +325,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -354,6 +367,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -390,6 +404,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -428,11 +443,34 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }, status))
             .Add(p => p.SurfaceKind, surfaceKind)
             .Add(p => p.Freshness, freshness));
 
         cut.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.LocalOnly)]
+    public void Set_configuration_requires_current_projection_lifecycle(ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        cut.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent
+            .ShouldContain("projection-confirmed lifecycle", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
     }
 
@@ -443,6 +481,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> unauthorized = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -453,6 +492,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         unauthorized.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
 
         IRenderedComponent<SetTenantConfigurationFlow> missingScope = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>()))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -471,6 +511,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -520,6 +561,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -550,6 +592,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -588,6 +631,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -729,6 +773,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Set.Unavailable.Authorization"] = "You are not authorized to set configuration for this tenant.",
             ["Tenants.Configuration.Set.Unavailable.ProjectionState"] = "Tenant detail is unavailable or degraded. Refresh current tenant detail before changing configuration.",
             ["Tenants.Configuration.Set.Unavailable.Freshness"] = "Refresh current tenant detail before changing configuration.",
+            ["Tenants.Configuration.Set.Unavailable.ProjectionLifecycle"] = "Changing configuration requires a current, projection-confirmed lifecycle.",
             ["Tenants.Configuration.Set.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration changes.",
             ["Tenants.Configuration.Set.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.Configuration.Set.Unavailable.InFlight"] = "A tenant command is already in progress.",

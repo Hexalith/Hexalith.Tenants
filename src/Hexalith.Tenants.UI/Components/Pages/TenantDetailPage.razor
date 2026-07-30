@@ -115,7 +115,14 @@
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Detail.FreshnessLabel"]</dt>
-                    <dd><TruthStateBadge Freshness="@_snapshot.Freshness" Lifecycle="@_snapshot.Lifecycle" TestId="tenants-detail-truth-state" /></dd>
+                    <dd><TruthStateBadge Freshness="@_snapshot.Freshness" TestId="tenants-detail-truth-state" /></dd>
+                </div>
+                <div role="status"
+                     aria-live="@(_snapshot.Lifecycle is ProjectionLifecycleState.Unavailable ? "assertive" : "polite")"
+                     aria-atomic="true"
+                     data-testid="tenants-detail-projection-lifecycle-status">
+                    <dt>@Localizer["Tenants.ProjectionLifecycle.Label"]</dt>
+                    <dd><ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle" TestId="tenants-detail-projection-lifecycle" /></dd>
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Detail.CreatedAtLabel"]</dt>
@@ -131,6 +138,7 @@
                     <EditTenantMetadataFlow Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
+                                            Lifecycle="@_snapshot.Lifecycle"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             OnCommandActivityChanged="@SetCommandActivityAsync"
@@ -196,6 +204,7 @@
                         <TenantConfigurationManagement Context="@_snapshot.ConfigurationManagement"
                                                        SurfaceKind="@_snapshot.Kind"
                                                        Freshness="@_snapshot.Freshness"
+                                                       Lifecycle="@_snapshot.Lifecycle"
                                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                        OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                                        OnCommandActivityChanged="@SetCommandActivityAsync"

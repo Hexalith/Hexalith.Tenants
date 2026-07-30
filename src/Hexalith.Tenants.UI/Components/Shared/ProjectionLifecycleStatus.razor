@@ -1,0 +1,25 @@
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<div class="projection-lifecycle-status"
+     role="status"
+     aria-live="@LiveRegion"
+     aria-atomic="true"
+     data-testid="@TestId">
+    <span>@Localizer["Tenants.ProjectionLifecycle.Label"]</span>
+    <ProjectionLifecycleBadge Lifecycle="@Lifecycle" TestId="@BadgeTestId" />
+</div>
+
+@code {
+    [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
+    public string TestId { get; set; } = "tenants-projection-lifecycle-status";
+
+    [Parameter]
+    public string BadgeTestId { get; set; } = "tenants-projection-lifecycle-status-badge";
+
+    private string LiveRegion
+        => Lifecycle is ProjectionLifecycleState.Unavailable ? "assertive" : "polite";
+}

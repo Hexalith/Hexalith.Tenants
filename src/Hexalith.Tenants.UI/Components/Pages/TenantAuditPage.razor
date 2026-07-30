@@ -109,6 +109,8 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
+                                              TestId="tenants-audit-projection-lifecycle-status" />
                     @if (_isNotificationRefreshing)
                     {
                         <p role="status" aria-live="polite" data-testid="tenants-audit-notification-refreshing">

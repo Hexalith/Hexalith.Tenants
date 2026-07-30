@@ -22,7 +22,11 @@
             </div>
             <div data-testid="tenants-lifecycle-freshness">
                 <dt>@Localizer["Tenants.Lifecycle.FreshnessLabel"]</dt>
-                <dd><TruthStateBadge Freshness="@Freshness" Lifecycle="@Lifecycle" ResourcePrefix="Tenants.Lifecycle" TestId="tenants-lifecycle-freshness-badge" /></dd>
+                <dd><TruthStateBadge Freshness="@Freshness" ResourcePrefix="Tenants.Lifecycle" TestId="tenants-lifecycle-freshness-badge" /></dd>
+            </div>
+            <div data-testid="tenants-lifecycle-projection-lifecycle">
+                <dt>@Localizer["Tenants.ProjectionLifecycle.Label"]</dt>
+                <dd><ProjectionLifecycleBadge Lifecycle="@Lifecycle" TestId="tenants-lifecycle-projection-lifecycle-badge" /></dd>
             </div>
             <div data-testid="tenants-lifecycle-governance-gate">
                 <dt>@Localizer["Tenants.Lifecycle.GovernanceGateLabel"]</dt>
@@ -197,6 +201,14 @@
 
     private static string ReasonCategory(TenantLifecycleUnavailableReasonCategory category)
         => category.ToString();
+
+    protected override void OnParametersSet()
+    {
+        if (_activeAvailability is not null)
+        {
+            _activeAvailability = Input.Evaluate(_activeAvailability.Operation);
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

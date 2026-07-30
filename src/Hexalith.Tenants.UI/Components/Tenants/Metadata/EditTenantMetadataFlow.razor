@@ -184,6 +184,9 @@
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
     public bool IsAuthorized { get; set; } = true;
 
     [Parameter]
@@ -226,6 +229,8 @@
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale
                 or TenantDetailSurfaceKind.Unavailable
                 or TenantDetailSurfaceKind.Unknown

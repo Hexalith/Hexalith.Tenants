@@ -102,7 +102,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     public void Authorized_operator_sees_global_administrators_from_fixed_scope()
     {
         var gateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("platform-admin.alpha", ReadModelFreshnessState.Current)],
+            [new GlobalAdministratorRow("platform-admin.alpha", ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+            }],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
@@ -126,6 +129,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.FindAll(".global-admins__mutation-section").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("platform-admin.alpha");
         cut.Find("[data-testid='tenants-global-admins-authority-scope']").TextContent.ShouldContain("Platform authority");
+        cut.Find("[data-testid='tenants-global-admins-projection-lifecycle-status']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+        cut.Find("[data-testid='tenants-global-admins-projection-lifecycle']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
         cut.Find("[data-testid='tenants-global-admins-action-reasons']").TextContent.ShouldContain("Grant is available");
         cut.Find("[data-testid='tenants-global-admins-live-region']").GetAttribute("aria-live").ShouldBeNull();
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);

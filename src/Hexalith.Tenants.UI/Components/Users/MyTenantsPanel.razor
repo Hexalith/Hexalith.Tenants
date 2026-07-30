@@ -36,6 +36,10 @@
         </FluentButton>
     </FluentStack>
 
+    <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                               TestId="tenants-my-projection-lifecycle-status"
+                               BadgeTestId="tenants-my-projection-lifecycle-status-badge" />
+
     @* epic-1-context: invalid or stale cursor state restarts at page 1 with an honest localized notice.
        Resetting the cursor silently let a screen-reader user believe they had advanced a page. *@
     @if (_snapshot.PagingRecovered)

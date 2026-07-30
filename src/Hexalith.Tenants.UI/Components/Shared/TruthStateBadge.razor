@@ -17,9 +17,6 @@
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
-    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
-
-    [Parameter]
     public bool IsRefreshing { get; set; }
 
     [Parameter]
@@ -28,54 +25,31 @@
     [Parameter]
     public string ResourcePrefix { get; set; } = "Tenants.List";
 
-    private bool HasOperationalLifecycle
-        => !IsRefreshing
-        && Lifecycle is ProjectionLifecycleState.Rebuilding
-            or ProjectionLifecycleState.Degraded
-            or ProjectionLifecycleState.Unavailable
-            or ProjectionLifecycleState.LocalOnly;
-
     private string StateKey => IsRefreshing
         ? "Refreshing"
-        : HasOperationalLifecycle ? Lifecycle.ToString() : Freshness.ToString();
+        : Freshness.ToString();
 
-    private string Label => HasOperationalLifecycle
-        ? Localizer[$"Tenants.ProjectionLifecycle.{StateKey}"]
-        : Localizer[$"{ResourcePrefix}.Freshness.{StateKey}"];
+    private string Label => Localizer[$"{ResourcePrefix}.Freshness.{StateKey}"];
 
     private string CssClass => StateKey.ToLowerInvariant();
 
     private BadgeColor FreshnessBadgeColor => IsRefreshing
         ? BadgeColor.Informative
-        : Lifecycle switch
+        : Freshness switch
         {
-            ProjectionLifecycleState.Rebuilding => BadgeColor.Informative,
-            ProjectionLifecycleState.Degraded => BadgeColor.Warning,
-            ProjectionLifecycleState.Unavailable => BadgeColor.Severe,
-            ProjectionLifecycleState.LocalOnly => BadgeColor.Important,
-            _ => Freshness switch
-            {
-                ReadModelFreshnessState.Current => BadgeColor.Success,
-                ReadModelFreshnessState.Aging => BadgeColor.Warning,
-                ReadModelFreshnessState.Stale => BadgeColor.Severe,
-                _ => BadgeColor.Important,
-            },
+            ReadModelFreshnessState.Current => BadgeColor.Success,
+            ReadModelFreshnessState.Aging => BadgeColor.Warning,
+            ReadModelFreshnessState.Stale => BadgeColor.Severe,
+            _ => BadgeColor.Important,
         };
 
     private Icon StateIcon => IsRefreshing
         ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise()
-        : Lifecycle switch
+        : Freshness switch
         {
-            ProjectionLifecycleState.Rebuilding => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise(),
-            ProjectionLifecycleState.Degraded => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
-            ProjectionLifecycleState.Unavailable => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
-            ProjectionLifecycleState.LocalOnly => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
-            _ => Freshness switch
-            {
-                ReadModelFreshnessState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
-                ReadModelFreshnessState.Aging => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
-                ReadModelFreshnessState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
-                _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
-            },
+            ReadModelFreshnessState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
+            ReadModelFreshnessState.Aging => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
+            ReadModelFreshnessState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+            _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
         };
 }

@@ -54,8 +54,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-my-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent.ShouldContain("Unknown");
         cut.Find("[data-testid='tenants-my-summary']").TextContent.ShouldContain("2");
-        cut.Markup.ShouldNotContain("Lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-lifecycle-actions']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
         cut.Markup.ShouldNotContain("command", Case.Insensitive);
@@ -396,7 +397,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Workspace.Eyebrow"] = "Tenant workspace",
-            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
             ["Tenants.List.Column.Pending"] = "Pending",

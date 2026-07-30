@@ -49,7 +49,7 @@
     <value>The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.</value>
   </data>
   <data name="Tenants.List.Column.Freshness" xml:space="preserve">
-    <value>Truth state</value>
+    <value>Freshness</value>
   </data>
   <data name="Tenants.List.Column.Members" xml:space="preserve">
     <value>Members</value>
@@ -89,6 +89,18 @@
   </data>
   <data name="Tenants.ProjectionLifecycle.Rebuilding" xml:space="preserve">
     <value>Rebuilding</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Label" xml:space="preserve">
+    <value>Projection lifecycle</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.ProjectionLifecycle.Stale" xml:space="preserve">
+    <value>Stale</value>
   </data>
   <data name="Tenants.ProjectionLifecycle.Degraded" xml:space="preserve">
     <value>Degraded</value>
@@ -1101,6 +1113,9 @@
   <data name="Tenants.Configuration.Management.Unavailable.ProjectionState" xml:space="preserve">
     <value>Refresh available tenant detail before managing configuration.</value>
   </data>
+  <data name="Tenants.Configuration.Management.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Configuration management requires a current, projection-confirmed lifecycle.</value>
+  </data>
   <data name="Tenants.Configuration.Management.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before managing configuration.</value>
   </data>
@@ -1160,6 +1175,9 @@
   </data>
   <data name="Tenants.Configuration.Set.Unavailable.ProjectionState" xml:space="preserve">
     <value>Tenant detail is unavailable or degraded. Refresh current tenant detail before changing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Changing configuration requires a current, projection-confirmed lifecycle.</value>
   </data>
   <data name="Tenants.Configuration.Set.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before changing configuration.</value>
@@ -1403,6 +1421,9 @@
   </data>
   <data name="Tenants.Configuration.Remove.Unavailable.ProjectionState" xml:space="preserve">
     <value>Tenant detail is unavailable or degraded. Refresh current tenant detail before removing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Removing configuration requires a current, projection-confirmed lifecycle.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before removing configuration.</value>
@@ -2405,6 +2426,9 @@
   </data>
   <data name="Tenants.EditMetadata.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before editing metadata.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Editing metadata requires a current, projection-confirmed lifecycle.</value>
   </data>
   <data name="Tenants.EditMetadata.Unavailable.TenantLifecycle" xml:space="preserve">
     <value>This tenant lifecycle state does not allow metadata editing.</value>

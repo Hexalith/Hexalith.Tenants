@@ -1,0 +1,48 @@
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<FluentBadge Appearance="BadgeAppearance.Tint"
+             Color="@BadgeColor"
+             IconStart="@StateIcon"
+             IconLabel="@Label"
+             Class="@($"projection-lifecycle-badge projection-lifecycle-badge--{CssClass}")"
+             aria-label="@Label"
+             data-testid="@TestId">
+    @Label
+</FluentBadge>
+
+@code {
+    [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
+    public string TestId { get; set; } = "tenants-projection-lifecycle";
+
+    private string Label => Localizer[$"Tenants.ProjectionLifecycle.{Lifecycle}"];
+
+    private string CssClass => Lifecycle.ToString().ToLowerInvariant();
+
+    private BadgeColor BadgeColor
+        => Lifecycle switch
+        {
+            ProjectionLifecycleState.Current => BadgeColor.Success,
+            ProjectionLifecycleState.Stale => BadgeColor.Severe,
+            ProjectionLifecycleState.Rebuilding => BadgeColor.Informative,
+            ProjectionLifecycleState.Degraded => BadgeColor.Warning,
+            ProjectionLifecycleState.Unavailable => BadgeColor.Severe,
+            ProjectionLifecycleState.LocalOnly => BadgeColor.Important,
+            _ => BadgeColor.Important,
+        };
+
+    private Icon StateIcon
+        => Lifecycle switch
+        {
+            ProjectionLifecycleState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
+            ProjectionLifecycleState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+            ProjectionLifecycleState.Rebuilding => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise(),
+            ProjectionLifecycleState.Degraded => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+            ProjectionLifecycleState.Unavailable => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
+            ProjectionLifecycleState.LocalOnly => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
+            _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
+        };
+}

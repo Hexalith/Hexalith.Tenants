@@ -1083,6 +1083,8 @@ public sealed class TenantsUiCompositionTests
     [Theory]
     [InlineData("api/tenants")]
     [InlineData("api/v1/tenants/{tenantId}")]
+    [InlineData("api/v1.0/tenants/{tenantId}")]
+    [InlineData("api/v{version:apiVersion}/users/{userId}/tenants")]
     [InlineData("tenant-gateway/api/v12/users/{userId}/tenants")]
     [InlineData("{deploymentPrefix}/api/global-administrators")]
     public void Tenant_management_route_detection_is_prefix_and_version_independent(string routePattern)
@@ -1440,6 +1442,8 @@ public sealed class TenantsUiCompositionTests
         string projectPath,
         bool useProjectReferences)
     {
+        string dependencyMode = useProjectReferences ? "source" : "package";
+        string isolatedIntermediatePath = Path.Combine("obj", "dependency-resolution", dependencyMode);
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = ProjectRoot(),
@@ -1457,6 +1461,8 @@ public sealed class TenantsUiCompositionTests
         // without compiling shared outputs or relying on direct evaluation-only items.
         startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
         startInfo.ArgumentList.Add($"-property:Configuration={(useProjectReferences ? "Debug" : "Release")}");
+        startInfo.ArgumentList.Add(
+            $"-property:BaseIntermediateOutputPath={isolatedIntermediatePath}{Path.DirectorySeparatorChar}");
         startInfo.ArgumentList.Add("-property:HexalithMemoriesFromSource=false");
         startInfo.ArgumentList.Add("-property:HexalithCommonsFromSource=false");
 
@@ -1512,7 +1518,7 @@ public sealed class TenantsUiCompositionTests
         string assetsPath = Path.Combine(
             Path.GetDirectoryName(projectPath)
                 ?? throw new InvalidOperationException($"Project path '{projectPath}' has no parent directory."),
-            "obj",
+            isolatedIntermediatePath,
             "project.assets.json");
         File.Exists(assetsPath).ShouldBeTrue(
             $"dotnet restore succeeded but did not produce the expected assets closure at '{assetsPath}'.");
@@ -1597,9 +1603,42 @@ public sealed class TenantsUiCompositionTests
     }
 
     private static bool IsApiVersionSegment(string segment)
-        => segment.Length > 1
-            && (segment[0] is 'v' or 'V')
-            && segment[1..].All(char.IsDigit);
+    {
+        if (segment.Length <= 1 || segment[0] is not ('v' or 'V'))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> version = segment.AsSpan(1);
+        if (version[0] == '{' && version[^1] == '}')
+        {
+            ReadOnlySpan<char> parameter = version[1..^1];
+            int constraintSeparator = parameter.IndexOf(':');
+            ReadOnlySpan<char> name = constraintSeparator < 0 ? parameter : parameter[..constraintSeparator];
+            ReadOnlySpan<char> constraint = constraintSeparator < 0 ? [] : parameter[(constraintSeparator + 1)..];
+            return name.Equals("version", StringComparison.OrdinalIgnoreCase)
+                && (constraint.IsEmpty || constraint.Equals("apiVersion", StringComparison.OrdinalIgnoreCase));
+        }
+
+        bool expectsDigit = true;
+        foreach (char character in version)
+        {
+            if (char.IsDigit(character))
+            {
+                expectsDigit = false;
+                continue;
+            }
+
+            if (character != '.' || expectsDigit)
+            {
+                return false;
+            }
+
+            expectsDigit = true;
+        }
+
+        return !expectsDigit;
+    }
 
     private static HashSet<string> ReadResourceKeys(string path, string[] prefixes)
         => XDocument
