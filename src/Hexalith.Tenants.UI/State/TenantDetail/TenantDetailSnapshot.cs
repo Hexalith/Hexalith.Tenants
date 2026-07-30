@@ -165,8 +165,10 @@ public sealed class TenantDetailSnapshot
     internal static TenantDetailSnapshot Unknown(string message, string? eTag = null)
         => Empty(TenantDetailSurfaceKind.Unknown, message, eTag);
 
-    internal static TenantDetailSnapshot Unavailable(string message)
-        => Empty(TenantDetailSurfaceKind.Unavailable, message);
+    internal static TenantDetailSnapshot Unavailable(
+        string message,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
+        => Empty(TenantDetailSurfaceKind.Unavailable, message, lifecycle: lifecycle);
 
     internal static TenantDetailSnapshot NotFound(string tenantId)
         => Empty(TenantDetailSurfaceKind.NotFound, tenantId);

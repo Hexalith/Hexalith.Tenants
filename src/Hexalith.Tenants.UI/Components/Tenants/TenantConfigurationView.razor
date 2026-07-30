@@ -11,8 +11,9 @@
             <p class="tenant-config__scope">@Localizer["Tenants.Configuration.ScopeNotice"]</p>
         </div>
         <div class="tenant-config__truth" data-testid="tenants-config-read-truth-state">
+            <ProjectionLifecycleBadge Lifecycle="@Lifecycle"
+                                      TestId="tenants-config-read-projection-lifecycle-badge" />
             <TruthStateBadge Freshness="@EffectiveFreshness"
-                             Lifecycle="@Lifecycle"
                              TestId="tenants-config-read-truth-badge"
                              ResourcePrefix="Tenants.Configuration" />
             @if (HasNonCurrentState)
@@ -126,9 +127,14 @@
                                                     ColumnId="configuration-freshness"
                                                     Width="170px">
                                         <TruthStateBadge Freshness="@EffectiveFreshness"
-                                                         Lifecycle="@Lifecycle"
                                                          TestId="tenants-config-read-row-freshness"
                                                          ResourcePrefix="Tenants.Configuration" />
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="@Localizer["Tenants.ProjectionLifecycle.Label"]"
+                                                    ColumnId="configuration-projection-lifecycle"
+                                                    Width="180px">
+                                        <ProjectionLifecycleBadge Lifecycle="@Lifecycle"
+                                                                  TestId="tenants-config-read-row-projection-lifecycle" />
                                     </TemplateColumn>
                                 </FluentDataGrid>
                             </div>

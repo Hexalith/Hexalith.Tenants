@@ -63,11 +63,14 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
     }
 
     [Theory]
+    [InlineData(ProjectionLifecycleState.Current, BadgeColor.Success, "Checkmark", "Current")]
+    [InlineData(ProjectionLifecycleState.Stale, BadgeColor.Severe, "ClockAlarm", "Stale")]
     [InlineData(ProjectionLifecycleState.Rebuilding, BadgeColor.Informative, "ArrowClockwise", "Rebuilding")]
     [InlineData(ProjectionLifecycleState.Degraded, BadgeColor.Warning, "ClockAlarm", "Degraded")]
     [InlineData(ProjectionLifecycleState.Unavailable, BadgeColor.Severe, "QuestionCircle", "Unavailable")]
     [InlineData(ProjectionLifecycleState.LocalOnly, BadgeColor.Important, "Clock", "Local only")]
-    public void Operational_lifecycle_states_are_distinct_from_unknown_freshness(
+    [InlineData(ProjectionLifecycleState.Unknown, BadgeColor.Important, "QuestionCircle", "Unknown")]
+    public void Projection_lifecycle_has_an_independent_badge(
         ProjectionLifecycleState lifecycle,
         BadgeColor expectedColor,
         string expectedIconType,
@@ -75,14 +78,13 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
-        IRenderedComponent<TruthStateBadge> cut = Render<TruthStateBadge>(parameters => parameters
-            .Add(badge => badge.Freshness, ReadModelFreshnessState.Unknown)
+        IRenderedComponent<ProjectionLifecycleBadge> cut = Render<ProjectionLifecycleBadge>(parameters => parameters
             .Add(badge => badge.Lifecycle, lifecycle));
 
-        var badge = cut.Find("[data-testid='tenants-list-truth-state']");
+        var badge = cut.Find("[data-testid='tenants-projection-lifecycle']");
         badge.TextContent.Trim().ShouldBe(expectedLabel);
         badge.GetAttribute("aria-label").ShouldBe(expectedLabel);
-        (badge.GetAttribute("class") ?? string.Empty).ShouldContain($"truth-state-badge--{lifecycle.ToString().ToLowerInvariant()}");
+        (badge.GetAttribute("class") ?? string.Empty).ShouldContain($"projection-lifecycle-badge--{lifecycle.ToString().ToLowerInvariant()}");
         FluentBadge fluentBadge = cut.FindComponent<FluentBadge>().Instance;
         fluentBadge.Color.ShouldBe(expectedColor);
         fluentBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIconType);
@@ -91,16 +93,19 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
     }
 
     [Fact]
-    public void Current_lifecycle_preserves_the_more_specific_aging_freshness_treatment()
+    public void Freshness_and_lifecycle_render_without_masking_each_other()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
-        IRenderedComponent<TruthStateBadge> cut = Render<TruthStateBadge>(parameters => parameters
-            .Add(badge => badge.Freshness, ReadModelFreshnessState.Aging)
-            .Add(badge => badge.Lifecycle, ProjectionLifecycleState.Current));
+        IRenderedComponent<TruthStateBadge> freshness = Render<TruthStateBadge>(parameters => parameters
+            .Add(badge => badge.Freshness, ReadModelFreshnessState.Aging));
+        IRenderedComponent<ProjectionLifecycleBadge> lifecycle = Render<ProjectionLifecycleBadge>(parameters => parameters
+            .Add(badge => badge.Lifecycle, ProjectionLifecycleState.Stale));
 
-        cut.Find("[data-testid='tenants-list-truth-state']").TextContent.Trim().ShouldBe("Aging");
-        cut.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Warning);
+        freshness.Find("[data-testid='tenants-list-truth-state']").TextContent.Trim().ShouldBe("Aging");
+        freshness.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Warning);
+        lifecycle.Find("[data-testid='tenants-projection-lifecycle']").TextContent.Trim().ShouldBe("Stale");
+        lifecycle.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Severe);
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -113,6 +118,9 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
             ["Tenants.List.Freshness.Stale"] = "Stale",
             ["Tenants.List.Freshness.Unknown"] = "Unknown",
             ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
             ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
             ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
             ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",

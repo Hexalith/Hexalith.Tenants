@@ -72,9 +72,14 @@
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--freshness")"
                         Width="170px">
             <TruthStateBadge Freshness="@context.Freshness"
-                             Lifecycle="@context.Lifecycle"
                              TestId="@($"{SelectorPrefix}-truth-state")"
                              ResourcePrefix="@ResourcePrefix" />
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.ProjectionLifecycle.Label"]"
+                        ColumnId="tenant-projection-lifecycle"
+                        Width="180px">
+            <ProjectionLifecycleBadge Lifecycle="@context.Lifecycle"
+                                      TestId="@($"{SelectorPrefix}-projection-lifecycle")" />
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
             <AuditEvidenceEntryPoint TenantId="@context.TenantId"

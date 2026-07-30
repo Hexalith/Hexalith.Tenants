@@ -471,7 +471,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.Workspace.Tabs.Users"] = "Users",
             ["Tenants.Workspace.UnavailableHeading"] = "Tenant read surfaces are not connected yet",
             ["Tenants.Workspace.UnavailableMessage"] = "The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.",
-            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
             ["Tenants.List.Column.Pending"] = "Pending",

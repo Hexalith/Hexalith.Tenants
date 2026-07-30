@@ -34,6 +34,7 @@
         <SetTenantConfigurationFlow Context="@Context"
                                     SurfaceKind="@SurfaceKind"
                                     Freshness="@Freshness"
+                                    Lifecycle="@Lifecycle"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCommandActivityChanged="@OnCommandActivityChanged"
@@ -89,6 +90,7 @@
                                            TargetKey="@_removeKey"
                                            SurfaceKind="@SurfaceKind"
                                            Freshness="@Freshness"
+                                           Lifecycle="@Lifecycle"
                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                            OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                            OnCommandActivityChanged="@OnCommandActivityChanged"
@@ -112,6 +114,9 @@
 
     [Parameter]
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
+
+    [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -144,7 +149,9 @@
             : "Tenants.Configuration.Management.Unavailable.Policy";
 
     private string? UnavailableReason
-        => SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+        => Lifecycle is not ProjectionLifecycleState.Current
+            ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionLifecycle"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
             ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Management.Unavailable.Freshness"].Value

@@ -175,6 +175,11 @@
                      aria-live="polite"
                      aria-atomic="true"
                      data-testid="tenants-list-notices">
+            @if (IsTenantListView)
+            {
+                <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
+                                          TestId="tenants-list-projection-lifecycle-status" />
+            }
             @if (HasPrimaryNotice)
             {
                 <FluentMessageBar Intent="MessageBarIntent.Info"

@@ -110,6 +110,8 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
+                                              TestId="tenants-audit-projection-lifecycle-status" />
                 </div>
             </section>
             @* Rendered as a sibling of the state section, not a child. StatusRole/StatusLive resolve to

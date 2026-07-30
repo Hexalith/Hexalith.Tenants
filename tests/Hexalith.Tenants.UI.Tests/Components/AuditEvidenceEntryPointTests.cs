@@ -386,7 +386,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.Title"] = "Audit trail for {0}",
             ["Tenants.List.AuditAccessibleLabel"] = "Open audit evidence for tenant {0} from tenant list",
             ["Tenants.List.Column.Audit"] = "Audit",
-            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
             ["Tenants.List.Column.Pending"] = "Pending",

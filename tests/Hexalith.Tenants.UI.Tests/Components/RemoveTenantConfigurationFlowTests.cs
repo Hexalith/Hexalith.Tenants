@@ -4,6 +4,7 @@ using System.Reflection;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
@@ -32,6 +33,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string>
             {
                 ["billing.mode"] = "sibling-row-value",
@@ -58,6 +60,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -72,6 +75,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     {
         RegisterServices(new StubTenantCommandGateway());
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.password")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -90,6 +94,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "security.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -105,6 +110,29 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.LocalOnly)]
+    public void Remove_configuration_requires_current_projection_lifecycle(ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        cut.Find("[data-testid='tenants-config-remove-unavailable-reason']").TextContent
+            .ShouldContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
     [Fact]
     public void Confirmation_text_must_match_literal_key_before_gateway_submission()
     {
@@ -115,6 +143,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -143,6 +172,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -174,6 +204,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         List<bool> commandActivity = [];
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -201,6 +232,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -225,6 +257,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         TenantConfigurationManagementContext context = Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" });
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -265,6 +298,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -292,6 +326,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         int closeCount = 0;
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -449,6 +484,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Remove.Unavailable.Authorization"] = "You are not authorized to remove configuration for this tenant.",
             ["Tenants.Configuration.Remove.Unavailable.ProjectionState"] = "Tenant detail is unavailable or degraded. Refresh current tenant detail before removing configuration.",
             ["Tenants.Configuration.Remove.Unavailable.Freshness"] = "Refresh current tenant detail before removing configuration.",
+            ["Tenants.Configuration.Remove.Unavailable.ProjectionLifecycle"] = "Removing configuration requires a current, projection-confirmed lifecycle.",
             ["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration removal.",
             ["Tenants.Configuration.Remove.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.Configuration.Remove.Unavailable.InFlight"] = "A tenant command is already in progress.",

@@ -3,6 +3,7 @@ using System.Reflection;
 
 using Bunit;
 
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -29,6 +30,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices();
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -63,6 +65,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices();
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -82,6 +85,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices();
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.disabled")
             .Add(component => component.CurrentStatus, TenantStatus.Disabled)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -108,6 +112,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices();
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -128,6 +133,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices();
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -191,6 +197,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
@@ -239,6 +246,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
@@ -267,6 +275,36 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Fact]
+    public void Open_lifecycle_flow_rechecks_projection_lifecycle_when_parent_evidence_changes()
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-preview']");
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Stale));
+
+        cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
+            .ShouldContain("projection lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+        gateway.DisableSubmissions.ShouldBe(0);
+    }
+
+    [Fact]
     public void Command_surface_unavailable_disables_lifecycle_action_without_gateway_call()
     {
         var gateway = new StubTenantCommandGateway
@@ -276,6 +314,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
@@ -379,6 +418,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
@@ -436,7 +476,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
-                TenantLifecycleAuthorizationReflectionState.Authorized)
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: ProjectionLifecycleState.Current)
             .Evaluate(operation);
 
     private static void SetPrivateField<TComponent, TValue>(
@@ -588,6 +629,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"] = "A tenant command is already in flight or the lifecycle command surface is not connected.",
             ["Tenants.Lifecycle.Unavailable.Identity"] = "Tenant identity is incomplete, so lifecycle submission is blocked.",
             ["Tenants.Lifecycle.Unavailable.PreviewIncomplete"] = "The consequence preview is incomplete, so lifecycle submission is blocked.",
+            ["Tenants.Lifecycle.Unavailable.ProjectionLifecycle"] = "{1} is unavailable for tenant {0} because the projection lifecycle is not current. Continue read-only and refresh projection evidence.",
             ["Tenants.Lifecycle.Unavailable.SameState"] = "The current projection already shows {0}; lifecycle submission is blocked.",
             ["Tenants.Lifecycle.Unavailable.StaleFreshness"] = "{1} is unavailable for tenant {0} because tenant freshness is stale or unknown. Refresh before considering lifecycle action availability.",
             ["Tenants.Lifecycle.Unavailable.UnknownStatus"] = "{1} is unavailable for tenant {0} because the tenant lifecycle state is unknown. Continue read-only and refresh projection evidence.",

@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -29,6 +30,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -57,6 +59,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -83,6 +86,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description") with { Status = status })
             .Add(p => p.SurfaceKind, surfaceKind)
             .Add(p => p.Freshness, freshness));
@@ -97,6 +101,28 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.LocalOnly)]
+    public void Edit_metadata_requires_current_projection_lifecycle(ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent
+            .ShouldContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Edit_metadata_fails_closed_when_command_surface_is_unavailable()
     {
@@ -104,6 +130,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -122,6 +149,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -153,6 +181,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -197,6 +226,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         // proves the clear-to-null. The confirmed display must reflect the confirmed (empty) value,
         // never the still-populated ambient Detail.Description.
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Original description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -224,6 +254,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -255,6 +286,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -286,6 +318,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -314,6 +347,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -361,6 +395,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -472,6 +507,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.Validation.NameRequired"] = "Enter the complete tenant name before submitting metadata changes.",
             ["Tenants.EditMetadata.Unavailable.Authorization"] = "You are not authorized to edit this tenant's metadata.",
             ["Tenants.EditMetadata.Unavailable.Freshness"] = "Refresh current tenant detail before editing metadata.",
+            ["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"] = "Editing metadata requires a current, projection-confirmed lifecycle.",
             ["Tenants.EditMetadata.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow metadata editing.",
             ["Tenants.EditMetadata.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.EditMetadata.Unavailable.InFlight"] = "A tenant command is already in progress.",

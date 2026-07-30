@@ -41,7 +41,7 @@ public sealed record TenantLifecycleAvailabilityInput(
     bool IsNarrowSafetyContext = false,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
-        if (Lifecycle is not ProjectionLifecycleState.Unknown and not ProjectionLifecycleState.Current) {
+        if (Lifecycle is not ProjectionLifecycleState.Current) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.ProjectionLifecycle", TenantCommandFocusTarget.Refresh);
         }
 

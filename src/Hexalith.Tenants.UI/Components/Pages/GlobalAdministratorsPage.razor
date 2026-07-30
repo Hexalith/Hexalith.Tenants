@@ -109,6 +109,8 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__state-copy">
                     <h2>@StatusHeading</h2>
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
+                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
+                                              TestId="tenants-global-admins-projection-lifecycle-status" />
                     @if (CanRecover)
                     {
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
@@ -440,10 +442,15 @@
                                     Width="180px">
                         <span data-testid="tenants-global-admins-freshness">
                             <TruthStateBadge Freshness="@context.Freshness"
-                                             Lifecycle="@context.Lifecycle"
                                              TestId="tenants-global-admins-truth-state"
                                              ResourcePrefix="Tenants.GlobalAdministrators" />
                         </span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.ProjectionLifecycle.Label"]"
+                                    ColumnId="global-admin-projection-lifecycle"
+                                    Width="180px">
+                        <ProjectionLifecycleBadge Lifecycle="@context.Lifecycle"
+                                                  TestId="tenants-global-admins-projection-lifecycle" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Actions"]"
                                     ColumnId="global-admin-actions"

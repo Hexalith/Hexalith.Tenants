@@ -207,6 +207,9 @@
     public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
+    public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
+
+    [Parameter]
     public bool IsAuthorized { get; set; } = true;
 
     [Parameter]
@@ -239,6 +242,8 @@
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionLifecycle"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current

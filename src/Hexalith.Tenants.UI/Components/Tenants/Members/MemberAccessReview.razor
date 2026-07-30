@@ -16,8 +16,10 @@
             <p class="tenant-members__scope">@Localizer["Tenants.Members.ScopeNotice"]</p>
         </div>
         <div class="tenant-members__truth" data-testid="tenants-member-truth-state">
+            <ProjectionLifecycleStatus Lifecycle="@Members.Lifecycle"
+                                       TestId="tenants-member-projection-lifecycle-status"
+                                       BadgeTestId="tenants-member-projection-lifecycle-badge" />
             <TruthStateBadge Freshness="@Members.Freshness"
-                             Lifecycle="@Members.Lifecycle"
                              TestId="tenants-member-truth-badge"
                              ResourcePrefix="Tenants.Members" />
             @if (Members.IsRefreshing)
@@ -125,9 +127,14 @@
                                 ColumnId="member-freshness"
                                 Width="170px">
                     <TruthStateBadge Freshness="@Members.Freshness"
-                                     Lifecycle="@Members.Lifecycle"
                                      TestId="tenants-member-row-freshness"
                                      ResourcePrefix="Tenants.Members" />
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.ProjectionLifecycle.Label"]"
+                                ColumnId="member-projection-lifecycle"
+                                Width="180px">
+                    <ProjectionLifecycleBadge Lifecycle="@Members.Lifecycle"
+                                              TestId="tenants-member-row-projection-lifecycle" />
                 </TemplateColumn>
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Audit"]"
                                 ColumnId="member-audit"

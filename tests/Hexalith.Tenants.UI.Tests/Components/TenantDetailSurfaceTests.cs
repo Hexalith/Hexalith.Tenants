@@ -652,6 +652,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             [row]);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -685,6 +686,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             [row]);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -716,6 +718,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             [row]);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -735,6 +738,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
 
         IRenderedComponent<TenantConfigurationManagement> noScope = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, TenantConfigurationManagementContext.Available(
                 "tenant.alpha",
                 TenantStatus.Active,
@@ -749,6 +753,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         noScopeText.ShouldNotContain("cannot be verified", Case.Insensitive);
 
         IRenderedComponent<TenantConfigurationManagement> unverifiable = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, TenantConfigurationManagementContext.Unavailable("tenant.alpha"))
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -769,6 +774,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             []);
 
         IRenderedComponent<TenantConfigurationManagement> validEmpty = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, empty)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -778,6 +784,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         validEmpty.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
 
         IRenderedComponent<TenantConfigurationManagement> policyUnavailable = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, TenantConfigurationManagementContext.Unavailable("tenant.alpha"))
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
@@ -787,6 +794,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         policyUnavailable.FindAll("[data-testid='tenants-config-set-flow']").ShouldBeEmpty();
 
         IRenderedComponent<TenantConfigurationManagement> stale = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, empty)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Stale)
             .Add(component => component.Freshness, ReadModelFreshnessState.Stale));
@@ -794,6 +802,29 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         stale.Find("[data-testid='tenants-config-management-unavailable']");
         stale.FindAll("[data-testid='tenants-config-management-empty']").ShouldBeEmpty();
         stale.FindAll("[data-testid='tenants-config-set-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Configuration_management_explains_noncurrent_projection_lifecycle_and_hides_mutation_flows()
+    {
+        RegisterComponentServices();
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(component => component.Context, context)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Stale));
+
+        cut.Find("[data-testid='tenants-config-management-unavailable']").TextContent
+            .ShouldContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-config-set-flow']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-management-remove-open']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -817,6 +848,25 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Markup.ShouldContain("data-testid=\"tenants-member-truth-badge\"");
         cut.Markup.ShouldNotContain("tenants-list-truth-state");
+    }
+
+    [Fact]
+    public void Detail_page_keeps_freshness_and_projection_lifecycle_as_separate_consumer_bindings()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"),
+            ProjectionLifecycleState.Stale)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-projection-lifecycle']");
+
+        cut.Find("[data-testid='tenants-detail-truth-state']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("truth-state-badge--current");
+        cut.Find("[data-testid='tenants-detail-projection-lifecycle']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--stale");
+        cut.Find("[data-testid='tenants-detail-projection-lifecycle-status']")
+            .GetAttribute("role").ShouldBe("status");
     }
 
     [Fact]
@@ -2299,7 +2349,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private static TenantDetailSnapshot ReadyWithSafeConfiguration(
         TenantDetail detail,
-        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
         string? projectionVersion = null)
     {
         TenantConfigurationSafeRow[] rows = detail.Configuration
@@ -2490,6 +2540,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Management.Unavailable.Policy"] = "Configuration management is unavailable because current authorization policy cannot be verified.",
             ["Tenants.Configuration.Management.Unavailable.NoScope"] = "Configuration management is unavailable because no configuration namespace is granted to you for this tenant.",
             ["Tenants.Configuration.Management.Unavailable.ProjectionState"] = "Refresh available tenant detail before managing configuration.",
+            ["Tenants.Configuration.Management.Unavailable.ProjectionLifecycle"] = "Configuration management requires a current, projection-confirmed lifecycle.",
             ["Tenants.Configuration.Management.Unavailable.Freshness"] = "Refresh current tenant detail before managing configuration.",
             ["Tenants.Configuration.Management.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration management.",
             ["Tenants.Configuration.Management.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
@@ -2715,7 +2766,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Members.UnavailableReason.MissingPermission"] = "missing permission",
             ["Tenants.Members.UnavailableReason.StaleData"] = "stale data",
             ["Tenants.Members.UserIdAccessible"] = "Literal member user identifier {0}",
-            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
             ["Tenants.List.Column.Pending"] = "Pending",

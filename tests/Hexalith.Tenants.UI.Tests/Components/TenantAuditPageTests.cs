@@ -46,6 +46,10 @@ public sealed class TenantAuditPageTests : BunitContext
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        cut.Find("[data-testid='tenants-audit-projection-lifecycle-status']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+        cut.Find("[data-testid='tenants-audit-row-projection-lifecycle']")
+            .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
         await subscription.Received(1).SubscribeAsync(
             GetTenantAuditQuery.ProjectionType,
             "tenant.alpha",
@@ -813,7 +817,10 @@ public sealed class TenantAuditPageTests : BunitContext
             freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
                 ? ReadModelFreshnessState.Stale
                 : ReadModelFreshnessState.Current,
-            new TenantAuditRequest("tenant.alpha", Cursor: requestCursor));
+            new TenantAuditRequest("tenant.alpha", Cursor: requestCursor)) with
+        {
+            Lifecycle = rows.Count == 0 ? ProjectionLifecycleState.Current : rows[0].Lifecycle,
+        };
 
     private static TenantAuditSnapshot SnapshotFor(TenantAuditSurfaceKind kind)
     {
