@@ -106,15 +106,23 @@
                           OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.Configuration.Remove.Refresh"]
             </FluentButton>
-            <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_cancelElement">
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              data-testid="tenants-config-remove-cancel"
-                              OnClick="CloseAsync">
-                    @Localizer["Tenants.Configuration.Remove.Cancel"]
-                </FluentButton>
-            </span>
         </FluentStack>
     </EditForm>
+
+    @* Cancel lives outside the form on purpose. The narrow-width rule hides `.tenants-config-remove__form`
+       entirely, and while the sibling management landmark keeps its per-row Remove launcher rendered below
+       768px, that combination produced an aria-modal dialog with no pointer-reachable dismissal — Escape
+       only, and only when focus was already inside. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-remove__dismiss">
+        <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_cancelElement">
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-config-remove-cancel"
+                          Disabled="@IsOwnedCommandInFlight"
+                          OnClick="CloseAsync">
+                @Localizer["Tenants.Configuration.Remove.Cancel"]
+            </FluentButton>
+        </span>
+    </FluentStack>
 
     <section class="tenants-config-remove__lifecycle"
              @ref="_lifecycleElement"
@@ -167,6 +175,7 @@
 @code {
     private readonly object _formModel = new();
     private TenantRemoveConfigurationCommandSnapshot _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle();
+    private bool _isRefreshing;
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
@@ -195,8 +204,6 @@
     [Parameter]
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
-    [Parameter]
-    public bool IsAuthorized { get; set; } = true;
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -219,7 +226,7 @@
     internal TenantRemoveConfigurationCommandSnapshot Snapshot => _snapshot;
 
     private string? UnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+        => SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Remove.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
@@ -239,7 +246,7 @@
                                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Identity"].Value
                                 : string.IsNullOrWhiteSpace(TargetKey) || Context.FindRemovableRow(TargetKey) is null
                                     ? Localizer["Tenants.Configuration.Remove.Unavailable.Target"].Value
-                                    : string.IsNullOrWhiteSpace(NamespacePrefix(TargetKey))
+                                    : ResolveAuthorizedNamespace(TargetKey) is null
                                         ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
                                         : null;
 
@@ -276,7 +283,7 @@
                 return [];
             }
 
-            string namespaceValue = NamespacePrefix(request.Key);
+            string namespaceValue = ResolveAuthorizedNamespace(request.Key) ?? string.Empty;
             return
             [
                 (Localizer["Tenants.Configuration.Remove.Preview.Tenant"], Context.TenantId, "tenants-config-remove-tenant-id"),
@@ -541,32 +548,51 @@
             return;
         }
 
-        ITenantCommandGateway? gateway = CommandGateway;
-        if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+        // Refresh has three entry points (the button, SubmitAsync, and AuditAvailabilityState.OnRefresh) and
+        // read-modify-writes _snapshot across awaits. Blazor re-renders at the first incomplete await, so the
+        // button re-enabled mid-flight and a slower response could overwrite a newer terminal status.
+        if (_isRefreshing)
         {
-            if (gateway is null)
+            return;
+        }
+
+        _isRefreshing = true;
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
             {
-                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value)));
-                // Release the parent command-activity lock before returning: the status is now terminal
-                // (UnableToVerify), so the sibling command surfaces must not stay locked (matches siblings).
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
-                return;
+                if (gateway is null)
+                {
+                    SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value)));
+                    // Release the parent command-activity lock before returning: the status is now terminal
+                    // (UnableToVerify), so the sibling command surfaces must not stay locked (matches siblings).
+                    await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                    return;
+                }
+
+                TenantCommandStatusResult status = await gateway
+                    .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                    .ConfigureAwait(false);
+                SetSnapshot(_snapshot.ApplyStatus(status));
             }
 
-            TenantCommandStatusResult status = await gateway
-                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
-                .ConfigureAwait(false);
-            SetSnapshot(_snapshot.ApplyStatus(status));
-        }
+            // The proof is applied before the parent refresh is requested. The provider performs its own
+            // authoritative read, so it does not depend on the parent, and requesting the refresh first let the
+            // parent drop the removed row — unmounting this flow — before ConfirmProjection could render.
+            if (ProjectionEvidenceProvider is not null)
+            {
+                TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+                SetSnapshot(_snapshot.ConfirmProjection(proof));
+            }
 
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        if (ProjectionEvidenceProvider is not null)
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+        }
+        finally
         {
-            TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(proof));
+            _isRefreshing = false;
         }
-
-        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private bool TryBuildRequest(out RemoveTenantConfiguration? request, bool showValidation)
@@ -585,7 +611,7 @@
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(NamespacePrefix(TargetKey)))
+        if (ResolveAuthorizedNamespace(TargetKey) is null)
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Remove.Validation.NamespaceScope"]);
             return false;
@@ -606,6 +632,15 @@
 
     private async Task CloseAsync()
     {
+        // Submit was already guarded by IsOwnedCommandInFlight; close was not. Dismissing here let the
+        // command run to completion with its Confirmed/Rejected/UnableToVerify outcome, safe message and
+        // audit entry point unrenderable, which is exactly the non-collapse guarantee this flow owes a
+        // destructive action.
+        if (IsOwnedCommandInFlight)
+        {
+            return;
+        }
+
         _validationMessage = null;
         _focusCancelPending = true;
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
@@ -613,11 +648,26 @@
 
     // A key with no dot is a legitimate authorized key: grant `P` authorizes exact key `P` as well as
     // `P.*`. Returning empty here made the launch control render for such a row and then open a flow
-    // permanently blocked on Unavailable.Scope. Mirrors the set flow's resolution.
-    private static string NamespacePrefix(string key)
+    // permanently blocked on Unavailable.Scope.
+    //
+    // The consumer namespace is the longest matching authorized prefix, exactly as the safe composer and
+    // the set flow resolve it — not the first dot segment. Splitting on the first dot made this
+    // destructive-command preview claim scope `app` for a caller granted only `app.feature`, contradicting
+    // both the read grid and the sibling set preview over the same key.
+    private string? ResolveAuthorizedNamespace(string key)
     {
-        int separator = key.IndexOf('.', StringComparison.Ordinal);
-        return separator > 0 ? key[..separator] : key;
+        if (Context.IsGlobalAdministrator)
+        {
+            int separator = key.IndexOf('.', StringComparison.Ordinal);
+            return separator > 0 ? key[..separator] : key;
+        }
+
+        return Context.AuthorizedPrefixes
+            .Where(static value => !string.Equals(value, "*", StringComparison.Ordinal))
+            .Where(prefix => TenantConfigurationManagementContext.IsPrefixMatch(prefix, key))
+            .OrderByDescending(static prefix => prefix.Length)
+            .ThenBy(static prefix => prefix, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)

@@ -136,8 +136,10 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
         string markup = cut.Markup;
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("visible-literal");
-        markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
-        markup.ShouldContain("aria-label=\"Visible configuration value visible-literal\"");
+        // aria-label is prohibited on role=code, so the approved literals must reach the accessibility tree
+        // as text content. The absence assertions below are what actually prove the policy filtered.
+        cut.Find("[data-testid='tenants-config-read-key']").TextContent.ShouldBe("billing.mode");
+        cut.Find("[data-testid='tenants-config-read-value']").TextContent.ShouldBe("visible-literal");
         markup.ShouldNotContain("billing.secret", Case.Sensitive);
         markup.ShouldNotContain("hidden-undefined-value", Case.Sensitive);
         markup.ShouldNotContain("private.mode", Case.Sensitive);
@@ -148,8 +150,8 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
     {
         private static readonly IReadOnlyDictionary<string, string> Values = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
-            ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
+            ["Tenants.Configuration.Title"] = "Visible configuration",
+            ["Tenants.Configuration.Table.Caption"] = "Visible tenant configuration grouped by namespace",
         };
 
         public LocalizedString this[string name]

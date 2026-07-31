@@ -2017,10 +2017,15 @@ internal sealed class TenantQueryGateway(
                 .GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, eTag: null, cancellationToken)
                 .ConfigureAwait(false), TenantDetailReadName);
             TenantDetail? detail = result.Payload;
+            // Lifecycle is part of the proof gate, not just the submission gate. The read landmark and both
+            // command flows refuse to act unless the projection lifecycle is Current; without the same clause
+            // here a Rebuilding or Unavailable projection that still reported Current freshness produced
+            // SetConfirmed/RemoveConfirmed, making confirmation weaker than the gate guarding submission.
             if (result.IsNotModified
                 || detail is null
                 || !string.Equals(detail.TenantId, tenantId, StringComparison.Ordinal)
-                || ResolveFreshness(result.Metadata) is not ReadModelFreshnessState.Current) {
+                || ResolveFreshness(result.Metadata) is not ReadModelFreshnessState.Current
+                || ResolveLifecycle(result.Metadata) is not ProjectionLifecycleState.Current) {
                 return TenantConfigurationProjectionProof.Unavailable(tenantId);
             }
 

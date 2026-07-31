@@ -115,7 +115,7 @@
 
 .tenant-config__filter:focus-visible,
 .tenant-config__clear:focus-visible,
-.tenant-config__table-wrap [tabindex]:focus-visible {
+.tenant-config__table-wrap:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -161,7 +161,7 @@
 
     .tenant-config__filter:focus-visible,
     .tenant-config__clear:focus-visible,
-    .tenant-config__table-wrap [tabindex]:focus-visible {
+    .tenant-config__table-wrap:focus-visible {
         outline-color: Highlight;
     }
 }

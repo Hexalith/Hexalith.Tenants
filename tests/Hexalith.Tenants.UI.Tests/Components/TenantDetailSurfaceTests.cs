@@ -549,8 +549,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("trial");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("feature");
-        cut.Markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
-        cut.Markup.ShouldContain("aria-label=\"Visible configuration value trial\"");
+        // aria-label is prohibited on role=code, so the literal must reach AT as text content instead.
+        cut.Find("[data-testid='tenants-config-read-key']").TextContent.ShouldBe("billing.mode");
+        cut.Find("[data-testid='tenants-config-read-value']").TextContent.ShouldBe("trial");
+        cut.Find("[data-testid='tenants-config-read-key']").GetAttribute("aria-label").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-read-value']").GetAttribute("aria-label").ShouldBeNull();
         cut.Markup.ShouldNotContain("tenants-config-set-flow");
         cut.Markup.ShouldNotContain("tenants-config-remove");
         cut.Markup.ShouldNotContain("<form", Case.Insensitive);
@@ -613,6 +616,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-read-truth-state']").TextContent.ShouldContain("Current");
         cut.Find(".tenant-config__scope").TextContent.ShouldContain("approved by the current namespace and display policy");
         cut.Find("[data-testid='tenants-config-read-announcer']").TextContent.ShouldContain("1 visible configuration entries");
+
+        // Routine result counts stay polite; assertive belongs to the truth state, which owns its own region.
+        cut.Find("[data-testid='tenants-config-read-announcer']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find("[data-testid='tenants-config-read-filter']").GetAttribute("aria-describedby").ShouldBe("tenants-config-read-filter-help");
         cut.Find("[data-testid='tenants-config-read-clear-filter']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("tabindex").ShouldBe("0");
@@ -635,8 +641,101 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, kind)
             .Add(view => view.Freshness, freshness));
 
-        cut.Find("[data-testid='tenants-config-read-truth-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+        // The truth sentence has one owner: the state section, which is also the only live region for it.
+        // It used to be duplicated into the header badge row and was never announced from there.
+        cut.Find("[data-testid='tenants-config-read-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-read-state']").GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-config-read-state']").GetAttribute("data-state").ShouldNotBeNullOrWhiteSpace();
         cut.Markup.ShouldNotContain("Success");
+    }
+
+    [Fact]
+    public async Task Management_keeps_an_open_remove_flow_mounted_after_its_target_row_leaves_the_context()
+    {
+        // The refresh that proves a removal drops the row from RemovableRows. Unmounting the flow on that
+        // signal destroyed the Confirmed state, the audit entry point and the recovery text at the exact
+        // moment the projection proved the removal, and orphaned focus on the destroyed subtree.
+        RegisterComponentServices();
+        TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        TenantConfigurationManagementContext withRow = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, withRow)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+
+        // The flow reports its command activity before the parent refresh lands.
+        IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
+        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+
+        TenantConfigurationManagementContext withoutRow = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], []);
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, withoutRow)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void Management_closes_an_untouched_remove_flow_when_its_target_row_disappears()
+    {
+        // The stale-target reset still applies while no command has been submitted: nothing is settling,
+        // so a flow pointing at a row that no longer exists is just stale.
+        RegisterComponentServices();
+        TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], []))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Management_switching_tenants_drops_every_open_interaction_even_mid_command()
+    {
+        RegisterComponentServices();
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                "tenant.alpha", TenantStatus.Active, false, ["billing"],
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
+        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                "tenant.beta", TenantStatus.Active, false, ["billing"],
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -2512,12 +2611,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Filter.Label"] = "Filter visible configuration",
             ["Tenants.Configuration.Filter.Placeholder"] = "Namespace or key",
             ["Tenants.Configuration.GroupLabel"] = "Namespace {0}",
-            ["Tenants.Configuration.Header.Freshness"] = "Freshness",
             ["Tenants.Configuration.Header.Key"] = "Key",
             ["Tenants.Configuration.Header.Namespace"] = "Namespace",
             ["Tenants.Configuration.Header.Value"] = "Value",
             ["Tenants.Configuration.Header.Actions"] = "Actions",
-            ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
             ["Tenants.Configuration.ScopeNotice"] = "Only configuration approved by the current namespace and display policy is shown.",
             ["Tenants.Configuration.State.Loading"] = "Configuration evidence is loading.",
             ["Tenants.Configuration.State.Loading.Title"] = "Configuration loading",
@@ -2534,7 +2631,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Table.Caption"] = "Visible tenant configuration grouped by namespace",
             ["Tenants.Configuration.Table.AccessibleLabel"] = "Authorized tenant configuration values",
             ["Tenants.Configuration.Title"] = "Visible configuration",
-            ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
             ["Tenants.Configuration.Management.Title"] = "Configuration management",
             ["Tenants.Configuration.Management.Description"] = "Set configuration within current authorized prefixes or remove a current safe target.",
             ["Tenants.Configuration.Management.Unavailable.Policy"] = "Configuration management is unavailable because current authorization policy cannot be verified.",

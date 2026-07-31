@@ -4,7 +4,7 @@ baseline_commit: b73093bd10608afe4e6036439a48a08924d0358b
 
 # Story 1.6: Read-Only Tenant Configuration
 
-Status: review
+Status: in-progress
 
 <!-- 2026-07-27 code review: 2 decisions resolved, 39 of 39 patches closed, two items deferred. The last open item
 (empty-array vs empty-scalar DisplaySafe) was resolved as Decision 3 below: accepted as a bounded, test-pinned
@@ -428,3 +428,126 @@ Record accuracy:
 All 11 patch findings in this narrowed chunk were resolved and verified on 2026-07-28. The two defers remain in the
 deferred-work ledger under Story 1.9 ownership. Story and sprint status intentionally remain `review`: the agreed
 chunking still leaves UI composition/accessibility and broader test/evidence groups for follow-up review.
+
+#### UI composition and accessibility re-review (2026-07-31, `2f190a1..HEAD` narrowed to the UI chunk)
+
+Four independent layers (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) over
+`git diff 2f190a1 HEAD` restricted to `TenantConfigurationView.razor(.css)`,
+`Components/Tenants/Configuration/`, `TenantDetailPage.razor`, and both `.resx` files
+(10 files, +1766/-625). Every finding below was re-read against the real working tree at `HEAD` (`625061b`)
+before being recorded; candidates that the 2026-07-27 and 2026-07-28 passes already closed were re-verified
+as closed and dismissed rather than listed. EN/FR parity was independently re-confirmed by three layers
+(1223 keys each, zero one-sided, zero placeholder mismatches).
+
+Gitlink guard: `python3 scripts/validate-story-gitlinks.py` exits 1, but every UNDECLARED pointer it names was
+moved by a Story 1.9 / Epic 2 commit after this story's stale baseline. No Story 1.6 commit after `ec7ec8c`
+moves a gitlink, and `ec7ec8c`'s EventStore bump is declared. The FAIL is a stale-baseline artifact.
+
+Decisions resolved (2026-07-31, by story owner):
+
+- **RESOLVED → reject at validation.** Configuration keys gain a visible-distinctness rule enforced by
+  *rejection*, not normalization: `TryBuildRequest` rejects keys containing Unicode `Cf`/format characters or
+  leading/trailing whitespace, with a localized validation message. No submitted key is ever silently
+  rewritten, so the kernel's "ordinal, no trimming or normalization" comparison rule is untouched — that rule
+  governs how keys are compared, not which keys the UI is willing to accept. This closes both halves of the
+  finding: the trailing-space twin and the permanently unremovable zero-width key. `Trim()` is deliberately
+  **not** restored, because trimming would silently submit a key different from the one typed.
+- **RESOLVED → move Cancel outside the form.** The narrow-layout collision is resolved without reverting
+  either prior patch: `Cancel` moves outside `.tenants-config-remove__form` so it survives the ≤767px
+  `display: none` rule, leaving the dialog dismissable by pointer. The removable-target grid stays rendered at
+  narrow widths (preserving the 2026-07-27 patch that kept a safety-critical surface in the accessibility
+  tree), and the launcher stays available.
+
+Decision detail retained for the record:
+
+- [x] [Review][Decision → PATCH, reject at validation] Configuration keys have no visible-distinctness rule, so a key can be created that cannot be typed back to remove it — `Trim()` was dropped from key capture (`SetTenantConfigurationFlow.razor:637`, was `_key?.Trim()`), `TryBuildRequest` checks length only, and `IsKeyAuthorized` uses `IsNullOrWhiteSpace`, for which `​` is `false`. `RemoveTenantConfigurationFlow.razor:253` gates removal on ordinal equality with text the operator types, and neither flow offers a copy affordance. A key such as `app.​flag` or `billing.tier ` is therefore writable, renders indistinguishably from its clean twin, and is permanently unremovable through the UI. The kernel's "ordinal, no trimming or normalization" rule governs *comparison*; whether it also forbids *rejecting* such input at capture is the open question. Options: (a) reject keys containing Unicode `Cf` characters or leading/trailing whitespace at input validation — rejection, not normalization; (b) restore `Trim()` on capture only; (c) accept and add a support-safe copy affordance to the remove confirmation; (d) accept as a documented bounded limitation.
+- [x] [Review][Decision → PATCH, move Cancel outside the form] At ≤767px the remove dialog can be opened but has no pointer-reachable dismissal — two prior review patches now collide. `TenantConfigurationManagement.razor.css:40-49` deliberately stopped hiding the removable-target grid at narrow widths (its comment records why), so the per-row Remove launcher is clickable on mobile; `RemoveTenantConfigurationFlow.razor.css:117-131` still sets `.tenants-config-remove__form { display: none }` at the same breakpoint, and that form contains the confirmation input, Submit, Refresh **and Cancel**. The result is a `role="dialog" aria-modal="true"` region holding only a heading and the localized narrow substitute, dismissable only by Escape and only when focus is already inside. Options: (a) re-hide the targets grid at ≤767px, restoring symmetry with the Set flow whose Open button is hidden at that breakpoint; (b) render Cancel outside `.tenants-config-remove__form` so it survives the narrow rule; (c) hide only the launcher column and keep the grid readable.
+
+Patches — correctness:
+
+- [x] [Review][Patch] [HIGH] A successful removal unmounts its own confirmation before the proof is applied: `RefreshStatusAsync` awaits `OnProjectionRefreshRequested` (which re-reads detail and drops the removed key from `Context.RemovableRows`) *before* computing the proof, so `OnParametersSet` nulls `_removeKey` and the render gate unmounts the flow; `SetSnapshot(_snapshot.ConfirmProjection(proof))` then renders into a dead component. The operator never sees Confirmed, the audit entry point, or recovery text, and because `CloseRemoveFlowAsync` never runs, focus is orphaned on the destroyed subtree while the prune loop also drops the launch element. [`src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor:166-169`; `RemoveTenantConfigurationFlow.razor:562-567`]
+- [x] [Review][Patch] [HIGH] The projection proof ignores `ProjectionLifecycleState`, so confirmation is weaker than submission: this chunk added `Lifecycle is not ProjectionLifecycleState.Current` gates to the Set flow, the Remove flow and the management landmark, but the proof that actually flips the truth state gates only on tenant match, `IsNotModified`, non-null payload and `ResolveFreshness(...) is Current`. A projection that is `Rebuilding` or `Unavailable` while reporting Current freshness still returns `SetConfirmed`/`RemoveConfirmed`. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2009-2035`]
+- [x] [Review][Patch] The read landmark renders a lifecycle badge it excludes from its own truth model — `CanInspect`, `IsDegraded`, `HasNonCurrentState`, `EffectiveFreshness`, `StateResourcePrefix` and `LivePoliteness` never reference `Lifecycle`. With `Lifecycle = Unavailable` and `Freshness = Current`, `HasNonCurrentState` is false, so the header shows an "Unavailable" lifecycle badge beside a "Current" truth badge and no state sentence at all. Every sibling in this diff requires `Lifecycle is Current`; the read view is the sole outlier. [`src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:180-222`]
+- [x] [Review][Patch] The remove preview reports a namespace that contradicts both the read grid and the Set flow: `NamespacePrefix` splits on the first dot, while `TenantConfigurationSafeComposer.TryResolveNamespace` and `SetTenantConfigurationFlow.ResolveAuthorizedNamespace` both resolve the longest matching authorized prefix. With grant `app.feature` and key `app.feature.flag`, the destructive-command preview — the operator's consequence contract — claims scope `app`. [`RemoveTenantConfigurationFlow.razor:617-621`]
+- [ ] [Review][Patch] `AlreadyApplied` is decided from render-time values: `Reauthorize` re-resolves *policy* against the already-composed snapshot rows and performs no projection re-read, so `currentContext.FindRemovableRow(...).Value` is byte-identical to the parameter context's. A value changed server-side since the last read yields a terminal `AlreadyApplied` rendered with the "OK" symbol, with no command sent and no proof requested. The grant-revocation half of the guard is real; the value half is not. [`SetTenantConfigurationFlow.razor:543-550`; `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:60-92`]
+- [x] [Review][Patch] `FocusAsync` on a detached `ElementReference` throws an unguarded `JSException`: the prune loop keys liveness on `Context.RemovableRows` (data) rather than on whether the grid was rendered, but the `@ref` spans render only inside the `else` branch gated by `UnavailableReason`. When a background refresh flips freshness or lifecycle in the same cycle as a Cancel, the keys survive both the prune and the `_focusRemoveLaunchKey` guard, and `OnAfterRenderAsync` focuses a detached reference. The `catch` handles only `JSDisconnectedException`, so the circuit tears down. [`TenantConfigurationManagement.razor:174-205`]
+- [x] [Review][Patch] Ten `FocusAsync` calls across the two flows carry no `JSDisconnectedException` guard (Set 4, Remove 6, both with zero guards) while the third component added in this same diff has one. A queued focus that resolves after the circuit drops throws into `OnAfterRenderAsync`. [`SetTenantConfigurationFlow.razor`; `RemoveTenantConfigurationFlow.razor`]
+- [x] [Review][Patch] `RefreshStatusAsync` has no reentrancy guard and read-modify-writes `_snapshot` across awaits, so two overlapping runs let a stale status overwrite a newer terminal one. `SubmitAsync` has an explicit `_isSubmitting` guard; `CanRefresh` does not consider an in-flight refresh, and Blazor re-renders (re-enabling the button) at the first incomplete await. Three entry points reach it: the Refresh button, `SubmitAsync`'s own call, and `AuditAvailabilityState.OnRefresh`. [`RemoveTenantConfigurationFlow.razor:537-570`; `SetTenantConfigurationFlow.razor:596-627`]
+- [x] [Review][Patch] Cancel/Escape dismisses the remove dialog while the destructive command is in flight — `CloseAsync` has no `IsOwnedCommandInFlight` check although `IsSubmitDisabled` does. The command still executes; its Confirmed/Rejected/UnableToVerify outcome, safe message and audit entry point become unrenderable. [`RemoveTenantConfigurationFlow.razor:607-612`]
+- [x] [Review][Patch] The Set preview cannot distinguish "no such key" from "value withheld": `current?.Value ?? …CurrentState.Unavailable` where `FindRemovableRow` returns only display-safe rows, and `Set.Preview.CurrentState.Absent` was deleted (0 occurrences in either `.resx`). Creating a new key and overwriting a key whose value is not `DisplaySafe` now render identical previews. [`SetTenantConfigurationFlow.razor:300-302`]
+- [x] [Review][Patch] Off-Dispatcher check-then-write of `_snapshot`: after `.ConfigureAwait(false)`, `if (CanApply(generation, tenantId)) { _snapshot = snapshot; }` runs on a thread-pool continuation with no `InvokeAsync` and no re-check, while every sibling path in the same file marshals and re-checks inside `InvokeAsync` with an explicit comment saying why. [`TenantDetailPage.razor:503-506`]
+- [x] [Review][Patch] `FluentDataGrid` lost its `ItemKey`, and the new management grid never had one. `TenantConfigurationSafeRow` is a class without value equality and rows are rebuilt on every read, so each refresh diffs every row as new: full re-render, `@ref` re-capture into `_removeLaunchElements`, and focus lost from inside a row on every SignalR-driven refresh. [`TenantConfigurationView.razor:103-107`; `TenantConfigurationManagement.razor:57-60`]
+
+Patches — accessibility, copy and layout:
+
+- [x] [Review][Patch] The non-current truth state is never announced, while the routine result count is what gets escalated to assertive. On the `CanInspect` path the stale/degraded/unknown sentence is a bare `<p>` inside `div.tenant-config__truth` with no role and no `aria-live`; the only live region is the announcer, whose content is the entry/group count and whose politeness is `assertive` when degraded. A degraded read therefore announces the count assertively and never announces that it is degraded — the inverse of the story's announcement rule. [`TenantConfigurationView.razor:19-22,61-67,221-222`]
+- [x] [Review][Patch] The focusable scroll region has no visible focus indicator: `.tenant-config__table-wrap` carries `role="region" tabindex="0"`, but the focus rule is `.tenant-config__table-wrap [tabindex]:focus-visible`, a *descendant* selector that cannot match the wrap itself, and the descendants it used to match were deleted by this same diff. The sibling landmark gets this right with `.tenant-config-management__targets:focus-visible`. [`TenantConfigurationView.razor.css:116-121,162-166`]
+- [x] [Review][Patch] `role="status"` on a direct `<dl>` child breaks the definition-list association for the projection-lifecycle fact: ARIA-in-HTML permits only `dt`, `dd`, generic `div`, `script` and `template` as `dl` children, so overriding that div's generic role detaches its `dt`/`dd` pair. `aria-live="assertive"` on `role="status"` (implicitly polite) is additionally contradictory; `role="alert"` is the correct pairing. Every sibling fact div is left generic. [`TenantDetailPage.razor:120-127`]
+- [x] [Review][Patch] `aria-label` on `<code>` is name-prohibited (HTML-AAM maps `<code>` to role `code`), so `Tenants.Configuration.KeyAccessible` and `ValueAccessible` never reach the accessibility tree in either locale and axe flags `aria-prohibited-attr`. The literals still read as text content, so the safety floor holds. [`TenantConfigurationView.razor:116-117,122-124`]
+- [x] [Review][Patch] Degraded and Unknown render an identical truth badge — `EffectiveFreshness => IsDegraded ? Unknown : Freshness` collapses both into label "Unknown" with the same colour and icon, in the header and in every per-row cell. The only surviving discriminator is the state sentence that the announcement finding above shows is never announced. AC5 requires these to stay distinct. [`TenantConfigurationView.razor:190-191`]
+- [x] [Review][Patch] The unavailable sentence renders twice: `HasNonCurrentState` is true whenever `!CanInspect`, so the header emits `<p>@StateMessage</p>` and the state section immediately below emits the same string again under its heading. [`TenantConfigurationView.razor:19-22,32-33`]
+- [x] [Review][Patch] Six state resources are unreachable through the composed surface and one is reachable only when it would be wrong. `TenantConfigurationView` renders solely inside `FcAggregateDetailPage`'s `ReadyContent`, which is gated to `Ready|Stale|Degraded`, so `SurfaceKind` is never `Loading` and `StateTitle` always resolves to the `Unavailable` prefix: `State.Loading`, `State.Loading.Title`, `State.Ready.Title`, `State.Stale.Title`, `State.Degraded.Title` and `State.Unknown.Title` are dead in both locales (12 entries). `State.Ready` is reachable only via `ReadModelFreshnessState.Aging`, which would render "Configuration evidence is current." beside a warning `Aging` badge — latent today because `ResolveFreshness` never emits `Aging`. [`TenantConfigurationView.razor:199-222`]
+- [x] [Review][Patch] `IsAuthorized` is declared on both flows with default `true` but never passed by the only call site, so `!IsAuthorized || SurfaceKind is Unauthorized` can never be true (the page routes `Unauthorized` away from `ReadyContent`). Not a security hole — submit re-authorizes — but the gate reads live and `Set.Unavailable.Authorization` / `Remove.Unavailable.Authorization` are dead in both locales. [`TenantConfigurationManagement.razor:34-42,89-99`]
+- [x] [Review][Patch] Per-row freshness and lifecycle columns bind the single page-scoped `EffectiveFreshness`/`Lifecycle`, so an N-row table emits 2N identical badges and 2N identical accessible names implying per-key evidence that does not exist, all sharing one `data-testid`. With `ItemKey` also gone, no stable per-row selector remains. [`TenantConfigurationView.razor:126-138`; `TenantConfigurationManagement.razor:69,76`]
+- [x] [Review][Patch] Two live regions announce simultaneously in the empty state — the always-rendered announcer emits "0 visible configuration entries across 0 namespace groups" at the same moment the empty panel's `role="status"` emits the empty message. [`TenantConfigurationView.razor:61-77`]
+- [x] [Review][Patch] Namespace accordion groups are rendered without `@key`, so Blazor reuses `FluentAccordionItem` instances positionally and the component's DOM-held collapsed state follows position rather than namespace: collapse the first group, filter it away, and the next namespace appears collapsed. [`TenantConfigurationView.razor:98-101`]
+- [x] [Review][Patch] `id="tenants-config-management-unavailable"` is emitted on both unavailable branches but referenced by no `aria-describedby`/`aria-errormessage`, so the "one localized, programmatically associated reason" the story requires is not associated. The sibling Set flow does wire its equivalent. [`TenantConfigurationManagement.razor:17-29`]
+
+Patches — verification that does not verify:
+
+- [ ] [Review][Patch] The page→management→flow provider wiring is never exercised. All nine management renders pass only `Context`/`SurfaceKind`/`Freshness`/`Lifecycle`; no test submits a set or remove through `TenantDetailPage`. Rewriting the page wrapper as `=> Task.FromResult(_snapshot.ConfigurationManagement)` — returning the render-time context instead of re-resolving policy — fails **open** and survives the whole suite. The same defect class was closed one layer down at the composition seam, not at this page seam. [`TenantDetailPage.razor:205-214,898-905`]
+- [x] [Review][Patch] Fail-closed handling of a null or throwing `ReauthorizeProvider` is unverified. Every test that reaches submit with a valid request sets the provider, and every submit without it fails `TryBuildRequest` first, so `currentContext = Unavailable(...)` on both the null branch and the catch branch is never executed. No provider anywhere in `tests/` throws. Mutating either branch to `Context` (fail open) survives. [`SetTenantConfigurationFlow.razor:521-532`; `RemoveTenantConfigurationFlow.razor:471-482`]
+- [ ] [Review][Patch] Global-administrator scope is absent from every component fixture (`isGlobalAdministrator: false` everywhere, end-to-end authenticates `global_admin=false`), so the admin branches are unpinned: deleting `!Context.IsGlobalAdministrator &&` or the `IsGlobalAdministrator` branch of `ResolveAuthorizedNamespace` permanently blocks a global administrator from setting configuration and no test fails. [`SetTenantConfigurationFlow.razor:259,716-729`]
+- [x] [Review][Patch] `Already_applied_is_decided_from_the_re_authorized_context` cannot fail — the test passes the *same context instance* as both `Context` and the `ReauthorizeProvider` result, so `Context.FindRemovableRow(...)` and `currentContext.FindRemovableRow(...)` are indistinguishable, despite the comment asserting the opposite. [`tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs:256-282`]
+- [ ] [Review][Patch] Longest-prefix authorization-evidence selection is untestable with the current fixtures: both flow suites derive prefixes through a helper that splits on the first dot, so `AuthorizedPrefixes` never contains two prefixes matching one key. `OrderByDescending(length)` → `OrderBy(...)` survives, and the preview's Namespace row is the authorization evidence shown before a high-impact change. [`SetTenantConfigurationFlow.razor:724-728`]
+- [ ] [Review][Patch] Per-read fault handling on the detail page is unverified — no test faults `ITenantQueryGateway`. Replacing the two independent try/catch blocks with a bare `Task.WhenAll` survives, leaving the member surface stuck on Loading with an unobserved task exception, exactly what the code comment says it prevents. [`TenantDetailPage.razor:340-369,386-387`]
+- [x] [Review][Patch] The management landmark's stale-target reset and element-reference prune never execute in any test — no management render is re-rendered with a changed `Context`, so `OnParametersSet` only ever runs with `_removeKey == null` and an empty dictionary. Both guarded bodies, and both defects they exist to prevent, are unreachable in the suite. [`TenantConfigurationManagement.razor:164-188`]
+- [ ] [Review][Patch] The detail page's configuration summary cannot distinguish "unavailable" from "empty" under test: deleting the `!configuration.IsAvailable` branch makes unverifiable configuration evidence render the absence claim "No visible configuration is available in this detail projection", and no test asserts the unavailable string. The sibling read landmark keeps exactly this distinction under test. [`TenantDetailPage.razor:919-927`]
+
+Deferred:
+
+- [x] [Review][Defer] Read-refresh lease retry (empty lease / superseded setup) is unverified on the detail page while the sibling global-administrators page pins it — every detail-page test stubs a successful subscription, so the `!lease.IsSubscribed` early return and the `OnAfterRenderAsync` retry are both unexecuted. [`TenantDetailPage.razor:394-400,441-446`] — deferred, shared read-refresh pattern rather than Story 1.6 surface.
+- [x] [Review][Defer] An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh: the documented guard covers only `_memberPageLoadInFlight`, which the read-refresh path never sets, so `BeginLoad()` cancels the shared token and clears `IsRefreshing` while the member read is outstanding. Unverified in either direction. [`TenantDetailPage.razor:470-482`] — deferred, member-paging surface owned outside Story 1.6.
+- [x] [Review][Defer] The working tree carries an undeclared `references/Hexalith.EventStore` gitlink bump (`a40ab8a` → `e4618d9`, v3.86.0) that belongs to no story File List. — deferred, not Story 1.6's change; needs a separate `build(deps)` commit or a revert by whoever is holding it.
+
+#### Patch application results (2026-07-31)
+
+All 34 patches were accepted for application. Outcome:
+
+- **27 applied and verified.** Both HIGH findings are closed: the remove flow now applies its projection proof
+  before requesting the parent refresh, and the management landmark holds an open flow mounted once a command
+  has started (releasing it only on explicit close or a tenant switch), so a proven removal can no longer
+  destroy its own Confirmed state, audit entry point and focus target. The projection proof now carries the
+  same `ProjectionLifecycleState.Current` clause the submission gates already carried.
+- **1 applied, then reverted on evidence** — the proof-based `AlreadyApplied` probe. Calling
+  `ProjectionEvidenceProvider` before submit turned a post-submit confirmation seam into a pre-submit
+  authoritative read on every submit, and broke six existing tests by short-circuiting any flow whose provider
+  reports confirmed. The finding is downgraded to an accepted bounded limitation: the claim is at most one
+  read stale, the landmark renders only while freshness and lifecycle are Current, and the failure direction is
+  one-way — a stale match declines to write a value the UI believes is already set, it never writes one. The
+  misleading comment that prompted the finding has been corrected in place.
+- **1 resolved differently than proposed** — the Set preview's absent-versus-withheld conflation. Restoring
+  `CurrentState.Absent` would have leaked the existence of authorized-but-not-display-safe keys, which AC3
+  forbids. The conflation is mandated; the copy was made honest instead ("Not visible — this key has no
+  approved value to display, or no value is set." / EN+FR).
+- **5 verification patches deliberately left open** (unchecked above) — they belong to the deferred
+  test/evidence chunk, which will cover that ground with its own review rather than in passing here.
+
+Resource changes: `Header.Freshness`, `KeyAccessible` and `ValueAccessible` deleted (unused after the per-row
+badge columns and the ARIA-prohibited `aria-label`s were removed); `State.ProjectionLifecycle{,.Title}` and
+`Set.Validation.KeyLiteral` added. EN/FR parity holds at 1223 keys each, verified by parse. `State.Loading`
+remains reachable only for a consumer rendering the landmark outside `FcAggregateDetailPage`'s `ReadyContent`;
+it is retained as component contract and documented in place rather than deleted.
+
+Verification (all commands run 2026-07-31):
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` — **1654/1654** (was 1641; +13 net: 10 new regression tests, 4 new lifecycle theory cases, and one reflection assertion retired with the dead `IsAuthorized` parameter).
+- Focused: `TenantDetailSurfaceTests` 100/100, `SetTenantConfigurationFlowTests` 40/40, `RemoveTenantConfigurationFlowTests` 18/18, `TenantQueryGatewayTests` 335/335, `TenantConfigurationReadPolicyTests` 48/48, `DomainUiFluentConformanceTests` 51/51, `TenantConfigurationEndToEndTests` 1/1.
+
+New regression tests added: projection-proof fail-closed on four non-Current lifecycles; management keeps an
+open flow mounted after its target row leaves the context; management still closes an untouched flow whose row
+disappears; a tenant switch drops every open interaction even mid-command; already-applied decided from a
+genuinely different re-authorized context; submit fails closed with no reauthorize provider; submit fails
+closed and support-safe when reauthorization throws; keys that cannot be reproduced by typing are rejected.

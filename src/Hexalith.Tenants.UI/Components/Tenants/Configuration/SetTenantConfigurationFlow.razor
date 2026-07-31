@@ -2,6 +2,7 @@
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
+@using Microsoft.JSInterop
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
@@ -187,6 +188,7 @@
     private string? _validationMessage;
     private bool _isOpen;
     private bool _isSubmitting;
+    private bool _isRefreshing;
     private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
     private FluentTextInput _keyElement = default!;
@@ -209,8 +211,6 @@
     [Parameter]
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
-    [Parameter]
-    public bool IsAuthorized { get; set; } = true;
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -238,7 +238,7 @@
             .ToHashSet(StringComparer.Ordinal);
 
     private string? UnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+        => SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
@@ -374,28 +374,56 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Every focus target here can be absent from the render that runs this callback: the Open button is
+        // gated on CanOpen, and the key/value inputs on _isOpen. Focusing a detached ElementReference throws
+        // JSException, and a circuit that drops while a focus is queued throws JSDisconnectedException.
         if (_focusOpenPending)
         {
             _focusOpenPending = false;
-            await _openElement.FocusAsync().ConfigureAwait(false);
+            if (CanOpen)
+            {
+                await FocusSafelyAsync(_openElement).ConfigureAwait(false);
+            }
         }
 
         if (_focusKeyPending)
         {
             _focusKeyPending = false;
-            await _keyElement.Element.FocusAsync().ConfigureAwait(false);
+            if (_isOpen)
+            {
+                await FocusSafelyAsync(_keyElement.Element).ConfigureAwait(false);
+            }
         }
 
         if (_focusValuePending)
         {
             _focusValuePending = false;
-            await _valueElement.Element.FocusAsync().ConfigureAwait(false);
+            if (_isOpen)
+            {
+                await FocusSafelyAsync(_valueElement.Element).ConfigureAwait(false);
+            }
         }
 
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
-            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task FocusSafelyAsync(ElementReference element)
+    {
+        try
+        {
+            await element.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away while a focus was queued; nothing to focus.
+        }
+        catch (JSException)
+        {
+            // The target left the DOM between the render that queued the focus and this callback.
         }
     }
 
@@ -540,6 +568,15 @@
             return;
         }
 
+        // Already-applied compares against the re-authorized context, which re-resolves *policy* over the
+        // rows this component was last handed; it performs no projection read. The claim is therefore only
+        // as fresh as the last detail read. That is bounded — the management landmark renders at all only
+        // while freshness and lifecycle are Current — and the failure direction is safe: a stale match
+        // declines to write a value the UI believes is already set, it never writes one.
+        //
+        // Probing ProjectionEvidenceProvider here was tried and reverted: that provider is the post-submit
+        // confirmation seam, and calling it pre-submit both added an authoritative read to every submit and
+        // turned a stub that reports "confirmed" into an unconditional short-circuit.
         if (currentContext.FindRemovableRow(request.Key) is { } current
             && string.Equals(current.Value, request.Value, StringComparison.Ordinal))
         {
@@ -600,30 +637,47 @@
             return;
         }
 
-        ITenantCommandGateway? gateway = CommandGateway;
-        if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+        // Refresh has three entry points and read-modify-writes _snapshot across awaits; Blazor re-renders at
+        // the first incomplete await, so the button re-enabled mid-flight and a slower response could
+        // overwrite a newer terminal status.
+        if (_isRefreshing)
         {
-            if (gateway is null)
+            return;
+        }
+
+        _isRefreshing = true;
+        try
+        {
+
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
             {
-                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value)));
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
-                return;
+                if (gateway is null)
+                {
+                    SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value)));
+                    await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                    return;
+                }
+
+                TenantCommandStatusResult status = await gateway
+                    .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                    .ConfigureAwait(false);
+                SetSnapshot(_snapshot.ApplyStatus(status));
             }
 
-            TenantCommandStatusResult status = await gateway
-                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
-                .ConfigureAwait(false);
-            SetSnapshot(_snapshot.ApplyStatus(status));
-        }
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            if (ProjectionEvidenceProvider is not null)
+            {
+                TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+                SetSnapshot(_snapshot.ConfirmProjection(proof));
+            }
 
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        if (ProjectionEvidenceProvider is not null)
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+        }
+        finally
         {
-            TenantConfigurationProjectionProof proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(proof));
+            _isRefreshing = false;
         }
-
-        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private bool TryBuildRequest(
@@ -638,6 +692,19 @@
         if (keyValue.Length == 0)
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyRequired"], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
+        // Rejection, not normalization. The kernel's ordinal, no-trimming rule governs how keys are compared;
+        // it does not oblige this UI to accept a key it can never help the operator remove again. A key with
+        // surrounding whitespace or an embedded Unicode format character (U+200B and friends) renders
+        // identically to its clean twin, and the remove confirmation — ordinal equality against typed text —
+        // can never be satisfied for it. Trim() is deliberately not restored: silently submitting a key other
+        // than the one typed is the normalization the kernel forbids.
+        if (keyValue.Length != keyValue.Trim().Length || keyValue.Any(char.IsControl)
+            || keyValue.Any(static character => char.GetUnicodeCategory(character) is System.Globalization.UnicodeCategory.Format))
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLiteral"], TenantCommandFocusTarget.Key);
             return false;
         }
 

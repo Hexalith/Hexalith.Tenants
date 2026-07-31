@@ -1346,7 +1346,9 @@ public sealed class TenantQueryGatewayTests
         TenantConfigurationProjectionProofKind expectedKind)
     {
         CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
+            metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: ProjectionLifecycleState.Current));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
@@ -1361,6 +1363,30 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
+    [InlineData(ProjectionLifecycleState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Rebuilding)]
+    [InlineData(ProjectionLifecycleState.Unavailable)]
+    [InlineData(ProjectionLifecycleState.Degraded)]
+    public async Task Configuration_projection_proof_fails_closed_when_the_projection_lifecycle_is_not_current(
+        ProjectionLifecycleState lifecycle)
+    {
+        // Freshness alone is not proof. Both command flows and the read landmark refuse to act unless the
+        // lifecycle is Current; without the same clause here a rebuilding projection reporting Current
+        // freshness still produced SetConfirmed, making confirmation weaker than the submission gate.
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
+            metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: lifecycle));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
+
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+    }
+
+    [Theory]
     [InlineData(true, TenantConfigurationProjectionProofKind.RemoveNotConfirmed)]
     [InlineData(false, TenantConfigurationProjectionProofKind.RemoveConfirmed)]
     public async Task Remove_configuration_projection_proof_reports_only_key_presence(bool containsTarget, TenantConfigurationProjectionProofKind expectedKind)
@@ -1369,7 +1395,9 @@ public sealed class TenantQueryGatewayTests
         IReadOnlyDictionary<string, string> configuration = containsTarget
             ? new Dictionary<string, string> { ["billing.mode"] = "trial" }
             : new Dictionary<string, string> { ["billing.other"] = "kept" };
-        client.EnqueueQueryResult(Detail("tenant.alpha", configuration));
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", configuration),
+            metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: ProjectionLifecycleState.Current));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(

@@ -1026,9 +1026,6 @@
   <data name="Tenants.Configuration.GroupLabel" xml:space="preserve">
     <value>Espace de noms {0}</value>
   </data>
-  <data name="Tenants.Configuration.Header.Freshness" xml:space="preserve">
-    <value>Fraîcheur</value>
-  </data>
   <data name="Tenants.Configuration.Header.Key" xml:space="preserve">
     <value>Clé</value>
   </data>
@@ -1037,9 +1034,6 @@
   </data>
   <data name="Tenants.Configuration.Header.Value" xml:space="preserve">
     <value>Valeur</value>
-  </data>
-  <data name="Tenants.Configuration.KeyAccessible" xml:space="preserve">
-    <value>Clé de configuration complète {0}</value>
   </data>
   <data name="Tenants.Configuration.ScopeNotice" xml:space="preserve">
     <value>Seule la configuration approuvée par la stratégie actuelle d'espace de noms et d'affichage est présentée.</value>
@@ -1061,6 +1055,12 @@
   </data>
   <data name="Tenants.Configuration.State.Unknown.Title" xml:space="preserve">
     <value>Preuves de configuration inconnues</value>
+  </data>
+  <data name="Tenants.Configuration.State.ProjectionLifecycle.Title" xml:space="preserve">
+    <value>Projection en reconstruction</value>
+  </data>
+  <data name="Tenants.Configuration.State.ProjectionLifecycle" xml:space="preserve">
+    <value>La projection de configuration n'est pas à jour ; ces entrées ne peuvent pas être considérées comme faisant autorité.</value>
   </data>
   <data name="Tenants.Configuration.State.Degraded" xml:space="preserve">
     <value>Les preuves de configuration sont dégradées.</value>
@@ -1134,9 +1134,6 @@
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Configuration visible</value>
   </data>
-  <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
-    <value>Valeur de configuration visible {0}</value>
-  </data>
   <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
     <value>Définir une configuration</value>
   </data>
@@ -1206,6 +1203,9 @@
   <data name="Tenants.Configuration.Set.Validation.KeyRequired" xml:space="preserve">
     <value>Entrez une clé de configuration avant d'afficher l'aperçu du changement de configuration.</value>
   </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyLiteral" xml:space="preserve">
+    <value>Saisissez la clé exactement, sans espaces au début ou à la fin ni caractères invisibles.</value>
+  </data>
   <data name="Tenants.Configuration.Set.Validation.KeyLength" xml:space="preserve">
     <value>La clé de configuration complète doit contenir {0} caractères ou moins.</value>
   </data>
@@ -1234,7 +1234,7 @@
     <value>État connu actuel</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState.Unavailable" xml:space="preserve">
-    <value>Indisponible</value>
+    <value>Non visible — cette clé n'a aucune valeur approuvée à afficher, ou aucune valeur n'est définie.</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.IntendedEffect" xml:space="preserve">
     <value>Effet attendu</value>

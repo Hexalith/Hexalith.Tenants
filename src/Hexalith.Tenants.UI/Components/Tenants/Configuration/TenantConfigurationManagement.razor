@@ -4,11 +4,16 @@
 @using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 
+@* The unavailable reason is programmatically associated with the landmark it disables. It previously
+   carried an id that nothing referenced, and its branch renders no control to attach it to. *@
 <section class="tenant-config-management"
          aria-labelledby="tenants-config-management-heading"
+         aria-describedby="@(IsManagementUnavailable ? "tenants-config-management-unavailable" : null)"
          data-testid="tenants-config-management-section">
     <header class="tenant-config-management__header">
-        <h2 id="tenants-config-management-heading">@Localizer["Tenants.Configuration.Management.Title"]</h2>
+        <h2 id="tenants-config-management-heading"
+            tabindex="-1"
+            @ref="_headingElement">@Localizer["Tenants.Configuration.Management.Title"]</h2>
         <p>@Localizer["Tenants.Configuration.Management.Description"]</p>
     </header>
 
@@ -16,7 +21,8 @@
     {
         <p id="tenants-config-management-unavailable"
            data-testid="tenants-config-management-unavailable"
-           role="status">
+           role="status"
+           aria-live="polite">
             @Localizer[PolicyUnavailableResourceKey]
         </p>
     }
@@ -24,7 +30,8 @@
     {
         <p id="tenants-config-management-unavailable"
            data-testid="tenants-config-management-unavailable"
-           role="status">
+           role="status"
+           aria-live="polite">
             @UnavailableReason
         </p>
     }
@@ -55,6 +62,7 @@
                  aria-label="@Localizer["Tenants.Configuration.Management.TargetsAccessibleLabel"]"
                  data-testid="tenants-config-management-targets">
                 <FluentDataGrid Items="@Context.RemovableRows.AsQueryable()"
+                                ItemKey="@(row => row.Key)"
                                 ResizableColumns="true"
                                 ReorderableColumns="false"
                                 GenerateHeader="DataGridGeneratedHeaderType.Sticky">
@@ -93,7 +101,7 @@
                                            Lifecycle="@Lifecycle"
                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                            OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                           OnCommandActivityChanged="@OnCommandActivityChanged"
+                                           OnCommandActivityChanged="@HandleRemoveCommandActivityAsync"
                                            OnCloseRequested="@CloseRemoveFlowAsync"
                                            ProjectionEvidenceProvider="@RemoveProjectionEvidenceProvider"
                                            ReauthorizeProvider="@ReauthorizeProvider" />
@@ -103,8 +111,12 @@
 
 @code {
     private readonly Dictionary<string, ElementReference> _removeLaunchElements = new(StringComparer.Ordinal);
+    private ElementReference _headingElement;
     private string? _removeKey;
     private string? _focusRemoveLaunchKey;
+    private string? _removeTenantId;
+    private bool _removeCommandStarted;
+    private bool _focusHeadingPending;
 
     [Parameter]
     public TenantConfigurationManagementContext Context { get; set; } = default!;
@@ -136,6 +148,9 @@
     [Parameter]
     public Func<Task<TenantConfigurationManagementContext>>? ReauthorizeProvider { get; set; }
 
+    private bool IsManagementUnavailable
+        => !HasPolicyScope || !string.IsNullOrWhiteSpace(UnavailableReason);
+
     private bool HasPolicyScope
         => Context?.IsAvailable == true
         && (Context.IsGlobalAdministrator || Context.AuthorizedPrefixes.Count > 0);
@@ -161,29 +176,63 @@
                         ? Localizer["Tenants.Configuration.Management.Unavailable.CommandSurface"].Value
                         : null;
 
+    // The launch controls exist only on this branch. Pruning against RemovableRows alone kept keys for rows
+    // the render had already dropped (policy/lifecycle/freshness turning the whole branch off), so a queued
+    // refocus targeted a detached ElementReference and threw JSException, not JSDisconnectedException.
+    private bool TargetsAreRendered
+        => HasPolicyScope
+        && string.IsNullOrWhiteSpace(UnavailableReason)
+        && Context?.RemovableRows.Count > 0;
+
     protected override void OnParametersSet()
     {
-        if (_removeKey is not null && Context.FindRemovableRow(_removeKey) is null)
+        // A tenant switch invalidates every open interaction, including one whose command is still settling:
+        // the snapshot it would confirm against belongs to a different aggregate.
+        if (!string.Equals(_removeTenantId, Context?.TenantId, StringComparison.Ordinal))
         {
+            _removeTenantId = Context?.TenantId;
             _removeKey = null;
+            _removeCommandStarted = false;
+            _focusRemoveLaunchKey = null;
+            _focusHeadingPending = false;
+            _removeLaunchElements.Clear();
         }
 
-        // Prune references for rows that are no longer rendered. Without this the dictionary retains a
-        // detached ElementReference after a successful remove — focusing it throws — and it keeps
-        // configuration key names from previously visited tenants alive for the life of the circuit.
+        // Once a remove command has been submitted the flow owns its own dismissal. Clearing the target
+        // because the row left RemovableRows unmounted the flow at the exact moment the projection proved
+        // the removal, so the operator never saw Confirmed, the audit entry point, or recovery text.
+        if (_removeKey is not null
+            && !_removeCommandStarted
+            && Context?.FindRemovableRow(_removeKey) is null)
+        {
+            _removeKey = null;
+            _focusHeadingPending = true;
+        }
+
         if (_removeLaunchElements.Count > 0)
         {
-            HashSet<string> live = Context?.RemovableRows.Select(static row => row.Key).ToHashSet(StringComparer.Ordinal)
-                ?? [];
-            foreach (string stale in _removeLaunchElements.Keys.Where(key => !live.Contains(key)).ToArray())
+            if (!TargetsAreRendered)
             {
-                _ = _removeLaunchElements.Remove(stale);
+                _removeLaunchElements.Clear();
+            }
+            else
+            {
+                HashSet<string> live = Context!.RemovableRows
+                    .Select(static row => row.Key)
+                    .ToHashSet(StringComparer.Ordinal);
+                foreach (string stale in _removeLaunchElements.Keys.Where(key => !live.Contains(key)).ToArray())
+                {
+                    _ = _removeLaunchElements.Remove(stale);
+                }
             }
         }
 
+        // A successful removal deletes the row the focus was going to return to. Fall back to the landmark
+        // heading rather than leaving focus on a detached subtree.
         if (_focusRemoveLaunchKey is not null && !_removeLaunchElements.ContainsKey(_focusRemoveLaunchKey))
         {
             _focusRemoveLaunchKey = null;
+            _focusHeadingPending = true;
         }
     }
 
@@ -193,24 +242,55 @@
             && _removeLaunchElements.TryGetValue(_focusRemoveLaunchKey, out ElementReference launchElement))
         {
             _focusRemoveLaunchKey = null;
-            try
-            {
-                await launchElement.FocusAsync().ConfigureAwait(false);
-            }
-            catch (JSDisconnectedException)
-            {
-                // The circuit went away while a refocus was queued; nothing to restore focus to.
-            }
+            _focusHeadingPending = false;
+            await FocusSafelyAsync(launchElement).ConfigureAwait(false);
+            return;
+        }
+
+        if (_focusHeadingPending)
+        {
+            _focusHeadingPending = false;
+            await FocusSafelyAsync(_headingElement).ConfigureAwait(false);
         }
     }
 
+    private static async Task FocusSafelyAsync(ElementReference element)
+    {
+        try
+        {
+            await element.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went away while a refocus was queued; nothing to restore focus to.
+        }
+        catch (JSException)
+        {
+            // The target left the DOM between the render that queued the focus and this callback.
+        }
+    }
+
+    private async Task HandleRemoveCommandActivityAsync(bool isActive)
+    {
+        if (isActive)
+        {
+            _removeCommandStarted = true;
+        }
+
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
     private void OpenRemoveFlow(string key)
-        => _removeKey = key;
+    {
+        _removeKey = key;
+        _removeCommandStarted = false;
+    }
 
     private async Task CloseRemoveFlowAsync()
     {
         _focusRemoveLaunchKey = _removeKey;
         _removeKey = null;
+        _removeCommandStarted = false;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 }

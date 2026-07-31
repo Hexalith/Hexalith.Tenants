@@ -588,3 +588,91 @@ than in 1.10's patch set.
   Reason for deferral: the one-line fix's correctness depends entirely on how 1.11 resolves circuit-vs-`HttpContext` precedence. The chunk A+B review established that `LifecycleAuthorizationReflection` on this same type returns `Indeterminate` permanently on an interactive circuit because `HttpContext` is null; if `TenantConfigurationPrincipalResolver` shares that weakness, routing this path through it trades a fail-open for a fail-shut. Story 1.11 already owns both open principal-resolution decisions on this evaluator, and the structurally identical `TenantDetailPage` item was folded there on 2026-07-30 for the same stated reason — avoid two stories making conflicting fixes to the same evaluator.
   Accepted consequence until 1.11 lands: the fail-open divergence above ships in 1.10.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1279]
+
+## Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-31)
+
+UI-composition-and-accessibility chunk, `2f190a1..HEAD` narrowed to the Story 1.6 UI paths. Four review
+layers; findings re-verified against the working tree at `625061b`.
+
+- **Read-refresh lease retry is unverified on the tenant detail page** — every detail-page test stubs
+  `IProjectionSubscription.SubscribeAsync` to a successful subscription, so `lease.IsSubscribed` is always
+  true. The `if (!lease.IsSubscribed) return;` early return and the `OnAfterRenderAsync` retry that exists to
+  recover a superseded or failed setup are both unexecuted; recording the empty lease anyway, or deleting the
+  `OnAfterRenderAsync` override outright, survives the suite. `TenantReadRefreshSubscriptionTests` proves a
+  failed setup returns a non-subscribed lease rather than throwing, and `GlobalAdministratorsPageTests` is
+  exactly the retry test the detail page lacks.
+  Reason for deferral: the shared read-refresh lease pattern is not a Story 1.6 surface — the same gap applies
+  to every page that binds a lease, and the sibling page already carries the canonical test to copy.
+  Revisit if: a lease-setup failure is ever observed in a running circuit, or the read-refresh pattern is
+  consolidated.
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:394-400,441-446]
+
+- **An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh** — the
+  documented guard at `:478-482` reroutes only when `_memberPageLoadInFlight` is set, and the read-refresh path
+  never sets it. A projection notification starts `RefreshTenantReadsAsync` (member snapshot → `Refreshing`);
+  the operator then triggers a detail refresh; `BeginLoad()` cancels the shared token and clears
+  `IsRefreshing`. The member read is dropped, the refresh indicator vanishes, the pager re-enables and the
+  table sits on stale rows with no error and no retry — the same failure the comment above the guard says it
+  closed, reached through the other entry point. No test triggers a refresh while a member read is
+  outstanding.
+  Reason for deferral: the member-paging surface is owned outside Story 1.6, and the correct fix (widening the
+  reroute condition to any in-flight member read) changes behaviour the member story's tests pin.
+  Revisit if: the member table is reported showing stale rows after a refresh, or the member-paging story is
+  reopened.
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:470-482]
+
+- **Undeclared `references/Hexalith.EventStore` gitlink bump in the working tree** — `a40ab8a` → `e4618d9`
+  (v3.86.0), uncommitted and named in no story File List. `scripts/validate-story-gitlinks.py` also exits 1
+  for Story 1.6, but every UNDECLARED pointer it reports was moved by a Story 1.9 / Epic 2 commit after this
+  story's stale baseline; no Story 1.6 commit after `ec7ec8c` moves a gitlink, and `ec7ec8c`'s EventStore bump
+  is declared. Separately worth noting: nine of those later bumps rode along inside `feat:`/`fix:`/`test:`/
+  `refactor:` commits rather than dedicated `build(deps)` commits — the exact pattern the guard was created
+  for, now recurring under other stories' names.
+  Reason for deferral: not Story 1.6's change. Belongs to whoever is holding the working-tree bump, as either a
+  separate `build(deps)` commit or a revert.
+  Revisit if: the bump is committed without declaration, or the ride-along pattern recurs a fourth time.
+  [references/Hexalith.EventStore]
+
+## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)
+
+- **Composition availability-pair guard is logically asymmetric** — `gatewayIsUnavailable` compares
+  `ServiceDescriptor.ImplementationType` against `UnavailableTenantQueryGateway`, which is `internal` and is
+  null for factory- or instance-registered services. A host declaring a truthful `IsConnected: false`
+  alongside any other gateway is therefore rejected with the inverted message "declares IsConnected: false
+  while the registered ITenantQueryGateway is a connected implementation", while the mismatched pairing the
+  guard exists to catch — `UnavailableTenantQueryGateway` registered via a factory with `IsConnected: true` —
+  passes. The check is also skipped entirely unless availability is registered as an instance.
+  Reason for deferral: unreachable in practice. `Hexalith.Tenants.UI` ships as a container application, not a
+  NuGet package; the only production caller is its own `Program.cs`, which pre-registers nothing; and the sole
+  assemblies that can name the internal type are the two test projects, which use the instance form.
+  Revisit if: `Hexalith.Tenants.UI` is ever published as a package, or a second host composes the module.
+  [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:60]
+
+- **Member mutation flows are outside the projection-lifecycle policy** — `ChangeTenantMemberRoleFlow`,
+  `RemoveTenantMemberFlow`, `AddTenantMemberFlow` and `CreateTenantFlow` have no `Lifecycle` parameter and
+  gate on freshness and surface kind only, while `33abe27` added `Lifecycle is not Current` gates to the four
+  configuration and metadata flows. With a rebuilding projection, editing tenant metadata is blocked but
+  removing a member — the higher-consequence, harder-to-reverse action — is not.
+  Reason for deferral: consequence of the open lifecycle-gate decision recorded in the story's loop-8 review
+  findings, not an independent defect. Resolving that decision determines whether these flows should be
+  brought into the policy or the policy narrowed.
+  Revisit if: the lifecycle-gate decision resolves toward keeping the strict gate.
+  [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:223]
+
+- **Two global-administrator teardown paths are knowingly unverified** — un-marshalling the
+  `ResetPagingAsync` cursor-history clear off the dispatcher, and neutering the `ObjectDisposedException`
+  catch filter on the notification-refresh teardown, both survived the full UI suite.
+  Reason for deferral: bUnit's single-threaded renderer cannot reproduce either race, so these are untestable
+  at the current harness level rather than merely uncovered.
+  Revisit if: a concurrency-capable component harness lands, or either path produces a live defect. Until
+  then the code comments should say "unverified" rather than implying coverage.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:997]
+
+- **Paging guards widened to `internal` for direct test access** — `MemberAccessReview`'s paging guards were
+  promoted from private to internal so the test project could invoke them directly; the accompanying comment
+  concedes every guard could be deleted with the suite still green.
+  Reason for deferral: pre-existing test-design debt, not introduced behaviour. The guards remain
+  unobservable through the rendered affordance, so the coverage they now have does not prove the control
+  behaves correctly — but narrowing them again without a rendered-affordance test would lose coverage.
+  Revisit if: the member pager gains bUnit tests that drive it through its rendered controls.
+  [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585]

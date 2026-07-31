@@ -118,12 +118,19 @@
                     <dt>@Localizer["Tenants.Detail.FreshnessLabel"]</dt>
                     <dd><TruthStateBadge Freshness="@_snapshot.Freshness" TestId="tenants-detail-truth-state" /></dd>
                 </div>
-                <div role="status"
-                     aria-live="@(_snapshot.Lifecycle is ProjectionLifecycleState.Unavailable ? "assertive" : "polite")"
-                     aria-atomic="true"
-                     data-testid="tenants-detail-projection-lifecycle-status">
+                @* The live region sits inside the dd, not on the dl child. ARIA-in-HTML allows only dt, dd,
+                   generic div, script and template as dl children, so role="status" on the wrapper detached
+                   this dt/dd pair from the definition list. role="alert" (implicitly assertive) replaces the
+                   contradictory aria-live="assertive" on role="status" (implicitly polite). *@
+                <div>
                     <dt>@Localizer["Tenants.ProjectionLifecycle.Label"]</dt>
-                    <dd><ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle" TestId="tenants-detail-projection-lifecycle" /></dd>
+                    <dd>
+                        <span role="@(_snapshot.Lifecycle is ProjectionLifecycleState.Unavailable ? "alert" : "status")"
+                              aria-atomic="true"
+                              data-testid="tenants-detail-projection-lifecycle-status">
+                            <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle" TestId="tenants-detail-projection-lifecycle" />
+                        </span>
+                    </dd>
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Detail.CreatedAtLabel"]</dt>
@@ -500,10 +507,16 @@
             return;
         }
 
-        if (CanApply(generation, tenantId))
+        // Marshal back before the generation check. Testing and assigning on a thread-pool continuation let a
+        // newer read that completed in between lose to this older one, which is why every sibling load path in
+        // this file re-checks inside InvokeAsync.
+        await InvokeAsync(() =>
         {
-            _snapshot = snapshot;
-        }
+            if (CanApply(generation, tenantId))
+            {
+                _snapshot = snapshot;
+            }
+        }).ConfigureAwait(false);
     }
 
     private Task RefreshTenantReadsAsync()

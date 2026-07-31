@@ -16,24 +16,26 @@
             <TruthStateBadge Freshness="@EffectiveFreshness"
                              TestId="tenants-config-read-truth-badge"
                              ResourcePrefix="Tenants.Configuration" />
-            @if (HasNonCurrentState)
-            {
-                <p>@StateMessage</p>
-            }
         </div>
     </header>
 
-    @if (!CanInspect)
+    @* The state section is the single owner of the truth sentence and the only live region for it. It was
+       previously rendered only when the region could not be inspected, so stale, degraded, unknown and
+       non-current-lifecycle reads announced their result count and never announced their state, while the
+       unavailable sentence was duplicated between here and the header. *@
+    @if (HasNonCurrentState)
     {
         <section class="tenant-config__state"
                  data-testid="tenants-config-read-state"
+                 data-state="@StateKind"
                  role="status"
                  aria-live="@LivePoliteness">
             <h3>@StateTitle</h3>
             <p>@StateMessage</p>
         </section>
     }
-    else
+
+    @if (CanInspect)
     {
         @if (Rows.Count > 0)
         {
@@ -58,9 +60,12 @@
             </div>
         }
 
+        @* Routine result counts are always polite: assertive belongs to the truth state above, not to a
+           row tally. The empty panels below are described by this region and therefore carry no role of
+           their own — two live regions fired simultaneously for a single state change. *@
         <p class="tenant-config__announcer"
            role="status"
-           aria-live="@LivePoliteness"
+           aria-live="polite"
            aria-atomic="true"
            data-testid="tenants-config-read-announcer">
             @Announcement
@@ -69,8 +74,7 @@
         @if (Rows.Count == 0)
         {
             <section class="tenant-config__state"
-                     data-testid="tenants-config-read-empty"
-                     role="status">
+                     data-testid="tenants-config-read-empty">
                 <h3>@Localizer["Tenants.Configuration.State.Empty.Title"]</h3>
                 <p>@Localizer["Tenants.Configuration.State.Empty"]</p>
             </section>
@@ -78,8 +82,7 @@
         else if (FilteredRows.Count == 0)
         {
             <section class="tenant-config__state"
-                     data-testid="tenants-config-read-filtered-empty"
-                     role="status">
+                     data-testid="tenants-config-read-filtered-empty">
                 <h3>@Localizer["Tenants.Configuration.State.FilteredEmpty.Title"]</h3>
                 <p>@Localizer["Tenants.Configuration.State.FilteredEmpty"]</p>
             </section>
@@ -97,10 +100,14 @@
                                  Block="true">
                     @foreach (IGrouping<string, TenantConfigurationSafeRow> group in FilteredRows.GroupBy(static row => row.Namespace))
                     {
-                        <FluentAccordionItem Header="@Localizer["Tenants.Configuration.GroupLabel", group.Key]"
+                        @* Keyed by namespace: without it Blazor reuses accordion items positionally and the
+                           component's DOM-held collapsed state follows position instead of namespace. *@
+                        <FluentAccordionItem @key="group.Key"
+                                             Header="@Localizer["Tenants.Configuration.GroupLabel", group.Key]"
                                              Expanded="true">
                             <div class="tenant-config__group" data-testid="tenants-config-read-group">
                                 <FluentDataGrid Items="@group.AsQueryable()"
+                                                ItemKey="@(row => row.Key)"
                                                 Class="tenant-config__data-grid"
                                                 ResizableColumns="true"
                                                 ReorderableColumns="false"
@@ -113,28 +120,15 @@
                                     <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Key"]"
                                                     ColumnId="configuration-key"
                                                     Width="280px">
-                                        <code data-testid="tenants-config-read-key"
-                                              aria-label="@Localizer["Tenants.Configuration.KeyAccessible", context.Key]">@context.Key</code>
+                                        @* aria-label is prohibited on role=code, so AT dropped it and the
+                                           literal was announced from text content anyway. *@
+                                        <code data-testid="tenants-config-read-key">@context.Key</code>
                                     </TemplateColumn>
                                     <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Value"]"
                                                     ColumnId="configuration-value"
                                                     Width="320px">
                                         <code class="tenant-config__value"
-                                              data-testid="tenants-config-read-value"
-                                              aria-label="@Localizer["Tenants.Configuration.ValueAccessible", context.Value]">@context.Value</code>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Freshness"]"
-                                                    ColumnId="configuration-freshness"
-                                                    Width="170px">
-                                        <TruthStateBadge Freshness="@EffectiveFreshness"
-                                                         TestId="tenants-config-read-row-freshness"
-                                                         ResourcePrefix="Tenants.Configuration" />
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@Localizer["Tenants.ProjectionLifecycle.Label"]"
-                                                    ColumnId="configuration-projection-lifecycle"
-                                                    Width="180px">
-                                        <ProjectionLifecycleBadge Lifecycle="@Lifecycle"
-                                                                  TestId="tenants-config-read-row-projection-lifecycle" />
+                                              data-testid="tenants-config-read-value">@context.Value</code>
                                     </TemplateColumn>
                                 </FluentDataGrid>
                             </div>
@@ -184,11 +178,26 @@
     private bool IsDegraded
         => Model?.IsDegraded == true || SurfaceKind is TenantDetailSurfaceKind.Degraded;
 
+    // Lifecycle is part of the truth model, not decoration. It was rendered as a badge but excluded from
+    // every state predicate, so Lifecycle=Unavailable with Freshness=Current produced an "Unavailable"
+    // badge beside a "Current" badge and no sentence at all. Both command flows already refuse to act
+    // unless the lifecycle is Current; the read landmark was the only surface ignoring it.
+    private bool HasNonCurrentLifecycle
+        => Lifecycle is not ProjectionLifecycleState.Current;
+
     private bool HasNonCurrentState
-        => !CanInspect || IsDegraded || EffectiveFreshness is not ReadModelFreshnessState.Current;
+        => !CanInspect
+        || IsDegraded
+        || HasNonCurrentLifecycle
+        || EffectiveFreshness is not ReadModelFreshnessState.Current;
 
     private ReadModelFreshnessState EffectiveFreshness
         => IsDegraded ? ReadModelFreshnessState.Unknown : Freshness;
+
+    // Degraded and Unknown share a truth badge because a degraded read must not claim Current. They stay
+    // distinguishable through the state section's title, message and this text-independent discriminator.
+    private string StateKind
+        => StateResourcePrefix["Tenants.Configuration.State.".Length..];
 
     private string Announcement
         => Localizer[
@@ -204,7 +213,10 @@
 
     // Loading is tested before availability: a loading snapshot legitimately carries an unavailable
     // model, so ordering availability first made the loading state unreachable and reported a
-    // still-arriving read as unavailable.
+    // still-arriving read as unavailable. Loading is reachable for a consumer that renders this landmark
+    // outside FcAggregateDetailPage's ReadyContent; the tenant detail page cannot produce it.
+    // Aging is classified with Stale rather than falling through to Ready, which previously rendered
+    // "evidence is current" beside a warning Aging badge.
     private string StateResourcePrefix
         => SurfaceKind is TenantDetailSurfaceKind.Loading
             ? "Tenants.Configuration.State.Loading"
@@ -212,14 +224,26 @@
                 ? "Tenants.Configuration.State.Unavailable"
                 : IsDegraded
                     ? "Tenants.Configuration.State.Degraded"
-                    : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale
+                    : SurfaceKind is TenantDetailSurfaceKind.Stale
+                        || Freshness is ReadModelFreshnessState.Stale or ReadModelFreshnessState.Aging
                         ? "Tenants.Configuration.State.Stale"
                         : Freshness is ReadModelFreshnessState.Unknown || SurfaceKind is TenantDetailSurfaceKind.Unknown
                             ? "Tenants.Configuration.State.Unknown"
-                            : "Tenants.Configuration.State.Ready";
+
+                            // Last, so it reports only what freshness does not already say: a lifecycle that
+                            // is not Current while the read itself looks fine. This is the case that used to
+                            // fall through to Ready — "evidence is current" beside an Unavailable badge.
+                            : HasNonCurrentLifecycle
+                                ? "Tenants.Configuration.State.ProjectionLifecycle"
+                                : "Tenants.Configuration.State.Ready";
 
     private string LivePoliteness
-        => IsDegraded || SurfaceKind is TenantDetailSurfaceKind.Unknown ? "assertive" : "polite";
+        => IsDegraded
+            || !CanInspect
+            || Lifecycle is ProjectionLifecycleState.Unavailable
+            || SurfaceKind is TenantDetailSurfaceKind.Unknown
+                ? "assertive"
+                : "polite";
 
     private void OnFilterChanged(string? value)
         => _filter = value ?? string.Empty;

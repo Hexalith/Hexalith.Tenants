@@ -1026,9 +1026,6 @@
   <data name="Tenants.Configuration.GroupLabel" xml:space="preserve">
     <value>Namespace {0}</value>
   </data>
-  <data name="Tenants.Configuration.Header.Freshness" xml:space="preserve">
-    <value>Freshness</value>
-  </data>
   <data name="Tenants.Configuration.Header.Key" xml:space="preserve">
     <value>Key</value>
   </data>
@@ -1037,9 +1034,6 @@
   </data>
   <data name="Tenants.Configuration.Header.Value" xml:space="preserve">
     <value>Value</value>
-  </data>
-  <data name="Tenants.Configuration.KeyAccessible" xml:space="preserve">
-    <value>Full configuration key {0}</value>
   </data>
   <data name="Tenants.Configuration.ScopeNotice" xml:space="preserve">
     <value>Only configuration approved by the current namespace and display policy is shown.</value>
@@ -1061,6 +1055,12 @@
   </data>
   <data name="Tenants.Configuration.State.Unknown.Title" xml:space="preserve">
     <value>Configuration evidence unknown</value>
+  </data>
+  <data name="Tenants.Configuration.State.ProjectionLifecycle.Title" xml:space="preserve">
+    <value>Projection rebuilding</value>
+  </data>
+  <data name="Tenants.Configuration.State.ProjectionLifecycle" xml:space="preserve">
+    <value>The configuration projection is not current, so these entries cannot be treated as authoritative.</value>
   </data>
   <data name="Tenants.Configuration.State.Degraded" xml:space="preserve">
     <value>Configuration evidence is degraded.</value>
@@ -1134,9 +1134,6 @@
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Visible configuration</value>
   </data>
-  <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
-    <value>Visible configuration value {0}</value>
-  </data>
   <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
     <value>Set configuration</value>
   </data>
@@ -1206,6 +1203,9 @@
   <data name="Tenants.Configuration.Set.Validation.KeyRequired" xml:space="preserve">
     <value>Enter a configuration key before previewing the configuration change.</value>
   </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyLiteral" xml:space="preserve">
+    <value>Enter the key exactly, without leading or trailing spaces or invisible characters.</value>
+  </data>
   <data name="Tenants.Configuration.Set.Validation.KeyLength" xml:space="preserve">
     <value>The full configuration key must be {0} characters or fewer.</value>
   </data>
@@ -1234,7 +1234,7 @@
     <value>Current known state</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.CurrentState.Unavailable" xml:space="preserve">
-    <value>Unavailable</value>
+    <value>Not visible — this key has no approved value to display, or no value is set.</value>
   </data>
   <data name="Tenants.Configuration.Set.Preview.IntendedEffect" xml:space="preserve">
     <value>Intended effect</value>

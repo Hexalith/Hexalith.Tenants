@@ -282,6 +282,120 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Already_applied_is_decided_from_the_reauthorized_context_not_the_render_time_parameter()
+    {
+        // The pre-existing test passed the SAME context instance as both Context and the reauthorize result,
+        // so `Context.FindRemovableRow` and `currentContext.FindRemovableRow` were indistinguishable and the
+        // mutation it claimed to catch survived. These two contexts genuinely differ.
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
+        };
+        RegisterServices(gateway);
+
+        TenantConfigurationManagementContext renderTime = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
+        TenantConfigurationManagementContext reauthorized = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "production" });
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, renderTime)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(reauthorized))
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("trial");
+        cut.Find("form").Submit();
+
+        // Render-time rows say "trial" is already applied; the re-authorized rows say it is not. The command
+        // must be sent, proving the decision came from the re-authorized context.
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Submit_fails_closed_when_no_reauthorize_provider_is_wired()
+    {
+        // A consumer that forgets the optional callback must not silently fall back to the render-time
+        // context. Every existing submit test wired one, so this branch had never executed.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void Submit_fails_closed_when_reauthorization_throws()
+    {
+        // No reauthorize provider anywhere in the suite threw, so the catch that maps failure to an
+        // unavailable context — rather than to the render-time context — had never executed.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromException<TenantConfigurationManagementContext>(
+                new InvalidOperationException("policy backend unreachable"))));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        cut.Markup.ShouldNotContain("policy backend unreachable");
+        cut.Markup.ShouldNotContain("InvalidOperationException");
+    }
+
+    [Theory]
+    [InlineData("billing.tier ")]
+    [InlineData(" billing.tier")]
+    [InlineData("billing.\u200btier")]
+    public void Keys_that_cannot_be_reproduced_by_typing_are_rejected_rather_than_written(string key)
+    {
+        // Rejection, not normalization: such a key renders identically to its clean twin and can never
+        // satisfy the remove flow's ordinal confirmation, so it would be permanently unremovable.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(
+                Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change(key);
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void Keyboard_form_submission_confirms_only_after_status_and_projection_evidence()
     {
         StubTenantCommandGateway gateway = new()
@@ -480,12 +594,13 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new();
         RegisterServices(gateway);
 
+        // The dead IsAuthorized parameter was removed: the only call site never passed it, so it was
+        // permanently true and this branch was reachable only from a test. SurfaceKind is the surviving gate.
         IRenderedComponent<SetTenantConfigurationFlow> unauthorized = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
-            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.IsAuthorized, false));
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         unauthorized.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent
             .ShouldContain("not authorized", Case.Insensitive);
