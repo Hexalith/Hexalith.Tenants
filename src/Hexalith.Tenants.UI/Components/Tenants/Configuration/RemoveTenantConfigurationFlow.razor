@@ -3,6 +3,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
@@ -115,9 +116,12 @@
        only, and only when focus was already inside. *@
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-remove__dismiss">
         <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_cancelElement">
+            @* Disabled only for the bounded submit call. Disabling it for Accepted/ProjectionPending made
+               the dialog undismissable for the whole projection-lag window, and permanently when the proof
+               never landed -- see CloseAsync. *@
             <FluentButton Appearance="ButtonAppearance.Outline"
                           data-testid="tenants-config-remove-cancel"
-                          Disabled="@IsOwnedCommandInFlight"
+                          Disabled="@_isSubmitting"
                           OnClick="CloseAsync">
                 @Localizer["Tenants.Configuration.Remove.Cancel"]
             </FluentButton>
@@ -180,6 +184,10 @@
     private string? _validationMessage;
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
+
+    // Latched by CloseAsync. The component is unmounted on dismissal and a fresh instance is created if the
+    // operator reopens the flow, so this never has to be reset.
+    private bool _dismissed;
     private bool _focusConfirmationPending;
     private bool _focusSubmitPending;
     private bool _focusCancelPending;
@@ -203,7 +211,6 @@
 
     [Parameter]
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
-
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -230,12 +237,15 @@
             ? Localizer["Tenants.Configuration.Remove.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
-            : Lifecycle is not ProjectionLifecycleState.Current
-                ? Localizer["Tenants.Configuration.Remove.Unavailable.ProjectionLifecycle"].Value
+            // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness
+            // clauses so a failed read reports why it failed instead of pointing at the projection
+            // lifecycle. See SetTenantConfigurationFlow for the full rationale.
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Freshness"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.Configuration.Remove.Unavailable.ProjectionLifecycle"].Value
                 : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
@@ -259,8 +269,12 @@
         || !string.IsNullOrWhiteSpace(UnavailableReason)
         || !string.Equals(_confirmationText, TargetKey, StringComparison.Ordinal);
 
+    // _isRefreshing belongs in the enabled test, not only in the method. The re-entrancy guard returns
+    // before the status read, before ConfirmProjection and before the activity update, so with the button
+    // still enabled a second click was silently discarded — indistinguishable from a dead control.
     private bool CanRefresh
-        => _snapshot.Intent is not null
+        => !_isRefreshing
+        && _snapshot.Intent is not null
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Rejected
@@ -382,30 +396,62 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
         }
 
         if (_focusSubmitPending)
         {
             _focusSubmitPending = false;
-            await _submitElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_submitElement).ConfigureAwait(false);
         }
 
         if (_focusCancelPending)
         {
             _focusCancelPending = false;
-            await _cancelElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
-            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    // The destructive flow was the only one of the three configuration components left calling FocusAsync
+    // bare. A circuit that drops with a focus queued throws JSDisconnectedException and a target that left
+    // the DOM between the queuing render and this callback throws JSException; either escapes the render
+    // lifecycle and tears the circuit down. Both are expected here, and neither is actionable: there is
+    // nothing left to focus.
+    private static async Task FocusSafelyAsync(ElementReference element)
+    {
+        try
+        {
+            await element.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
         }
     }
 
     private async Task SetCommandActivityRaisedAsync(bool isActive)
     {
+        // Once dismissed, this flow can never raise the lease again. CloseAsync deliberately does not wait
+        // for an in-flight RefreshStatusAsync -- blocking dismissal on _isRefreshing would restore the modal
+        // trap P-2 removed -- so a status read suspended at GetStatusAsync resumed after the parent had
+        // already unmounted this component and called UpdateCommandActivityForSnapshotAsync. With the state
+        // still ProjectionPending, RetainsCommandActivity was true, this latch flipped back, and the parent
+        // and detail page were left believing a command was settling with no owner left to lower it: the
+        // sibling Set flow rendered permanently blocked and tenant lifecycle actions stayed disabled for the
+        // life of the circuit. Lowering the lease stays allowed; only re-raising is refused.
+        if (isActive && _dismissed)
+        {
+            return;
+        }
+
         if (_hasRaisedCommandActivity == isActive)
         {
             return;
@@ -632,17 +678,33 @@
 
     private async Task CloseAsync()
     {
-        // Submit was already guarded by IsOwnedCommandInFlight; close was not. Dismissing here let the
-        // command run to completion with its Confirmed/Rejected/UnableToVerify outcome, safe message and
-        // audit entry point unrenderable, which is exactly the non-collapse guarantee this flow owes a
-        // destructive action.
-        if (IsOwnedCommandInFlight)
+        // Dismissal has to stay bounded. Guarding it with IsOwnedCommandInFlight covered Accepted and
+        // ProjectionPending, and neither is terminal: ProjectionPending is left only by a RemoveConfirmed
+        // proof, which GetConfigurationProjectionProofAsync declines whenever authorization, provenance,
+        // freshness or lifecycle evidence is missing. A projection that never proves the removal therefore
+        // left this role="dialog" aria-modal="true" section with no exit at all -- cancel disabled, Escape
+        // swallowed here, and the two focus sentinels bouncing focus back in.
+        //
+        // Only the submit call itself is blocked now, which the gateway bounds. The non-collapse guarantee
+        // is preserved where it actually belongs: dismissal renders no success, confirms nothing, and
+        // advances no truth state. An operator who dismisses has chosen to stop watching, which is not the
+        // same as the flow claiming an outcome it does not have.
+        if (_isSubmitting)
         {
             return;
         }
 
         _validationMessage = null;
         _focusCancelPending = true;
+
+        // Set before the release, so a status refresh already suspended mid-await cannot re-raise the lease
+        // between these two statements.
+        _dismissed = true;
+
+        // Release the activity lease before unmounting. The parent landmark keeps both flows rendered while
+        // a child owns command activity, so a dismissal that skipped this would leave the landmark and the
+        // detail page believing a command was still settling for the life of the circuit.
+        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
@@ -679,8 +741,8 @@
     }
 
     private async Task FocusConfirmationAsync(FocusEventArgs args)
-        => await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
+        => await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
 
     private async Task FocusCancelAsync(FocusEventArgs args)
-        => await _cancelElement.FocusAsync().ConfigureAwait(false);
+        => await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
 }

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Security.Claims;
 
+using AngleSharp.Dom;
+
 using Bunit;
 
 using Hexalith.FrontComposer.Contracts.Communication;
@@ -133,6 +135,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
         cut.Find("[data-testid='tenants-global-admins-projection-lifecycle']")
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+
+        // The localized label, not only the class: a class token is incidental markup, and asserting it
+        // alone cannot detect a missing or wrong badge string.
+        cut.Find("[data-testid='tenants-global-admins-projection-lifecycle']").TextContent.Trim().ShouldBe("Current");
         cut.Find("[data-testid='tenants-global-admins-action-reasons']").TextContent.ShouldContain("Grant is available");
         cut.Find("[data-testid='tenants-global-admins-live-region']").GetAttribute("aria-live").ShouldBeNull();
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
@@ -169,6 +175,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         gateway.GlobalAdministratorCalls.ShouldBe(0);
         cut.Find("[data-testid='tenants-global-admins-unavailable']").GetAttribute("role").ShouldBe("alert");
         cut.Find("[data-testid='tenants-global-admins-denied-message']").TextContent.ShouldContain("fails closed");
+
+        // Anchor on the live region itself, not only on its parent. The denied-message element CONTAINS the
+        // live region, so its TextContent includes the child either way -- deleting the live-region wrapper
+        // from the restricted branch left the denial with no identified live region, test green.
+        cut.Find("[data-testid='tenants-global-admins-live-region']").TextContent.ShouldContain("fails closed");
         cut.Markup.ShouldNotContain("hidden-admin");
         cut.Markup.ShouldNotContain("tenants-global-admins-list");
         cut.Markup.ShouldNotContain("tenants-global-admins-scope");
@@ -315,7 +326,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 GetGlobalAdministratorsQuery.ProjectionType,
                 "system",
                 Arg.Any<CancellationToken>())
-            .Returns(_ => Interlocked.Increment(ref setupAttempts) == 1
+            // Keeps failing until the per-render budget is spent, so the budget itself is exercised and the
+            // only attempt that can succeed is the one an explicit refresh unlocks.
+            .Returns(_ => Interlocked.Increment(ref setupAttempts) <= 3
                 ? Task.FromException(new HttpRequestException("transient setup failure"))
                 : Task.CompletedTask);
         var gateway = new StubTenantQueryGateway(
@@ -341,15 +354,80 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddScoped<TenantReadRefreshSubscription>();
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
-        cut.WaitForAssertion(() => setupAttempts.ShouldBe(1));
+        cut.WaitForAssertion(() => setupAttempts.ShouldBeGreaterThanOrEqualTo(1));
 
+        // Exhaust the per-render retry budget. Without a bound, a failing subscribe was retried on EVERY
+        // render, so "the Refresh click retried setup" was indistinguishable from "the click caused a
+        // render": rewiring the button to a no-op that calls StateHasChanged kept the test green.
+        for (int render = 0; render < 10; render++)
+        {
+            cut.Render();
+        }
+
+        int attemptsBeforeRefresh = Volatile.Read(ref setupAttempts);
+        attemptsBeforeRefresh.ShouldBe(3, "The per-render retry must be bounded, and spend its whole budget.");
+
+        // Only an explicit refresh resets the budget, so only it can produce a further attempt.
         cut.Find("[data-testid='tenants-global-admins-refresh']").Click();
 
-        cut.WaitForAssertion(() => setupAttempts.ShouldBe(2));
-        await subscription.Received(2).SubscribeAsync(
+        cut.WaitForAssertion(() => Volatile.Read(ref setupAttempts).ShouldBe(attemptsBeforeRefresh + 1));
+        await subscription.Received(attemptsBeforeRefresh + 1).SubscribeAsync(
             GetGlobalAdministratorsQuery.ProjectionType,
             "system",
             Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Retry and Reset must refuse a click dispatched while a page read is already in flight.
+    /// </summary>
+    /// <remarks>
+    /// Both render alongside the pager whenever a rows-bearing snapshot is also recoverable, and neither used
+    /// to set or read the in-flight gate: a Next click followed by Reset cleared the cursor state
+    /// synchronously, Next's load then returned null as superseded and its <c>finally</c> re-enabled the
+    /// pager against the pre-reset snapshot, so the next Next pushed a null prior cursor and recorded page
+    /// one for a view showing page four. Neutering the early return in both handlers survived the suite --
+    /// the only retry test clicked once against a settled surface, and the rendered <c>disabled</c> attribute
+    /// cannot observe a click dispatched before the re-render lands.
+    /// </remarks>
+    [Fact]
+    public async Task Recovery_affordances_reject_a_click_dispatched_while_a_page_read_is_in_flight()
+    {
+        GlobalAdministratorsSnapshot recoverable = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin.alpha", ReadModelFreshnessState.Stale)],
+            nextCursor: "page-2",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Stale);
+        var gateway = new StubTenantQueryGateway(recoverable, recoverable);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(1));
+
+        // Hold the next page read open, so the surface really is mid-load.
+        var pendingPage = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.QueueResponse(pendingPage.Task);
+        Task nextClick = cut.Find("[data-testid='tenants-global-admins-next']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(2));
+
+        await cut.InvokeAsync(() => cut.Instance.RetryAsync());
+        await cut.InvokeAsync(() => cut.Instance.ResetPagingAsync());
+
+        gateway.GlobalAdministratorCalls.ShouldBe(
+            2,
+            "Neither recovery affordance may start a read while a page read is in flight.");
+
+        pendingPage.SetResult(recoverable);
+        await nextClick;
+
+        // Once the load settles, the affordances work again.
+        await cut.InvokeAsync(() => cut.Instance.RetryAsync());
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(3));
     }
 
     [Fact]
@@ -838,6 +916,88 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .ShouldBe([null, "protected-next-cursor", null, null]);
     }
 
+    /// <summary>
+    /// A Previous click that lands on page one through a trimmed history must be announced.
+    /// </summary>
+    /// <remarks>
+    /// <c>CursorHistory.Trim</c> re-appends the first-page sentinel beneath the newest entries, so one later
+    /// Previous click walks the operator from mid-sequence straight to page one. Deleting the whole notice
+    /// block left the suite green: <c>tenants-global-admins-history-truncated</c> had no reference anywhere
+    /// under tests/, which also made the <c>_pagingHistoryTruncated</c> plumbing on this page unobservable.
+    /// The audit twin has carried this coverage since the notice was introduced.
+    /// </remarks>
+    [Fact]
+    public void A_previous_click_that_jumps_to_page_one_through_a_trimmed_history_is_announced()
+    {
+        const int bound = 50;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetGlobalAdministratorsAsync(
+            Arg.Any<GlobalAdministratorsRequest>(),
+            Arg.Any<GlobalAdministratorsSnapshot?>(),
+            Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>()!;
+                int page = request.Cursor is null
+                    ? 0
+                    : int.Parse(request.Cursor["page-".Length..], CultureInfo.InvariantCulture);
+                return Task.FromResult(GlobalAdministratorsSnapshot.Ready(
+                    [new GlobalAdministratorRow($"admin-page-{page}", ReadModelFreshnessState.Current)],
+                    $"page-{page + 1}",
+                    true,
+                    $"\"etag-{page}\"",
+                    ReadModelFreshnessState.Current) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    RequestCursor = request.Cursor,
+                });
+            });
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("admin-page-0"));
+
+        // One page past the bound, so the trim runs and drops the oldest non-sentinel entries.
+        for (int page = 1; page <= bound + 1; page++)
+        {
+            cut.Find("[data-testid='tenants-global-admins-next']").Click();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-user-id']")
+                .TextContent.ShouldBe($"admin-page-{page}"));
+        }
+
+        cut.FindAll("[data-testid='tenants-global-admins-history-truncated']").ShouldBeEmpty(
+            "Paging forward is not a jump; the notice belongs to the Previous click that lands on page one.");
+
+        // Walk back. The retained history is 49 entries plus the re-appended sentinel, so the last of these
+        // pops the sentinel and lands on page one from the middle of the sequence.
+        for (int step = 1; step < bound; step++)
+        {
+            cut.Find("[data-testid='tenants-global-admins-previous']").Click();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-previous']")
+                .HasAttribute("disabled").ShouldBeFalse());
+            cut.FindAll("[data-testid='tenants-global-admins-history-truncated']").ShouldBeEmpty();
+        }
+
+        cut.Find("[data-testid='tenants-global-admins-previous']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("admin-page-0");
+            cut.Find("[data-testid='tenants-global-admins-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+
+        IElement notice = cut.Find("[data-testid='tenants-global-admins-history-truncated']");
+        notice.GetAttribute("role").ShouldBe("status");
+        notice.GetAttribute("aria-live").ShouldBe("polite");
+        notice.TextContent.ShouldContain("first page");
+
+        // Paging forward again retires the notice: the operator is no longer on the jumped-to page.
+        cut.Find("[data-testid='tenants-global-admins-next']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-admins-history-truncated']").ShouldBeEmpty());
+    }
+
     [Fact]
     public void Grant_flow_renders_fixed_scope_form_without_tenant_membership_inputs()
     {
@@ -915,6 +1075,69 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-remove-recovery']").TextContent.ShouldContain("grant", Case.Insensitive);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
         cut.Markup.ShouldNotContain("tenant-member", Case.Insensitive);
+
+        // Complete evidence: the count really is the platform total, so it carries the total label.
+        cut.Find("[data-testid='tenants-global-admin-remove-count-label']")
+            .TextContent.ShouldBe("Current administrator count");
+        cut.Find("[data-testid='tenants-global-admin-remove-count']").TextContent.ShouldBe("2");
+    }
+
+    /// <summary>
+    /// The preview count and its label must come from the same evidence.
+    /// </summary>
+    /// <remarks>
+    /// The count rendered <c>_removeSnapshot.PreviewRows</c>, captured at preview time, while its label was
+    /// selected from the live <c>_snapshot.IsCompleteEvidence</c>. A notification refresh landing between
+    /// preview and render therefore paired "Current administrator count" -- a claim about the whole platform
+    /// -- with a page-one count, or the converse, on the destructive flow. Both are now read from the preview
+    /// snapshot. The label and the id had zero test references before this.
+    /// </remarks>
+    [Fact]
+    public void Remove_preview_count_and_label_survive_a_refresh_that_changes_evidence_completeness()
+    {
+        GlobalAdministratorsSnapshot completePage = GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        };
+
+        // The same rows, but the platform grew a second page while the dialog was open.
+        GlobalAdministratorsSnapshot pagedRefresh = completePage with
+        {
+            NextCursor = "page-2",
+            HasMore = true,
+            IsCompleteEvidence = false,
+        };
+
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        StubTenantQueryGateway gateway = new(completePage, pagedRefresh);
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+
+        string previewCount = cut.Find("[data-testid='tenants-global-admin-remove-count']").TextContent;
+        cut.Find("[data-testid='tenants-global-admin-remove-count-label']")
+            .TextContent.ShouldBe("Current administrator count");
+
+        // Refresh under the open dialog: the live snapshot is now page-scoped.
+        cut.Find("[data-testid='tenants-global-admins-refresh']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+
+        // The captured count is unchanged, so its label must be too -- the pair still describes one snapshot.
+        cut.Find("[data-testid='tenants-global-admin-remove-count']").TextContent.ShouldBe(previewCount);
+        cut.Find("[data-testid='tenants-global-admin-remove-count-label']")
+            .TextContent.ShouldBe("Current administrator count");
     }
 
     /// <summary>
@@ -1542,6 +1765,24 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         styles.ShouldNotContain("::deep .global-admins__mobile-readonly ");
         styles.ShouldNotContain("::deep .global-admins__mobile-readonly{");
         styles.ShouldNotContain("::deep .global-admins__mobile-readonly {");
+
+        // Both halves of the breakpoint, separately. A bare `ShouldContain(".global-admins__mobile-readonly-host")`
+        // is satisfied by either the base `display: none` rule or the media-query `display: block` one, so
+        // deleting the base rule -- which makes the read-only notice permanently visible on desktop, the
+        // exact regression this replaced -- left the assertion green. Likewise, hoisting the
+        // mutation-initiation rule out of the media query hides Grant and every Remove launcher at all
+        // widths, also undetected.
+        string mobileBreakpoint = styles[styles.IndexOf("@media (max-width: 42rem)", StringComparison.Ordinal)..];
+        string beforeBreakpoint = styles[..styles.IndexOf("@media (max-width: 42rem)", StringComparison.Ordinal)];
+
+        beforeBreakpoint.Contains(".global-admins__mobile-readonly-host", StringComparison.Ordinal)
+            .ShouldBeTrue("the notice must be hidden by default, or it is permanently visible on desktop");
+        mobileBreakpoint.Contains(".global-admins__mobile-readonly-host", StringComparison.Ordinal)
+            .ShouldBeTrue("the notice must be revealed at the mobile breakpoint");
+        beforeBreakpoint.Contains("::deep .global-admins__mutation-initiation", StringComparison.Ordinal)
+            .ShouldBeFalse("hoisting the launcher rule out of the media query hides mutation affordances at every width");
+        mobileBreakpoint.Contains("::deep .global-admins__mutation-initiation", StringComparison.Ordinal)
+            .ShouldBeTrue();
     }
 
     /// <summary>
@@ -1697,8 +1938,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         /// <summary>
         /// Explicit because <c>ITenantQueryGateway.GetTenantUsersAsync</c> is no longer a default interface
-        /// method. These stubs previously inherited a silent <c>Unavailable</c> fallback, so a member-read
-        /// regression would have rendered as an outage here rather than failing the build.
+        /// method. This stub returns <c>Unavailable</c> deliberately: these tests do not exercise the member
+        /// read, and an unavailable member surface is the correct fail-closed shape for them. Note this is
+        /// the same value the removed default interface method returned, so a member-read regression is NOT
+        /// caught here -- it is caught by the member-specific suites in
+        /// <c>TenantDetailSurfaceTests</c>. (An earlier version of this remark claimed the opposite.)
         /// </summary>
         public Task<TenantUsersSnapshot> GetTenantUsersAsync(
             TenantUsersRequest request,
@@ -1871,6 +2115,16 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
+            // Without these, ProjectionLifecycleBadge rendered the literal resource key back through this
+            // echoing stub, so the badge's label was never really asserted and only its CSS class was --
+            // which project rules forbid relying on alone.
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
             ["Tenants.GlobalAdministrators.Aggregate.Domain.Label"] = "Domain",

@@ -141,6 +141,12 @@
                     @Localizer["Tenants.GlobalAdministrators.Freshness.Refreshing"]
                 </p>
             }
+            @if (_pagingJumpedToFirstPage)
+            {
+                <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-history-truncated">
+                    @Localizer["Tenants.GlobalAdministrators.Recovery.HistoryTruncated"]
+                </p>
+            }
             @if (_snapshot.PagingRecovered)
             {
                 <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-page-recovered">
@@ -303,8 +309,12 @@
                         @* PreviewRows is one PageSize-bounded page, not the platform total. Labelling a
                            paged count "Current administrator count" overstated the evidence on exactly the
                            incomplete-evidence path Remove stays enabled for (HasMore alone), so the label
-                           follows IsCompleteEvidence -- the flag that distinguishes the two. *@
-                        <dt data-testid="tenants-global-admin-remove-count-label">@(_snapshot.IsCompleteEvidence
+                           follows IsCompleteEvidence -- the flag that distinguishes the two.
+                           Read from the preview snapshot, not the live one: the count beside it is
+                           _removeSnapshot.PreviewRows, captured at preview time, so selecting the label from
+                           _snapshot paired "Current administrator count" with a page-one count whenever a
+                           notification refresh landed between preview and render. *@
+                        <dt data-testid="tenants-global-admin-remove-count-label">@(_removeSnapshot.PreviewIsCompleteEvidence
                             ? Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count"]
                             : Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count.VisiblePage"])</dt>
                         <dd data-testid="tenants-global-admin-remove-count">@(_removeSnapshot.PreviewRows?.Count ?? 0)</dd>
@@ -495,12 +505,24 @@
     private readonly object _grantFormModel = new();
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
     private IAsyncDisposable? _readRefreshLease;
+
+    /// <summary>Upper bound on optional notification-setup attempts between explicit refreshes.</summary>
+    private const int MaximumReadRefreshAttempts = 3;
+
+    private int _readRefreshAttempts;
     private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
     private GlobalAdministratorRemoveCommandSnapshot _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
     /// <summary>Upper bound on retained paging history.</summary>
     private const int MaximumCursorHistory = CursorHistory.DefaultMaximum;
 
     private readonly Stack<string?> _cursorHistory = new();
+
+    // Set when CursorHistory.Trim drops entries, cleared when the resulting jump has been announced. The trim
+    // re-appends the first-page sentinel beneath the newest entries, so one later Previous click moves the
+    // operator from the middle of the sequence to page one -- which the pager would otherwise render as an
+    // ordinary one-page step back.
+    private bool _pagingHistoryTruncated;
+    private bool _pagingJumpedToFirstPage;
     private string? _currentCursor;
     private string? _grantUserId;
     private string? _grantValidationMessage;
@@ -941,6 +963,8 @@
                 if (result.PagingRecovered)
                 {
                     _cursorHistory.Clear();
+                    _pagingHistoryTruncated = false;
+                    _pagingJumpedToFirstPage = false;
                     _currentCursor = null;
                 }
 
@@ -955,14 +979,32 @@
     }
 
     private async Task RefreshAsync()
-        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+    {
+        // An explicit refresh is the operator asking for a fresh attempt at everything, including the
+        // optional notification subscription. It is also the only thing that resets the setup budget:
+        // OnAfterRenderAsync retries a failed subscribe, but a failing backend records no lease, so every
+        // guard passed again on the next render -- two remote round trips per render, unbounded, for the
+        // life of the circuit. With the budget, "manual refresh retries notification setup" is a real
+        // behaviour rather than a restatement of "any render retries".
+        _readRefreshAttempts = 0;
+
+        // The truncation notice describes one past navigation step, not a property of the current page.
+        // Nothing on the ordinary load path cleared it, so once announced the polite live region stayed
+        // rendered through every manual refresh and every notification-driven reload -- on a page-one view
+        // with Previous already disabled -- until the operator happened to click Next.
+        _pagingJumpedToFirstPage = false;
+        await LoadAsync(reuseETag: true).ConfigureAwait(false);
+    }
 
     // Retry and Reset share the pager's in-flight gate. Both render alongside the pager whenever a rows-
     // bearing snapshot is also recoverable (Stale, for example), and neither used to set or read it: a Next
     // click followed by Reset cleared the cursor state synchronously, Next's LoadAsync then returned null as
     // superseded and its finally re-enabled the pager against the pre-reset snapshot, so the next Next
     // pushed a null prior cursor and recorded page one for a view showing page four.
-    private async Task RetryAsync()
+    // internal, not private: like the member pager guards, these exist for the click dispatched BEFORE the
+    // Disabled re-render lands, so asserting the rendered `disabled` attribute cannot observe them. The test
+    // project has InternalsVisibleTo and invokes them directly.
+    internal async Task RetryAsync()
     {
         if (_pageLoadInFlight)
         {
@@ -980,7 +1022,7 @@
         }
     }
 
-    private async Task ResetPagingAsync()
+    internal async Task ResetPagingAsync()
     {
         if (_pageLoadInFlight)
         {
@@ -995,6 +1037,8 @@
             await InvokeAsync(() =>
             {
                 _cursorHistory.Clear();
+                _pagingHistoryTruncated = false;
+                _pagingJumpedToFirstPage = false;
                 _currentCursor = null;
             }).ConfigureAwait(false);
             _ = await LoadAsync(
@@ -1069,6 +1113,7 @@
             || !BffComposition.IsReadSurfaceConnected
             || _readRefreshLease is not null
             || _readRefreshSubscriptionInFlight
+            || _readRefreshAttempts >= MaximumReadRefreshAttempts
             || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
         {
             return;
@@ -1092,7 +1137,9 @@
             if (!lease.IsSubscribed)
             {
                 // Setup registered no callback. Storing it would satisfy the "_readRefreshLease is not null"
-                // guard above forever, permanently disabling auto-refresh for this circuit.
+                // guard above forever, permanently disabling auto-refresh for this circuit. This is a failed
+                // attempt, so it is what the bounded budget is for.
+                _readRefreshAttempts++;
                 return;
             }
 
@@ -1101,6 +1148,12 @@
         }
         catch
         {
+            // The budget is charged here, not before the attempt. Counting every attempt charged the
+            // successful ones too, so three ordinary authorization transitions -- a JWT renewal, a
+            // sign-out/sign-in -- exhausted it even though every subscribe had worked, and auto-refresh went
+            // silently off for the rest of the circuit. It also defeated the !lease.IsSubscribed path below,
+            // which exists precisely so a later render can retry.
+            _readRefreshAttempts++;
             // Optional nudge only; never surface transport detail. The reason code is recorded so a
             // permanently non-refreshing surface is diagnosable instead of silent.
             LogNotificationSetupFailure();
@@ -1169,7 +1222,8 @@
                 {
                     _cursorHistory.Push(priorCursor);
                     _currentCursor = nextCursor;
-                    CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                    _pagingHistoryTruncated |= CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                    _pagingJumpedToFirstPage = false;
                 }
             }).ConfigureAwait(false);
         }
@@ -1204,6 +1258,17 @@
                     && _cursorHistory.Count > 0)
                 {
                     _currentCursor = _cursorHistory.Pop();
+
+                    // A trimmed history re-appends the first-page sentinel beneath the newest entries, so one
+                    // Previous click walks the operator from the middle of the sequence straight to page one.
+                    // Rendered as an ordinary step back it silently misstates where they are.
+                    _pagingJumpedToFirstPage = _pagingHistoryTruncated
+                        && _currentCursor is null
+                        && _cursorHistory.Count == 0;
+                    if (_pagingJumpedToFirstPage)
+                    {
+                        _pagingHistoryTruncated = false;
+                    }
                 }
             }).ConfigureAwait(false);
         }
@@ -1453,10 +1518,18 @@
         InvalidateAllMutations();
         IAsyncDisposable? lease = _readRefreshLease;
         _readRefreshLease = null;
+
+        // Releasing the lease here without clearing the budget meant the re-authorization path re-entered
+        // EnsureReadRefreshLeaseAsync with the counter already spent. TenantDetailPage avoids this by scoping
+        // the counter to the route; this surface has no route to key on, so the reset belongs to the
+        // transition that drops the lease.
+        _readRefreshAttempts = 0;
         await InvokeAsync(() =>
         {
             _authorizationReflection = reflection;
             _cursorHistory.Clear();
+            _pagingHistoryTruncated = false;
+            _pagingJumpedToFirstPage = false;
             _currentCursor = null;
             _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
             _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
@@ -1671,6 +1744,8 @@
             // The re-query below deliberately renders page one; reset the cursor state that describes the
             // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
             _cursorHistory.Clear();
+            _pagingHistoryTruncated = false;
+            _pagingJumpedToFirstPage = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
@@ -1723,7 +1798,7 @@
         }
 
         var request = new RemoveGlobalAdministrator(userId);
-        SetRemoveSnapshot(_removeSnapshot.Preview(request, _snapshot.Rows));
+        SetRemoveSnapshot(_removeSnapshot.Preview(request, _snapshot.Rows, _snapshot.IsCompleteEvidence));
     }
 
     private async Task SubmitRemoveAsync()
@@ -1844,6 +1919,8 @@
             // The re-query below deliberately renders page one; reset the cursor state that describes the
             // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
             _cursorHistory.Clear();
+            _pagingHistoryTruncated = false;
+            _pagingJumpedToFirstPage = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(

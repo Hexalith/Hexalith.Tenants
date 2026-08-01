@@ -658,8 +658,21 @@ public sealed class TenantsApiGeneratedControllerTests
 
         recorder.Paths.Count.ShouldBe(6);
 
+        // The paths must carry their query parameters, not merely be routable. Asserting only the count and
+        // the QueryType order let a regression that stopped appending query parameters yield six routable
+        // paths in the same order while every paged read silently lost its cursor and page size.
+        recorder.Paths[0].ShouldContain("pageSize=25");
+        recorder.Paths[0].ShouldContain("cursor=opaque");
+        recorder.Paths[2].ShouldContain("pageSize=20");
+        recorder.Paths[3].ShouldContain("pageSize=12");
+        recorder.Paths[4].ShouldContain("pageSize=50");
+        recorder.Paths[5].ShouldContain("pageSize=20");
+
         // Stage 2: the generated controllers must answer those exact paths -- not hand-written equivalents.
         CapturingEventStoreGatewayClient gateway = new();
+        // Lifecycle is set, not left at Unknown. The emitter writes X-Hexalith-Projection-Lifecycle only for
+        // a non-Unknown value, so the whole malformed/contradiction/normalize block in TenantsRestQueryClient
+        // was bypassed and no assertion below read Metadata.Lifecycle at all.
         QueryResponseMetadata Metadata(string version) => new(
             ETag: version,
             IsStale: false,
@@ -667,6 +680,7 @@ public sealed class TenantsApiGeneratedControllerTests
             ServedAt: servedAt)
         {
             Provenance = QueryResponseProvenance.ProjectionBacked,
+            Lifecycle = ProjectionLifecycleState.Current,
         };
 
         gateway.EnqueueQueryResult(
@@ -741,6 +755,9 @@ public sealed class TenantsApiGeneratedControllerTests
         list.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         list.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("list-v1");
         list.Metadata!.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        list.Metadata!.Lifecycle.ShouldBe(
+            ProjectionLifecycleState.Current,
+            "the client must parse the lifecycle header the real emitter writes");
         // GetStrongETag returns the unquoted strong tag content, so this is the controller's ETag as the
         // client stores it -- the same shape TenantsRestQueryClientTests pins against a stub handler.
         list.ETag.ShouldBe("list-v1");
@@ -772,6 +789,49 @@ public sealed class TenantsApiGeneratedControllerTests
         admins.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
         admins.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().UserId.ShouldBe("admin.alpha");
         admins.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("admins-v1");
+
+        // Stage 4: the conditional path, end to end. The controller's 304 behaviour and the client's 304
+        // parsing were each covered separately -- against hand-written URLs and against a stub handler -- so
+        // the one seam neither covered was the one that matters: IsSupportedNotModified needs an exact strong
+        // ETag plus a projection version plus projection-backed provenance, all from the real emitter.
+        gateway.EnqueueNotModified(
+            "list-v1",
+            new QueryResponseMetadata(
+                ETag: "list-v1",
+                IsNotModified: true,
+                IsStale: false,
+                ProjectionVersion: "list-v1",
+                ServedAt: servedAt)
+            {
+                Provenance = QueryResponseProvenance.ProjectionBacked,
+                Lifecycle = ProjectionLifecycleState.Current,
+            });
+
+        using var conditionalRequest = new HttpRequestMessage(HttpMethod.Get, recorder.Paths[0]);
+        conditionalRequest.Headers.IfNoneMatch.ParseAdd("\"list-v1\"");
+        using HttpResponseMessage notModified = await serviceClient.SendAsync(conditionalRequest, cancellationToken);
+        notModified.StatusCode.ShouldBe(HttpStatusCode.NotModified);
+
+        using (var replay = new HttpClient(new ReplayHandler(notModified))
+        {
+            BaseAddress = new Uri("https://tenants.invalid"),
+        })
+        {
+            TenantsRestQueryResponse<PaginatedResult<TenantSummary>> conditional =
+                await new TenantsRestQueryClient(replay).ListTenantsAsync(
+                    new ListTenantsQuery { Cursor = "opaque", PageSize = 25 },
+                    "list-v1",
+                    cancellationToken);
+
+            conditional.FailureKind.ShouldBe(
+                TenantsRestQueryFailureKind.None,
+                "a 304 from the real emitter must satisfy every clause of IsSupportedNotModified");
+            conditional.Metadata.ShouldNotBeNull().IsNotModified.ShouldBe(true);
+            conditional.Metadata!.ProjectionVersion.ShouldBe("list-v1");
+            conditional.Metadata!.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+            conditional.Metadata!.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+            conditional.ETag.ShouldBe("list-v1");
+        }
 
         foreach (HttpResponseMessage response in realResponses)
         {

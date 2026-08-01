@@ -41,10 +41,14 @@ public sealed record TenantLifecycleAvailabilityInput(
     bool IsNarrowSafetyContext = false,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
     public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
-        if (Lifecycle is not ProjectionLifecycleState.Current) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.ProjectionLifecycle", TenantCommandFocusTarget.Refresh);
-        }
-
+        // Clause order is part of the contract, not incidental. The strict lifecycle gate stays -- decision
+        // D-F (2026-07-31) upheld it and reversed D6, so `IsStale: false` with no lifecycle header is no
+        // longer sufficient evidence to enable a mutation -- but it runs AFTER the freshness and surface
+        // clauses. Every non-Current surface state (Unavailable, Degraded, Stale, Unknown) also carries a
+        // non-Current lifecycle, so with the lifecycle test first it answered for all of them, and an
+        // operator whose read had simply failed was told to refresh the projection lifecycle while
+        // Tenants.Lifecycle.Unavailable.StaleFreshness became unreachable. Each clause must report the
+        // condition the operator can actually act on.
         if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale or ReadModelFreshnessState.Unknown) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
         }
@@ -55,6 +59,10 @@ public sealed record TenantLifecycleAvailabilityInput(
 
         if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
+        }
+
+        if (Lifecycle is not ProjectionLifecycleState.Current) {
+            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.ProjectionLifecycle", TenantCommandFocusTarget.Refresh);
         }
 
         if (CurrentStatus is TenantStatus.Unknown) {

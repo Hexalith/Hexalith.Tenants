@@ -191,6 +191,14 @@ public sealed class TenantUsersSnapshotTests
         degraded.Rows.ShouldBeSameAs(recovered.Rows);
         degraded.Kind.ShouldBe(TenantUsersSurfaceKind.Degraded);
         degraded.PagingRecovered.ShouldBeFalse();
+
+        // The retained rows come from a read that then FAILED, so the evidence that described them can no
+        // longer be asserted. No test observed these two, so both downgrade lines were deletable --
+        // MemberAccessReview binds Members.Lifecycle and Members.Freshness straight into its badges, so a
+        // page retained from a failed read would render a green "Current" projection-lifecycle badge over
+        // data the gateway could not re-verify.
+        degraded.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        degraded.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
     }
 
     [Fact]

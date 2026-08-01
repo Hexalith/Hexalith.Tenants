@@ -98,7 +98,6 @@ public class EventPublicationConfigurationTests {
         normalizedProgram.ShouldContain(
             "    .WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
         normalizedProgram.ShouldContain("    .WithReference(tenantsApi)");
-        normalizedProgram.ShouldContain("    .WaitFor(tenantsApi)");
 
         // ...and attached to the UI resource, not to some other builder in the file.
         int tenantsUiStart = normalizedProgram.IndexOf(
@@ -111,6 +110,11 @@ public class EventPublicationConfigurationTests {
             : normalizedProgram[tenantsUiStart..tenantsUiEnd];
         tenantsUiBlock.ShouldContain(".WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
         tenantsUiBlock.ShouldContain(".WithReference(tenantsApi)");
+
+        // .WaitFor was the one wiring line still asserted against the whole file, which defeats the stated
+        // purpose above: moving it to `sample` left the UI starting before the API was ready on every cold
+        // boot, with this test green.
+        tenantsUiBlock.ShouldContain(".WaitFor(tenantsApi)");
 
         // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
         // AppHost composition (the helper adds only the service runtime).

@@ -57,10 +57,26 @@ public static class TenantsUiServiceCollectionExtensions
         // on a *truthful* statement about the read surface, so a host that declares IsConnected: true while
         // registering UnavailableTenantQueryGateway (or the converse) must be rejected rather than accepted
         // as a matched pair -- that pairing is exactly what requiring the pair is supposed to prevent.
+        // The gateway side is matched on either descriptor shape. Matching only ImplementationType meant a
+        // host registering the unavailable gateway as an instance skipped the check entirely -- exactly the
+        // pairing the check exists to reject. The availability side stays instance-only by necessity: a
+        // factory-registered availability cannot be asked for IsConnected without building a provider at
+        // composition time, so its truthfulness is unknowable here and the pair is left unchecked.
         if (queryGatewayOverride is not null
             && readAvailabilityOverride?.ImplementationInstance is ITenantsReadSurfaceAvailability declaredAvailability)
         {
-            bool gatewayIsUnavailable = queryGatewayOverride.ImplementationType == typeof(UnavailableTenantQueryGateway);
+            // Tri-state on purpose. A factory descriptor exposes neither ImplementationType nor
+            // ImplementationInstance, so the gateway's identity is unknowable at composition time. Because
+            // the test below is a two-sided equality, an unrecognised shape did not "skip the check" -- it
+            // inverted it: a host that factory-registered UnavailableTenantQueryGateway and truthfully
+            // declared IsConnected: false hit false == false and was thrown out with the message saying the
+            // registered gateway is a connected implementation. Unknowable shapes are now genuinely skipped,
+            // matching how the availability side already handles its own factory case.
+            bool? gatewayIsUnavailable = queryGatewayOverride.ImplementationType is not null
+                ? queryGatewayOverride.ImplementationType == typeof(UnavailableTenantQueryGateway)
+                : queryGatewayOverride.ImplementationInstance is not null
+                    ? queryGatewayOverride.ImplementationInstance is UnavailableTenantQueryGateway
+                    : null;
             if (gatewayIsUnavailable == declaredAvailability.IsConnected)
             {
                 throw new InvalidOperationException(
@@ -84,6 +100,12 @@ public static class TenantsUiServiceCollectionExtensions
                     TenantsGlobalAdministratorClaims.Evaluate(context.User)
                         == TenantLifecycleAuthorizationReflectionState.Authorized)));
 
+        // Decision D-G: composition runs before any logger exists, so a rejected base address is recorded
+        // here by key name and reported once at startup by TenantsUiConfigurationDiagnosticsReporter. The
+        // per-side fail-closed registration below is unchanged -- what is restored is the signal, without
+        // which a typo and a genuine outage render identically and nothing anywhere names the setting.
+        TenantsUiConfigurationDiagnostics diagnostics = new();
+
         // No service discovery is attached: the AppHost injects an already-resolved endpoint URL, which is
         // the exact shape the EventStore command/status clients below and the Memories client already
         // consume. Attaching .AddServiceDiscovery() registered the resolving handler without any endpoint
@@ -91,7 +113,11 @@ public static class TenantsUiServiceCollectionExtensions
         // project -- so every read threw "No provider which supports the provided service name" at send
         // time, and that handler also rebuilt the request URI, re-canonicalizing the %2E escaping that
         // DangerousDisablePathAndQueryCanonicalization exists to preserve.
-        EnsureSendableOrThrow("Tenants:BaseAddress", configuration["Tenants:BaseAddress"]);
+        // AC2 / "Separate dependencies": read availability follows ONLY the read reference. A compound or
+        // otherwise unsendable value fails closed to UnavailableTenantQueryGateway here -- it must not abort
+        // composition, because that also prevented the command/status block below from registering, so a typo
+        // in the read address took down command submission too. TryGetHttpBaseAddress already rejects the
+        // compound scheme (IsSendableScheme accepts only exact http/https), so nothing is lost by not throwing.
         if (TryGetHttpBaseAddress(configuration["Tenants:BaseAddress"], out Uri? tenantsBaseAddress))
         {
             IHttpClientBuilder tenantsQueryClient = services
@@ -109,18 +135,17 @@ public static class TenantsUiServiceCollectionExtensions
         }
         else
         {
+            diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "Tenants:BaseAddress");
             services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
             services.TryAddSingleton<ITenantsReadSurfaceAvailability>(
                 new TenantsReadSurfaceAvailability(IsConnected: false));
         }
 
-        // Same scheme gate as the read side. Without it a typo or copied service-discovery value registers a
-        // command HttpClient on a non-HTTP scheme, which fails at send time with a raw transport exception
-        // instead of resolving UnavailableTenantCommandGateway. Narrowing the shared gate to plain http/https
-        // also closes the previously deferred item "EventStore:BaseAddress accepts compound
-        // service-discovery schemes while no service discovery is attached": no discovery is attached to
-        // these clients either, so the same value would fail at every request instead of at boot.
-        EnsureSendableOrThrow("EventStore:BaseAddress", configuration["EventStore:BaseAddress"]);
+        // Same scheme gate as the read side, and symmetrically fail-closed: a typo or copied service-discovery
+        // value resolves UnavailableTenantCommandGateway rather than sending on a non-HTTP scheme, and it does
+        // not disable the independent read side registered above. TryGetHttpBaseAddress narrows to plain
+        // http/https, which also covers the previously deferred item "EventStore:BaseAddress accepts compound
+        // service-discovery schemes while no service discovery is attached".
         if (TryGetHttpBaseAddress(configuration["EventStore:BaseAddress"], out Uri? eventStoreBaseAddress))
         {
             _ = services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
@@ -137,6 +162,7 @@ public static class TenantsUiServiceCollectionExtensions
         }
         else
         {
+            diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "EventStore:BaseAddress");
             services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
         }
 
@@ -150,6 +176,13 @@ public static class TenantsUiServiceCollectionExtensions
             o.ApiToken = configuration["HEXALITH_MEMORIES_API_TOKEN"];
         }).RemoveAllLoggers();
 
+        // Added, not TryAdded. TryAddSingleton kept whatever was registered first, so a host that had already
+        // registered this type -- or a second call to this method -- dropped the instance actually holding
+        // this composition's rejections and left the reporter with an empty one. The reporter consumes the
+        // whole enumerable and de-duplicates, so every composition's findings are reported exactly once.
+        services.AddSingleton(diagnostics);
+        services.AddHostedService<TenantsUiConfigurationDiagnosticsReporter>();
+
         services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
         services.Configure<FcShellOptions>(configuration.GetSection("Hexalith:Shell"));
         return services;
@@ -162,9 +195,15 @@ public static class TenantsUiServiceCollectionExtensions
     /// An earlier revision also accepted the Aspire compound forms such as <c>https+http://tenants</c>,
     /// because <c>.AddServiceDiscovery()</c> was attached to the read client and would resolve them. That
     /// widening is superseded: no discovery mechanism is registered in this topology, so a compound scheme
-    /// can never be sent. It is now rejected loudly by <see cref="EnsureSendableOrThrow"/> rather than
-    /// silently, because falling through to <see cref="UnavailableTenantQueryGateway"/> would leave every
-    /// read fail-closed with no diagnostic — a misconfiguration indistinguishable from an outage.
+    /// can never be sent and this gate rejects it.
+    /// <para>
+    /// Review loop 9, decision D2: rejection is per-side and fail-closed, NOT a thrown boot failure. A
+    /// separate <c>EnsureSendableOrThrow</c> guard used to throw here; because it ran before the
+    /// command/status block, an unsendable READ address also prevented the command clients from
+    /// registering, and the mirror case killed the read side — the all-or-nothing registration AC2 and the
+    /// "Separate dependencies" matrix row forbid. An unsendable address now falls through to
+    /// <see cref="UnavailableTenantQueryGateway"/> (or the command-side equivalent) for that side only.
+    /// </para>
     /// </remarks>
     private static bool TryGetHttpBaseAddress(string? value, [NotNullWhen(true)] out Uri? baseAddress)
     {
@@ -184,40 +223,15 @@ public static class TenantsUiServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Fails composition when a setting carries a service-discovery compound scheme this module cannot send.
+    /// Determines whether a URI scheme is one this module can actually send over.
     /// </summary>
-    /// <param name="settingName">The configuration key, for the diagnostic.</param>
-    /// <param name="value">The configured value.</param>
+    /// <param name="scheme">The scheme to test.</param>
+    /// <returns><see langword="true"/> for exactly <c>http</c> or <c>https</c>; otherwise <see langword="false"/>.</returns>
     /// <remarks>
-    /// Absent, empty, or unparseable values are NOT an error: they mean the dependency is simply not
-    /// configured, and the caller fails closed to the unavailable gateway. A compound scheme is different --
-    /// it is a value the operator believed would work, so it is reported at boot instead of failing every
-    /// request at send time.
+    /// Exact match by design. Aspire compound schemes such as <c>https+http</c> need a registered service
+    /// discovery mechanism to resolve, and none is attached to these clients, so accepting one would defer a
+    /// certain failure from composition to every request.
     /// </remarks>
-    private static void EnsureSendableOrThrow(string settingName, string? value)
-    {
-        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? parsed)
-            && IsServiceDiscoveryCompoundScheme(parsed.Scheme))
-        {
-            throw new InvalidOperationException(
-                $"'{settingName}' uses the service-discovery compound scheme '{parsed.Scheme}', which this module cannot send: no service discovery is registered. Configure a resolved http or https address.");
-        }
-    }
-
-    /// <summary>
-    /// Recognises a well-formed Aspire compound scheme such as <c>https+http</c>.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately narrower than "contains a plus": a malformed value such as <c>http++https</c> has an
-    /// empty part and is a typo, not a service-discovery address. Typos keep the existing fail-closed
-    /// behaviour so this guard reports only the one misconfiguration it can describe accurately.
-    /// </remarks>
-    private static bool IsServiceDiscoveryCompoundScheme(string scheme)
-    {
-        string[] parts = scheme.Split('+', StringSplitOptions.None);
-        return parts.Length > 1 && Array.TrueForAll(parts, IsSendableScheme);
-    }
-
     private static bool IsSendableScheme(string scheme)
         => string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
             || string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);

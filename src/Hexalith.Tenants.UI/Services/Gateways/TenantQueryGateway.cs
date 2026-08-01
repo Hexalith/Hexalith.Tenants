@@ -33,14 +33,17 @@ internal sealed class TenantQueryGateway(
     MemoriesClient memoriesClient,
     ITenantSearchCursorCodec searchCursorCodec,
     ITenantsBffComposition? bffComposition = null,
-    ILogger<TenantQueryGateway>? logger = null) : ITenantQueryGateway {
+    ILogger<TenantQueryGateway>? logger = null,
+    TimeSpan? enrichmentDeadline = null) : ITenantQueryGateway {
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
     /// <summary>Whole-page bound on supplementary list enrichment reads.</summary>
     /// <remarks>
     /// The Tenants read client configures only BaseAddress, so HttpClient.Timeout is the 100 s default. This
-    /// keeps one list render's supplementary reads inside an operator-tolerable window regardless.
+    /// keeps one list render's supplementary reads inside an operator-tolerable window regardless. The
+    /// <c>enrichmentDeadline</c> constructor parameter overrides it; production never passes one, and it
+    /// exists so the deadline is provable without a ten-second test.
     /// </remarks>
     internal static readonly TimeSpan MaximumEnrichmentDuration = TimeSpan.FromSeconds(10);
 
@@ -81,6 +84,12 @@ internal sealed class TenantQueryGateway(
 
     /// <summary>Shared <c>QueryAdapterFailureReason.InvalidCursor</c> sentinel the recovery guards match.</summary>
     internal const string InvalidCursorReasonCode = "invalid-cursor";
+
+    /// <summary>
+    /// Reason code carried by a route identity this client refused to escape, before any request was sent.
+    /// </summary>
+    internal const string UnsupportedRouteIdentifierReasonCode =
+        nameof(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
 
     /// <summary>Bounded diagnostic name for the tenant-list read.</summary>
     internal const string TenantListReadName = "tenant-list";
@@ -414,11 +423,38 @@ internal sealed class TenantQueryGateway(
                 return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.InvalidCursor);
             }
 
-            return MapTenantUsersResponse(firstPageRequest, null, recovered, isListRefreshed: true);
+            // PagingRecovered is what tells the consumer this answer is page one and not the page it asked
+            // for. Without it TenantDetailPage saw a usable Ready page, committed the expired cursor as the
+            // current one, pushed a history entry -- so Previous became enabled on a page-one view -- and
+            // re-sent the dead cursor on every later refresh, with no recovery notice rendered. The four
+            // sibling paged reads all stamp it.
+            //
+            // recovered.IsSuccess only says the transport succeeded. The mapping can still fail on a
+            // successful response -- a null Items payload becomes Error and degraded metadata becomes
+            // Degraded, both with zero rows -- and stamping those recovered nothing: the surface rendered the
+            // polite "restarted at the first page" notice over a failed read, and TenantDetailPage took the
+            // PagingRecovered branch ahead of the branch that retains last-confirmed rows, discarding them.
+            // Only a page that actually arrived carries the flag.
+            TenantUsersSnapshot recoveredPage = MapTenantUsersResponse(firstPageRequest, null, recovered, isListRefreshed: true);
+            return IsArrivedTenantUsersPage(recoveredPage)
+                ? recoveredPage with { PagingRecovered = true }
+                : recoveredPage;
         }
 
         return MapTenantUsersResponse(request, previous, response, isListRefreshed: false);
     }
+
+    /// <summary>
+    /// Indicates whether a mapped tenant-users snapshot represents a page that actually arrived, as opposed
+    /// to a failure state produced from a transport-level success.
+    /// </summary>
+    /// <param name="snapshot">The mapped snapshot.</param>
+    /// <returns><see langword="true"/> when the snapshot carries a real page.</returns>
+    private static bool IsArrivedTenantUsersPage(TenantUsersSnapshot snapshot)
+        => snapshot.Kind is TenantUsersSurfaceKind.Ready
+            or TenantUsersSurfaceKind.Empty
+            or TenantUsersSurfaceKind.Stale
+            or TenantUsersSurfaceKind.Unknown;
 
     private static bool HasMatchingTenantUsers(TenantUsersSnapshot? previous, TenantUsersRequest request)
         => previous is not null
@@ -522,7 +558,13 @@ internal sealed class TenantQueryGateway(
 
             if (result.IsNotModified) {
                 if (!hasMatchingPrevious) {
-                    return UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId);
+                    // The server insists nothing changed while nothing is retained to show, which is neither an
+                    // outage nor degraded evidence. NotModifiedWithoutSnapshot names exactly that, and its
+                    // EN/FR copy shipped with no producer -- so the state read as live in tests while the
+                    // operator could never reach it.
+                    return UserTenantMembershipSnapshot.Unavailable(
+                        UserTenantMembershipReason.NotModifiedWithoutSnapshot,
+                        request.TargetUserId);
                 }
 
                 if (!HasSupportedProjectionVersion(result.Metadata)) {
@@ -680,7 +722,12 @@ internal sealed class TenantQueryGateway(
 
             if (result.IsNotModified) {
                 if (!hasMatchingPrevious) {
-                    return GlobalAdministratorsSnapshot.Error();
+                    // The server insists nothing changed while nothing is retained to show, which is neither an
+                    // outage nor degraded evidence. NotModifiedWithoutSnapshot names exactly that, and its
+                    // EN/FR copy shipped with no producer -- so the state read as live in tests while the
+                    // operator could never reach it.
+                    return GlobalAdministratorsSnapshot.Error(
+                        GlobalAdministratorsReason.NotModifiedWithoutSnapshot);
                 }
 
                 if (!HasSupportedProjectionVersion(result.Metadata)) {
@@ -932,7 +979,11 @@ internal sealed class TenantQueryGateway(
 
         if (result.IsNotModified) {
             if (!hasMatchingPrevious) {
-                return TenantAuditSnapshot.Error(request);
+                // The server insists nothing changed while nothing is retained to show, which is neither an
+                // outage nor degraded evidence. NotModifiedWithoutSnapshot names exactly that, and its
+                // EN/FR copy shipped with no producer -- so the state read as live in tests while the
+                // operator could never reach it.
+                return TenantAuditSnapshot.Error(request, TenantAuditReason.NotModifiedWithoutSnapshot);
             }
 
             if (!HasSupportedProjectionVersion(result.Metadata)) {
@@ -1178,8 +1229,19 @@ internal sealed class TenantQueryGateway(
     }
 
     /// <summary>Clamps a caller-supplied page size into the range the service accepts.</summary>
+    /// <remarks>
+    /// A genuine clamp, not a reset. Returning <c>DefaultPageSize</c> for anything out of range served a
+    /// request for <c>MaximumPageSize + 1</c> as 20 -- a silent five-fold reduction with no signal, on all
+    /// five paged reads. Clamping keeps the caller's intent as far as the service allows, which is what the
+    /// list path did before this was factored out of it. Zero and negatives carry no intent at all, so they
+    /// still fall to the default.
+    /// </remarks>
     private static int NormalizePageSize(int pageSize)
-        => pageSize is >= 1 and <= MaximumPageSize ? pageSize : DefaultPageSize;
+        => pageSize switch {
+            < 1 => DefaultPageSize,
+            > MaximumPageSize => MaximumPageSize,
+            _ => pageSize,
+        };
 
     private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
         int pageSize = NormalizePageSize(request.PageSize);
@@ -1795,7 +1857,11 @@ internal sealed class TenantQueryGateway(
         {
             if (!hasMatchingPrevious)
             {
-                return TenantListSnapshot.Error();
+                // The server insists nothing changed while nothing is retained to show, which is neither an
+                // outage nor degraded evidence. NotModifiedWithoutSnapshot names exactly that, and its
+                // EN/FR copy shipped with no producer -- so the state read as live in tests while the
+                // operator could never reach it.
+                return TenantListSnapshot.Error(TenantListReason.NotModifiedWithoutSnapshot);
             }
 
             if (!HasSupportedProjectionVersion(result.Metadata))
@@ -1918,8 +1984,9 @@ internal sealed class TenantQueryGateway(
         TenantListRow[] rows = new TenantListRow[summaries.Count];
         bool degraded = false;
 
-        using var enrichmentDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        enrichmentDeadline.CancelAfter(MaximumEnrichmentDuration);
+        using var pageDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        pageDeadline.CancelAfter(enrichmentDeadline ?? MaximumEnrichmentDuration);
+
         using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
 
         await Task.WhenAll(summaries.Select(async (summary, index) => {
@@ -1929,9 +1996,9 @@ internal sealed class TenantQueryGateway(
             };
 
             try {
-                await concurrency.WaitAsync(enrichmentDeadline.Token).ConfigureAwait(false);
+                await concurrency.WaitAsync(pageDeadline.Token).ConfigureAwait(false);
                 try {
-                    TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, enrichmentDeadline.Token)
+                    TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, pageDeadline.Token)
                         .ConfigureAwait(false);
 
                     // Identity is verified here as it is at every sibling call site. The count is written
@@ -1972,7 +2039,11 @@ internal sealed class TenantQueryGateway(
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
                 degraded = true;
             }
-            catch (Exception ex) when (ex is not OperationCanceledException) {
+            // IsSurfacingDefect is excluded for the same reason the search hydration path excludes it: a
+            // NullReferenceException or ObjectDisposedException in row mapping is a defect in this code, not
+            // an outage. Swallowed, it rendered "row enrichment unavailable" on every row forever, with no
+            // log and nothing able to tell it apart from the Tenants API being down.
+            catch (Exception ex) when (ex is not OperationCanceledException && !IsSurfacingDefect(ex)) {
                 degraded = true;
             }
 
@@ -2203,10 +2274,16 @@ internal sealed class TenantQueryGateway(
         };
 
         if (response.Metadata.IsDegraded == true) {
+            // IsAuthorizationScopedEmpty must be cleared with the kind: an authorized-empty page built two
+            // statements above sets it, and the renderer's authorization-safe-absence channel short-circuits
+            // its whole state switch on it -- so a degraded projection would have rendered as a successful
+            // "No visible members". Same collapse as TenantUsersSnapshot.Degraded, first-load flavour.
             return snapshot with {
                 Kind = TenantUsersSurfaceKind.Degraded,
                 Freshness = ReadModelFreshnessState.Unknown,
+                Lifecycle = ProjectionLifecycleState.Unknown,
                 Reason = TenantUsersReason.ProjectionDegraded,
+                IsAuthorizationScopedEmpty = false,
             };
         }
 
@@ -2448,18 +2525,37 @@ internal sealed class TenantQueryGateway(
         if (!response.IsSuccess) {
             SignalReadFailure(readName, response.FailureKind);
             // InvalidPayload carries the raw 200 and InvalidMetadata the raw 304, so without this override
-            // both reached the per-read exception mappers as non-error statuses: their default arms return
-            // Degraded over zero retained rows on a first load, and neither status is in
-            // IsRetainableReadFailure's excluded set, so with a matching previous they re-presented
-            // confirmed rows as "last confirmed remain visible" on a corrupt payload. A response the client
-            // could not validate is an unavailable read, not a successful one.
-            int statusCode = response.FailureKind is TenantsRestQueryFailureKind.Unavailable
-                or TenantsRestQueryFailureKind.Timeout
-                or TenantsRestQueryFailureKind.InvalidPayload
-                or TenantsRestQueryFailureKind.InvalidMetadata
-                or TenantsRestQueryFailureKind.Unknown
-                    ? (int)HttpStatusCode.ServiceUnavailable
-                    : response.StatusCode;
+            // both reached the per-read exception mappers as non-error statuses and fell to their default
+            // arms: the detail mapper's is Degraded over zero retained rows, which claims retained evidence a
+            // first load does not have, and the global-administrator and audit mappers' is Error, which
+            // blames the server for a response the client rejected. A response the client could not validate
+            // is an unavailable read, not a successful one.
+            // Scope note: 503 is inside IsRetainableReadFailure, so this override does NOT stop a matching
+            // previous snapshot being retained as Degraded -- retention on a corrupt refresh is the same
+            // "last confirmed remain visible" behaviour as on any outage, and is deliberate. What the
+            // override fixes is the first-load classification. An earlier version of this comment claimed
+            // otherwise. Pinned by A_corrupt_response_is_an_outage_on_a_first_load.
+            // Review loop 9, decision D3. Transport-level failures carry no meaningful HTTP status, so they
+            // are still normalized to 503. Unavailable is different: it is also what MapFailure returns for
+            // any unclassified response status, and flattening ALL of those to 503 made a genuine 5xx
+            // indistinguishable from a declared outage -- which is why GlobalAdministratorsSnapshot.Error()
+            // and TenantAuditSnapshot.Error() had no reachable producer at all, against AC6's requirement
+            // that error stay distinct from unavailable. A real server-error status is now preserved; every
+            // other unclassified status (including a non-200 success code such as 204) still becomes 503, so
+            // it cannot reach a mapper's default arm as if it were a server fault.
+            // The authorization kinds are deliberately ABSENT from the normalized set: folding them in made a
+            // real 401/403/404 render as an outage instead of offering sign-in or an honest not-found.
+            int statusCode = response.FailureKind switch {
+                TenantsRestQueryFailureKind.Timeout
+                    or TenantsRestQueryFailureKind.InvalidPayload
+                    or TenantsRestQueryFailureKind.InvalidMetadata
+                    or TenantsRestQueryFailureKind.Unknown
+                        => (int)HttpStatusCode.ServiceUnavailable,
+                TenantsRestQueryFailureKind.Unavailable => response.StatusCode is >= 500 and < 600
+                    ? response.StatusCode
+                    : (int)HttpStatusCode.ServiceUnavailable,
+                _ => response.StatusCode,
+            };
             throw new EventStoreGatewayException(
                 statusCode,
                 "Tenants read unavailable",
@@ -2725,6 +2821,15 @@ internal sealed class TenantQueryGateway(
             ? TenantListSnapshot.Unauthorized()
             : TenantListSnapshot.Error();
 
+    /// <summary>
+    /// Detects the identity this client refused to escape, as opposed to a 400 the service returned.
+    /// </summary>
+    /// <param name="exception">The gateway exception carrying the transport failure category.</param>
+    /// <returns><see langword="true"/> when no request was ever sent.</returns>
+    private static bool IsUnsupportedRouteIdentifier(EventStoreGatewayException exception)
+        => exception.StatusCode == (int)HttpStatusCode.BadRequest
+        && string.Equals(exception.ReasonCode, UnsupportedRouteIdentifierReasonCode, StringComparison.Ordinal);
+
     private static bool IsInvalidListCursor(EventStoreGatewayException exception)
         => exception.StatusCode == (int)HttpStatusCode.BadRequest
         && string.Equals(exception.ReasonCode, InvalidCursorReasonCode, StringComparison.OrdinalIgnoreCase);
@@ -2733,7 +2838,31 @@ internal sealed class TenantQueryGateway(
         => exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden => TenantDetailSnapshot.Unauthorized(tenantId),
             (int)HttpStatusCode.NotFound => TenantDetailSnapshot.NotFound(tenantId),
-            (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.ServiceUnavailable => TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable."),
+            // Decision D3 preserves the whole 5xx range, not just the three codes it enumerated, because
+            // MapFailure routes every status except 400/401/403/404 to Unavailable carrying the raw code.
+            // Listing 500/502/504 left 501, 505, 506, 507, 508, 510 and 511 falling to the Degraded default
+            // arm below -- retained-evidence semantics for a first load that has nothing retained, which is
+            // the one thing "a first-load failure must use a true unavailable state" forbids. Before D3 every
+            // 5xx collapsed to 503 and reached this arm, so a literal list is a regression, not a narrowing.
+            // A malformed route identity is an input defect, not an outage. TryEscapeRouteValue deliberately
+            // rejects dot-only and separator-bearing identities before any request is sent, precisely so the
+            // two can be told apart, and collapsing them told the operator the API was down when the id in
+            // the address bar could never name a tenant. NotFound is what the same gateway already returns
+            // for a blank route id, is authorization-safe, and reveals no existence.
+            //
+            // Decision D-I (review loop 12) narrows this to the locally-rejected identity only. Matching the
+            // bare status swept up every 400 the *server* chose to return -- a rejected header, an
+            // unsupported query parameter, a server-side validation change -- and asserted non-existence for
+            // a tenant that exists. On a caller-supplied string id, "this id can never name a tenant" and
+            // "the server refused this request" are different conclusions, and only the first is ours to
+            // draw. A server 400 falls through to the unavailable arm below.
+            (int)HttpStatusCode.BadRequest when IsUnsupportedRouteIdentifier(exception)
+                => TenantDetailSnapshot.NotFound(tenantId),
+            (int)HttpStatusCode.BadRequest
+                => TenantDetailSnapshot.Unavailable("Tenant detail query gateway rejected the request."),
+            (int)HttpStatusCode.ServiceUnavailable
+                or (>= 500 and < 600)
+                => TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable."),
             _ => TenantDetailSnapshot.Degraded(null, "Tenant detail query gateway returned a safe degraded state."),
         };
 
@@ -2748,7 +2877,8 @@ internal sealed class TenantQueryGateway(
                 => UserTenantMembershipSnapshot.Invalid(UserTenantMembershipReason.InvalidCursor, targetUserId),
             (int)HttpStatusCode.BadRequest
                 => UserTenantMembershipSnapshot.Invalid(UserTenantMembershipReason.GatewayFailure, targetUserId),
-            (int)HttpStatusCode.ServiceUnavailable
+            // Same widening as the detail mapper: any 5xx is an outage, not retained degradation.
+            >= 500 and < 600
                 => UserTenantMembershipSnapshot.Unavailable(targetUserId: targetUserId),
             _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure, targetUserId: targetUserId),
         };

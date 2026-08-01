@@ -54,6 +54,12 @@
                          IsAuthorized="@IsAddMemberAuthorized"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                         @* Deliberately still passed straight through. This flow renders unconditionally, so
+                            no teardown here can unmount it and it never needs the lease lowered on its behalf.
+                            Routing it through HandleCommandActivityAsync would make one _childCommandInFlight
+                            field serve three owners, so an Add in flight could be released by tearing down an
+                            unrelated remove flow -- the defect this review found in the configuration
+                            landmark. *@
                          OnCommandActivityChanged="@OnCommandActivityChanged"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
@@ -61,6 +67,13 @@
     {
         <p role="status" aria-live="polite" data-testid="tenants-member-page-recovered">
             @Localizer["Tenants.Members.Recovery.PageRecovered"]
+        </p>
+    }
+
+    @if (PagingJumpedToFirstPage)
+    {
+        <p role="status" aria-live="polite" data-testid="tenants-member-history-truncated">
+            @Localizer["Tenants.Members.Recovery.HistoryTruncated"]
         </p>
     }
 
@@ -229,7 +242,7 @@
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                         OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                         OnCloseRequested="@CloseChangeRoleAsync"
-                                        OnCommandActivityChanged="@OnCommandActivityChanged"
+                                        OnCommandActivityChanged="@HandleCommandActivityAsync"
                                         ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
         </FluentStack>
     }
@@ -246,7 +259,7 @@
                                     TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseRemoveMemberAsync"
-                                    OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    OnCommandActivityChanged="@HandleCommandActivityAsync"
                                     ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
         </FluentStack>
     }
@@ -289,6 +302,10 @@
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
 
+    // True while a child member flow owns an in-flight command. Tracked here rather than passed straight
+    // through so that a teardown of the flow region can lower the lease it raised.
+    private bool _childCommandInFlight;
+
     // The member record captured when the flow was launched. Resolving the open flow's target against
     // Members.Rows on every render made a successful removal destroy its own evidence: the confirmation
     // re-query removes the row, the @if guard tears the flow down mid-command, and its lifecycle state,
@@ -329,6 +346,13 @@
 
     [Parameter]
     public bool CanGoPrevious { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the last Previous step walked the operator to the first page
+    /// because the bounded cursor history had been trimmed, rather than moving back one page.
+    /// </summary>
+    [Parameter]
+    public bool PagingJumpedToFirstPage { get; set; }
 
     [Parameter]
     public EventCallback OnNextPageRequested { get; set; }
@@ -498,13 +522,20 @@
                 _ => Localizer["Tenants.Members.State.Title"],
             };
 
-    // A stale or unknown-freshness authorized-empty page keeps the absence wording and appends the
-    // freshness qualifier, so neither channel is lost to the other.
+    // A stale or unknown-freshness authorized-empty page keeps the absence wording and states the freshness
+    // qualifier, so neither channel is lost to the other. Each variant is a whole localized sentence with a
+    // placeholder: the previous form glued two independently translated sentences with an ASCII space, which
+    // no translator can reorder, re-punctuate, or make agree, against the project's whole-string rule.
     private string EmptyStateMessage
         => IsAuthorizationSafeAbsence
-            ? Members.Kind is TenantUsersSurfaceKind.Stale or TenantUsersSurfaceKind.Unknown
-                ? $"{Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]} {StateMessage}"
-                : Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
+            ? Members.Kind switch
+            {
+                TenantUsersSurfaceKind.Stale
+                    => Localizer["Tenants.Members.Empty.Message.Stale", ReasonLabel(PrimaryUnavailableReason)],
+                TenantUsersSurfaceKind.Unknown
+                    => Localizer["Tenants.Members.Empty.Message.Unknown", ReasonLabel(PrimaryUnavailableReason)],
+                _ => Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)],
+            }
             : Members.Kind is TenantUsersSurfaceKind.Empty
                 ? Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
                 : StateMessage;
@@ -595,23 +626,77 @@
             ? OnPreviousPageRequested.InvokeAsync()
             : Task.CompletedTask;
 
-    protected override void OnParametersSet()
+    // A denial read withdraws the caller's right to see this membership at all, so a captured flow target can
+    // no longer be rendered: continuing to show the member's identifier and role after an Unauthorized or
+    // NotFound would leak exactly what the authorization-safe absence rule forbids. The teardown is therefore
+    // correct here and is NOT gated on an open flow -- what it must not do is strand the lease, which
+    // ReleaseChildCommandActivityAsync below now prevents.
+    //
+    // Unavailable and Error are deliberately absent. They are operational failures, not denials: the caller's
+    // rights are unchanged and a command that was really submitted still owns a receipt to render. Folding
+    // them in here let one API blip destroy an in-flight member removal's Confirmed/Rejected/UnableToVerify
+    // state, safe message and audit entry point. Degraded/Stale/Unknown were already excluded for the same
+    // reason. This list is kept identical to TenantDetailPage.IsTerminalMemberPage -- two predicates for one
+    // concept is how they drifted apart.
+    private bool HasTerminalMemberRead
+        => Members.Kind is TenantUsersSurfaceKind.Unauthorized
+            or TenantUsersSurfaceKind.NotFound
+            or TenantUsersSurfaceKind.Invalid;
+
+    protected override async Task OnParametersSetAsync()
     {
         // Clear any open flow target when the rendered page changes. Without this the active user id
         // outlives the page it belonged to, so returning to that page re-opens a change-role or remove flow
         // the operator never re-initiated.
-        if (!string.Equals(_renderedTenantId, Detail.TenantId, StringComparison.Ordinal)
+        //
+        // A terminal member read clears it too. Those snapshots come from EmptyState, which leaves
+        // RequestCursor null, so on page one the cursor comparison below sees no change and the reset never
+        // fired: the rows blanked to the denial or outage state while the flow region kept rendering the
+        // captured member's identifier and role from _activeRemoveMemberCapture, and HasOpenMemberCommandFlow
+        // held both pager buttons disabled behind a flow the operator had no way to close.
+        if (HasTerminalMemberRead
+            || !string.Equals(_renderedTenantId, Detail.TenantId, StringComparison.Ordinal)
             || !string.Equals(_renderedMemberCursor, Members.RequestCursor, StringComparison.Ordinal))
         {
             _renderedTenantId = Detail.TenantId;
             _renderedMemberCursor = Members.RequestCursor;
+            bool hadOpenFlow = HasOpenMemberCommandFlow;
             _activeChangeRoleUserId = null;
             _activeRemoveMemberUserId = null;
             _activeChangeRoleCapture = null;
             _activeRemoveMemberCapture = null;
             _focusChangeRoleLaunchUserId = null;
             _focusRemoveMemberLaunchUserId = null;
+
+            // The flow that owned the lease is gone with the branch that rendered it, and no member flow
+            // implements disposal, so nothing downstream will ever send activity false. Without this release
+            // TenantDetailPage._commandInFlight stayed raised for the life of the circuit and every command
+            // surface on the page -- lifecycle, metadata, configuration, membership -- was disabled behind a
+            // command no longer on screen.
+            if (hadOpenFlow)
+            {
+                await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
+            }
         }
+    }
+
+    // The member flows used to pass OnCommandActivityChanged straight through, so this landmark never learned
+    // it owned an in-flight command and could not release the lease when it tore a flow down.
+    private async Task HandleCommandActivityAsync(bool isActive)
+    {
+        _childCommandInFlight = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    private async Task ReleaseChildCommandActivityAsync()
+    {
+        if (!_childCommandInFlight)
+        {
+            return;
+        }
+
+        _childCommandInFlight = false;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

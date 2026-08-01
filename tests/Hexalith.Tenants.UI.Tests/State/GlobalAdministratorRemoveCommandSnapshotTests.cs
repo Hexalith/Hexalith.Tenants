@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -57,6 +58,68 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.LastConfirmedProjection.ShouldBeNull();
         result.SafeMessage.ShouldNotBeNull().ShouldContain("complete", Case.Insensitive);
+    }
+
+    /// <summary>
+    /// A page-scoped absence and a failed read both stay unverified, but must not read the same.
+    /// </summary>
+    /// <remarks>
+    /// The re-query reads page one only, so on any deployment with more global administrators than one page
+    /// holds, <c>HasMore</c> is permanently true and every successful removal reached the "complete
+    /// projection evidence is required" arm -- reading as though something had gone wrong. A good, current,
+    /// projection-backed page that simply does not span the population is page-scoped evidence, not a failed
+    /// read. Collapsing both branches to the old single message survived the suite; no test anywhere
+    /// contained the new string.
+    /// </remarks>
+    [Fact]
+    public void Page_scoped_absence_is_distinguished_from_a_failed_verification_read()
+    {
+        GlobalAdministratorRemoveCommandSnapshot pending = GlobalAdministratorRemoveCommandSnapshot
+            .Idle()
+            .Preview(new RemoveGlobalAdministrator("target-admin"), CurrentRows("target-admin", "other-admin"))
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        // A healthy page-one read that simply cannot span the population.
+        GlobalAdministratorsSnapshot pageScoped = GlobalAdministratorsSnapshot.Ready(
+            CurrentRows("other-admin"),
+            nextCursor: "protected-next",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "projection-v1",
+        };
+        pageScoped.IsMutationEvidenceBacked.ShouldBeTrue();
+
+        GlobalAdministratorRemoveCommandSnapshot pageScopedResult = pending.ConfirmProjection(pageScoped);
+
+        pageScopedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        string pageScopedMessage = pageScopedResult.SafeMessage.ShouldNotBeNull();
+        pageScopedMessage.ShouldContain("first page", Case.Insensitive);
+        pageScopedMessage.ShouldContain("audit", Case.Insensitive);
+
+        // A read that could not be verified at all: same lifecycle state, different explanation.
+        GlobalAdministratorsSnapshot failedRead = GlobalAdministratorsSnapshot.Ready(
+            CurrentRows("other-admin"),
+            nextCursor: "protected-next",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Unknown);
+        failedRead.IsMutationEvidenceBacked.ShouldBeFalse();
+
+        GlobalAdministratorRemoveCommandSnapshot failedResult = pending.ConfirmProjection(failedRead);
+
+        failedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        string failedMessage = failedResult.SafeMessage.ShouldNotBeNull();
+        failedMessage.ShouldContain("complete", Case.Insensitive);
+        failedMessage.ShouldNotBe(pageScopedMessage);
+
+        // Neither may be mistaken for the confirmed outcome.
+        pageScopedResult.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        failedResult.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
     }
 
     [Theory]

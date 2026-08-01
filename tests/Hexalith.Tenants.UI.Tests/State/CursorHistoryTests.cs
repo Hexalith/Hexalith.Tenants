@@ -11,9 +11,29 @@ public sealed class CursorHistoryTests
     {
         Stack<string?> history = Build(null, "c1", "c2");
 
-        CursorHistory.Trim(history, maximum: 50);
+        CursorHistory.Trim(history, maximum: 50).ShouldBeFalse();
 
         history.ToArray().ShouldBe(["c2", "c1", null]);
+    }
+
+    /// <summary>
+    /// The drop must be reported, because it changes what the next Previous click means.
+    /// </summary>
+    /// <remarks>
+    /// Re-appending the sentinel beneath the newest entries is what keeps page one reachable, but it also
+    /// means one later Previous click walks the operator from the middle of the sequence straight to page
+    /// one. Callers announce that jump; a <see langword="void"/> trim gave them nothing to announce it from,
+    /// so the pagers rendered it as an ordinary one-page step back.
+    /// </remarks>
+    [Fact]
+    public void Trim_reports_whether_it_dropped_entries()
+    {
+        Stack<string?> atBound = Build([null, .. Enumerable.Range(1, 49).Select(index => $"c{index}")]);
+        CursorHistory.Trim(atBound, maximum: 50).ShouldBeFalse();
+
+        Stack<string?> overBound = Build([null, .. Enumerable.Range(1, 50).Select(index => $"c{index}")]);
+        CursorHistory.Trim(overBound, maximum: 50).ShouldBeTrue();
+        overBound.ToArray()[^1].ShouldBeNull();
     }
 
     [Fact]

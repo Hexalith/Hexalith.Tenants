@@ -552,6 +552,16 @@ gitlink record and superseded these figures with results from the actual reviewe
   — **26/26 passed** after a serialized project restore.
 - Integration (Tier 3, `Category!=Performance`): **167/167 passed**, including the hosted UI route smoke
   and Aspire topology suites.
+  > **This count cannot distinguish a pass from a skip.** Every test in `AspireTopologyTests` and
+  > `TenantsUiRouteSmokeTests` carries `[DaprFact]` plus a first-line `_fixture.SkipIfUnavailable()`.
+  > `DaprFactAttribute` sets `SkipUnless = IsAvailable` and the fixture calls `Assert.Skip(...)` when
+  > prerequisites are absent, so both suites self-skip whenever local DAPR/Aspire is unavailable — the
+  > normal condition on a developer machine and in any CI lane without a DAPR sidecar. A green
+  > "167/167" is therefore consistent with those two suites never having executed. The lane is also
+  > `continue-on-error` by default (`domain-ci.yml` `aspire-continue-on-error`, `default: true`, not
+  > overridden by this repository), so it cannot block a merge either. Do not cite this number as
+  > evidence for any acceptance criterion that requires live-topology proof; record the skip reason from
+  > the run instead.
 - Regression lanes: Contracts **120/120**, Client **50/50**, Testing **181/181**, Server **738/738**,
   Sample **39/39**. Each needs its own serialized restore; the `IntegrationTests` graph and the
   package-mode graph cannot share `obj` state (`SOLUTION-GRAPH-1` below).
@@ -652,3 +662,130 @@ lanes were re-run against that exact dependency graph plus the final completion 
 The validator's current pointer endpoints are AI.Tools `859d53b`, Builds `13cad86`, Commons `f2b5f1b`,
 EventStore `1d42528`, FrontComposer `b6efcad`, and Memories `ccd8efa`. Earlier Story 1.10 pointer tables
 and test counts are historical records, not completion evidence for `09947a2`.
+
+## Code review loop 10 repairs — 2026-07-31
+
+Scope: the never-reviewed delta `625061b..working tree` (30 files, +1,450/-249) plus the 19 patch items
+applied from that review. Commands run from the repository root, per project, never solution-level
+`dotnet test`.
+
+| Check | Result |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror` | PASS — 0 warnings, 0 errors |
+| `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj` | PASS — 1,731 passed, 0 failed, 0 skipped |
+| `dotnet test tests/Hexalith.Tenants.Contracts.Tests/...` | PASS — 120 passed, 0 failed |
+| `dotnet test tests/Hexalith.Tenants.Client.Tests/...` | PASS — 50 passed, 0 failed |
+| `dotnet test tests/Hexalith.Tenants.Testing.Tests/...` | PASS — 181 passed, 0 failed |
+| `dotnet test tests/Hexalith.Tenants.Server.Tests/...` | PASS — 738 passed, 0 failed |
+| `python3 scripts/validate-story-gitlinks.py <spec-1-10>` | PASS — exit 0; all six moved pointers declared |
+| `python3 scripts/validate-story-gitlinks.py <spec-1-12>` | PASS — exit 0; see the note below |
+| EN/FR resource parity | PASS — 1,223 keys each, no one-sided key |
+
+UI test count moved 1,696 → 1,731 (+35) across the applied repairs. The baseline of 1,696 was confirmed
+independently by all four review layers before any repair was made.
+
+Mutation evidence recorded this loop: the decision D-F clause reordering in
+`State/TenantDetail/TenantLifecycleAvailability.cs` was verified by restoring the pre-D-F order (lifecycle
+clause first) and re-running `TenantLifecycleAvailabilityTests` — **5 of 29 failed**, then the file was
+restored from a pre-mutation copy and the suite returned to green. The 502/504-and-wider status rows and the
+projection-lifecycle read-state tests were added against production changes made in the same pass, so they
+are new coverage rather than mutation-verified regressions.
+
+The `spec-1-12` gitlink run initially **FAILED** (exit 1) with three undeclared pointers. Commit `33abe27`
+moves no submodule pointer at all — `git show --stat --name-only 33abe27` returns no `references/` path — so
+the three are Story 1.10's bumps (`b045129`, `a49d793`) caught by the validator's HEAD-relative window
+against Story 1.12's earlier baseline. They are now declared in `spec-1-12`'s File List with their
+provenance stated: the story asserts where they came from, not that it owns them. Exit code re-checked
+directly (`echo $?`), not through a pipeline.
+
+Not re-run for this loop: `tests/Hexalith.Tenants.IntegrationTests` (both the generated-controller and the
+non-performance lanes). Those need a DAPR sidecar and the Aspire topology; the repairs touched no host,
+AppHost, controller or contract, but that is an argument for expecting them to pass, not evidence that they
+did. There is no `Hexalith.Tenants.Sample.Tests` project in this repository despite the CI Tier 1 list in
+`project-context.md` naming one.
+
+Mutation evidence added after the first loop-10 pass: reverting `ResolveAuthorizedNamespace` to the
+first-dot-segment implementation killed `Remove_preview_reports_the_longest_authorized_prefix_not_the_first_dot_segment`,
+and neutering the heading-focus fallback in `TenantConfigurationManagement` killed
+`Management_moves_focus_to_the_landmark_heading_when_the_row_it_came_from_is_gone`. Both files were restored
+from pre-mutation copies and the suite re-confirmed green.
+
+## Story 1.10 — review repair loop 11 (2026-07-31)
+
+Closes the loop-8, loop-9 and loop-10 items left open, plus the two loop-8 decisions. Executed against the
+working tree at `2cd7edf` + uncommitted repairs.
+
+| Lane | Result |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror` | PASS — 0 warnings, 0 errors |
+| UI (`Hexalith.Tenants.UI.Tests`) | PASS — 1,794 passed, 0 failed, 0 skipped |
+| IntegrationTests `Category!=Performance` | PASS — 168 passed, 0 failed, 0 skipped |
+| IntegrationTests `TenantsApiGeneratedControllerTests` | PASS — 27 passed |
+| Contracts / Client / Testing / Server | PASS — 120 / 50 / 181 / 738 |
+| EN/FR resource parity | PASS — 1,227 keys each, no one-sided key |
+| Prohibited-symbol scans | PASS — `SubmitQueryRequest` and `tenant-index:system` both 0 hits under `src/` |
+| `validate-story-gitlinks.py` (1.10) | PASS — exit 0, verified directly with `echo $?` |
+| `validate-story-gitlinks.py` (1.12) | PASS — exit 0 |
+
+UI count moved 1,731 → 1,794 (+63).
+
+**There is no `tests/Hexalith.Tenants.Sample.Tests` project in this repository**, so the "Sample 39/39" line
+that earlier sections carry could not have come from this tree. `project-context.md`'s CI Tier 1 list names
+it; either the list or the repository is wrong, and this record states the discrepancy rather than repeating
+the figure.
+
+### Corrections to earlier entries in this file
+
+These earlier claims were wrong or had gone stale. They are corrected here rather than edited in place,
+because the dated sections are the record of what each loop actually ran.
+
+- `Service_discovery_base_address_forms_compose_a_real_read_gateway` is listed above as loop-2 coverage
+  "since `AddServiceDiscovery` is attached to the same client". Review loop 7 removed service discovery from
+  the Tenants read client (resolved decision, option (c)), so that justification no longer holds. The
+  scheme gate it exercised is still real — `TryGetHttpBaseAddress` rejects a compound `https+http://`
+  address — but it is now a per-side fail-closed case, not a service-discovery one.
+- The loop-3 closure line states "no unchecked review patch remains". Loops 4 through 10 subsequently
+  recorded roughly ninety more, of which this loop closes the last. That line describes loop 3's own scope,
+  not the story's.
+- The `UI | PASS — 1,507 passed` figure in the loop-3 table is superseded three times over: 1,600 and 1,611
+  in the chunk repairs, 1,654 at loop 8, 1,696 at loop 10, 1,731 at the loop-10 close, and 1,794 here.
+- Three `references/` target SHAs recorded in earlier sections are superseded. The authoritative values are
+  `Builds 53d53ae -> b529b66`, `EventStore 5a1d277 -> e4618d9`, `Memories 1868c8f -> a1f64d5`.
+  `validate-story-gitlinks.py` now enforces this: it compares each stated `from -> to` target against the
+  tree, so a stale pointer table fails the check instead of passing on the path name alone. Run against the
+  pre-correction story it reported exactly these three.
+- The member page-one recovery was described as mutation-verified while the gateway half was unpinned. It is
+  now genuinely covered on both sides:
+  `Get_tenant_users_signals_a_page_one_recovery_the_page_can_act_on` at the gateway seam and
+  `Gateway_side_member_page_recovery_resets_the_page_cursor_and_history` at the page.
+- `HOST-REF-1` is recorded as closed by loop 2. That remains true for the AppHost wiring
+  (`AppHost/Program.cs` references `tenants-api` and supplies `Tenants__BaseAddress`). What is **not**
+  closed, and is recorded below as an owned limitation, is live socket-level proof that the six routes
+  answer through that wiring.
+
+### Owned limitation — live six-route proof (decision `spec:854`, option (b))
+
+The six direct routes are proven **in process** against the real generated controllers by
+`Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers`, extended by this
+loop to cover the query strings each route must carry, the projection-lifecycle header, and the conditional
+`304` path end to end (a real not-modified response from the real emitter satisfying every clause of
+`IsSupportedNotModified`).
+
+They are **not** proven over a real socket against the running topology. A probe was written for this loop —
+the production `TenantsRestQueryClient` driven against the `tenants-api` Aspire resource with a real bearer
+token — and every read times out at the client's 60 s bound in the local slim-mode topology; the same
+topology also intermittently fails the pre-existing command-status wait in `AspireTopologyTests`. The probe
+is therefore not shipped: a lane that cannot distinguish "the routes are broken" from "the local topology is
+not healthy" is not evidence. This is recorded as an owned limitation, in the same class as `PLAT-FRESH-1`,
+rather than closed.
+
+The other half of that decision item — that `AuditRestQueryClientAdapter`'s unconditional
+`TenantsRestQueryFailureKind.None` lets a live 503 reach the gateway as a success with a null payload — is
+**refuted**. `EventStoreGatewayClient` throws `EventStoreGatewayException` for every non-success status
+(`Gateway/EventStoreGatewayClient.cs:93,170`), so a failing response never reaches the adapter's converter;
+it propagates to `TenantQueryGateway`'s own exception handler, which is the production mapping. This was
+verified by making the converter report a payload-less result as `Unavailable`: no live outage was newly
+caught, and `Aha_moment_demo_revokes_sample_access_from_tenant_events` broke — that assertion exists because
+the pre-Story-4.7 alias legitimately yields no payload, and the change conflated "this alias has no evidence"
+with "the service is down". The change was reverted; the adapter's remark now records the refutation and
+states plainly that it is not the production transport.

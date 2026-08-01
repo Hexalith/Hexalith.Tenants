@@ -6,6 +6,12 @@ diffs the submodule pointers between the story's recorded `baseline_commit` and
 the current tree, then requires every drifted pointer to be declared in the
 story's File List (or Completion Notes). Undeclared drift fails the check.
 
+Declaring a path is necessary but not sufficient. Where the story also states a
+target SHA for that path, the stated SHA must match the tree: a story whose own
+pointer table has gone stale asserts a state that is not the one it ships, and
+naming the path alone let that pass. Stated SHAs are matched by prefix, so both
+short and full forms are accepted.
+
 The check is fail-closed: a story with no usable baseline cannot prove anything
 about its own gitlinks, so a missing baseline is a failure, not a pass.
 """
@@ -13,6 +19,7 @@ about its own gitlinks, so a missing baseline is a failure, not a pass.
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -60,8 +67,19 @@ def read_frontmatter(story_text: str) -> dict[str, str]:
     return fields
 
 
-def extract_section(story_text: str, heading: str) -> str:
-    """Return the body of a markdown section, or an empty string when absent."""
+def extract_section(story_text: str, heading: str, stop_at_subheading: bool = False) -> str:
+    """Return the body of a markdown section, or an empty string when absent.
+
+    By default the body runs until the next heading of the same or higher level,
+    so nested subsections stay inside it. `stop_at_subheading` ends the body at the
+    very next heading of any level instead.
+
+    That stricter form is what pointer *claims* are read from. A long-lived story
+    accumulates `### Review Findings` subsections under `## Completion Notes List`,
+    and those carry retained historical pointer tables the story explicitly labels
+    superseded. Swallowing them made the newest text in the file a stale table, so
+    a last-wins reading picked the wrong SHA and failed a correct tree.
+    """
     lines = story_text.splitlines()
     body: list[str] = []
     depth = 0
@@ -73,7 +91,7 @@ def extract_section(story_text: str, heading: str) -> str:
             continue
         if stripped.startswith("#"):
             level = len(stripped) - len(stripped.lstrip("#"))
-            if level <= depth:
+            if stop_at_subheading or level <= depth:
                 break
         body.append(line)
     return "\n".join(body)
@@ -118,6 +136,74 @@ def declared_paths(story_text: str) -> set[str]:
     return declared
 
 
+TOKEN_TRIM = ",.;:()[]<>\"'|*"
+
+# The right-hand side of the last hop in a chain. `(?:...)+` keeps the final
+# repetition, so `a -> b -> c` states c, not b: a story correcting its own record
+# in place ships the last SHA it names, and reading the first hop failed a tree
+# that was right. `–>` (en dash) is accepted alongside `->`, `—>` and `→`.
+ARROW_CHAIN = re.compile(
+    r"([0-9a-fA-F]{7,40})(?:\s*(?:-+>|—>|–>|→)\s*([0-9a-fA-F]{7,40}))+"
+)
+
+
+def _path_tokens(cleaned: str) -> list[tuple[int, str]]:
+    """Return (offset, path) for every `references/` token on a line."""
+    found: list[tuple[int, str]] = []
+    offset = 0
+    for token in cleaned.split(" "):
+        bare = token.strip(TOKEN_TRIM).rstrip("/")
+        if bare.startswith(SUBMODULE_ROOT):
+            found.append((offset, bare))
+        offset += len(token) + 1
+    return found
+
+
+def stated_targets(story_text: str) -> dict[str, str]:
+    """Return the target SHA each `X -> Y` statement claims for a `references/` path.
+
+    Only the arrow form is read, and only its right-hand side: that is the shape
+    the story's own pointer tables use to state where a submodule ended up, and it
+    is the half that goes stale when a later commit moves the pointer again.
+
+    Three rules make this match how stories are actually written:
+
+    * Only the File List and Completion Notes List are read, exactly as
+      `declared_paths` does. Prose, fenced command examples and retained
+      historical tables elsewhere in a story are not binding claims -- reading the
+      whole document failed stories whose tree was correct because a paragraph
+      recorded where a pointer used to be, or explicitly disowned a bump.
+    * The last statement for a path wins. Stories correct their own record in
+      place and keep the superseded table above it as history; a set union matched
+      with `any()` meant one correct row exonerated every stale row for that path.
+    * A line naming several pointers states one target for each, matched to the
+      nearest preceding path. Skipping such lines as ambiguous made the check
+      invisible on the multi-pointer bump format that motivated it.
+    """
+    targets: dict[str, str] = {}
+    sections = (
+        extract_section(story_text, "File List", stop_at_subheading=True),
+        extract_section(story_text, "Completion Notes List", stop_at_subheading=True),
+    )
+    for section in sections:
+        for line in section.splitlines():
+            cleaned = line.replace("`", " ").replace("|", " ")
+            paths = _path_tokens(cleaned)
+            if not paths:
+                continue
+            for match in ARROW_CHAIN.finditer(cleaned):
+                owner = None
+                for offset, path in paths:
+                    if offset <= match.start():
+                        owner = path
+                    else:
+                        break
+                # An arrow chain before the first path on the line still belongs to
+                # that path -- "moved to X, see references/Y" reads that way.
+                targets[owner or paths[0][1]] = match.group(2).lower()
+    return targets
+
+
 def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]]:
     """Return (path, old_sha, new_sha) for every changed pointer under references/.
 
@@ -152,6 +238,26 @@ def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]
                 pass
         changes.append((path, old_sha[:7], new_sha[:7]))
     return sorted(changes)
+
+
+def current_pointer(path: str, ref: str | None) -> str | None:
+    """Return the submodule commit currently recorded for `path`, or None.
+
+    Needed for paths a story states a target for but never moved. The changed-
+    pointer diff cannot see those, so a story claiming a bump it never made -- or
+    made and then reverted to baseline -- passed with "no pointer changes".
+    """
+    try:
+        if ref is None:
+            return run_git("-C", path, "rev-parse", "HEAD").strip()[:7]
+        raw = run_git("ls-tree", ref, "--", path)
+    except CheckError:
+        return None
+    for line in raw.splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and fields[1] == "commit":
+            return fields[2][:7]
+    return None
 
 
 def baseline_is_mid_story(baseline: str, story_key: str) -> bool:
@@ -219,27 +325,67 @@ def check(story_path: Path, ref: str) -> int:
             "  mid-story baseline. Pointer changes made earlier in the story are outside this diff."
         )
 
-    changes = gitlink_changes(baseline, None if compare_worktree else head)
-    if not changes:
-        print("\nNo references/ pointer changes in range.")
-        for warning in warnings:
-            print(f"\nWARNING: {warning}")
-        print("\nRESULT: PASS")
-        return EXIT_PASS
-
+    compare_ref = None if compare_worktree else head
+    changes = gitlink_changes(baseline, compare_ref)
     declared = declared_paths(story_text)
+    stated = stated_targets(story_text)
 
     undeclared: list[tuple[str, str, str]] = []
-    print(f"\n{len(changes)} references/ pointer change(s) in range:")
-    for path, old_sha, new_sha in changes:
-        is_declared = path in declared
-        marker = "declared" if is_declared else "UNDECLARED"
-        print(f"  [{marker}] {path}  {describe_change(old_sha, new_sha)}")
-        if not is_declared:
-            undeclared.append((path, old_sha, new_sha))
+    misstated: list[tuple[str, str, str]] = []
+
+    def record_if_misstated(path: str, actual: str) -> None:
+        """Declaring the path is not enough: the stated `to` must be the tree SHA.
+
+        Naming the path while the table records a superseded target is exactly how
+        this record went stale. Stated SHAs are matched by prefix, so both short
+        and full forms are accepted.
+        """
+        claim = stated.get(path)
+        if claim and not (actual.startswith(claim) or claim.startswith(actual)):
+            misstated.append((path, actual, claim))
+
+    if changes:
+        print(f"\n{len(changes)} references/ pointer change(s) in range:")
+        for path, old_sha, new_sha in changes:
+            is_declared = path in declared
+            marker = "declared" if is_declared else "UNDECLARED"
+            print(f"  [{marker}] {path}  {describe_change(old_sha, new_sha)}")
+            if not is_declared:
+                undeclared.append((path, old_sha, new_sha))
+                continue
+            record_if_misstated(path, new_sha)
+    else:
+        print("\nNo references/ pointer changes in range.")
+
+    # A stated target for a pointer that did not move is still a claim about the
+    # tree, and the diff above cannot see it. Without this a story could assert a
+    # bump it never made, or one it made and reverted to baseline, and pass.
+    changed_paths = {path for path, _, _ in changes}
+    for path in sorted(stated):
+        if path in changed_paths:
+            continue
+        actual = current_pointer(path, compare_ref)
+        if actual is not None:
+            record_if_misstated(path, actual)
+
+    for path, actual, claim in misstated:
+        print(
+            f"\n  [MISSTATED] {path} is {actual} in the tree, "
+            f"but the story states {claim}."
+        )
 
     for warning in warnings:
         print(f"\nWARNING: {warning}")
+
+    if misstated and not undeclared:
+        print("\nRESULT: FAIL")
+        print(
+            "\nEvery stated pointer SHA must be the one this story ships. A declaration that\n"
+            "names the right path but the wrong commit asserts a state the tree does not have.\n"
+            "Update the story's pointer record to the tree values above, or restore the tree to\n"
+            "the values the story states."
+        )
+        return EXIT_FAIL
 
     if undeclared:
         print("\nRESULT: FAIL")

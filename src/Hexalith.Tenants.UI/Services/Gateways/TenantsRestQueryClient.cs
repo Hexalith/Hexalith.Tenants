@@ -720,12 +720,13 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         return true;
     }
 
-    // InvalidRequest, not Unavailable: an unusable route identity is a caller-side input defect. Reporting
-    // it as 503 made it indistinguishable from the Tenants API being down, both in the rendered surface and
-    // in the operational log.
+    // Not Unavailable: an unusable route identity is a caller-side input defect, and reporting it as 503
+    // made it indistinguishable from the Tenants API being down. Not InvalidRequest either, which is what a
+    // server-issued 400 maps to: no request is sent here, so the two are different facts and the detail
+    // mapper needs to tell them apart before it can call one of them non-existence.
     private static Task<TenantsRestQueryResponse<TPayload>> UnsupportedRouteIdentifier<TPayload>()
         => Task.FromResult(Failure<TPayload>(
-            TenantsRestQueryFailureKind.InvalidRequest,
+            TenantsRestQueryFailureKind.UnsupportedRouteIdentifier,
             (int)HttpStatusCode.BadRequest));
 
     private Uri CreateRequestUri(string path)

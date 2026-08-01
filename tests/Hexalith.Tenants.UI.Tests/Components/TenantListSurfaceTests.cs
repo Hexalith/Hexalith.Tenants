@@ -1082,14 +1082,20 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData(ProjectionLifecycleState.Stale, "projection-lifecycle-badge--stale")]
-    [InlineData(ProjectionLifecycleState.Rebuilding, "projection-lifecycle-badge--rebuilding")]
-    [InlineData(ProjectionLifecycleState.Degraded, "projection-lifecycle-badge--degraded")]
-    [InlineData(ProjectionLifecycleState.Unavailable, "projection-lifecycle-badge--unavailable")]
-    [InlineData(ProjectionLifecycleState.LocalOnly, "projection-lifecycle-badge--localonly")]
+    // The localized label is asserted alongside the class, per row. Asserting the class alone leans on
+    // incidental markup, which project rules forbid relying on -- and it was how the badge's resource keys
+    // went missing without any test noticing: the stub localizer echoed the key back, and "Stale" is a
+    // substring of "Tenants.ProjectionLifecycle.Stale", so a substring assertion would have passed either
+    // way. The expected labels below are the shipped EN strings.
+    [InlineData(ProjectionLifecycleState.Stale, "projection-lifecycle-badge--stale", "Stale")]
+    [InlineData(ProjectionLifecycleState.Rebuilding, "projection-lifecycle-badge--rebuilding", "Rebuilding")]
+    [InlineData(ProjectionLifecycleState.Degraded, "projection-lifecycle-badge--degraded", "Degraded")]
+    [InlineData(ProjectionLifecycleState.Unavailable, "projection-lifecycle-badge--unavailable", "Unavailable")]
+    [InlineData(ProjectionLifecycleState.LocalOnly, "projection-lifecycle-badge--localonly", "Local only")]
     public void Row_lifecycle_reaches_the_independent_lifecycle_badge_on_the_tenant_list(
         ProjectionLifecycleState lifecycle,
-        string expectedClass)
+        string expectedClass,
+        string expectedLabel)
     {
         // Drive the real consumer so deleting the grid's Lifecycle binding cannot compile while a direct
         // component test still passes. Freshness remains independently visible in the adjacent column.
@@ -1106,6 +1112,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             .GetAttribute("class")
             .ShouldNotBeNull()
             .ShouldContain(expectedClass);
+        cut.Find("[data-testid='tenants-projection-lifecycle']").TextContent.Trim().ShouldBe(expectedLabel);
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Current");
     }
 
@@ -1785,6 +1792,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         }
     }
 
+    /// <remarks>
+    /// <c>NotModifiedWithoutSnapshot</c> now has a producer on all four paged reads: the gateway assigns it
+    /// when a supported 304 arrives with no retained snapshot to pair it with -- the server insisting
+    /// nothing changed while there is nothing to show, which is neither an outage nor degraded evidence.
+    /// That reachability is pinned at the gateway seam by
+    /// <c>A_not_modified_response_with_nothing_retained_has_its_own_reason_on_every_paged_read</c>; this
+    /// test owns the other half, that the shipped copy for the state is localized and support-safe.
+    /// (Before that wiring the state had EN/FR resources and four enum members but no producer at all, so
+    /// this test read as evidence of a live state that an operator could never reach.)
+    /// </remarks>
     [Fact]
     public void Typed_error_reason_renders_only_localized_support_safe_copy()
     {
@@ -2545,6 +2562,16 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
+            // Without these, ProjectionLifecycleBadge rendered the literal resource key back through this
+            // echoing stub, so the badge's label was never really asserted and only its CSS class was --
+            // which project rules forbid relying on alone.
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.List.SearchLabel"] = "Search tenants",
             ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",

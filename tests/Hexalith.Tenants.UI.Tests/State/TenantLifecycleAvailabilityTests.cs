@@ -120,6 +120,59 @@ public sealed class TenantLifecycleAvailabilityTests
         availability.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
     }
 
+    [Theory]
+    // Decision D-F (2026-07-31). The strict lifecycle gate is upheld, but it must be evaluated after the
+    // surface and freshness clauses. Every failed-read snapshot -- Unavailable, Degraded, Stale -- also
+    // carries a non-Current lifecycle, so with the lifecycle test first it answered for all of them and
+    // Tenants.Lifecycle.Unavailable.StaleFreshness became unreachable: an operator whose read had simply
+    // failed was told to refresh the projection lifecycle. Reverting the order makes every row here report
+    // ...ProjectionLifecycle instead.
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ProjectionLifecycleState.Unavailable)]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ProjectionLifecycleState.Degraded)]
+    [InlineData(TenantDetailSurfaceKind.Stale, ProjectionLifecycleState.Stale)]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ProjectionLifecycleState.Unknown)]
+    public void A_failed_read_reports_its_own_failure_not_the_projection_lifecycle(
+        TenantDetailSurfaceKind surfaceKind,
+        ProjectionLifecycleState lifecycle)
+    {
+        TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
+                "tenant.alpha",
+                TenantStatus.Active,
+                ReadModelFreshnessState.Unknown,
+                surfaceKind,
+                IsCommandSurfaceConnected: true,
+                TenantLifecycleGovernanceReadiness.Ready,
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: lifecycle)
+            .Evaluate(TenantLifecycleOperation.DisableTenant);
+
+        availability.IsUnavailable.ShouldBeTrue();
+        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.StaleData);
+        availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.StaleFreshness");
+        availability.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+    }
+
+    [Fact]
+    public void An_unauthorized_read_reports_permission_not_the_projection_lifecycle()
+    {
+        // Authorization outranks the lifecycle gate too: an unauthorized surface carries no lifecycle
+        // evidence, and "refresh the projection" is the wrong instruction for a permission problem.
+        TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
+                "tenant.alpha",
+                TenantStatus.Active,
+                ReadModelFreshnessState.Current,
+                TenantDetailSurfaceKind.Unauthorized,
+                IsCommandSurfaceConnected: true,
+                TenantLifecycleGovernanceReadiness.Ready,
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: ProjectionLifecycleState.Unknown)
+            .Evaluate(TenantLifecycleOperation.DisableTenant);
+
+        availability.IsUnavailable.ShouldBeTrue();
+        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.MissingPermission);
+        availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.MissingPermission");
+    }
+
     [Fact]
     public void Unauthorized_detail_surface_blocks_as_missing_permission()
     {
@@ -221,6 +274,36 @@ public sealed class TenantLifecycleAvailabilityTests
         availability.IsUnavailable.ShouldBeTrue();
         availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady);
         availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.Mobile");
+    }
+
+    [Theory]
+    [InlineData(TenantStatus.Active, TenantLifecycleOperation.DisableTenant)]
+    [InlineData(TenantStatus.Disabled, TenantLifecycleOperation.EnableTenant)]
+    public void A_fully_satisfied_input_is_available(
+        TenantStatus status,
+        TenantLifecycleOperation operation)
+    {
+        // Every other assertion in this file is IsUnavailable.ShouldBeTrue(), and repo-wide
+        // `IsUnavailable.ShouldBeFalse` and `UnavailableReasonCategory.None` had zero hits. Without a
+        // positive control the success return of Evaluate could be replaced with Blocked(...) -- every
+        // lifecycle control permanently dead in production -- with full coverage still reported.
+        TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
+                "tenant.alpha",
+                status,
+                ReadModelFreshnessState.Current,
+                TenantDetailSurfaceKind.Ready,
+                IsCommandSurfaceConnected: true,
+                TenantLifecycleGovernanceReadiness.Ready,
+                TenantLifecycleAuthorizationReflectionState.Authorized,
+                Lifecycle: ProjectionLifecycleState.Current)
+            .Evaluate(operation);
+
+        availability.IsUnavailable.ShouldBeFalse();
+        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.None);
+        availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Available");
+        availability.ExpectedDomainOutcomeKey.ShouldBeNull();
+        availability.FocusTarget.ShouldBe(TenantCommandFocusTarget.Submit);
+        availability.Operation.ShouldBe(operation);
     }
 
     private static TenantLifecycleAvailabilityInput CurrentInput(

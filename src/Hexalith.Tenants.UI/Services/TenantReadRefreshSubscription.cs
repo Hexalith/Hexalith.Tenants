@@ -241,15 +241,24 @@ public sealed partial class TenantReadRefreshSubscription(
 
     /// <summary>Drains pending notifications for one projection scope.</summary>
     /// <remarks>
-    /// The <c>finally</c> is load-bearing. <c>OnProjectionChanged</c> starts this loop only when
-    /// <c>_running.Add(key)</c> succeeds, and removal previously happened on exactly one path -- the normal
-    /// return inside the lock. Any throw from the loop body outside the inner try (most plausibly
-    /// <c>LogReason</c> on a logger from a torn-down circuit scope) left the key in <c>_running</c> forever,
-    /// so every later notification saw <c>start == false</c> and auto-refresh never restarted. The task is
-    /// fire-and-forget, so that fault was unobserved.
+    /// <para>
+    /// The running key is released inside the <em>same</em> lock acquisition that observes the empty queue.
+    /// Releasing it in the <c>finally</c> instead re-acquired the lock, and a notification arriving in that
+    /// gap added itself to <c>_pending</c>, saw <c>_running.Add(key) == false</c> so started no loop, and was
+    /// then stranded when the <c>finally</c> cleared the key -- trading the stuck-key fault below for a
+    /// lost-wakeup one.
+    /// </para>
+    /// <para>
+    /// The <c>finally</c> is retained for the throw path only. <c>OnProjectionChanged</c> starts this loop
+    /// only when <c>_running.Add(key)</c> succeeds, so any throw from the loop body outside the inner try
+    /// (most plausibly <c>LogReason</c> on a logger from a torn-down circuit scope) would otherwise leave the
+    /// key in <c>_running</c> forever and auto-refresh would never restart. That path re-arms the loop when a
+    /// notification did land while it was unwinding, so neither fault can strand a nudge.
+    /// </para>
     /// </remarks>
     private async Task RunRefreshLoopAsync((string ProjectionType, string TenantId) key)
     {
+        bool released = false;
         try
         {
             while (true)
@@ -260,6 +269,8 @@ public sealed partial class TenantReadRefreshSubscription(
                     if (!_pending.Remove(key)
                         || !_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? registered))
                     {
+                        _ = _running.Remove(key);
+                        released = true;
                         return;
                     }
 
@@ -281,9 +292,21 @@ public sealed partial class TenantReadRefreshSubscription(
         }
         finally
         {
-            lock (_sync)
+            if (!released)
             {
-                _ = _running.Remove(key);
+                bool restart;
+                lock (_sync)
+                {
+                    _ = _running.Remove(key);
+                    restart = _pending.Contains(key)
+                        && _callbacks.ContainsKey(key)
+                        && _running.Add(key);
+                }
+
+                if (restart)
+                {
+                    _ = RunRefreshLoopAsync(key);
+                }
             }
         }
     }

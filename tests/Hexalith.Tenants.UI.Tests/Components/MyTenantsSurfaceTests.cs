@@ -55,8 +55,31 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
         cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent.ShouldContain("Unknown");
+        cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent
+            .ShouldNotContain("Tenants.ProjectionLifecycle", Case.Sensitive);
         cut.Find("[data-testid='tenants-my-summary']").TextContent.ShouldContain("2");
-        cut.FindAll("[data-testid='tenants-lifecycle-actions']").ShouldBeEmpty();
+        // The self-audit surface is read-only. `tenants-lifecycle-actions` is emitted only by
+        // TenantLifecycleActionAvailability, which nothing under Components/Users references, so asserting
+        // it is absent is true by construction and cannot fail. Assert instead that the surface renders no
+        // interactive control other than the ones it legitimately owns: the detail link, the support-safe
+        // copy button, and the pager.
+        string[] allowedControlIds =
+        [
+            "tenants-my-detail-link",
+            "tenants-my-copy-reference",
+            "tenants-my-next",
+            "tenants-my-previous",
+            "tenants-my-retry",
+        ];
+        cut.FindAll("button, a, input, select, textarea, [role='button']")
+            .Where(element =>
+            {
+                string? id = element.GetAttribute("data-testid") ?? element.GetAttribute("data-surface-testid");
+                return id is null || !allowedControlIds.Contains(id, StringComparer.Ordinal);
+            })
+            .Select(static element => element.GetAttribute("data-testid") ?? element.LocalName)
+            .ShouldBeEmpty("The self-audit surface must expose no mutation affordance.");
+
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
         cut.Markup.ShouldNotContain("command", Case.Insensitive);
@@ -343,6 +366,52 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         notice.TextContent.ShouldContain("restarted at the first page");
     }
 
+    /// <summary>
+    /// A page-one recovery must also reset the panel's own cursor state and URL.
+    /// </summary>
+    /// <remarks>
+    /// The notice above is driven by <c>PagingRecovered</c> alone, so the three lines that actually restart
+    /// paging -- clearing <c>_currentCursor</c>, clearing <c>_cursorHistory</c> and replacing the URL --
+    /// could all be deleted with the test still green. A user would then be told the list restarted while
+    /// Previous still walked the dead cursor chain and the address bar still carried the expired cursor.
+    /// </remarks>
+    [Fact]
+    public void My_tenants_page_one_recovery_resets_the_cursor_history_and_the_url()
+    {
+        List<UserTenantMembershipRequest> requests = [];
+        UserTenantMembershipSnapshot page = ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            nextCursor: "page-2",
+            hasMore: true);
+        RegisterServices(call =>
+        {
+            requests.Add(call.Arg<UserTenantMembershipRequest>()!);
+
+            // The second read -- the one the Next click issues -- comes back as a page-one recovery.
+            return Task.FromResult(requests.Count == 1
+                ? page
+                : page with
+                {
+                    NextCursor = null,
+                    HasMore = false,
+                    PagingRecovered = true,
+                    Reason = UserTenantMembershipReason.PageRecovered,
+                });
+        });
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("[data-testid='tenants-my-next']").Click();
+        cut.WaitForElement("[data-testid='tenants-my-page-recovered']");
+
+        // Previous must be gone: the history was cleared, so page one is where the user actually is.
+        cut.FindAll("[data-testid='tenants-my-previous']")
+            .ShouldAllBe(static element => element.HasAttribute("disabled"));
+
+        // ...and the URL no longer carries the dead cursor.
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.Uri.ShouldNotContain("page-2");
+    }
+
     private void RegisterServices(UserTenantMembershipSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
 
@@ -396,6 +465,17 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
+            // ProjectionLifecycleBadge renders Localizer["Tenants.ProjectionLifecycle.{Lifecycle}"], and this
+            // stub echoes any unknown key back. Without these entries the badge rendered the literal key
+            // "Tenants.ProjectionLifecycle.Unknown", on which ShouldContain("Unknown") passes -- so a
+            // localization break in the badge was invisible to every consumer test.
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.Workspace.Eyebrow"] = "Tenant workspace",
             ["Tenants.List.Column.Freshness"] = "Freshness",
             ["Tenants.List.Column.Members"] = "Members",

@@ -37,6 +37,17 @@ public enum TenantsRestQueryFailureKind
     /// </remarks>
     InvalidCursor,
 
+    /// <summary>
+    /// This client refused to build a route from the supplied identity; no request was sent.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="InvalidRequest"/>, which is a rejection the service issued. A string this
+    /// client cannot escape into a route segment can never name a resource, so the detail read may safely
+    /// report it as not-found; a 400 the server chose to return means only that the request was refused, and
+    /// reporting that as non-existence tells the operator a tenant that exists does not.
+    /// </remarks>
+    UnsupportedRouteIdentifier,
+
     /// <summary>The response metadata could not support the claimed result.</summary>
     InvalidMetadata,
 

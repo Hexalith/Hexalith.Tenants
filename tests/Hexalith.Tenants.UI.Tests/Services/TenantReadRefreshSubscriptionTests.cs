@@ -403,6 +403,64 @@ public sealed class TenantReadRefreshSubscriptionTests
         refreshCount.ShouldBe(2);
     }
 
+    /// <summary>
+    /// A nudge that lands while the loop is unwinding from a throw must not be stranded.
+    /// </summary>
+    /// <remarks>
+    /// The running key was released in the <c>finally</c>, in a second lock acquisition. A notification
+    /// arriving between the loop's return and that re-acquisition added itself to the pending set, saw the
+    /// key still marked running so started no loop, and was then dropped when the <c>finally</c> cleared it.
+    /// The normal return path now releases in-lock, which closes that window outright; the throw path cannot,
+    /// so it re-arms instead. This drives the throw path -- a throwing logger faults the loop body outside the
+    /// inner try -- and queues the follow-up nudge from inside the failing callback, so the notification is
+    /// already pending when the unwind begins.
+    /// </remarks>
+    [Fact]
+    public async Task A_nudge_queued_while_the_loop_unwinds_from_a_throw_is_still_served()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        ThrowingLogger logger = new();
+        ServiceProvider services = new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .BuildServiceProvider();
+        TenantReadRefreshSubscription sut = new(services, logger);
+
+        int refreshCount = 0;
+        TaskCompletionSource secondRan = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using TenantReadRefreshLease lease = await sut.SubscribeAsync(
+            "tenants",
+            "tenant.alpha",
+            () =>
+            {
+                int count = Interlocked.Increment(ref refreshCount);
+                if (count == 1)
+                {
+                    // Queued from inside the callback, so it is pending before the loop faults. The loop is
+                    // already running, so this raises no second loop of its own -- only the unwinding
+                    // finally can serve it.
+                    notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+                        "tenants",
+                        "tenant.alpha");
+
+                    // Faults the callback, so the loop reaches LogReason -- which throws out of the body.
+                    throw new InvalidOperationException("callback failed");
+                }
+
+                secondRan.SetResult();
+                return Task.CompletedTask;
+            });
+        lease.IsSubscribed.ShouldBeTrue();
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+
+        // No further external notification: the queued one must be served by the re-armed loop alone.
+        await secondRan.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        refreshCount.ShouldBe(2);
+    }
+
     /// <summary>A logger whose Log throws, standing in for one from a torn-down circuit scope.</summary>
     private sealed class ThrowingLogger : ILogger<TenantReadRefreshSubscription>
     {

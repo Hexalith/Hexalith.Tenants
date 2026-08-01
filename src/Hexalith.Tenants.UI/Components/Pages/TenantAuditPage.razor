@@ -162,6 +162,12 @@
                                           OnClose="CloseCorrectionAsync" />
                 }
             }
+            @if (_pagingJumpedToFirstPage)
+            {
+                <p role="status" aria-live="polite" data-testid="tenants-audit-history-truncated">
+                    @Localizer["Tenants.Audit.Recovery.HistoryTruncated"]
+                </p>
+            }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
                     <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
@@ -184,6 +190,13 @@
     private const int MaximumCursorHistory = CursorHistory.DefaultMaximum;
 
     private readonly Stack<string?> _cursorHistory = new();
+
+    // Set when CursorHistory.Trim drops entries, cleared when the resulting jump has been announced. The
+    // trim re-appends the first-page sentinel beneath the newest entries, so one later Previous click moves
+    // the operator from the middle of the sequence to page one -- which the pager would otherwise render as
+    // an ordinary one-page step back.
+    private bool _pagingHistoryTruncated;
+    private bool _pagingJumpedToFirstPage;
     private TenantAuditSnapshot _snapshot = TenantAuditSnapshot.Loading();
     private string? _currentCursor;
     private string? _fromText;
@@ -342,7 +355,6 @@
             IAsyncDisposable? previousLease = _readRefreshLease;
             _readRefreshLease = null;
             _subscriptionTenantId = null;
-            _loadedTenantId = tenantId;
             if (previousLease is not null)
             {
                 await previousLease.DisposeAsync().ConfigureAwait(false);
@@ -360,6 +372,14 @@
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
             }).ConfigureAwait(false);
+
+            // Recorded only once the clear has actually run. Assigning it before the awaited lease dispose
+            // let a re-entrant OnParametersSetAsync for the same tenant, arriving while that dispose was
+            // suspended, compute tenantChanged == false -- so the conditional read below reused the previous
+            // tenant's ETag as its If-None-Match validator and its cursor as the paging position. Before the
+            // reuseETag/retainConfirmed change those arguments were unconditionally false, so no cross-tenant
+            // validator could leak; now the assignment order is what holds that line.
+            _loadedTenantId = tenantId;
         }
 
         // Only a tenant change may discard the retained validator and blank the grid. The route carries six
@@ -739,7 +759,8 @@
                 {
                     _cursorHistory.Push(priorCursor);
                     _currentCursor = nextCursor;
-                    CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                    _pagingHistoryTruncated |= CursorHistory.Trim(_cursorHistory, MaximumCursorHistory);
+                    _pagingJumpedToFirstPage = false;
                 }
             }).ConfigureAwait(false);
         }
@@ -767,12 +788,39 @@
                 requestedTenantId: tenantId,
                 requestedCursor: previousCursor,
                 useRequestedCursor: true).ConfigureAwait(false);
-            if (IsAppliedRequestedPage(result, previousCursor)
-                && ReferenceEquals(_snapshot, result)
-                && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            // Marshalled for the same reason as NextPageAsync: this continuation resumes on a thread-pool
+            // thread while the render LoadAsync queued through InvokeAsync is still in flight, and that
+            // render reads _cursorHistory.Count for the Previous button's Disabled binding. Popping a
+            // non-thread-safe Stack concurrently with that read is a data race. Only NextPageAsync and both
+            // global-administrator pagers were marshalled when this rule was first applied.
+            await InvokeAsync(() =>
             {
-                _currentCursor = _cursorHistory.Pop();
-            }
+                if (IsAppliedRequestedPage(result, previousCursor)
+                    && ReferenceEquals(_snapshot, result)
+                    && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                    // The entry guard checked Count above, but that was before this dispatcher hop. The
+                    // filter controls carry no Disabled binding and OnFromChanged/OnToChanged/
+                    // OnCategoryChanged/ResetFiltersAsync all call ClearPaging() with no in-flight check, so
+                    // a filter change landing after _snapshot was assigned and before this body runs leaves
+                    // every other clause passing against an emptied stack -- and Stack.Pop() then throws
+                    // InvalidOperationException on the Blazor dispatcher, tearing down the circuit. The
+                    // global-administrator sibling has carried this clause since the hop was introduced.
+                    && _cursorHistory.Count > 0)
+                {
+                    _currentCursor = _cursorHistory.Pop();
+
+                    // A trimmed history re-appends the first-page sentinel under the newest entries, so one
+                    // Previous click walks the operator from the middle of the sequence straight to page one.
+                    // Rendered as an ordinary step back it silently misstates where they are.
+                    _pagingJumpedToFirstPage = _pagingHistoryTruncated
+                        && _currentCursor is null
+                        && _cursorHistory.Count == 0;
+                    if (_pagingJumpedToFirstPage)
+                    {
+                        _pagingHistoryTruncated = false;
+                    }
+                }
+            }).ConfigureAwait(false);
         }
         finally
         {
@@ -814,6 +862,8 @@
     private void ClearPaging()
     {
         _cursorHistory.Clear();
+        _pagingHistoryTruncated = false;
+        _pagingJumpedToFirstPage = false;
         _currentCursor = null;
         _selectedReceipt = null;
         _selectedReceiptCorrectionIntent = null;

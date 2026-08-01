@@ -624,8 +624,11 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     {
         /// <summary>
         /// Explicit because <c>ITenantQueryGateway.GetTenantUsersAsync</c> is no longer a default interface
-        /// method. These stubs previously inherited a silent <c>Unavailable</c> fallback, so a member-read
-        /// regression would have rendered as an outage here rather than failing the build.
+        /// method. This stub returns <c>Unavailable</c> deliberately: these tests do not exercise the member
+        /// read, and an unavailable member surface is the correct fail-closed shape for them. Note this is
+        /// the same value the removed default interface method returned, so a member-read regression is NOT
+        /// caught here -- it is caught by the member-specific suites in
+        /// <c>TenantDetailSurfaceTests</c>. (An earlier version of this remark claimed the opposite.)
         /// </summary>
         public Task<TenantUsersSnapshot> GetTenantUsersAsync(
             TenantUsersRequest request,

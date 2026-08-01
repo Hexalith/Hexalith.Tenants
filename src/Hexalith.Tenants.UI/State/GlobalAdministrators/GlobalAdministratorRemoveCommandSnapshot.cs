@@ -8,6 +8,17 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
     TenantCommandLifecycleState State,
     RemoveGlobalAdministrator? Intent = null,
     IReadOnlyList<GlobalAdministratorRow>? PreviewRows = null,
+
+    /// <summary>
+    /// Whether the projection page <see cref="PreviewRows"/> was captured from was complete evidence.
+    /// </summary>
+    /// <remarks>
+    /// Captured with the rows, not read live. The preview renders the count from <see cref="PreviewRows"/>
+    /// while its label was selected from the live snapshot, so a notification refresh landing between preview
+    /// and render paired "Current administrator count" with a page-one count, or the converse. Both halves
+    /// must come from the same evidence.
+    /// </remarks>
+    bool PreviewIsCompleteEvidence = false,
     GlobalAdministratorRow? LastConfirmedProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -29,25 +40,27 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
 
     public GlobalAdministratorRemoveCommandSnapshot Preview(
         RemoveGlobalAdministrator intent,
-        IReadOnlyList<GlobalAdministratorRow> rows) {
+        IReadOnlyList<GlobalAdministratorRow> rows,
+        bool isCompleteEvidence = false) {
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(rows);
 
         GlobalAdministratorRow? target = rows.FirstOrDefault(row => string.Equals(row.UserId, intent.UserId, StringComparison.Ordinal));
         if (target is null) {
             return Blocked("The target global administrator is not visible in the current projection. Refresh before removing platform authority.", TenantCommandFocusTarget.Refresh)
-                with { Intent = intent, PreviewRows = rows };
+                with { Intent = intent, PreviewRows = rows, PreviewIsCompleteEvidence = isCompleteEvidence };
         }
 
         if (rows.Count <= 1) {
             return Blocked("The last global administrator cannot be removed.", TenantCommandFocusTarget.Submit)
-                with { Intent = intent, PreviewRows = rows, LastConfirmedProjection = target };
+                with { Intent = intent, PreviewRows = rows, LastConfirmedProjection = target, PreviewIsCompleteEvidence = isCompleteEvidence };
         }
 
         return this with {
             State = TenantCommandLifecycleState.Previewed,
             Intent = intent,
             PreviewRows = rows,
+            PreviewIsCompleteEvidence = isCompleteEvidence,
             LastConfirmedProjection = target,
             SafeMessage = null,
             RejectionCode = null,

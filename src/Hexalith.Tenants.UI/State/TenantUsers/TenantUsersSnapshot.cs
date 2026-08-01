@@ -100,9 +100,18 @@ public sealed record TenantUsersSnapshot(
 
     /// <summary>Creates a degraded state while retaining any applicable last-confirmed rows.</summary>
     /// <remarks>
+    /// <para>
     /// Clears <see cref="PagingRecovered"/>: this snapshot exists because a read failed, not because paging
     /// restarted at the first page. Carrying the flag re-rendered the polite "restarted at the first page"
     /// notice for a read that recovered nothing and in fact failed.
+    /// </para>
+    /// <para>
+    /// Clears <see cref="IsAuthorizationScopedEmpty"/> for the same reason. That flag is the
+    /// authorization-safe-absence channel -- it asserts the read succeeded and the caller's scope genuinely
+    /// contains no members -- and the renderer short-circuits its entire state switch on it. Carrying it
+    /// forward from a previously authorized-empty page presented a read the gateway could not complete as a
+    /// successful "No visible members", conflating two states AC6 requires to stay distinct.
+    /// </para>
     /// </remarks>
     public static TenantUsersSnapshot Degraded(
         string tenantId,
@@ -117,6 +126,7 @@ public sealed record TenantUsersSnapshot(
                 Reason = reason,
                 IsRefreshing = false,
                 PagingRecovered = false,
+                IsAuthorizationScopedEmpty = false,
             }
             : EmptyState(TenantUsersSurfaceKind.Degraded, tenantId, reason);
 

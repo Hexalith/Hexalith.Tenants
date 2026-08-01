@@ -172,7 +172,14 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         AngleSharp.Dom.IElement notice = cut.WaitForElement("[data-testid='tenants-user-page-recovered']");
         notice.GetAttribute("aria-live").ShouldBe("polite");
         notice.TextContent.ShouldContain("restarted at the first page");
-        cut.Markup.ShouldContain("restarted at the first page");
+
+        // The notice element is driven by snapshot.PagingRecovered directly, so asserting it alone left the
+        // announcement ternary -- the actual subject of this test's remark -- unpinned: reverting
+        // `PagingRecovered ? Announcement.PageRecovered : AnnouncementFor(...)` kept the test green while a
+        // screen-reader user heard the plain "N visible memberships loaded" after the view jumped to page
+        // one. Pin the announcement itself, in both polarities.
+        cut.Markup.ShouldContain("because the previous page reference expired");
+        cut.Markup.ShouldNotContain("visible memberships loaded for");
     }
 
     [Fact]

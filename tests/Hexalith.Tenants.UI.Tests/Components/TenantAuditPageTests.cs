@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Resources;
 using System.Xml.Linq;
+
+using AngleSharp.Dom;
 
 using Bunit;
 
@@ -117,6 +120,13 @@ public sealed class TenantAuditPageTests : BunitContext
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
             GetTenantAuditQuery.ProjectionType,
             "tenant.alpha");
+
+        // The stale-scope nudge must produce NO read. OnProjectionChanged dispatches via
+        // `_ = RunRefreshLoopAsync(key)`, so asserting the count immediately after Raise.Event both passed
+        // vacuously when a refresh was merely still in flight and failed spuriously on a fast pool. Settle
+        // the dispatcher first, then assert the absence.
+        await Task.Yield();
+        await cut.InvokeAsync(() => { });
         gateway.Requests.Count.ShouldBe(2);
 
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
@@ -804,11 +814,21 @@ public sealed class TenantAuditPageTests : BunitContext
             freshness: ReadModelFreshnessState.Current,
             new TenantAuditRequest("system"));
 
+    /// <summary>
+    /// Builds a ready audit snapshot, with the snapshot lifecycle independent of the row lifecycle.
+    /// </summary>
+    /// <remarks>
+    /// Production derives the two separately -- the snapshot lifecycle comes from response metadata, the row
+    /// lifecycle from the row -- so deriving the snapshot's from <c>rows[0]</c> made the non-collapse case
+    /// (metadata says the projection is not current while the rows still say Current) inexpressible, and no
+    /// test in this file rendered a non-Current snapshot lifecycle.
+    /// </remarks>
     private static TenantAuditSnapshot ReadySnapshot(
         IReadOnlyList<TenantAuditRow> rows,
         string? nextCursor = null,
         bool hasMore = false,
-        string? requestCursor = null)
+        string? requestCursor = null,
+        ProjectionLifecycleState? lifecycle = null)
         => TenantAuditSnapshot.Ready(
             rows,
             nextCursor,
@@ -819,7 +839,8 @@ public sealed class TenantAuditPageTests : BunitContext
                 : ReadModelFreshnessState.Current,
             new TenantAuditRequest("tenant.alpha", Cursor: requestCursor)) with
         {
-            Lifecycle = rows.Count == 0 ? ProjectionLifecycleState.Current : rows[0].Lifecycle,
+            Lifecycle = lifecycle
+                ?? (rows.Count == 0 ? ProjectionLifecycleState.Current : rows[0].Lifecycle),
         };
 
     private static TenantAuditSnapshot SnapshotFor(TenantAuditSurfaceKind kind)
@@ -846,7 +867,8 @@ public sealed class TenantAuditPageTests : BunitContext
         AuditEventCategory category,
         string referenceContext = "userId: target-user",
         ReadModelFreshnessState freshness = ReadModelFreshnessState.Current,
-        string? eventType = null)
+        string? eventType = null,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
     {
         string outcome = eventType ?? (category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet");
 
@@ -862,7 +884,7 @@ public sealed class TenantAuditPageTests : BunitContext
             outcome,
             referenceContext,
             freshness,
-            ProjectionLifecycleState.Current,
+            lifecycle,
             QueryResponseProvenance.ProjectionBacked);
     }
 
@@ -983,12 +1005,34 @@ public sealed class TenantAuditPageTests : BunitContext
                 : TenantLifecycleAuthorizationReflectionState.Indeterminate;
     }
 
+    /// <summary>
+    /// Resolution order: explicit override, then the real <c>TenantsResources.resx</c>, then throw.
+    /// </summary>
+    /// <remarks>
+    /// Echoing an unknown key back as <c>name</c> made a missing resource indistinguishable from a present
+    /// one: the component rendered the literal key as user-visible copy and any substring assertion over it
+    /// passed whether or not the string existed. Falling through to the real resource lets a test assert
+    /// shipped copy without hand-copying it here; a key defined in neither is a defect, not a silent echo.
+    /// Same rule as the sibling stub in <c>TenantDetailSurfaceTests</c>.
+    /// </remarks>
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
-        public LocalizedString this[string name] => new(name, Values.TryGetValue(name, out string? value) ? value : name);
+        private static readonly ResourceManager RealResources = new(
+            "Hexalith.Tenants.UI.Resources.TenantsResources",
+            typeof(TenantsResources).Assembly);
+
+        public LocalizedString this[string name] => new(name, Resolve(name));
 
         public LocalizedString this[string name, params object[] arguments]
-            => new(name, string.Format(CultureInfo.CurrentCulture, Values.TryGetValue(name, out string? value) ? value : name, arguments));
+            => new(name, string.Format(CultureInfo.CurrentCulture, Resolve(name), arguments));
+
+        private static string Resolve(string name)
+            => Values.TryGetValue(name, out string? value)
+                ? value
+                : RealResources.GetString(name, CultureInfo.InvariantCulture)
+                    ?? throw new KeyNotFoundException(
+                        $"Resource key '{name}' is defined neither in this stub nor in TenantsResources.resx. "
+                        + "The stub must not echo an undefined key back as user-visible copy.");
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
             => Values.Select(v => new LocalizedString(v.Key, v.Value));
@@ -1130,8 +1174,10 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
 
         // Paging state must not have advanced, so Previous stays unavailable: page one is still current.
-        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-previous']")
-            .All(static element => element.HasAttribute("disabled")).ShouldBeTrue());
+        // Find, not FindAll(...).All(...): the Previous button renders only inside the rows branch, so a
+        // regression that stops rendering rows satisfies an All() over an empty match set unconditionally.
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-previous']")
+            .HasAttribute("disabled").ShouldBeTrue());
     }
 
     [Fact]
@@ -1210,9 +1256,191 @@ public sealed class TenantAuditPageTests : BunitContext
             hasMore: false));
         await nextClick;
 
-        // Beta must still be on its own first page: no inherited cursor, no inherited history.
-        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-previous']")
-            .All(static element => element.HasAttribute("disabled")).ShouldBeTrue());
+        // Beta must still be on its own first page: no inherited cursor, no inherited history. Find, not
+        // FindAll(...).All(...), for the same reason as above: the throwing form is what makes "the pager is
+        // rendered and disabled" distinguishable from "the pager is gone".
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-previous']")
+            .HasAttribute("disabled").ShouldBeTrue());
         cut.Find("[data-testid='tenants-audit-grid']").TextContent.ShouldNotContain("alpha-event-2");
+    }
+
+    /// <summary>
+    /// A re-entrant route set, arriving while the old lease dispose is suspended, must not reuse the previous
+    /// tenant's conditional validator or cursor.
+    /// </summary>
+    /// <remarks>
+    /// <c>_loadedTenantId</c> was assigned before the awaited lease dispose and the marshalled clear, so a
+    /// second <c>OnParametersSetAsync</c> arriving while that remote unsubscribe was suspended computed
+    /// <c>tenantChanged == false</c>. The read then built its request from the *previous* tenant's
+    /// <c>_snapshot.ETag</c> and <c>_currentCursor</c>, which the <c>reuseETag</c>/<c>retainConfirmed</c>
+    /// change made reachable -- before it, both arguments were unconditionally false on this path.
+    /// </remarks>
+    [Fact]
+    public async Task A_re_entrant_route_set_during_lease_disposal_never_reuses_the_previous_tenants_validator()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        List<TenantAuditRequest> requests = [];
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.Arg<TenantAuditRequest>()!;
+                requests.Add(request);
+                return Task.FromResult(TenantAuditSnapshot.Ready(
+                    [Row($"{request.TenantId}-event", AuditEventCategory.Access)],
+                    nextCursor: $"{request.TenantId}-page-2",
+                    hasMore: true,
+                    eTag: $"\"{request.TenantId}-etag\"",
+                    freshness: ReadModelFreshnessState.Current,
+                    request));
+            });
+
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var suspendedUnsubscribe = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription
+            .UnsubscribeAsync(GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(suspendedUnsubscribe.Task);
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        // Page alpha forward so it holds both a cursor and a page-two validator.
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            Arg.Any<CancellationToken>());
+
+        // Route to beta. The unsubscribe never completes, so the tenant-change block stays suspended...
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+
+        // ...and a second parameter set for the same route re-enters while it is still suspended.
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+
+        cut.WaitForAssertion(() => requests.Count(static request => request.TenantId == "tenant.beta")
+            .ShouldBeGreaterThanOrEqualTo(1));
+        foreach (TenantAuditRequest betaRequest in requests.Where(static request => request.TenantId == "tenant.beta"))
+        {
+            betaRequest.ETag.ShouldBeNull();
+            betaRequest.Cursor.ShouldBeNull();
+        }
+
+        suspendedUnsubscribe.SetResult();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-grid']")
+            .TextContent.ShouldContain("tenant.beta-event"));
+        requests.Where(static request => request.TenantId == "tenant.beta")
+            .ShouldAllBe(request => request.ETag == null && request.Cursor == null);
+    }
+
+    /// <summary>
+    /// The snapshot lifecycle and the row lifecycle are independent and must not collapse into each other.
+    /// </summary>
+    /// <remarks>
+    /// Production derives the surface lifecycle from response metadata and each row's from the row itself,
+    /// so a projection that metadata reports as not current while the retained rows still carry Current is a
+    /// real, renderable state. No test in this file could express it: the row factory hardcoded
+    /// <c>Current</c> and the snapshot factory derived its lifecycle from <c>rows[0]</c>.
+    /// </remarks>
+    [Fact]
+    public void Audit_surface_lifecycle_is_rendered_independently_of_the_row_lifecycle()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("event-1", AuditEventCategory.Access, lifecycle: ProjectionLifecycleState.Current)],
+            lifecycle: ProjectionLifecycleState.Rebuilding));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-projection-lifecycle-status']")
+            .TextContent.ShouldContain("Rebuilding", Case.Insensitive);
+        cut.Find("[data-testid='tenants-audit-row-projection-lifecycle']")
+            .TextContent.ShouldContain("Current", Case.Insensitive);
+    }
+
+    /// <summary>
+    /// A Previous click that lands on page one because the history was trimmed must say so.
+    /// </summary>
+    /// <remarks>
+    /// <c>CursorHistory.Trim</c> re-appends the first-page sentinel beneath the newest entries, which is what
+    /// keeps page one reachable -- but it also means one Previous click walks the operator from the middle of
+    /// the sequence straight to page one. Rendered as an ordinary one-page step back, the surface silently
+    /// misstates where they are. This also pins adoption of the trim at this call site: deleting the
+    /// <c>CursorHistory.Trim(...)</c> call previously survived the suite.
+    /// </remarks>
+    [Fact]
+    public void A_previous_click_that_jumps_to_page_one_through_a_trimmed_history_is_announced()
+    {
+        const int bound = 50;
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.Arg<TenantAuditRequest>()!;
+                int page = request.Cursor is null
+                    ? 0
+                    : int.Parse(request.Cursor["page-".Length..], CultureInfo.InvariantCulture);
+                return Task.FromResult(ReadySnapshot(
+                    [Row($"event-page-{page}", AuditEventCategory.Access)],
+                    nextCursor: $"page-{page + 1}",
+                    hasMore: true,
+                    requestCursor: request.Cursor));
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        // One page past the bound, so the trim runs and drops the oldest non-sentinel entries.
+        for (int page = 1; page <= bound + 1; page++)
+        {
+            cut.Find("[data-testid='tenants-audit-next']").Click();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-grid']")
+                .TextContent.ShouldContain($"event-page-{page}"));
+        }
+
+        cut.FindAll("[data-testid='tenants-audit-history-truncated']").ShouldBeEmpty(
+            "Paging forward is not a jump; the notice belongs to the Previous click that lands on page one.");
+
+        // Walk back. The retained history is 49 entries plus the re-appended sentinel, so the last of these
+        // pops the sentinel and lands on page one from the middle of the sequence.
+        for (int step = 1; step < bound; step++)
+        {
+            cut.Find("[data-testid='tenants-audit-previous']").Click();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-previous']")
+                .HasAttribute("disabled").ShouldBeFalse());
+            cut.FindAll("[data-testid='tenants-audit-history-truncated']").ShouldBeEmpty();
+        }
+
+        cut.Find("[data-testid='tenants-audit-previous']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-audit-grid']").TextContent.ShouldContain("event-page-0");
+            cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+
+        IElement notice = cut.Find("[data-testid='tenants-audit-history-truncated']");
+        notice.GetAttribute("role").ShouldBe("status");
+        notice.GetAttribute("aria-live").ShouldBe("polite");
+        notice.TextContent.ShouldContain("first page");
+
+        // Paging forward again retires the notice: the operator is no longer on the jumped-to page.
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-history-truncated']").ShouldBeEmpty());
     }
 }

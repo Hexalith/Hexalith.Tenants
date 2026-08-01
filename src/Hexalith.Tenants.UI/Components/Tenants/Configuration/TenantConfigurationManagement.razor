@@ -44,7 +44,7 @@
                                     Lifecycle="@Lifecycle"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                    OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    OnCommandActivityChanged="@HandleSetCommandActivityAsync"
                                     ProjectionEvidenceProvider="@SetProjectionEvidenceProvider"
                                     ReauthorizeProvider="@ReauthorizeProvider" />
 
@@ -118,6 +118,22 @@
     private bool _removeCommandStarted;
     private bool _focusHeadingPending;
 
+    // One lease per flow. A single shared field made dismissal of the remove dialog release the *set* flow's
+    // lease: the row Remove buttons carry no Disabled binding, so while a Set command is settling the grid is
+    // still rendered and still launchable, and CloseRemoveFlowAsync -- which writes the field directly,
+    // bypassing the child latch -- then flipped UnavailableReason back to the CommandSurface string and
+    // unmounted SetTenantConfigurationFlow mid-command, discarding its Confirmed/Rejected/UnableToVerify
+    // state, safe message and audit entry point. The flows do not in fact guard each other on the launch
+    // path, so ownership has to be explicit.
+    //
+    // Distinct from _removeCommandStarted, which is latched for the whole settling window so the remove flow
+    // survives its row leaving the context; these track the live lease and are released as soon as the owning
+    // child reports activity false.
+    private bool _setCommandInFlight;
+    private bool _removeCommandInFlight;
+
+    private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight;
+
     [Parameter]
     public TenantConfigurationManagementContext Context { get; set; } = default!;
 
@@ -164,15 +180,25 @@
             : "Tenants.Configuration.Management.Unavailable.Policy";
 
     private string? UnavailableReason
-        => Lifecycle is not ProjectionLifecycleState.Current
-            ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionLifecycle"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+        // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness clauses.
+        // See SetTenantConfigurationFlow for why the order matters.
+        => SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
             ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Management.Unavailable.Freshness"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionLifecycle"].Value
                 : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Management.Unavailable.TenantLifecycle"].Value
-                    : !IsCommandSurfaceAvailable
+                    // The command surface goes unavailable *because* a child flow raised activity: the flow
+                    // reports the submit, the detail page sets _commandInFlight, and IsCommandSurfaceAvailable
+                    // comes straight back down here. Without the second clause this branch replaced both
+                    // flows with a static paragraph at the exact moment of submit, so Confirmed, Rejected,
+                    // UnableToVerify, the safe message and the audit entry point were never renderable for a
+                    // configuration command. Both flows already carry this exception one level down
+                    // (`!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight`); the landmark that hosts them
+                    // has to honour it too, or theirs never gets the chance to apply.
+                    : !IsCommandSurfaceAvailable && !ChildCommandInFlight
                         ? Localizer["Tenants.Configuration.Management.Unavailable.CommandSurface"].Value
                         : null;
 
@@ -193,6 +219,8 @@
             _removeTenantId = Context?.TenantId;
             _removeKey = null;
             _removeCommandStarted = false;
+            _setCommandInFlight = false;
+            _removeCommandInFlight = false;
             _focusRemoveLaunchKey = null;
             _focusHeadingPending = false;
             _removeLaunchElements.Clear();
@@ -277,6 +305,16 @@
             _removeCommandStarted = true;
         }
 
+        _removeCommandInFlight = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    // The set flow used to pass OnCommandActivityChanged straight through, so the landmark never learned it
+    // owned an in-flight command and unavailability came back down as an unmount. It reports here now, into
+    // its own lease -- see the field declarations for why the two cannot share one.
+    private async Task HandleSetCommandActivityAsync(bool isActive)
+    {
+        _setCommandInFlight = isActive;
         await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
     }
 
@@ -288,9 +326,31 @@
 
     private async Task CloseRemoveFlowAsync()
     {
+        // This runs as an EventCallback from the child, which re-renders this component without running
+        // SetParametersAsync -- so OnParametersSet, where the heading fallback used to be set, never fires on
+        // this path. When the target row has already left the context its launch reference was pruned, so
+        // TryGetValue fails in OnAfterRenderAsync and focus fell to <body> from the unmounting dialog. Arm
+        // the fallback here and let OnAfterRenderAsync pick whichever target still exists.
         _focusRemoveLaunchKey = _removeKey;
+        _focusHeadingPending = _removeKey is null || !_removeLaunchElements.ContainsKey(_removeKey);
+
+        // Disarm the launch target when the heading fallback wins. Leaving a non-null key that is absent from
+        // _removeLaunchElements made the next OnParametersSet re-arm _focusHeadingPending, so a SignalR nudge
+        // or projection refresh seconds later yanked focus back to the h2 while the operator was typing in
+        // the Set-configuration key field.
+        if (_focusHeadingPending)
+        {
+            _focusRemoveLaunchKey = null;
+        }
+
         _removeKey = null;
         _removeCommandStarted = false;
+
+        // Only the remove half. This runs as an EventCallback from the remove child, which has already
+        // lowered its own lease through HandleRemoveCommandActivityAsync, so this is defensive -- but it must
+        // never touch _setCommandInFlight: a sibling Set command settling behind this dialog owns that lease
+        // and clearing it here unmounted the Set flow mid-command.
+        _removeCommandInFlight = false;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 }

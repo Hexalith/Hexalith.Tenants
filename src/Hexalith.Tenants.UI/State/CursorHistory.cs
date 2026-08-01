@@ -18,19 +18,27 @@ internal static class CursorHistory
     /// </summary>
     /// <param name="history">The paging history, newest entry on top.</param>
     /// <param name="maximum">The maximum number of retained entries.</param>
+    /// <returns><see langword="true"/> when entries were dropped; otherwise <see langword="false"/>.</returns>
     /// <remarks>
+    /// <para>
     /// The oldest entry is the route back to page one. A plain trim drops it, leaving Previous able to walk
     /// back only as far as page two on pagers that offer no First or Reset control -- so the sentinel is
     /// re-appended after the newest <c>maximum - 1</c> entries rather than discarded with them.
+    /// </para>
+    /// <para>
+    /// The return value exists because the re-appended sentinel makes one later Previous click jump the
+    /// operator from the middle of the sequence straight to page one. Without a signal the pager renders that
+    /// as an ordinary one-page step back, so callers use this to announce the jump.
+    /// </para>
     /// </remarks>
-    public static void Trim(Stack<string?> history, int maximum = DefaultMaximum)
+    public static bool Trim(Stack<string?> history, int maximum = DefaultMaximum)
     {
         ArgumentNullException.ThrowIfNull(history);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximum, 2);
 
         if (history.Count <= maximum)
         {
-            return;
+            return false;
         }
 
         string?[] entries = [.. history];
@@ -45,5 +53,7 @@ internal static class CursorHistory
         {
             history.Push(retained[index]);
         }
+
+        return true;
     }
 }

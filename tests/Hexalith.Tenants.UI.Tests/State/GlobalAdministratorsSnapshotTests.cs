@@ -59,8 +59,11 @@ public sealed class GlobalAdministratorsSnapshotTests
     public void Diagnostics_omit_rows_identities_cursors_validators_and_versions()
     {
         // Pins both new support-safe ToString overrides. Deleting either restores the compiler-generated
-        // record ToString, which prints Rows (every administrator user id), NextCursor (the protected
-        // cursor), ETag, ProjectionVersion and RequestCursor.
+        // record ToString, which prints the string-typed NextCursor (the protected cursor), ETag,
+        // ProjectionVersion and RequestCursor verbatim -- those three assertions are what carry this test.
+        // The row-identity assertion is weaker than it looks: the generated ToString renders Rows as the
+        // collection's type name, not its contents, so it would pass either way. It is kept as a guard
+        // against a future override that does project row contents, not as evidence about today's.
         GlobalAdministratorsRequest request = new("cursor-secret", 20, "etag-secret");
         GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
             [new GlobalAdministratorRow("admin.alpha", ReadModelFreshnessState.Current)],

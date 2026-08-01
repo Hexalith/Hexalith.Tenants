@@ -36,6 +36,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -237,42 +238,143 @@ public sealed class TenantsUiCompositionTests
     }
 
     /// <summary>
-    /// The Aspire service-discovery base-address form must be rejected loudly, not accepted or ignored.
+    /// The Aspire service-discovery compound base-address form fails closed on its OWN side.
     /// </summary>
     /// <remarks>
-    /// No service discovery is registered, so a compound scheme cannot be sent. Silently failing closed to
-    /// UnavailableTenantQueryGateway would leave every read unavailable with no diagnostic, which an
-    /// operator cannot tell apart from an outage.
+    /// Review loop 9, decision D2. These two tests previously asserted that a compound address made
+    /// <c>AddHexalithTenantsUiModule</c> THROW. That violated AC2 and the "Separate dependencies" matrix row
+    /// -- the read-side guard ran before the command block, so an unsendable read address also prevented
+    /// <c>AddHexalithEventStore</c>, <c>AddEventStoreGatewayClient</c> and <c>TenantCommandGateway</c> from
+    /// registering at all, and the mirror case killed the read side. It was also inconsistent with
+    /// <c>Malformed_or_non_http_tenants_base_address_fails_closed</c> in this same class, which asserts the
+    /// per-side behaviour for malformed values. <c>TryGetHttpBaseAddress</c> already rejects the compound
+    /// scheme (<c>IsSendableScheme</c> accepts only exact http/https), so nothing is lost by not throwing.
     /// </remarks>
     [Theory]
     [InlineData("https+http://tenants")]
     [InlineData("http+https://tenants")]
     [InlineData("https+http://tenants.invalid:8443")]
-    public void Compound_service_discovery_address_is_rejected_at_composition_time(string baseAddress)
+    public async Task Compound_tenants_address_fails_closed_without_disabling_the_command_side(string baseAddress)
     {
-        // Superseded premise. This theory previously registered AddServiceDiscovery() and
-        // AddPassThroughServiceEndpointProvider() itself and asserted the compound address executed -- but
-        // production registers neither, so it proved a pipeline that existed only in the harness. With
-        // discovery removed a compound scheme can never be sent, and failing closed silently would be
-        // indistinguishable from an outage, so it must fail loudly at boot.
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Tenants:BaseAddress"] = baseAddress,
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        var capture = new CapturingLoggerProvider(captureAll: true);
+        services.AddLogging(logging => logging.AddProvider(capture));
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+
+        // Read side fails closed...
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+        scope.ServiceProvider.GetRequiredService<ITenantsReadSurfaceAvailability>()
+            .IsConnected.ShouldBeFalse();
+
+        // ...and the command side, which has a perfectly good reference, still registers.
+        scope.ServiceProvider.GetService<TenantCommandGateway>().ShouldNotBeNull();
+
+        // ...and the rejection is recorded by KEY NAME, which is the whole point of decision D-G: without a
+        // signal on any channel a typo and a genuine outage render the identical "read surface unavailable"
+        // state. This module strips HTTP client loggers on purpose, so nothing else reports it.
+        TenantsUiConfigurationDiagnostics diagnostics = provider
+            .GetServices<TenantsUiConfigurationDiagnostics>()
+            .ShouldHaveSingleItem();
+        diagnostics.RejectedBaseAddressSettings.ShouldBe(["Tenants:BaseAddress"]);
+
+        // The configured value can carry host, path, query or user-info material and must never reach a log
+        // or telemetry channel. Only the key name is retained.
+        diagnostics.RejectedBaseAddressSettings.ShouldNotContain(baseAddress);
+        string.Join("|", diagnostics.RejectedBaseAddressSettings).ShouldNotContain("tenants.invalid");
+
+        await StartConfigurationDiagnosticsReporterAsync(provider);
+        capture.Messages.Count(message => message.Contains("Tenants:BaseAddress", StringComparison.Ordinal))
+            .ShouldBe(1);
+        string logged = string.Join("|", capture.Messages);
+        logged.ShouldNotContain(baseAddress);
+        logged.ShouldNotContain("tenants.invalid");
+    }
+
+    /// <summary>
+    /// An absent base address is not a misconfiguration and must not be reported as one.
+    /// </summary>
+    /// <remarks>
+    /// Failing closed to the unavailable gateway is the intended outcome when a dependency is simply not
+    /// wired. Only a value the operator believed would work — present, but unusable — is worth a warning.
+    /// Inverting the recording condition passed the whole suite before this test existed.
+    /// </remarks>
+    [Fact]
+    public void An_unconfigured_base_address_is_not_recorded_as_a_rejection()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
             })
             .Build();
         ServiceCollection services = new();
         services.AddSingleton(configuration);
 
-        InvalidOperationException error = Should.Throw<InvalidOperationException>(
-            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
 
-        error.Message.ShouldContain("Tenants:BaseAddress");
-        error.Message.ShouldContain("service-discovery compound scheme");
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+        provider.GetServices<TenantsUiConfigurationDiagnostics>()
+            .SelectMany(static entry => entry.RejectedBaseAddressSettings)
+            .ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A host that pre-registers the diagnostics type must not silence the composition's own findings.
+    /// </summary>
+    /// <remarks>
+    /// The registration used <c>TryAddSingleton</c>, so a pre-registered instance won and the reporter — a
+    /// singleton hosted service — resolved an empty one, restoring exactly the silent state D-G removed.
+    /// The reporter now consumes the whole enumerable, so every composition's findings survive.
+    /// </remarks>
+    [Fact]
+    public async Task A_preregistered_diagnostics_instance_does_not_discard_this_compositions_rejections()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https+http://tenants",
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddSingleton(new TenantsUiConfigurationDiagnostics());
+        var capture = new CapturingLoggerProvider(captureAll: true);
+        services.AddLogging(logging => logging.AddProvider(capture));
+
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        provider.GetServices<TenantsUiConfigurationDiagnostics>()
+            .SelectMany(static entry => entry.RejectedBaseAddressSettings)
+            .ShouldBe(["Tenants:BaseAddress"]);
+
+        await StartConfigurationDiagnosticsReporterAsync(provider);
+        capture.Messages.Count(message => message.Contains("Tenants:BaseAddress", StringComparison.Ordinal))
+            .ShouldBe(1);
+        string.Join("|", capture.Messages).ShouldNotContain("https+http://tenants");
     }
 
     [Fact]
-    public void Compound_event_store_address_is_rejected_at_composition_time()
+    public async Task Compound_event_store_address_fails_closed_without_disabling_the_independent_read_side()
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -283,12 +385,33 @@ public sealed class TenantsUiCompositionTests
             .Build();
         ServiceCollection services = new();
         services.AddSingleton(configuration);
+        var capture = new CapturingLoggerProvider(captureAll: true);
+        services.AddLogging(logging => logging.AddProvider(capture));
 
-        Should.Throw<InvalidOperationException>(
-            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
-            .Message.ShouldContain("EventStore:BaseAddress");
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+
+        // The read side has its own valid reference and must stay connected.
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<TenantQueryGateway>();
+        scope.ServiceProvider.GetRequiredService<ITenantsReadSurfaceAvailability>()
+            .IsConnected.ShouldBeTrue();
+
+        // The command side fails closed on its own reference.
+        scope.ServiceProvider.GetService<TenantCommandGateway>().ShouldBeNull();
+
+        TenantsUiConfigurationDiagnostics diagnostics = provider
+            .GetServices<TenantsUiConfigurationDiagnostics>()
+            .ShouldHaveSingleItem();
+        diagnostics.RejectedBaseAddressSettings.ShouldBe(["EventStore:BaseAddress"]);
+
+        await StartConfigurationDiagnosticsReporterAsync(provider);
+        capture.Messages.Count(message => message.Contains("EventStore:BaseAddress", StringComparison.Ordinal))
+            .ShouldBe(1);
+        string.Join("|", capture.Messages).ShouldNotContain("https+http://eventstore");
     }
-
 
     [Theory]
     [InlineData(false, false)]
@@ -1344,6 +1467,13 @@ public sealed class TenantsUiCompositionTests
     /// </summary>
     private const string RawSearchUrl = "https://memories.invalid/v1/search?query=needle&offset=40";
 
+    private static async Task StartConfigurationDiagnosticsReporterAsync(IServiceProvider provider)
+    {
+        IHostedService reporter = provider.GetServices<IHostedService>()
+            .Single(static service => service is TenantsUiConfigurationDiagnosticsReporter);
+        await reporter.StartAsync(CancellationToken.None);
+    }
+
     private static void AddStubPrimaryHandler(IServiceCollection services, string clientName)
         => services.AddHttpClient(clientName)
             .ConfigurePrimaryHttpMessageHandler(static () => new StubPrimaryHandler());
@@ -1383,13 +1513,19 @@ public sealed class TenantsUiCompositionTests
     private sealed class CapturingLoggerProvider : ILoggerProvider
     {
         private readonly System.Collections.Concurrent.ConcurrentQueue<string> _messages = new();
+        private readonly bool _captureAll;
+
+        public CapturingLoggerProvider(bool captureAll = false)
+        {
+            _captureAll = captureAll;
+        }
 
         public IReadOnlyCollection<string> Messages => [.. _messages];
 
         public void Clear() => _messages.Clear();
 
         public ILogger CreateLogger(string categoryName)
-            => categoryName.StartsWith("System.Net.Http.HttpClient.", StringComparison.Ordinal)
+            => _captureAll || categoryName.StartsWith("System.Net.Http.HttpClient.", StringComparison.Ordinal)
                 ? new CapturingLogger(_messages, categoryName)
                 : NullLogger.Instance;
 
@@ -1837,6 +1973,56 @@ public sealed class TenantsUiCompositionTests
         Should.Throw<InvalidOperationException>(
             () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
             .Message.ShouldContain("IsConnected: false");
+    }
+
+    /// <summary>
+    /// The agreement check must match the gateway registered as an instance, not only by type.
+    /// </summary>
+    /// <remarks>
+    /// Both existing cases register the gateway by type, so matching only <c>ImplementationType</c> was
+    /// sufficient for them -- and a host registering the unavailable gateway as an instance skipped the
+    /// check entirely, which is the exact mismatched pairing the check exists to reject.
+    /// </remarks>
+    [Fact]
+    public void Host_override_registering_the_unavailable_gateway_as_an_instance_is_still_checked()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddSingleton<ITenantQueryGateway>(new UnavailableTenantQueryGateway());
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        Should.Throw<InvalidOperationException>(
+            () => services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false))
+            .Message.ShouldContain("IsConnected: true");
+    }
+
+    /// <summary>
+    /// A factory-registered availability override is knowingly outside the agreement check.
+    /// </summary>
+    /// <remarks>
+    /// Asking a factory for <c>IsConnected</c> means building a provider during composition, so its
+    /// truthfulness is genuinely unknowable at this point. Recorded as an accepted limit rather than left to
+    /// read as coverage: the pair requirement still applies, only the agreement check is skipped.
+    /// </remarks>
+    [Fact]
+    public void Host_override_registering_availability_through_a_factory_is_a_recorded_gap_not_a_rejection()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(
+            _ => new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        // Deliberately does not throw. If this ever starts throwing, the limit above was closed and the
+        // remark must be updated rather than the test relaxed.
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
     }
 
     [Fact]

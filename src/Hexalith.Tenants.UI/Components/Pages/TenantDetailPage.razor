@@ -185,6 +185,7 @@
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
                                             Members="@_tenantUsersSnapshot"
                                             CanGoPrevious="@(_memberCursorHistory.Count > 0)"
+                                            PagingJumpedToFirstPage="@_memberPagingJumpedToFirstPage"
                                             OnNextPageRequested="@LoadNextMemberPageAsync"
                                             OnPreviousPageRequested="@LoadPreviousMemberPageAsync"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
@@ -233,6 +234,13 @@
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
 
     private readonly Stack<string?> _memberCursorHistory = new();
+
+    // CursorHistory.Trim re-appends the first-page sentinel beneath the newest entries when it drops the
+    // oldest, so one later Previous click walks the operator from mid-sequence straight to page one. The
+    // audit and global-administrator pagers announce that; the member pager discarded Trim's return value and
+    // rendered the jump as an ordinary step back, silently misstating where the operator is.
+    private bool _memberPagingHistoryTruncated;
+    private bool _memberPagingJumpedToFirstPage;
     private string? _memberCursor;
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
@@ -247,6 +255,12 @@
     private readonly Lock _cancellationLock = new();
     private long _loadGeneration;
     private bool _disposed;
+
+    /// <summary>Upper bound on optional notification-setup attempts for one route.</summary>
+    private const int MaximumReadRefreshAttempts = 3;
+
+    private string? _readRefreshAttemptTenantId;
+    private int _readRefreshAttempts;
     private bool _memberPageLoadInFlight;
     private bool _commandInFlight;
     private bool _readRefreshSubscriptionInFlight;
@@ -338,6 +352,8 @@
             _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
             _memberCursor = null;
             _memberCursorHistory.Clear();
+            _memberPagingHistoryTruncated = false;
+            _memberPagingJumpedToFirstPage = false;
         }).ConfigureAwait(false);
 
         Task<TenantDetailSnapshot> detailTask = QueryGateway
@@ -404,6 +420,11 @@
         // returned no lease. The method's in-flight and existing-lease guards keep successful setup
         // single-instance. Without this, one cancelled or empty setup disabled projection auto-refresh for
         // the rest of the circuit, because OnParametersSetAsync was its only entry point.
+        //
+        // Bounded, because a failing backend records neither _readRefreshLease nor _subscriptionTenantId, so
+        // every guard passes again on the next render. RefreshTenantReadsAsync calls StateHasChanged, so an
+        // unbounded retry was two remote round trips per render for the life of the circuit against a
+        // subscription endpoint that is down. The counter resets with the route, so a new tenant retries.
         await EnsureReadRefreshLeaseAsync(TenantId).ConfigureAwait(false);
     }
 
@@ -417,17 +438,25 @@
     /// </remarks>
     private async Task EnsureReadRefreshLeaseAsync(string tenantId)
     {
+        if (!string.Equals(_readRefreshAttemptTenantId, tenantId, StringComparison.Ordinal))
+        {
+            _readRefreshAttemptTenantId = tenantId;
+            _readRefreshAttempts = 0;
+        }
+
         if (_disposed
             || string.IsNullOrWhiteSpace(tenantId)
             || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
             || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             || _readRefreshLease is not null
             || _readRefreshSubscriptionInFlight
+            || _readRefreshAttempts >= MaximumReadRefreshAttempts
             || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
         {
             return;
         }
 
+        _readRefreshAttempts++;
         _readRefreshSubscriptionInFlight = true;
         TenantReadRefreshLease? lease = null;
         try
@@ -455,6 +484,18 @@
             _readRefreshLease = lease;
             _subscriptionTenantId = tenantId;
             lease = null;
+
+            // Re-checked after the assignment, not only before it. DisposeAsync sets _disposed and then reads
+            // a still-null _readRefreshLease, so a continuation that passed the check above and was preempted
+            // could assign the lease afterwards -- leaving the callback registered for the life of the
+            // circuit and invoking InvokeAsync on a disposed component.
+            if (_disposed)
+            {
+                IAsyncDisposable orphaned = _readRefreshLease;
+                _readRefreshLease = null;
+                _subscriptionTenantId = null;
+                await DisposeLeaseSupportSafelyAsync(orphaned).ConfigureAwait(false);
+            }
         }
         catch
         {
@@ -596,6 +637,18 @@
                 members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, recovered.Reason);
             }
         }
+        else if (members.PagingRecovered && IsUsableMemberPage(members, requestedCursor: null))
+        {
+            // The gateway already recovered this read to page one, so the retained cursor and history no
+            // longer describe what is on screen. Without this the refresh kept re-sending the dead cursor.
+            //
+            // The usability clause keeps this branch from preempting the retention branch below. The gateway
+            // now stamps PagingRecovered only on a page that actually arrived, so the two can no longer
+            // disagree -- but when they did, a recovery that mapped to zero-row Error or Degraded matched
+            // here first, discarded the operator's last-confirmed rows and cleared their cursor history on a
+            // read that had failed, while rendering the "restarted at the first page" notice over it.
+            resetMemberPaging = true;
+        }
         else if (!IsUsableMemberPage(members, _memberCursor) && !IsTerminalMemberPage(members))
         {
             // Symmetric with LoadMemberPageAsync. A terminal result (unauthorized, not-found, invalid) must
@@ -618,6 +671,8 @@
             {
                 _memberCursor = null;
                 _memberCursorHistory.Clear();
+                _memberPagingHistoryTruncated = false;
+                _memberPagingJumpedToFirstPage = false;
             }
 
             StateHasChanged();
@@ -710,6 +765,8 @@
                     {
                         _memberCursor = null;
                         _memberCursorHistory.Clear();
+                        _memberPagingHistoryTruncated = false;
+                        _memberPagingJumpedToFirstPage = false;
                         _tenantUsersSnapshot = recovered with
                         {
                             PagingRecovered = true,
@@ -720,6 +777,8 @@
                     {
                         _memberCursor = null;
                         _memberCursorHistory.Clear();
+                        _memberPagingHistoryTruncated = false;
+                        _memberPagingJumpedToFirstPage = false;
                         _tenantUsersSnapshot = recovered;
                     }
                     else
@@ -760,17 +819,46 @@
                 }
 
                 _tenantUsersSnapshot = snapshot;
+
+                // A gateway-side page-one recovery answers page one, not the cursor that was requested, so
+                // the requested cursor must never be committed. Doing so stored an expired cursor as the
+                // current page, pushed a history entry that made Previous available on a page-one view, and
+                // re-sent the dead cursor on every later refresh. The gateway does not surface an
+                // InvalidCursor reason in this case -- it already recovered -- so PagingRecovered is the
+                // only signal, and it is also what renders the recovery notice.
+                if (snapshot.PagingRecovered)
+                {
+                    _memberCursor = null;
+                    _memberCursorHistory.Clear();
+                    _memberPagingHistoryTruncated = false;
+                    _memberPagingJumpedToFirstPage = false;
+                    return;
+                }
+
                 _memberCursor = requestedCursor;
                 if (moveForward)
                 {
                     _memberCursorHistory.Push(priorCursor);
 
-                    // Bound the history so a long paging session cannot grow it without limit.
-                    CursorHistory.Trim(_memberCursorHistory, MaximumMemberCursorHistory);
+                    // Bound the history so a long paging session cannot grow it without limit. Trim's return
+                    // value is the signal that the first-page sentinel was re-appended; discarding it left the
+                    // member pager unable to announce the jump its two siblings announce.
+                    _memberPagingHistoryTruncated |= CursorHistory.Trim(_memberCursorHistory, MaximumMemberCursorHistory);
+                    _memberPagingJumpedToFirstPage = false;
                 }
                 else if (_memberCursorHistory.Count > 0)
                 {
                     _ = _memberCursorHistory.Pop();
+
+                    // A trimmed history re-appends the first-page sentinel under the newest entries, so one
+                    // Previous click walks the operator from the middle of the sequence straight to page one.
+                    _memberPagingJumpedToFirstPage = _memberPagingHistoryTruncated
+                        && _memberCursor is null
+                        && _memberCursorHistory.Count == 0;
+                    if (_memberPagingJumpedToFirstPage)
+                    {
+                        _memberPagingHistoryTruncated = false;
+                    }
                 }
             }).ConfigureAwait(false);
         }

@@ -185,8 +185,19 @@ public sealed class TenantsWorkspaceTests : BunitContext
         PrivateField<bool>(instance, "_disposed").ShouldBeTrue();
         long authorizationVersionAtDisposal = PrivateField<long>(instance, "_authorizationVersion");
         lateRestore.SetResult(new AuthenticationState(AdministratorPrincipal()));
-        await Task.Yield();
-        await Task.Delay(20, Xunit.TestContext.Current.CancellationToken);
+
+        // A fixed 20 ms sleep made this a silent-pass: whenever the continuation landed later than the
+        // sleep -- routine on a loaded agent -- the disposal guard could be deleted and the assertion still
+        // held. Poll for the flag to flip instead, up to a second. With the guard removed the continuation
+        // sets it within milliseconds and the loop exits early, so the regression fails loudly; with the
+        // guard in place the loop runs to its deadline and the absence is real.
+        for (int attempt = 0;
+            attempt < 100 && !PrivateField<bool>(instance, "_canReviewGlobalAdministrators");
+            attempt++)
+        {
+            await Task.Yield();
+            await Task.Delay(10, Xunit.TestContext.Current.CancellationToken);
+        }
 
         PrivateField<bool>(instance, "_canReviewGlobalAdministrators").ShouldBeFalse();
 

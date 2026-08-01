@@ -1057,7 +1057,7 @@
     <value>Configuration evidence unknown</value>
   </data>
   <data name="Tenants.Configuration.State.ProjectionLifecycle.Title" xml:space="preserve">
-    <value>Projection rebuilding</value>
+    <value>Projection not current</value>
   </data>
   <data name="Tenants.Configuration.State.ProjectionLifecycle" xml:space="preserve">
     <value>The configuration projection is not current, so these entries cannot be treated as authoritative.</value>
@@ -1661,6 +1661,12 @@
   </data>
   <data name="Tenants.Members.Empty.Message" xml:space="preserve">
     <value>No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}.</value>
+  </data>
+  <data name="Tenants.Members.Empty.Message.Stale" xml:space="preserve">
+    <value>No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}. Member evidence is stale, so this absence may be incomplete.</value>
+  </data>
+  <data name="Tenants.Members.Empty.Message.Unknown" xml:space="preserve">
+    <value>No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}. Member freshness cannot be established, so this absence may be incomplete.</value>
   </data>
   <data name="Tenants.Members.Empty.Title" xml:space="preserve">
     <value>No visible members</value>
@@ -2636,6 +2642,15 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Recovery.PageRecovered" xml:space="preserve">
     <value>The protected page could not be restored. The review restarted at the first page.</value>
+  </data>
+  <data name="Tenants.Audit.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>Paging history reached its limit, so this step went back to the first page instead of the previous one.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>Paging history reached its limit, so this step went back to the first page instead of the previous one.</value>
+  </data>
+  <data name="Tenants.Members.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>Paging history reached its limit, so this step went back to the first page instead of the previous one.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Title" xml:space="preserve">
     <value>Read-only on narrow screens</value>

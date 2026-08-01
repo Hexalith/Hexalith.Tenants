@@ -2,6 +2,8 @@
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
+@using System.Globalization
+@using System.Text
 @using Microsoft.JSInterop
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -211,7 +213,6 @@
     [Parameter]
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
-
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
@@ -242,12 +243,16 @@
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
-            : Lifecycle is not ProjectionLifecycleState.Current
-                ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionLifecycle"].Value
+            // Decision D-F: the strict lifecycle gate stays, but it runs after the surface and freshness
+            // clauses. Unavailable/Degraded/Stale snapshots all carry a non-Current lifecycle, so with the
+            // lifecycle test first it answered for every failed read and made ...Unavailable.ProjectionState
+            // and ...Unavailable.Freshness unreachable.
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Freshness"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionLifecycle"].Value
                 : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Set.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
@@ -271,8 +276,11 @@
         || !IsPreviewComplete
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
+    // See the remove flow: the re-entrancy guard must also disable the control, or the suppressed click is
+    // indistinguishable from a dead button.
     private bool CanRefresh
-        => _snapshot.Intent is not null
+        => !_isRefreshing
+        && _snapshot.Intent is not null
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Rejected
@@ -409,6 +417,38 @@
             _focusLifecyclePending = false;
             await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
         }
+    }
+
+    // U+0020 is the one separator a keyboard reproduces, so it stays legal inside a key. Every other
+    // separator (NBSP U+00A0, U+2007, U+202F, U+3000, and the line/paragraph separators), every control
+    // character and every format character renders as nothing or as a plain space, so the remove flow's
+    // ordinal confirmation against typed text can never be satisfied for a key containing one — the
+    // permanently unremovable key this guard exists to prevent.
+    //
+    // Scope, per decision D-J (review loop 12): this bounds THIS producer only. Configuration keys are
+    // consumer-owned and can be written through POST /api/v1/commands or by any other consumer, and such a
+    // key is still unremovable through the UI — RemoveTenantConfigurationFlow compares ordinally against
+    // typed text and offers no alternative confirmation. That residual exposure is accepted and recorded in
+    // deferred-work.md; it is not closed here, and this guard must not be read as closing it.
+    //
+    // EnumerateRunes rather than the char indexer: an astral-plane format character is two UTF-16 units and
+    // char.GetUnicodeCategory classifies neither surrogate as Format, so a per-char scan never sees it.
+    private static bool ContainsUntypeableCharacter(string value)
+    {
+        foreach (Rune rune in value.EnumerateRunes())
+        {
+            UnicodeCategory category = Rune.GetUnicodeCategory(rune);
+            if (category is UnicodeCategory.Control
+                    or UnicodeCategory.Format
+                    or UnicodeCategory.LineSeparator
+                    or UnicodeCategory.ParagraphSeparator
+                || (category is UnicodeCategory.SpaceSeparator && rune.Value != ' '))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task FocusSafelyAsync(ElementReference element)
@@ -689,34 +729,43 @@
         authorizedNamespace = null;
 
         string keyValue = _key ?? string.Empty;
-        if (keyValue.Length == 0)
+
+        // Whitespace-only counts as absent. Testing Length == 0 alone sent "   " past this clause to the
+        // literal guard, which told the operator their key contained invisible characters when what it
+        // actually contained was nothing.
+        if (string.IsNullOrWhiteSpace(keyValue))
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyRequired"], TenantCommandFocusTarget.Key);
             return false;
         }
 
+        // Length before shape. The literal guard used to run first, so a 300-character key with a trailing
+        // space was reported as un-typeable; the operator trimmed it, resubmitted, and only then learned it
+        // was too long. Each clause should report the condition the operator can act on first.
+        if (keyValue.Length > MaxConfigurationKeyLength)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLength", MaxConfigurationKeyLength], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
         // Rejection, not normalization. The kernel's ordinal, no-trimming rule governs how keys are compared;
         // it does not oblige this UI to accept a key it can never help the operator remove again. A key with
-        // surrounding whitespace or an embedded Unicode format character (U+200B and friends) renders
-        // identically to its clean twin, and the remove confirmation — ordinal equality against typed text —
-        // can never be satisfied for it. Trim() is deliberately not restored: silently submitting a key other
-        // than the one typed is the normalization the kernel forbids.
-        if (keyValue.Length != keyValue.Trim().Length || keyValue.Any(char.IsControl)
-            || keyValue.Any(static character => char.GetUnicodeCategory(character) is System.Globalization.UnicodeCategory.Format))
+        // surrounding whitespace or an embedded invisible character renders identically to its clean twin,
+        // and the remove confirmation — ordinal equality against typed text — can never be satisfied for it.
+        // Trim() is deliberately not restored: silently submitting a key other than the one typed is the
+        // normalization the kernel forbids.
+        if (keyValue.Length != keyValue.Trim().Length || ContainsUntypeableCharacter(keyValue))
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLiteral"], TenantCommandFocusTarget.Key);
             return false;
         }
 
+        // After the shape guard, not before it: IsKeyAuthorized short-circuits on IsGlobalAdministrator, so
+        // for a global administrator it rejects nothing and the shape guard was the only clause standing
+        // between an un-typeable key and the command.
         if (!Context.IsKeyAuthorized(keyValue))
         {
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceScope"], TenantCommandFocusTarget.Key);
-            return false;
-        }
-
-        if (keyValue.Length > MaxConfigurationKeyLength)
-        {
-            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLength", MaxConfigurationKeyLength], TenantCommandFocusTarget.Key);
             return false;
         }
 

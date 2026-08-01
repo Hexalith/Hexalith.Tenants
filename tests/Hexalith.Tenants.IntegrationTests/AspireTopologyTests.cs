@@ -418,6 +418,21 @@ public class AspireTopologyTests : IDisposable {
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <summary>
+    /// Bridges the audit read onto the EventStore gateway for this topology assertion only.
+    /// </summary>
+    /// <remarks>
+    /// This is NOT the production transport. Story 1.10 routes the six UI reads through
+    /// <c>TenantsRestQueryClient</c> against the <c>tenants-api</c> resource, and that agreement is proved
+    /// in process against the generated controllers by
+    /// <c>TenantsApiGeneratedControllerTests.Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers</c>
+    /// -- routes, query strings, metadata headers and the conditional 304 path, all against the real
+    /// emitter. What remains uncovered, and is recorded as an owned limitation rather than implied here, is
+    /// a live socket-level probe of all six routes against the running topology: driving them through the
+    /// real client against <c>tenants-api</c> times out at the client's 60 s bound in the local
+    /// slim-mode topology, so this lane cannot serve as that oracle. This adapter exists solely so the
+    /// audit-consumer assertion below can reach persisted evidence.
+    /// </remarks>
     private sealed class AuditRestQueryClientAdapter(IEventStoreGatewayClient client) : ITenantsRestQueryClient {
         public Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
             GetTenantAuditQuery query,
@@ -471,6 +486,19 @@ public class AspireTopologyTests : IDisposable {
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        /// <summary>Converts a gateway result that has already been proven successful.</summary>
+        /// <remarks>
+        /// The unconditional <c>TenantsRestQueryFailureKind.None</c> is correct here, and review loop 8's
+        /// claim that it lets "a live 503 reach the gateway as a success with a null payload" does not hold:
+        /// <c>EventStoreGatewayClient</c> throws <c>EventStoreGatewayException</c> for every non-success
+        /// status (`Gateway/EventStoreGatewayClient.cs:93,170`), so a failing response never reaches this
+        /// method -- it propagates to <c>TenantQueryGateway</c>'s own <c>EventStoreGatewayException</c>
+        /// handler, which is the production mapping. Only a success or a 304 arrives here. Verified at loop
+        /// 11 by mapping a payload-less result to <c>Unavailable</c> instead: no live outage was newly
+        /// caught, and the assertion below -- which exists because the pre-Story-4.7 alias legitimately
+        /// yields no payload -- broke, conflating "this alias has no evidence" with "the service is down".
+        /// The change was reverted.
+        /// </remarks>
         private static async Task<TenantsRestQueryResponse<TPayload>> ConvertAsync<TPayload>(
             Task<EventStoreQueryResult<TPayload>> resultTask) {
             EventStoreQueryResult<TPayload> result = await resultTask.ConfigureAwait(false);

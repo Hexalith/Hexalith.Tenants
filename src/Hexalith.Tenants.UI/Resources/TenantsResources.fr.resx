@@ -1057,7 +1057,7 @@
     <value>Preuves de configuration inconnues</value>
   </data>
   <data name="Tenants.Configuration.State.ProjectionLifecycle.Title" xml:space="preserve">
-    <value>Projection en reconstruction</value>
+    <value>Projection non à jour</value>
   </data>
   <data name="Tenants.Configuration.State.ProjectionLifecycle" xml:space="preserve">
     <value>La projection de configuration n'est pas à jour ; ces entrées ne peuvent pas être considérées comme faisant autorité.</value>
@@ -1661,6 +1661,12 @@
   </data>
   <data name="Tenants.Members.Empty.Message" xml:space="preserve">
     <value>Aucun membre visible n'est disponible. Cet état ne révèle pas les appartenances masquées, et les actions restent indisponibles tant que la visibilité et la fraîcheur ne sont pas vérifiées : {0}.</value>
+  </data>
+  <data name="Tenants.Members.Empty.Message.Stale" xml:space="preserve">
+    <value>Aucun membre visible n'est disponible. Cet état ne révèle pas les appartenances masquées, et les actions restent indisponibles tant que la visibilité et la fraîcheur ne sont pas vérifiées : {0}. Les preuves des membres sont périmées, cette absence peut donc être incomplète.</value>
+  </data>
+  <data name="Tenants.Members.Empty.Message.Unknown" xml:space="preserve">
+    <value>Aucun membre visible n'est disponible. Cet état ne révèle pas les appartenances masquées, et les actions restent indisponibles tant que la visibilité et la fraîcheur ne sont pas vérifiées : {0}. La fraîcheur des membres ne peut pas être établie, cette absence peut donc être incomplète.</value>
   </data>
   <data name="Tenants.Members.Empty.Title" xml:space="preserve">
     <value>Aucun membre visible</value>
@@ -2636,6 +2642,15 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Recovery.PageRecovered" xml:space="preserve">
     <value>La page protégée n'a pas pu être restaurée. La revue a repris à la première page.</value>
+  </data>
+  <data name="Tenants.Audit.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>L'historique de pagination a atteint sa limite : cette étape est revenue à la première page et non à la page précédente.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>L'historique de pagination a atteint sa limite : cette étape est revenue à la première page et non à la page précédente.</value>
+  </data>
+  <data name="Tenants.Members.Recovery.HistoryTruncated" xml:space="preserve">
+    <value>L'historique de pagination a atteint sa limite : cette étape est revenue à la première page et non à la page précédente.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Mobile.ReadOnly.Title" xml:space="preserve">
     <value>Lecture seule sur écran étroit</value>

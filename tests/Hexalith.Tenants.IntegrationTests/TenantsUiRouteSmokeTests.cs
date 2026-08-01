@@ -10,10 +10,20 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Aspire route smoke coverage for the Tenants UI bootstrap surface.
 /// </summary>
 /// <remarks>
-/// The transitional Aspire topology intentionally has no direct Tenants API reference for the UI.
-/// Every read surface therefore renders its fail-closed <c>unavailable</c> state (no tenant, user, or
-/// audit data is revealed). These smoke tests assert that each route renders, preserves its scoped
-/// navigation context, and reports the missing read dependency without falling back to EventStore.
+/// <para>
+/// The Aspire topology <b>does</b> reference the Tenants API for the UI: <c>AppHost/Program.cs</c> wires
+/// <c>Tenants__BaseAddress</c> and a <c>tenants-api</c> reference onto the <c>tenants-ui</c> resource, which
+/// is what closed <c>HOST-REF-1</c>. These routes therefore have a composed read surface, and an
+/// unauthenticated hosted request renders authorization-safe absence -- not the "read surface missing"
+/// state. The previous wording said the opposite of both the field comment below and the AppHost, and a
+/// reader reconstructing intent from it would have re-pinned the closed gap as if it were intended.
+/// </para>
+/// <para>
+/// These smoke tests assert that each route renders, preserves its scoped navigation context, and reports
+/// its authorization-safe state without falling back to EventStore. The lane is Tier 3 and
+/// <c>continue-on-error</c>, and every test carries <c>[DaprFact]</c> plus <c>SkipIfUnavailable()</c>, so it
+/// self-skips whenever local DAPR/Aspire is absent -- a green report from this class is not proof it ran.
+/// </para>
 /// </remarks>
 [Collection("AspireTopology")]
 [DaprTestSerialization]
@@ -72,6 +82,11 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-detail-back\"");
         markup.ShouldContain("href=\"/tenants?search=alpha\"");
         markup.ShouldContain(TenantsDetailUnauthorizedMarker);
+
+        // The denial is announced, not merely rendered. The live-region assertion was dropped from this
+        // route test without being restored anywhere else, so nothing checked that an operator using a
+        // screen reader learns the read was denied.
+        markup.ShouldContain("role=\"alert\" data-testid=\"tenants-detail-unauthorized\"");
         markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
     }

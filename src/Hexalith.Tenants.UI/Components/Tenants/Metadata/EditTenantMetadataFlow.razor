@@ -229,14 +229,16 @@
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
-            : Lifecycle is not ProjectionLifecycleState.Current
-                ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
+            // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness
+            // clause so a failed read reports why it failed. See SetTenantConfigurationFlow.
             : SurfaceKind is TenantDetailSurfaceKind.Stale
                 or TenantDetailSurfaceKind.Unavailable
                 or TenantDetailSurfaceKind.Unknown
                 or TenantDetailSurfaceKind.Degraded
                 || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null

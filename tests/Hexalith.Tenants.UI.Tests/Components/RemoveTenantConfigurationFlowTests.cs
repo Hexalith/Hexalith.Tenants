@@ -56,6 +56,37 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Remove_preview_reports_the_longest_authorized_prefix_not_the_first_dot_segment()
+    {
+        // The consumer namespace is the longest matching authorized prefix, exactly as the safe composer and
+        // the set flow resolve it. Splitting on the first dot made this destructive-command preview claim
+        // scope `app` for a caller granted only `app.feature`, contradicting both the read grid and the
+        // sibling set preview over the same key -- and overstating the blast radius of a destructive action.
+        //
+        // The grant here is deliberately multi-segment: with a single-segment grant the two implementations
+        // return the same string and the test proves nothing.
+        RegisterServices(new StubTenantCommandGateway());
+
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["app.feature"],
+            [new TenantConfigurationSafeRow("app", "app.feature.flag", "enabled")]);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, context)
+            .Add(p => p.TargetKey, "app.feature.flag")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        string rendered = cut.Find("[data-testid='tenants-config-remove-preview-namespace']").TextContent.Trim();
+        rendered.ShouldBe("app.feature");
+        rendered.ShouldNotBe("app");
+    }
+
+    [Fact]
     public void Remove_configuration_preview_preserves_a_legacy_safe_current_value()
     {
         RegisterServices(new StubTenantCommandGateway());
@@ -226,6 +257,170 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void A_settling_removal_can_still_be_dismissed_and_releases_its_activity_lease()
+    {
+        // ProjectionPending is not terminal and is not self-healing: it is left only by a RemoveConfirmed
+        // proof, which the gateway declines whenever authorization, provenance, freshness or lifecycle
+        // evidence is missing. Blocking dismissal on IsOwnedCommandInFlight -- which covers Accepted and
+        // ProjectionPending -- therefore left this role="dialog" aria-modal="true" section with no exit for
+        // the whole projection-lag window, and permanently when the proof never landed: cancel disabled,
+        // Escape swallowed by CloseAsync, and the focus sentinels bouncing focus back in.
+        //
+        // Dismissal is bounded now, and it must release the activity lease on the way out: the parent
+        // landmark keeps both flows mounted while a child owns command activity, so a dismissal that
+        // skipped that would leave the landmark and the detail page believing a command was still settling.
+        List<bool> commandActivity = [];
+        int closeRequests = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.OnCommandActivityChanged, isActive => commandActivity.Add(isActive))
+            .Add(p => p.OnCloseRequested, () => closeRequests++)
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveNotConfirmed))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
+        commandActivity[^1].ShouldBeTrue();
+
+        // The dialog is dismissable in exactly the state a real removal spends most of its life in.
+        cut.Find("[data-testid='tenants-config-remove-cancel']").GetAttribute("disabled").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+
+        cut.WaitForAssertion(() => closeRequests.ShouldBe(1));
+        commandActivity[^1].ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Dismissal_never_turns_an_unconfirmed_removal_into_a_success_claim()
+    {
+        // The guard that created the trap existed to protect the non-collapse model. That protection has to
+        // survive the fix: dismissal is allowed, but it must confirm nothing, advance no truth state and
+        // render no success -- the operator has chosen to stop watching, which is not an outcome.
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveNotConfirmed))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
+
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public async Task Refresh_is_disabled_while_a_refresh_is_in_flight_rather_than_silently_dropping_the_click()
+    {
+        // The re-entrancy guard returns before the status read, before ConfirmProjection and before the
+        // activity update. With the button still enabled, a second click was silently discarded and the
+        // control was indistinguishable from a dead one -- so the guard belongs in CanRefresh, not only in
+        // the method. Reverting CanRefresh to omit `!_isRefreshing` leaves the button enabled here and the
+        // second click reaches the gateway, taking GetStatusCallCount to 2.
+        TaskCompletionSource<TenantCommandStatusResult> gate = new();
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            StatusGate = gate,
+
+            // The submit path reads status itself; gating that would hang the submit instead of the refresh.
+            GateFromCall = 2,
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-refresh']").GetAttribute("disabled").ShouldBeNull());
+
+        cut.Find("[data-testid='tenants-config-remove-refresh']").Click();
+
+        // The status read has not returned, so the control must report itself as busy rather than accept a
+        // second click it would silently drop.
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-refresh']").GetAttribute("disabled").ShouldNotBeNull());
+        gateway.GetStatusCallCount.ShouldBe(2);
+
+        gate.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        await Task.Yield();
+
+        // The click that arrived while the refresh was in flight must not have queued a second read.
+        cut.WaitForAssertion(() => gateway.GetStatusCallCount.ShouldBe(2));
+    }
+
+    [Fact]
+    public void Projection_evidence_is_taken_before_the_parent_refresh_is_requested()
+    {
+        // Both halves of the ordering fix have to hold. The parent keeps the flow mounted when its row
+        // leaves the context; the child must read its proof before asking the parent to refresh, or the
+        // refresh drops the row first and the proof is taken against a context that no longer contains it.
+        // Only the parent half was covered.
+        List<string> order = [];
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.OnProjectionRefreshRequested, () => order.Add("refresh"))
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                order.Add("proof");
+                return Task.FromResult(Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveConfirmed));
+            }));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => order.ShouldContain("proof"));
+        order.ShouldContain("refresh");
+        order.IndexOf("proof").ShouldBeLessThan(order.IndexOf("refresh"));
+    }
+
+    [Fact]
     public void Submission_time_policy_revocation_blocks_remove_before_gateway_dispatch()
     {
         StubTenantCommandGateway gateway = new();
@@ -247,6 +442,59 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         gateway.RemoveConfigurationCallCount.ShouldBe(0);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         cut.Find("[data-testid='tenants-config-remove-state']").TextContent.ShouldContain("Unable to verify", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Submit_fails_closed_when_no_reauthorize_provider_is_wired()
+    {
+        // The Set flow has this coverage; the destructive Remove flow did not, over byte-identical code.
+        // Every existing Remove submit test wires a provider, so the null branch had never executed. A
+        // consumer that forgets the optional callback must resolve an Unavailable context and block --
+        // never fall back to the render-time context, whose grant may since have been revoked.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        gateway.RemoveConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void Submit_fails_closed_when_reauthorization_throws()
+    {
+        // No Remove reauthorize provider in the suite threw, so the catch that maps failure to an
+        // unavailable context -- rather than to the render-time context -- had never executed on the
+        // destructive flow. The failure must also stay support-safe: no message, no exception type.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromException<TenantConfigurationManagementContext>(
+                new InvalidOperationException("policy backend unreachable"))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        gateway.RemoveConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        cut.Markup.ShouldNotContain("policy backend unreachable");
+        cut.Markup.ShouldNotContain("InvalidOperationException");
     }
 
     [Fact]
@@ -400,6 +648,12 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             rows);
     }
 
+    // First dot segment. This is the *display* grouping a safe row carries, and it is deliberately NOT the
+    // authorized-namespace resolution the flow performs: keeping the two identical is what made
+    // ResolveAuthorizedNamespace unprovable, because every fixture grant equalled the first dot segment and
+    // both implementations agreed by construction. Tests that care about prefix resolution build their own
+    // context with a multi-segment grant -- see
+    // Remove_preview_reports_the_longest_authorized_prefix_not_the_first_dot_segment.
     private static string Namespace(string key)
     {
         int separator = key.IndexOf('.', StringComparison.Ordinal);
@@ -465,8 +719,27 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             return Task.FromResult(Submission);
         }
 
+        public int GetStatusCallCount { get; private set; }
+
+        /// <summary>
+        /// When set, status resolution blocks on this from <see cref="GateFromCall"/> onwards, so a refresh
+        /// can be observed while it is genuinely in flight.
+        /// </summary>
+        public TaskCompletionSource<TenantCommandStatusResult>? StatusGate { get; init; }
+
+        /// <summary>
+        /// The 1-based call number from which <see cref="StatusGate"/> applies. Defaults to gating every
+        /// call; set it to 2 to let the submit path's own status read resolve normally.
+        /// </summary>
+        public int GateFromCall { get; init; } = 1;
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => Task.FromResult(Status);
+        {
+            GetStatusCallCount++;
+            return StatusGate is not null && GetStatusCallCount >= GateFromCall
+                ? StatusGate.Task
+                : Task.FromResult(Status);
+        }
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>

@@ -372,6 +372,20 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     [InlineData("billing.tier ")]
     [InlineData(" billing.tier")]
     [InlineData("billing.\u200btier")]
+    // Interior separators that are neither Control nor Format. Testing only char.IsControl and
+    // UnicodeCategory.Format let every one of these through: Trim() touches the ends only, so an interior
+    // NBSP survives, renders identically to a plain space, and makes the key permanently unremovable --
+    // the exact outcome the guard exists to prevent.
+    [InlineData("billing.\u00a0tier")]
+    [InlineData("billing.\u2007tier")]
+    [InlineData("billing.\u202ftier")]
+    [InlineData("billing.\u3000tier")]
+    [InlineData("billing.\u2028tier")]
+    // Astral plane. Every row above is BMP, so the whole guard still passed with a per-char scan --
+    // char.GetUnicodeCategory classifies neither half of a surrogate pair as Format. U+1D173 (MUSICAL SYMBOL
+    // BEGIN BEAM) is Cf and two UTF-16 units, so it is the only row that distinguishes EnumerateRunes from
+    // the char indexer, which is the sole claim the guard's own comment makes for using it.
+    [InlineData("billing.\U0001D173tier")]
     public void Keys_that_cannot_be_reproduced_by_typing_are_rejected_rather_than_written(string key)
     {
         // Rejection, not normalization: such a key renders identically to its clean twin and can never
@@ -389,6 +403,38 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-key']").Change(key);
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void A_global_administrator_gets_the_same_key_shape_guard_as_everyone_else()
+    {
+        // IsKeyAuthorized short-circuits on IsGlobalAdministrator, so for a global administrator it rejects
+        // nothing: the shape guard is the only clause between an un-typeable key and the command. Every
+        // other row in the theory above uses a non-global-admin context, where a leading space is rejected
+        // by the authorization clause instead -- which is why that row proved nothing about this guard.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        TenantConfigurationManagementContext globalAdministrator = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            true,
+            ["*"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, globalAdministrator)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(globalAdministrator)));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change(" billing.tier");
         cut.Find("[data-testid='tenants-config-set-value']").Change("production");
         cut.Find("form").Submit();
 

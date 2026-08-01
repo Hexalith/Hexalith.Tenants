@@ -676,3 +676,107 @@ layers; findings re-verified against the working tree at `625061b`.
   behaves correctly — but narrowing them again without a rendered-affordance test would lose coverage.
   Revisit if: the member pager gains bUnit tests that drive it through its rendered controls.
   [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585]
+
+## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)
+
+Review loop 9, chunk D (`tests/`). Three items deferred.
+
+- Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries.
+  The new page-scoped global-administrator removal message is a hardcoded literal, but so is the
+  pre-existing "Current complete projection evidence is required…" arm it branches against, and the same
+  shape recurs across the command snapshot types.
+  Reason for deferral: pre-existing pattern, not introduced by this story. Converting one arm in isolation
+  would leave the file internally inconsistent and split one message pair across two mechanisms.
+  Revisit if: the command snapshots get a localization pass, or EN/FR parity is enforced by a governance
+  test that reaches C# literals rather than only `.resx` keys.
+  [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:189]
+
+- `RestQueryClientAdapter` carries 13 lines of dead freshness computation that re-implement
+  `TenantsRestQueryClient.ResolveFreshness`, discard the result, and omit the `IsDegraded == true` collapse
+  both production implementations perform — so it will drift silently while reading as if it models the
+  client.
+  Reason for deferral: subsumed by the open decision on the gateway test harness. Whether to delete the
+  block or delete the whole adapter depends on which option that decision takes.
+  Revisit if: the harness decision resolves.
+  [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6044]
+
+- `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a
+  named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error.
+  Reason for deferral: diagnostics-only. No production behaviour is left unverified by it.
+  Revisit if: the subscription tests start failing intermittently in CI and the cause needs to be readable
+  from the failure message alone.
+  [tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:317]
+
+## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31, loop 10 never-reviewed delta)
+
+- `TenantConfigurationView.StateResourcePrefix` has no arm for `TenantDetailSurfaceKind.NotFound` or
+  `Unauthorized`, so both fall through to `Tenants.Configuration.State.Ready` ("Configuration evidence is
+  current") and are announced **assertively**, because `!CanInspect` puts `LivePoliteness` in the escalated
+  set, over a surface that has no rows.
+  Reason for deferral: pre-existing arms, not introduced by this range, and unreachable through the only
+  current consumer — `TenantDetailSnapshot.NotFound`/`Unauthorized` route through `Empty(...)`, which yields
+  an unavailable safe model, so the Unavailable arm wins before the fall-through is reached.
+  Revisit if: the second consumer the file's own comment anticipates arrives, or any caller passes those
+  surface kinds with an available configuration model.
+  [src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:220]
+
+## Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)
+
+- Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute
+  of the real `ITenantsRestQueryClient`. The adapter still re-implements the generic `SubmitQueryRequest`
+  transport Story 1.10 deleted, so failures can only be injected as `EventStoreGatewayException` — a type the
+  real client never throws — and the roughly sixty tests it drives exercise only the success arm of
+  `ToEventStoreResult`.
+  Reason for deferral: this is the reason review loop 10 itself gave when it reopened the item. Replacing the
+  harness rewrites the fixture of about sixty tests in one change, which deserves its own pass and its own
+  review rather than riding along with unrelated repairs. The *misleading* half is already closed: the 23
+  inert `Request.*` assertions and the adapter's dead freshness ladder are gone, and every failure-kind
+  mapping repaired in loops 9–11 was driven through the production seam with `FixedFailureRestQueryClient`
+  or an `ITenantsRestQueryClient` substitute. What remains is structural test debt, not a false claim.
+  Revisit if: a further failure-mapping change is needed at the gateway seam, or the adapter drifts from
+  `ResolveFreshness` again.
+  [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6093]
+
+- Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology.
+  Reason for deferral: recorded as an owned limitation under decision `spec:854`, option (b). The routes are
+  proven in process against the real generated controllers — paths, query strings, metadata headers and the
+  conditional `304` path — by
+  `TenantsApiGeneratedControllerTests.Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers`.
+  A live probe driving the production `TenantsRestQueryClient` against the `tenants-api` Aspire resource was
+  written for loop 11 and every read times out at the client's 60 s bound in the local slim-mode topology,
+  which also intermittently fails the pre-existing command-status wait in `AspireTopologyTests`. A lane that
+  cannot separate "the routes are broken" from "the topology is unhealthy" is not evidence, so it was not
+  shipped.
+  Revisit if: a reliable Aspire topology lane exists (CI or local) that can serve as an oracle for
+  `tenants-api`.
+  [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421]
+
+## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-08-01)
+
+- `scripts/validate-story-gitlinks.py` keeps no automated test and no CI wiring.
+  Reason for deferral: owner decision D-K, option (c). Manual verification is accepted; introducing Python
+  test infrastructure to a .NET repository is not warranted for this guard, and porting the check to C# would
+  duplicate the script rather than test it. The evidence stands and is recorded so it is not mistaken for
+  coverage: review loop 12 mutation-verified that replacing `stated = stated_targets(story_text)` with
+  `stated = {}` turns a spec whose stated target SHA was corrupted to `deadbee` from FAIL/exit 1 into
+  PASS/exit 0, while the real spec still exits 0 — so the normal workflow invocation stays green and nothing
+  notices. The repository has no Python test infrastructure (no `conftest.py`, `pytest.ini` or `test_*.py`)
+  and `grep -rn validate-story-gitlinks .github/` returns nothing. The script is release-gating per
+  `project-context.md:149`, so its correctness currently rests on the operator running it and reading the
+  output.
+  Revisit if: the repository gains a Python test lane for any other reason, or a story ships an undeclared
+  `references/` gitlink despite the guard.
+  [scripts/validate-story-gitlinks.py:264]
+
+- A tenant configuration key written by a producer other than this UI, carrying an invisible separator or
+  other untypeable character, remains permanently unremovable through the UI.
+  Reason for deferral: owner decision D-J, option (a). `ContainsUntypeableCharacter`
+  (`SetTenantConfigurationFlow.razor:430-448`) bounds the only producer this story owns, which is accepted as
+  the guard's scope. Configuration keys are consumer-owned (`project-context.md:74`) and writable through
+  `POST /api/v1/commands`; such a key renders identically to its clean twin and can never satisfy
+  `RemoveTenantConfigurationFlow.razor:495`'s ordinal match against typed confirmation text, which offers no
+  alternative affordance. The guard's comment is being corrected to state this scope rather than claim the
+  exposure is closed.
+  Revisit if: a compensating-command path for removing such a key is needed in support, or the remove flow
+  gains a non-typed confirmation affordance.
+  [src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor:495]

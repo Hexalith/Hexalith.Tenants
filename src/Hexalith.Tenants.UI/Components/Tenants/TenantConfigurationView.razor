@@ -25,10 +25,14 @@
        unavailable sentence was duplicated between here and the header. *@
     @if (HasNonCurrentState)
     {
+        @* role and aria-live have to agree. role="status" carries an implicit aria-live="polite", so
+           pairing it with assertive is contradictory and screen readers resolve it inconsistently — the
+           detail page fixed exactly this by switching role with the escalation, and this landmark widened
+           the contradiction instead of inheriting the fix. *@
         <section class="tenant-config__state"
                  data-testid="tenants-config-read-state"
                  data-state="@StateKind"
-                 role="status"
+                 role="@StateRole"
                  aria-live="@LivePoliteness">
             <h3>@StateTitle</h3>
             <p>@StateMessage</p>
@@ -62,8 +66,11 @@
 
         @* Routine result counts are always polite: assertive belongs to the truth state above, not to a
            row tally. The empty panels below are described by this region and therefore carry no role of
-           their own — two live regions fired simultaneously for a single state change. *@
-        <p class="tenant-config__announcer"
+           their own — two live regions fired simultaneously for a single state change. That description
+           has to be a real association: the region carried no id and nothing referenced it, so the claim
+           held only in this comment. It now has one, and both empty panels point at it. *@
+        <p id="tenants-config-read-announcer"
+           class="tenant-config__announcer"
            role="status"
            aria-live="polite"
            aria-atomic="true"
@@ -74,6 +81,7 @@
         @if (Rows.Count == 0)
         {
             <section class="tenant-config__state"
+                     aria-describedby="tenants-config-read-announcer"
                      data-testid="tenants-config-read-empty">
                 <h3>@Localizer["Tenants.Configuration.State.Empty.Title"]</h3>
                 <p>@Localizer["Tenants.Configuration.State.Empty"]</p>
@@ -82,7 +90,8 @@
         else if (FilteredRows.Count == 0)
         {
             <section class="tenant-config__state"
-                     data-testid="tenants-config-read-filtered-empty">
+                     data-testid="tenants-config-read-filtered-empty"
+           aria-describedby="tenants-config-read-announcer">
                 <h3>@Localizer["Tenants.Configuration.State.FilteredEmpty.Title"]</h3>
                 <p>@Localizer["Tenants.Configuration.State.FilteredEmpty"]</p>
             </section>
@@ -216,7 +225,10 @@
     // still-arriving read as unavailable. Loading is reachable for a consumer that renders this landmark
     // outside FcAggregateDetailPage's ReadyContent; the tenant detail page cannot produce it.
     // Aging is classified with Stale rather than falling through to Ready, which previously rendered
-    // "evidence is current" beside a warning Aging badge.
+    // "evidence is current" beside a warning Aging badge. It is anticipatory and deliberately retained:
+    // ResolveFreshness returns only Current/Stale/Unknown today and Aging is dormant on the wire, so no
+    // producer can reach this arm — but Aging is a member of the shared platform enum, and the arm exists so
+    // that wiring it later cannot silently reintroduce "current" copy over an aged read. Kept, not covered.
     private string StateResourcePrefix
         => SurfaceKind is TenantDetailSurfaceKind.Loading
             ? "Tenants.Configuration.State.Loading"
@@ -233,9 +245,19 @@
                             // Last, so it reports only what freshness does not already say: a lifecycle that
                             // is not Current while the read itself looks fine. This is the case that used to
                             // fall through to Ready — "evidence is current" beside an Unavailable badge.
+                            //
+                            // The copy is deliberately lifecycle-neutral. This arm covers Unknown, Stale,
+                            // Rebuilding, Degraded, Unavailable and LocalOnly, and the reachable shape is
+                            // Freshness=Current with Lifecycle=Unknown — no lifecycle header on the wire.
+                            // The title therefore says "not current", not "rebuilding": asserting a rebuild
+                            // that is not happening conflates two truth states this landmark exists to keep
+                            // apart, and Unknown means the UI has no lifecycle evidence at all.
                             : HasNonCurrentLifecycle
                                 ? "Tenants.Configuration.State.ProjectionLifecycle"
                                 : "Tenants.Configuration.State.Ready";
+
+    private string StateRole
+        => string.Equals(LivePoliteness, "assertive", StringComparison.Ordinal) ? "alert" : "status";
 
     private string LivePoliteness
         => IsDegraded

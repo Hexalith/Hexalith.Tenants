@@ -179,7 +179,9 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public static TenantAuditSnapshot Error(TenantAuditRequest request) {
+    public static TenantAuditSnapshot Error(
+        TenantAuditRequest request,
+        TenantAuditReason reason = TenantAuditReason.GatewayFailure) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -190,7 +192,7 @@ public sealed record TenantAuditSnapshot(
             null,
             ReadModelFreshnessState.Unknown,
             false,
-            TenantAuditReason.GatewayFailure,
+            reason,
             request);
     }
 

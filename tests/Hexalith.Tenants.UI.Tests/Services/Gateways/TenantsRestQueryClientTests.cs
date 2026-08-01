@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
@@ -36,7 +35,7 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
         _ = await client.GetTenantAsync(
             new GetTenantQuery { TenantId = "tenant.alpha" },
-            null,
+            "detail-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetTenantUsersAsync(
             new GetTenantUsersQuery { TenantId = "tenant.alpha", Cursor = "users cursor/+", PageSize = 20 },
@@ -44,7 +43,7 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
         _ = await client.GetUserTenantsAsync(
             new GetUserTenantsQuery { UserId = "user.alpha", Cursor = "membership cursor/+", PageSize = 12 },
-            null,
+            "membership-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetTenantAuditAsync(
             new GetTenantAuditQuery
@@ -56,11 +55,11 @@ public sealed class TenantsRestQueryClientTests
                 Cursor = "audit cursor/+",
                 PageSize = 30,
             },
-            null,
+            "audit-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetGlobalAdministratorsAsync(
             new GetGlobalAdministratorsQuery { Cursor = "admin cursor/+", PageSize = 10 },
-            null,
+            "admins-etag",
             TestContext.Current.CancellationToken);
 
         handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(
@@ -72,8 +71,20 @@ public sealed class TenantsRestQueryClientTests
             "/api/tenants/tenant.alpha/audit?from=2026-07-01T00%3A00%3A00.0000000%2B00%3A00&to=2026-07-28T00%3A00%3A00.0000000%2B00%3A00&category=Access&cursor=audit%20cursor%2F%2B&pageSize=30",
             "/api/global-administrators?cursor=admin%20cursor%2F%2B&pageSize=10",
         ]);
-        handler.Requests[0].IfNoneMatch.ShouldBe("\"list-etag\"");
-        handler.Requests[2].IfNoneMatch.ShouldBe("\"users-etag\"");
+        // All six, not just the list and member reads. Previously only Requests[0] and Requests[2] were
+        // asserted and the other four were called with a null eTag, so replacing the eTag argument with
+        // null inside GetTenantAsync, GetUserTenantsAsync, GetTenantAuditAsync or
+        // GetGlobalAdministratorsAsync passed the suite -- those reads would silently full-fetch on every
+        // refresh and every 304-retention behaviour built on them becomes unreachable.
+        handler.Requests.Select(static request => request.IfNoneMatch).ShouldBe(
+        [
+            "\"list-etag\"",
+            "\"detail-etag\"",
+            "\"users-etag\"",
+            "\"membership-etag\"",
+            "\"audit-etag\"",
+            "\"admins-etag\"",
+        ]);
         handler.Requests.ShouldAllBe(static request => request.Method == HttpMethod.Get);
     }
 
@@ -174,10 +185,10 @@ public sealed class TenantsRestQueryClientTests
 
         handler.Requests.ShouldBeEmpty();
 
-        // InvalidRequest, not Unavailable: a caller-side input defect must stay distinguishable from the
-        // Tenants API being down, both in the rendered surface and in the operational log.
+        // UnsupportedRouteIdentifier, not InvalidRequest or Unavailable: no request was sent, so this must
+        // remain distinguishable from both a server-issued 400 and the Tenants API being down.
         new[] { detail.FailureKind, users.FailureKind, memberships.FailureKind, audit.FailureKind }
-            .ShouldAllBe(static kind => kind == TenantsRestQueryFailureKind.InvalidRequest);
+            .ShouldAllBe(static kind => kind == TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
         new[] { detail.StatusCode, users.StatusCode, memberships.StatusCode, audit.StatusCode }
             .ShouldAllBe(static status => status == (int)HttpStatusCode.BadRequest);
     }
@@ -206,6 +217,14 @@ public sealed class TenantsRestQueryClientTests
         result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
         result.Metadata.ProjectionVersion.ShouldBe("index-v7");
         result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);
+
+        // AC3: ServedAt never determines projection age. The header is parsed and carried, but a far-future
+        // value cannot pull a Stale projection to Current. Without these two assertions the header line
+        // above could be deleted with the test unchanged, and making ResolveFreshness consume ServedAt
+        // would break nothing.
+        result.Metadata.ServedAt.ShouldBe(
+            DateTimeOffset.Parse("2099-01-01T00:00:00.0000000+00:00", System.Globalization.CultureInfo.InvariantCulture));
+        result.Metadata.IsStale.ShouldBe(true);
     }
 
     [Theory]
@@ -333,6 +352,10 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Theory]
+    // The all-true row is the acceptance polarity. Without it the `if (strongETag && projectionBacked &&
+    // projectionVersion && freshness)` arm below never executed, so the theory read as proving both
+    // polarities while proving only rejection.
+    [InlineData(true, true, true, true)]
     [InlineData(false, true, true, true)]
     [InlineData(true, false, true, true)]
     [InlineData(true, true, false, true)]
@@ -511,7 +534,10 @@ public sealed class TenantsRestQueryClientTests
     [Fact]
     public async Task Chunked_problem_details_body_is_bounded_by_actual_bytes()
     {
-        var contentStream = new RepeatingReadStream(TenantsRestQueryClient.MaximumProblemDetailsLength + 1L);
+        // Four times the bound, not bound + 1. With a stream of exactly bound + 1 the assertion
+        // `BytesRead == bound + 1` is the stream's own length, so "the cap stopped the read" and "the
+        // stream ran out" were indistinguishable and the cap could be deleted with the test green.
+        var contentStream = new RepeatingReadStream(TenantsRestQueryClient.MaximumProblemDetailsLength * 4L);
         var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.BadRequest)
         {
             Content = new StreamContent(contentStream),
@@ -525,7 +551,8 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
 
         result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
-        contentStream.BytesRead.ShouldBe(TenantsRestQueryClient.MaximumProblemDetailsLength + 1L);
+        contentStream.BytesRead.ShouldBeGreaterThan(TenantsRestQueryClient.MaximumProblemDetailsLength);
+        contentStream.BytesRead.ShouldBeLessThan(TenantsRestQueryClient.MaximumProblemDetailsLength * 2L);
     }
 
     [Fact]
@@ -591,7 +618,7 @@ public sealed class TenantsRestQueryClientTests
             TestContext.Current.CancellationToken);
 
         handler.Requests.ShouldBeEmpty();
-        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
         result.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
     }
 
@@ -698,13 +725,6 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Fact]
-    public void Failure_kind_defaults_to_unknown_and_serializes_by_name()
-    {
-        default(TenantsRestQueryFailureKind).ShouldBe(TenantsRestQueryFailureKind.Unknown);
-        JsonSerializer.Serialize(TenantsRestQueryFailureKind.Unavailable).ShouldBe("\"Unavailable\"");
-    }
-
-    [Fact]
     public async Task A_non_200_success_status_is_not_accepted_as_a_payload_response()
     {
         var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.NoContent));
@@ -766,7 +786,11 @@ public sealed class TenantsRestQueryClientTests
     [Fact]
     public async Task Chunked_success_body_is_bounded_by_actual_bytes()
     {
-        var contentStream = new RepeatingReadStream(TenantsRestQueryClient.MaximumPayloadLength + 1L);
+        // Four times the bound, not bound + 1 -- the same correction already applied to the problem-details
+        // twin. With a stream of exactly bound + 1 the assertion `BytesRead == bound + 1` is the stream's
+        // own length, so "the cap stopped the read" and "the stream ran out" are indistinguishable and the
+        // cap can be deleted with the test green.
+        var contentStream = new RepeatingReadStream(TenantsRestQueryClient.MaximumPayloadLength * 4L);
         var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StreamContent(contentStream),
@@ -781,7 +805,31 @@ public sealed class TenantsRestQueryClientTests
 
         result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
         result.StatusCode.ShouldBe((int)HttpStatusCode.OK);
-        contentStream.BytesRead.ShouldBe(TenantsRestQueryClient.MaximumPayloadLength + 1L);
+        contentStream.BytesRead.ShouldBeGreaterThan(TenantsRestQueryClient.MaximumPayloadLength);
+        contentStream.BytesRead.ShouldBeLessThan(TenantsRestQueryClient.MaximumPayloadLength * 2L);
+    }
+
+    [Fact]
+    public async Task A_declared_content_length_over_the_bound_is_rejected_without_reading_the_body()
+    {
+        // The chunked path proves the streaming cap. The declared-Content-Length fast path is a separate
+        // branch and had no test at all: an oversized body that announces its own size must be rejected
+        // before any of it is read, not merely capped part-way through.
+        var contentStream = new RepeatingReadStream(TenantsRestQueryClient.MaximumPayloadLength * 4L);
+        var content = new StreamContent(contentStream);
+        content.Headers.ContentLength = TenantsRestQueryClient.MaximumPayloadLength + 1L;
+        var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+        contentStream.BytesRead.ShouldBe(0L);
     }
 
     [Theory]
@@ -958,6 +1006,452 @@ public sealed class TenantsRestQueryClientTests
 
         handler.Requests.Count.ShouldBe(1);
         content.WasRead.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("alpha?pageSize=9999", "/api/tenants/alpha%3FpageSize%3D9999")]
+    [InlineData("alpha#fragment", "/api/tenants/alpha%23fragment")]
+    [InlineData("alpha beta", "/api/tenants/alpha%20beta")]
+    [InlineData("alpha&x=1", "/api/tenants/alpha%26x%3D1")]
+    public async Task Route_identifiers_are_percent_escaped_before_the_uri_is_built(
+        string tenantId,
+        string expectedPath)
+    {
+        // The only prior escaping test used "tenant.alpha", where every character is unreserved and
+        // Uri.EscapeDataString is the identity function -- so the escape call was unpinned. It matters
+        // because TryEscapeRouteValue rejects only '/', '\\' and all-dot values, and CreateRequestUri runs
+        // with DangerousDisablePathAndQueryCanonicalization = true: without the escape, a caller-supplied
+        // tenant id splices a query parameter into the request or truncates it at a fragment.
+        var handler = new RecordingHandler(Success("{\"tenantId\":\"alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        _ = await client.GetTenantAsync(
+            new GetTenantQuery { TenantId = tenantId },
+            null,
+            TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldBe(expectedPath);
+    }
+
+    [Theory]
+    [InlineData("Rebuilding")]
+    [InlineData("Degraded")]
+    [InlineData("Unavailable")]
+    [InlineData("LocalOnly")]
+    public async Task Not_modified_is_rejected_for_lifecycle_states_that_are_not_current_or_stale(string lifecycle)
+    {
+        // Every other fixture in this file uses Current, Stale or an absent/garbage header, so the
+        // `_ => Unknown` fail-closed arm of ResolveFreshness could be changed to `_ => Current` with the
+        // suite green -- accepting a 304 received while the projection is Rebuilding and rendering the
+        // retained page as current. All four are real emitted values with EN and FR resources.
+        var response = new HttpResponseMessage(HttpStatusCode.NotModified);
+        response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"list-etag\"");
+        response.Headers.Add("X-Hexalith-Query-Provenance", "ProjectionBacked");
+        response.Headers.Add("X-Hexalith-Projection-Version", "index-v7");
+        response.Headers.Add("X-Hexalith-Projection-Lifecycle", lifecycle);
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            "list-etag",
+            TestContext.Current.CancellationToken);
+
+        result.IsNotModified.ShouldBeFalse();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidMetadata);
+    }
+
+    [Fact]
+    public async Task Contradictory_not_modified_metadata_cannot_prove_retention_through_is_stale()
+    {
+        // The sibling contradiction theory builds 200s and asserts only Metadata.Lifecycle, so the
+        // `isStale = null` half of the contradiction reset was unpinned. Without it, Lifecycle collapses to
+        // Unknown but isStale stays true, ResolveFreshness returns Stale through the Unknown arm, and
+        // IsSupportedNotModified accepts Stale -- retaining the old payload on evidence the client just
+        // declared contradictory.
+        var response = new HttpResponseMessage(HttpStatusCode.NotModified);
+        response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"list-etag\"");
+        response.Headers.Add("X-Hexalith-Query-Provenance", "ProjectionBacked");
+        response.Headers.Add("X-Hexalith-Projection-Version", "index-v7");
+        response.Headers.Add("X-Hexalith-Projection-Lifecycle", "Current");
+        response.Headers.Add("X-Hexalith-Is-Stale", "true");
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            "list-etag",
+            TestContext.Current.CancellationToken);
+
+        result.IsNotModified.ShouldBeFalse();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidMetadata);
+        result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        result.Metadata.IsStale.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("oversized")]
+    public async Task A_blank_or_over_bound_projection_version_header_is_discarded_and_fails_the_gate(string shape)
+    {
+        // GetBoundedHeader returns null for a blank value or one over the metadata bound, and
+        // IsSupportedNotModified gates on ProjectionVersion is not null. No test emitted either shape: the
+        // ETag-bound test covers a different header, and the gateway-side blank-version test injects at the
+        // metadata level, never exercising the header parser. Either shape turns every conditional 304 on
+        // all six reads into a rejected response.
+        string value = shape == "oversized" ? new string('v', 4097) : shape;
+        var response = new HttpResponseMessage(HttpStatusCode.NotModified);
+        response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"list-etag\"");
+        response.Headers.Add("X-Hexalith-Query-Provenance", "ProjectionBacked");
+        response.Headers.TryAddWithoutValidation("X-Hexalith-Projection-Version", value);
+        response.Headers.Add("X-Hexalith-Projection-Lifecycle", "Current");
+        response.Headers.Add("X-Hexalith-Is-Stale", "false");
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            "list-etag",
+            TestContext.Current.CancellationToken);
+
+        result.Metadata.ProjectionVersion.ShouldBeNull();
+        result.IsNotModified.ShouldBeFalse();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidMetadata);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_duplicated_metadata_header_is_discarded_rather_than_arbitrarily_chosen(
+        bool projectionBackedFirst)
+    {
+        // A multi-valued X-Hexalith-Query-Provenance is a real hostile-proxy state. Without the
+        // duplicate-value rejection the client would pick one arbitrarily and treat it as authoritative.
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"items\":[],\"cursor\":null,\"hasMore\":false}", Encoding.UTF8, "application/json"),
+        };
+        string[] values = projectionBackedFirst
+            ? ["ProjectionBacked", "HandlerComputed"]
+            : ["HandlerComputed", "ProjectionBacked"];
+        foreach (string value in values)
+        {
+            response.Headers.Add("X-Hexalith-Query-Provenance", value);
+        }
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
+        result.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+    }
+
+    [Theory]
+    [InlineData("*")]
+    [InlineData("\"\"")]
+    public async Task A_wildcard_or_empty_response_etag_is_not_retained(string eTagHeader)
+    {
+        // GetStrongETag rejects `ETag: *` and an empty tag; neither had a test, so both rejections could be
+        // deleted and a meaningless validator retained and later sent back as If-None-Match.
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"items\":[],\"cursor\":null,\"hasMore\":false}", Encoding.UTF8, "application/json"),
+        };
+        response.Headers.TryAddWithoutValidation("ETag", eTagHeader);
+        response.Headers.Add("X-Hexalith-Query-Provenance", "ProjectionBacked");
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.ETag.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_json_null_body_is_not_accepted_as_a_payload()
+    {
+        // No fixture returned a JSON null body. Without the payload-null guard HasValidPayloadShape(null)
+        // falls to its `_ => true` arm and the client reports IsSuccess with a null payload -- producible
+        // whenever the generated controller's handler value is null.
+        var handler = new RecordingHandler(Success("null"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeFalse();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    [InlineData("\"   \"")]
+    public async Task Member_page_shape_requires_a_user_identity_on_every_row(string userId)
+    {
+        string json = $$"""
+            {"items":[{"userId":{{userId}},"role":"TenantOwner"}],"cursor":null,"hasMore":false}
+            """;
+        var handler = new RecordingHandler(Success(json));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> result = await client.GetTenantUsersAsync(
+            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("null", "\"Alpha\"")]
+    [InlineData("\"\"", "\"Alpha\"")]
+    [InlineData("\"   \"", "\"Alpha\"")]
+    [InlineData("\"tenant.alpha\"", "null")]
+    public async Task Membership_page_shape_requires_a_tenant_identity_and_non_null_name_on_every_row(
+        string tenantId,
+        string name)
+    {
+        string json = $$"""
+            {"items":[{"tenantId":{{tenantId}},"name":{{name}},"role":"TenantOwner"}],"cursor":null,"hasMore":false}
+            """;
+        var handler = new RecordingHandler(Success(json));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>> result = await client.GetUserTenantsAsync(
+            new GetUserTenantsQuery { UserId = "user.alpha", PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    [InlineData("\"   \"")]
+    public async Task Global_administrator_page_shape_requires_a_user_identity_on_every_row(string userId)
+    {
+        // Only the list and detail reads had negative shape fixtures, so the membership, member, audit and
+        // global-administrator predicates could each be replaced with `true` and nothing failed.
+        string json = $$"""
+            {"items":[{"userId":{{userId}}}],"cursor":null,"hasMore":false}
+            """;
+        var handler = new RecordingHandler(Success(json));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> result = await client.GetGlobalAdministratorsAsync(
+            new GetGlobalAdministratorsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_paged_read_other_than_the_list_rejects_has_more_without_a_cursor()
+    {
+        // IsValidPage's HasMore-without-cursor rule was proved only for the list read.
+        var handler = new RecordingHandler(Success("{\"items\":[],\"cursor\":null,\"hasMore\":true}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantMember>> result = await client.GetTenantUsersAsync(
+            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The audit page predicate is the largest of the six and had no negative fixture at all.
+    /// </summary>
+    /// <remarks>
+    /// Every other read gained one; the audit predicate's five clauses could each be replaced with
+    /// <c>true</c> with the suite green, so a row missing its event id, event type, actor, tenant scope or
+    /// narrative payload reached the surface as authoritative audit evidence.
+    /// </remarks>
+    [Theory]
+    [InlineData("event id", "null", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant.alpha\"", "{}")]
+    [InlineData("event type", "\"event-1\"", "\" \"", "\"actor.user\"", "\"tenant.alpha\"", "{}")]
+    [InlineData("actor", "\"event-1\"", "\"TenantUpdated\"", "null", "\"tenant.alpha\"", "{}")]
+    [InlineData("tenant scope", "\"event-1\"", "\"TenantUpdated\"", "\"actor.user\"", "\"\"", "{}")]
+    [InlineData("narrative payload", "\"event-1\"", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant.alpha\"", "null")]
+    public async Task Audit_page_shape_requires_every_evidence_field_on_every_row(
+        string because,
+        string eventId,
+        string eventType,
+        string actorId,
+        string tenantId,
+        string narrativePayload)
+    {
+        string json = $$"""
+            {"items":[{"eventId":{{eventId}},"eventType":{{eventType}},"category":"Administrative","actorId":{{actorId}},"occurredAt":"2026-07-28T08:00:00Z","tenantId":{{tenantId}},"narrativePayload":{{narrativePayload}}}],"cursor":null,"hasMore":false}
+            """;
+
+        var handler = new RecordingHandler(Success(json));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> result = await client.GetTenantAuditAsync(
+            new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 50 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(
+            TenantsRestQueryFailureKind.InvalidPayload,
+            $"a row with no {because} is not audit evidence");
+        result.Payload.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The <c>item.Name is not null</c> clause on the list and membership pages had no fixture.
+    /// </summary>
+    /// <remarks>
+    /// Replacing it with <c>true</c> survived: every existing shape fixture varies the identifier, never the
+    /// name. A null name reaches the row renderer, which is the one field the list surface displays beside
+    /// the tenant identity.
+    /// </remarks>
+    [Fact]
+    public async Task List_page_shape_requires_a_non_null_name_on_every_row()
+    {
+        var handler = new RecordingHandler(Success(
+            "{\"items\":[{\"tenantId\":\"tenant.alpha\",\"name\":null,\"status\":\"Active\"}],\"cursor\":null,\"hasMore\":false}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        result.Payload.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The remaining header-hardening branches, each individually deletable with the suite green.
+    /// </summary>
+    /// <remarks>
+    /// Covered before this: ETag length bounds, weak-ETag rejection, duplicate
+    /// <c>X-Hexalith-Query-Provenance</c>, <c>ETag: *</c> and the empty tag. Still uncovered: a duplicate
+    /// <c>ETag</c> header, and control-character rejection in <c>GetBoundedHeader</c> and
+    /// <c>GetStrongETag</c>. A multi-valued or control-bearing header is a real hostile-proxy state.
+    /// </remarks>
+    [Fact]
+    public async Task A_duplicate_etag_header_is_not_retained()
+    {
+        HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
+        response.Headers.TryAddWithoutValidation("ETag", "\"first\"");
+        response.Headers.TryAddWithoutValidation("ETag", "\"second\"");
+        AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
+        AddHeader(response, "X-Hexalith-Projection-Version", "projection-v1");
+
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.ETag.ShouldBeNull("two ETag headers name two different entities; neither may be retained");
+    }
+
+    [Fact]
+    public async Task A_control_character_in_a_metadata_header_is_rejected()
+    {
+        HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
+        AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
+        AddHeader(response, "X-Hexalith-Projection-Version", "projectionv1");
+
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Metadata.ProjectionVersion.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_control_character_in_the_etag_is_rejected()
+    {
+        HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
+        response.Headers.TryAddWithoutValidation("ETag", "\"listv1\"");
+        AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
+
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.ETag.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A validator the client cannot normalize is never sent, rather than sent malformed.
+    /// </summary>
+    /// <remarks>
+    /// A gateway-level ETag never contains quotes -- <c>GetStrongETag</c> strips them -- so a value that
+    /// does is either a caller defect or an injection attempt, and control characters cannot occupy a header
+    /// at all. Both branches were individually deletable with the suite green.
+    /// </remarks>
+    [Theory]
+    [InlineData("has\"quote")]
+    [InlineData("hascontrol")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task An_unnormalizable_request_validator_is_not_sent(string eTag)
+    {
+        var handler = new RecordingHandler(Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        _ = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            eTag,
+            TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().IfNoneMatch.ShouldBeNull();
     }
 
     private static HttpResponseMessage Success(string json)

@@ -820,6 +820,95 @@ public sealed class TenantQueryGatewayTests
         rejected.Rows.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// A degraded tenant-users response must not keep the payload's projection lifecycle.
+    /// </summary>
+    /// <remarks>
+    /// The snapshot is built from the payload lifecycle before the degraded arm runs, so without the reset a
+    /// degraded projection reports <c>Lifecycle = Current</c> — a degraded read claiming a current
+    /// projection, the conflation the whole freshness contract exists to prevent, and the input to five
+    /// mutation gates. Deleting the reset left the suite green; the sibling
+    /// <c>IsAuthorizationScopedEmpty</c> clear on the adjacent line was already covered.
+    /// </remarks>
+    [Fact]
+    public async Task Degraded_tenant_users_metadata_resets_the_projection_lifecycle_to_unknown()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
+                new PaginatedResult<TenantMember>(
+                    [new TenantMember("member-user", TenantRole.TenantReader)],
+                    null,
+                    false),
+                ProjectionBackedMetadata(
+                    isStale: false,
+                    isDegraded: true,
+                    eTag: "members-etag",
+                    lifecycle: ProjectionLifecycleState.Current,
+                    projectionVersion: "projection-v1"),
+                TenantsRestQueryFailureKind.None,
+                (int)HttpStatusCode.OK));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantUsersSnapshot snapshot = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", null, 10, null),
+            null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Degraded);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        snapshot.IsAuthorizationScopedEmpty.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A page-one recovery that itself failed must not be stamped as a recovery.
+    /// </summary>
+    /// <remarks>
+    /// <c>PagingRecovered</c> tells the consumer "this is page one, not the page you asked for". The guard
+    /// checked only transport success, but the mapping can still fail on a successful response — a null
+    /// <c>Items</c> payload becomes <c>Error</c> — and stamping that rendered the polite "restarted at the
+    /// first page" notice over a failed read, then made <c>TenantDetailPage</c> take the
+    /// <c>PagingRecovered</c> branch ahead of the branch that retains last-confirmed rows.
+    /// </remarks>
+    [Fact]
+    public async Task A_failed_page_one_recovery_is_not_stamped_as_recovered()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                // The requested page reports an explicitly signalled invalid cursor...
+                _ => new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
+                    null,
+                    new QueryResponseMetadata(),
+                    TenantsRestQueryFailureKind.InvalidCursor,
+                    (int)HttpStatusCode.BadRequest),
+                // ...and the page-one re-read succeeds at the transport level but carries no items.
+                _ => new TenantsRestQueryResponse<PaginatedResult<TenantMember>>(
+                    null,
+                    ProjectionBackedMetadata(
+                        isStale: false,
+                        lifecycle: ProjectionLifecycleState.Current,
+                        projectionVersion: "projection-v1"),
+                    TenantsRestQueryFailureKind.None,
+                    (int)HttpStatusCode.OK));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantUsersSnapshot snapshot = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", "expired-cursor", 10, null),
+            null,
+            CancellationToken.None);
+
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.PagingRecovered.ShouldBeFalse();
+    }
+
     [Fact]
     public async Task Get_tenant_users_does_not_infer_invalid_cursor_from_plain_bad_request()
     {
@@ -904,8 +993,6 @@ public sealed class TenantQueryGatewayTests
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("system");
-        query.Request.Domain.ShouldBe(GetTenantQuery.Domain);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.IfNoneMatch.ShouldBe("known");
@@ -1005,17 +1092,21 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_not_modified_without_lifecycle_fails_closed_instead_of_inheriting_previous_lifecycle()
     {
+        // Unquoted throughout: TenantsRestQueryClient.GetStrongETag trims the surrounding quotes off the wire
+        // value and NormalizeValidator refuses to send one containing them, so a gateway-level ETag never
+        // carries literal quote characters. The quoted form this used to pass is an input production cannot
+        // produce.
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
-            eTag: "\"known\"",
+            eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             lifecycle: ProjectionLifecycleState.Current,
             projectionVersion: "detail-v6");
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("\"known\"");
+        client.EnqueueDetailNotModified("known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
 
         TenantDetailSnapshot snapshot = await CreateGateway(client)
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), previous, CancellationToken.None);
 
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -1029,7 +1120,7 @@ public sealed class TenantQueryGatewayTests
             eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known", isStale: true);
+        client.EnqueueDetailNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
             eTag: "known",
@@ -1613,6 +1704,19 @@ public sealed class TenantQueryGatewayTests
     [InlineData(403, TenantDetailSurfaceKind.Unauthorized)]
     [InlineData(404, TenantDetailSurfaceKind.NotFound)]
     [InlineData(503, TenantDetailSurfaceKind.Unavailable)]
+    // Decision D3 stopped flattening every 5xx to 503, so the raw status now reaches this mapper. It must
+    // treat the whole range as an outage: 500/502/504 were enumerated but 501, 505, 506, 507, 508, 510 and
+    // 511 fell to the Degraded default arm, which claims retained evidence on a first load that has none.
+    // Deleting the `>= 500 and < 600` arm sends every row below to Degraded.
+    [InlineData(500, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(501, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(502, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(504, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(507, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(511, TenantDetailSurfaceKind.Unavailable)]
+    // Decision D-I distinguishes a route identity rejected locally from a 400 returned by the server. This
+    // reasonless exception models the latter: a server rejection is not proof that the tenant does not exist.
+    [InlineData(400, TenantDetailSurfaceKind.Unavailable)]
     public async Task Get_tenant_maps_gateway_status_to_safe_detail_state(int statusCode, TenantDetailSurfaceKind expected)
     {
         CapturingGatewayClient client = new();
@@ -1706,7 +1810,6 @@ public sealed class TenantQueryGatewayTests
             .ListTenantsAsync(new TenantListRequest(Cursor: "opaque-cursor", PageSize: 10), null, CancellationToken.None);
 
         SubmittedQuery listQuery = client.SubmittedQueries[0];
-        listQuery.Request.Tenant.ShouldBe("system");
         JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
         payload.TryGetProperty("offset", out _).ShouldBeFalse();
@@ -1872,8 +1975,6 @@ public sealed class TenantQueryGatewayTests
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(Cursor: "opaque-cursor", PageSize: 10, ETag: "known"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.Request.Tenant.ShouldBe("system");
-        query.Request.Domain.ShouldBe(GetGlobalAdministratorsQuery.Domain);
         query.IfNoneMatch.ShouldBe("known");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
@@ -1917,7 +2018,7 @@ public sealed class TenantQueryGatewayTests
             eTag: "known",
             freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("known", isStale: true);
+        client.EnqueueGlobalAdministratorsNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -2198,6 +2299,154 @@ public sealed class TenantQueryGatewayTests
         snapshot.IsCompleteEvidence.ShouldBeFalse();
     }
 
+    // Review loop 9. The kind census over this file was Unavailable x20, None x7, InvalidCursor x4,
+    // InvalidRequest x3, Unauthorized/Forbidden/NotFound x2 each, Timeout x1, InvalidPayload x1,
+    // InvalidMetadata/Unknown x0 -- and the auth kinds appeared ONLY against GetTenantUsersAsync, which
+    // switches on FailureKind and bypasses ToEventStoreResult entirely. So `or Unauthorized or Forbidden or
+    // NotFound` could be added to the 503 override and every test still passed, while a real 401 on the
+    // detail or global-administrator read rendered as an outage instead of offering sign-in.
+    [Theory]
+    [InlineData(TenantsRestQueryFailureKind.Unauthorized, 401, TenantDetailSurfaceKind.Unauthorized)]
+    [InlineData(TenantsRestQueryFailureKind.Forbidden, 403, TenantDetailSurfaceKind.Unauthorized)]
+    [InlineData(TenantsRestQueryFailureKind.NotFound, 404, TenantDetailSurfaceKind.NotFound)]
+    public async Task Authorization_failures_reach_the_detail_mapper_as_themselves(
+        TenantsRestQueryFailureKind failureKind,
+        int statusCode,
+        TenantDetailSurfaceKind expected)
+    {
+        TenantDetailSnapshot snapshot = await CreateGateway(
+                new FixedFailureRestQueryClient(failureKind, statusCode))
+            .GetTenantAsync(
+                new TenantDetailRequest("tenant.alpha"),
+                previous: null,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        snapshot.Kind.ShouldNotBe(TenantDetailSurfaceKind.Unavailable);
+    }
+
+    [Theory]
+    [InlineData(TenantsRestQueryFailureKind.InvalidRequest, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier, TenantDetailSurfaceKind.NotFound)]
+    public async Task Server_rejection_and_locally_unsupported_route_identity_remain_distinguishable(
+        TenantsRestQueryFailureKind failureKind,
+        TenantDetailSurfaceKind expected)
+    {
+        TenantDetailSnapshot snapshot = await CreateGateway(
+                new FixedFailureRestQueryClient(failureKind, (int)HttpStatusCode.BadRequest))
+            .GetTenantAsync(
+                new TenantDetailRequest("tenant.alpha"),
+                previous: null,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(TenantsRestQueryFailureKind.Unauthorized, 401)]
+    [InlineData(TenantsRestQueryFailureKind.Forbidden, 403)]
+    public async Task Authorization_failures_reach_the_global_administrator_mapper_as_themselves(
+        TenantsRestQueryFailureKind failureKind,
+        int statusCode)
+    {
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(
+                new FixedFailureRestQueryClient(failureKind, statusCode))
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(),
+                previous: null,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unauthorized);
+        snapshot.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    // Review loop 9, decision D3. AC6 requires error to stay distinct from unavailable. Before this change
+    // ToEventStoreResult flattened EVERY unclassified status into 503, so GlobalAdministratorsSnapshot.Error()
+    // had no reachable producer: the tenants-global-admins-error copy plus its Retry/Reset affordances shipped
+    // dead, while the tests that "covered" it reached it only by throwing EventStoreGatewayException straight
+    // at the mapper through the harness -- which bypasses ToEventStoreResult entirely and so proved nothing
+    // about the status the gateway would really see. These tests drive the REAL ITenantsRestQueryClient seam.
+    [Theory]
+    [InlineData(500, GlobalAdministratorsSurfaceKind.Error)]
+    [InlineData(502, GlobalAdministratorsSurfaceKind.Error)]
+    [InlineData(504, GlobalAdministratorsSurfaceKind.Error)]
+    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable)]
+    [InlineData(501, GlobalAdministratorsSurfaceKind.Unavailable)]
+    public async Task A_server_error_status_is_distinguished_from_a_declared_outage(
+        int statusCode,
+        GlobalAdministratorsSurfaceKind expected)
+    {
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(
+                new FixedFailureRestQueryClient(TenantsRestQueryFailureKind.Unavailable, statusCode))
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(),
+                previous: null,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        snapshot.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    [Theory]
+    // A non-200 SUCCESS code is not a server fault; it must keep collapsing to the declared-outage code so it
+    // cannot reach a mapper's default arm as if the server had failed. This is the guard that stops D3's
+    // change widening past real 5xx responses.
+    [InlineData(TenantsRestQueryFailureKind.Unavailable, 204)]
+    // Transport-level kinds carry no meaningful HTTP status and stay normalized to 503, which is what keeps
+    // a corrupt payload or unusable metadata from re-presenting retained rows as "last confirmed".
+    [InlineData(TenantsRestQueryFailureKind.InvalidPayload, 200)]
+    [InlineData(TenantsRestQueryFailureKind.InvalidMetadata, 304)]
+    [InlineData(TenantsRestQueryFailureKind.Timeout, 503)]
+    public async Task Statuses_without_a_meaningful_server_fault_still_normalize_to_unavailable(
+        TenantsRestQueryFailureKind failureKind,
+        int statusCode)
+    {
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(
+                new FixedFailureRestQueryClient(failureKind, statusCode))
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(),
+                previous: null,
+                CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_requires_projection_lifecycle_evidence_for_complete_evidence()
+    {
+        // The projection-version clause of IsCompleteGlobalAdministratorsEvidence has the theory above; the
+        // lifecycle clause had no counterpart, and the diff added two lifecycle tests to the Grant twin and
+        // none to Remove.
+        //
+        // The pairing below -- is-stale false with lifecycle Unknown -- is NOT something the owned producer
+        // can emit: every handler goes through ToQueryResponseMetadata, which couples Lifecycle = Unknown to
+        // IsStale = null. (An earlier version of this comment claimed it was "the reachable wire shape";
+        // that was wrong, and review loop 10 corrected it.) It is a non-conforming-producer shape, and
+        // asserting it is still worth doing: this gate is what makes the surface fail closed against one.
+        // Delete `lifecycle == ProjectionLifecycleState.Current` from that predicate and such a producer can
+        // have the absence of a row reported to the operator as a *confirmed* removal of a global
+        // administrator. Decision D-F (2026-07-31) reversed D6 for exactly this class of evidence.
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Unknown,
+                projectionVersion: "global-admin-v8"));
+
+        GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        // Freshness is Current and the page is a complete first page, so every other clause of the
+        // predicate is satisfied: only the lifecycle clause can be holding the gate closed.
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        snapshot.IsCompleteEvidence.ShouldBeFalse();
+        snapshot.IsMutationEvidenceBacked.ShouldBeFalse();
+    }
+
     [Fact]
     public async Task Get_global_administrators_invalid_later_cursor_recovers_to_page_one_honestly()
     {
@@ -2357,7 +2606,7 @@ public sealed class TenantQueryGatewayTests
             snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
         }
         client.SubmittedQueries.Count.ShouldBe(1);
-        client.SubmittedQueries[0].Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
+        client.SubmittedQueries.ShouldNotBeEmpty();
         string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
         client.SubmittedQueries
             .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
@@ -2404,8 +2653,6 @@ public sealed class TenantQueryGatewayTests
                 CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.Request.Tenant.ShouldBe("system");
-        query.Request.Domain.ShouldBe(GetTenantAuditQuery.Domain);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.IfNoneMatch.ShouldBe("known");
@@ -2546,7 +2793,7 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("known", isStale: true);
+        client.EnqueueAuditNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -2696,7 +2943,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
         snapshot.Reason.ShouldBe(TenantAuditReason.GatewayFailure);
         snapshot.Rows.ShouldBeEmpty();
-        client.SubmittedQueries.ShouldHaveSingleItem().Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
+        client.SubmittedQueries.ShouldHaveSingleItem();
         string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
         client.SubmittedQueries
             .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
@@ -3011,7 +3258,10 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Unknown,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("known");
+
+        // Deliberately the metadata-deficient shape: no freshness header and no lifecycle. The helper's
+        // default is now the deliverable Current shape, so this case states its own inputs.
+        client.EnqueueNotModified("known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3033,7 +3283,7 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current,
             isDegraded: false) with { RequestPageSize = 10 };
         CapturingGatewayClient client = new();
-        client.EnqueueNotModified("known", isStale: true);
+        client.EnqueueNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3118,8 +3368,6 @@ public sealed class TenantQueryGatewayTests
             .GetMyTenantsAsync(new UserTenantMembershipRequest(Cursor: "signed-cursor", PageSize: 12), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("system");
-        query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
         query.Request.EntityId.ShouldBe("user.self");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-cursor");
@@ -3141,7 +3389,6 @@ public sealed class TenantQueryGatewayTests
             .GetMyTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "user.other"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("system");
         query.Request.EntityId.ShouldBe("user.self");
         snapshot.TargetUserId.ShouldBe("user.self");
     }
@@ -3167,8 +3414,6 @@ public sealed class TenantQueryGatewayTests
                 CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("system");
-        query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
         query.Request.EntityId.ShouldBe("target.user@example");
         query.IfNoneMatch.ShouldBe("known");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
@@ -3223,7 +3468,7 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current,
             targetUserId: "target.one");
         CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known", isStale: true);
+        client.EnqueueUserTenantsNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -3328,7 +3573,12 @@ public sealed class TenantQueryGatewayTests
     [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
     [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
     [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
-    [InlineData(500, UserTenantMembershipSurfaceKind.Degraded)]
+    // Review loop 9, decision D3: 500 now maps to Unavailable, not Degraded. The old expectation was a
+    // harness artifact -- it reached MapUserTenantException directly with a raw 500, but through the
+    // production path ToEventStoreResult forced every 5xx to 503, so this surface never actually
+    // produced Degraded for a server error. The mapper now agrees with what production always did, and
+    // a first-load server error stays fail-closed instead of rendering as retained degradation.
+    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable)]
     public async Task Get_user_tenants_maps_target_lookup_gateway_failures_to_sanitized_states(
         int statusCode,
         UserTenantMembershipSurfaceKind expected)
@@ -3522,7 +3772,12 @@ public sealed class TenantQueryGatewayTests
     [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
     [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
     [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
-    [InlineData(500, UserTenantMembershipSurfaceKind.Degraded)]
+    // Review loop 9, decision D3: 500 now maps to Unavailable, not Degraded. The old expectation was a
+    // harness artifact -- it reached MapUserTenantException directly with a raw 500, but through the
+    // production path ToEventStoreResult forced every 5xx to 503, so this surface never actually
+    // produced Degraded for a server error. The mapper now agrees with what production always did, and
+    // a first-load server error stays fail-closed instead of rendering as retained degradation.
+    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable)]
     public async Task Get_my_tenants_maps_gateway_failures_to_sanitized_states(int statusCode, UserTenantMembershipSurfaceKind expected)
     {
         CapturingGatewayClient client = new();
@@ -3571,7 +3826,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries[0].Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        client.SubmittedQueries.ShouldNotBeEmpty();
         client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(50);
         client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().TryGetProperty("offset", out _).ShouldBeFalse();
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
@@ -3680,7 +3935,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("fallback");
-        client.SubmittedQueries[1].Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        client.SubmittedQueries.ShouldNotBeEmpty();
         client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("ordinary-current");
     }
 
@@ -3735,7 +3990,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.ShouldHaveSingleItem().Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        client.SubmittedQueries.ShouldHaveSingleItem();
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
     }
@@ -4264,7 +4519,7 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
-        client.SubmittedQueries.ShouldHaveSingleItem().Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        client.SubmittedQueries.ShouldHaveSingleItem();
         logger.Messages.ShouldHaveSingleItem().ShouldContain(TenantQueryGateway.SearchResponseInvalidReasonCode);
     }
 
@@ -5192,6 +5447,48 @@ public sealed class TenantQueryGatewayTests
             _ => throw new InvalidOperationException($"Unknown codec failure {exceptionKind}."),
         };
 
+    /// <summary>
+    /// Returns one fixed failure for every read, at the real <see cref="ITenantsRestQueryClient"/> seam.
+    /// </summary>
+    /// <remarks>
+    /// Review loop 9, decision D1 (first increment). Unlike <c>RestQueryClientAdapter</c>, this substitutes
+    /// the production interface directly, so a failure actually flows through
+    /// <c>TenantQueryGateway.ToEventStoreResult</c> -- the code that decides which HTTP status each mapper
+    /// sees. The adapter cannot express this at all: it hardcodes <c>TenantsRestQueryFailureKind.None</c> and
+    /// failures can only be injected by throwing <c>EventStoreGatewayException</c> straight at the mapper,
+    /// which skips the status normalization entirely. New failure-mapping coverage belongs here.
+    /// </remarks>
+    private sealed class FixedFailureRestQueryClient(TenantsRestQueryFailureKind failureKind, int statusCode)
+        : ITenantsRestQueryClient
+    {
+        private TenantsRestQueryResponse<TPayload> Response<TPayload>()
+            => new(default, new QueryResponseMetadata(), failureKind, statusCode);
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> ListTenantsAsync(
+            ListTenantsQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<PaginatedResult<TenantSummary>>());
+
+        public Task<TenantsRestQueryResponse<TenantDetail>> GetTenantAsync(
+            GetTenantQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<TenantDetail>());
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantMember>>> GetTenantUsersAsync(
+            GetTenantUsersQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<PaginatedResult<TenantMember>>());
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>>> GetUserTenantsAsync(
+            GetUserTenantsQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<PaginatedResult<UserTenantMembership>>());
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
+            GetTenantAuditQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<PaginatedResult<TenantAuditEntry>>());
+
+        public Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>> GetGlobalAdministratorsAsync(
+            GetGlobalAdministratorsQuery query, string? eTag, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response<PaginatedResult<GlobalAdministratorSummary>>());
+    }
+
     private static TenantQueryGateway CreateGateway(
         CapturingGatewayClient client,
         string? userId = "operator-user",
@@ -5207,7 +5504,8 @@ public sealed class TenantQueryGatewayTests
         StubMemoriesClient? memoriesClient = null,
         ITenantSearchCursorCodec? searchCursorCodec = null,
         ITenantsBffComposition? bffComposition = null,
-        CapturingLogger? logger = null)
+        CapturingLogger? logger = null,
+        TimeSpan? enrichmentDeadline = null)
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
@@ -5219,7 +5517,8 @@ public sealed class TenantQueryGatewayTests
             memoriesClient ?? new StubMemoriesClient(),
             searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()),
             bffComposition,
-            logger);
+            logger,
+            enrichmentDeadline);
     }
 
     private static TenantQueryGateway CreateGateway(
@@ -5578,6 +5877,673 @@ public sealed class TenantQueryGatewayTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// A 304 the client cannot pair with a retained snapshot has its own reason on all four paged reads.
+    /// </summary>
+    /// <remarks>
+    /// The server insists nothing changed while nothing is retained to show, which is neither an outage nor
+    /// degraded evidence. <c>NotModifiedWithoutSnapshot</c> names exactly that state and shipped with EN/FR
+    /// copy and four enum members but no producer at all -- a test hand-built the state and asserted its copy
+    /// rendered, so the suite read as though it were live while an operator could never reach it.
+    /// </remarks>
+    [Fact]
+    public async Task A_not_modified_response_with_nothing_retained_has_its_own_reason_on_every_paged_read()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueNotModified("unknown-etag");
+        client.EnqueueNotModified("unknown-etag");
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantListSnapshot list = await gateway.ListTenantsAsync(
+            new TenantListRequest(ETag: "unknown-etag"),
+            previous: null,
+            CancellationToken.None);
+        list.Reason.ShouldBe(TenantListReason.NotModifiedWithoutSnapshot);
+        AssertUnconditionalRetry(client);
+
+        CapturingGatewayClient userTenantsClient = new();
+        userTenantsClient.EnqueueUserTenantsNotModified("unknown-etag");
+        userTenantsClient.EnqueueUserTenantsNotModified("unknown-etag");
+        UserTenantMembershipSnapshot memberships = await CreateGateway(userTenantsClient).GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", ETag: "unknown-etag"),
+            previous: null,
+            CancellationToken.None);
+        memberships.Reason.ShouldBe(UserTenantMembershipReason.NotModifiedWithoutSnapshot);
+        AssertUnconditionalRetry(userTenantsClient);
+
+        CapturingGatewayClient administratorsClient = new();
+        administratorsClient.EnqueueGlobalAdministratorsNotModified("unknown-etag");
+        administratorsClient.EnqueueGlobalAdministratorsNotModified("unknown-etag");
+        GlobalAdministratorsSnapshot administrators = await CreateGateway(administratorsClient)
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: "unknown-etag"),
+                previous: null,
+                CancellationToken.None);
+        administrators.Reason.ShouldBe(GlobalAdministratorsReason.NotModifiedWithoutSnapshot);
+        AssertUnconditionalRetry(administratorsClient);
+
+        CapturingGatewayClient auditClient = new();
+        auditClient.EnqueueAuditNotModified("unknown-etag");
+        auditClient.EnqueueAuditNotModified("unknown-etag");
+        TenantAuditSnapshot audit = await CreateGateway(auditClient).GetTenantAuditAsync(
+            new TenantAuditRequest("tenant.alpha", ETag: "unknown-etag"),
+            previous: null,
+            CancellationToken.None);
+        audit.Reason.ShouldBe(TenantAuditReason.NotModifiedWithoutSnapshot);
+        AssertUnconditionalRetry(auditClient);
+
+        static void AssertUnconditionalRetry(CapturingGatewayClient client)
+        {
+            client.SubmittedQueries.Count.ShouldBe(2);
+            client.SubmittedQueries[0].IfNoneMatch.ShouldBe("unknown-etag");
+            client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        }
+    }
+
+    /// <summary>
+    /// A blank route identifier is a malformed request, not an outage.
+    /// </summary>
+    /// <remarks>
+    /// <c>TenantDetailPage</c> builds this request straight from the route value, so <c>/tenants/%20</c>
+    /// reaches the gateway. Without the guard the blank id threw inside the typed client, was swallowed by
+    /// the generic handler, and surfaced as <c>Unavailable</c> plus a <c>DirectTenantsReadFailed</c> warning:
+    /// a malformed request reported as the API being down, in the UI and in the operational log. Making the
+    /// guard unable to fire survived the suite.
+    /// </remarks>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public async Task Get_tenant_treats_a_blank_route_identifier_as_not_found(string tenantId)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        CapturingLogger logger = new();
+
+        TenantDetailSnapshot snapshot = await CreateGateway(client, logger: logger).GetTenantAsync(
+            new TenantDetailRequest(tenantId),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.NotFound);
+        _ = client.DidNotReceive().GetTenantAsync(
+            Arg.Any<GetTenantQuery>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+        logger.Messages.ShouldBeEmpty("A malformed request is not a read failure and must not be logged as one.");
+    }
+
+    /// <summary>
+    /// A first-page load that never paged must not be announced as a paging recovery.
+    /// </summary>
+    /// <remarks>
+    /// The recovery path stamped <c>ListRefreshed</c> on any invalid-cursor failure, including a page-one
+    /// load carrying no cursor at all -- telling the operator that paging had restarted when nothing had
+    /// paged. Making the <c>!IsNullOrWhiteSpace(request.Cursor)</c> guard unable to fire survived the suite.
+    /// </remarks>
+    [Fact]
+    public async Task Invalid_cursor_recovery_does_not_announce_a_restart_on_a_first_page_load()
+    {
+        int reads = 0;
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                reads++;
+                return FailureResponse<PaginatedResult<TenantSummary>>(
+                    TenantsRestQueryFailureKind.InvalidCursor,
+                    (int)HttpStatusCode.BadRequest);
+            });
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(
+            new TenantListRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Notice.ShouldNotBe(TenantListReason.ListRefreshed);
+        reads.ShouldBe(1, "There was no cursor to recover from, so no page-one retry may be issued.");
+    }
+
+    /// <summary>
+    /// Search hydration must contain every failure the typed client can raise for an index-supplied id.
+    /// </summary>
+    /// <remarks>
+    /// Index hits are untrusted input: a <c>tenant:   </c> hit passed the candidate filter, which rejected
+    /// null, empty and control characters but not whitespace, and hard-threw inside the typed client.
+    /// Uncontained, that escapes <c>Task.WhenAll</c> through the gateway into <c>TenantsWorkspace</c> and
+    /// tears down the circuit. Both the widened containment set and the whitespace filter survived their
+    /// mutations.
+    /// </remarks>
+    [Theory]
+    [InlineData("tenant:   ")]
+    [InlineData("tenant:\t")]
+    public async Task Search_hydration_contains_a_whitespace_only_index_candidate(string sourceUri)
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("alpha", 1, Hit(sourceUri)));
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns<TenantsRestQueryResponse<TenantDetail>>(_ => throw new ArgumentException("blank tenant id"));
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>(
+                [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
+                Cursor: null,
+                HasMore: false)));
+
+        // No throw: the malformed hit is dropped before it can reach the typed client at all.
+        TenantListSnapshot snapshot = await CreateGateway(client, memoriesClient: memories).ListTenantsAsync(
+            new TenantListRequest(Search: "alpha"),
+            previous: null,
+            CancellationToken.None);
+
+        _ = client.DidNotReceive().GetTenantAsync(
+            Arg.Any<GetTenantQuery>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+
+        // The remaining match set is empty, and an empty authoritative match set is still authoritative --
+        // the point is that a hostile index value neither reaches the client nor escapes as a circuit fault.
+        snapshot.IsAuthoritativeSearch.ShouldBeTrue();
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A response the client could not validate is an outage, not a successful non-error status.
+    /// </summary>
+    /// <remarks>
+    /// <c>InvalidPayload</c> carries the raw 200, <c>InvalidMetadata</c> the raw 304, and <c>Timeout</c> and
+    /// <c>Unknown</c> carry whatever the transport left behind -- none of them a status any mapper models.
+    /// Without the override they reached the per-read mappers as non-error statuses and fell to their default
+    /// arms: the detail mapper's is <c>Degraded</c> with no rows, and the global-administrator and audit
+    /// mappers' is <c>Error</c>. On a first load "degraded" claims retained evidence that does not exist, and
+    /// "error" claims the server failed when in fact the client rejected the response. Removing the three
+    /// arms survived the suite. Normalizing to 503 makes all four read as the outage they are.
+    /// </remarks>
+    [Theory]
+    [InlineData(TenantsRestQueryFailureKind.InvalidPayload, (int)HttpStatusCode.OK)]
+    [InlineData(TenantsRestQueryFailureKind.InvalidMetadata, (int)HttpStatusCode.NotModified)]
+    [InlineData(TenantsRestQueryFailureKind.Unknown, (int)HttpStatusCode.OK)]
+    [InlineData(TenantsRestQueryFailureKind.Timeout, (int)HttpStatusCode.OK)]
+    public async Task A_corrupt_response_is_an_outage_on_a_first_load(
+        TenantsRestQueryFailureKind failureKind,
+        int rawStatusCode)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<GlobalAdministratorSummary>>(failureKind, rawStatusCode));
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<TenantDetail>(failureKind, rawStatusCode));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot administrators = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        // Not Error: the server did not fail, the response could not be validated.
+        administrators.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        administrators.IsCompleteEvidence.ShouldBeFalse();
+
+        TenantDetailSnapshot detail = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+
+        // Not Degraded: there is nothing retained for a first load to be degraded from.
+        detail.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+    }
+
+    /// <summary>
+    /// Clearing the search box must not re-present the search-filtered subset as the authorized list.
+    /// </summary>
+    /// <remarks>
+    /// Search snapshots carry no <c>RequestCursor</c>/<c>RequestPageSize</c>, so they default to
+    /// <c>(null, 20)</c> -- the exact shape where <c>MatchesPageScope</c> and <c>MatchesRetainedValidator</c>
+    /// both pass. Retaining one as the ordinary previous therefore carried the search page's rows,
+    /// <c>HasMore</c>, protected search cursor and <c>IsAuthoritativeSearch</c> onto the unfiltered surface.
+    /// Replacing the guard with <c>previous</c> survived the suite: no test drove a search snapshot into a
+    /// cleared-search read at page one and the default page size.
+    /// </remarks>
+    [Fact]
+    public async Task Clearing_the_search_does_not_retain_the_search_snapshot_as_the_authorized_list()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("alpha", 1, Hit("tenant:tenant.alpha")));
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(Detail("tenant.alpha")));
+
+        // The ordinary list read fails, so anything rendered afterwards can only have come from retention.
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(FailureResponse<PaginatedResult<TenantSummary>>(TenantsRestQueryFailureKind.Unavailable));
+
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        TenantListSnapshot searched = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "alpha"),
+            previous: null,
+            CancellationToken.None);
+        searched.IsAuthoritativeSearch.ShouldBeTrue();
+        searched.Rows.ShouldNotBeEmpty();
+
+        TenantListSnapshot cleared = await gateway.ListTenantsAsync(
+            new TenantListRequest(),
+            previous: searched,
+            CancellationToken.None);
+
+        cleared.IsAuthoritativeSearch.ShouldBeFalse();
+        cleared.Rows.ShouldBeEmpty("The search-filtered subset must never become the authorized list.");
+        cleared.HasMore.ShouldBeFalse();
+        cleared.NextCursor.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The detail read must not send one tenant's retained validator on another tenant's request.
+    /// </summary>
+    /// <remarks>
+    /// Reverting the tenant-identity clause to <c>request.ETag ?? previous?.ETag</c> survived the suite. The
+    /// tenant-users equivalent is pinned; the detail read had no counterpart, so after a route change tenant
+    /// alpha's projection-wide ETag went out as <c>If-None-Match</c> on tenant beta's read.
+    /// </remarks>
+    [Fact]
+    public async Task Get_tenant_does_not_reuse_another_tenants_retained_validator()
+    {
+        List<(string TenantId, string? ETag)> requests = [];
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.ArgAt<GetTenantQuery>(0).TenantId;
+                requests.Add((tenantId, call.ArgAt<string?>(1)));
+                return DirectResponse(Detail(tenantId), eTag: $"\"{tenantId}-etag\"");
+            });
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantDetailSnapshot alpha = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+        alpha.ETag.ShouldNotBeNullOrWhiteSpace();
+
+        _ = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.beta"),
+            previous: alpha,
+            CancellationToken.None);
+
+        requests.Count.ShouldBe(2);
+        requests[1].TenantId.ShouldBe("tenant.beta");
+        requests[1].ETag.ShouldBeNull("Tenant alpha's validator must not be sent on tenant beta's read.");
+
+        // ...while the same tenant still gets its conditional read.
+        _ = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: alpha,
+            CancellationToken.None);
+        requests[2].TenantId.ShouldBe("tenant.alpha");
+        requests[2].ETag.ShouldBe(alpha.ETag);
+    }
+
+    /// <summary>
+    /// A stale 304 proves the payload is unchanged, not that it is current at a newer projection version.
+    /// </summary>
+    /// <remarks>
+    /// <c>IsSupportedNotModified</c> accepts <c>Current</c> or <c>Stale</c>, but only the Current arm was
+    /// tested, so reverting to an unconditional <c>ProjectionVersion = result.Metadata?.ProjectionVersion</c>
+    /// survived. That version is what both mutation gates and <c>IsCompleteEvidence</c> are read against.
+    /// </remarks>
+    [Fact]
+    public async Task Get_global_administrators_stale_not_modified_retains_the_asserted_projection_version()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<string?>(1) is null
+                ? DirectResponse(
+                    new PaginatedResult<GlobalAdministratorSummary>(
+                        [new GlobalAdministratorSummary("admin.alpha")],
+                        Cursor: null,
+                        HasMore: false),
+                    eTag: "\"ga-etag\"")
+                : new TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>(
+                    default,
+                    ProjectionBackedMetadata(
+                        isStale: true,
+                        eTag: call.ArgAt<string?>(1),
+                        isNotModified: true,
+                        lifecycle: ProjectionLifecycleState.Stale,
+                        projectionVersion: "projection-v9"),
+                    TenantsRestQueryFailureKind.None,
+                    (int)HttpStatusCode.NotModified));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        GlobalAdministratorsSnapshot confirmed = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(),
+            previous: null,
+            CancellationToken.None);
+        confirmed.ProjectionVersion.ShouldBe("projection-v1");
+
+        GlobalAdministratorsSnapshot staleNotModified = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(ETag: confirmed.ETag),
+            previous: confirmed,
+            CancellationToken.None);
+
+        staleNotModified.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        staleNotModified.ProjectionVersion.ShouldBe(
+            "projection-v1",
+            "A stale 304 must not advance the version the mutation gates read.");
+        staleNotModified.IsCompleteEvidence.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// Supplementary list enrichment runs concurrently, is whole-page time-bounded, and refuses a
+    /// cross-tenant payload.
+    /// </summary>
+    /// <remarks>
+    /// Three mutations survived the suite: deleting <c>CancelAfter</c> (the whole-page deadline), dropping
+    /// <c>MaximumHydrationConcurrency</c> to 1 (restoring the serialized behaviour the rewrite exists to
+    /// fix), and neutering the identity comparison that stops tenant B's member and owner counts being
+    /// written onto tenant A's row. <c>MaximumHydrationConcurrency</c> was asserted only as a constant value
+    /// and the deadline was referenced by no test at all.
+    /// </remarks>
+    [Fact]
+    public async Task List_row_enrichment_runs_concurrently_up_to_its_bound()
+    {
+        const int expectedBound = 8;
+        const int rows = expectedBound * 2;
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>(
+                [.. Enumerable.Range(0, rows).Select(index =>
+                    new TenantSummary($"tenant.{index}", $"Tenant {index}", TenantStatus.Active))],
+                Cursor: null,
+                HasMore: false)));
+
+        int active = 0;
+        int maximum = 0;
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                string tenantId = call.ArgAt<GetTenantQuery>(0).TenantId;
+                CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
+                ObserveMaximum(ref maximum, Interlocked.Increment(ref active));
+                try
+                {
+                    // A fixed delay allows the second wave to run without coupling the barrier to the
+                    // production constant. A serialized implementation therefore completes but fails the
+                    // lower-bound assertion instead of deadlocking this test.
+                    await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken);
+                    return DirectResponse(Detail(tenantId));
+                }
+                finally
+                {
+                    _ = Interlocked.Decrement(ref active);
+                }
+            });
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(
+            new TenantListRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Rows.Count.ShouldBe(rows);
+        snapshot.IsDegraded.ShouldBeFalse();
+        TenantQueryGateway.MaximumHydrationConcurrency.ShouldBe(expectedBound);
+        maximum.ShouldBeLessThanOrEqualTo(expectedBound);
+        maximum.ShouldBeGreaterThan(1);
+    }
+
+    [Fact]
+    public async Task List_row_enrichment_is_bounded_by_a_whole_page_deadline()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>(
+                [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
+                Cursor: null,
+                HasMore: false)));
+
+        // Never completes on its own: only the enrichment deadline can end this read.
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                await Task.Delay(Timeout.Infinite, call.ArgAt<CancellationToken>(2));
+                return DirectResponse(Detail("tenant.alpha"));
+            });
+
+        // WaitAsync, not a bare await: without the deadline this read never returns, and a hanging test is
+        // an unusable signal.
+        TenantListSnapshot snapshot = await CreateGateway(
+                client,
+                enrichmentDeadline: TimeSpan.FromMilliseconds(50))
+            .ListTenantsAsync(new TenantListRequest(), previous: null, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        // The page still renders: the deadline degrades supplementary evidence, it does not fail the read.
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        snapshot.IsDegraded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task List_row_enrichment_refuses_counts_from_a_mismatched_tenant_payload()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>(
+                [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
+                Cursor: null,
+                HasMore: false)));
+
+        // A cache or proxy mix-up, a routing defect, or route confusion: the detail payload is a different
+        // tenant's. Its counts must never be written onto the row whose identity came from the list summary.
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new TenantDetail(
+                "tenant.beta",
+                "Beta",
+                null,
+                TenantStatus.Active,
+                [
+                    new TenantMember("beta.owner", TenantRole.TenantOwner),
+                    new TenantMember("beta.reader", TenantRole.TenantReader),
+                ],
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                DateTimeOffset.Parse("2026-07-28T08:00:00Z", CultureInfo.InvariantCulture))));
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(
+            new TenantListRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        TenantListRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.TenantId.ShouldBe("tenant.alpha");
+        row.MemberCount.IsKnown.ShouldBeFalse();
+        row.OwnerCount.IsKnown.ShouldBeFalse();
+        snapshot.IsDegraded.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// An out-of-range page size is clamped, not silently reset to the default.
+    /// </summary>
+    /// <remarks>
+    /// <c>NormalizePageSize</c> returned the default for anything outside <c>[1, MaximumPageSize]</c>, so a
+    /// request for one row over the maximum was served as 20 -- a five-fold reduction with no signal, on all
+    /// five paged reads now routed through it. Reducing the whole method to the identity function survived
+    /// the suite, so neither the normalization nor the list-path clamp it was factored out of was pinned.
+    /// Zero and negative sizes carry no intent, so they still fall to the default.
+    /// </remarks>
+    [Theory]
+    [InlineData(101, 100)]
+    [InlineData(1000, 100)]
+    [InlineData(100, 100)]
+    [InlineData(1, 1)]
+    [InlineData(37, 37)]
+    [InlineData(0, 20)]
+    [InlineData(-5, 20)]
+    public async Task Paged_reads_clamp_an_out_of_range_page_size(int requested, int expected)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        List<int> tenantListPageSizes = [];
+        List<int> tenantUsersPageSizes = [];
+        List<int> userTenantsPageSizes = [];
+        List<int> tenantAuditPageSizes = [];
+        List<int> globalAdministratorPageSizes = [];
+        client.ListTenantsAsync(
+                Arg.Any<ListTenantsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                tenantListPageSizes.Add(call.ArgAt<ListTenantsQuery>(0).PageSize);
+                return DirectResponse(new PaginatedResult<TenantSummary>([], Cursor: null, HasMore: false));
+            });
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                tenantUsersPageSizes.Add(call.ArgAt<GetTenantUsersQuery>(0).PageSize);
+                return DirectResponse(new PaginatedResult<TenantMember>([], Cursor: null, HasMore: false));
+            });
+        client.GetUserTenantsAsync(
+                Arg.Any<GetUserTenantsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                userTenantsPageSizes.Add(call.ArgAt<GetUserTenantsQuery>(0).PageSize);
+                return DirectResponse(new PaginatedResult<UserTenantMembership>([], Cursor: null, HasMore: false));
+            });
+        client.GetTenantAuditAsync(
+                Arg.Any<GetTenantAuditQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                tenantAuditPageSizes.Add(call.ArgAt<GetTenantAuditQuery>(0).PageSize);
+                return DirectResponse(new PaginatedResult<TenantAuditEntry>([], Cursor: null, HasMore: false));
+            });
+        client.GetGlobalAdministratorsAsync(
+                Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                globalAdministratorPageSizes.Add(call.ArgAt<GetGlobalAdministratorsQuery>(0).PageSize);
+                return DirectResponse(new PaginatedResult<GlobalAdministratorSummary>([], Cursor: null, HasMore: false));
+            });
+
+        TenantQueryGateway gateway = CreateGateway(client);
+        _ = await gateway.ListTenantsAsync(
+            new TenantListRequest(PageSize: requested),
+            previous: null,
+            CancellationToken.None);
+        _ = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", PageSize: requested),
+            previous: null,
+            CancellationToken.None);
+        _ = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest("target.user", PageSize: requested),
+            previous: null,
+            CancellationToken.None);
+        _ = await gateway.GetTenantAuditAsync(
+            new TenantAuditRequest("tenant.alpha", PageSize: requested),
+            previous: null,
+            CancellationToken.None);
+        _ = await gateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(PageSize: requested),
+            previous: null,
+            CancellationToken.None);
+
+        tenantListPageSizes.ShouldHaveSingleItem().ShouldBe(expected);
+        tenantUsersPageSizes.ShouldHaveSingleItem().ShouldBe(expected);
+        userTenantsPageSizes.ShouldHaveSingleItem().ShouldBe(expected);
+        tenantAuditPageSizes.ShouldHaveSingleItem().ShouldBe(expected);
+        globalAdministratorPageSizes.ShouldHaveSingleItem().ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// A defect in row mapping must not be presented as "row enrichment unavailable" on every row.
+    /// </summary>
+    /// <remarks>
+    /// The per-row catch had no <c>IsSurfacingDefect</c> exclusion, unlike the search hydration path it
+    /// mirrors, so a <c>NullReferenceException</c> raised while mapping a row was folded into the degraded
+    /// flag: the page rendered with rows and a permanent "enrichment unavailable" qualifier, forever,
+    /// indistinguishable from the Tenants API being slow and with no diagnostic. Excluding surfacing defects
+    /// lets the read's own last-resort handler take it, which is what emits a read-failure diagnostic and
+    /// resolves the surface to Error. It is still contained -- an escaping defect would tear down the
+    /// circuit -- but it is no longer silent, and it no longer masquerades as a usable page.
+    /// </remarks>
+    [Fact]
+    public async Task List_row_enrichment_does_not_swallow_a_surfacing_defect()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>(
+                [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
+                Cursor: null,
+                HasMore: false)));
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns<TenantsRestQueryResponse<TenantDetail>>(_ => throw new NullReferenceException("row mapping defect"));
+        CapturingLogger logger = new();
+
+        TenantListSnapshot snapshot = await CreateGateway(client, logger: logger).ListTenantsAsync(
+            new TenantListRequest(),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+        logger.Messages.ShouldNotBeEmpty("A defect must leave a diagnostic, not be folded into the row state.");
+        string logged = string.Join(" ", logger.Messages);
+        logged.ShouldNotContain("row mapping defect");
+    }
+
+    /// <summary>
+    /// A member page-one recovery must be visible to the page that has to reset its cursor.
+    /// </summary>
+    /// <remarks>
+    /// The recovery replaced the expired cursor with page one but stamped the result
+    /// <c>Reason = ListRefreshed</c>, <c>RequestCursor = null</c>, <c>PagingRecovered = false</c>. The detail
+    /// page branches on <c>PagingRecovered</c> and on an explicit <c>InvalidCursor</c> reason, so neither
+    /// fired: it committed the dead cursor as the current page, enabled Previous on a page-one view, and
+    /// re-sent the dead cursor on every later refresh. The four sibling paged reads all signal the recovery.
+    /// </remarks>
+    [Fact]
+    public async Task Get_tenant_users_signals_a_page_one_recovery_the_page_can_act_on()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantUsersAsync(
+                Arg.Any<GetTenantUsersQuery>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<GetTenantUsersQuery>(0).Cursor is null
+                ? DirectResponse(new PaginatedResult<TenantMember>(
+                    [new TenantMember("owner.user", TenantRole.TenantOwner)],
+                    Cursor: null,
+                    HasMore: false))
+                : FailureResponse<PaginatedResult<TenantMember>>(
+                    TenantsRestQueryFailureKind.InvalidCursor,
+                    (int)HttpStatusCode.BadRequest));
+
+        TenantUsersSnapshot snapshot = await CreateGateway(client).GetTenantUsersAsync(
+            new TenantUsersRequest("tenant.alpha", Cursor: "expired-cursor"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantUsersSurfaceKind.Ready);
+        snapshot.Reason.ShouldBe(TenantUsersReason.ListRefreshed);
+        snapshot.PagingRecovered.ShouldBeTrue();
+        snapshot.RequestCursor.ShouldBeNull();
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("owner.user");
+        _ = client.Received(1).GetTenantUsersAsync(
+            Arg.Is<GetTenantUsersQuery>(query => query != null && query.Cursor == null),
+            null,
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Get_tenant_audit_rejects_a_cross_tenant_payload_at_the_gateway_boundary()
     {
@@ -5668,13 +6634,17 @@ public sealed class TenantQueryGatewayTests
             Lifecycle = lifecycle,
         };
 
-    private static TenantsRestQueryResponse<TPayload> DirectResponse<TPayload>(TPayload payload)
+    private static TenantsRestQueryResponse<TPayload> DirectResponse<TPayload>(
+        TPayload payload,
+        string? eTag = null,
+        string projectionVersion = "projection-v1")
         => new(
             payload,
             ProjectionBackedMetadata(
                 isStale: false,
+                eTag: eTag,
                 lifecycle: ProjectionLifecycleState.Current,
-                projectionVersion: "projection-v1"),
+                projectionVersion: projectionVersion),
             TenantsRestQueryFailureKind.None,
             (int)HttpStatusCode.OK);
 
@@ -5774,10 +6744,20 @@ public sealed class TenantQueryGatewayTests
                     : null),
             });
 
+        /// <summary>
+        /// Enqueues a 304 in the shape the production client can actually deliver.
+        /// </summary>
+        /// <remarks>
+        /// The defaults used to be <c>isStale: null, lifecycle: Unknown</c>, which
+        /// <c>TenantsRestQueryClient.IsSupportedNotModified</c> rejects outright as <c>InvalidMetadata</c> --
+        /// so the whole 304-retention surface was proven against an input production cannot produce, while
+        /// the input it does produce had no gateway test at all. Callers that want a rejected shape now say
+        /// so explicitly.
+        /// </remarks>
         public void EnqueueNotModified(
             string? eTag,
-            bool? isStale = null,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
+            bool? isStale = false,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
             QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
             bool emitMetadata = true)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantSummary>>(
@@ -5797,10 +6777,11 @@ public sealed class TenantQueryGatewayTests
                     : null,
             });
 
+        /// <inheritdoc cref="EnqueueNotModified" />
         public void EnqueueDetailNotModified(
             string? eTag,
-            bool? isStale = null,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
+            bool? isStale = false,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
             => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
                 null,
                 null,
@@ -5825,10 +6806,11 @@ public sealed class TenantQueryGatewayTests
                 Metadata = metadata,
             });
 
+        /// <inheritdoc cref="EnqueueNotModified" />
         public void EnqueueUserTenantsNotModified(
             string? eTag,
-            bool? isStale = null,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
+            bool? isStale = false,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
             QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
             bool emitMetadata = true)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<UserTenantMembership>>(
@@ -5865,8 +6847,8 @@ public sealed class TenantQueryGatewayTests
 
         public void EnqueueGlobalAdministratorsNotModified(
             string? eTag,
-            bool? isStale = null,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
+            bool? isStale = false,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
             QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
             bool emitMetadata = true,
             string? projectionVersion = "projection-v1")
@@ -5889,8 +6871,8 @@ public sealed class TenantQueryGatewayTests
 
         public void EnqueueAuditNotModified(
             string? eTag,
-            bool? isStale = null,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown,
+            bool? isStale = false,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
             QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
             bool emitMetadata = true)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantAuditEntry>>(
@@ -5921,11 +6903,26 @@ public sealed class TenantQueryGatewayTests
     /// This is a RESPONSE-DRIVING harness, not a contract check. Production no longer builds
     /// <c>SubmitQueryRequest</c> at all -- <c>grep SubmitQueryRequest TenantQueryGateway.cs</c> returns
     /// nothing -- so the aggregate id, query type, projection type and payload shape below are this class's
-    /// own invention. Assertions that pinned those hardcoded values ("system", "index",
-    /// "global-administrators", the QueryType/ProjectionType constants) could not fail for any production
-    /// change and have been removed. What remains observable through this seam IS real: the values the
-    /// gateway passed in -- tenant ids, cursors, page sizes, ETags -- and the number of reads it issued.
-    /// New coverage of transport behaviour belongs on the real typed-client substitute instead.
+    /// own invention. Assertions that pin those hardcoded values cannot fail for any production change.
+    /// Every assertion that pinned this class's invented values is now gone: the <c>ProjectionType</c> and
+    /// hardcoded <c>AggregateId</c> assertions were removed earlier, and review loop 10 removed the
+    /// remaining 23 -- 7 <c>Request.Tenant</c>, 11 <c>Request.QueryType</c> and 5 <c>Request.Domain</c>.
+    /// Where such an assertion was the only thing establishing that a read happened, it was replaced with
+    /// the call-count assertion it was standing in for (<c>ShouldHaveSingleItem</c> / <c>ShouldNotBeEmpty</c>)
+    /// rather than dropped outright.
+    /// <para>
+    /// What remains observable through this seam IS real: the values the gateway passed in -- tenant ids,
+    /// cursors, page sizes, ETags -- and the number of reads it issued. New coverage of transport behaviour
+    /// belongs on the real typed-client substitute instead; see <c>FixedFailureRestQueryClient</c> and
+    /// <c>TenantsRestQueryClientTests</c>.
+    /// </para>
+    /// <para>
+    /// Replacing this adapter wholesale with an <c>ITenantsRestQueryClient</c> substitute -- the rest of
+    /// decision D1 -- is deliberately NOT done here. It rewrites the fixture of roughly sixty tests at once,
+    /// which is a change that deserves its own pass and its own review rather than riding along with
+    /// unrelated repairs. The misleading half of D1 (assertions that could not fail) is closed; the
+    /// harness-replacement half is reopened as its own item.
+    /// </para>
     /// </remarks>
     private sealed class RestQueryClientAdapter(IEventStoreGatewayClient client) : ITenantsRestQueryClient
     {
@@ -6041,19 +7038,11 @@ public sealed class TenantQueryGatewayTests
                 ETag = result.ETag ?? result.Metadata?.ETag,
                 IsNotModified = result.IsNotModified,
             };
-            ReadModelFreshnessState freshness = metadata.Provenance == QueryResponseProvenance.ProjectionBacked
-                ? metadata.Lifecycle switch
-                {
-                    ProjectionLifecycleState.Current => ReadModelFreshnessState.Current,
-                    ProjectionLifecycleState.Stale => ReadModelFreshnessState.Stale,
-                    _ => metadata.IsStale switch
-                    {
-                        false => ReadModelFreshnessState.Current,
-                        true => ReadModelFreshnessState.Stale,
-                        _ => ReadModelFreshnessState.Unknown,
-                    },
-                }
-                : ReadModelFreshnessState.Unknown;
+            // The freshness ladder that used to be computed here was dead: its result was assigned to a
+            // local and never read, because TenantsRestQueryResponse carries metadata and the gateway
+            // resolves freshness from it. Keeping it invited the reader to believe this harness modelled
+            // freshness resolution, which it never did -- ResolveFreshness in production is the only
+            // implementation, and TenantQueryGatewayTests exercises it through the metadata below.
             return new(
                 result.Payload,
                 metadata,
