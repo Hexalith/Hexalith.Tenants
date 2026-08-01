@@ -423,7 +423,7 @@
     // separator (NBSP U+00A0, U+2007, U+202F, U+3000, and the line/paragraph separators), every control
     // character and every format character renders as nothing or as a plain space, so the remove flow's
     // ordinal confirmation against typed text can never be satisfied for a key containing one — the
-    // permanently unremovable key this guard exists to prevent.
+    // permanently unremovable key this UI producer must not create.
     //
     // Scope, per decision D-J (review loop 12): this bounds THIS producer only. Configuration keys are
     // consumer-owned and can be written through POST /api/v1/commands or by any other consumer, and such a

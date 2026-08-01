@@ -634,6 +634,65 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// Pins decision D-F's clause ORDER, which the sibling theories cannot: they fix
+    /// <c>Lifecycle = Current</c> on every row, so the lifecycle clause never fires and hoisting it back
+    /// above the surface and freshness clauses changes no outcome. Every failed read really does carry a
+    /// non-Current lifecycle, so with the wrong order the lifecycle test answers for all of them and an
+    /// operator whose read simply failed is told to refresh the projection lifecycle.
+    /// The discriminator is the absence of the lifecycle reason, not the presence of the other one.
+    /// </summary>
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ProjectionLifecycleState.Unavailable)]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ProjectionLifecycleState.Degraded)]
+    public void A_failed_read_reports_the_projection_state_rather_than_the_projection_lifecycle(
+        TenantDetailSurfaceKind surfaceKind,
+        ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, surfaceKind)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Unknown)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        string reason = cut.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent;
+        reason.ShouldContain("unavailable or degraded", Case.Insensitive);
+        reason.ShouldNotContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Freshness half of the same clause-order contract: a stale or unknown-freshness read on an otherwise
+    /// ready surface must report freshness, not the projection lifecycle, even though its lifecycle is also
+    /// non-Current. Asserting the projection-state text is absent keeps the two failing arms distinct.
+    /// </summary>
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Stale)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Rebuilding)]
+    public void A_stale_or_unknown_read_reports_freshness_rather_than_the_projection_lifecycle(
+        TenantDetailSurfaceKind surfaceKind,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, surfaceKind)
+            .Add(p => p.Freshness, freshness)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        string reason = cut.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent;
+        reason.ShouldContain("Refresh current tenant detail", Case.Insensitive);
+        reason.ShouldNotContain("unavailable or degraded", Case.Insensitive);
+        reason.ShouldNotContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Missing_authorization_or_scope_evidence_fails_closed_before_editor_opens()
     {

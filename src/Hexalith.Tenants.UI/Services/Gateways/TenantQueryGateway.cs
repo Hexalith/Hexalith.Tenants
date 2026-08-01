@@ -2201,6 +2201,26 @@ internal sealed class TenantQueryGateway(
                     => hasMatchingPrevious
                         ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
                         : TenantUsersSnapshot.Unavailable(request.TenantId),
+
+                // Decision D3, extended to the member read (review loop 13). This is the one read that
+                // switches on FailureKind directly instead of going through ToEventStoreResult, so the
+                // override that normalizes a client-rejected response to an outage never reached it: all
+                // three kinds fell to the default arm below, which told the operator the *server* failed for
+                // a response the *client* refused to validate, and -- with a matching retained snapshot --
+                // re-presented those rows as Degraded "last confirmed" evidence. A response we could not
+                // validate proves nothing about the rows we are still holding.
+                TenantsRestQueryFailureKind.InvalidPayload
+                    or TenantsRestQueryFailureKind.InvalidMetadata
+                    or TenantsRestQueryFailureKind.Unknown
+                    => hasMatchingPrevious
+                        ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayUnavailable)
+                        : TenantUsersSnapshot.Unavailable(request.TenantId),
+
+                // A route identity this client rejected before sending is an input defect, not an outage --
+                // the same conclusion MapTenantException draws for the detail read, so the member panel and
+                // the detail panel on the same page no longer disagree about the same malformed id.
+                TenantsRestQueryFailureKind.UnsupportedRouteIdentifier
+                    => TenantUsersSnapshot.NotFound(request.TenantId),
                 _ => hasMatchingPrevious
                     ? TenantUsersSnapshot.Degraded(request.TenantId, previous, TenantUsersReason.GatewayFailure)
                     : TenantUsersSnapshot.Error(request.TenantId),

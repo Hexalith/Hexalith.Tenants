@@ -83,10 +83,14 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("href=\"/tenants?search=alpha\"");
         markup.ShouldContain(TenantsDetailUnauthorizedMarker);
 
-        // The denial is announced, not merely rendered. The live-region assertion was dropped from this
-        // route test without being restored anywhere else, so nothing checked that an operator using a
-        // screen reader learns the read was denied.
-        markup.ShouldContain("role=\"alert\" data-testid=\"tenants-detail-unauthorized\"");
+        // The denial is announced, not merely rendered. The binding assertion for this now lives in
+        // TenantDetailSurfaceTests.Detail_page_renders_distinct_safe_states, which runs in a Tier 1 blocking
+        // lane -- this class self-skips when Dapr is unavailable and runs continue-on-error, so it cannot be
+        // the only place an accessibility contract is checked. Kept here as a smoke signal, but asserted on
+        // the two attributes independently: the previous form pinned their source order and a purely
+        // cosmetic attribute reorder would have failed it.
+        markup.ShouldContain("data-testid=\"tenants-detail-unauthorized\"");
+        markup.ShouldContain("role=\"alert\"");
         markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
     }

@@ -117,6 +117,10 @@ is intentional rather than a duplicate declaration:
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSurfaceKind.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs` — added by review
+  loop 13 of Story 1.10. Its grant and snapshot siblings were already declared here as shared, and the
+  `GlobalAdministratorRemoveCommandSnapshot.cs` production type above is declared here too; only this test
+  file was missing. It is changed in the Story 1.10 range (+63) and is declared by Story 1.10 as well.
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
 
 Dependency pointers that moved inside this story's baseline range (`2e61f57..HEAD`). This story's baseline

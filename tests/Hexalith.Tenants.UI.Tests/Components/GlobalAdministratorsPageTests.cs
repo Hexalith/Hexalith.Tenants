@@ -15,6 +15,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -98,6 +99,66 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("admin.after");
             cut.Find("[data-testid='tenants-global-admins-list']");
         }, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task Successful_subscription_setups_do_not_exhaust_the_budget_across_authorization_transitions()
+    {
+        var authentication = new MutableAuthenticationStateProvider(GlobalAdministratorPrincipal());
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        GlobalAdministratorsSnapshot ready = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin.current", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"current\"",
+            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+        // Five responses for five expected reads left no slack: one extra read -- a notification nudge, an
+        // authorization re-read -- made Dequeue() throw InvalidOperationException from inside the gateway
+        // call, which LoadAsync does not catch (only OperationCanceledException). The stub repeats its last
+        // response, so an unexpected read fails an assertion instead of an unrelated queue underflow.
+        var gateway = new StubTenantQueryGateway(ready) { RepeatLastResponse = true };
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        await subscription.Received(1).SubscribeAsync(
+            GetGlobalAdministratorsQuery.ProjectionType,
+            "system",
+            Arg.Any<CancellationToken>());
+
+        for (int transition = 1; transition <= 4; transition++)
+        {
+            authentication.Set(NonAdministratorPrincipal());
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-unavailable']"));
+
+            // Polled, not asserted at an instant. CollapseAuthorizationAsync calls StateHasChanged BEFORE
+            // disposing the lease, so the unavailable panel rendering does not imply the unsubscribe was
+            // issued -- NSubstitute's Received() does not wait, so this raced and could fail on transition 1.
+            cut.WaitForAssertion(() => subscription.Received(transition).UnsubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                Arg.Any<CancellationToken>()));
+
+            authentication.Set(GlobalAdministratorPrincipal());
+            cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(transition + 1));
+
+            // Same reason: the gateway call count reaching n does not imply OnAfterRenderAsync's subscribe
+            // has run.
+            cut.WaitForAssertion(() => subscription.Received(transition + 1).SubscribeAsync(
+                GetGlobalAdministratorsQuery.ProjectionType,
+                "system",
+                Arg.Any<CancellationToken>()));
+        }
+
+        await Task.CompletedTask;
     }
 
     [Fact]
@@ -375,6 +436,18 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             GetGlobalAdministratorsQuery.ProjectionType,
             "system",
             Arg.Any<CancellationToken>());
+
+        // Exactly one further attempt, because the empty lease was transient and this retry SUCCEEDS -- not
+        // because a refresh grants one attempt. Refresh restores the whole budget of 3; what stops it being
+        // spent is the success. Re-rendering ten more times must therefore add nothing, which is what
+        // separates "refresh reset the budget and the retry worked" from "every render retries forever" --
+        // the regression this test exists for, and the half that was previously unasserted.
+        for (int render = 0; render < 10; render++)
+        {
+            cut.Render();
+        }
+
+        Volatile.Read(ref setupAttempts).ShouldBe(attemptsBeforeRefresh + 1);
     }
 
     /// <summary>
@@ -398,7 +471,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             hasMore: true,
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Stale);
-        var gateway = new StubTenantQueryGateway(recoverable, recoverable);
+        var gateway = new StubTenantQueryGateway(recoverable) { RepeatLastResponse = true };
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -425,9 +498,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         pendingPage.SetResult(recoverable);
         await nextClick;
 
-        // Once the load settles, the affordances work again.
+        // Once the load settles, the affordances work again. BOTH of them: re-exercising only RetryAsync
+        // left a permanently dead ResetPagingAsync passing this test, because the assertion it was subject
+        // to above is that it does NOT read -- an implementation that never reads satisfies that for the
+        // wrong reason. Each is given its own positive control.
         await cut.InvokeAsync(() => cut.Instance.RetryAsync());
         cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(3));
+
+        await cut.InvokeAsync(() => cut.Instance.ResetPagingAsync());
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(4));
     }
 
     [Fact]
@@ -929,7 +1008,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     [Fact]
     public void A_previous_click_that_jumps_to_page_one_through_a_trimmed_history_is_announced()
     {
-        const int bound = 50;
+        // Bound taken from the production constant. Duplicating it as a literal meant a change to
+        // CursorHistory.DefaultMaximum made this walk the wrong number of steps and fail with
+        // "previous is not disabled" -- a diagnosis that names nothing.
+        const int bound = CursorHistory.DefaultMaximum;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetGlobalAdministratorsAsync(
             Arg.Any<GlobalAdministratorsRequest>(),
@@ -993,7 +1075,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         notice.GetAttribute("aria-live").ShouldBe("polite");
         notice.TextContent.ShouldContain("first page");
 
-        // Paging forward again retires the notice: the operator is no longer on the jumped-to page.
+        // An ordinary reload retires the one-shot navigation notice even though the operator remains on page
+        // one. This pins the shared LoadAsync path used by manual, notification, and command-driven refreshes.
+        cut.Find("[data-testid='tenants-global-admins-refresh']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-admins-history-truncated']").ShouldBeEmpty());
+
+        // Paging forward also keeps it retired: the operator is no longer on the jumped-to page.
         cut.Find("[data-testid='tenants-global-admins-next']").Click();
         cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-admins-history-truncated']").ShouldBeEmpty());
     }
@@ -1772,8 +1859,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         // exact regression this replaced -- left the assertion green. Likewise, hoisting the
         // mutation-initiation rule out of the media query hides Grant and every Remove launcher at all
         // widths, also undetected.
-        string mobileBreakpoint = styles[styles.IndexOf("@media (max-width: 42rem)", StringComparison.Ordinal)..];
-        string beforeBreakpoint = styles[..styles.IndexOf("@media (max-width: 42rem)", StringComparison.Ordinal)];
+        // Guarded: an unguarded IndexOf slice throws ArgumentOutOfRangeException when the media query is
+        // renamed, which reports as an error rather than as the assertion failure it actually is.
+        int breakpointIndex = styles.IndexOf("@media (max-width: 42rem)", StringComparison.Ordinal);
+        breakpointIndex.ShouldBeGreaterThan(-1);
+        string mobileBreakpoint = styles[breakpointIndex..];
+        string beforeBreakpoint = styles[..breakpointIndex];
 
         beforeBreakpoint.Contains(".global-admins__mobile-readonly-host", StringComparison.Ordinal)
             .ShouldBeTrue("the notice must be hidden by default, or it is permanently visible on desktop");
@@ -1955,6 +2046,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         private readonly Queue<GlobalAdministratorsSnapshot> _snapshots = new(snapshots);
         private readonly Queue<Task<GlobalAdministratorsSnapshot>> _queuedResponses = [];
+        private GlobalAdministratorsSnapshot? _lastSnapshot;
+
+        /// <summary>
+        /// When set, the final queued snapshot is returned again for any further read instead of the queue
+        /// underflowing. A fixed-length queue sized to the exact number of expected reads turns one extra
+        /// read into an <see cref="InvalidOperationException"/> thrown from inside the gateway call, which
+        /// the page does not catch -- so the test fails with a queue error rather than naming the behaviour.
+        /// </summary>
+        public bool RepeatLastResponse { get; init; }
 
         public int GlobalAdministratorCalls { get; private set; }
 
@@ -1997,9 +2097,21 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             GlobalAdministratorCalls++;
             Requests.Add(request);
             PreviousSnapshots.Add(previous);
-            return _queuedResponses.Count > 0
-                ? _queuedResponses.Dequeue()
-                : Task.FromResult(_snapshots.Dequeue());
+            if (_queuedResponses.Count > 0)
+            {
+                return _queuedResponses.Dequeue();
+            }
+
+            if (_snapshots.Count > 0)
+            {
+                _lastSnapshot = _snapshots.Dequeue();
+            }
+            else if (!RepeatLastResponse)
+            {
+                _ = _snapshots.Dequeue();
+            }
+
+            return Task.FromResult(_lastSnapshot!);
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(
@@ -2236,6 +2348,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Recovery.Retry"] = "Retry review",
             ["Tenants.GlobalAdministrators.Recovery.Reset"] = "Reset to first page",
             ["Tenants.GlobalAdministrators.Recovery.PageRecovered"] = "The protected page could not be restored. The review restarted at the first page.",
+            ["Tenants.GlobalAdministrators.Recovery.HistoryTruncated"] = "Paging history reached its limit, so this step went back to the first page instead of the previous one.",
             ["Tenants.GlobalAdministrators.Mobile.ReadOnly.Title"] = "Read-only on narrow screens",
             ["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"] = "Review, paging, copy, and recovery remain available. Grant and remove controls require a wider viewport.",
             ["Tenants.GlobalAdministrators.RestrictedTitle"] = "Platform area unavailable",

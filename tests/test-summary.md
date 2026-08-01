@@ -789,3 +789,45 @@ caught, and `Aha_moment_demo_revokes_sample_access_from_tenant_events` broke —
 the pre-Story-4.7 alias legitimately yields no payload, and the change conflated "this alias has no evidence"
 with "the service is down". The change was reverted; the adapter's remark now records the refutation and
 states plainly that it is not the production transport.
+
+## Story 1.10 — review repair loop 12 (2026-08-01)
+
+All 30 loop-12 patch items are closed. Validation was run against `845a15e` plus the uncommitted Story 1.10
+repair tree. The mandatory gitlink gate was run again after this evidence was written; its verbatim final
+verdict is `RESULT: PASS`.
+
+| Lane / check | Result |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -warnaserror -m:1 -nr:false --verbosity minimal` | **PASS — 0 warnings, 0 errors** |
+| UI (`Hexalith.Tenants.UI.Tests`) | **PASS — 1,820 passed, 0 failed, 0 skipped** |
+| Contracts / Client / Testing / Server / Sample | **PASS — 120 / 50 / 181 / 738 / 39; 0 failed** |
+| IntegrationTests `FullyQualifiedName~TenantsApiGeneratedControllerTests` | **PASS — 27 passed, 0 failed, 0 skipped** |
+| IntegrationTests `FullyQualifiedName!~AspireTopologyTests` | **PASS — 162 passed, 0 failed, 1 skipped, 163 total**; the skip is the performance-only `SnapshotPerformanceTests.ColdStartRehydration_CompletesWithin30Seconds_With500KEvents` |
+| IntegrationTests `Category!=Performance` | **PARTIAL — 166 passed, 2 failed, 0 skipped, 168 total**; both failures are the Aspire topology timeouts named below |
+| EN/FR resource parity | **PASS — 1,228 keys each, no one-sided key** |
+| Generic-query and invented-tenant-index scans | **PASS — no matches (expected `rg` exit 1)** |
+| `git diff --check` and `git diff --cached --check` | **PASS** |
+| Gitlink parser case matrix | **PASS** — section scope, last-wins, multi-path, decorations, chained arrows, en-dash, and Unicode format controls; a false no-movement target exits 1 with `[MISSTATED]` |
+| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | **PASS — exit 0; six pointer movements declared; `RESULT: PASS`** |
+
+The two complete non-performance integration failures are environment-dependent and both reached the
+configured 60-second HTTP timeout:
+
+- `AspireTopologyTests.Tenants_resource_reports_ready_only_after_prepared_dependencies_are_available`
+- `AspireTopologyTests.Aha_moment_demo_revokes_sample_access_from_tenant_events`
+
+The generated-controller proof and the complete non-Aspire integration lane are green, so these timeouts
+are reported as the existing local-topology evidence limitation, not reclassified as an implementation
+failure. An Aspire AppHost startup was also attempted before code work and timed out after 120 seconds while
+restore was still in progress:
+
+```text
+❌ Timed out waiting 120s for AppHost to start. If the AppHost is still building or starting, set ASPIRE_CLI_START_TIMEOUT to a higher value and try again.
+```
+
+Loop-12 UI coverage added or repaired regression pins for independent set/remove command leases,
+post-dismiss status completion, paging recovery retention, dispatcher-safe audit history clearing,
+failure-only subscription retry budgeting, one-shot focus and paging announcements, subscription disposal,
+factory registration descriptors, and multi-registration configuration diagnostics. The diagnostics test
+also proves both rejected setting names are logged once while neither configured value is retained or
+rendered.

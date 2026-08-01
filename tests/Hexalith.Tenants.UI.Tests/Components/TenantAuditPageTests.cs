@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Reflection;
+using System.Collections;
 using System.Resources;
 using System.Xml.Linq;
 
@@ -13,6 +15,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.TenantAudit;
@@ -121,14 +124,15 @@ public sealed class TenantAuditPageTests : BunitContext
             GetTenantAuditQuery.ProjectionType,
             "tenant.alpha");
 
-        // The stale-scope nudge must produce NO read. OnProjectionChanged dispatches via
-        // `_ = RunRefreshLoopAsync(key)`, so asserting the count immediately after Raise.Event both passed
-        // vacuously when a refresh was merely still in flight and failed spuriously on a fast pool. Settle
-        // the dispatcher first, then assert the absence.
-        await Task.Yield();
-        await cut.InvokeAsync(() => { });
-        gateway.Requests.Count.ShouldBe(2);
-
+        // The stale-scope nudge must produce NO read, and the matching nudge that follows is what proves it.
+        // Draining the dispatcher was not a settling point: `OnProjectionChanged` dispatches via
+        // `_ = RunRefreshLoopAsync(key)`, and a fire-and-forget task whose first await is the gateway call
+        // has not reached a dispatcher hop yet -- so the drain could complete before the nudge did anything,
+        // and the absence assertion passed for a read that simply had not started.
+        //
+        // Both nudges go through the same renderer dispatcher, which preserves FIFO order, so once the
+        // matching nudge's read has landed the stale one has provably been processed. The count is then
+        // conclusive: it would be 4, not 3, had the stale-scope nudge issued a read of its own.
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
             GetTenantAuditQuery.ProjectionType,
             "tenant.beta");
@@ -138,6 +142,12 @@ public sealed class TenantAuditPageTests : BunitContext
             cut.Find("[data-testid='tenants-audit-row']")
                 .GetAttribute("data-audit-reference").ShouldBe("event-beta-refreshed");
         });
+
+        gateway.Requests.Count.ShouldBe(3, "The stale-scope nudge must not have issued a read of its own.");
+
+        // Exactly one alpha read ever happened: the initial load, before the rebind. A stale-scope nudge
+        // that slipped through would show up here as a second one.
+        gateway.Requests.Count(request => request.TenantId == "tenant.alpha").ShouldBe(1);
     }
 
     [Fact]
@@ -525,6 +535,54 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-previous']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
         gateway.Requests[2].Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Previous_completion_tolerates_history_cleared_during_its_dispatcher_hop()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Access)], requestCursor: "opaque-next"),
+            // Consumed by the filter change below, which issues its own unpaged read.
+            ReadySnapshot([Row("event-filtered", AuditEventCategory.Access)]),
+            // Consumed by the closing refresh that proves the circuit is still live.
+            ReadySnapshot([Row("event-filtered", AuditEventCategory.Access)]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-previous']")
+            .HasAttribute("disabled").ShouldBeFalse());
+
+        var previousPage = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.QueueResponse(previousPage.Task);
+        Task previousNavigation = cut.Find("[data-testid='tenants-audit-previous']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+
+        // Driven through the public trigger the remark names: a filter change calls ClearPaging with no
+        // in-flight check, so it clears the history while the Previous read is still on its dispatcher hop.
+        // Reaching into `_cursorHistory` by reflection reproduced the same state, but pinned a private field
+        // name rather than the behaviour, and mutated it from the test thread -- the very cross-thread access
+        // the production code is being asserted to survive.
+        cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-01-01");
+
+        previousPage.SetResult(ReadySnapshot(
+            [Row("event-1-returned", AuditEventCategory.Access)],
+            nextCursor: "opaque-next",
+            hasMore: true));
+        await previousNavigation;
+
+        // The filter's read is newer, so it owns the surface: the superseded Previous result must not be
+        // written over it, and its commit must not throw on the history the filter already emptied.
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-row']")
+            .GetAttribute("data-audit-reference").ShouldBe("event-filtered"));
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+
+        // The circuit survived: the page still responds to input rather than having faulted on the commit.
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(5));
     }
 
     [Fact]
@@ -1024,18 +1082,60 @@ public sealed class TenantAuditPageTests : BunitContext
         public LocalizedString this[string name] => new(name, Resolve(name));
 
         public LocalizedString this[string name, params object[] arguments]
-            => new(name, string.Format(CultureInfo.CurrentCulture, Resolve(name), arguments));
+            // No arguments means no substitution. Formatting unconditionally threw FormatException the
+            // moment Resolve started falling through to a real .resx string containing `{0}` -- the stub
+            // used to echo the placeholder-free key back, so the path could not be reached before.
+            => new(name, arguments.Length == 0
+                ? Resolve(name)
+                : string.Format(CultureInfo.CurrentCulture, Resolve(name), arguments));
 
+        // CurrentUICulture, not InvariantCulture. Pinning the invariant culture made this stub answer in
+        // English no matter what culture a test rendered under, so a component that had hard-coded English
+        // copy was indistinguishable from one that reads the localizer -- and no test could prove the French
+        // resources are ever reached.
         private static string Resolve(string name)
             => Values.TryGetValue(name, out string? value)
                 ? value
-                : RealResources.GetString(name, CultureInfo.InvariantCulture)
+                : RealResources.GetString(name, CultureInfo.CurrentUICulture)
                     ?? throw new KeyNotFoundException(
                         $"Resource key '{name}' is defined neither in this stub nor in TenantsResources.resx. "
                         + "The stub must not echo an undefined key back as user-visible copy.");
 
+        /// <summary>
+        /// Enumerates everything <see cref="Resolve"/> can return, not just the overrides. Returning
+        /// <c>Values</c> alone made enumeration and lookup disagree: a key resolvable through the real
+        /// resource set was absent from the enumeration, so any caller reasoning about "the available
+        /// strings" saw a set the indexer did not agree with. Overrides win, matching resolution order.
+        /// </summary>
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
-            => Values.Select(v => new LocalizedString(v.Key, v.Value));
+        {
+            Dictionary<string, string> all = new(StringComparer.Ordinal);
+            // NOT disposed: GetResourceSet returns the ResourceManager's own cached set, so disposing it
+            // corrupts every subsequent lookup for the whole process -- Resolve then throws its
+            // KeyNotFoundException for keys that do exist, and every bUnit WaitForAssertion downstream burns
+            // its full timeout instead of failing.
+            ResourceSet? real = RealResources.GetResourceSet(
+                CultureInfo.CurrentUICulture,
+                createIfNotExists: true,
+                tryParents: includeParentCultures);
+            if (real is not null)
+            {
+                foreach (DictionaryEntry entry in real)
+                {
+                    if (entry.Key is string key && entry.Value is string text)
+                    {
+                        all[key] = text;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<string, string> over in Values)
+            {
+                all[over.Key] = over.Value;
+            }
+
+            return all.Select(entry => new LocalizedString(entry.Key, entry.Value));
+        }
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
@@ -1354,9 +1454,17 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public void Audit_surface_lifecycle_is_rendered_independently_of_the_row_lifecycle()
     {
+        // Freshness is derived FROM lifecycle by TenantQueryGateway.ResolveFreshness (Current => Current,
+        // Stale => Stale, everything else => Unknown), so the helper's default Current freshness paired with
+        // a Rebuilding lifecycle is a snapshot the gateway cannot emit. Pinning badge independence over an
+        // unproducible input proves nothing about any state a user can reach -- and a change that gated the
+        // surface badge on freshness, which is what this guards, would still have passed.
         RegisterServices(ReadySnapshot(
             [Row("event-1", AuditEventCategory.Access, lifecycle: ProjectionLifecycleState.Current)],
-            lifecycle: ProjectionLifecycleState.Rebuilding));
+            lifecycle: ProjectionLifecycleState.Rebuilding) with
+        {
+            Freshness = ReadModelFreshnessState.Unknown,
+        });
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
@@ -1381,7 +1489,10 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public void A_previous_click_that_jumps_to_page_one_through_a_trimmed_history_is_announced()
     {
-        const int bound = 50;
+        // Bound taken from the production constant. Duplicating it as a literal meant a change to
+        // CursorHistory.DefaultMaximum made this walk the wrong number of steps and fail with
+        // "previous is not disabled" -- a diagnosis that names nothing.
+        const int bound = CursorHistory.DefaultMaximum;
         JSInterop.Mode = JSRuntimeMode.Loose;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())

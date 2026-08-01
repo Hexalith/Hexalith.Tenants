@@ -13,11 +13,11 @@ namespace Hexalith.Tenants.UI.Services;
 /// message names the configuration key and nothing else — see <see cref="TenantsUiConfigurationDiagnostics"/>
 /// for why the value is deliberately absent.
 /// <para>
-/// The dependency is the whole enumerable, not a single instance. The module registers its diagnostics with
-/// <c>TryAddSingleton</c>, so a host that pre-registered its own — or a second call to
-/// <c>AddHexalithTenantsUiModule</c> — silently discarded the populated instance and left this reporter
-/// resolving an empty one, which is exactly the "typo indistinguishable from an outage" state decision D-G
-/// exists to prevent.
+/// The dependency is the whole enumerable, not a single instance, so every composition contributes its own
+/// rejection set and a host that pre-registers its own — or calls <c>AddHexalithTenantsUiModule</c> twice —
+/// still has all of them reported. Keys are de-duplicated, so each is warned about exactly once. Reporting
+/// occurs when the host starts; a bare service provider can inspect the retained diagnostics but, by
+/// definition, does not run hosted services and therefore emits no startup warning.
 /// </para>
 /// </remarks>
 internal sealed partial class TenantsUiConfigurationDiagnosticsReporter(

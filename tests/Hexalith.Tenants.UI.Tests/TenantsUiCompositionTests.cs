@@ -374,6 +374,59 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public async Task Rejections_from_two_module_registrations_are_both_reported_once()
+    {
+        IConfiguration readRejected = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https+http://tenants",
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        IConfiguration commandRejected = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+                ["EventStore:BaseAddress"] = "https+http://eventstore",
+            })
+            .Build();
+        ServiceCollection services = new();
+        var capture = new CapturingLoggerProvider(captureAll: true);
+        services.AddLogging(logging => logging.AddProvider(capture));
+
+        services.AddHexalithTenantsUiModule(readRejected, enableGatewayAuthorization: false);
+        services.AddHexalithTenantsUiModule(commandRejected, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+
+        // Review loop 13. Every gateway registration is TryAdd*, so the FIRST call wins: the read side is
+        // the unavailable gateway call 1 registered, and the command side is the WORKING gateway call 1
+        // registered from its usable EventStore address. Call 2's rejected EventStore key therefore
+        // describes a registration that never took effect, and reporting it told the operator a working
+        // surface was unavailable. Only the rejection that governs the resolved container is reported.
+        provider.GetServices<TenantsUiConfigurationDiagnostics>()
+            .SelectMany(static entry => entry.RejectedBaseAddressSettings)
+            .ShouldBe(["Tenants:BaseAddress"]);
+
+        // Resolve what the container actually holds, which the previous form never did -- it asserted the
+        // diagnostic list alone, so the warning could contradict the composition and still pass.
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+        scope.ServiceProvider.GetRequiredService<ITenantCommandGateway>()
+            .ShouldNotBeOfType<UnavailableTenantCommandGateway>();
+
+        await StartConfigurationDiagnosticsReporterAsync(provider);
+        capture.Messages.Count(message => message.Contains("Tenants:BaseAddress", StringComparison.Ordinal))
+            .ShouldBe(1);
+        capture.Messages.Count(message => message.Contains("EventStore:BaseAddress", StringComparison.Ordinal))
+            .ShouldBe(0);
+        string logged = string.Join("|", capture.Messages);
+        logged.ShouldNotContain("https+http://tenants");
+        logged.ShouldNotContain("https+http://eventstore");
+    }
+
+    [Fact]
     public async Task Compound_event_store_address_fails_closed_without_disabling_the_independent_read_side()
     {
         IConfiguration configuration = new ConfigurationBuilder()
@@ -1997,6 +2050,25 @@ public sealed class TenantsUiCompositionTests
             .Message.ShouldContain("IsConnected: true");
     }
 
+    [Fact]
+    public void Host_override_registering_the_gateway_through_a_factory_is_not_inverted_into_a_rejection()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddScoped<ITenantQueryGateway>(_ => new UnavailableTenantQueryGateway());
+        services.AddSingleton<ITenantsReadSurfaceAvailability>(
+            new TenantsReadSurfaceAvailability(IsConnected: false));
+
+        Should.NotThrow(() =>
+            services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false));
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>()
+            .ShouldBeOfType<UnavailableTenantQueryGateway>();
+    }
+
     /// <summary>
     /// A factory-registered availability override is knowingly outside the agreement check.
     /// </summary>
@@ -2006,7 +2078,7 @@ public sealed class TenantsUiCompositionTests
     /// read as coverage: the pair requirement still applies, only the agreement check is skipped.
     /// </remarks>
     [Fact]
-    public void Host_override_registering_availability_through_a_factory_is_a_recorded_gap_not_a_rejection()
+    public void KnownLimitation_host_override_registering_availability_through_a_factory_is_a_recorded_gap_not_a_rejection()
     {
         IConfiguration configuration = new ConfigurationBuilder().Build();
         ServiceCollection services = new();

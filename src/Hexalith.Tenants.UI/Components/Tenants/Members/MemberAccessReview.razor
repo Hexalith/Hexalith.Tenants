@@ -48,18 +48,17 @@
         }
     </FluentStack>
 
+    @* Deliberately still passed straight through. This flow renders unconditionally, so no teardown here can
+       unmount it and it never needs the lease lowered on its behalf. Routing it through
+       HandleCommandActivityAsync would make one _childCommandInFlight field serve three owners, so an Add in
+       flight could be released by tearing down an unrelated remove flow -- the defect this review found in
+       the configuration landmark. *@
     <AddTenantMemberFlow Detail="@Detail"
                          SurfaceKind="@EffectiveSurfaceKind"
                          Freshness="@EffectiveFreshness"
                          IsAuthorized="@IsAddMemberAuthorized"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                         @* Deliberately still passed straight through. This flow renders unconditionally, so
-                            no teardown here can unmount it and it never needs the lease lowered on its behalf.
-                            Routing it through HandleCommandActivityAsync would make one _childCommandInFlight
-                            field serve three owners, so an Add in flight could be released by tearing down an
-                            unrelated remove flow -- the defect this review found in the configuration
-                            landmark. *@
                          OnCommandActivityChanged="@OnCommandActivityChanged"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 

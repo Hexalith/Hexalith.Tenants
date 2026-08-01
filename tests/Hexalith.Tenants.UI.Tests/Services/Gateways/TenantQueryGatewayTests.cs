@@ -746,7 +746,16 @@ public sealed class TenantQueryGatewayTests
     [InlineData(TenantsRestQueryFailureKind.InvalidRequest, TenantUsersSurfaceKind.Invalid, TenantUsersReason.GatewayFailure)]
     [InlineData(TenantsRestQueryFailureKind.Timeout, TenantUsersSurfaceKind.Unavailable, TenantUsersReason.GatewayUnavailable)]
     [InlineData(TenantsRestQueryFailureKind.Unavailable, TenantUsersSurfaceKind.Unavailable, TenantUsersReason.GatewayUnavailable)]
-    [InlineData(TenantsRestQueryFailureKind.InvalidPayload, TenantUsersSurfaceKind.Error, TenantUsersReason.GatewayFailure)]
+    // Review loop 13. These three used to fall to the mapper's default arm and report Error, blaming the
+    // server for a response this client refused to validate. The member read is the one read that switches
+    // on FailureKind directly instead of going through ToEventStoreResult, so decision D3's
+    // "a corrupt response is an outage" override never reached it.
+    [InlineData(TenantsRestQueryFailureKind.InvalidPayload, TenantUsersSurfaceKind.Unavailable, TenantUsersReason.GatewayUnavailable)]
+    [InlineData(TenantsRestQueryFailureKind.InvalidMetadata, TenantUsersSurfaceKind.Unavailable, TenantUsersReason.GatewayUnavailable)]
+    [InlineData(TenantsRestQueryFailureKind.Unknown, TenantUsersSurfaceKind.Unavailable, TenantUsersReason.GatewayUnavailable)]
+    // A route identity rejected locally is an input defect, not an outage -- the same conclusion the detail
+    // mapper draws, so the member panel and the detail panel no longer disagree about one malformed id.
+    [InlineData(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier, TenantUsersSurfaceKind.NotFound, TenantUsersReason.NotFound)]
     public async Task Get_tenant_users_maps_transport_failure_categories(
         TenantsRestQueryFailureKind failureKind,
         TenantUsersSurfaceKind expectedKind,
@@ -2606,7 +2615,6 @@ public sealed class TenantQueryGatewayTests
             snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
         }
         client.SubmittedQueries.Count.ShouldBe(1);
-        client.SubmittedQueries.ShouldNotBeEmpty();
         string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
         client.SubmittedQueries
             .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
@@ -3826,7 +3834,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.ShouldNotBeEmpty();
+        client.SubmittedQueries.Count.ShouldBe(2);
         client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(50);
         client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().TryGetProperty("offset", out _).ShouldBeFalse();
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
@@ -3935,7 +3943,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("fallback");
-        client.SubmittedQueries.ShouldNotBeEmpty();
+        client.SubmittedQueries.Count.ShouldBe(3);
         client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("ordinary-current");
     }
 
@@ -5972,6 +5980,58 @@ public sealed class TenantQueryGatewayTests
     }
 
     /// <summary>
+    /// The same guard on the other three route-carrying reads: no request is sent, nothing is logged as a
+    /// read failure, and each surface reports its own malformed-request state.
+    /// </summary>
+    /// <remarks>
+    /// Only the detail arm was covered, and only it asserted that nothing is logged. The three guards return
+    /// different kinds, so a single shared assertion cannot stand in for them. The audit arm is the one worth
+    /// naming: it returns <c>Degraded([], MissingTenantId)</c>, and degradation means "confirmed rows held
+    /// under reduced confidence" -- there are none, because the read never happened. That is the same
+    /// first-load-degradation shape decision D3 removed elsewhere, so this pins the current behaviour and the
+    /// remark records the discrepancy rather than asserting it is right.
+    /// </remarks>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public async Task Blank_route_identifiers_are_malformed_requests_on_every_read(string blank)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        CapturingLogger logger = new();
+        TenantQueryGateway gateway = CreateGateway(client, logger: logger);
+
+        TenantUsersSnapshot members = await gateway.GetTenantUsersAsync(
+            new TenantUsersRequest(blank),
+            previous: null,
+            CancellationToken.None);
+        members.Kind.ShouldBe(TenantUsersSurfaceKind.Invalid);
+        members.Reason.ShouldBe(TenantUsersReason.MissingTenantId);
+
+        UserTenantMembershipSnapshot userTenants = await gateway.GetUserTenantsAsync(
+            new UserTenantMembershipRequest(TargetUserId: blank),
+            previous: null,
+            CancellationToken.None);
+        userTenants.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Invalid);
+        userTenants.Reason.ShouldBe(UserTenantMembershipReason.MissingTargetUser);
+
+        TenantAuditSnapshot audit = await gateway.GetTenantAuditAsync(
+            new TenantAuditRequest(blank),
+            previous: null,
+            CancellationToken.None);
+        audit.Reason.ShouldBe(TenantAuditReason.MissingTenantId);
+        audit.Rows.ShouldBeEmpty();
+
+        _ = client.DidNotReceive().GetTenantUsersAsync(
+            Arg.Any<GetTenantUsersQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        _ = client.DidNotReceive().GetUserTenantsAsync(
+            Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        _ = client.DidNotReceive().GetTenantAuditAsync(
+            Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        logger.Messages.ShouldBeEmpty("A malformed request is not a read failure and must not be logged as one.");
+    }
+
+    /// <summary>
     /// A first-page load that never paged must not be announced as a paging recovery.
     /// </summary>
     /// <remarks>
@@ -6263,6 +6323,14 @@ public sealed class TenantQueryGatewayTests
 
         int active = 0;
         int maximum = 0;
+        int arrivals = 0;
+
+        // A rendezvous rather than a fixed delay. The delay made both directions non-deterministic: under
+        // scheduler starvation `maximum` could legitimately fall to 1 and fail a healthy build, while a
+        // bound reduced from 8 to 2 still satisfied `> 1` and passed. Here the first `expectedBound` calls
+        // block until all of them are simultaneously inside, so a correct implementation observes exactly
+        // the bound and a serialized one never releases -- and is reported as a timeout, not a flake.
+        TaskCompletionSource boundReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
         client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -6271,10 +6339,14 @@ public sealed class TenantQueryGatewayTests
                 ObserveMaximum(ref maximum, Interlocked.Increment(ref active));
                 try
                 {
-                    // A fixed delay allows the second wave to run without coupling the barrier to the
-                    // production constant. A serialized implementation therefore completes but fails the
-                    // lower-bound assertion instead of deadlocking this test.
-                    await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken);
+                    if (Interlocked.Increment(ref arrivals) >= expectedBound)
+                    {
+                        _ = boundReached.TrySetResult();
+                    }
+
+                    // Bounded well under the gateway's own whole-page enrichment deadline so a genuine
+                    // failure surfaces here rather than as an unrelated deadline cancellation.
+                    await boundReached.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
                     return DirectResponse(Detail(tenantId));
                 }
                 finally
@@ -6290,9 +6362,11 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Rows.Count.ShouldBe(rows);
         snapshot.IsDegraded.ShouldBeFalse();
+
+        // Exact, both directions: the rendezvous cannot release below the bound, and the gate must not let
+        // more than the bound run at once. `ShouldBeGreaterThan(1)` passed with the bound cut from 8 to 2.
         TenantQueryGateway.MaximumHydrationConcurrency.ShouldBe(expectedBound);
-        maximum.ShouldBeLessThanOrEqualTo(expectedBound);
-        maximum.ShouldBeGreaterThan(1);
+        maximum.ShouldBe(expectedBound);
     }
 
     [Fact]
@@ -6324,6 +6398,13 @@ public sealed class TenantQueryGatewayTests
         // The page still renders: the deadline degrades supplementary evidence, it does not fail the read.
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.IsDegraded.ShouldBeTrue();
+
+        // The injected 50 ms deadline proves the mechanism; it does not prove the value users actually get.
+        // MaximumEnrichmentDuration had no reference outside its declaration and single use, so setting it
+        // to Timeout.InfiniteTimeSpan reinstated the unbounded page hang this test claims to prevent and
+        // everything still passed. Pin the shipped default to a bound a user could tolerate waiting.
+        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeGreaterThan(TimeSpan.Zero);
+        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
     }
 
     [Fact]

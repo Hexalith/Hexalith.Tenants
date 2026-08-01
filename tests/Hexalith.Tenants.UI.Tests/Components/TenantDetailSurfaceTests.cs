@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Collections;
+using System.Reflection;
 using System.Resources;
 using System.Text.RegularExpressions;
 
@@ -22,6 +24,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -482,6 +485,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForElement($"[data-testid='{selector}']");
 
         cut.Find($"[data-testid='{selector}']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+
+        // The denial must be announced, not merely rendered. The only assertion covering this lived in the
+        // Tier 3 route-smoke class, which carries [DaprFact] + SkipIfUnavailable() and runs
+        // continue-on-error -- so a green report there was never proof it ran. It is asserted here, in a
+        // blocking lane, as an element attribute rather than as an ordered raw-markup substring.
+        if (kind is TenantDetailSurfaceKind.Unauthorized)
+        {
+            cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldBe("alert");
+        }
+
         if (kind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.NotFound or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
         {
             cut.Markup.ShouldNotContain("Tenant alpha description");
@@ -869,6 +882,52 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public async Task Dismissing_remove_does_not_release_a_sibling_set_command_lease()
+    {
+        RegisterComponentServices();
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceAvailable, true));
+
+        IRenderedComponent<SetTenantConfigurationFlow> setFlow = cut.FindComponent<SetTenantConfigurationFlow>();
+        await cut.InvokeAsync(() => setFlow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceAvailable, false));
+
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        IRenderedComponent<RemoveTenantConfigurationFlow> removeFlow = cut.FindComponent<RemoveTenantConfigurationFlow>();
+        await cut.InvokeAsync(() => removeFlow.Instance.OnCloseRequested.InvokeAsync());
+
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-set-flow']").ShouldNotBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
+
+        setFlow = cut.FindComponent<SetTenantConfigurationFlow>();
+        await cut.InvokeAsync(() => setFlow.Instance.OnCommandActivityChanged.InvokeAsync(false));
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceAvailable, false));
+        cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldNotBeEmpty();
+    }
+
+    [Fact]
     public void Management_associates_its_unavailable_reason_with_the_landmark_it_disables()
     {
         // An inline reason has to be programmatically associated, not merely adjacent. The paragraph carried
@@ -939,17 +998,32 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
-        int focusCallsBeforeClose = JSInterop.Invocations.Count(
-            invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+        int focusCallsBeforeClose = FocusedElementIds().Count;
 
         await cut.InvokeAsync(() => flow.Instance.OnCloseRequested.InvokeAsync());
 
-        int focusCallsAfterClose = JSInterop.Invocations.Count(
-            invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
-        focusCallsAfterClose.ShouldBeGreaterThan(focusCallsBeforeClose);
+        // WHICH element received focus, not merely that a focus call happened. ElementReference.FocusAsync
+        // routes every element through the same interop identifier, and this component has two focus paths
+        // (_focusRemoveLaunchKey -> the row's launch span, _focusHeadingPending -> the landmark heading), so
+        // counting calls could not tell them apart -- nor could it tell either of them from a dialog's own
+        // focus sentinels. bUnit renders the element-reference marker without its id, so the target cannot be
+        // correlated through markup; the component's captured reference is read directly instead.
+        IReadOnlyList<string> focusedAfterClose = FocusedElementIds();
+        focusedAfterClose.Count.ShouldBe(focusCallsBeforeClose + 1);
+        focusedAfterClose[^1].ShouldBe(CapturedElementReferenceId(cut.Instance, "_headingElement"));
 
         // The fallback target has to be programmatically focusable.
         cut.Find("#tenants-config-management-heading").GetAttribute("tabindex").ShouldBe("-1");
+
+        // A later projection render must not replay the one-shot fallback and steal focus from whatever the
+        // operator moved to after dismissal.
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], []))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        FocusedElementIds().Count.ShouldBe(focusedAfterClose.Count);
     }
 
     [Fact]
@@ -969,7 +1043,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         string reason = cut.Find("[data-testid='tenants-config-management-unavailable']").TextContent.Trim();
         reason.ShouldBe("Refresh available tenant detail before managing configuration.");
-        reason.ShouldNotBe("Configuration management requires a current, projection-confirmed lifecycle.");
     }
 
     /// <summary>
@@ -994,7 +1067,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         string reason = cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent.Trim();
         reason.ShouldBe("Refresh current tenant detail before editing metadata.");
-        reason.ShouldNotBe("Editing metadata requires a current, projection-confirmed lifecycle.");
     }
 
     [Fact]
@@ -1104,14 +1176,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
-        int focusCallsBeforeClose = JSInterop.Invocations.Count(invocation =>
-            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+        int focusCallsBeforeClose = FocusedElementIds().Count;
 
         cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
 
-        JSInterop.Invocations
-            .Count(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
-            .ShouldBeGreaterThan(focusCallsBeforeClose);
+        // The row is still present here, so focus must return to ITS launch control -- the other of the two
+        // focus paths, and the one the sibling test above proves is not taken when the row is gone.
+        IReadOnlyList<string> focusedAfterCancel = FocusedElementIds();
+        focusedAfterCancel.Count.ShouldBe(focusCallsBeforeClose + 1);
+        focusedAfterCancel[^1].ShouldBe(CapturedLaunchElementReferenceId(cut.Instance, "billing.mode"));
     }
 
     [Fact]
@@ -2891,6 +2964,53 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
+    /// <summary>
+    /// Returns the element-reference id passed to each focus interop call, in call order.
+    /// </summary>
+    /// <remarks>
+    /// <c>ElementReference.FocusAsync</c> routes every element through one interop identifier, so counting
+    /// calls proves only that <em>something</em> was focused. The id identifies which element it was.
+    /// </remarks>
+    private IReadOnlyList<string> FocusedElementIds()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.Count > 0 && invocation.Arguments[0] is ElementReference reference
+                ? reference.Id
+                : string.Empty)];
+
+    /// <summary>
+    /// Reads an <see cref="ElementReference"/> a component captured with <c>@ref</c>.
+    /// </summary>
+    /// <remarks>
+    /// Read-only, and deliberately narrow. bUnit renders the <c>blazor:elementreference</c> marker without
+    /// its id, so a focus target cannot be correlated to a DOM element through markup and there is no public
+    /// surface exposing it. The alternative -- asserting only that some focus call happened -- cannot
+    /// distinguish the two focus paths this component has, which is the whole point of the assertion.
+    /// </remarks>
+    private static string CapturedElementReferenceId(object component, string fieldName)
+    {
+        object value = component.GetType()
+            .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(component)
+            ?? throw new InvalidOperationException(
+                $"'{fieldName}' is not a field of {component.GetType().Name}; the focus assertion cannot "
+                + "identify its target and would otherwise silently weaken to a call count.");
+        return ((ElementReference)value).Id;
+    }
+
+    /// <summary>Reads the captured launch-control reference for one configuration row.</summary>
+    private static string CapturedLaunchElementReferenceId(object component, string key)
+    {
+        object value = component.GetType()
+            .GetField("_removeLaunchElements", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(component)
+            ?? throw new InvalidOperationException("'_removeLaunchElements' is not a field of the component.");
+        Dictionary<string, ElementReference> elements = (Dictionary<string, ElementReference>)value;
+        elements.TryGetValue(key, out ElementReference reference).ShouldBeTrue(
+            $"No launch control was captured for '{key}', so focus cannot have returned to it.");
+        return reference.Id;
+    }
+
     private static TenantDetail Detail(string tenantId)
         => Detail(tenantId, new Dictionary<string, string>
         {
@@ -3098,18 +3218,60 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public LocalizedString this[string name] => new(name, Resolve(name));
 
         public LocalizedString this[string name, params object[] arguments]
-            => new(name, string.Format(CultureInfo.CurrentCulture, Resolve(name), arguments));
+            // No arguments means no substitution. Formatting unconditionally threw FormatException the
+            // moment Resolve started falling through to a real .resx string containing `{0}` -- the stub
+            // used to echo the placeholder-free key back, so the path could not be reached before.
+            => new(name, arguments.Length == 0
+                ? Resolve(name)
+                : string.Format(CultureInfo.CurrentCulture, Resolve(name), arguments));
 
+        // CurrentUICulture, not InvariantCulture. Pinning the invariant culture made this stub answer in
+        // English no matter what culture a test rendered under, so a component that had hard-coded English
+        // copy was indistinguishable from one that reads the localizer -- and no test could prove the French
+        // resources are ever reached.
         private static string Resolve(string name)
             => Values.TryGetValue(name, out string? value)
                 ? value
-                : RealResources.GetString(name, CultureInfo.InvariantCulture)
+                : RealResources.GetString(name, CultureInfo.CurrentUICulture)
                     ?? throw new KeyNotFoundException(
                         $"Resource key '{name}' is defined neither in this stub nor in TenantsResources.resx. "
                         + "The stub must not echo an undefined key back as user-visible copy.");
 
+        /// <summary>
+        /// Enumerates everything <see cref="Resolve"/> can return, not just the overrides. Returning
+        /// <c>Values</c> alone made enumeration and lookup disagree: a key resolvable through the real
+        /// resource set was absent from the enumeration, so any caller reasoning about "the available
+        /// strings" saw a set the indexer did not agree with. Overrides win, matching resolution order.
+        /// </summary>
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
-            => Values.Select(v => new LocalizedString(v.Key, v.Value));
+        {
+            Dictionary<string, string> all = new(StringComparer.Ordinal);
+            // NOT disposed: GetResourceSet returns the ResourceManager's own cached set, so disposing it
+            // corrupts every subsequent lookup for the whole process -- Resolve then throws its
+            // KeyNotFoundException for keys that do exist, and every bUnit WaitForAssertion downstream burns
+            // its full timeout instead of failing.
+            ResourceSet? real = RealResources.GetResourceSet(
+                CultureInfo.CurrentUICulture,
+                createIfNotExists: true,
+                tryParents: includeParentCultures);
+            if (real is not null)
+            {
+                foreach (DictionaryEntry entry in real)
+                {
+                    if (entry.Key is string key && entry.Value is string text)
+                    {
+                        all[key] = text;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<string, string> over in Values)
+            {
+                all[over.Key] = over.Value;
+            }
+
+            return all.Select(entry => new LocalizedString(entry.Key, entry.Value));
+        }
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
@@ -4050,15 +4212,24 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         int alphaAttempts = backendSubscription.ReceivedCalls()
             .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync)
                 && (string)call.GetArguments()[1]! == "tenant.alpha");
-        alphaAttempts.ShouldBeLessThanOrEqualTo(3, "A failing subscribe must not be retried on every render.");
-        alphaAttempts.ShouldBeGreaterThanOrEqualTo(1);
+        // Exact, not a range. `<= 3` paired with `>= 1` cannot tell "bounded at three retries" from "never
+        // retried at all", so reducing the budget to zero passed. Twelve renders follow the first failure,
+        // so a correct budget spends exactly its three attempts and no more.
+        alphaAttempts.ShouldBe(3, "A failing subscribe must not be retried on every render.");
 
-        // A new route gets its own budget: the bound is per tenant, not per circuit.
+        // A new route gets its own budget: the bound is per tenant, not per circuit. `>= 1` could not show
+        // that -- a route change makes one subscribe attempt whatever the budget does -- so this asserts
+        // beta genuinely re-spends a budget rather than inheriting alpha's exhausted one.
         cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.beta"));
+        for (int render = 0; render < 12; render++)
+        {
+            cut.Render();
+        }
+
         cut.WaitForAssertion(() => backendSubscription.ReceivedCalls()
             .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync)
                 && (string)call.GetArguments()[1]! == "tenant.beta")
-            .ShouldBeGreaterThanOrEqualTo(1));
+            .ShouldBe(3));
     }
 
     /// <summary>
@@ -4068,28 +4239,31 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     /// The pre-assignment <c>_disposed</c> check is not enough: <c>DisposeAsync</c> sets <c>_disposed</c> and
     /// then reads a still-null <c>_readRefreshLease</c>, so a continuation that passed that check and was
     /// preempted assigned the lease afterwards — leaving the callback registered for the life of the circuit
-    /// and invoking <c>InvokeAsync</c> on a disposed component. Neutering the post-assignment recheck left
-    /// the suite green: nothing anywhere drove a dispose into that window.
+    /// and invoking <c>InvokeAsync</c> on a disposed component.
+    /// <para>
+    /// Scope, stated honestly: this does NOT pin the post-assignment recheck. Gating inside
+    /// <c>SubscribeAsync</c> means a dispose issued from a test always precedes the pre-assignment check, and
+    /// the window between that check and the assignment is not reachable from outside the component. The
+    /// theory drives both orderings that ARE reachable -- dispose before the subscribe completes, and dispose
+    /// after the lease is fully attached -- and asserts the lease ends up released in each.
     /// </remarks>
-    [Fact]
-    public async Task A_dispose_racing_the_subscribe_continuation_does_not_leave_the_lease_attached()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_dispose_racing_the_subscribe_continuation_does_not_leave_the_lease_attached(
+        bool disposeBeforeSubscribeCompletes)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         TaskCompletionSource subscribeGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         IProjectionSubscription backendSubscription = Substitute.For<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
-        IAsyncDisposable backendLease = Substitute.For<IAsyncDisposable>();
 
         // Suspend inside SubscribeAsync so the dispose lands between the pre-assignment check and the
         // assignment itself — the exact window the recheck exists for.
         backendSubscription
             .SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(async _ =>
-            {
-                await subscribeGate.Task;
-                return backendLease;
-            });
+            .Returns(_ => subscribeGate.Task);
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(
                 Detail(call.Arg<TenantDetailRequest>()!.TenantId),
@@ -4113,13 +4287,36 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync))
             .ShouldBeGreaterThanOrEqualTo(1));
 
-        // Dispose while the subscribe is still suspended, then let it complete.
-        await cut.Instance.DisposeAsync();
-        subscribeGate.SetResult();
+        // Both interleavings, run explicitly rather than hoped for. Gating inside SubscribeAsync means the
+        // continuation cannot resume until the gate is released, so disposing first ALWAYS lands before the
+        // pre-assignment check and the post-assignment recheck is never reached: the single-ordering version
+        // of this test claimed to pin that recheck and could not, because nothing forces a dispose into the
+        // window between the check and the assignment from outside the component. What is actually
+        // guaranteed -- and is what matters to a user -- is that the lease ends up released under either
+        // ordering, so both are now driven.
+        if (disposeBeforeSubscribeCompletes)
+        {
+            // Dispose reaches the pre-assignment check first; the lease is never attached.
+            await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+            subscribeGate.SetResult();
+        }
+        else
+        {
+            // The lease is fully attached first, so disposal must detach it through the ordinary path.
+            subscribeGate.SetResult();
+            cut.WaitForAssertion(() => backendSubscription.ReceivedCalls()
+                .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync))
+                .ShouldBeGreaterThanOrEqualTo(1));
+            await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        }
 
-        // Whichever side of the assignment the continuation resumed on, the lease must end up released.
-        await Task.Delay(50);
-        await backendLease.Received().DisposeAsync();
+        // Disposal runs through the renderer's dispatcher, as it does in production. Calling DisposeAsync
+        // straight from the test thread bypassed the dispatcher entirely, so the path under test was not
+        // running under the conditions it runs under for real.
+        cut.WaitForAssertion(() => backendSubscription.ReceivedCalls()
+            .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.UnsubscribeAsync)
+                && (string)call.GetArguments()[1]! == "tenant.alpha")
+            .ShouldBe(1));
     }
 
     /// <summary>
@@ -4153,14 +4350,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             freshness,
             ProjectionLifecycleState.Unknown);
 
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, members));
-
         var resources = new ResourceManager(
             "Hexalith.Tenants.UI.Resources.TenantsResources",
             typeof(TenantsResources).Assembly);
@@ -4174,9 +4363,57 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         french.ShouldContain("{0}");
         french.ShouldNotBe(english);
 
-        string rendered = cut.Find("[data-testid='tenants-member-empty']").TextContent;
-        rendered.ShouldContain(english[..english.IndexOf("{0}", StringComparison.Ordinal)].Trim());
-        rendered.ShouldContain(english[(english.IndexOf("{0}", StringComparison.Ordinal) + 3)..].Trim());
+        // Rendered under each culture in turn. Looking the resource up here and asserting the *English*
+        // rendering contains it proved nothing about localization: a component that had hard-coded the
+        // English literal produced byte-identical output and passed, and `french.ShouldNotBe(english)` only
+        // showed the .fr.resx differs -- never that production reads it. Asserting the French rendering
+        // carries French copy, and not the English copy, is what makes the localizer load-bearing.
+        string renderedEnglish = RenderMemberEmptyText(CultureInfo.InvariantCulture);
+        string renderedFrench = RenderMemberEmptyText(new CultureInfo("fr"));
+
+        AssertCarriesWholeString(renderedEnglish, english);
+        AssertCarriesWholeString(renderedFrench, french);
+        renderedFrench.ShouldNotBe(renderedEnglish);
+        renderedEnglish.ShouldNotContain(FirstSegment(french));
+
+        string RenderMemberEmptyText(CultureInfo culture)
+        {
+            CultureInfo previousUi = CultureInfo.CurrentUICulture;
+            CultureInfo previous = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentUICulture = culture;
+                CultureInfo.CurrentCulture = culture;
+                IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+                    .Add(view => view.Detail, detail)
+                    .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                    .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+                    .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+                    .Add(view => view.ProjectionVersion, "v1")
+                    .Add(view => view.Members, members));
+                return cut.Find("[data-testid='tenants-member-empty']").TextContent;
+            }
+            finally
+            {
+                CultureInfo.CurrentUICulture = previousUi;
+                CultureInfo.CurrentCulture = previous;
+            }
+        }
+
+        // Both segments must be non-empty, or the assertion silently half-disarms: `{0}` at the very start
+        // or very end yields an empty slice, and ShouldContain("") always passes.
+        static string FirstSegment(string resource)
+            => resource[..resource.IndexOf("{0}", StringComparison.Ordinal)].Trim();
+
+        static void AssertCarriesWholeString(string rendered, string resource)
+        {
+            string head = FirstSegment(resource);
+            string tail = resource[(resource.IndexOf("{0}", StringComparison.Ordinal) + 3)..].Trim();
+            head.ShouldNotBeNullOrWhiteSpace();
+            tail.ShouldNotBeNullOrWhiteSpace();
+            rendered.ShouldContain(head);
+            rendered.ShouldContain(tail);
+        }
     }
 
     /// <summary>
@@ -4328,30 +4565,81 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void The_member_pager_announces_a_previous_step_that_jumps_to_the_first_page()
     {
-        RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail)));
+        // Driven through TenantDetailPage's real pager, which is where the defect lived: the notice is
+        // computed by the PARENT from `_memberPagingHistoryTruncated && _memberCursor is null &&
+        // _memberCursorHistory.Count == 0`, and the remark names the defect as discarding `CursorHistory.Trim`'s
+        // return value. Setting MemberAccessReview.PagingJumpedToFirstPage as a child parameter asserted only
+        // that the child renders a notice when told to; the parent's computation had no test at all, so
+        // hard-coding it to false, or deleting the Trim call, left the whole suite green. Both sibling pagers
+        // drive the real control, and this now matches them.
+        const int bound = CursorHistory.DefaultMaximum;
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantUsersRequest request = call.Arg<TenantUsersRequest>()!;
+                int page = request.Cursor is null
+                    ? 0
+                    : int.Parse(request.Cursor["page-".Length..], CultureInfo.InvariantCulture);
+                return Task.FromResult(TenantUsersSnapshot.Ready(
+                    "tenant.alpha",
+                    [new TenantMember($"user-page-{page}", TenantRole.TenantOwner)],
+                    $"page-{page + 1}",
+                    true,
+                    $"members-{page}",
+                    "projection-v1",
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current) with
+                {
+                    RequestCursor = request.Cursor,
+                });
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
 
-        cut.FindAll("[data-testid='tenants-member-history-truncated']").ShouldBeEmpty();
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-next']");
 
-        cut.Render(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail))
-            .Add(view => view.PagingJumpedToFirstPage, true));
+        // One page past the bound, so the trim runs and drops the oldest non-sentinel entries.
+        for (int page = 1; page <= bound + 1; page++)
+        {
+            cut.Find("[data-testid='tenants-member-next']").Click();
+            cut.WaitForAssertion(() => cut.Markup.ShouldContain($"user-page-{page}"));
+        }
+
+        cut.FindAll("[data-testid='tenants-member-history-truncated']").ShouldBeEmpty(
+            "Paging forward is not a jump; the notice belongs to the Previous click that lands on page one.");
+
+        // Walk back. The retained history is the bound minus one entries plus the re-appended sentinel, so
+        // the last of these pops the sentinel and lands on page one from the middle of the sequence.
+        for (int step = 1; step < bound; step++)
+        {
+            cut.Find("[data-testid='tenants-member-previous']").Click();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-member-previous']")
+                .HasAttribute("disabled").ShouldBeFalse());
+            cut.FindAll("[data-testid='tenants-member-history-truncated']").ShouldBeEmpty();
+        }
+
+        cut.Find("[data-testid='tenants-member-previous']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-member-history-truncated']").ShouldNotBeEmpty());
 
         IElement notice = cut.Find("[data-testid='tenants-member-history-truncated']");
         notice.GetAttribute("role").ShouldBe("status");
         notice.GetAttribute("aria-live").ShouldBe("polite");
-        notice.TextContent.Trim().ShouldNotBeNullOrWhiteSpace();
+
+        // The sibling pagers assert the copy, not merely that some text is present: swapping the resource key
+        // for an unrelated recovery string passed the previous `ShouldNotBeNullOrWhiteSpace` check.
+        notice.TextContent.ShouldContain("first page", Case.Insensitive);
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
     }
 }

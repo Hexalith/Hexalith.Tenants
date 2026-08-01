@@ -4,6 +4,7 @@ using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -63,22 +64,55 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         // it is absent is true by construction and cannot fail. Assert instead that the surface renders no
         // interactive control other than the ones it legitimately owns: the detail link, the support-safe
         // copy button, and the pager.
+        // The previous sweep selected raw HTML tag names only. CSS type selectors match on local name, so no
+        // Fluent custom element ever matched it -- and project rules forbid raw interactive HTML here, which
+        // made it structurally blind to every affordance it was meant to catch. This test proves that above:
+        // tenants-my-refresh is a FLUENT-BUTTON and is not allow-listed, yet the old assertion passed.
+        // `tenants-my-retry` was also listed and exists nowhere in src/.
+        string[] interactiveElements =
+        [
+            "BUTTON", "A", "INPUT", "SELECT", "TEXTAREA",
+            "FLUENT-BUTTON", "FLUENT-ANCHOR", "FLUENT-ANCHOR-BUTTON", "FLUENT-MENU-BUTTON",
+            "FLUENT-SELECT", "FLUENT-TEXT-FIELD", "FLUENT-TEXTAREA", "FLUENT-NUMBER-FIELD",
+            "FLUENT-SEARCH", "FLUENT-COMBOBOX", "FLUENT-CHECKBOX", "FLUENT-RADIO",
+            "FLUENT-SWITCH", "FLUENT-SLIDER",
+        ];
+        // Every one of these is read-only: navigation, support-safe copy, the pager, and the audit-evidence
+        // entry point. `tenants-copy-reference` and `tenants-audit-entrypoint` are what the shared row
+        // components actually stamp; the surface-scoped `tenants-my-*` ids sit on the same elements.
         string[] allowedControlIds =
         [
             "tenants-my-detail-link",
             "tenants-my-copy-reference",
+            "tenants-copy-reference",
+            "tenants-audit-entrypoint",
             "tenants-my-next",
             "tenants-my-previous",
-            "tenants-my-retry",
+            "tenants-my-refresh",
+            "tenants-my-back",
         ];
-        cut.FindAll("button, a, input, select, textarea, [role='button']")
+        cut.FindAll("*")
+            .Where(element => interactiveElements.Contains(element.NodeName, StringComparer.Ordinal)
+                || string.Equals(element.GetAttribute("role"), "button", StringComparison.Ordinal))
             .Where(element =>
             {
-                string? id = element.GetAttribute("data-testid") ?? element.GetAttribute("data-surface-testid");
-                return id is null || !allowedControlIds.Contains(id, StringComparer.Ordinal);
+                // Both attributes are consulted: a row control carries a shared `data-testid` and a
+                // surface-scoped `data-surface-testid`, and either one identifying an allowed control is
+                // enough. Reading only the first matched an id the allowlist does not use.
+                string?[] ids = [element.GetAttribute("data-testid"), element.GetAttribute("data-surface-testid")];
+                return !ids.Any(id => id is not null && allowedControlIds.Contains(id, StringComparer.Ordinal));
             })
-            .Select(static element => element.GetAttribute("data-testid") ?? element.LocalName)
+            .Select(static element => element.GetAttribute("data-testid")
+                ?? element.GetAttribute("data-surface-testid")
+                ?? element.NodeName)
             .ShouldBeEmpty("The self-audit surface must expose no mutation affordance.");
+
+        // Type-checked backstop. The sweep above depends on markup and on this list of element names staying
+        // current with Fluent; these do not. If a membership command flow is ever composed onto the
+        // self-audit surface, this fails regardless of what it renders.
+        cut.FindComponents<AddTenantMemberFlow>().ShouldBeEmpty();
+        cut.FindComponents<RemoveTenantMemberFlow>().ShouldBeEmpty();
+        cut.FindComponents<ChangeTenantMemberRoleFlow>().ShouldBeEmpty();
 
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);

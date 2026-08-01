@@ -502,9 +502,15 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         CancellationToken transportToken,
         CancellationToken callerCancellationToken)
     {
+        // An oversized problem-details body is a body we could not read, not a body that carried no
+        // sentinel. Returning Absent here left the response classified as InvalidRequest, so page-one
+        // recovery, PagingRecovered, the polite restart notice and the cursor reset never fired and an
+        // expired DataProtection cursor stranded the surface permanently -- a proxy appending a debug
+        // envelope was enough to trigger it. Unavailable is the state this enum already carries for
+        // "nothing was proven", and it keeps the read retryable. Review loop 13.
         if (response.Content.Headers.ContentLength > MaximumProblemDetailsLength)
         {
-            return InvalidCursorSignal.Absent;
+            return InvalidCursorSignal.Unavailable;
         }
 
         try
@@ -539,7 +545,9 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         }
         catch (ResponseContentTooLargeException)
         {
-            return InvalidCursorSignal.Absent;
+            // Streaming twin of the declared-Content-Length branch above: the body outran the bound before
+            // the sentinel could be read, so nothing was proven either way. Review loop 13.
+            return InvalidCursorSignal.Unavailable;
         }
         catch (JsonException)
         {

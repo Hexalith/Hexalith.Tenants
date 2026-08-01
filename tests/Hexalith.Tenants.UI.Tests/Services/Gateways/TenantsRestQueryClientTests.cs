@@ -550,7 +550,11 @@ public sealed class TenantsRestQueryClientTests
             null,
             TestContext.Current.CancellationToken);
 
-        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
+        // Review loop 13: a problem-details body that outran the bound is a body that could not be read, so
+        // nothing was proven about whether it carried the invalid-cursor sentinel. Reporting InvalidRequest
+        // here silently disabled page-one recovery -- an expired cursor stranded the surface permanently
+        // whenever a proxy padded the body. Unavailable keeps the read retryable.
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.Unavailable);
         contentStream.BytesRead.ShouldBeGreaterThan(TenantsRestQueryClient.MaximumProblemDetailsLength);
         contentStream.BytesRead.ShouldBeLessThan(TenantsRestQueryClient.MaximumProblemDetailsLength * 2L);
     }
@@ -1393,7 +1397,7 @@ public sealed class TenantsRestQueryClientTests
     {
         HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
         AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
-        AddHeader(response, "X-Hexalith-Projection-Version", "projectionv1");
+        AddHeader(response, "X-Hexalith-Projection-Version", "projection\u0001v1");
 
         var handler = new RecordingHandler(response);
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
@@ -1408,11 +1412,48 @@ public sealed class TenantsRestQueryClientTests
         result.Metadata.ProjectionVersion.ShouldBeNull();
     }
 
+    /// <summary>
+    /// Pins the ACCEPTED side of the metadata bound. The rejection theory uses 4097 only, so flipping
+    /// <c>GetBoundedHeader</c>'s <c>&gt;</c> to <c>&gt;=</c> discarded every maximum-length projection
+    /// version -- turning every conditional 304 on all six reads into rejected metadata -- with the suite
+    /// green. A boundary needs both sides or it is not pinned.
+    /// </summary>
+    [Fact]
+    public async Task A_projection_version_at_the_metadata_bound_is_accepted()
+    {
+        string value = new('v', 4096);
+        HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
+        AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
+        AddHeader(response, "X-Hexalith-Projection-Version", value);
+
+        var handler = new RecordingHandler(response);
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryResponse<PaginatedResult<TenantSummary>> result = await client.ListTenantsAsync(
+            new ListTenantsQuery { PageSize = 20 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Metadata.ProjectionVersion.ShouldBe(value);
+    }
+
+    /// <summary>
+    /// Re-pins <c>TenantsRestQueryFailureKind.Unknown = 0</c>. The only assertion covering the default value
+    /// was deleted; with it gone, inserting a member above <c>Unknown</c> or reordering so <c>None</c> comes
+    /// first makes every default-constructed <see cref="TenantsRestQueryResponse{T}"/> read as a success
+    /// carrying a null payload -- the shape the <c>IsSuccess</c> and null guards exist to prevent.
+    /// </summary>
+    [Fact]
+    public void The_default_failure_kind_is_unknown()
+        => default(TenantsRestQueryFailureKind).ShouldBe(TenantsRestQueryFailureKind.Unknown);
+
     [Fact]
     public async Task A_control_character_in_the_etag_is_rejected()
     {
         HttpResponseMessage response = Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}");
-        response.Headers.TryAddWithoutValidation("ETag", "\"listv1\"");
+        response.Headers.TryAddWithoutValidation("ETag", "\"list\u0001v1\"");
         AddHeader(response, "X-Hexalith-Query-Provenance", "ProjectionBacked");
 
         var handler = new RecordingHandler(response);
@@ -1437,7 +1478,7 @@ public sealed class TenantsRestQueryClientTests
     /// </remarks>
     [Theory]
     [InlineData("has\"quote")]
-    [InlineData("hascontrol")]
+    [InlineData("has\u0001control")]
     [InlineData("")]
     [InlineData("   ")]
     public async Task An_unnormalizable_request_validator_is_not_sent(string eTag)

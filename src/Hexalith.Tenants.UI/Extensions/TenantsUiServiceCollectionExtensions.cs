@@ -135,10 +135,19 @@ public static class TenantsUiServiceCollectionExtensions
         }
         else
         {
-            diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "Tenants:BaseAddress");
+            // Review loop 13: record the rejection only when this fail-closed registration is the one that
+            // takes effect. Every gateway registration is TryAdd*, so on a repeated call to this method the
+            // first registration wins; recording unconditionally then warned that a surface was unavailable
+            // when the container had in fact resolved a working one from the earlier call.
+            bool queryGatewayAlreadyRegistered = services.Any(
+                static descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway));
             services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
             services.TryAddSingleton<ITenantsReadSurfaceAvailability>(
                 new TenantsReadSurfaceAvailability(IsConnected: false));
+            if (!queryGatewayAlreadyRegistered)
+            {
+                diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "Tenants:BaseAddress");
+            }
         }
 
         // Same scheme gate as the read side, and symmetrically fail-closed: a typo or copied service-discovery
@@ -162,8 +171,14 @@ public static class TenantsUiServiceCollectionExtensions
         }
         else
         {
-            diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "EventStore:BaseAddress");
+            // Same effect gate as the read side above.
+            bool commandGatewayAlreadyRegistered = services.Any(
+                static descriptor => descriptor.ServiceType == typeof(ITenantCommandGateway));
             services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
+            if (!commandGatewayAlreadyRegistered)
+            {
+                diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "EventStore:BaseAddress");
+            }
         }
 
         _ = services.AddMemoriesClient(o =>

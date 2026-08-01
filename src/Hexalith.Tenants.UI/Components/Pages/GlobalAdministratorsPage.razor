@@ -960,11 +960,16 @@
                 }
 
                 _snapshot = result;
+
+                // The truncation notice describes one past navigation step, not a property of the current
+                // page. Clear it on every successfully applied load, including notification and command-driven
+                // refreshes. PreviousPageAsync sets it again after this method returns when this very load is
+                // the jump to page one.
+                _pagingJumpedToFirstPage = false;
                 if (result.PagingRecovered)
                 {
                     _cursorHistory.Clear();
                     _pagingHistoryTruncated = false;
-                    _pagingJumpedToFirstPage = false;
                     _currentCursor = null;
                 }
 
@@ -988,11 +993,11 @@
         // behaviour rather than a restatement of "any render retries".
         _readRefreshAttempts = 0;
 
-        // The truncation notice describes one past navigation step, not a property of the current page.
-        // Nothing on the ordinary load path cleared it, so once announced the polite live region stayed
-        // rendered through every manual refresh and every notification-driven reload -- on a page-one view
-        // with Previous already disabled -- until the operator happened to click Next.
+        // Cleared here, unconditionally, as well as on each applied load. The per-load clear alone left the
+        // notice rendered for good when a refresh was cancelled, superseded or faulted, because it only runs
+        // inside the CanApply block -- the stale one-shot notice this placement originally fixed.
         _pagingJumpedToFirstPage = false;
+
         await LoadAsync(reuseETag: true).ConfigureAwait(false);
     }
 

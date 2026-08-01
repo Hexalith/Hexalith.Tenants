@@ -60,7 +60,7 @@ development_status:
   1-7-tenant-member-table-and-action-availability: done
   1-8-support-safe-identifier-copy-and-read-experience-evidence: done
   1-9-authoritative-memories-search-with-protected-paging: done
-  1-10-direct-tenants-reads-and-authoritative-freshness: in-progress
+  1-10-direct-tenants-reads-and-authoritative-freshness: review
   # Its implementation landed inside the 1.10 commit range (7d7b701, 536596f) rather than under its own
   # key. Code review of 1.10 (2026-07-28) split the scope forward: those commits are published on main, so
   # the work is attributed here and must clear its own review loop instead of closing silently under 1.10.

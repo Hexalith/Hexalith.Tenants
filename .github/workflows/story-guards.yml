@@ -1,0 +1,35 @@
+name: Story Guards
+
+# Regression lane for the repository-owned story guards under `scripts/`.
+#
+# The main CI workflow delegates wholesale to the shared `Hexalith.Builds` reusable
+# workflow, which knows nothing about this repository's Python tooling. Adding the
+# lane there would mean changing a shared module for a Tenants-owned concern, so it
+# lives here instead.
+#
+# Decision D-K (review loop 13) reversed the earlier position that manual executable
+# verification was sufficient for `validate-story-gitlinks.py`. A guard whose failure
+# mode is a silent PASS on an undeclared submodule bump needs its own regression floor.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: story-guards-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gitlink-guard:
+    name: validate-story-gitlinks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Run the gitlink guard regression lane
+        run: python3 tests/scripts/test_validate_story_gitlinks.py

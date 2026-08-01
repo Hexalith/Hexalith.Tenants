@@ -22,6 +22,7 @@ import argparse
 import re
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -74,11 +75,17 @@ def extract_section(story_text: str, heading: str, stop_at_subheading: bool = Fa
     so nested subsections stay inside it. `stop_at_subheading` ends the body at the
     very next heading of any level instead.
 
-    That stricter form is what pointer *claims* are read from. A long-lived story
-    accumulates `### Review Findings` subsections under `## Completion Notes List`,
-    and those carry retained historical pointer tables the story explicitly labels
-    superseded. Swallowing them made the newest text in the file a stale table, so
-    a last-wins reading picked the wrong SHA and failed a correct tree.
+    That stricter form is used for `## Completion Notes List` only. A long-lived
+    story accumulates `### Review Findings` subsections there, and those carry
+    retained historical pointer tables the story explicitly labels superseded.
+    Swallowing them made the newest text in the file a stale table, so a last-wins
+    reading picked the wrong SHA and failed a correct tree.
+
+    `## File List` deliberately does NOT use it. A story is free to group its File
+    List under `### Source` / `### Tests` headings, and terminating at the first of
+    them dropped every entry below: a correctly declared bump then read as
+    UNDECLARED and failed a correct tree, while a misstated SHA in that region
+    passed unchecked. The guard must not be sensitive to a cosmetic heading edit.
     """
     lines = story_text.splitlines()
     body: list[str] = []
@@ -109,6 +116,37 @@ def describe_change(old_sha: str, new_sha: str) -> str:
     return f"{old_sha} -> {new_sha}"
 
 
+def normalize_line(line: str) -> str:
+    """Drop invisible format controls and fold every separator to a plain space.
+
+    Applied once, to the whole line, before either the path tokenizer or the arrow
+    scan reads it -- so both agree on where a token starts and ends.
+
+    Two classes of character are handled, and they are handled differently:
+
+    * Category `Cf` (zero-width space, joiners, bidi controls) carries no width. It
+      is invisible decoration pasted from a browser or editor, never part of a path
+      or a SHA, so it is removed. Left in, `references/X<ZWSP>` became a phantom key
+      that could never match a real gitlink while the report still printed the line
+      as declared.
+    * Categories `Zs`/`Zl`/`Zp` and the ASCII tab/vertical-tab/form-feed are
+      separators the eye reads as a space but `str.split(" ")` and `\\s` do not.
+      NBSP is the common one -- Word and Confluence paste it freely. They are folded
+      to U+0020 rather than removed, because they really are token boundaries.
+
+    Removing `Cf` shortens the line, which is why normalization happens before
+    tokenizing rather than per-token: the offsets the arrow scan and the tokenizer
+    compare are then indices into the same string.
+    """
+    normalized: list[str] = []
+    for character in line:
+        category = unicodedata.category(character)
+        if category == "Cf":
+            continue
+        normalized.append(" " if category in ("Zs", "Zl", "Zp") or character in "\t\v\f" else character)
+    return "".join(normalized)
+
+
 def declared_paths(story_text: str) -> set[str]:
     """Return paths declared as list entries in File List / Completion Notes.
 
@@ -120,11 +158,11 @@ def declared_paths(story_text: str) -> set[str]:
     declared: set[str] = set()
     sections = (
         extract_section(story_text, "File List"),
-        extract_section(story_text, "Completion Notes List"),
+        extract_section(story_text, "Completion Notes List", stop_at_subheading=True),
     )
     for section in sections:
         for line in section.splitlines():
-            entry = line.strip()
+            entry = normalize_line(line).strip()
             if not entry.startswith(("-", "*", "+")):
                 continue
             entry = entry[1:].strip()
@@ -147,11 +185,16 @@ ARROW_CHAIN = re.compile(
 )
 
 
-def _path_tokens(cleaned: str) -> list[tuple[int, str]]:
-    """Return (offset, path) for every `references/` token on a line."""
+def _path_tokens(normalized: str) -> list[tuple[int, str]]:
+    """Return (offset, path) for every `references/` token on an already-normalized line.
+
+    The caller must pass a line through `normalize_line` first. Offsets are indices
+    into that same string, which is what lets `stated_targets` match an arrow chain
+    to the path token preceding it.
+    """
     found: list[tuple[int, str]] = []
     offset = 0
-    for token in cleaned.split(" "):
+    for token in normalized.split(" "):
         bare = token.strip(TOKEN_TRIM).rstrip("/")
         if bare.startswith(SUBMODULE_ROOT):
             found.append((offset, bare))
@@ -182,12 +225,18 @@ def stated_targets(story_text: str) -> dict[str, str]:
     """
     targets: dict[str, str] = {}
     sections = (
-        extract_section(story_text, "File List", stop_at_subheading=True),
+        extract_section(story_text, "File List"),
         extract_section(story_text, "Completion Notes List", stop_at_subheading=True),
     )
     for section in sections:
         for line in section.splitlines():
-            cleaned = line.replace("`", " ").replace("|", " ")
+            # Normalized once, here, so the arrow scan below reads the same string the tokenizer does.
+            # Scanning the raw line instead meant a `Cf` character next to the arrow -- `53d53ae<ZWSP> -> x`
+            # -- produced no match at all, because `\s` does not match U+200B. `stated_targets` then recorded
+            # nothing for that path, `record_if_misstated` was never called, and the run printed `[declared]`
+            # and PASSED while the stated SHA was stale: the exact failure this check exists to catch,
+            # reachable by an invisible character.
+            cleaned = normalize_line(line).replace("`", " ").replace("|", " ")
             paths = _path_tokens(cleaned)
             if not paths:
                 continue

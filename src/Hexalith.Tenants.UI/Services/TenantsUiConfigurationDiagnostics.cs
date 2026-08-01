@@ -45,6 +45,11 @@ internal sealed class TenantsUiConfigurationDiagnostics
     /// An absent or blank value is not a misconfiguration: it means the dependency is simply not wired, and
     /// failing closed to the unavailable gateway is the intended outcome. Only a value the operator believed
     /// would work — present, but not a usable http or https address — is worth reporting.
+    /// <para>
+    /// Callers must additionally establish that the fail-closed registration this rejection describes is the
+    /// one that took effect. Gateway registrations are <c>TryAdd*</c>, so on a repeated module registration
+    /// the first one wins and a later rejected key describes a surface the container never resolved.
+    /// </para>
     /// </remarks>
     public void RecordRejectedBaseAddressIfConfigured(IConfiguration configuration, string settingName)
     {

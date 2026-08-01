@@ -158,6 +158,21 @@ freshness and lifecycle, no correction-eligible evidence — is unchanged.
 > originally named (`589da8b`, `115d30b`) do not exist in the tree at all, so the initial verification
 > section was not written against the tree it describes.
 
+> **SUPERSEDED — historical record only (disclaimer added by review loop 13, 2026-08-01).**
+> Every `references/` pointer table in this evidence file records the tree **as it stood when that section
+> was written**, and later commits moved several of those pointers again. Five target SHAs below and in the
+> sibling tables further down are false against the current tree. The authoritative table is the one in
+> `spec-1-10-…md`'s File List, which at the time of writing reads `Builds 53d53ae -> b529b66`,
+> `EventStore 5a1d277 -> e4618d9`, `Memories 1868c8f -> a1f64d5`, with `AI.Tools`, `Commons` and
+> `FrontComposer` unchanged.
+>
+> This disclaimer exists because the guard cannot substitute for it: decision D-H deliberately scopes
+> `stated_targets` to the *spec's* File List and Completion Notes, and the mandated validator command targets
+> the spec, so **nothing checks the tables in this file**. Story prose about gitlinks has twice been false in
+> this repository (stories 1.4 and 1.6), which is precisely why an unmarked stale table here is a hazard.
+> Verify against `python3 scripts/validate-story-gitlinks.py <spec>` and `git ls-tree HEAD references/`,
+> never against the tables below.
+
 The dependency gitlinks were **not** at baseline when this session started. Five pointers moved inside the
 final story range. They are dependency/workflow/documentation provenance carried by published commits,
 not review-loop-3 runtime implementation:
@@ -450,3 +465,66 @@ gitlink validator exited 1 with all six `references/` pointers UNDECLARED — a 
 already sitting in `review`. Its baseline (`2e61f57`) is inside Story 1.10's range, so it inherits the same
 six movements from the published dependency commits `f425b49` and `09947a2`. The re-cut File List declares
 them with an explicit cross-reference to Story 1.10, which owns the range; the validator now exits 0.
+
+## Review repair loop 12 — 2026-08-01
+
+This loop closes all 30 findings recorded after loop 11. The production repairs preserve independent
+command leases, prevent a dismissed configuration command from reacquiring activity, retain paging-recovery
+announcements until a later successful refresh, and clear audit cursor history on the dispatcher before a
+concurrent Previous operation can pop it. The accompanying regressions also pin retry-budget resets,
+one-shot focus, subscription disposal, factory descriptors, configuration diagnostic aggregation, and the
+existing metadata, accessibility, route-validation, and support-safety contracts.
+
+### Final executable evidence
+
+| Lane / exact command shape | Result |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -warnaserror -m:1 -nr:false --verbosity minimal` | **PASS — 0 warnings, 0 errors** |
+| `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release` | **PASS — 1,820 passed, 0 failed, 0 skipped** |
+| Contracts / Client / Testing / Server / `samples/Hexalith.Tenants.Sample.Tests`, from the Release build with `--no-build --no-restore` | **PASS — 120 / 50 / 181 / 738 / 39; 0 failed** |
+| IntegrationTests, `--filter FullyQualifiedName~TenantsApiGeneratedControllerTests` | **PASS — 27 passed, 0 failed, 0 skipped** |
+| IntegrationTests, `--filter FullyQualifiedName!~AspireTopologyTests` | **PASS — 162 passed, 0 failed, 1 skipped, 163 total**; only the performance test is skipped |
+| IntegrationTests, `--filter "Category!=Performance"` | **PARTIAL — 166 passed, 2 failed, 0 skipped, 168 total**; both failures are 60-second Aspire topology HTTP timeouts |
+| EN/FR resource-key comparison | **PASS — 1,228 keys on each side, no difference** |
+| `rg -n "SubmitQueryAsync|/api/v1/queries|QueryRouter|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | **PASS — no matches (expected exit 1)** |
+| `rg -n 'tenant-index:system|"tenant-index"' src/Hexalith.Tenants.UI tests/Hexalith.Tenants.UI.Tests` | **PASS — no matches (expected exit 1)** |
+| `git diff --check` and `git diff --cached --check` | **PASS** |
+
+The full non-performance integration failures were:
+
+- `AspireTopologyTests.Tenants_resource_reports_ready_only_after_prepared_dependencies_are_available`
+- `AspireTopologyTests.Aha_moment_demo_revokes_sample_access_from_tenant_events`
+
+Both timed out at the configured 60-second HTTP bound. The same tree passes the generated-controller lane
+27/27 and the non-Aspire integration lane 162/162 (plus one intentional performance skip), so the result is
+kept as the already-owned local-topology evidence limitation. No live-host success is claimed. The required
+AppHost-first attempt also failed to produce a resource model within its 120-second startup bound while
+restore remained in progress:
+
+```text
+❌ Timed out waiting 120s for AppHost to start. If the AppHost is still building or starting, set ASPIRE_CLI_START_TIMEOUT to a higher value and try again.
+```
+
+### Gitlink-validator extension evidence
+
+The parser was exercised directly for declaration-section scoping, last-stated-target semantics,
+multi-pointer lines, decorated path tokens, chained arrows, en-dash arrows, and Unicode `Cf` format
+characters. A temporary story whose baseline equaled HEAD and whose File List falsely stated
+`references/Hexalith.Builds ... -> deadbee` exited 1 with:
+
+```text
+[MISSTATED] references/Hexalith.Builds is b529b66 in the tree, but the story states deadbee.
+```
+
+Decision D-K intentionally retains this as manual executable verification because the repository has no
+Python test or CI infrastructure. The mandatory final-tree command is:
+
+```text
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md
+```
+
+It reports all six pointer movements as `[declared]`, exits 0, and ends with the verbatim verdict:
+
+```text
+RESULT: PASS
+```

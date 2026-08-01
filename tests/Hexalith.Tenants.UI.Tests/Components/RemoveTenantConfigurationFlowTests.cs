@@ -164,6 +164,66 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// Pins decision D-F's clause ORDER on this flow, which nothing did: every render in this file used
+    /// <see cref="TenantDetailSurfaceKind.Ready"/>, so the surface clause never fired and hoisting the
+    /// lifecycle clause back above it changed no outcome here. Every failed read also carries a non-Current
+    /// lifecycle, so with the wrong order an operator whose read simply failed is told to refresh the
+    /// projection lifecycle. The discriminator is the absence of the lifecycle reason.
+    /// </summary>
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ProjectionLifecycleState.Unavailable)]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ProjectionLifecycleState.Degraded)]
+    public void A_failed_read_reports_the_projection_state_rather_than_the_projection_lifecycle(
+        TenantDetailSurfaceKind surfaceKind,
+        ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, surfaceKind)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Unknown)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        string reason = cut.Find("[data-testid='tenants-config-remove-unavailable-reason']").TextContent;
+        reason.ShouldContain("unavailable or degraded", Case.Insensitive);
+        reason.ShouldNotContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// Freshness half of the same clause-order contract: a stale or unknown-freshness read on an otherwise
+    /// ready surface must report freshness, not the projection lifecycle, even though its lifecycle is also
+    /// non-Current.
+    /// </summary>
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Stale)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Stale, ProjectionLifecycleState.Rebuilding)]
+    public void A_stale_or_unknown_read_reports_freshness_rather_than_the_projection_lifecycle(
+        TenantDetailSurfaceKind surfaceKind,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, surfaceKind)
+            .Add(p => p.Freshness, freshness)
+            .Add(p => p.Lifecycle, lifecycle));
+
+        string reason = cut.Find("[data-testid='tenants-config-remove-unavailable-reason']").TextContent;
+        reason.ShouldContain("Refresh current tenant detail", Case.Insensitive);
+        reason.ShouldNotContain("unavailable or degraded", Case.Insensitive);
+        reason.ShouldNotContain("projection-confirmed lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
     [Fact]
     public void Confirmation_text_must_match_literal_key_before_gateway_submission()
     {
@@ -249,7 +309,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
-        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         commandActivity.ShouldNotBeEmpty();
         commandActivity[^1].ShouldBeTrue();
         cut.Find("[data-testid='tenants-config-remove-state']").TextContent.ShouldContain("Projection pending");
@@ -305,6 +364,62 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task A_status_refresh_that_completes_after_dismissal_cannot_reacquire_command_activity()
+    {
+        TaskCompletionSource<TenantCommandStatusResult> statusGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            StatusGate = statusGate,
+            GateFromCall = 2,
+        };
+        RegisterServices(gateway);
+        List<bool> commandActivity = [];
+        int closeRequests = 0;
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(Context(
+                "tenant.alpha",
+                new Dictionary<string, string> { ["billing.mode"] = "trial" })))
+            .Add(p => p.OnCommandActivityChanged, isActive => commandActivity.Add(isActive))
+            .Add(p => p.OnCloseRequested, () => closeRequests++)
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.RemoveNotConfirmed))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
+        cut.Find("[data-testid='tenants-config-remove-refresh']").Click();
+        cut.WaitForAssertion(() => gateway.GetStatusCallCount.ShouldBe(2));
+
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+        cut.WaitForAssertion(() => closeRequests.ShouldBe(1));
+        commandActivity[^1].ShouldBeFalse();
+        int activityCountAfterDismissal = commandActivity.Count;
+
+        statusGate.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        // The gated read has now returned inside the gateway, so the flow's own continuation is scheduled.
+        await gateway.GateObserved.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+
+        // The correct behaviour is that nothing further happens, so there is no positive signal to wait for
+        // and the absence is asserted over a bounded stability window instead. WaitForAssertion is wrong for
+        // a negative: the state was already ProjectionPending before the gate released, so it returned on
+        // its first evaluation and the activity assertion below ran before the continuation could have.
+        await Task.Delay(TimeSpan.FromMilliseconds(250), Xunit.TestContext.Current.CancellationToken);
+
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        commandActivity.Count.ShouldBe(activityCountAfterDismissal);
+        commandActivity[^1].ShouldBeFalse();
+    }
+
+    [Fact]
     public void Dismissal_never_turns_an_unconfirmed_removal_into_a_success_claim()
     {
         // The guard that created the trap existed to protect the non-collapse model. That protection has to
@@ -334,7 +449,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
@@ -345,7 +459,11 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         // control was indistinguishable from a dead one -- so the guard belongs in CanRefresh, not only in
         // the method. Reverting CanRefresh to omit `!_isRefreshing` leaves the button enabled here and the
         // second click reaches the gateway, taking GetStatusCallCount to 2.
-        TaskCompletionSource<TenantCommandStatusResult> gate = new();
+        // RunContinuationsAsynchronously, like every sibling gate in this file. Without it SetResult runs the
+        // awaiting continuation synchronously on the xUnit thread, and that continuation invokes
+        // EventCallbacks and StateHasChanged -- the documented trap where work resuming off the Blazor
+        // Dispatcher tears down the circuit.
+        TaskCompletionSource<TenantCommandStatusResult> gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
@@ -376,11 +494,20 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-refresh']").GetAttribute("disabled").ShouldNotBeNull());
         gateway.GetStatusCallCount.ShouldBe(2);
 
-        gate.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
-        await Task.Yield();
+        // The second click the test is named for. It was never dispatched, so the closing assertion was
+        // satisfied by a click that did not exist: the re-entrancy guard could have been deleted entirely
+        // and nothing here would have noticed.
+        cut.Find("[data-testid='tenants-config-remove-refresh']").Click();
+        gateway.GetStatusCallCount.ShouldBe(2);
 
-        // The click that arrived while the refresh was in flight must not have queued a second read.
-        cut.WaitForAssertion(() => gateway.GetStatusCallCount.ShouldBe(2));
+        gate.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        await gateway.GateObserved.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+
+        // The in-flight refresh has settled and re-enabled the control, which is a positive signal that the
+        // resumed continuation ran -- so the count assertion below is now made after the window in which a
+        // queued second read would have been issued.
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-refresh']").GetAttribute("disabled").ShouldBeNull());
+        gateway.GetStatusCallCount.ShouldBe(2);
     }
 
     [Fact]
@@ -466,7 +593,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 
         gateway.RemoveConfigurationCallCount.ShouldBe(0);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
@@ -492,7 +618,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 
         gateway.RemoveConfigurationCallCount.ShouldBe(0);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         cut.Markup.ShouldNotContain("policy backend unreachable");
         cut.Markup.ShouldNotContain("InvalidOperationException");
     }
@@ -733,12 +858,35 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         /// </summary>
         public int GateFromCall { get; init; } = 1;
 
+        /// <summary>
+        /// Completes once a gated status read has actually returned inside this gateway, which happens
+        /// strictly before the caller's own continuation resumes. Tests asserting that nothing follows a
+        /// released gate need this: without it they asserted the absence at an instant when the resumed
+        /// continuation had provably not run yet, so the assertion passed for the wrong reason.
+        /// </summary>
+        public TaskCompletionSource GateObserved { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
             GetStatusCallCount++;
-            return StatusGate is not null && GetStatusCallCount >= GateFromCall
-                ? StatusGate.Task
-                : Task.FromResult(Status);
+            if (StatusGate is null || GetStatusCallCount < GateFromCall)
+            {
+                return Task.FromResult(Status);
+            }
+
+            return AwaitGateAsync(StatusGate);
+
+            async Task<TenantCommandStatusResult> AwaitGateAsync(TaskCompletionSource<TenantCommandStatusResult> gate)
+            {
+                try
+                {
+                    return await gate.Task.ConfigureAwait(false);
+                }
+                finally
+                {
+                    _ = GateObserved.TrySetResult();
+                }
+            }
         }
     }
 
