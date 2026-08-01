@@ -536,9 +536,10 @@ the recovery reason branch and the combined UI/handler in-flight guard were muta
 The full `IntegrationTests` lane — never run by the earlier record, which filtered to the generated
 controller class — caught two real breaks in the hosted global-administrators route, both now fixed. The
 route answered HTTP 500 because a story-added `[Authorize]` attribute was the module's only endpoint
-authorization metadata, and the host registers an authentication scheme only when OIDC is configured;
-platform authority is now the page's rendered fail-closed state, guarded in the fast lane by
-`Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata`. The restricted branch
+authorization metadata, and the host registers an authentication scheme only when OIDC is configured.
+The final pairing keeps the page's rendered fail-closed state reachable without OIDC and conditionally
+attaches the global-administrator policy to that endpoint when OIDC is configured; the fast-lane hosted
+endpoint theory proves both topologies. The restricted branch
 had also dropped the `tenants-global-admins-area` container and the live region it published before this
 story, and now nests inside both. A superseded `AspireTopologyTests` audit assertion was moved to the
 first-load error truth that review repair loop 1 introduced.
@@ -831,3 +832,32 @@ failure-only subscription retry budgeting, one-shot focus and paging announcemen
 factory registration descriptors, and multi-registration configuration diagnostics. The diagnostics test
 also proves both rejected setting names are logged once while neither configured value is retained or
 rendered.
+
+## Story 1.10 — review loop 14 chunk-C completion repair (2026-08-01)
+
+Authoritative tree: `cfd5b67` plus the chunk-C repair working tree. This section supersedes this file's
+loop-12 ending and every retained D-K statement that describes the gitlink guard as manual-only.
+
+- Conditional endpoint defence is proven against real hosted endpoint metadata: no `IAuthorizeData` on the
+  Keycloak-disabled `/global-administrators` endpoint, and the global-administrator policy when OIDC is
+  configured. The rendered/BFF guard remains present in both topologies.
+- The configured Tenants typed client builds an `HttpClientHandler` with redirects disabled, and a direct
+  3xx is pinned as `Unavailable` rather than followed.
+- Blank audit scope now returns `Error / MissingTenantId`; it no longer claims empty retained degradation.
+- The gitlink regression lane now has 19 tests. Three use isolated Git repositories and invoke the production
+  CLI end to end for matching, undeclared, and misstated pointer states, asserting both exit code and verdict.
+- Normative/evidence drift was corrected for service discovery, unsafe route identifiers, the global-admin
+  `304` exception, per-project testing, audit-adapter refutation, File List ownership, and final gitlinks.
+
+| Exact command | Result |
+| --- | --- |
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -warnaserror -m:1 -nr:false --verbosity minimal` | PASS — 0 warnings, 0 errors |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | PASS — 1,844 passed, 0 failed, 0 skipped |
+| `python3 tests/scripts/test_validate_story_gitlinks.py` | PASS — 19 passed, 0 failed |
+| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | PASS — six declared pointer movements; `RESULT: PASS` |
+| `rg -n "SubmitQueryAsync\|/api/v1/queries\|QueryRouter\|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | PASS — no matches (expected exit 1) |
+| `rg -n 'tenant-index:system\|"tenant-index"' src/Hexalith.Tenants.UI tests/Hexalith.Tenants.UI.Tests` | PASS — no matches (expected exit 1) |
+| `git diff --check` | PASS |
+
+The accepted live six-route socket limitation remains open and precisely scoped. No live-host success is
+inferred from the blocking in-process endpoint/controller coverage.

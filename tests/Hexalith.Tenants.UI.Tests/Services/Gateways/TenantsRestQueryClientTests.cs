@@ -749,6 +749,7 @@ public sealed class TenantsRestQueryClientTests
     [InlineData(HttpStatusCode.Forbidden, TenantsRestQueryFailureKind.Forbidden)]
     [InlineData(HttpStatusCode.NotFound, TenantsRestQueryFailureKind.NotFound)]
     [InlineData(HttpStatusCode.BadRequest, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(HttpStatusCode.Redirect, TenantsRestQueryFailureKind.Unavailable)]
     [InlineData(HttpStatusCode.InternalServerError, TenantsRestQueryFailureKind.Unavailable)]
     public async Task Http_failures_map_to_fixed_support_safe_categories(
         HttpStatusCode statusCode,

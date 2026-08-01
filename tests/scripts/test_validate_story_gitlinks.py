@@ -13,6 +13,9 @@ Run: `python3 tests/scripts/test_validate_story_gitlinks.py`
 
 import importlib.util
 import pathlib
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 _SCRIPT = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "validate-story-gitlinks.py"
@@ -156,6 +159,115 @@ class PathTokenOffsetTests(unittest.TestCase):
                 self.assertEqual(len(tokens), 1)
                 offset, path = tokens[0]
                 self.assertEqual(cleaned.index(path), offset)
+
+
+class GuardCommandIntegrationTests(unittest.TestCase):
+    """Runs the production CLI against real gitlink changes in an isolated repository."""
+
+    def setUp(self):
+        self._temporary_directory = tempfile.TemporaryDirectory()
+        self.repo = pathlib.Path(self._temporary_directory.name)
+        (self.repo / "scripts").mkdir()
+        (self.repo / "references").mkdir()
+        shutil.copy2(_SCRIPT, self.repo / "scripts" / _SCRIPT.name)
+
+        self._git("init", "--quiet")
+        self._git("config", "user.email", "story-guard-tests@example.invalid")
+        self._git("config", "user.name", "Story Guard Tests")
+        (self.repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+        self._git("add", "seed.txt")
+        self._git("commit", "--quiet", "-m", "seed")
+        seed = self._git("rev-parse", "HEAD").stdout.strip()
+
+        self._git(
+            "update-index",
+            "--add",
+            "--cacheinfo",
+            f"160000,{seed},references/Dependency",
+        )
+        self._git("commit", "--quiet", "-m", "add dependency pointer")
+        self.baseline = self._git("rev-parse", "HEAD").stdout.strip()
+
+        (self.repo / "seed.txt").write_text("next\n", encoding="utf-8")
+        self._git("add", "seed.txt")
+        self._git("commit", "--quiet", "-m", "create target commit")
+        self.target = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git(
+            "update-index",
+            "--cacheinfo",
+            f"160000,{self.target},references/Dependency",
+        )
+        self._git("commit", "--quiet", "-m", "move dependency pointer")
+
+    def tearDown(self):
+        self._temporary_directory.cleanup()
+
+    def test_matching_declared_pointer_exits_zero_with_pass_verdict(self):
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline[:7]} -> {self.target[:7]}",
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("[declared] references/Dependency", result.stdout)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_undeclared_pointer_exits_one_with_fail_verdict(self):
+        result = self._run_guard("- `src/Thing.cs`")
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNDECLARED] references/Dependency", result.stdout)
+        self.assertIn("RESULT: FAIL", result.stdout)
+
+    def test_misstated_pointer_exits_one_with_fail_verdict(self):
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline[:7]} -> deadbee",
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+        self.assertIn("RESULT: FAIL", result.stdout)
+
+    def _git(self, *args):
+        return subprocess.run(
+            ["git", *args],
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+    def _run_guard(self, file_list_entry, completion_entry=None):
+        story = self.repo / "story.md"
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        completion = (
+            "\n## Completion Notes List\n\n" + completion_entry + "\n"
+            if completion_entry is not None
+            else ""
+        )
+        story.write_text(
+            "---\n"
+            f"baseline_commit: {self.baseline}\n"
+            "---\n\n"
+            "## File List\n\n"
+            f"{file_list_entry}\n"
+            f"{completion}",
+            encoding="utf-8",
+        )
+        return subprocess.run(
+            [
+                "python3",
+                "scripts/validate-story-gitlinks.py",
+                str(story),
+                "--ref",
+                head,
+            ],
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
@@ -29,6 +30,9 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Endpoints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -37,6 +41,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -864,6 +869,31 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Configured_tenants_client_disables_redirects_on_its_actual_primary_handler()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        PrimaryHandlerCapture capture = new();
+        services.AddSingleton<IHttpMessageHandlerBuilderFilter>(capture);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+        _ = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+
+        HttpClientHandler handler = capture.PrimaryHandler
+            .ShouldBeOfType<HttpClientHandler>(
+                "the configured Tenants typed client must build the primary handler whose redirect policy ships");
+        handler.AllowAutoRedirect.ShouldBeFalse(
+            "a redirect must remain a 3xx failure at the exact-route client rather than being followed to another resource");
+    }
+
+    [Fact]
     public void Authoritative_search_resources_resolve_complete_english_and_french_copy()
     {
         ResourceManager manager = new(typeof(TenantsResources));
@@ -1051,47 +1081,52 @@ public sealed class TenantsUiCompositionTests
     /// defence-in-depth without changing this test, because the guard below simply stops applying.
     /// </para>
     /// </summary>
-    [Fact]
-    public void Routable_components_carry_endpoint_authorization_only_when_an_authentication_scheme_is_composed()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Privileged_route_carries_endpoint_authorization_only_when_an_authentication_scheme_is_composed(
+        bool oidcEnabled)
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+        await using WebApplicationFactory<global::Program> baseFactory = new();
+        using WebApplicationFactory<global::Program> factory = baseFactory.WithWebHostBuilder(builder =>
+        {
+            if (oidcEnabled)
             {
-                ["Tenants:BaseAddress"] = "https://tenants.invalid",
-                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
-            })
-            .Build();
-        ServiceCollection services = new();
-        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+                _ = builder.UseSetting(
+                    "Authentication:OpenIdConnect:Authority",
+                    "https://keycloak.invalid/realms/hexalith");
+                _ = builder.UseSetting("Authentication:OpenIdConnect:ClientId", "tenants-ui-tests");
+                _ = builder.UseSetting("Authentication:OpenIdConnect:ClientSecret", "test-only-secret");
+            }
+        });
 
-        using ServiceProvider provider = services.BuildServiceProvider();
-        bool hasAuthenticationScheme =
-            provider.GetService<Microsoft.AspNetCore.Authentication.IAuthenticationService>() is not null;
+        using IServiceScope serviceScope = factory.Services.CreateScope();
+        bool hasAuthenticationService = serviceScope.ServiceProvider.GetService<IAuthenticationService>() is not null;
+        hasAuthenticationService.ShouldBe(oidcEnabled,
+            "the endpoint metadata assertion must be paired with the topology that can enforce it");
 
-        Type[] routableComponents = typeof(TenantsUiServiceCollectionExtensions).Assembly
-            .GetTypes()
-            .Where(static type => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(type))
-            .Where(static type => type.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: true).Length > 0)
+        Endpoint[] privilegedEndpoints = factory.Services
+            .GetServices<EndpointDataSource>()
+            .SelectMany(static source => source.Endpoints)
+            .Where(static endpoint => endpoint.Metadata.GetMetadata<ComponentTypeMetadata>()?.Type
+                == typeof(GlobalAdministratorsPage))
             .ToArray();
+        privilegedEndpoints.ShouldNotBeEmpty(
+            "the host must materialize the real /global-administrators component endpoint before its metadata can be asserted");
 
-        routableComponents.ShouldNotBeEmpty("the routable-component scan must observe real pages to mean anything");
-
-        if (hasAuthenticationScheme)
+        foreach (Endpoint endpoint in privilegedEndpoints)
         {
-            // Authentication is composed, so the authorization middleware can challenge safely and endpoint
-            // authorization is permitted. Nothing to enforce.
-            return;
-        }
-
-        foreach (Type routable in routableComponents)
-        {
-            routable
-                .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.IAuthorizeData), inherit: true)
-                .ShouldBeEmpty(
-                    $"{routable.FullName} carries endpoint authorization metadata, but this composition resolves "
-                    + "no IAuthenticationService, so the authorization middleware would answer 500 instead of "
-                    + "rendering the page's fail-closed state. Either compose an authentication scheme in the "
-                    + "module, or keep the page's rendered guard as the authority on this topology.");
+            IAuthorizeData[] authorization = endpoint.Metadata.OfType<IAuthorizeData>().ToArray();
+            if (oidcEnabled)
+            {
+                authorization.ShouldHaveSingleItem().Policy.ShouldBe(
+                    TenantsFrontComposerRegistration.GlobalAdministratorPolicy);
+            }
+            else
+            {
+                authorization.ShouldBeEmpty(
+                    "without an authentication scheme, endpoint authorization would challenge through a missing service instead of rendering fail-closed");
+            }
         }
     }
 
@@ -1561,6 +1596,21 @@ public sealed class TenantsUiCompositionTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
             => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+    }
+
+    private sealed class PrimaryHandlerCapture : IHttpMessageHandlerBuilderFilter
+    {
+        public HttpMessageHandler? PrimaryHandler { get; private set; }
+
+        public Action<HttpMessageHandlerBuilder> Configure(Action<HttpMessageHandlerBuilder> next)
+        {
+            ArgumentNullException.ThrowIfNull(next);
+            return builder =>
+            {
+                next(builder);
+                PrimaryHandler = builder.PrimaryHandler;
+            };
+        }
     }
 
     private sealed class CapturingLoggerProvider : ILoggerProvider

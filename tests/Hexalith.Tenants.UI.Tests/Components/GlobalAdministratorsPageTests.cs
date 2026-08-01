@@ -1943,9 +1943,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         page.ShouldContain("@page \"/global-administrators\"");
 
-        // Platform authority is a rendered fail-closed state, never endpoint authorization. The host
-        // registers an authentication scheme only when OIDC is configured, so authorize metadata on the
-        // route would fault the request instead of rendering the restricted surface.
+        // Endpoint authorization is attached conditionally by Program.cs when OIDC is configured, not as
+        // static component metadata. The component must therefore remain routable on the Keycloak-disabled
+        // topology, where its rendered state is the fail-closed authority.
         page.ShouldNotContain("@attribute [Authorize");
         routes.ShouldNotContain("<AuthorizeRouteView");
         routes.ShouldContain("<RouteView");

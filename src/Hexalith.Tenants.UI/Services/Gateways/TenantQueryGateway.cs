@@ -898,7 +898,7 @@ internal sealed class TenantQueryGateway(
         }
 
         if (string.IsNullOrWhiteSpace(request.TenantId)) {
-            return TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingTenantId, request);
+            return TenantAuditSnapshot.Error(request, TenantAuditReason.MissingTenantId);
         }
 
         try {

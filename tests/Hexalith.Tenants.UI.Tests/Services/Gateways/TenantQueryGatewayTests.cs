@@ -5986,10 +5986,9 @@ public sealed class TenantQueryGatewayTests
     /// <remarks>
     /// Only the detail arm was covered, and only it asserted that nothing is logged. The three guards return
     /// different kinds, so a single shared assertion cannot stand in for them. The audit arm is the one worth
-    /// naming: it returns <c>Degraded([], MissingTenantId)</c>, and degradation means "confirmed rows held
-    /// under reduced confidence" -- there are none, because the read never happened. That is the same
-    /// first-load-degradation shape decision D3 removed elsewhere, so this pins the current behaviour and the
-    /// remark records the discrepancy rather than asserting it is right.
+    /// naming: it used to return <c>Degraded([], MissingTenantId)</c>, even though degradation means confirmed
+    /// rows held under reduced confidence and the malformed request never produced any evidence. It now uses
+    /// the true first-load error shape required by decision D3.
     /// </remarks>
     [Theory]
     [InlineData("")]
@@ -6019,6 +6018,7 @@ public sealed class TenantQueryGatewayTests
             new TenantAuditRequest(blank),
             previous: null,
             CancellationToken.None);
+        audit.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
         audit.Reason.ShouldBe(TenantAuditReason.MissingTenantId);
         audit.Rows.ShouldBeEmpty();
 

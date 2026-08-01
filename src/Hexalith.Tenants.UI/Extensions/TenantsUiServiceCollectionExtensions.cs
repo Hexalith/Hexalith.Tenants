@@ -122,6 +122,10 @@ public static class TenantsUiServiceCollectionExtensions
         {
             IHttpClientBuilder tenantsQueryClient = services
                 .AddHttpClient<TenantsRestQueryClient>(client => client.BaseAddress = tenantsBaseAddress)
+                // The six reads are exact-route contracts. Following a 3xx can silently turn one read into
+                // another route whose overlapping JSON shape deserializes successfully, so redirects are a
+                // fixed unavailable result rather than transport instructions this client follows.
+                .ConfigurePrimaryHttpMessageHandler(static () => new HttpClientHandler { AllowAutoRedirect = false })
                 .RemoveAllLoggers();
             if (enableGatewayAuthorization)
             {

@@ -2,7 +2,8 @@
 
 Date: 2026-07-28  
 Story baseline commit: `8d64563c75423c861b0be0e3a7cc4de18f673d37`  
-Repository revision under the working tree: `09947a2` + completion metadata changes
+Repository revision originally reviewed: `09947a2` + completion metadata changes
+Current review base: `cfd5b67` + the 2026-08-01 chunk-C repair tree recorded at the end of this file
 
 ## Outcome
 
@@ -33,9 +34,10 @@ confirmation, or audit availability.
 
 The six path-building sites are lines 52, 71, 91, 113, 135, and 167 (corrected in review loop 4; the
 previously recorded 39/53/68/85/102/120 no longer resolved to the code they described). Literal
-route identities and query values are escaped; dot-only route identities cannot be normalized into a
-different resource. The client accepts only HTTP/HTTPS base addresses, payloads only from `200 OK`, and
-conditional retention only from `304 Not Modified`. Every other 2xx is rejected.
+route identities and query values are escaped after all-dot and separator-bearing route identifiers are
+rejected; those unsafe values are never transported. The client accepts only HTTP/HTTPS base addresses,
+does not follow redirects, accepts payloads only from the exact route's `200 OK`, and conditionally retains
+only from `304 Not Modified`. Every 3xx and every other 2xx is rejected.
 
 The final structural command
 
@@ -52,7 +54,9 @@ that query-read prohibition.
 - Request and response validators must be bounded, strong ETags. A `304` is accepted only if a valid
   validator was actually sent, the response repeats that exact normalized validator, and response
   metadata is projection-backed, non-degraded, versioned, and has a supported freshness/lifecycle
-  classification. Retained data is never relabelled with another ETag or projection version.
+  classification. Retained data is never relabelled with another ETag. Its projection version is retained
+  too, except for the approved global-administrator exact-validator case: only there may supported `304`
+  metadata advance the retained snapshot's projection version and recompute completeness.
 - `ServedAt`, notifications, request time, payload presence, and command state do not prove currentness.
   Missing, malformed, weak, contradictory, degraded, or non-projection evidence fails closed.
 - Paginated `Items` must be non-null, and `HasMore` requires a usable continuation cursor. A generic
@@ -95,7 +99,9 @@ surface test proves an unauthorized page never calls `SubscribeAsync("global-adm
 
 ## Support and composition safety
 
-- Bearer relay and service discovery are attached only to the server-side configured Tenants client.
+- Bearer relay is attached only to the server-side configured Tenants client. Service discovery is
+  deliberately not attached: AppHost supplies an already-resolved plain HTTP/HTTPS endpoint, and compound
+  discovery schemes fail closed on their owning side.
   Executed composition tests observe the real outbound `Authorization: Bearer` header when relay is
   enabled and its absence when disabled.
 - `Tenants:BaseAddress` and `EventStore:BaseAddress` are registered independently, including the two
@@ -125,12 +131,11 @@ System.InvalidOperationException: Unable to find the required 'IAuthenticationSe
 ```
 
 Reproduced out of band against the standalone host (`/global-administrators` → 500 while `/tenants` →
-200), so the diagnosis is a captured stack trace, not an inference. Platform authority is now enforced
-solely by the page's rendered fail-closed state — the mechanism the acceptance criteria and the
-component tests already exercise — and the unreachable `AuthorizeRouteView` fragments were removed.
-`TenantsUiCompositionTests.Routable_components_fail_closed_in_page_without_endpoint_authorization_metadata`
-pins the invariant in the fast lane so the Aspire lane is no longer the only detector. It was confirmed
-red against the defect before the fix landed.
+200), so the diagnosis is a captured stack trace, not an inference. The static component attribute and the
+unreachable `AuthorizeRouteView` fragments were removed. The final topology is conditional: without OIDC,
+the page's rendered fail-closed state remains reachable; with OIDC, `Program.cs` attaches the global-
+administrator policy to that component endpoint as defence in depth. The fast-lane composition theory
+materializes the hosted endpoint in both topologies and asserts both halves of that pairing.
 
 Removing the 500 exposed a second, independent break in the same route: the story's new restricted
 branch replaced the whole page, dropping the `tenants-global-admins-area` container and the
@@ -418,10 +423,11 @@ The gitlink validator compared story baseline `8d64563` to `09947a2` plus the co
 [declared] references/Hexalith.Memories  1868c8f -> ccd8efa
 ```
 
-No live `HOST-REF-1`, dependency, test, build, support-safety, or gitlink blocker remains. The story-owned
-File List was re-audited and expanded to include the implementation, host wiring, state, localization,
-integration, regression, and evidence files represented by the completed Story 1.10 work; Story 1.11 and
-unrelated BMAD render files remain outside this story's ownership.
+At this checkpoint no live `HOST-REF-1`, dependency, test, build, support-safety, or gitlink blocker
+remained. The File List then excluded Story 1.11 and unrelated BMAD render files. Later review loops
+superseded that boundary for range provenance: the authoritative current File List deliberately declares
+the Story 1.11 spec and three BMAD render artifacts while stating that they do not carry Story 1.10 runtime
+behavior. This dated paragraph must not be read as the final ownership boundary.
 
 ## Review loop 6 — open-decision closure (2026-07-29)
 
@@ -528,3 +534,46 @@ It reports all six pointer movements as `[declared]`, exits 0, and ends with the
 ```text
 RESULT: PASS
 ```
+
+## Review loop 14 — chunk-C completion repair (2026-08-01)
+
+This section is the authoritative completion evidence for repository revision `cfd5b67` plus the chunk-C
+repair tree. It supersedes the evidence file's loop-12 ending and the manual-only D-K statements above.
+Review loop 13 had already reversed D-K and added the Python/CI lane, but that result existed only in the
+story spec; this repair records it in both completion artifacts and extends the lane through the production
+CLI rather than parser helpers alone.
+
+The repair also closes three implementation findings:
+
+- `/global-administrators` carries the global-administrator endpoint policy when OIDC is configured, while
+  the Keycloak-disabled topology carries no endpoint authorization metadata and still renders its page-level
+  fail-closed state. The hosted endpoint theory materializes and asserts both topologies.
+- The Tenants typed client's actual primary `HttpClientHandler` has `AllowAutoRedirect = false`; 3xx
+  responses remain fixed unavailable results and cannot retarget an exact direct read.
+- A blank audit tenant identifier now produces `Error / MissingTenantId`, not an empty `Degraded` snapshot
+  that falsely implies retained evidence.
+
+The story contract and evidence were reconciled with the already-resolved final architecture: no service-
+discovery handler, AppHost-resolved plain HTTP/HTTPS endpoints, rejection of all-dot/separator-bearing route
+identifiers, the approved global-administrator `304` projection-version exception, per-project test lanes,
+the final declared gitlink set, the refuted audit-adapter claim, and the current File List boundary.
+
+### Exact executable evidence
+
+| Exact command | Result |
+| --- | --- |
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -warnaserror -m:1 -nr:false --verbosity minimal` | **PASS — 0 warnings, 0 errors** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` | **PASS — 1,844 passed, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests` | **PASS — 82 passed, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantsRestQueryClientTests` | **PASS — 118 passed, 0 failed, 0 skipped** |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests` | **PASS — 393 passed, 0 failed, 0 skipped** |
+| `python3 tests/scripts/test_validate_story_gitlinks.py` | **PASS — 19 passed, 0 failed**; includes matching, undeclared, and misstated real-gitlink CLI repositories |
+| `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` | **PASS — six pointer movements declared; `RESULT: PASS`** |
+| `rg -n "SubmitQueryAsync\|/api/v1/queries\|QueryRouter\|HandlerAwareQueryRouter" src/Hexalith.Tenants.UI` | **PASS — no matches (expected exit 1)** |
+| `rg -n 'tenant-index:system\|"tenant-index"' src/Hexalith.Tenants.UI tests/Hexalith.Tenants.UI.Tests` | **PASS — no matches (expected exit 1)** |
+| `git diff --check` | **PASS** |
+
+The previously accepted live six-route socket limitation is unchanged: this repair does not reinterpret a
+self-skipping/non-blocking Aspire lane as proof. The generated-controller and live-topology code did not
+change; the changed standalone-host topology is exercised by the real `WebApplicationFactory` endpoint data
+source in the blocking UI project.

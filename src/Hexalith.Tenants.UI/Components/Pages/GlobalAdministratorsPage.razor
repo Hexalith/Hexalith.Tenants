@@ -1,7 +1,7 @@
 @page "/global-administrators"
-@* Platform authority is enforced by the rendered fail-closed state below, not by endpoint
-   authorization: the host registers an authentication scheme only when OIDC is configured, so an
-   [Authorize] attribute would make the authorization middleware challenge and fault the route. *@
+@* Platform authority always fails closed in the rendered state below. Program.cs additionally attaches
+   endpoint authorization when OIDC is configured; keeping that metadata out of this static component lets
+   the Keycloak-disabled topology render safely instead of challenging through a missing auth scheme. *@
 @using Hexalith.Tenants.UI.State
 @using Microsoft.Extensions.Logging
 @inject IStringLocalizer<TenantsResources> Localizer

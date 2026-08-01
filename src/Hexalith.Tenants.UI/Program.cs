@@ -1,9 +1,12 @@
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
 using Hexalith.Tenants.UI.Components;
+using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Extensions;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Endpoints;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -70,8 +73,23 @@ if (authEnabled) {
 
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+RazorComponentsEndpointConventionBuilder razorComponents = app.MapRazorComponents<App>();
+if (authEnabled) {
+    // Route metadata is conditional because the standalone host deliberately has no authentication scheme
+    // when OIDC is absent. A static [Authorize] attribute made that topology answer 500 instead of rendering
+    // the page's fail-closed state. With OIDC present, retain endpoint authorization as defence in depth in
+    // addition to the page/BFF authorization reflection.
+    razorComponents.Add(endpointBuilder => {
+        if (endpointBuilder.Metadata
+            .OfType<ComponentTypeMetadata>()
+            .Any(static metadata => metadata.Type == typeof(GlobalAdministratorsPage))) {
+            endpointBuilder.Metadata.Add(
+                new AuthorizeAttribute(TenantsFrontComposerRegistration.GlobalAdministratorPolicy));
+        }
+    });
+}
+
+razorComponents.AddInteractiveServerRenderMode();
 
 if (authEnabled) {
     _ = app.MapHexalithFrontComposerAuthenticationEndpoints();
