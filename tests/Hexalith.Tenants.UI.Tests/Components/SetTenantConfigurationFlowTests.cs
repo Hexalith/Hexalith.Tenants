@@ -442,6 +442,77 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void A_global_administrator_can_set_a_key_outside_any_ordinary_prefix_grant()
+    {
+        // Every prior fixture set isGlobalAdministrator: false. Deleting the IsGlobalAdministrator branch of
+        // IsKeyAuthorized or ResolveAuthorizedNamespace permanently blocks a proven global administrator
+        // from setting configuration, and nothing in the suite failed.
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        TenantConfigurationManagementContext globalAdministrator = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            isGlobalAdministrator: true,
+            authorizedPrefixes: [],
+            removableRows: []);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, globalAdministrator)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(globalAdministrator))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult(
+                Proof(request.TenantId, TenantConfigurationProjectionProofKind.SetConfirmed))));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("ops.feature");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enabled");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+        gateway.LastSetConfigurationRequest.ShouldNotBeNull().ShouldBe(
+            new SetTenantConfiguration("tenant.alpha", "ops.feature", "enabled"));
+    }
+
+    [Fact]
+    public void Preview_namespace_selects_the_longest_matching_authorized_prefix()
+    {
+        // Both flow suites previously derived prefixes by splitting keys on the first dot, so
+        // AuthorizedPrefixes never contained two prefixes matching one key. OrderByDescending(length)
+        // → OrderBy(length) survived, and the destructive-command preview's Namespace row is the
+        // authorization evidence shown before a high-impact change.
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            isGlobalAdministrator: false,
+            authorizedPrefixes: ["app", "app.feature"],
+            removableRows: [new TenantConfigurationSafeRow("app.feature", "app.feature.flag", "off")]);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(context)));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("app.feature.flag");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("on");
+
+        cut.Find("[data-testid='tenants-config-set-preview-namespace']").TextContent.ShouldBe("app.feature");
+    }
+
+    [Fact]
     public void Keyboard_form_submission_confirms_only_after_status_and_projection_evidence()
     {
         StubTenantCommandGateway gateway = new()

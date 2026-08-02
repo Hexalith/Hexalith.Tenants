@@ -370,6 +370,26 @@ Contracts 116/116, Client 50/50, Testing 181/181, Server 738/738; `dotnet build 
   composition/accessibility and broader test/evidence review groups remain follow-up work. The two Story 1.9 search
   findings remain tracked in `_bmad-output/implementation-artifacts/deferred-work.md`.
 
+### Story 1.6 test/evidence chunk closure (2026-08-02)
+
+- [x] Page→management→flow reauth wiring: `Detail_page_reauthorizes_configuration_management_through_the_bff_on_set_submit`
+  submits a set through `TenantDetailPage`, asserts `BffComposition.ReauthorizeConfigurationManagementAsync` was
+  invoked, and proves a revoked/unavailable reauth result blocks the command (returning the render-time snapshot
+  context would fail open).
+- [x] Global-administrator set scope: `A_global_administrator_can_set_a_key_outside_any_ordinary_prefix_grant`
+  confirms `ops.feature` with empty ordinary prefixes; deleting the `IsGlobalAdministrator` authorization branch fails.
+- [x] Longest-prefix preview evidence: `Preview_namespace_selects_the_longest_matching_authorized_prefix` seeds
+  `["app","app.feature"]` and asserts preview namespace `app.feature` for `app.feature.flag`.
+- [x] Per-read fault containment: `Initial_detail_load_contains_each_fault_and_observes_the_sibling_read` faults
+  detail and member reads independently and asserts the sibling still completes.
+- [x] Page configuration summary unavailable vs empty:
+  `Detail_page_configuration_summary_renders_unavailable_when_policy_cannot_be_verified` and
+  `Detail_page_configuration_summary_renders_valid_empty_without_unavailable_copy`.
+- [x] AlreadyApplied value-staleness remains the accepted bounded limitation from 2026-07-31 (one-read-stale,
+  Current-only landmark, fail-closed direction).
+- Verification: UI Release build 0/0; solution Release build 0/0; Set+DetailSurface 197/197; prescribed focused
+  classes 557/557; full UI executable **1892/1892**. Story status → `review`.
+
 ## Story 1.9 Authoritative Memories Search Evidence Addendum (2026-07-26)
 
 Re-derived from the amended Story 1.9 spec after commit `a6f5801` rolled back the previous
