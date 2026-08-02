@@ -4,7 +4,7 @@ baseline_commit: b73093bd10608afe4e6036439a48a08924d0358b
 
 # Story 1.6: Read-Only Tenant Configuration
 
-Status: in-progress
+Status: done
 
 <!-- 2026-07-27 code review: 2 decisions resolved, 39 of 39 patches closed, two items deferred. The last open item
 (empty-array vs empty-scalar DisplaySafe) was resolved as Decision 3 below: accepted as a bounded, test-pinned
@@ -212,6 +212,14 @@ pinned by regression tests.
 - An initial `--no-restore` Release attempt was invalidated by generated assets left in source-reference mode; running the
   pinned package-mode restore and build as one graph resolved the environmental mismatch without dependency changes.
 
+**2026-08-02 test/evidence chunk.** Closed the five remaining 2026-07-31 verification patches with regression tests only.
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- Focused Set + DetailSurface classes — 197/197.
+- Focused ReadPolicy + QueryGateway + BffComposition + RemoveFlow + FluentConformance + EndToEnd — 557/557.
+- Full UI executable — 1892/1892.
+
 ### Implementation Plan
 
 - Harden the policy/principal boundary and sanitize all tenant configuration before snapshot construction.
@@ -231,6 +239,19 @@ pinned by regression tests.
 - **2026-07-28, trust-boundary re-review.** Applied all 11 accepted patches from the narrowed trust-boundary chunk and
   added 10 net-new test cases. The full UI count moved 1315 → 1325. Story status remains `review` because the agreed
   chunking leaves the UI composition/accessibility and broader test/evidence review groups for follow-up.
+- **2026-08-02, test/evidence chunk.** Closed the five remaining verification patches from the 2026-07-31 UI review
+  with focused regression tests only (no production code change in this pass). Page set-submit now exercises
+  `BffComposition.ReauthorizeConfigurationManagementAsync`; global-administrator set without ordinary prefixes,
+  longest-prefix preview evidence, sibling-read fault containment, and page configuration-summary unavailable vs
+  empty are pinned. AlreadyApplied value-staleness stays the accepted bounded limitation. UI suite 1892/1892.
+  Story status → review.
+- **2026-08-02, gitlink guard.** This session moved no `references/` pointers. Against the story delivery commit
+  (`python3 scripts/validate-story-gitlinks.py --ref ec7ec8c …`) the check **PASS**es: only
+  `references/Hexalith.EventStore` (`c6b72ca` → `440ff4c`) moved and it is declared. Against current HEAD the
+  check **FAIL**s with six UNDECLARED post-`ec7ec8c` drifts (AI.Tools, Builds, Commons, FrontComposer, Memories,
+  PolymorphicSerializations) plus a MISSTATED EventStore SHA (`440ff4c` stated for the story bump vs `77d6f47`
+  in the current tree). Those later moves are other stories' work riding a mid-story `baseline_commit`
+  (`b73093b`); they are not reverted or re-attributed here. Verdict recorded verbatim per `on_complete`.
 - No public query contract, endpoint, dependency, or package changed; Story 1.10 transport/provenance work remains separate. **Correction (2026-07-27 review):** the `references/Hexalith.EventStore` gitlink *was* changed by `ec7ec8c` (`c6b72ca` → `440ff4c`), which this sentence originally denied. See the resolved decisions below.
 
 ### File List
@@ -315,12 +336,21 @@ Touched by the 2026-07-28 trust-boundary re-review patch pass (all source/test p
 - `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
 - `tests/test-summary.md`
 
+Touched by the 2026-08-02 test/evidence chunk closure:
+
+- `_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/test-summary.md`
+
 ### Change Log
 
 - 2026-07-22: Completed the corrective positive-policy safe configuration model, sanitized BFF integration, strict read-only landmark, sibling safe management/proof boundary, localization, accessibility, focused/end-to-end coverage, and repository-wide validation; moved Story 1.6 to review.
 - 2026-07-27: Adversarial code review over `2f190a1..ec7ec8c`; 2 decisions resolved, 38 of 39 patches applied, 2 items deferred. UI suite 1281 → 1312. Story held at in-progress for the one open patch.
 - 2026-07-27: Closed the last open review patch as Decision 3 (bounded limitation, no spec change) with 3 mutation-verified regression tests; restored the Tasks/Subtasks checkboxes that `ec7ec8c` stripped from this file; re-ran the prescribed verification. UI suite 1312 → 1315. Story 1.6 back to review.
 - 2026-07-28: Applied all 11 accepted patches from the narrowed trust-boundary re-review chunk; Release UI and solution builds passed warning-clean and the UI suite passed 1325/1325. Story remains in review for the agreed follow-up chunks.
+- 2026-08-02: Closed the deferred test/evidence chunk — five open verification patches from the 2026-07-31 UI review are now pinned (page BFF reauth wiring, global-admin set scope, longest-prefix preview, per-read fault containment, page summary unavailable-vs-empty). AlreadyApplied value-staleness remains the accepted bounded limitation. UI suite 1892/1892. Story status → review.
 
 ### Review Findings
 
@@ -426,8 +456,8 @@ Record accuracy:
 - [x] [Review][Defer] Treating search-hydration 404 and 403 identically can stop paging before later authorized matches [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1013] — deferred, pre-existing relative to Story 1.6 and owned by Story 1.9
 
 All 11 patch findings in this narrowed chunk were resolved and verified on 2026-07-28. The two defers remain in the
-deferred-work ledger under Story 1.9 ownership. Story and sprint status intentionally remain `review`: the agreed
-chunking still leaves UI composition/accessibility and broader test/evidence groups for follow-up review.
+deferred-work ledger under Story 1.9 ownership. The 2026-07-31 UI chunk and 2026-08-02 test/evidence chunk later
+closed the remaining Story 1.6 review follow-ups; story status is now `review`.
 
 #### UI composition and accessibility re-review (2026-07-31, `2f190a1..HEAD` narrowed to the UI chunk)
 
@@ -469,7 +499,7 @@ Patches — correctness:
 - [x] [Review][Patch] [HIGH] The projection proof ignores `ProjectionLifecycleState`, so confirmation is weaker than submission: this chunk added `Lifecycle is not ProjectionLifecycleState.Current` gates to the Set flow, the Remove flow and the management landmark, but the proof that actually flips the truth state gates only on tenant match, `IsNotModified`, non-null payload and `ResolveFreshness(...) is Current`. A projection that is `Rebuilding` or `Unavailable` while reporting Current freshness still returns `SetConfirmed`/`RemoveConfirmed`. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2009-2035`]
 - [x] [Review][Patch] The read landmark renders a lifecycle badge it excludes from its own truth model — `CanInspect`, `IsDegraded`, `HasNonCurrentState`, `EffectiveFreshness`, `StateResourcePrefix` and `LivePoliteness` never reference `Lifecycle`. With `Lifecycle = Unavailable` and `Freshness = Current`, `HasNonCurrentState` is false, so the header shows an "Unavailable" lifecycle badge beside a "Current" truth badge and no state sentence at all. Every sibling in this diff requires `Lifecycle is Current`; the read view is the sole outlier. [`src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:180-222`]
 - [x] [Review][Patch] The remove preview reports a namespace that contradicts both the read grid and the Set flow: `NamespacePrefix` splits on the first dot, while `TenantConfigurationSafeComposer.TryResolveNamespace` and `SetTenantConfigurationFlow.ResolveAuthorizedNamespace` both resolve the longest matching authorized prefix. With grant `app.feature` and key `app.feature.flag`, the destructive-command preview — the operator's consequence contract — claims scope `app`. [`RemoveTenantConfigurationFlow.razor:617-621`]
-- [ ] [Review][Patch] `AlreadyApplied` is decided from render-time values: `Reauthorize` re-resolves *policy* against the already-composed snapshot rows and performs no projection re-read, so `currentContext.FindRemovableRow(...).Value` is byte-identical to the parameter context's. A value changed server-side since the last read yields a terminal `AlreadyApplied` rendered with the "OK" symbol, with no command sent and no proof requested. The grant-revocation half of the guard is real; the value half is not. [`SetTenantConfigurationFlow.razor:543-550`; `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:60-92`]
+- [x] [Review][Patch → CLOSED AS BOUNDED LIMITATION] `AlreadyApplied` is decided from render-time values: `Reauthorize` re-resolves *policy* against the already-composed snapshot rows and performs no projection re-read, so `currentContext.FindRemovableRow(...).Value` is byte-identical to the parameter context's. A value changed server-side since the last read yields a terminal `AlreadyApplied` rendered with the "OK" symbol, with no command sent and no proof requested. The grant-revocation half of the guard is real; the value half is not. Accepted 2026-07-31: the claim is at most one read stale, the landmark renders only while freshness and lifecycle are Current, and the failure direction is one-way — a stale match declines to write a value the UI believes is already set, it never writes one. Misleading comment corrected in place. [`SetTenantConfigurationFlow.razor:543-550`; `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:60-92`]
 - [x] [Review][Patch] `FocusAsync` on a detached `ElementReference` throws an unguarded `JSException`: the prune loop keys liveness on `Context.RemovableRows` (data) rather than on whether the grid was rendered, but the `@ref` spans render only inside the `else` branch gated by `UnavailableReason`. When a background refresh flips freshness or lifecycle in the same cycle as a Cancel, the keys survive both the prune and the `_focusRemoveLaunchKey` guard, and `OnAfterRenderAsync` focuses a detached reference. The `catch` handles only `JSDisconnectedException`, so the circuit tears down. [`TenantConfigurationManagement.razor:174-205`]
 - [x] [Review][Patch] Ten `FocusAsync` calls across the two flows carry no `JSDisconnectedException` guard (Set 4, Remove 6, both with zero guards) while the third component added in this same diff has one. A queued focus that resolves after the circuit drops throws into `OnAfterRenderAsync`. [`SetTenantConfigurationFlow.razor`; `RemoveTenantConfigurationFlow.razor`]
 - [x] [Review][Patch] `RefreshStatusAsync` has no reentrancy guard and read-modify-writes `_snapshot` across awaits, so two overlapping runs let a stale status overwrite a newer terminal one. `SubmitAsync` has an explicit `_isSubmitting` guard; `CanRefresh` does not consider an in-flight refresh, and Blazor re-renders (re-enabling the button) at the first incomplete await. Three entry points reach it: the Refresh button, `SubmitAsync`'s own call, and `AuditAvailabilityState.OnRefresh`. [`RemoveTenantConfigurationFlow.razor:537-570`; `SetTenantConfigurationFlow.razor:596-627`]
@@ -495,14 +525,19 @@ Patches — accessibility, copy and layout:
 
 Patches — verification that does not verify:
 
-- [ ] [Review][Patch] The page→management→flow provider wiring is never exercised. All nine management renders pass only `Context`/`SurfaceKind`/`Freshness`/`Lifecycle`; no test submits a set or remove through `TenantDetailPage`. Rewriting the page wrapper as `=> Task.FromResult(_snapshot.ConfigurationManagement)` — returning the render-time context instead of re-resolving policy — fails **open** and survives the whole suite. The same defect class was closed one layer down at the composition seam, not at this page seam. [`TenantDetailPage.razor:205-214,898-905`]
+- [x] [Review][Patch] The page→management→flow provider wiring is never exercised. All nine management renders pass only `Context`/`SurfaceKind`/`Freshness`/`Lifecycle`; no test submits a set or remove through `TenantDetailPage`. Rewriting the page wrapper as `=> Task.FromResult(_snapshot.ConfigurationManagement)` — returning the render-time context instead of re-resolving policy — fails **open** and survives the whole suite. The same defect class was closed one layer down at the composition seam, not at this page seam. [`TenantDetailPage.razor:205-214,898-905`]
+  - Closed 2026-08-02: `Detail_page_reauthorizes_configuration_management_through_the_bff_on_set_submit` submits through the page, asserts `BffComposition.ReauthorizeConfigurationManagementAsync` was called, and proves a revoked/unavailable reauth result blocks the command.
 - [x] [Review][Patch] Fail-closed handling of a null or throwing `ReauthorizeProvider` is unverified. Every test that reaches submit with a valid request sets the provider, and every submit without it fails `TryBuildRequest` first, so `currentContext = Unavailable(...)` on both the null branch and the catch branch is never executed. No provider anywhere in `tests/` throws. Mutating either branch to `Context` (fail open) survives. [`SetTenantConfigurationFlow.razor:521-532`; `RemoveTenantConfigurationFlow.razor:471-482`]
-- [ ] [Review][Patch] Global-administrator scope is absent from every component fixture (`isGlobalAdministrator: false` everywhere, end-to-end authenticates `global_admin=false`), so the admin branches are unpinned: deleting `!Context.IsGlobalAdministrator &&` or the `IsGlobalAdministrator` branch of `ResolveAuthorizedNamespace` permanently blocks a global administrator from setting configuration and no test fails. [`SetTenantConfigurationFlow.razor:259,716-729`]
+- [x] [Review][Patch] Global-administrator scope is absent from every component fixture (`isGlobalAdministrator: false` everywhere, end-to-end authenticates `global_admin=false`), so the admin branches are unpinned: deleting `!Context.IsGlobalAdministrator &&` or the `IsGlobalAdministrator` branch of `ResolveAuthorizedNamespace` permanently blocks a global administrator from setting configuration and no test fails. [`SetTenantConfigurationFlow.razor:259,716-729`]
+  - Closed 2026-08-02: `A_global_administrator_can_set_a_key_outside_any_ordinary_prefix_grant` submits `ops.feature` with empty ordinary prefixes and proves Confirmed; the shape-guard fixture already pinned the admin short-circuit.
 - [x] [Review][Patch] `Already_applied_is_decided_from_the_re_authorized_context` cannot fail — the test passes the *same context instance* as both `Context` and the `ReauthorizeProvider` result, so `Context.FindRemovableRow(...)` and `currentContext.FindRemovableRow(...)` are indistinguishable, despite the comment asserting the opposite. [`tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs:256-282`]
-- [ ] [Review][Patch] Longest-prefix authorization-evidence selection is untestable with the current fixtures: both flow suites derive prefixes through a helper that splits on the first dot, so `AuthorizedPrefixes` never contains two prefixes matching one key. `OrderByDescending(length)` → `OrderBy(...)` survives, and the preview's Namespace row is the authorization evidence shown before a high-impact change. [`SetTenantConfigurationFlow.razor:724-728`]
-- [ ] [Review][Patch] Per-read fault handling on the detail page is unverified — no test faults `ITenantQueryGateway`. Replacing the two independent try/catch blocks with a bare `Task.WhenAll` survives, leaving the member surface stuck on Loading with an unobserved task exception, exactly what the code comment says it prevents. [`TenantDetailPage.razor:340-369,386-387`]
+- [x] [Review][Patch] Longest-prefix authorization-evidence selection is untestable with the current fixtures: both flow suites derive prefixes through a helper that splits on the first dot, so `AuthorizedPrefixes` never contains two prefixes matching one key. `OrderByDescending(length)` → `OrderBy(...)` survives, and the preview's Namespace row is the authorization evidence shown before a high-impact change. [`SetTenantConfigurationFlow.razor:724-728`]
+  - Closed 2026-08-02: `Preview_namespace_selects_the_longest_matching_authorized_prefix` seeds `["app","app.feature"]` and asserts preview namespace `app.feature` for key `app.feature.flag`.
+- [x] [Review][Patch] Per-read fault handling on the detail page is unverified — no test faults `ITenantQueryGateway`. Replacing the two independent try/catch blocks with a bare `Task.WhenAll` survives, leaving the member surface stuck on Loading with an unobserved task exception, exactly what the code comment says it prevents. [`TenantDetailPage.razor:340-369,386-387`]
+  - Closed 2026-08-02: `Initial_detail_load_contains_each_fault_and_observes_the_sibling_read` faults detail and member reads independently and asserts the sibling still completes.
 - [x] [Review][Patch] The management landmark's stale-target reset and element-reference prune never execute in any test — no management render is re-rendered with a changed `Context`, so `OnParametersSet` only ever runs with `_removeKey == null` and an empty dictionary. Both guarded bodies, and both defects they exist to prevent, are unreachable in the suite. [`TenantConfigurationManagement.razor:164-188`]
-- [ ] [Review][Patch] The detail page's configuration summary cannot distinguish "unavailable" from "empty" under test: deleting the `!configuration.IsAvailable` branch makes unverifiable configuration evidence render the absence claim "No visible configuration is available in this detail projection", and no test asserts the unavailable string. The sibling read landmark keeps exactly this distinction under test. [`TenantDetailPage.razor:919-927`]
+- [x] [Review][Patch] The detail page's configuration summary cannot distinguish "unavailable" from "empty" under test: deleting the `!configuration.IsAvailable` branch makes unverifiable configuration evidence render the absence claim "No visible configuration is available in this detail projection", and no test asserts the unavailable string. The sibling read landmark keeps exactly this distinction under test. [`TenantDetailPage.razor:919-927`]
+  - Closed 2026-08-02: `Detail_page_configuration_summary_renders_unavailable_when_policy_cannot_be_verified` and `Detail_page_configuration_summary_renders_valid_empty_without_unavailable_copy`.
 
 Deferred:
 
@@ -530,8 +565,27 @@ All 34 patches were accepted for application. Outcome:
   `CurrentState.Absent` would have leaked the existence of authorized-but-not-display-safe keys, which AC3
   forbids. The conflation is mandated; the copy was made honest instead ("Not visible — this key has no
   approved value to display, or no value is set." / EN+FR).
-- **5 verification patches deliberately left open** (unchecked above) — they belong to the deferred
-  test/evidence chunk, which will cover that ground with its own review rather than in passing here.
+- **5 verification patches closed 2026-08-02** (were deliberately deferred to the test/evidence chunk).
+  Page→BFF reauth wiring, global-administrator set scope, longest-prefix preview evidence, per-read fault
+  containment, and page configuration-summary unavailable-vs-empty are now pinned. The AlreadyApplied
+  value-staleness item remains the accepted bounded limitation recorded above.
+
+#### Test/evidence chunk closure (2026-08-02)
+
+Closed the five open verification patches from the 2026-07-31 UI review plus confirmed the AlreadyApplied
+bounded limitation. No production code changes in this pass — coverage only.
+
+Verification (commands run 2026-08-02):
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `… -class …Components.SetTenantConfigurationFlowTests` + `…TenantDetailSurfaceTests` — 197/197.
+- `… -class` ReadPolicy + QueryGateway + BffComposition + RemoveFlow + FluentConformance + EndToEnd — 557/557.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` — **1892/1892**.
+
+New regression tests: page submits set through BFF reauth (revoked policy fails closed); page summary keeps
+unavailable vs valid-empty distinct; global administrator sets outside ordinary prefixes; preview namespace
+uses longest matching prefix; initial detail/member fault containment (sibling still observed).
 
 Resource changes: `Header.Freshness`, `KeyAccessible` and `ValueAccessible` deleted (unused after the per-row
 badge columns and the ARIA-prohibited `aria-label`s were removed); `State.ProjectionLifecycle{,.Title}` and
@@ -551,3 +605,32 @@ open flow mounted after its target row leaves the context; management still clos
 disappears; a tenant switch drops every open interaction even mid-command; already-applied decided from a
 genuinely different re-authorized context; submit fails closed with no reauthorize provider; submit fails
 closed and support-safe when reauthorization throws; keys that cannot be reproduced by typing are rejected.
+
+### Review Findings
+
+#### Chunk 1 re-review — Policy + BFF (`2f190a1..ec7ec8c`, 2026-08-02)
+
+Layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor. Findings rated against HEAD
+reachability; delivery-only defects already closed by later patches were dismissed.
+
+- [x] [Review][Patch] Compose/reauth failure paths drop last-confirmed safe rows — `catch` arms call `TenantDetailSnapshot.Degraded(previous.Detail, …)`, which rebuilds via `UnavailableComposition` and clears `previous.Configuration` instead of `DegradedFromComposition` / `RetainPreviousTenantDetailAsync` continue-read-only. Violates AC5 and the failed-refresh → continue-read-only task. [`TenantQueryGateway.cs:255-263`; `TenantQueryGateway.cs:2162-2168`]
+- [x] [Review][Patch] Policy binder fail-closed catch is too narrow — only `InvalidOperationException` around `section.Get<…>()`; other binder failures can escape instead of `UnbindableSection` / Unavailable. [`TenantConfigurationReadPolicyProvider.cs:198`]
+- [x] [Review][Patch] Null `Members`/`Configuration` on a wire payload can NRE inside `SanitizeDetail` / `ComposeRows` before the gateway catch maps the whole detail read to unavailable. Null-coalesce to empty collections. [`TenantConfigurationSafeComposer.cs:102-110`]
+- [x] [Review][Patch] `ClaimTypes.Role` / `"role"` rejects JSON-array shapes that `"roles"` accepts via `ResolveRoleCollection`, so common IdP mappings fail closed to Indeterminate while the sibling claim type works. Align scalar-role JSON handling with the collection path. [`TenantsGlobalAdministratorClaims.cs:146-150`]
+- [x] [Review][Patch] Interface default `ComposeTenantDetailAsync` / `ReauthorizeTenantDetailAsync` / `ReauthorizeConfigurationManagementAsync` fail-closed behavior is unpinned — `DefaultOnlyComposition` only asserts auth defaults. [`ITenantsBffComposition.cs:42-73`; `TenantsBffCompositionTests.cs`]
+- [x] [Review][Patch] `TenantsBffComposition` constructed without principal/policy deps never asserts Compose/Reauthorize unavailable — only `Resolve*AuthorizationAsync` is pinned. [`TenantsBffCompositionTests.cs:158-166`]
+- [x] [Review][Patch] `UnavailableTenantQueryGateway` inherits untested `ITenantQueryGateway` projection-proof defaults — suite never calls `GetSet`/`GetRemove`ConfigurationProjectionProofAsync on that host. [`UnavailableTenantQueryGatewayTests.cs`]
+- [x] [Review][Patch] Wrong-tenant payload with a same-tenant prior is only half-covered — without-prior Unavailable is pinned; retain/reauthorize arm with matching prior is not. [`TenantQueryGatewayTests.cs:1297`]
+- [x] [Review][Patch] Transient gateway failure (non-401/403/404/400) with same-tenant prior retention/reauthorize is unpinned — `Get_tenant_maps_gateway_status_to_safe_detail_state` uses `previous: null`. [`TenantQueryGateway.cs:283-294`; `TenantQueryGatewayTests.cs:1729`]
+
+##### Chunk 1 patch application (2026-08-02)
+
+All 9 patches applied. Compose/reauth failure now continues read-only via `RetainPreviousTenantDetailAsync` /
+`ContinueReadOnlyComposition`; binder catch widened; null Members/Configuration coalesced; `role` /
+`ClaimTypes.Role` routed through `ResolveRoleCollection`; five verification gaps pinned with new tests.
+
+Verification:
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` — 0 warnings, 0 errors.
+- `TenantQueryGatewayTests` — 396/396.
+- `TenantsBffCompositionTests` — 17/17; `UnavailableTenantQueryGatewayTests` — 11/11; `TenantConfigurationReadPolicyTests` — 66/66; `TenantsUiCompositionTests` — 82/82.

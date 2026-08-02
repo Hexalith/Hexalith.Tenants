@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -38,6 +39,26 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.ETag.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.Reason.ShouldBe(TenantListReason.GatewayUnavailable);
+    }
+
+    [Fact]
+    public async Task Configuration_projection_proof_defaults_fail_closed_on_unavailable_gateway()
+    {
+        // Default interface members are only reachable through the interface — that is exactly the
+        // host-misconfiguration binding shape (ITenantQueryGateway → UnavailableTenantQueryGateway).
+        ITenantQueryGateway gateway = CreateGateway();
+
+        TenantConfigurationProjectionProof setProof = await gateway.GetSetConfigurationProjectionProofAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+            CancellationToken.None);
+        TenantConfigurationProjectionProof removeProof = await gateway.GetRemoveConfigurationProjectionProofAsync(
+            new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
+            CancellationToken.None);
+
+        setProof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        setProof.TenantId.ShouldBe("tenant.alpha");
+        removeProof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        removeProof.TenantId.ShouldBe("tenant.alpha");
     }
 
     [Fact]

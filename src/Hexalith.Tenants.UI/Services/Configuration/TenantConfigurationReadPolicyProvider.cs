@@ -195,8 +195,10 @@ internal sealed partial class TenantConfigurationReadPolicyProvider
             {
                 options = section.Get<TenantConfigurationReadPolicyOptions>();
             }
-            catch (InvalidOperationException)
+            catch (Exception)
             {
+                // Binder failures are deployment-policy defects. Map every safe bind failure to Unavailable
+                // rather than letting non-InvalidOperationException shapes escape the composition boundary.
                 return TenantConfigurationValidatedPolicy.Invalid(TenantConfigurationPolicyFailure.UnbindableSection);
             }
 

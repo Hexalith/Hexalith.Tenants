@@ -33,7 +33,9 @@ internal static class TenantConfigurationSafeComposer
                 TenantConfigurationManagementContext.Unavailable(detail.TenantId, detail.Status));
         }
 
-        TenantConfigurationSafeRow[] rows = ComposeRows(detail.Configuration, policy);
+        TenantConfigurationSafeRow[] rows = ComposeRows(
+            (IReadOnlyDictionary<string, string>?)detail.Configuration,
+            policy);
         return new(
             sanitized,
             TenantConfigurationSafeModel.Available(detail.TenantId, rows),
@@ -94,20 +96,24 @@ internal static class TenantConfigurationSafeComposer
     internal static TenantDetail SanitizeDetail(TenantDetail detail)
     {
         ArgumentNullException.ThrowIfNull(detail);
+        // Members/Configuration are non-nullable on the contract, but a wire payload can still present null
+        // collections. Coalesce so one malformed field cannot NRE the composer and take the whole detail dark.
+        IReadOnlyList<TenantMember> members =
+            (IReadOnlyList<TenantMember>?)detail.Members ?? [];
         return new(
             detail.TenantId,
             detail.Name,
             detail.Description,
             detail.Status,
-            new ReadOnlyCollection<TenantMember>(detail.Members.ToArray()),
+            new ReadOnlyCollection<TenantMember>(members.ToArray()),
             new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal)),
             detail.CreatedAt);
     }
 
     private static TenantConfigurationSafeRow[] ComposeRows(
-        IReadOnlyDictionary<string, string> configuration,
+        IReadOnlyDictionary<string, string>? configuration,
         TenantConfigurationReadPolicyResolution policy)
-        => configuration
+        => (configuration ?? new Dictionary<string, string>(StringComparer.Ordinal))
 
             // The contract types a value as non-null, but System.Text.Json does not enforce that on a
             // projection payload. Skipping the row keeps one malformed entry from throwing inside the
