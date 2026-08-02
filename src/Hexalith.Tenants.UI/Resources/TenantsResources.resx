@@ -2649,6 +2649,9 @@
   <data name="Tenants.GlobalAdministrators.Recovery.HistoryTruncated" xml:space="preserve">
     <value>Paging history reached its limit, so this step went back to the first page instead of the previous one.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.AuthorizationChanged" xml:space="preserve">
+    <value>Authorization changed. The review restarted at the first page.</value>
+  </data>
   <data name="Tenants.Members.Recovery.HistoryTruncated" xml:space="preserve">
     <value>Paging history reached its limit, so this step went back to the first page instead of the previous one.</value>
   </data>
@@ -2822,6 +2825,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
     <value>User id</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid" xml:space="preserve">
+    <value>Enter a supported user id of 256 characters or fewer without control characters.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
     <value>User id is required before granting global administrator authority.</value>

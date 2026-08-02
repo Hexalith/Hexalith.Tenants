@@ -162,7 +162,7 @@
                                                         Freshness="@_snapshot.Freshness"
                                                         Lifecycle="@_snapshot.Lifecycle"
                                                         IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
-                                                        AuthorizationReflection="@BffComposition.LifecycleAuthorizationReflection"
+                                                        AuthorizationReflection="@_lifecycleAuthorizationReflection"
                                                         GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
@@ -245,6 +245,11 @@
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
     private CancellationTokenSource? _loadCancellation;
+    private AuthenticationStateProvider? _authenticationStateProvider;
+    private CancellationTokenSource? _lifecycleAuthorizationCancellation;
+    private long _lifecycleAuthorizationGeneration;
+    private TenantLifecycleAuthorizationReflectionState _lifecycleAuthorizationReflection
+        = TenantLifecycleAuthorizationReflectionState.Indeterminate;
     // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
     // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
     // request still inside SendAsync, where a CancellationToken.Register after Dispose throws
@@ -322,15 +327,29 @@
             _ => FcAggregateDetailState.Ready,
         };
 
+    protected override void OnInitialized()
+    {
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
+        StartLifecycleAuthorizationResolution(tenantId);
         if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             && _readRefreshLease is not null)
         {
-            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            // Support-safe disposal: a throwing unsubscribe on a tenant switch used to escape
+            // OnParametersSetAsync, so the incoming tenant's reads were never issued and the surface stayed on
+            // the previous tenant's state. Lease cleanup must never block fail-closed rendering.
+            IAsyncDisposable previousLease = _readRefreshLease;
             _readRefreshLease = null;
             _subscriptionTenantId = null;
+            await DisposeLeaseSupportSafelyAsync(previousLease).ConfigureAwait(false);
         }
 
         using PendingOperation operation = BeginLoad();
@@ -414,6 +433,108 @@
         await EnsureReadRefreshLeaseAsync(tenantId).ConfigureAwait(false);
     }
 
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        Task callback = InvokeAsync(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            StartLifecycleAuthorizationResolution(TenantId, authenticationStateTask);
+            StateHasChanged();
+        });
+        _ = ObserveLifecycleAuthorizationCallbackAsync(callback);
+    }
+
+    private void StartLifecycleAuthorizationResolution(
+        string tenantId,
+        Task<AuthenticationState>? authenticationStateTask = null)
+    {
+        long generation = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
+
+        // Interlocked.Exchange followed by a separate previous?.Cancel() raced the resolution's own finally:
+        // the finally could win the CompareExchange race, dispose the source, and the Cancel() here then threw
+        // ObjectDisposedException straight out of OnParametersSetAsync or DisposeAsync -- tearing down the
+        // circuit. The load path on this page already serialises cancel-vs-dispose under _cancellationLock;
+        // the lifecycle source now uses the same scheme.
+        CancellationTokenSource source = ReplaceLifecycleAuthorizationCancellation();
+        _lifecycleAuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+        Task resolution = ResolveLifecycleAuthorizationAsync(
+            tenantId,
+            generation,
+            source,
+            authenticationStateTask);
+        _ = ObserveLifecycleAuthorizationCallbackAsync(resolution);
+    }
+
+    private async Task ResolveLifecycleAuthorizationAsync(
+        string tenantId,
+        long generation,
+        CancellationTokenSource source,
+        Task<AuthenticationState>? authenticationStateTask)
+    {
+        TenantLifecycleAuthorizationReflectionState reflection
+            = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        try
+        {
+            if (authenticationStateTask is not null)
+            {
+                _ = await authenticationStateTask.WaitAsync(source.Token).ConfigureAwait(false);
+            }
+
+            reflection = await BffComposition
+                .ResolveLifecycleAuthorizationAsync(source.Token)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            // Authorization faults fail closed without exposing provider details in the UI.
+        }
+        finally
+        {
+            CompleteLifecycleAuthorizationCancellation(source);
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed
+                    || generation != Volatile.Read(ref _lifecycleAuthorizationGeneration)
+                    || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _lifecycleAuthorizationReflection = reflection;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed between the generation check and renderer dispatch.
+        }
+    }
+
+    private static async Task ObserveLifecycleAuthorizationCallbackAsync(Task callback)
+    {
+        try
+        {
+            await callback.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Authorization callbacks contain faults and leave lifecycle actions failed closed.
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Retry optional notification setup after later renders when an earlier attempt was superseded or
@@ -424,7 +545,8 @@
         // Bounded, because a failing backend records neither _readRefreshLease nor _subscriptionTenantId, so
         // every guard passes again on the next render. RefreshTenantReadsAsync calls StateHasChanged, so an
         // unbounded retry was two remote round trips per render for the life of the circuit against a
-        // subscription endpoint that is down. The counter resets with the route, so a new tenant retries.
+        // subscription endpoint that is down. The counter resets with the route or an explicit projection
+        // refresh, so a new tenant and a same-route operator recovery both get a bounded fresh opportunity.
         await EnsureReadRefreshLeaseAsync(TenantId).ConfigureAwait(false);
     }
 
@@ -456,7 +578,6 @@
             return;
         }
 
-        _readRefreshAttempts++;
         _readRefreshSubscriptionInFlight = true;
         TenantReadRefreshLease? lease = null;
         try
@@ -478,6 +599,7 @@
             {
                 // Setup registered no callback. Recording it would satisfy the guards above forever and
                 // permanently disable auto-refresh; leaving both fields unset lets the next render retry.
+                _readRefreshAttempts++;
                 return;
             }
 
@@ -501,6 +623,7 @@
         {
             // Optional refresh only; a transport fault must not escape the render lifecycle. The next
             // render retries.
+            _readRefreshAttempts++;
             if (lease is not null)
             {
                 await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
@@ -514,6 +637,9 @@
 
     private async Task RefreshTenantDetailAsync()
     {
+        // Detail-flow refreshes are explicit same-route recovery points. Reopen the optional notification
+        // setup budget; successful subscriptions are never charged against it.
+        _readRefreshAttempts = 0;
         string tenantId = TenantId;
 
         // BeginLoad cancels the shared load token and clears _memberPageLoadInFlight / IsRefreshing, so a
@@ -561,7 +687,13 @@
     }
 
     private Task RefreshTenantReadsAsync()
-        => RefreshTenantReadsAsync(TenantId);
+    {
+        // Member-flow refreshes are the equivalent recovery path for the combined detail/member read.
+        // Notification callbacks call the tenant-id overload directly and therefore do not reset a failing
+        // backend's budget on every nudge.
+        _readRefreshAttempts = 0;
+        return RefreshTenantReadsAsync(TenantId);
+    }
 
     private async Task RefreshTenantReadsAsync(string tenantId)
     {
@@ -587,22 +719,50 @@
                 new TenantUsersRequest(tenantId, _memberCursor, ETag: retainedMembers.ETag),
                 retainedMembers,
                 cancellationToken);
+        // Observe both reads independently. Task.WhenAll rethrew an operational fault before either result
+        // could be applied, leaving the retained member page permanently marked Refreshing. A failed refresh
+        // remains support-safe and fail-closed while still allowing a successful sibling read to land.
+        TenantDetailSnapshot detail;
+        TenantUsersSnapshot members;
+        bool cancelled = false;
         try
         {
-            await Task.WhenAll(detailTask, membersTask).ConfigureAwait(false);
+            detail = await detailTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return;
+            cancelled = true;
+            detail = retainedDetail;
+        }
+        catch
+        {
+            detail = TenantDetailSnapshot.Degraded(
+                retainedDetail.Detail,
+                "Tenant detail query gateway returned a safe degraded state.",
+                retainedDetail.ETag,
+                ProjectionLifecycleState.Unknown,
+                retainedDetail.ProjectionVersion);
         }
 
-        if (!CanApply(generation, tenantId))
+        try
+        {
+            members = await membersTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancelled = true;
+            members = retainedMembers;
+        }
+        catch
+        {
+            members = TenantUsersSnapshot.Error(tenantId, retainedMembers);
+        }
+
+        if (cancelled || !CanApply(generation, tenantId))
         {
             return;
         }
 
-        TenantDetailSnapshot detail = await detailTask.ConfigureAwait(false);
-        TenantUsersSnapshot members = await membersTask.ConfigureAwait(false);
         bool resetMemberPaging = false;
         if (members.Reason is TenantUsersReason.InvalidCursor)
         {
@@ -667,6 +827,10 @@
 
             _snapshot = detail;
             _tenantUsersSnapshot = members;
+            // The jump announcement describes the immediately preceding Previous action. Once an
+            // authoritative refresh completes it is no longer new recovery evidence and must not remain in
+            // the polite live region indefinitely.
+            _memberPagingJumpedToFirstPage = false;
             if (resetMemberPaging)
             {
                 _memberCursor = null;
@@ -919,6 +1083,40 @@
         source.Dispose();
     }
 
+    private CancellationTokenSource ReplaceLifecycleAuthorizationCancellation()
+    {
+        var source = new CancellationTokenSource();
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_lifecycleAuthorizationCancellation);
+            _lifecycleAuthorizationCancellation = source;
+        }
+
+        return source;
+    }
+
+    private void CancelLifecycleAuthorizationCancellation()
+    {
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_lifecycleAuthorizationCancellation);
+            _lifecycleAuthorizationCancellation = null;
+        }
+    }
+
+    private void CompleteLifecycleAuthorizationCancellation(CancellationTokenSource source)
+    {
+        lock (_cancellationLock)
+        {
+            if (ReferenceEquals(_lifecycleAuthorizationCancellation, source))
+            {
+                _lifecycleAuthorizationCancellation = null;
+            }
+        }
+
+        source.Dispose();
+    }
+
     /// <summary>A page whose rows and paging state may be applied.</summary>
     /// <remarks>
     /// <see cref="TenantUsersSurfaceKind.Unknown"/> is a successful read whose projection freshness could
@@ -1062,12 +1260,22 @@
     {
         _disposed = true;
         _ = Interlocked.Increment(ref _loadGeneration);
+        _ = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+            _authenticationStateProvider = null;
+        }
+
+        CancelLifecycleAuthorizationCancellation();
         CancelActiveCancellation();
 
         if (_readRefreshLease is not null)
         {
-            await _readRefreshLease.DisposeAsync().ConfigureAwait(false);
+            // Teardown must not surface a transport fault either; the sibling page disposes safely here too.
+            IAsyncDisposable lease = _readRefreshLease;
             _readRefreshLease = null;
+            await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
     }
 

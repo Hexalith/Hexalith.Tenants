@@ -33,16 +33,22 @@ internal static class TenantsGlobalAdministratorClaims
         }
 
         ClaimsIdentity identity = authenticated.Single();
-        Claim[] subjects = identity.Claims
+
+        // Distinct values, not claim count: an OIDC pipeline that maps `sub` from both the id_token and the
+        // userinfo response emits the claim twice with the same value, which is not ambiguous evidence.
+        // Conflicting values still fail closed to Indeterminate.
+        string[] subjects = identity.Claims
             .Where(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))
+            .Select(static claim => claim.Value)
+            .Distinct(StringComparer.Ordinal)
             .ToArray();
         if (subjects.Length != 1
-            || string.IsNullOrWhiteSpace(subjects[0].Value)
-            || !string.Equals(subjects[0].Value, subjects[0].Value.Trim(), StringComparison.Ordinal)
-            || subjects[0].Value.Any(char.IsControl)
+            || string.IsNullOrWhiteSpace(subjects[0])
+            || !string.Equals(subjects[0], subjects[0].Trim(), StringComparison.Ordinal)
+            || subjects[0].Any(char.IsControl)
             || (requireCorroboration
                 && (string.IsNullOrWhiteSpace(corroboratedSubject)
-                    || !string.Equals(corroboratedSubject, subjects[0].Value, StringComparison.Ordinal))))
+                    || !string.Equals(corroboratedSubject, subjects[0], StringComparison.Ordinal))))
         {
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
@@ -55,7 +61,7 @@ internal static class TenantsGlobalAdministratorClaims
 
         if (!administrator.Value)
         {
-            return TenantConfigurationPrincipalEvidence.NonAdministrator(subjects[0].Value);
+            return TenantConfigurationPrincipalEvidence.NonAdministrator(subjects[0]);
         }
 
         bool? hasSystemScope = ResolveSystemScopeEvidence(identity);
@@ -65,8 +71,8 @@ internal static class TenantsGlobalAdministratorClaims
         }
 
         return hasSystemScope.Value
-            ? TenantConfigurationPrincipalEvidence.GlobalAdministrator(subjects[0].Value)
-            : TenantConfigurationPrincipalEvidence.NonAdministrator(subjects[0].Value);
+            ? TenantConfigurationPrincipalEvidence.GlobalAdministrator(subjects[0])
+            : TenantConfigurationPrincipalEvidence.NonAdministrator(subjects[0]);
     }
 
     private static TenantLifecycleAuthorizationReflectionState ToReflection(
@@ -137,13 +143,10 @@ internal static class TenantsGlobalAdministratorClaims
                 : null;
         }
 
-        if (claim.Type is ClaimTypes.Role or "role")
-        {
-            return IsMalformedScalarRole(claim.Value)
-                ? null
-                : IsGlobalAdministratorValue(claim.Value);
-        }
-
+        // Scalar `role` / ClaimTypes.Role and collection `roles` must agree. JSON-array shapes that used to
+        // fail closed via IsMalformedScalarRole are valid on `roles` through ResolveRoleCollection; routing
+        // every role claim type through the same parser keeps IdP mappings that put a JSON array on `role`
+        // working.
         return ResolveRoleCollection(claim.Value);
     }
 
@@ -154,12 +157,16 @@ internal static class TenantsGlobalAdministratorClaims
             return null;
         }
 
+        // Shape detection runs on the trimmed value. A JSON payload carrying leading whitespace previously fell
+        // through to the delimiter split and yielded a *definite* NonAdministrator rather than Indeterminate,
+        // so the same claim authorized or denied depending only on a leading space.
+        string trimmed = value.Trim();
         string[] roles;
-        if (value.StartsWith("[", StringComparison.Ordinal))
+        if (trimmed.StartsWith("[", StringComparison.Ordinal))
         {
             try
             {
-                roles = JsonSerializer.Deserialize<string[]>(value) ?? [];
+                roles = JsonSerializer.Deserialize<string[]>(trimmed) ?? [];
             }
             catch (JsonException)
             {
@@ -173,12 +180,16 @@ internal static class TenantsGlobalAdministratorClaims
         }
         else
         {
-            if (value.StartsWith("{", StringComparison.Ordinal))
+            if (trimmed.StartsWith("{", StringComparison.Ordinal))
             {
                 return null;
             }
 
-            roles = value.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+            // Split the normalized value, and treat every whitespace character as a separator rather than only
+            // the space. "global-admin\ttenant-reader" previously tokenized as one unmatchable value.
+            roles = trimmed.Split(
+                [' ', ',', '\t', '\n', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (roles.Length == 0)
             {
                 return null;
@@ -187,11 +198,6 @@ internal static class TenantsGlobalAdministratorClaims
 
         return roles.Any(IsGlobalAdministratorValue);
     }
-
-    private static bool IsMalformedScalarRole(string value)
-        => string.IsNullOrWhiteSpace(value)
-        || value.StartsWith("[", StringComparison.Ordinal)
-        || value.StartsWith("{", StringComparison.Ordinal);
 
     private static bool IsRelevantClaimType(string type)
         => string.Equals(type, "sub", StringComparison.Ordinal)
@@ -202,9 +208,23 @@ internal static class TenantsGlobalAdministratorClaims
         => type is "global_admin" or "is_global_admin" or "role" or "roles"
         || string.Equals(type, ClaimTypes.Role, StringComparison.Ordinal);
 
+    // Compared on the TRIMMED value, in every branch. Shape detection was normalized but tokenization and
+    // comparison were not, so a `roles` claim of "\tglobal-admin" split into a single token that matched
+    // nothing and produced a *definite* NonAdministrator -- which renders the terminal MissingPermission
+    // surface, the one restricted state that offers no Retry -- while " global-admin" authorized, purely
+    // because a space happens to be a split delimiter and a tab does not. The same claim must not authorize or
+    // deny on which whitespace character precedes it, and scalar `role` must agree with collection `roles`:
+    // ResolveClaim evaluates claim.Value directly, so normalizing here is what makes the two paths consistent.
     private static bool IsGlobalAdministratorValue(string? value)
-        => !string.IsNullOrWhiteSpace(value)
-        && (string.Equals(value, "GlobalAdministrator", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "global-administrator", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "global-admin", StringComparison.OrdinalIgnoreCase));
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> candidate = value.AsSpan().Trim();
+        return candidate.Equals("GlobalAdministrator", StringComparison.OrdinalIgnoreCase)
+            || candidate.Equals("global-administrator", StringComparison.OrdinalIgnoreCase)
+            || candidate.Equals("global-admin", StringComparison.OrdinalIgnoreCase);
+    }
 }

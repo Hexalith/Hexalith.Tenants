@@ -6,10 +6,10 @@ using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
+using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,18 +23,34 @@ namespace Hexalith.Tenants.UI.Tests.Services.Configuration;
 public sealed class TenantConfigurationReadPolicyTests
 {
     [Fact]
-    public async Task Resolver_uses_one_authenticated_http_identity_for_subject_scope_and_administrator_evidence()
+    public async Task Resolver_uses_one_authenticated_circuit_identity_for_subject_scope_and_administrator_evidence()
     {
         ClaimsPrincipal principal = Principal(
             new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("roles", "[\"tenant-reader\",\"global-admin\"]"));
-        TenantConfigurationPrincipalResolver resolver = Resolver(httpPrincipal: principal);
+        TenantConfigurationPrincipalResolver resolver = Resolver(circuitPrincipal: principal);
 
         TenantConfigurationPrincipalEvidence evidence = await resolver.ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
         evidence.Subject.ShouldBe("operator.alpha");
+    }
+
+    [Fact]
+    public async Task Resolver_without_a_circuit_authentication_provider_fails_closed()
+    {
+        ClaimsPrincipal staleHttpPrincipal = Principal(
+            new Claim("sub", "operator.http"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            httpPrincipal: staleHttpPrincipal,
+            userContextSubject: "operator.http").ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
     }
 
     [Fact]
@@ -84,9 +100,9 @@ public sealed class TenantConfigurationReadPolicyTests
         await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         cancellation.Cancel();
-        provider.Complete(Principal(new Claim("sub", "operator.circuit")));
 
-        _ = await Should.ThrowAsync<OperationCanceledException>(resolution);
+        _ = await Should.ThrowAsync<OperationCanceledException>(
+            resolution.WaitAsync(TimeSpan.FromSeconds(2)));
     }
 
     [Fact]
@@ -117,8 +133,8 @@ public sealed class TenantConfigurationReadPolicyTests
             new ClaimsIdentity([new Claim("sub", "operator.alpha")], "first"),
             new ClaimsIdentity([new Claim("eventstore:tenant", "system"), new Claim("global_admin", "true")], "second"),
         ]);
-        TenantConfigurationPrincipalEvidence crossIdentity = await Resolver(httpPrincipal: multiple).ResolveAsync();
-        TenantConfigurationPrincipalEvidence malformed = await Resolver(httpPrincipal: Principal(
+        TenantConfigurationPrincipalEvidence crossIdentity = await Resolver(circuitPrincipal: multiple).ResolveAsync();
+        TenantConfigurationPrincipalEvidence malformed = await Resolver(circuitPrincipal: Principal(
             new Claim("sub", "operator.alpha"),
             new Claim("roles", "[\"global-admin\""))).ResolveAsync();
 
@@ -129,9 +145,171 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public void Evaluator_requires_one_literal_subject_identity_for_administrator_authorization()
+    {
+        Claim[] administratorClaims =
+        [
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
+        ];
+        ClaimsPrincipal literalSubject = Principal(administratorClaims);
+        ClaimsPrincipal mappedSubject = Principal(
+            new Claim(ClaimTypes.NameIdentifier, "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+        ClaimsPrincipal multipleAuthenticatedIdentities = new(
+        [
+            new ClaimsIdentity(administratorClaims, "cookie"),
+            new ClaimsIdentity(administratorClaims, "bearer"),
+        ]);
+
+        TenantsGlobalAdministratorClaims.Evaluate(literalSubject)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+        TenantsGlobalAdministratorClaims.Evaluate(mappedSubject)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        TenantsGlobalAdministratorClaims.Evaluate(multipleAuthenticatedIdentities)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+    }
+
+    /// <summary>
+    /// Pins the 2026-08-01 owner decision: exactly one *distinct* subject value, not exactly one subject claim.
+    /// A Keycloak/OIDC pipeline that maps `sub` from both the id_token and userinfo emits the same value twice
+    /// routinely, and rejecting that locked out a legitimate administrator permanently. Reverting the evaluator
+    /// to `subjects[0].Value` restores the lockout, and the duplicate arm below is what detects it.
+    /// </summary>
+    [Fact]
+    public void Evaluator_accepts_duplicate_identical_subject_claims_and_fails_closed_on_conflicting_values()
+    {
+        ClaimsPrincipal duplicateIdenticalSubject = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+        ClaimsPrincipal conflictingSubjects = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("sub", "operator.beta"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(duplicateIdenticalSubject)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+        TenantsGlobalAdministratorClaims.Evaluate(conflictingSubjects)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+    }
+
+    /// <summary>
+    /// The same duplicate-subject shape has to survive the corroborated resolver path too, since that is what
+    /// every page actually calls.
+    /// </summary>
+    [Fact]
+    public async Task Resolver_accepts_a_duplicate_identical_subject_claim()
+    {
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"))).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
+    }
+
+    /// <summary>
+    /// Fails closed on the prerender / static-SSR pass. There is no circuit, so the resolver's own injected
+    /// AuthenticationStateProvider is the request-scoped one seeded from HttpContext.User -- the evidence source
+    /// the owner decision removed. Deleting the HttpContext discriminator makes this authorize.
+    /// </summary>
+    [Fact]
+    public async Task Resolver_fails_closed_when_only_a_request_scoped_provider_is_available()
+    {
+        ClaimsPrincipal requestPrincipal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            injectedPrincipal: requestPrincipal,
+            requestInScope: true,
+            userContextSubject: "operator.alpha").ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The loop-2 availability fix still holds: off an inbound circuit activity and with no request in scope --
+    /// the projection-notification and authentication-transition paths -- the injected provider is authoritative.
+    /// Without this the notification path resolves Indeterminate and permanently revokes an authorized operator.
+    /// </summary>
+    [Fact]
+    public async Task Resolver_uses_the_injected_circuit_provider_when_no_request_is_in_scope()
+    {
+        ClaimsPrincipal circuitPrincipal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            injectedPrincipal: circuitPrincipal,
+            requestInScope: false,
+            userContextSubject: "operator.alpha").ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
+    }
+
+    /// <summary>
+    /// Whitespace must not decide authorization. Shape detection was normalized but tokenization and comparison
+    /// were not, so "\tglobal-admin" produced a *definite* NonAdministrator -- the terminal MissingPermission
+    /// surface, which renders no Retry -- while " global-admin" authorized, purely because a space is a split
+    /// delimiter and a tab is not. Scalar `role` and collection `roles` must agree.
+    /// </summary>
+    [Theory]
+    [InlineData("roles", "\tglobal-admin")]
+    [InlineData("roles", " global-admin")]
+    [InlineData("roles", "global-admin\n")]
+    [InlineData("roles", "tenant-reader\tglobal-admin")]
+    [InlineData("roles", " [\"tenant-reader\",\"global-admin\"]")]
+    [InlineData("role", " global-administrator")]
+    [InlineData("role", "global-admin\t")]
+    [InlineData(ClaimTypes.Role, " GlobalAdministrator ")]
+    public async Task Resolver_normalizes_whitespace_around_administrator_role_values(string claimType, string claimValue)
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim(claimType, claimValue));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+    }
+
+    /// <summary>
+    /// The normalization must not widen trust: a padded non-administrator role stays a definite denial, and a
+    /// value that merely contains the token is not a match.
+    /// </summary>
+    [Theory]
+    [InlineData("roles", " tenant-reader ")]
+    [InlineData("roles", "global-admins")]
+    [InlineData("role", " not-global-admin ")]
+    public async Task Resolver_still_denies_padded_non_administrator_role_values(string claimType, string claimValue)
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim(claimType, claimValue));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+    }
+
+    [Fact]
     public async Task Resolver_treats_conflicting_explicit_administrator_evidence_as_indeterminate()
     {
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: Principal(
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: Principal(
             new Claim("sub", "operator-1"),
             new Claim("eventstore:tenant", "system"),
             new Claim("global_admin", "true"),
@@ -147,10 +325,10 @@ public sealed class TenantConfigurationReadPolicyTests
         ClaimsPrincipal principal = Principal(new Claim("sub", "operator.alpha"));
 
         TenantConfigurationPrincipalEvidence missing = await Resolver(
-            httpPrincipal: principal,
+            circuitPrincipal: principal,
             supplyUserContext: false).ResolveAsync();
         TenantConfigurationPrincipalEvidence mismatched = await Resolver(
-            httpPrincipal: principal,
+            circuitPrincipal: principal,
             userContextSubject: "operator.beta").ResolveAsync();
 
         missing.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
@@ -173,7 +351,7 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("eventstore:tenant", "system"),
             new Claim(claimType, claimValue));
 
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: principal).ResolveAsync();
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
     }
@@ -407,6 +585,38 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public void Composer_tolerates_null_members_and_configuration_collections_from_wire_payloads()
+    {
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        // Force the non-null contract with wire-null collections the binder/deserializer can still produce.
+        TenantDetail detail = new(
+            "tenant.alpha",
+            "Alpha",
+            "Description",
+            TenantStatus.Active,
+            null!,
+            null!,
+            DateTimeOffset.UtcNow);
+
+        TenantConfigurationComposition composition = TenantConfigurationSafeComposer.Compose(detail, policy);
+
+        composition.SanitizedDetail.Members.ShouldBeEmpty();
+        composition.SanitizedDetail.Configuration.ShouldBeEmpty();
+        composition.SafeModel.IsAvailable.ShouldBeTrue();
+        composition.SafeModel.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Administrator_role_without_system_scope_is_a_non_administrator_that_keeps_explicit_grants()
     {
         // Review decision 1: an administrator role scoped to a non-system tenant is a well-formed claim
@@ -417,7 +627,7 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("eventstore:tenant", "tenant.alpha"),
             new Claim("roles", "[\"global-admin\"]"));
 
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: principal).ResolveAsync();
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
 
@@ -447,7 +657,7 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("roles", "[\"tenant-reader\"]"));
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
-            httpPrincipal: principal,
+            circuitPrincipal: principal,
             userContextSubject: "operator.alpha").ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
@@ -481,7 +691,7 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("eventstore:tenant", secondScope),
             new Claim("roles", "[\"global-admin\"]"));
 
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(httpPrincipal: principal).ResolveAsync();
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         evidence.Subject.ShouldBeNull();
@@ -796,12 +1006,10 @@ public sealed class TenantConfigurationReadPolicyTests
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
         bool supplyUserContext = true,
-        string? userContextSubject = null)
+        string? userContextSubject = null,
+        ClaimsPrincipal? injectedPrincipal = null,
+        bool requestInScope = false)
     {
-        HttpContextAccessor http = new()
-        {
-            HttpContext = httpPrincipal is null ? null : new DefaultHttpContext { User = httpPrincipal },
-        };
         CircuitServicesAccessor circuit = new();
         if (circuitPrincipal is not null || circuitProvider is not null)
         {
@@ -812,13 +1020,34 @@ public sealed class TenantConfigurationReadPolicyTests
 
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(supplyUserContext
-            ? userContextSubject ?? SubjectFrom(httpPrincipal) ?? SubjectFrom(circuitPrincipal)
+            ? userContextSubject ?? SubjectFrom(httpPrincipal) ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal)
             : null);
-        return new TenantConfigurationPrincipalResolver(http, circuit, userContext);
+
+        // requestInScope models the prerender / static-SSR pass: an HttpContext is present and there is no
+        // circuit at all. Inside a real circuit, and on notification threads, IHttpContextAccessor.HttpContext
+        // is null, which is what admits the injected fallback.
+        Microsoft.AspNetCore.Http.IHttpContextAccessor? httpContextAccessor = null;
+        if (requestInScope)
+        {
+            httpContextAccessor = Substitute.For<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
+            httpContextAccessor.HttpContext.Returns(new Microsoft.AspNetCore.Http.DefaultHttpContext());
+        }
+
+        return new TenantConfigurationPrincipalResolver(
+            circuit,
+            userContext,
+            injectedPrincipal is null ? null : new StubAuthenticationStateProvider(injectedPrincipal),
+            httpContextAccessor);
     }
 
+    // Distinct values, mirroring the evaluator's own rule: a principal carrying the same `sub` twice is one
+    // identity, so the corroborating IUserContextAccessor.UserId this helper derives must resolve it the same way.
     private static string? SubjectFrom(ClaimsPrincipal? principal)
-        => principal?.Claims.SingleOrDefault(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))?.Value;
+        => principal?.Claims
+            .Where(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))
+            .Select(static claim => claim.Value)
+            .Distinct(StringComparer.Ordinal)
+            .SingleOrDefault();
 
     private static ClaimsPrincipal Principal(params Claim[] claims)
         => new(new ClaimsIdentity(claims, "test"));
@@ -864,8 +1093,6 @@ public sealed class TenantConfigurationReadPolicyTests
             return _completion.Task;
         }
 
-        public void Complete(ClaimsPrincipal principal)
-            => _completion.SetResult(new AuthenticationState(principal));
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

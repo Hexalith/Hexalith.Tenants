@@ -253,13 +253,16 @@ internal sealed class TenantQueryGateway(
                 throw;
             }
             catch (Exception) {
+                // Continue-read-only with the last-confirmed safe model. Degraded(previous.Detail) rebuilds via
+                // UnavailableComposition and would clear approved rows that AC5 requires we retain.
                 return HasSameTenantDetail(previous, request.TenantId)
-                    ? TenantDetailSnapshot.Degraded(
-                        previous!.Detail,
+                    ? await RetainPreviousTenantDetailAsync(
+                        request.TenantId,
+                        previous,
                         "Tenant configuration authorization could not be refreshed.",
-                        previous.ETag,
-                        lifecycle,
-                        result.Metadata?.ProjectionVersion ?? previous.ProjectionVersion)
+                        previous!.ETag,
+                        cancellationToken,
+                        lifecycle).ConfigureAwait(false)
                     : TenantDetailSnapshot.Unavailable("Tenant configuration read is unavailable.", lifecycle);
             }
             if (freshness is ReadModelFreshnessState.Stale) {
@@ -2160,10 +2163,12 @@ internal sealed class TenantQueryGateway(
             throw;
         }
         catch (Exception) {
-            return TenantDetailSnapshot.Degraded(
-                previous!.Detail,
+            // Reauthorization failed after a qualifying prior was proven. Keep the last-confirmed safe rows
+            // labeled degraded rather than UnavailableComposition, which would drop them.
+            return TenantDetailSnapshot.DegradedFromComposition(
+                ContinueReadOnlyComposition(previous!),
                 "Tenant configuration authorization could not be refreshed.",
-                previous.ETag,
+                previous!.ETag,
                 lifecycle,
                 previous.ProjectionVersion);
         }
@@ -2174,6 +2179,22 @@ internal sealed class TenantQueryGateway(
             previous.ETag,
             lifecycle,
             previous.ProjectionVersion);
+    }
+
+    private static TenantConfigurationComposition ContinueReadOnlyComposition(TenantDetailSnapshot previous) {
+        TenantDetail sanitized = TenantConfigurationSafeComposer.SanitizeDetail(previous.Detail!);
+        TenantConfigurationSafeModel safeModel = previous.Configuration.IsAvailable
+            ? TenantConfigurationSafeModel.Available(
+                previous.Configuration.TenantId,
+                previous.Configuration.Rows,
+                isDegraded: true)
+            : TenantConfigurationSafeModel.Unavailable(previous.Configuration.TenantId);
+        return new(
+            sanitized,
+            safeModel,
+            TenantConfigurationManagementContext.Unavailable(
+                previous.Configuration.TenantId,
+                previous.Detail!.Status));
     }
 
     private static bool HasSameTenantDetail(TenantDetailSnapshot? previous, string tenantId)

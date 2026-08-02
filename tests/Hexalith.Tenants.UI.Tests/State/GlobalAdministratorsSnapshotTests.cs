@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 
 using Shouldly;
@@ -110,5 +111,48 @@ public sealed class GlobalAdministratorsSnapshotTests
         GlobalAdministratorsRequest request = new("cursor-secret", 20, "etag-secret");
 
         request.ToString().ShouldBe("GlobalAdministratorsRequest { PageSize = 20 }");
+    }
+
+    /// <summary>
+    /// The three records the diff bounded last are pinned exactly, like their snapshot and request siblings.
+    /// Deleting any of the overrides restores the compiler-generated record ToString, which prints the
+    /// administrator identity, the command MessageId and the CorrelationId into any structured-logging
+    /// destructure or interpolated message. A substring-absence check would not catch a partial regression,
+    /// so these assert the whole string.
+    /// </summary>
+    [Fact]
+    public void Row_and_command_snapshots_keep_identities_and_correlation_out_of_their_descriptions()
+    {
+        GlobalAdministratorRow row = new("admin.secret", ReadModelFreshnessState.Current)
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+        };
+        GlobalAdministratorGrantCommandSnapshot grant = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(new SetGlobalAdministrator("admin.secret"));
+        GlobalAdministratorRemoveCommandSnapshot remove = GlobalAdministratorRemoveCommandSnapshot
+            .Idle()
+            .Preview(
+                new RemoveGlobalAdministrator("admin.secret"),
+                [
+                    new GlobalAdministratorRow("admin.secret", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("admin.other", ReadModelFreshnessState.Current),
+                ],
+                isCompleteEvidence: true);
+
+        row.ToString().ShouldBe("GlobalAdministratorRow { Freshness = Current, Lifecycle = Current }");
+        grant.ToString().ShouldBe(
+            "GlobalAdministratorGrantCommandSnapshot { State = RequestSent, HasIntent = True, "
+            + "AuditState = NotStarted, RejectionCode = , FocusTarget = Lifecycle, LiveRegionPoliteness = Polite }");
+        remove.ToString().ShouldBe(
+            "GlobalAdministratorRemoveCommandSnapshot { State = Previewed, HasIntent = True, "
+            + "PreviewIsCompleteEvidence = True, AuditState = NotStarted, RejectionCode = , "
+            + "FocusTarget = Lifecycle, LiveRegionPoliteness = Polite }");
+
+        foreach (string description in new[] { row.ToString(), grant.ToString(), remove.ToString() })
+        {
+            description.ShouldNotContain("admin.secret");
+            description.ShouldNotContain("admin.other");
+        }
     }
 }

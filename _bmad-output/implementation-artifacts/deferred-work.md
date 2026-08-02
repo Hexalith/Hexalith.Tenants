@@ -780,3 +780,96 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   Revisit if: a compensating-command path for removing such a key is needed in support, or the remove flow
   gains a non-typed confirmation affordance.
   [src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor:495]
+
+## Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01)
+
+- A route change while the prior tenant's refresh subscription is pending can leave the new tenant without
+  projection auto-refresh. `EnsureReadRefreshLeaseAsync` rejects the new tenant while the old subscription
+  owns `_readRefreshSubscriptionInFlight`; when the old attempt later disposes its lease and clears the flag,
+  it does not schedule a render or retry for the current tenant.
+  Reason for deferral: the race is in shared tenant-detail notification work that is outside Story 1.11's
+  attributed implementation; this chunk included the file only to review the transferred lifecycle
+  authorization consumer.
+  Revisit if: the tenant-detail notification lifecycle is reviewed or the shared subscription retry logic is
+  changed.
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
+
+## Deferred from: code review of spec-1-11-authorized-global-administrator-review, loop 2 (2026-08-01)
+
+- `TenantAuditPage` is the last production consumer of the synchronous `HttpContext`-only
+  `GlobalAdministratorsAuthorizationReflection`. On an established interactive circuit `HttpContext` is null, so
+  `Evaluate(null)` returns `Indeterminate` and the global-administrator correction affordances at
+  `TenantAuditPage.razor:1009` and `:1017` are permanently unavailable. This is the same defect class the story's
+  transferred decision 3 records as resolved for `TenantDetailPage`.
+  Reason for deferral: the file is not in Story 1.11's File List, and the correct fix depends on how the
+  circuit-only principal-resolution decision is settled — migrating to the async seam alone would not help while
+  that seam also returns `Indeterminate` outside an inbound circuit activity.
+  Revisit if: the resolver decision lands, or Epic 5 audit work reopens the correction path.
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1111]
+
+- `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout. If the
+  subscription backend never answers, `_readRefreshSubscriptionInFlight` stays true and every later render,
+  refresh-budget reset and re-authorization retry is rejected for the rest of the circuit. The bounded-budget
+  design assumes attempts terminate; nothing enforces that.
+  Reason for deferral: needs a timeout policy decision (value, and whether a timed-out attempt charges the
+  budget) rather than a mechanical fix.
+  Revisit if: notification setup is reworked, or a hung-subscribe incident is observed.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1120]
+
+- ~~The grant and remove submit buttons are never disabled while a mutation is in flight.~~
+  **WITHDRAWN by code review loop 3 (2026-08-01): the premise is false and was never true.**
+  `IsGrantSubmitDisabled` is `!string.IsNullOrWhiteSpace(GrantUnavailableReason)`, and `GrantUnavailableReason`
+  returns `Tenants.GlobalAdministrators.Grant.Unavailable.InFlight` whenever `IsGrantInFlight` — which is
+  `_isGrantSubmitting || State is RequestSent or Accepted or ProjectionPending`. `IsRemoveSubmitDisabled` names
+  `IsGrantInFlight || IsRemoveInFlight` outright. Both bindings therefore do depend on in-flight state.
+  The real exposure was narrower and is already fixed: hoisting `ReauthorizeAsync` to be the submit handlers'
+  first await consumed the render that would have shown the in-flight state, so the disabled attribute never
+  reached the DOM. The marshalled `await InvokeAsync(StateHasChanged)` after the `RequestSent` write closes it.
+  Left in the ledger as a withdrawal rather than deleted, because a future sweep reading the original entry
+  would re-derive a defect that does not exist.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:777]
+
+- `TenantDetailPage.IsSafeReturnUrl` accepts any string with a `/tenants` prefix — including
+  `/tenants-anything`, embedded control characters, and unbounded length — while the sibling
+  `GlobalAdministratorsPage.NormalizeReturnUrl` rejects control characters, `\`, `#`, `//`, non-allow-listed
+  query keys and repeated values, and requires an exact canonical round-trip.
+  Reason for deferral: every admitted value stays a same-origin relative path, so there is no redirect or
+  external-return gap today; this is convergence hardening, not a defect.
+  Revisit if: the prefix check is relaxed, or a third return-URL validator appears.
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1173]
+
+- On narrow viewports the per-row Remove launcher is hidden by CSS with no per-row localized reason; the actions
+  cell renders nothing where the control was, and the grant cell simultaneously renders an "available" string
+  while its controls are hidden. Only a single page-level notice explains the read-only mode.
+  Reason for deferral: AC5 requires the actions be visibly unavailable with a localized reason, and the
+  page-level reason satisfies that in substance; per-row parity is polish.
+  Revisit if: the mobile read-only surface is revisited, or accessibility review flags the actions cell.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]
+
+## Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01, loop 3)
+
+- A `Ready` snapshot reporting `HasMore == true` with a blank `NextCursor` is a silent dead end. Loop 2 correctly
+  converted the dead-but-clickable Next into a disabled Next, but `CanRecover` deliberately excludes `Ready`, so
+  neither Retry nor Reset renders, Previous is disabled on page one, and no notice explains the condition. The
+  surface states more administrators exist and offers no way to reach them.
+  Reason for deferral: needs a copy/design decision on how to announce incomplete evidence on an otherwise
+  healthy surface, not a mechanical fix; the service should not normally produce this shape.
+  Revisit if: the query contract allows `HasMore` without a cursor, or `CanRecover` is revised.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:698]
+
+- Authorization resolution is uncancellable from both consuming pages. The loop-2 patch made
+  `TenantConfigurationPrincipalResolver.ResolveAsync` honour caller cancellation via `.WaitAsync(token)`, but
+  `GlobalAdministratorsPage.ResolveAuthorizationReflectionAsync` and `TenantsWorkspace.razor:564` both call the BFF
+  seam with no token, so `CancellationToken.None` plus an infinite timeout makes that seam inert for them. Only
+  `TenantDetailPage` passes a token. `RetryAuthorizationAsync` additionally holds the atomic page-load gate across
+  the resolve and releases it only in `finally`, so a hung provider leaves authorization-Retry, Retry, Reset,
+  Previous and Next all disabled with nothing able to interrupt it.
+  Reason for deferral: same timeout-policy decision as the existing `EnsureReadRefreshLeaseAsync`
+  `CancellationToken.None` deferral — picking a bound is a policy call, and both should be settled together.
+  Revisit if: a resolve/subscribe timeout policy is chosen, or a hung-provider incident is observed.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1634]
+
+- AC5 remains partially unmet while the story sits in `review`: the narrow-viewport per-row Remove reason gap
+  recorded above by loop 2 was re-confirmed still open by loop 3. Recorded here as a cross-reference only, not a
+  second entry — see the loop-2 bullet immediately preceding this section.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]

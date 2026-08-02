@@ -338,6 +338,7 @@
 
     private long _loadVersion;
     private CancellationTokenSource? _loadCancellation;
+    private readonly Lock _loadCancellationLock = new();
     private TenantSearchPagingState? _searchPaging;
 
     [Parameter]
@@ -526,7 +527,7 @@
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         }
 
-        await ResolveGlobalAdministratorsEntryAsync();
+        StartGlobalAdministratorsEntryResolution();
         bool querySearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         RestoreContextFromQuery();
         NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
@@ -543,10 +544,16 @@
         }
     }
 
-    private async Task ResolveGlobalAdministratorsEntryAsync()
+    private void StartGlobalAdministratorsEntryResolution()
     {
         long version = Interlocked.Increment(ref _authorizationVersion);
         _canReviewGlobalAdministrators = false;
+        Task callback = InvokeAsync(() => ResolveGlobalAdministratorsEntryAsync(version));
+        _ = ObserveAuthorizationCallbackAsync(callback);
+    }
+
+    private async Task ResolveGlobalAdministratorsEntryAsync(long version)
+    {
         if (Services.GetService(typeof(ITenantsBffComposition)) is not ITenantsBffComposition bffComposition)
         {
             return;
@@ -562,19 +569,23 @@
             return;
         }
 
-        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        await InvokeAsync(() =>
         {
-            return;
-        }
+            if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+            {
+                return;
+            }
 
-        _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
+            _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
+            StateHasChanged();
+        });
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
         long version = Interlocked.Increment(ref _authorizationVersion);
         Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
-        _ = ObserveAuthenticationCallbackAsync(callback);
+        _ = ObserveAuthorizationCallbackAsync(callback);
     }
 
     private async Task ApplyAuthenticationStateChangedAsync(
@@ -589,10 +600,9 @@
         _canReviewGlobalAdministrators = false;
         StateHasChanged();
 
-        AuthenticationState authenticationState;
         try
         {
-            authenticationState = await authenticationStateTask;
+            _ = await authenticationStateTask;
         }
         catch
         {
@@ -604,12 +614,10 @@
             return;
         }
 
-        _canReviewGlobalAdministrators = TenantsGlobalAdministratorClaims.Evaluate(authenticationState.User)
-            == TenantLifecycleAuthorizationReflectionState.Authorized;
-        StateHasChanged();
+        await ResolveGlobalAdministratorsEntryAsync(version);
     }
 
-    private static async Task ObserveAuthenticationCallbackAsync(Task callback)
+    private static async Task ObserveAuthorizationCallbackAsync(Task callback)
     {
         try
         {
@@ -668,11 +676,9 @@
             return;
         }
 
+        using PendingLoadOperation operation = BeginLoad();
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
-        _loadCancellation = new CancellationTokenSource();
-        CancellationToken cancellationToken = _loadCancellation.Token;
+        CancellationToken cancellationToken = operation.CancellationToken;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
         _snapshot = TenantListSnapshot.Loading();
         ApplyVisibleRows();
@@ -1311,6 +1317,40 @@
         return true;
     }
 
+    private PendingLoadOperation BeginLoad()
+    {
+        var source = new CancellationTokenSource();
+        lock (_loadCancellationLock)
+        {
+            _loadCancellation?.Cancel();
+            _loadCancellation = source;
+        }
+
+        return new(source, () => CompleteLoad(source));
+    }
+
+    private void CompleteLoad(CancellationTokenSource source)
+    {
+        lock (_loadCancellationLock)
+        {
+            if (ReferenceEquals(_loadCancellation, source))
+            {
+                _loadCancellation = null;
+            }
+        }
+
+        source.Dispose();
+    }
+
+    private void CancelActiveLoad()
+    {
+        lock (_loadCancellationLock)
+        {
+            _loadCancellation?.Cancel();
+            _loadCancellation = null;
+        }
+    }
+
     public void Dispose()
     {
         // The pending recovery scope is deliberately NOT cleared here. It is owed copy explaining that
@@ -1326,7 +1366,22 @@
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
             _authenticationStateProvider = null;
         }
-        _loadCancellation?.Cancel();
-        _loadCancellation?.Dispose();
+        CancelActiveLoad();
+    }
+
+    private sealed class PendingLoadOperation : IDisposable
+    {
+        private Action? _complete;
+
+        public PendingLoadOperation(CancellationTokenSource source, Action complete)
+        {
+            CancellationToken = source.Token;
+            _complete = complete;
+        }
+
+        public CancellationToken CancellationToken { get; }
+
+        public void Dispose()
+            => Interlocked.Exchange(ref _complete, null)?.Invoke();
     }
 }

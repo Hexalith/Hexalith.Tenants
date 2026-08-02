@@ -2,11 +2,11 @@
 title: 'Authorized Global Administrator Review'
 type: 'feature'
 created: '2026-07-28'
-status: 'in-review'
+status: 'review'
 baseline_commit: '2e61f57bda6379192007d1bc6fabbde61996b11d'
 baseline_revision: '2e61f57bda6379192007d1bc6fabbde61996b11d'
-review_loop_iteration: 0
-followup_review_recommended: false
+review_loop_iteration: 4
+followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -69,9 +69,373 @@ warnings:
 - Given cursor paging, notifications, or rapid retries overlap, when completions arrive out of order, then only the newest scoped request renders, cursor history stays valid, and neither cursors nor inferred totals appear in URL, DOM, clipboard, logs, or diagnostics.
 - Given an authorized narrow viewport, when the page renders, then the review, paging, copy, focus, and live-region behavior remains usable while grant/remove actions are visibly unavailable.
 
+### Review Findings
+
+- [x] [Review][Decision] Circuit authentication state is authoritative whenever it is available — **RESOLVED (2026-08-01, owner decision): keep the current circuit-over-HTTP precedence with no `HttpContext.User` fallback.** A stale request principal must not retain privilege after a live circuit authentication change; anonymous, pending, or faulty circuit evidence therefore fails closed to `Indeterminate`. The cancellation and non-blocking review patches address the availability cost without switching identity sources. [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:23]
+- [x] [Review][Patch] Authentication transitions bypass the corroborated circuit-aware resolver and can re-enable the restricted workspace entry [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:580] — **APPLIED (2026-08-01):** authentication events now fail closed immediately and use the BFF's strict circuit-principal resolution before restoring the entry; rendered regression coverage proves raw event claims cannot bypass that decision.
+- [x] [Review][Patch] Tenant lifecycle actions still consume an HTTP-only authorization reflection that remains indeterminate in an interactive circuit [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21] — **APPLIED (2026-08-01):** tenant detail now resolves lifecycle authorization asynchronously through the strict BFF seam, invalidates superseded results, and reauthorizes on circuit authentication transitions.
+- [x] [Review][Patch] Caller cancellation does not interrupt a pending authentication-state read [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:28] — **APPLIED (2026-08-01):** the provider task is awaited with caller cancellation and a time-bounded regression test proves cancellation completes without provider cooperation.
+- [x] [Review][Patch] Optional global-administrator resolution can block the ordinary workspace list indefinitely during initialization [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:521] — **APPLIED (2026-08-01):** optional entry authorization runs independently of the primary tenant-list load and remains fail closed while pending.
+- [x] [Review][Defer] A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447] — deferred, pre-existing outside Story 1.11's attributed implementation
+
+### Review Findings — loop 2 (2026-08-01, chunk A: production source)
+
+Four review layers completed, none failed. Findings below were each re-read in the source before rating;
+three agent claims were downgraded or dropped because the code did not support them.
+
+- [x] [Review][Decision] **RESOLVED (2026-08-01, owner decision): inject `AuthenticationStateProvider` directly and
+  keep `CircuitServicesAccessor` only as a fallback.** *(Loop-3 correction: the shipped code keeps the accessor
+  first and uses the injected provider as the fallback. Inside a circuit both resolve to the same scoped
+  instance, so the substance of the decision — removing the notification path's dependency on the inbound-activity
+  `AsyncLocal` — holds either way; the precedence wording did not match the code and is corrected here rather
+  than churning a tested path. Loop 3 additionally gated the injected fallback on there being no active
+  `HttpContext`, so the prerender pass fails closed instead of authorizing from the request principal.)*
+  The resolver is registered `Scoped`, so inside a circuit its
+  own injected services already are the circuit scope; resolving the provider directly removes the dependency on the
+  inbound-activity `AsyncLocal` without reinstating any request-principal fallback. Circuit-over-HTTP precedence and
+  the no-`HttpContext.User` rule from the earlier decision are preserved unchanged. Once this lands, the
+  authentication-transition path below must be routed through the strict BFF seam, as `TenantsWorkspace` already is.
+  Converted to a patch. Original finding follows.
+- [x] [Review][Patch] Circuit-only principal resolution fails closed on every path that is not an inbound
+  circuit activity, so each projection notification permanently revokes an authorized global administrator —
+  `CircuitServicesAccessor.Services` is an `AsyncLocal` published only inside
+  `FrontComposerCircuitServicesHandler.CreateInboundActivityHandler` and nulled in its `finally`. The
+  notification path starts at `TenantReadRefreshSubscription.OnProjectionChanged` (notifier thread, no inbound
+  activity) → `RunRefreshLoopAsync` → `RefreshFromNotificationAsync` → `LoadAsync` (`reauthorize` defaults to
+  `true`) → `ReauthorizeAsync` → resolver sees `Services == null` → `Indeterminate` → `CollapseAuthorizationAsync`.
+  Recovery is then impossible in-page: `CanRecover` requires `IsAuthorized`, and both `RefreshFromNotificationAsync`
+  and `EnsureReadRefreshLeaseAsync` return early on `!IsAuthorized`. This contradicts the 2026-08-01 owner decision
+  that removed the `HttpContext.User` fallback on the stated grounds that the cancellation and non-blocking patches
+  covered the availability cost — they do not cover absence of the `AsyncLocal`. Options: reinstate a corroborated
+  request-principal fallback (reverses the decision); capture the circuit `IServiceProvider` at component
+  initialization and resolve from it; or stop re-authorizing on the notification path. Owner input required.
+  [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:21]
+- [x] [Review][Decision] **RESOLVED (2026-08-01, owner decision): route the authentication transition through the
+  strict corroborated seam**, together with the resolver change above. The uncorroborated `Evaluate` call and the
+  `reauthorize: false` suppression are removed, so one strict interpretation governs every path. Converted to a
+  patch. Original finding follows.
+- [x] [Review][Patch] The Global Administrators page re-grants authorization from raw authentication-event
+  claims and then suppresses the strict gate — `TenantsGlobalAdministratorClaims.Evaluate(authenticationState.User)`
+  runs with `requireCorroboration: false`, and the follow-up load passes `reauthorize: false`, so the
+  `IUserContextAccessor.UserId` corroboration applied everywhere else is skipped before privileged markup, the
+  grant/remove forms and the subscription are restored. `TenantsWorkspace` routes the same transition through the
+  strict BFF seam. Entangled with the decision above: the weak path may be a deliberate workaround, because the
+  strict resolver also returns `Indeterminate` on the authentication-changed path. Resolve together.
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1443]
+- [x] [Review][Decision] **RESOLVED (2026-08-01, owner decision): require exactly one *distinct* `sub` value.**
+  Duplicate claims carrying an identical value are not ambiguous evidence; conflicting values still fail closed to
+  `Indeterminate`, so the intent of the earlier single-identity decision is preserved while the lockout disappears.
+  Converted to a patch. Original finding follows.
+- [x] [Review][Patch] `Evaluate` rejects a principal carrying two `sub` claims with an identical value, which a
+  Keycloak/OIDC pipeline that maps `sub` from both the id_token and userinfo produces routinely; the result is a
+  permanent restricted surface for a legitimate administrator. Relaxing to "exactly one distinct value" changes the
+  2026-08-01 owner decision requiring exactly one literal `sub` claim. Owner input required.
+  [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:39]
+
+- [x] [Review][Patch] `Indeterminate` collapses into a terminal `Unauthorized()` surface that offers no retry, so a
+  single transient resolver fault is rendered as "not authorized" and cannot be re-attempted [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1496]
+- [x] [Review][Patch] `ReauthorizeAsync` writes `_authorizationReflection` off-dispatcher with no transition-version
+  guard, so a resolve that started before sign-out can restore `Authorized` afterwards and re-render the grant and
+  remove forms [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1492]
+- [x] [Review][Patch] `_lifecycleAuthorizationCancellation` is cancelled after it may already have been disposed;
+  `ObjectDisposedException` then escapes `OnParametersSetAsync` or `DisposeAsync` and tears down the circuit. The
+  sibling `_loadCancellation` on the same page already uses the lock-based scheme that prevents this [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:454]
+- [x] [Review][Patch] Test gap that hid the decision above: no `GlobalAdministratorsPageTests` case exercises the real
+  principal resolver — only two files in the whole UI suite touch `CircuitServicesAccessor`, and neither is the page's
+  [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:1]
+- [x] [Review][Patch] `EnsureReadRefreshLeaseAsync` lacks the post-assignment `_disposed` re-check that the same diff
+  added to `TenantDetailPage`, so a lease can be stored after disposal and keep invoking a dead component [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1152]
+- [x] [Review][Patch] `Preview` blocks on `rows.Count <= 1` while ignoring the `isCompleteEvidence` parameter it now
+  stores, asserting a platform-wide "last global administrator" fact from one page [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:54]
+- [x] [Review][Patch] `GlobalAdministratorRow`, `GlobalAdministratorGrantCommandSnapshot` and
+  `GlobalAdministratorRemoveCommandSnapshot` keep the compiler-generated `ToString()`, printing identities,
+  `MessageId` and `CorrelationId`; only the snapshot and request siblings were bounded [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs:7]
+- [x] [Review][Patch] `TenantsWorkspace.LoadAsync` still cancels and disposes the token source at replacement time —
+  the pattern both sibling pages document as unsafe — while catching cancellation only [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
+- [x] [Review][Patch] Hoisting `ReauthorizeAsync` to be the submit handlers' first await means the render at that
+  suspension still shows `Idle`; `RequestSent` and `_isGrantSubmitting` are then written on a thread-pool
+  continuation with no re-render, so the in-flight lifecycle state is never observable [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1640]
+- [x] [Review][Patch] Grant and remove projection requery confirm from a snapshot that may have been discarded as
+  superseded; the pagers guard this with a reference check, the requery paths do not [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1745]
+- [x] [Review][Patch] `RefreshFromNotificationAsync` ignores `_pageLoadInFlight`, so a notification landing during a
+  Next/Previous load supersedes it and the operator's click produces no navigation and no feedback [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1061]
+- [x] [Review][Patch] Every `AuthenticationStateChanged` clears cursor history and returns to page one with no
+  announcement, while the same change added notices for the other two page-one jumps [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1535]
+- [x] [Review][Patch] The lifecycle badge and the Retry/Reset stack were added inside the assertive state live
+  region, so every lifecycle transition re-announces the whole block — the defect the neighbouring comment says was
+  fixed by moving nudges out [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:112]
+- [x] [Review][Patch] The notification-setup budget resets only in `RefreshAsync`, whose button renders only when
+  rows exist, so a rows-free surface can exhaust the budget with no reachable reset [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:994]
+- [x] [Review][Patch] A `roles` claim whose JSON payload carries leading whitespace falls through to the delimiter
+  split and yields a definite `NonAdministrator` instead of `Indeterminate` [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:158]
+- [x] [Review][Patch] The grant form accepts any non-whitespace user id, including control characters and unbounded
+  length, so an id can be granted that `ResolvePrincipalEvidence` can never corroborate [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1651]
+- [x] [Review][Patch] `TenantDetailPage` still disposes the refresh lease raw on the route-change and teardown paths
+  while the safe helper added in the same change is used everywhere else [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:346]
+- [x] [Review][Patch] `RefreshTenantReadsAsync` still uses `Task.WhenAll` with a cancellation-only catch, so a
+  faulted read strands the member table on "refreshing" — the containment `OnParametersSetAsync` received [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:694]
+- [x] [Review][Patch] `_memberPagingJumpedToFirstPage` is never cleared by a refresh, so the one-shot notice stays
+  rendered indefinitely [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:786]
+- [x] [Review][Patch] Next is enabled on `HasMore` alone while the handler also requires a non-blank cursor, making
+  it a silent dead button when the service returns `HasMore` with no cursor [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:491]
+- [x] [Review][Patch] `TenantDetailPage` charges the notification budget before the attempt — the behaviour the
+  Global Administrators page documents as a bug — and offers no same-route reset [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:575]
+- [x] [Review][Patch] `_pageLoadInFlight` is a non-atomic test-and-set read and written across the dispatcher and
+  thread-pool continuations, so the mutual exclusion it exists to provide can be lost [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1012]
+- [x] [Review][Patch] `OnInitializedAsync` mutates `_authorizationReflection` and `_snapshot` on a thread-pool
+  continuation that races the first render batch [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:839]
+- [x] [Review][Patch] The `ITenantsBffComposition` default member forwards to the `HttpContext`-only property this
+  story discarded, so any implementation that does not override it silently gets the old interpretation [src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs:26]
+- [x] [Review][Patch] Test gap: the cursor suppression on the Global Administrators entry href is never exercised —
+  no workspace test pages before reading the href, so deleting `with { Cursor = null }` stays green [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:110]
+- [x] [Review][Patch] Test gap: the page-scoped remove-count label arm never renders under test; all three
+  assertions expect the complete-evidence string [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:1167]
+- [x] [Review][Patch] Test gap: no test faults `GetTenantAsync` or `GetTenantUsersAsync`, so the new per-task fault
+  containment on the initial detail load is unverified [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:528]
+- [x] [Review][Patch] Test gap: the notification-setup failure log is unreachable from any test, and no
+  `ILoggerFactory` is registered in the UI suite, so its support-safety claim is unproven [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1104]
+- [x] [Review][Patch] The Review Triage Log still states the story is `in-progress` with an undeclared
+  `references/Hexalith.PolymorphicSerializations` pointer; the frontmatter says `review`, the File List declares the
+  pointer, and the validator now exits 0 [_bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md:91]
+
+- [x] [Review][Defer] `TenantAuditPage` is the last consumer of the synchronous `HttpContext`-only reflection, so
+  global-administrator correction affordances stay permanently unavailable on an interactive circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1111] — deferred, file is not in this story's File List and the fix depends on the resolver decision above
+- [x] [Review][Defer] `EnsureReadRefreshLeaseAsync` passes `CancellationToken.None` with no timeout, so one hung
+  subscribe disables auto-refresh for the circuit [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1120] — deferred, needs a timeout policy decision rather than a mechanical fix
+- [x] [Review][Defer] The grant and remove submit buttons are never disabled while a mutation is in flight, so a
+  second click dispatches a second platform-authority command whose outcome is discarded [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:748] — deferred, pre-existing; `IsGrantSubmitDisabled` never depended on in-flight state before this story
+- [x] [Review][Defer] `TenantDetailPage.IsSafeReturnUrl` accepts any `/tenants`-prefixed string while the sibling
+  `NormalizeReturnUrl` enforces a canonical round-trip [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1173] — deferred, all admitted values stay same-origin relative so there is no redirect gap
+- [x] [Review][Defer] On narrow viewports the per-row Remove control is hidden with no per-row localized reason;
+  only a page-level notice explains it [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466] — deferred, partial AC5 gap with the page-level reason present
+
+### Review Findings — loop 3 (2026-08-01, uncommitted working tree: loop-1/loop-2 patches + the dev run closing 17 action items)
+
+All four layers completed; none failed or timed out. Every finding below was re-read in the source before
+rating. Story evidence was re-verified independently rather than taken from the Dev Agent Record: Release
+build 0 warnings / 0 errors, full UI suite 1,866 passed / 0 failed / 0 skipped, `validate-story-gitlinks.py`
+exit 0 with all seven pointers declared, no generic query path, `git diff --check` clean.
+
+- [x] [Review][Decision] **RESOLVED (2026-08-01, owner decision): fail closed until hydration.** The injected
+  fallback is now admitted only when no `HttpContext` is in scope — present for the prerender and static-SSR
+  passes, null for circuit activity, notification threads and authentication transitions. Prerender therefore
+  stays `Indeterminate` and renders the restricted surface; the interactive instance resolves once the circuit
+  is connected. The loop-2 availability fix is preserved unchanged on the notification path. Fixed in the
+  resolver so both consuming pages inherit it, rather than gating on `RendererInfo` per page (bUnit does not
+  populate it). The precedence wording was corrected in the loop-2 decision entry rather than flipping a tested
+  path, since inside a circuit both sources resolve to the same scoped instance. Original finding follows.
+- [x] [Review][Decision] The strict resolver's non-circuit fallback re-admits request-principal evidence on the
+  prerender / static-SSR pass, and its precedence is inverted relative to the recorded loop-2 decision. The
+  decision text says "inject `AuthenticationStateProvider` directly and keep `CircuitServicesAccessor` only as a
+  fallback"; the code does the opposite (`accessor ?? injected`) and says so in its own comment. Separately,
+  `App.razor:15` renders `<Routes @rendermode="RenderMode.InteractiveServer" />` with prerendering on, so during
+  the prerender pass `CircuitServicesAccessor.Services` is null and the injected request-scoped provider —
+  seeded from `HttpContext.User` — authorizes the prerendered privileged markup. That is the evidence source the
+  2026-08-01 decision deleted ("no `HttpContext.User` fallback"); `requireCorroboration: true` does not block it
+  because `IUserContextAccessor.UserId` is request-scoped too. Options: (a) accept prerender-from-HTTP as
+  in-scope and correct the decision text; (b) fail closed when there is no circuit (e.g. gate on
+  `RendererInfo.IsInteractive`), accepting a restricted-surface flash before hydration; (c) keep the behavior and
+  correct only the precedence wording. Owner input required.
+  [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:30]
+
+- [x] [Review][Patch] `ApplyAuthenticationStateChangedAsync` writes `_authorizationReflection = Authorized` inside
+  its dispatcher callback with no transition-version guard — the exact guard `ReauthorizeAsync` was patched to add
+  in this same diff. The version is checked at `:1541` (before the resolve) and `:1562` (after the write), never
+  inside the callback. A sign-out landing while the resolve is in flight is overwritten by the pre-sign-out
+  answer, re-rendering the grant form and remove launcher for a signed-out operator; if the newer transition then
+  faults at `await authenticationStateTask` it returns without re-collapsing, so the privileged surface persists
+  with no path that corrects it. Violates AC2 [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1554]
+- [x] [Review][Patch] `OnInitializedAsync` awaits `ResolveAuthorizationReflectionAsync()` before attaching
+  `AuthenticationStateChanged`, and captures no transition version. A sign-out during that initial resolve fires
+  against no handler and is lost; the pre-sign-out `Authorized` is then written unconditionally and the full
+  privileged surface renders for a signed-out principal until a page reload. `TenantDetailPage.OnInitialized:342`
+  subscribes synchronously before any resolve; that ordering was not applied here. Violates AC2
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:866]
+- [x] [Review][Patch] The `roles` whitespace fix was applied to shape detection only. `ResolveRoleCollection`
+  computes `trimmed` and uses it for the `[`/`{` checks and `JsonSerializer.Deserialize`, but the delimiter branch
+  still splits the untrimmed `value` on `[' ', ',']`, and `IsGlobalAdministratorValue` compares by exact equality.
+  A `roles` claim of `"\tglobal-admin"` (tab, CR or newline) therefore yields a *definite* `NonAdministrator`,
+  while `" global-admin"` (space) authorizes. The same asymmetry exists between claim types: `IsMalformedScalarRole`
+  trims but `ResolveClaim:150` then evaluates the untrimmed `claim.Value`, so scalar `role=" global-admin"` denies
+  where `roles=" global-admin"` authorizes. The outcome is `MissingPermission`, a terminal surface that renders no
+  Retry (only `Indeterminate` does), so a legitimate global administrator is locked out for the session. The
+  comment at `:163-165` claims this class of bug is fixed [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:191]
+- [x] [Review][Patch] `MaxLength="MaximumGrantUserIdLength"` renders the DOM `maxlength`, which truncates typed and
+  pasted input, so the `normalizedUserId.Length > MaximumGrantUserIdLength` half of the submit guard is unreachable
+  from the real UI: a pasted 300-character id is silently shortened to 256 and dispatched as a platform-authority
+  grant against a different identity, with no validation message. `TenantsWorkspace.razor:71` pairs the same
+  attribute with an explicit too-long notice precisely because it is presentational. The new test reaches the
+  guard only because bUnit's `.Change()` bypasses the DOM constraint
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:203]
+- [x] [Review][Patch] `_authorizationPagingReset` is a one-shot notice with no unconditional clear. It is cleared
+  only inside `LoadAsync`'s `CanApply`-guarded apply block and in `CollapseAuthorizationAsync`; `RefreshAsync`,
+  `ResetPagingAsync` and both requery paths clear the sibling `_pagingJumpedToFirstPage` but not this one. A
+  superseded or faulted load therefore strands "Authorization changed. The review restarted at the first page." in
+  the polite live region for the life of the circuit — the stale-one-shot failure the comment at `:1037-1039`
+  documents as already fixed for the sibling flag. It is also set unconditionally after every transition,
+  including silent token renewals where paging never moved
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1577]
+- [x] [Review][Patch] The Refresh button neither takes the atomic page-load gate nor binds `Disabled`, while Retry,
+  Reset, Next and Previous all do. Clicking Refresh during an in-flight Next bumps `_loadGeneration`, cancels
+  Next's token and makes its `LoadAsync` return `null`, so no cursor is pushed: the operator's Next click produces
+  no navigation, no notice and no lifecycle state. AC4's "newest scoped request" rationale does not cover this —
+  Refresh re-reads the same cursor rather than supplying fresher evidence
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:432]
+- [x] [Review][Patch] `_readRefreshSubscriptionInFlight` is a plain `bool` test-and-set, not the
+  `Interlocked.CompareExchange` gate this same diff introduced for `_pageLoadInFlight`. It is entered from
+  `OnAfterRenderAsync` (dispatcher) and from `ApplyAuthenticationStateChangedAsync:1582`, which resumes on the
+  thread pool after a `ConfigureAwait(false)`. Both can pass the guard, both subscribe, and the loser's `finally`
+  clears the flag while the winner is still in flight. `_readRefreshAttempts++` is non-atomic on the same paths,
+  so the bounded budget that exists to stop unbounded round trips can be overshot
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1211]
+- [x] [Review][Patch] Hoisting `ReauthorizeAsync` to be the submit handlers' first await moved the whole body
+  off-dispatcher, but only the `RequestSent` render was marshalled. The `Blocked` snapshot write (`:1780`), the
+  `UserIdRequired` message and `_focusGrantUserIdPending` (`:1786`), and the new `UserIdInvalid` rejection (`:1794`)
+  all mutate renderer-read state from a thread-pool continuation with no dispatcher hop, so the focus move to the
+  user-id field can be lost and the assertive validation message announced with focus left on the submit button.
+  On the remove path `SubmitRemoveAsync` re-reads `_removeSnapshot.Intent` at `:1984` off-dispatcher after
+  checking it at `:1979`; a concurrent `CancelRemoveAsync` in that window makes `request` null and the resulting
+  `ArgumentNullException` is not matched by the `OperationCanceledException` filter
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1780]
+- [x] [Review][Patch] `RetryAuthorizationAsync` is the only page-load handler that releases its exclusion gate from
+  inside `await InvokeAsync(...)` in the `finally`; the four siblings call `EndPageLoad()` directly. If the circuit
+  tears down while the BFF resolve is suspended, the dispatch throws `ObjectDisposedException`, `EndPageLoad()`
+  never runs and the exception escapes a `finally`. Two sibling dispatches on this page (`:1171-1182`) and on
+  `TenantDetailPage.razor:520` catch exactly this [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1106]
+- [x] [Review][Patch] Story records contradict the code and the frontmatter. (a) The Review Triage Log still ends
+  "Story set to `in-progress`: 17 patch findings remain as action items" and "17 left as action items" while the
+  frontmatter says `review` and the Completion Notes claim all 18 resolved — the loop-1 paragraph got an explicit
+  "Superseded by" marker, the loop-2 paragraph did not. (b) The loop-2 decision text says the `reauthorize: false`
+  suppression "are removed", but `GlobalAdministratorsPage.razor:1567` still passes `reauthorize: false`. (c) The
+  File List declares `sprint-status.yaml` as "updated by this run"; it is unmodified. (d) `deferred-work.md:819-826`
+  and the triage-log rationale both assert `IsGrantSubmitDisabled` "never depended on in-flight state" — it does,
+  via `GrantUnavailableReason:725-728`, and `IsRemoveSubmitDisabled:785-790` names `IsGrantInFlight || IsRemoveInFlight`
+  outright, so a permanent ledger entry future sweeps read is factually wrong
+  [_bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md:219]
+- [x] [Review][Patch] Test gap on the loop-2 owner decision itself: no test anywhere constructs a single
+  `ClaimsIdentity` carrying two `sub` claims, so neither half of "exactly one *distinct* `sub`" is proven — not
+  that duplicate identical values authorize (the Keycloak id_token+userinfo shape the decision cites), nor that
+  conflicting values still fail closed. Reverting to `subjects[0].Value` keeps the suite green and silently
+  restores the lockout the decision was written to remove
+  [tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs:148]
+- [x] [Review][Patch] Sixteen further guards added by this diff are unverified, each with a named surviving
+  mutation: the null-resolver fail-closed arm in `TenantsBffComposition:31` and the `ITenantsBffComposition`
+  fail-closed default (every implementation overrides it); tenant-detail "fails closed while pending" and its
+  superseded-generation guard (the stub resolves synchronously, so the pending window is zero-width); the
+  `ReferenceEquals(_snapshot, snapshot)` requery supersession on both mutation paths; `ReauthorizeAsync`'s
+  transition-version guard; the fail-closed half of the new Indeterminate Retry (the test flips the stub to
+  `Authorized` before clicking); the faulted-detail arm of `RefreshTenantReadsAsync`; the `RequestSent` render
+  marshalling (no test asserts either `RequestSent` string reaches the DOM); all three new support-safe
+  `ToString()` overrides (the repo convention is an exact `ShouldBe` pin); the `roles` whitespace fix; two of the
+  three notification-budget reopen sites; the Next blank-cursor disable; and resolver precedence. Three tests
+  assert on raw source text (`ShouldNotContain` with hard-coded 8-space indentation) and pass under reformatting
+  or relocation, and `Resolver_prefers_current_circuit_identity_over_stale_authenticated_http_identity` no longer
+  has an HTTP identity to prefer over — `httpPrincipal` is now inert arrangement
+  [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:742]
+  — **CLOSED (2026-08-02, loop 4):** the loop-3 carry-forward set is covered with mutation-verified tests
+  (1,887 → 1,915). Behavioral races plus structure pins for requery `ReferenceEquals`; grant-path
+  `ReauthorizeAsync` transition-version guard; Indeterminate Retry fail-closed; combined-refresh fault
+  containment; mid-flight `RequestSent` DOM; Reset/RetryAuthorization budget reopen; tenant-detail pending and
+  superseded-generation; Refresh page-load gate; hardened regex source-structure assertions; dispose-vs-subscribe
+  lease retention. Loop-3 closed half remains authoritative for the earlier subset.
+- [x] [Review][Patch] The new French validation string is unaccented — "de 256 caracteres maximum, sans caractere
+  de controle" should read "caractères" / "caractère" / "contrôle". The sibling key added in the same commit
+  ("L'autorisation a changé… à la première page") is correctly accented. EN/FR key parity itself holds
+  [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:2830]
+- [x] [Review][Patch] `NextPageAsync` guards only on a blank `NextCursor`, while the `Disabled` binding it was
+  aligned with now also checks `!HasMore` — the comment states the two "must match, as they do on the tenant-detail
+  member pager", and `LoadNextMemberPageAsync:846` does check both. A click dispatched before the `disabled`
+  attribute lands (the documented reason these handler guards exist) can page past a declared end
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1301]
+
+- [x] [Review][Defer] A `Ready` snapshot reporting `HasMore` with a blank `NextCursor` is now a silent dead end:
+  Next is correctly disabled, Previous is disabled on page one, and `CanRecover` deliberately excludes `Ready`, so
+  neither Retry nor Reset renders and no notice explains it [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:698]
+  — deferred, needs a copy/design call on how to announce the condition rather than a mechanical fix
+- [x] [Review][Defer] Authorization resolution is uncancellable from both pages: `ResolveAuthorizationReflectionAsync`
+  and `TenantsWorkspace.razor:564` call the BFF seam with no token, so the loop-2 `WaitAsync(cancellationToken)`
+  seam is inert for them, and `RetryAuthorizationAsync` holds the page-load gate across it — a hung provider leaves
+  every recovery control disabled with nothing able to interrupt it
+  [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1634] — deferred, same timeout-policy
+  decision as the existing `EnsureReadRefreshLeaseAsync` `CancellationToken.None` deferral
+- [x] [Review][Defer] AC5 remains partially unmet while the story sits in `review`: on narrow viewports the per-row
+  Remove control is hidden with no per-row localized reason and the grant cell still renders an "available" string
+  beside hidden controls [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466] — deferred,
+  already recorded by loop 2; re-confirmed still open
+
 ## Spec Change Log
 
+- 2026-08-02: Closed the remaining loop-3 unverified-guard carry-forward with mutation-verified coverage
+  (1,887 → 1,915). Story returned to `review`.
+- 2026-08-01: Review loop 3 — 1 owner decision resolved (prerender fails closed), 14 patches applied,
+  3 deferred, 1 dismissed. 21 mutation-verified tests added (1,866 → 1,887). Corrected a false premise this
+  story had written into the permanent deferred-work ledger.
+- 2026-08-01: Addressed code review findings - 18 items resolved.
+- 2026-08-01: Completed the development loop: confirmed the strict literal-`sub` identity contract,
+  added evaluator regression coverage, corrected the workspace dispatcher regression, reconciled the
+  published dependency-pointer provenance, and validated the story for review.
+
 ## Review Triage Log
+
+- 2026-08-01, review loop 1, auth/navigation chunk: 1 decision resolved, 4 patches applied, 1 pre-existing issue deferred, and 1 candidate dismissed as noise. Blind-hunter and verification-gap layers timed out; edge-case and acceptance layers completed and were corroborated against the implementation and focused tests.
+- Verification: UI test project and full solution built warning-clean; 214 directly affected UI tests, the story's 585-test focused UI lane, and 5 fixed-scope server authorization tests passed. The generic-query-path search and `git diff --check` passed.
+- Superseded by review loop 2 (2026-08-01). At the time it was written this paragraph was already stale: the frontmatter said `review`, the File List declared `references/Hexalith.PolymorphicSerializations`, and the validator exited 0. Corrected here rather than left to contradict the frontmatter.
+
+- 2026-08-01, review loop 2, chunk A (production source, 3,584 diff lines across 9 files; tests read as evidence but not line-reviewed). All four layers completed, none failed or timed out. 3 decisions raised and resolved by the owner, 32 patches raised, 14 applied, 17 left as action items, 1 withdrawn during application, 5 deferred, 4 dismissed as noise.
+- Withdrawn during application: gating `RefreshFromNotificationAsync` on `_pageLoadInFlight` was raised as a finding but contradicts AC4 ("only the newest scoped request renders") and the existing regression `Newer_notification_refresh_rejects_a_late_cursor_result_and_preserves_cursor_history`. The patch was reverted and the intent recorded as a comment at the call site instead.
+- Three further layer claims were rejected at triage after reading the code: the submit buttons were never disabled in flight (so the double-dispatch exposure is pre-existing, not a regression from the hoisted re-authorization); `Routes.razor` policy enforcement is satisfied by endpoint metadata as the Design Notes describe; and the mobile read-only surface is presentation over a server-authoritative boundary, as the spec intends.
+- Verification after the applied patches: UI test project builds warning-clean in Release, and the full UI suite passes 1,849 / 0 failed / 0 skipped. `validate-story-gitlinks.py` exits 0 with all seven pointers declared. `git diff --check` clean; no generic query path in `src/Hexalith.Tenants.UI`.
+- Story set to `in-progress`: 17 patch findings remain as action items.
+- **Superseded by review loop 3 (2026-08-01).** The two lines above are historical: the dev run that followed
+  closed all 17, and the frontmatter, Completion Notes and File List are authoritative over this paragraph.
+  Loop 3 recorded this explicitly rather than leaving a second stale "in-progress" claim in the log, which is
+  the same defect loop 2 corrected for loop 1.
+- Correction to the loop-2 decision text above: it states the `reauthorize: false` suppression "are removed".
+  Only the uncorroborated `Evaluate` call was removed. `LoadAsync(reuseETag: false, reauthorize: false)` is
+  retained deliberately on the transition path, because the strict BFF seam has already resolved authorization
+  a few lines earlier and the transition-version guard is re-checked before the load; re-resolving there would
+  be redundant, not safer. Recorded here so the text matches what shipped.
+
+- 2026-08-01, review loop 3, uncommitted working tree (3,270 diff lines across 21 files: the loop-1/loop-2
+  patches plus the dev run closing 17 action items, tests line-reviewed this time). All four layers completed,
+  none failed or timed out. 1 decision raised and resolved by the owner, 14 patches raised and 14 applied,
+  3 deferred, 1 dismissed as noise.
+- Story evidence was re-verified independently before triage rather than read from the Dev Agent Record, and it
+  held exactly: Release build 0/0, UI suite 1,866 passed, gitlink validator exit 0 with all seven pointers
+  declared, no generic query path, `git diff --check` clean.
+- Dismissed at triage: the `Preview` last-administrator relaxation. The layered stop still holds through
+  `HasPositiveRemovalPopulationEvidence`, which requires either complete evidence with more than one row or the
+  service's own `HasMore`; what loop 2 removed was the inference of a platform-wide total from a single page,
+  which was the actual defect.
+- Two agent claims were corrected during triage rather than accepted: the blind-hunter's framing of the resolver
+  fallback as reinstating the request principal on *every* non-circuit path is overstated (inside a circuit the
+  injected provider is the circuit's own scoped instance) — only the prerender pass was affected, which is what
+  the owner decision addressed. And the finding that the submit buttons are never disabled in flight is simply
+  false; that claim had been written into the permanent deferred-work ledger by loop 2 and is now withdrawn there.
+- A gap in this loop's own first attempt, recorded because it is the interesting part: the initial
+  subscribe-before-resolve test passed under its own mutation. `LoadAsync`'s default `reauthorize: true`
+  re-resolved and collapsed the surface anyway, masking the missed authentication event. It only became
+  discriminating once the read surface was disconnected so no re-authorizing load could run. Every new test here
+  was mutation-verified against the specific revert it is meant to catch.
+- Verification after the applied patches: `Hexalith.Tenants.slnx` and the UI test project both build Release
+  warning-clean; the full UI suite passes 1,887 / 0 failed / 0 skipped (1,866 before, +21 added).
+  `validate-story-gitlinks.py` exits 0 with all seven pointers declared. `git diff --check` clean; no generic
+  query path in `src/Hexalith.Tenants.UI`. All 22 modified files were already declared in the File List.
+- Story set to `in-progress`: one patch item remains partially open — roughly half of the 17 unverified guards
+  now have mutation-verified coverage, and the remainder are enumerated in that item with the reusable seam and
+  two harness gotchas needed to finish them.
+- **Superseded by review loop 4 (2026-08-02).** The remaining unverified guards were closed with focused
+  mutation-verified tests; frontmatter, Completion Notes, and sprint status are authoritative over the
+  historical `in-progress` line above.
+
+- 2026-08-02, review loop 4 (dev continuation): closed the loop-3 carry-forward unverified-guard item.
+  Extended `StubTenantsBffComposition` / `StubTenantCommandGateway` gates, added behavioral and structure
+  regressions across Global Administrators and Tenant Detail, hardened brittle source-text assertions, and
+  made `RefreshAsync` internal for the same in-flight gate testing pattern as Retry/Reset.
+- Verification: Release solution and UI test project build warning-clean; full UI suite 1,915 / 0 failed /
+  0 skipped. `validate-story-gitlinks.py` exit 0 with all seven pointers declared. `git diff --check` clean;
+  no generic query path in `src/Hexalith.Tenants.UI`.
+- Story set to `review`: no open patch action items remain (deferred items from earlier loops stay deferred).
 
 ## Design Notes
 
@@ -109,6 +473,8 @@ is intentional rather than a duplicate declaration:
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
 - `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsReason.cs`
@@ -123,6 +489,17 @@ is intentional rather than a duplicate declaration:
   file was missing. It is changed in the Story 1.10 range (+63) and is declared by Story 1.10 as well.
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
 
+Added by review loop 1:
+
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantConfigurationEndToEndTests.cs`
+
+Added by review loop 2 completion:
+
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs`
+
 Dependency pointers that moved inside this story's baseline range (`2e61f57..HEAD`). This story's baseline
 sits *inside* Story 1.10's range, so it inherits the same six movements, which are carried by the published
 dependency commits `f425b49` and `09947a2`. They are declared here for the same reason 1.10 declares them —
@@ -132,7 +509,11 @@ cross-reference, not a second claim of authorship.
 
 Before this re-cut, Story 1.11 had no File List at all, so
 `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md`
-exited 1 with all six pointers UNDECLARED. It now exits 0.
+exited 1 with all six pointers UNDECLARED. Declaring those six made that historical range pass. Review loop 1
+reported a seventh `references/Hexalith.PolymorphicSerializations` movement. This dev run declares that
+published range provenance: commit `3503890` bundled the pointer update with the global-administrator changes
+already attributed to this story, so reverting it here would create a new dependency rollback rather than
+unbundle unpublished work.
 
 - `references/Hexalith.AI.Tools`
 - `references/Hexalith.Builds`
@@ -140,6 +521,13 @@ exited 1 with all six pointers UNDECLARED. It now exits 0.
 - `references/Hexalith.EventStore`
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
+- `references/Hexalith.PolymorphicSerializations`
+
+Development artifacts updated by this run:
+
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/spec-1-11-authorized-global-administrator-review.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Scope Attribution — added by code review of Story 1.10 (2026-07-28)
 
@@ -162,16 +550,18 @@ Work belonging to this story, already present in the tree:
 Three decisions were transferred here from the 1.10 review because no acceptance criterion in either spec
 covers them. All are security-relevant and must be resolved against this story's ACs before it closes:
 
-- [ ] [Review][Decision] Principal-resolution precedence was inverted — the circuit `AuthenticationStateProvider`
-  now outranks `HttpContext.User`, where `HttpContext` was previously primary. A circuit whose provider
-  returns an anonymous or not-yet-populated state while `HttpContext.User` is authenticated collapses to
-  `Indeterminate` and fails every configuration grant closed. [TenantConfigurationPrincipalResolver.cs:17-48]
-- [ ] [Review][Decision] `Evaluate` now requires exactly one authenticated identity carrying exactly one
+- [x] [Review][Decision] Principal-resolution precedence was inverted — the circuit `AuthenticationStateProvider`
+  now outranks `HttpContext.User`, where `HttpContext` was previously primary. **RESOLVED (2026-08-01,
+  owner decision): retain circuit-over-HTTP precedence with no request-principal fallback.** The live circuit
+  identity is authoritative for authentication transitions; stale HTTP evidence must not restore privilege.
+  Anonymous, pending, or faulty circuit evidence fails closed, with the review's cancellation and non-blocking
+  patches handling availability separately. [TenantConfigurationPrincipalResolver.cs:17-48]
+- [x] [Review][Decision] `Evaluate` now requires exactly one authenticated identity carrying exactly one
   literal, non-whitespace, control-char-free `sub` claim. Any handler mapping `sub` to
   `ClaimTypes.NameIdentifier` (the ASP.NET default), or any principal with two authenticated identities
   (cookie + bearer), denies a genuine global administrator. Confirm against
   `docs/production-auth-claim-contract.md`. [TenantsGlobalAdministratorClaims.cs:36-46]
-- [ ] [Review][Decision] `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which
+- [x] [Review][Decision] `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which
   is null for the whole interactive circuit, so `Evaluate(null)` returns `Indeterminate` permanently and
   `TenantDetailPage.razor:149` gates tenant lifecycle actions off for a signed-in global administrator for the rest of
   the session. Story 1.10 added `ResolveGlobalAdministratorsAuthorizationAsync` to the same type and migrated the
@@ -180,7 +570,112 @@ covers them. All are security-relevant and must be resolved against this story's
   (2026-07-30) so that this story's two principal-resolution decisions above and this one are settled as one coherent
   authorization change rather than two stories patching the same evaluator. Accepted interim consequence: tenant
   lifecycle actions stay `Indeterminate` for global administrators until this story lands.
+  **RESOLVED (2026-08-01):** tenant detail now consumes `ResolveLifecycleAuthorizationAsync`, which shares the strict
+  circuit-principal resolver, fails closed while pending or faulty, cancels superseded work, and reauthorizes on live
+  authentication transitions. The synchronous request reflection is no longer consumed by tenant lifecycle actions.
   [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21-27]
 
-This story has not yet had a review loop (`review_loop_iteration: 0`). Sprint status was moved
-`backlog -> review` to reflect that its code exists and is awaiting that loop.
+This story completed review loop 1 (`review_loop_iteration: 1`), including the identity-shape decision and
+gitlink reconciliation. Its story status and sprint status are `review`.
+
+## Dev Agent Record
+
+### Implementation Plan
+
+- Resolve the remaining review actions in document order with focused red tests, minimal circuit-safe UI
+  changes, and a full UI regression run after each completed action.
+- Confirm the unresolved identity-shape decision against the production auth contract and effective OIDC/JWT
+  configuration.
+- Pin the strict fail-closed evaluator behavior with focused coverage, then validate all carried-in Story 1.11
+  authorization and navigation changes.
+- Reconcile baseline-range dependency pointers and run the full configured regression ladder before review.
+
+### Debug Log
+
+- The production contract and both authentication hosts preserve raw claim names (`MapInboundClaims = false`),
+  so literal `sub` remains the trusted subject and multiple authenticated identities remain indeterminate.
+- The first full UI regression run found one renderer-dispatcher failure caused by `ConfigureAwait(false)` in
+  `TenantsWorkspace.razor`; removing those component awaits from the renderer path made the focused regression
+  and full UI suite pass.
+- The non-performance integration lane passed 166 of 168 tests. The two non-blocking Aspire topology tests were
+  environment-blocked by an unreachable DAPR `statestore` health check (60-second timeout), followed by a
+  command-path HTTP 500. `aspire doctor` passed the CLI, AppHost, SDK, Docker, and WSL checks and reported only
+  the existing partial HTTPS trust warning; the story-relevant generated-controller lane passed 27 of 27.
+- Final rerun of the non-performance integration lane discovered 168 tests: 146 passed, 2 Aspire topology
+  tests failed, and 20 were skipped. The same environment blocker recurred — DAPR state/config traffic timed
+  out despite healthy AppHost resource state, and the Aha command path timed out after 60 seconds. The
+  story-relevant generated-controller lane independently passed 27 of 27.
+
+### Completion Notes
+
+- ✅ Resolved review finding [Patch]: closed the loop-3 carry-forward of unverified guards with mutation-verified
+  coverage for requery supersession (behavioral + `ReferenceEquals` structure pin), grant-path
+  `ReauthorizeAsync` transition-version, Indeterminate Retry fail-closed, combined-refresh fault containment,
+  mid-flight `RequestSent` DOM, Reset/RetryAuthorization notification-budget reopen, tenant-detail pending and
+  superseded-generation authorization, Refresh page-load gate, hardened source-structure assertions, and
+  dispose-vs-subscribe lease retention. Full UI suite passes (1,915 tests). `validate-story-gitlinks.py` exit 0.
+- ✅ Resolved review finding [Patch]: indeterminate authorization now exposes a safe retry that re-runs the
+  strict BFF authorization seam before any privileged query or markup can return; focused coverage and the
+  full UI suite pass (1,850 tests).
+- ✅ Resolved review finding [Patch]: the rendered Global Administrators page now has regression coverage
+  through the real circuit-aware principal resolver and BFF composition, including an authorization
+  transition outside an inbound circuit activity; the full UI suite passes (1,851 tests).
+- ✅ Resolved review finding [Patch]: workspace load replacement now cancels a superseded operation but
+  leaves cancellation-source disposal to that operation's owner, with behavioral and source-structure
+  regressions; the full UI suite passes (1,853 tests).
+- ✅ Resolved review finding [Patch]: preserved notification-over-pager supersession because review triage
+  withdrew the proposed gate as contrary to AC4; the focused late-cursor regression and the 1,853-test UI
+  suite prove only the newest scoped request renders while cursor history remains valid.
+- ✅ Resolved review finding [Patch]: strict authentication transitions now announce their first-page restart
+  through a dedicated polite EN/FR recovery message after the authoritative reload; focused paging evidence
+  and the full UI suite pass (1,854 tests).
+- ✅ Resolved review finding [Patch]: the projection lifecycle badge and Retry/Reset controls now render as
+  siblings of the assertive truth-state region, with a DOM-boundary regression; the full UI suite passes
+  (1,855 tests).
+- ✅ Resolved review finding [Patch]: every rows-free recovery entry point now reopens the bounded
+  notification-subscription setup budget before its authoritative retry, with regression coverage for the
+  exhausted Error surface; the full UI suite passes (1,856 tests).
+- ✅ Resolved review finding [Patch]: grant submission now keeps control-character and over-256-character
+  user identifiers local, supplies a whole-string EN/FR recovery message, and advertises the supported input
+  bound; focused coverage and the full UI suite pass (1,857 tests).
+- ✅ Resolved review finding [Patch]: combined tenant/member refresh now observes both reads independently,
+  contains operational faults, applies a successful sibling result, and degrades retained member evidence
+  instead of stranding it on Refreshing; focused coverage and the full UI suite pass (1,858 tests).
+- ✅ Resolved review finding [Patch]: the member page-one jump notice is now one-shot evidence and clears
+  after the next authoritative combined refresh; the real bounded-history pager regression and the full UI
+  suite pass (1,858 tests).
+- ✅ Resolved review finding [Patch]: tenant-detail notification setup now charges only failed or empty
+  subscriptions and both explicit detail/member refresh paths reopen a bounded same-route budget; focused
+  bounded/recovery coverage and the full UI suite pass (1,859 tests).
+- ✅ Resolved review finding [Patch]: all Global Administrators paging and recovery handlers now acquire
+  one atomic test-and-set gate, while rendered disabled state uses a volatile read; structure and behavioral
+  mutual-exclusion regressions plus the full UI suite pass (1,860 tests).
+- ✅ Resolved review finding [Patch]: asynchronous page initialization now resolves authorization off the
+  renderer but marshals authorization, provider subscription, and terminal snapshot mutations back through
+  the dispatcher before loading; focused structure/real-resolver coverage and the full UI suite pass (1,861 tests).
+- ✅ Resolved review finding [Patch]: the authorized workspace entry now has a real paging regression proving
+  the active opaque cursor remains in workspace navigation but is suppressed from the Global Administrators
+  return context; the full UI suite passes (1,862 tests).
+- ✅ Resolved review finding [Patch]: page-scoped remove preview coverage now renders and pins the honest
+  "Administrators visible on this page" count label instead of the complete-platform label; the full UI suite
+  passes (1,863 tests).
+- ✅ Resolved review finding [Patch]: both initial tenant-detail read tasks now have fault-injection coverage
+  proving operational details stay contained, each failed surface terminates honestly, and the sibling task is
+  still observed; the full UI suite passes (1,865 tests).
+- ✅ Resolved review finding [Patch]: notification setup failure now has an injected `ILoggerFactory`
+  regression proving the warning carries only the fixed `notification-setup-failed` reason code, no scope or
+  exception detail; the full UI suite passes (1,866 tests).
+- ✅ Resolved review finding [Patch]: retained the already-corrected superseded review-loop paragraph and
+  closed its stale finding; the historical review-loop-2 `in-progress` entry remains explicitly historical,
+  while the declared dependency pointer and current completion state are authoritative.
+- Kept strict single-identity, literal-`sub` authorization because Tenants JWT bearer and FrontComposer OIDC
+  preserve raw claim names; mapped aliases and multi-identity principals fail closed instead of widening trust.
+- Added evaluator coverage for the accepted literal subject and rejected mapped/multiple-identity shapes.
+- Preserved the prior review-loop fixes for circuit authorization, cancellation, non-blocking workspace loading,
+  and tenant lifecycle reauthorization, and corrected their Blazor dispatcher regression.
+- Declared `references/Hexalith.PolymorphicSerializations` because published commit `3503890` moved the pointer in
+  the same baseline range as this story's global-administrator changes; this run did not move the pointer.
+- Release solution and project builds completed with zero warnings/errors. Full passing suites: Contracts 120,
+  Client 50, Testing 181, Sample 39, Server 738, UI 1,866; focused story UI lane 599, fixed-scope server lane 5,
+  and generated-controller integration lane 27. The broader non-blocking Aspire lane is recorded separately
+  above with its exact environment blocker and totals.

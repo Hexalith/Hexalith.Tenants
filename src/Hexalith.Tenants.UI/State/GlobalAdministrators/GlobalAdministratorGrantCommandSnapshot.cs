@@ -16,6 +16,13 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>
+    /// Returns a support-safe description that omits identities, correlation data, and message identifiers.
+    /// </summary>
+    /// <returns>A bounded support-safe command-snapshot description.</returns>
+    public override string ToString()
+        => $"{nameof(GlobalAdministratorGrantCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
+
     public static GlobalAdministratorGrantCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 

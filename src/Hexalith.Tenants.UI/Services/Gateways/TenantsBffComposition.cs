@@ -29,7 +29,7 @@ internal sealed class TenantsBffComposition(
     public async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
         CancellationToken cancellationToken = default) {
         if (principalResolver is null) {
-            return GlobalAdministratorsAuthorizationReflection;
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
 
         TenantConfigurationPrincipalEvidence evidence = await principalResolver.ResolveAsync(cancellationToken)
@@ -42,6 +42,10 @@ internal sealed class TenantsBffComposition(
             _ => TenantLifecycleAuthorizationReflectionState.Indeterminate,
         };
     }
+
+    public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveLifecycleAuthorizationAsync(
+        CancellationToken cancellationToken = default)
+        => ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken);
 
     public async ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
         TenantDetail detail,

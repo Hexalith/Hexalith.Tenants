@@ -163,13 +163,31 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
     [Fact]
     public void Preview_blocks_when_required_projection_items_are_missing()
     {
+        // Complete evidence: a single row IS the platform total, so the last-administrator stop is truthful.
         GlobalAdministratorRemoveCommandSnapshot lastAdmin = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
-            .Preview(new RemoveGlobalAdministrator("target-admin"), CurrentRows("target-admin"));
+            .Preview(
+                new RemoveGlobalAdministrator("target-admin"),
+                CurrentRows("target-admin"),
+                isCompleteEvidence: true);
 
         lastAdmin.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         lastAdmin.SafeMessage.ShouldNotBeNull().ShouldContain("last global administrator", Case.Insensitive);
         lastAdmin.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+
+        // Incomplete evidence: the same single row is one page of an unknown total, so claiming the target is
+        // the last global administrator would state a platform-wide fact derived from a page. Without this
+        // case the completeness gate could be deleted and this test would still pass.
+        GlobalAdministratorRemoveCommandSnapshot incompleteEvidence = GlobalAdministratorRemoveCommandSnapshot
+            .Idle()
+            .Preview(
+                new RemoveGlobalAdministrator("target-admin"),
+                CurrentRows("target-admin"),
+                isCompleteEvidence: false);
+
+        incompleteEvidence.State.ShouldBe(TenantCommandLifecycleState.Previewed);
+        incompleteEvidence.SafeMessage.ShouldBeNull();
+        incompleteEvidence.PreviewIsCompleteEvidence.ShouldBeFalse();
 
         GlobalAdministratorRemoveCommandSnapshot missingTarget = GlobalAdministratorRemoveCommandSnapshot
             .Idle()

@@ -2649,6 +2649,9 @@
   <data name="Tenants.GlobalAdministrators.Recovery.HistoryTruncated" xml:space="preserve">
     <value>L'historique de pagination a atteint sa limite : cette étape est revenue à la première page et non à la page précédente.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.AuthorizationChanged" xml:space="preserve">
+    <value>L'autorisation a changé. La revue a repris à la première page.</value>
+  </data>
   <data name="Tenants.Members.Recovery.HistoryTruncated" xml:space="preserve">
     <value>L'historique de pagination a atteint sa limite : cette étape est revenue à la première page et non à la page précédente.</value>
   </data>
@@ -2822,6 +2825,9 @@
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
     <value>Identifiant utilisateur</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid" xml:space="preserve">
+    <value>Saisissez un identifiant utilisateur pris en charge de 256 caractères maximum, sans caractère de contrôle.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
     <value>L'identifiant utilisateur est requis avant d'accorder l'autorite d'administrateur global.</value>

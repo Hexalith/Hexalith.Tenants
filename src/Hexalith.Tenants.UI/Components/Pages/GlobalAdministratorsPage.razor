@@ -36,6 +36,15 @@
                         @Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Message"]
                     </p>
                 </FluentMessageBar>
+                @if (_authorizationReflection is TenantLifecycleAuthorizationReflectionState.Indeterminate)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Disabled="@PageLoadInFlight"
+                                  data-testid="tenants-global-admins-authorization-retry"
+                                  OnClick="RetryAuthorizationAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
+                    </FluentButton>
+                }
             </FluentStack>
         </FluentStack>
     }
@@ -109,27 +118,27 @@
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__state-copy">
                     <h2>@StatusHeading</h2>
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
-                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
-                                              TestId="tenants-global-admins-projection-lifecycle-status" />
-                    @if (CanRecover)
-                    {
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
-                            <FluentButton Appearance="ButtonAppearance.Outline"
-                                          Disabled="@_pageLoadInFlight"
-                                          data-testid="tenants-global-admins-retry"
-                                          OnClick="RetryAsync">
-                                @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
-                            </FluentButton>
-                            <FluentButton Appearance="ButtonAppearance.Outline"
-                                          Disabled="@_pageLoadInFlight"
-                                          data-testid="tenants-global-admins-reset"
-                                          OnClick="ResetPagingAsync">
-                                @Localizer["Tenants.GlobalAdministrators.Recovery.Reset"]
-                            </FluentButton>
-                        </FluentStack>
-                    }
                 </FluentStack>
             </section>
+            <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
+                                      TestId="tenants-global-admins-projection-lifecycle-status" />
+            @if (CanRecover)
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Disabled="@PageLoadInFlight"
+                                  data-testid="tenants-global-admins-retry"
+                                  OnClick="RetryAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Disabled="@PageLoadInFlight"
+                                  data-testid="tenants-global-admins-reset"
+                                  OnClick="ResetPagingAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Recovery.Reset"]
+                    </FluentButton>
+                </FluentStack>
+            }
             @* Rendered as siblings of the state section, not children. StatusRole/StatusLive resolve to
                alert/assertive for Invalid, Stale, Unknown, Degraded, Error, Unauthorized and Unavailable,
                and inserting or removing a child mutates that region's own subtree -- so every projection
@@ -145,6 +154,12 @@
             {
                 <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-history-truncated">
                     @Localizer["Tenants.GlobalAdministrators.Recovery.HistoryTruncated"]
+                </p>
+            }
+            @if (_authorizationPagingReset)
+            {
+                <p class="global-admins__nudge" role="status" aria-live="polite" data-testid="tenants-global-admins-authorization-page-reset">
+                    @Localizer["Tenants.GlobalAdministrators.Recovery.AuthorizationChanged"]
                 </p>
             }
             @if (_snapshot.PagingRecovered)
@@ -185,6 +200,12 @@
                                  @ref="_grantUserIdElement"
                                  name="global-administrator-user-id"
                                  Label="@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]"
+                                 @* No MaxLength: the attribute renders the DOM `maxlength`, which truncates
+                                    typed and pasted input in the browser. A pasted over-long id was silently
+                                    shortened and dispatched as a platform-authority grant against a DIFFERENT
+                                    identity, and it made the length half of the submit guard unreachable from
+                                    the real UI. The bound is advertised by the help text and enforced at submit,
+                                    where an over-long id gets an explicit localized rejection instead. *@
                                  Value="@_grantUserId"
                                  ValueChanged="OnGrantUserIdInput"
                                  data-testid="tenants-global-admin-grant-user-id"
@@ -413,7 +434,10 @@
                          data-testid="tenants-global-admins-list">
             <div class="global-admins__table-header">
                 <h2 id="global-admins-list-heading">@Localizer["Tenants.GlobalAdministrators.List.Title"]</h2>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-refresh" OnClick="RefreshAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              Disabled="@PageLoadInFlight"
+                              data-testid="tenants-global-admins-refresh"
+                              OnClick="RefreshAsync">
                     @Localizer["Tenants.GlobalAdministrators.Refresh"]
                 </FluentButton>
             </div>
@@ -485,10 +509,13 @@
                 </FluentDataGrid>
             </div>
             <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(PageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Previous"]
                 </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore)" OnClick="NextPageAsync">
+                @* Enabled on HasMore alone rendered a dead button: NextPageAsync also requires a non-blank
+                   cursor, so a page reporting HasMore with no cursor left Next clickable and silent. The two
+                   conditions must match, as they do on the tenant-detail member pager. *@
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(PageLoadInFlight || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Next"]
                 </FluentButton>
             </nav>
@@ -502,6 +529,7 @@
 
 @code {
     private const int PageSize = 20;
+    private const int MaximumGrantUserIdLength = 256;
     private readonly object _grantFormModel = new();
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
     private IAsyncDisposable? _readRefreshLease;
@@ -523,14 +551,15 @@
     // ordinary one-page step back.
     private bool _pagingHistoryTruncated;
     private bool _pagingJumpedToFirstPage;
+    private bool _authorizationPagingReset;
     private string? _currentCursor;
     private string? _grantUserId;
     private string? _grantValidationMessage;
     private bool _isGrantSubmitting;
     private bool _isRemoveSubmitting;
     private bool _isNotificationRefreshing;
-    private bool _pageLoadInFlight;
-    private bool _readRefreshSubscriptionInFlight;
+    private int _pageLoadInFlight;
+    private int _readRefreshSubscriptionInFlight;
     private bool _disposed;
     private long _loadGeneration;
     private long _grantMutationGeneration;
@@ -539,6 +568,14 @@
     private CancellationTokenSource? _loadCancellation;
     private CancellationTokenSource? _grantMutationCancellation;
     private CancellationTokenSource? _removeMutationCancellation;
+
+    private bool PageLoadInFlight => Volatile.Read(ref _pageLoadInFlight) != 0;
+
+    private bool TryBeginPageLoad()
+        => Interlocked.CompareExchange(ref _pageLoadInFlight, 1, 0) == 0;
+
+    private void EndPageLoad()
+        => Volatile.Write(ref _pageLoadInFlight, 0);
 
     // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
     // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
@@ -836,26 +873,50 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _authorizationReflection = await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        // Subscribed BEFORE the resolve, not after it. Attaching afterwards left a window in which a sign-out
+        // fired against no handler at all and was simply lost; the pre-sign-out Authorized was then written
+        // unconditionally and the whole privileged surface rendered for a signed-out principal, with no later
+        // transition left to correct it. This method starts on the dispatcher, so the subscription needs no hop.
+        // TenantDetailPage.OnInitialized subscribes on the same edge for the same reason.
         _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         }
 
-        if (!IsAuthorized)
+        // Captured before the resolve for the same reason ReauthorizeAsync captures it: a transition landing
+        // while this resolve is in flight must win over the answer that was already in flight.
+        long version = Volatile.Read(ref _authorizationTransitionVersion);
+        TenantLifecycleAuthorizationReflectionState reflection =
+            await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        bool shouldLoad = false;
+        await InvokeAsync(() =>
         {
-            _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
-            return;
-        }
+            if (!CanApplyAuthorizationTransition(version))
+            {
+                return;
+            }
 
-        if (!BffComposition.IsReadSurfaceConnected)
+            _authorizationReflection = reflection;
+            if (!IsAuthorized)
+            {
+                _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
+                return;
+            }
+
+            if (!BffComposition.IsReadSurfaceConnected)
+            {
+                _snapshot = GlobalAdministratorsSnapshot.Unavailable();
+                return;
+            }
+
+            shouldLoad = true;
+        }).ConfigureAwait(false);
+
+        if (shouldLoad)
         {
-            _snapshot = GlobalAdministratorsSnapshot.Unavailable();
-            return;
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
         }
-
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -966,6 +1027,7 @@
                 // refreshes. PreviousPageAsync sets it again after this method returns when this very load is
                 // the jump to page one.
                 _pagingJumpedToFirstPage = false;
+                _authorizationPagingReset = false;
                 if (result.PagingRecovered)
                 {
                     _cursorHistory.Clear();
@@ -983,22 +1045,43 @@
         }
     }
 
-    private async Task RefreshAsync()
+    internal async Task RefreshAsync()
     {
+        // Refresh takes the same exclusion gate as Retry, Reset, Next and Previous. Without it, a Refresh click
+        // during an in-flight Next bumped _loadGeneration and cancelled Next's token, so Next's LoadAsync
+        // returned null, no cursor was pushed, and the operator's click produced no navigation, no notice and no
+        // lifecycle state. AC4's "newest scoped request wins" does not cover this: Refresh re-reads the SAME
+        // cursor rather than supplying fresher evidence, so there is nothing newer to prefer.
+        if (!TryBeginPageLoad())
+        {
+            return;
+        }
+
         // An explicit refresh is the operator asking for a fresh attempt at everything, including the
         // optional notification subscription. It is also the only thing that resets the setup budget:
         // OnAfterRenderAsync retries a failed subscribe, but a failing backend records no lease, so every
         // guard passed again on the next render -- two remote round trips per render, unbounded, for the
         // life of the circuit. With the budget, "manual refresh retries notification setup" is a real
         // behaviour rather than a restatement of "any render retries".
-        _readRefreshAttempts = 0;
+        Volatile.Write(ref _readRefreshAttempts, 0);
 
         // Cleared here, unconditionally, as well as on each applied load. The per-load clear alone left the
         // notice rendered for good when a refresh was cancelled, superseded or faulted, because it only runs
         // inside the CanApply block -- the stale one-shot notice this placement originally fixed.
         _pagingJumpedToFirstPage = false;
 
-        await LoadAsync(reuseETag: true).ConfigureAwait(false);
+        // The authorization-restart notice is the same shape of one-shot evidence and needs the same treatment;
+        // it was added with only the per-load clear, so a superseded or faulted refresh stranded it forever.
+        _authorizationPagingReset = false;
+
+        try
+        {
+            await LoadAsync(reuseETag: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            EndPageLoad();
+        }
     }
 
     // Retry and Reset share the pager's in-flight gate. Both render alongside the pager whenever a rows-
@@ -1011,30 +1094,84 @@
     // project has InternalsVisibleTo and invokes them directly.
     internal async Task RetryAsync()
     {
-        if (_pageLoadInFlight)
+        if (!TryBeginPageLoad())
         {
             return;
         }
 
-        _pageLoadInFlight = true;
+        // Retry is the rows-free recovery path; Refresh is rendered only with rows. Both must reopen the
+        // bounded optional-subscription setup budget or an Error/Empty surface can never restore nudges.
+        Volatile.Write(ref _readRefreshAttempts, 0);
         try
         {
             _ = await LoadAsync(reuseETag: false, retainConfirmed: true).ConfigureAwait(false);
         }
         finally
         {
-            _pageLoadInFlight = false;
+            EndPageLoad();
+        }
+    }
+
+    internal async Task RetryAuthorizationAsync()
+    {
+        if (_disposed
+            || _authorizationReflection is not TenantLifecycleAuthorizationReflectionState.Indeterminate
+            || !TryBeginPageLoad())
+        {
+            return;
+        }
+
+        // A recovered authorization boundary starts a fresh subscription opportunity as well as a fresh read.
+        Volatile.Write(ref _readRefreshAttempts, 0);
+        StateHasChanged();
+        try
+        {
+            if (!await ReauthorizeAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (!BffComposition.IsReadSurfaceConnected)
+            {
+                await InvokeAsync(() =>
+                {
+                    _snapshot = GlobalAdministratorsSnapshot.Unavailable();
+                    StateHasChanged();
+                }).ConfigureAwait(false);
+                return;
+            }
+
+            _ = await LoadAsync(reuseETag: false, reauthorize: false).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The gate is released directly, not from inside the dispatch. If the circuit tears down while the
+            // BFF resolve is suspended, InvokeAsync throws ObjectDisposedException, EndPageLoad() never runs and
+            // every recovery control -- including the authorization Retry that exists for exactly this state --
+            // stays disabled, while the exception escapes a finally. The four sibling handlers release the gate
+            // directly for this reason; only the re-render needs the dispatcher, and it can fail harmlessly.
+            EndPageLoad();
+            try
+            {
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // The circuit went away while authorization was resolving; there is nothing left to re-render.
+            }
         }
     }
 
     internal async Task ResetPagingAsync()
     {
-        if (_pageLoadInFlight)
+        if (!TryBeginPageLoad())
         {
             return;
         }
 
-        _pageLoadInFlight = true;
+        // Reset is also rendered on rows-free recoverable states and therefore carries the same optional
+        // subscription recovery responsibility as Retry and the rows-bearing Refresh control.
+        Volatile.Write(ref _readRefreshAttempts, 0);
         try
         {
             // Marshalled: the renderer reads _cursorHistory.Count for the Previous button's Disabled
@@ -1044,6 +1181,7 @@
                 _cursorHistory.Clear();
                 _pagingHistoryTruncated = false;
                 _pagingJumpedToFirstPage = false;
+                _authorizationPagingReset = false;
                 _currentCursor = null;
             }).ConfigureAwait(false);
             _ = await LoadAsync(
@@ -1054,12 +1192,17 @@
         }
         finally
         {
-            _pageLoadInFlight = false;
+            EndPageLoad();
         }
     }
 
     private async Task RefreshFromNotificationAsync()
     {
+        // Deliberately NOT gated on _pageLoadInFlight. A notification landing during a pending cursor load must
+        // supersede it: AC4 requires that only the newest scoped request renders, and
+        // Newer_notification_refresh_rejects_a_late_cursor_result_and_preserves_cursor_history pins that a late
+        // cursor result is rejected while cursor history stays valid. Letting an in-flight pager outrank a
+        // fresher notification would render stale rows as current.
         if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected)
         {
             return;
@@ -1117,14 +1260,23 @@
             || !IsAuthorized
             || !BffComposition.IsReadSurfaceConnected
             || _readRefreshLease is not null
-            || _readRefreshSubscriptionInFlight
-            || _readRefreshAttempts >= MaximumReadRefreshAttempts
+            || Volatile.Read(ref _readRefreshAttempts) >= MaximumReadRefreshAttempts
             || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
         {
             return;
         }
 
-        _readRefreshSubscriptionInFlight = true;
+        // Atomic test-and-set, like the sibling page-load gate. This method is entered from OnAfterRenderAsync
+        // (dispatcher) and from ApplyAuthenticationStateChangedAsync, which resumes on the thread pool after a
+        // ConfigureAwait(false). A plain bool let both pass the guard, both subscribe, and the loser's finally
+        // clear the flag while the winner was still in flight -- so the mutual exclusion this flag exists to
+        // provide was absent on exactly the two paths that race. Acquired after the cheap guards so a bail-out
+        // never has to release it.
+        if (Interlocked.CompareExchange(ref _readRefreshSubscriptionInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
         TenantReadRefreshLease? lease = null;
         try
         {
@@ -1144,12 +1296,23 @@
                 // Setup registered no callback. Storing it would satisfy the "_readRefreshLease is not null"
                 // guard above forever, permanently disabling auto-refresh for this circuit. This is a failed
                 // attempt, so it is what the bounded budget is for.
-                _readRefreshAttempts++;
+                Interlocked.Increment(ref _readRefreshAttempts);
                 return;
             }
 
             _readRefreshLease = lease;
             lease = null;
+
+            // Re-checked after the assignment, not only before it. DisposeAsync sets _disposed and then reads a
+            // still-null _readRefreshLease, so a continuation that passed the guard above and was preempted
+            // could assign the lease afterwards -- leaving the callback registered for the life of the circuit
+            // and invoking InvokeAsync on a disposed component. TenantDetailPage guards the same race.
+            if (_disposed)
+            {
+                IAsyncDisposable orphaned = _readRefreshLease;
+                _readRefreshLease = null;
+                await DisposeLeaseSupportSafelyAsync(orphaned).ConfigureAwait(false);
+            }
         }
         catch
         {
@@ -1158,7 +1321,7 @@
             // sign-out/sign-in -- exhausted it even though every subscribe had worked, and auto-refresh went
             // silently off for the rest of the circuit. It also defeated the !lease.IsSubscribed path below,
             // which exists precisely so a later render can retry.
-            _readRefreshAttempts++;
+            Interlocked.Increment(ref _readRefreshAttempts);
             // Optional nudge only; never surface transport detail. The reason code is recorded so a
             // permanently non-refreshing surface is diagnosable instead of silent.
             LogNotificationSetupFailure();
@@ -1169,7 +1332,7 @@
         }
         finally
         {
-            _readRefreshSubscriptionInFlight = false;
+            Volatile.Write(ref _readRefreshSubscriptionInFlight, 0);
         }
     }
 
@@ -1196,14 +1359,16 @@
 
     private async Task NextPageAsync()
     {
-        if (_pageLoadInFlight || string.IsNullOrWhiteSpace(_snapshot.NextCursor))
+        // Both conditions, matching the Disabled binding and LoadNextMemberPageAsync. These handler guards exist
+        // for the click dispatched BEFORE the disabled attribute lands, so checking only the cursor let that
+        // click page past a declared end and push a history entry for a page that does not exist.
+        if (!_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor) || !TryBeginPageLoad())
         {
             return;
         }
 
         string? priorCursor = _currentCursor;
         string nextCursor = _snapshot.NextCursor;
-        _pageLoadInFlight = true;
         try
         {
             GlobalAdministratorsSnapshot? result = await LoadAsync(
@@ -1234,20 +1399,19 @@
         }
         finally
         {
-            _pageLoadInFlight = false;
+            EndPageLoad();
         }
     }
 
 
     private async Task PreviousPageAsync()
     {
-        if (_pageLoadInFlight || _cursorHistory.Count == 0)
+        if (_cursorHistory.Count == 0 || !TryBeginPageLoad())
         {
             return;
         }
 
         string? previousCursor = _cursorHistory.Peek();
-        _pageLoadInFlight = true;
         try
         {
             GlobalAdministratorsSnapshot? result = await LoadAsync(
@@ -1279,7 +1443,7 @@
         }
         finally
         {
-            _pageLoadInFlight = false;
+            EndPageLoad();
         }
     }
 
@@ -1425,10 +1589,13 @@
             return;
         }
 
-        AuthenticationState authenticationState;
         try
         {
-            authenticationState = await authenticationStateTask.ConfigureAwait(false);
+            // Awaited only to let the transition settle before re-resolving. The event's own principal is
+            // deliberately NOT used as evidence: Evaluate() runs without the IUserContextAccessor corroboration
+            // that governs every other path, so trusting it here made the authentication-transition path the
+            // weakest gate on the surface it re-enables.
+            _ = await authenticationStateTask.ConfigureAwait(false);
         }
         catch
         {
@@ -1440,22 +1607,37 @@
             return;
         }
 
-        TenantLifecycleAuthorizationReflectionState reflection = TenantsGlobalAdministratorClaims.Evaluate(authenticationState.User);
+        TenantLifecycleAuthorizationReflectionState reflection =
+            await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
         if (reflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
         {
             await CollapseAuthorizationAsync(reflection, invalidateTransition: false).ConfigureAwait(false);
             return;
         }
 
+        // Guarded INSIDE the callback, not only around it. The version was last checked before the resolve
+        // above; a sign-out landing while that resolve was in flight bumps it, and that newer transition's own
+        // collapse can run before this continuation is dispatched. Writing Authorized unconditionally here
+        // restored the grant and remove forms for an operator who had already signed out -- and when the newer
+        // transition then faulted on its authentication-state task it returned without re-collapsing, so the
+        // privileged surface persisted with nothing left to correct it. The post-hoc check below cannot undo a
+        // write that has already rendered. ReauthorizeAsync guards the same field the same way.
+        bool applied = false;
         await InvokeAsync(() =>
         {
+            if (!CanApplyAuthorizationTransition(version))
+            {
+                return;
+            }
+
             _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Authorized;
             _snapshot = BffComposition.IsReadSurfaceConnected
                 ? GlobalAdministratorsSnapshot.Loading()
                 : GlobalAdministratorsSnapshot.Unavailable();
+            applied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
-        if (!CanApplyAuthorizationTransition(version) || !BffComposition.IsReadSurfaceConnected)
+        if (!applied || !CanApplyAuthorizationTransition(version) || !BffComposition.IsReadSurfaceConnected)
         {
             return;
         }
@@ -1465,6 +1647,15 @@
         {
             return;
         }
+
+        await InvokeAsync(() =>
+        {
+            if (CanApplyAuthorizationTransition(version) && IsAuthorized)
+            {
+                _authorizationPagingReset = true;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
 
         await EnsureReadRefreshLeaseAsync().ConfigureAwait(false);
     }
@@ -1486,11 +1677,28 @@
 
     private async Task<bool> ReauthorizeAsync()
     {
+        // The transition version is captured before the resolve. A sign-out landing while this resolve is in
+        // flight must not be overwritten by the pre-sign-out answer -- that restored Authorized and re-rendered
+        // the grant and remove forms after the operator had signed out. The write is marshalled for the same
+        // reason every other write to this field is: it gates the whole render tree.
+        long version = Volatile.Read(ref _authorizationTransitionVersion);
         TenantLifecycleAuthorizationReflectionState reflection = await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
         if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
         {
-            _authorizationReflection = reflection;
-            return true;
+            if (!CanApplyAuthorizationTransition(version))
+            {
+                return false;
+            }
+
+            await InvokeAsync(() =>
+            {
+                if (CanApplyAuthorizationTransition(version))
+                {
+                    _authorizationReflection = reflection;
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+            return CanApplyAuthorizationTransition(version);
         }
 
         await CollapseAuthorizationAsync(reflection).ConfigureAwait(false);
@@ -1528,13 +1736,14 @@
         // EnsureReadRefreshLeaseAsync with the counter already spent. TenantDetailPage avoids this by scoping
         // the counter to the route; this surface has no route to key on, so the reset belongs to the
         // transition that drops the lease.
-        _readRefreshAttempts = 0;
+        Volatile.Write(ref _readRefreshAttempts, 0);
         await InvokeAsync(() =>
         {
             _authorizationReflection = reflection;
             _cursorHistory.Clear();
             _pagingHistoryTruncated = false;
             _pagingJumpedToFirstPage = false;
+            _authorizationPagingReset = false;
             _currentCursor = null;
             _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
             _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
@@ -1544,7 +1753,9 @@
             _isGrantSubmitting = false;
             _isRemoveSubmitting = false;
             _isNotificationRefreshing = false;
-            _pageLoadInFlight = false;
+            // Do not force-release the atomic page-load gate here. Collapse cancels the owning operation,
+            // whose finally releases it; clearing it early would let a new recovery acquire the gate and
+            // then have the superseded owner's finally clear that newer lease (an ABA race).
             _focusGrantUserIdPending = false;
             _focusGrantLauncherPending = false;
             _focusGrantLifecyclePending = false;
@@ -1633,6 +1844,17 @@
     private void OnGrantUserIdInput(string? value)
         => _grantUserId = value;
 
+    // Marshalled: both callers run on a thread-pool continuation after the hoisted re-authorization, and both
+    // fields are renderer-read -- the validation paragraph and its aria-describedby wiring, and the focus flag
+    // OnAfterRenderAsync consumes.
+    private Task RejectGrantInputAsync(string resourceKey)
+        => InvokeAsync(() =>
+        {
+            _grantValidationMessage = Localizer[resourceKey];
+            _focusGrantUserIdPending = true;
+            StateHasChanged();
+        });
+
     private async Task SubmitGrantAsync()
     {
         _grantValidationMessage = null;
@@ -1642,25 +1864,45 @@
             return;
         }
 
+        // Everything from here resumes on a thread-pool continuation whenever the hoisted re-authorization above
+        // suspends, so every renderer-read write below is marshalled -- the same reason the RequestSent render
+        // further down is. _focusGrantUserIdPending is consumed by OnAfterRenderAsync, so writing it
+        // off-dispatcher can miss the render batch that would move focus, leaving the assertive validation
+        // message announced with focus still on Submit.
         if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
         {
-            SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(GrantUnavailableReason, TenantCommandFocusTarget.Submit));
+            string blockedReason = GrantUnavailableReason;
+            await InvokeAsync(() => SetGrantSnapshot(
+                GlobalAdministratorGrantCommandSnapshot.Blocked(blockedReason, TenantCommandFocusTarget.Submit)))
+                .ConfigureAwait(false);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_grantUserId))
         {
-            _grantValidationMessage = Localizer["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"];
-            _focusGrantUserIdPending = true;
+            await RejectGrantInputAsync("Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired").ConfigureAwait(false);
             return;
         }
 
-        var request = new SetGlobalAdministrator(_grantUserId.Trim());
+        string normalizedUserId = _grantUserId.Trim();
+        if (normalizedUserId.Length > MaximumGrantUserIdLength || normalizedUserId.Any(char.IsControl))
+        {
+            await RejectGrantInputAsync("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid").ConfigureAwait(false);
+            return;
+        }
+
+        var request = new SetGlobalAdministrator(normalizedUserId);
         using PendingOperation operation = BeginGrantMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
         SetGrantSnapshot(_grantSnapshot.RequestSent(request));
         _isGrantSubmitting = true;
+
+        // ReauthorizeAsync is the handler's first await, so Blazor's automatic render at that suspension still
+        // showed Idle; these writes then land on a thread-pool continuation. Without an explicit marshalled
+        // render the RequestSent lifecycle state was never observable until the whole round trip finished,
+        // collapsing the non-collapse truth-state model this surface is required to preserve.
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
 
         try
         {
@@ -1751,6 +1993,7 @@
             _cursorHistory.Clear();
             _pagingHistoryTruncated = false;
             _pagingJumpedToFirstPage = false;
+            _authorizationPagingReset = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
@@ -1758,7 +2001,11 @@
             retainConfirmed: true,
             requestedCursor: null,
             useRequestedCursor: true).ConfigureAwait(false);
-        if (snapshot is not null && CanApplyGrantMutation(generation))
+        // LoadAsync returns its result even when its own guard discarded it as superseded, so the reference
+        // check is what proves the confirming evidence is the evidence on screen. Without it a notification
+        // refresh landing mid-requery let the surface report "confirmed" from rows the operator never saw.
+        // The pagers already guard this way.
+        if (snapshot is not null && CanApplyGrantMutation(generation) && ReferenceEquals(_snapshot, snapshot))
         {
             SetGrantSnapshot(_grantSnapshot.ConfirmProjection(snapshot));
         }
@@ -1825,17 +2072,24 @@
             return;
         }
 
-        if (IsRemoveSubmitDisabled)
+        // Captured in the same read the guard validates. Re-reading _removeSnapshot.Intent afterwards let a
+        // CancelRemoveAsync running on the dispatcher replace the snapshot with Idle() in between -- this body
+        // runs off-dispatcher after the hoisted re-authorization -- making request null and raising an
+        // ArgumentNullException that the OperationCanceledException filter below does not match. An unhandled
+        // exception from an event callback tears down the circuit.
+        if (IsRemoveSubmitDisabled || _removeSnapshot.Intent is not { } request)
         {
             return;
         }
-
-        RemoveGlobalAdministrator request = _removeSnapshot.Intent;
         using PendingOperation operation = BeginRemoveMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
         SetRemoveSnapshot(_removeSnapshot.RequestSent());
         _isRemoveSubmitting = true;
+
+        // Same reason as the grant submit: the hoisted re-authorization consumed the automatic render, so the
+        // in-flight state needs an explicit marshalled one.
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
 
         try
         {
@@ -1926,6 +2180,7 @@
             _cursorHistory.Clear();
             _pagingHistoryTruncated = false;
             _pagingJumpedToFirstPage = false;
+            _authorizationPagingReset = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
@@ -1933,7 +2188,8 @@
             retainConfirmed: true,
             requestedCursor: null,
             useRequestedCursor: true).ConfigureAwait(false);
-        if (snapshot is not null && CanApplyRemoveMutation(generation))
+        // Same reference check as the grant requery: a superseded load must not prove a removal.
+        if (snapshot is not null && CanApplyRemoveMutation(generation) && ReferenceEquals(_snapshot, snapshot))
         {
             SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(snapshot));
         }

@@ -21,9 +21,23 @@ public interface ITenantsBffComposition {
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for principal resolution.</param>
     /// <returns>The fail-closed authorization reflection state for the current principal.</returns>
+    /// <remarks>
+    /// The default fails closed rather than forwarding to <see cref="GlobalAdministratorsAuthorizationReflection"/>:
+    /// that property reads the request principal only, which is the interpretation this seam exists to replace.
+    /// Forwarding to it let an implementation silently inherit the discarded HTTP-only evidence.
+    /// </remarks>
     ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
         CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection);
+        => ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+
+    /// <summary>
+    /// Resolves tenant-lifecycle authorization from the current authoritative circuit principal.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for principal resolution.</param>
+    /// <returns>The fail-closed authorization reflection state for the current principal.</returns>
+    ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveLifecycleAuthorizationAsync(
+        CancellationToken cancellationToken = default)
+        => ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken);
 
     ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
         TenantDetail detail,

@@ -126,7 +126,7 @@ public sealed class TenantsBffCompositionTests
     [InlineData(0, TenantLifecycleAuthorizationReflectionState.Authorized)]
     [InlineData(1, TenantLifecycleAuthorizationReflectionState.MissingPermission)]
     [InlineData(2, TenantLifecycleAuthorizationReflectionState.Indeterminate)]
-    public async Task Global_administrator_reflection_uses_the_strict_principal_resolution(
+    public async Task Administrator_reflections_use_the_strict_principal_resolution(
         int evidenceKind,
         TenantLifecycleAuthorizationReflectionState expected)
     {
@@ -139,10 +139,104 @@ public sealed class TenantsBffCompositionTests
             _ => TenantConfigurationPrincipalEvidence.Indeterminate(),
         };
 
-        TenantLifecycleAuthorizationReflectionState reflection = await Composition(RevokedPolicy, evidence)
+        TenantsBffComposition composition = Composition(RevokedPolicy, evidence);
+        TenantLifecycleAuthorizationReflectionState globalReflection = await composition
             .ResolveGlobalAdministratorsAuthorizationAsync();
+        TenantLifecycleAuthorizationReflectionState lifecycleReflection = await composition
+            .ResolveLifecycleAuthorizationAsync();
 
-        reflection.ShouldBe(expected);
+        globalReflection.ShouldBe(expected);
+        lifecycleReflection.ShouldBe(expected);
+    }
+
+    [Fact]
+    public async Task Interface_default_compose_and_reauthorize_fail_closed_to_unavailable_safe_models()
+    {
+        ITenantsBffComposition composition = new DefaultOnlyComposition();
+        TenantDetail detail = Detail();
+
+        TenantConfigurationComposition composed = await composition.ComposeTenantDetailAsync(detail);
+        composed.SafeModel.IsAvailable.ShouldBeFalse();
+        composed.ManagementContext.IsAvailable.ShouldBeFalse();
+        composed.SanitizedDetail.Configuration.ShouldBeEmpty();
+
+        TenantConfigurationComposition reauthorized = await composition.ReauthorizeTenantDetailAsync(
+            composed.SanitizedDetail,
+            TenantConfigurationSafeModel.Available(
+                "tenant.alpha",
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]),
+            degraded: false);
+        reauthorized.SafeModel.IsAvailable.ShouldBeFalse();
+        reauthorized.ManagementContext.IsAvailable.ShouldBeFalse();
+
+        TenantConfigurationManagementContext management =
+            await composition.ReauthorizeConfigurationManagementAsync(
+                "tenant.alpha",
+                TenantStatus.Active,
+                TenantConfigurationSafeModel.Available(
+                    "tenant.alpha",
+                    [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]));
+        management.IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Composition_without_principal_or_policy_deps_fails_closed_on_compose_and_reauthorize()
+    {
+        TenantsBffComposition composition = new(new UnavailableTenantCommandGateway());
+        TenantDetail detail = Detail();
+
+        TenantConfigurationComposition composed = await composition.ComposeTenantDetailAsync(detail);
+        composed.SafeModel.IsAvailable.ShouldBeFalse();
+        composed.ManagementContext.IsAvailable.ShouldBeFalse();
+        composed.SanitizedDetail.Configuration.ShouldBeEmpty();
+
+        TenantConfigurationComposition reauthorized = await composition.ReauthorizeTenantDetailAsync(
+            composed.SanitizedDetail,
+            TenantConfigurationSafeModel.Available(
+                "tenant.alpha",
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]),
+            degraded: true);
+        reauthorized.SafeModel.IsAvailable.ShouldBeFalse();
+        reauthorized.ManagementContext.IsAvailable.ShouldBeFalse();
+
+        TenantConfigurationManagementContext management =
+            await composition.ReauthorizeConfigurationManagementAsync(
+                "tenant.alpha",
+                TenantStatus.Active,
+                TenantConfigurationSafeModel.Available(
+                    "tenant.alpha",
+                    [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]));
+        management.IsAvailable.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A composition assembled without a principal resolver must fail closed, not fall back to the
+    /// <c>HttpContext.User</c> reflection this story discarded. Every existing test supplies a resolver, so
+    /// restoring <c>return GlobalAdministratorsAuthorizationReflection;</c> survived the whole suite.
+    /// </summary>
+    [Fact]
+    public async Task Composition_without_a_principal_resolver_fails_closed_on_both_authorization_seams()
+    {
+        TenantsBffComposition composition = new(new UnavailableTenantCommandGateway());
+
+        (await composition.ResolveGlobalAdministratorsAuthorizationAsync())
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        (await composition.ResolveLifecycleAuthorizationAsync())
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+    }
+
+    /// <summary>
+    /// The interface default must also fail closed. Every implementation in the repo overrides the async
+    /// resolver, so nothing exercised the default -- and forwarding it to the synchronous property would let
+    /// any future implementation silently inherit the discarded HTTP-only interpretation.
+    /// </summary>
+    [Fact]
+    public async Task Interface_default_authorization_resolution_fails_closed_rather_than_forwarding()
+    {
+        ITenantsBffComposition composition = new DefaultOnlyComposition();
+
+        (await composition.ResolveGlobalAdministratorsAuthorizationAsync())
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 
     private static TenantsBffComposition Composition(
@@ -175,6 +269,21 @@ public sealed class TenantsBffCompositionTests
             [new TenantMember("operator.alpha", TenantRole.TenantOwner)],
             new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = "trial" },
             DateTimeOffset.UtcNow);
+
+    /// <summary>
+    /// Implements only the two required members, so the async authorization seam comes from the interface
+    /// default. Its synchronous reflection deliberately answers <c>Authorized</c>: if the default ever
+    /// forwarded to that property again, this implementation would authorize and the test would fail.
+    /// </summary>
+    private sealed class DefaultOnlyComposition : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => true;
+
+        public bool IsCommandSurfaceConnected => true;
+
+        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+            => TenantLifecycleAuthorizationReflectionState.Authorized;
+    }
 
     private sealed class StubPrincipalResolver(TenantConfigurationPrincipalEvidence evidence)
         : ITenantConfigurationPrincipalResolver

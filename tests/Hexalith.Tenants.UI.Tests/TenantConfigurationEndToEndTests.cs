@@ -19,6 +19,7 @@ using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.EventStore.Client.Projections;
 
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -37,7 +38,7 @@ namespace Hexalith.Tenants.UI.Tests;
 public sealed class TenantConfigurationEndToEndTests : BunitContext
 {
     [Fact]
-    public void Authenticated_ssr_policy_filters_raw_configuration_before_rendered_dom_and_accessibility_state()
+    public void Authenticated_circuit_policy_filters_raw_configuration_before_rendered_dom_and_accessibility_state()
     {
         const string tenantId = "tenant.alpha";
         const string subject = "operator-user";
@@ -87,10 +88,14 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
                 }
                 """)))
             .Build();
-        TenantConfigurationPrincipalResolver principalResolver = new(
-            httpContextAccessor,
-            new CircuitServicesAccessor(),
-            userContext);
+        var circuitServicesAccessor = new CircuitServicesAccessor
+        {
+            Services = new ServiceCollection()
+                .AddSingleton<AuthenticationStateProvider>(
+                    new StubAuthenticationStateProvider(new ClaimsPrincipal(identity)))
+                .BuildServiceProvider(),
+        };
+        TenantConfigurationPrincipalResolver principalResolver = new(circuitServicesAccessor, userContext);
         ITenantCommandGateway commandGateway = new UnavailableTenantCommandGateway();
         ITenantsBffComposition composition = new TenantsBffComposition(
             commandGateway,
@@ -144,6 +149,12 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
         markup.ShouldNotContain("hidden-undefined-value", Case.Sensitive);
         markup.ShouldNotContain("private.mode", Case.Sensitive);
         markup.ShouldNotContain("hidden-namespace-value", Case.Sensitive);
+    }
+
+    private sealed class StubAuthenticationStateProvider(ClaimsPrincipal principal) : AuthenticationStateProvider
+    {
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromResult(new AuthenticationState(principal));
     }
 
     private sealed class PassthroughLocalizer : IStringLocalizer<TenantsResources>

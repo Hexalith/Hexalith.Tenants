@@ -1397,12 +1397,99 @@ public sealed class TenantQueryGatewayTests
             previous,
             CancellationToken.None);
 
+        // AC5 continue-read-only: reauth failure must keep last-confirmed safe rows, not UnavailableComposition.
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Degraded);
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
-        snapshot.Configuration.IsAvailable.ShouldBeFalse();
-        snapshot.Configuration.Rows.ShouldBeEmpty();
+        snapshot.Configuration.IsAvailable.ShouldBeTrue();
+        snapshot.Configuration.IsDegraded.ShouldBeTrue();
+        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.ConfigurationManagement.IsAvailable.ShouldBeFalse();
         snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("raw secret authorization details", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_compose_failure_with_same_tenant_prior_keeps_last_confirmed_safe_rows()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "fresh" }),
+            metadata: ProjectionBackedMetadata(isStale: false, isDegraded: false));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition
+            .ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new InvalidOperationException("compose blew up with secret")));
+        // Retain path reauth also fails: both catch arms must still continue-read-only.
+        composition
+            .ReauthorizeTenantDetailAsync(
+                Arg.Any<TenantDetail>(),
+                Arg.Any<TenantConfigurationSafeModel>(),
+                Arg.Any<bool>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromException<TenantConfigurationComposition>(
+                new InvalidOperationException("reauth also failed")));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Configuration.IsAvailable.ShouldBeTrue();
+        snapshot.Configuration.IsDegraded.ShouldBeTrue();
+        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("secret", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_wrong_tenant_payload_with_same_tenant_prior_retains_reauthorized_safe_rows()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail(
+            "tenant.other",
+            new Dictionary<string, string> { ["billing.mode"] = "wrong-tenant-value" }));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        snapshot.Detail!.Configuration.ShouldBeEmpty();
+        snapshot.Configuration.IsAvailable.ShouldBeTrue();
+        snapshot.Configuration.IsDegraded.ShouldBeTrue();
+        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.Configuration.Rows[0].Value.ShouldNotBe("wrong-tenant-value");
+    }
+
+    [Fact]
+    public async Task Get_tenant_transient_gateway_failure_with_same_tenant_prior_retains_reauthorized_safe_rows()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Configuration.IsAvailable.ShouldBeTrue();
+        snapshot.Configuration.IsDegraded.ShouldBeTrue();
+        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
     }
 
     [Fact]

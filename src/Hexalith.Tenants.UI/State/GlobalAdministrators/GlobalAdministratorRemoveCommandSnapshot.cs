@@ -27,6 +27,14 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>
+    /// Returns a support-safe description that omits identities, preview rows, correlation data, and any
+    /// count that could be read as a platform-wide total.
+    /// </summary>
+    /// <returns>A bounded support-safe command-snapshot description.</returns>
+    public override string ToString()
+        => $"{nameof(GlobalAdministratorRemoveCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, PreviewIsCompleteEvidence = {PreviewIsCompleteEvidence}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
+
     public static GlobalAdministratorRemoveCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -51,7 +59,11 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
                 with { Intent = intent, PreviewRows = rows, PreviewIsCompleteEvidence = isCompleteEvidence };
         }
 
-        if (rows.Count <= 1) {
+        // Gated on completeness: a single-row page with more results available is not evidence that the target
+        // is the last global administrator, and claiming so states a platform-wide fact derived from one page.
+        // The sibling gates (RemoveUnavailableReasonForUser, ConfirmProjection) already require completeness;
+        // this one inferred a total from the page it happened to be shown.
+        if (isCompleteEvidence && rows.Count <= 1) {
             return Blocked("The last global administrator cannot be removed.", TenantCommandFocusTarget.Submit)
                 with { Intent = intent, PreviewRows = rows, LastConfirmedProjection = target, PreviewIsCompleteEvidence = isCompleteEvidence };
         }

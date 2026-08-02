@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Collections;
 using System.Reflection;
 using System.Resources;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 using AngleSharp.Dom;
@@ -34,6 +35,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -128,6 +130,124 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         FcAggregateDetailPage<TenantDetail> wrapper = cut.FindComponent<FcAggregateDetailPage<TenantDetail>>().Instance;
         wrapper.LayoutMode.ShouldBe(FcPageLayoutMode.Constrained);
         wrapper.State.ShouldBe(FcAggregateDetailState.Ready);
+    }
+
+    [Fact]
+    public void Detail_lifecycle_actions_use_the_async_circuit_authorization_decision()
+    {
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))),
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("false"));
+    }
+
+    [Fact]
+    public void Detail_lifecycle_actions_reauthorize_on_circuit_authentication_transitions()
+    {
+        var authentication = new MutableAuthenticationStateProvider();
+        var composition = new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized);
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))),
+            composition);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("false"));
+
+        // Even an administrator-shaped event is only a transition signal. The strict composition result
+        // remains authoritative and revokes the action until it is corroborated again.
+        composition.Reflection = TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        authentication.Notify(AdministratorPrincipal());
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("true"));
+
+        composition.Reflection = TenantLifecycleAuthorizationReflectionState.Authorized;
+        authentication.Notify(AdministratorPrincipal());
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("false"));
+    }
+
+    /// <summary>
+    /// Lifecycle authorization sets Indeterminate before the async resolve completes. Without that fail-closed
+    /// window, actions could render as available while evidence was still pending.
+    /// </summary>
+    [Fact]
+    public async Task Detail_lifecycle_actions_fail_closed_while_authorization_is_pending()
+    {
+        var composition = new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        composition.ResolutionGate = gate;
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))),
+            composition);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        await composition.ResolutionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']")
+            .GetAttribute("aria-disabled")
+            .ShouldBe("true");
+
+        gate.SetResult();
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("false"));
+    }
+
+    /// <summary>
+    /// A superseded lifecycle authorization generation must not overwrite a newer transition result.
+    /// </summary>
+    [Fact]
+    public async Task Detail_lifecycle_authorization_discards_a_superseded_resolution()
+    {
+        var authentication = new MutableAuthenticationStateProvider();
+        var composition = new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized);
+        var firstGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        composition.ResolutionGate = firstGate;
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))),
+            composition);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        await composition.ResolutionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        composition.Reflection = TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        var secondGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        composition.ResolutionGate = secondGate;
+        authentication.Notify(AdministratorPrincipal());
+        await WaitUntilAsync(() => composition.AsyncResolutionCount >= 2, TimeSpan.FromSeconds(5));
+        secondGate.SetResult();
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-lifecycle-disable']")
+                .GetAttribute("aria-disabled")
+                .ShouldBe("true"));
+
+        composition.Reflection = TenantLifecycleAuthorizationReflectionState.Authorized;
+        firstGate.SetResult();
+        await Task.Delay(250);
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']")
+            .GetAttribute("aria-disabled")
+            .ShouldBe("true");
     }
 
     [Theory]
@@ -393,6 +513,55 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public async Task Faulted_member_refresh_clears_refreshing_and_retains_last_confirmed_rows_as_degraded()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetailSnapshot detail = ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"),
+            ProjectionLifecycleState.Current,
+            "projection-v1");
+        TenantUsersSnapshot members = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("last-confirmed-user", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "members-v1-etag",
+            projectionVersion: "projection-v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+        int memberReads = 0;
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(detail));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Interlocked.Increment(ref memberReads) == 1
+                ? Task.FromResult(members)
+                : Task.FromException<TenantUsersSnapshot>(new InvalidOperationException("transport detail must stay contained")));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() =>
+        {
+            MemberAccessReview memberReview = cut.FindComponent<MemberAccessReview>().Instance;
+            memberReview.Members.Kind.ShouldBe(TenantUsersSurfaceKind.Degraded);
+            memberReview.Members.Reason.ShouldBe(TenantUsersReason.GatewayFailure);
+            cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("last-confirmed-user");
+            cut.FindAll("[data-testid='tenants-member-refreshing']").ShouldBeEmpty();
+        });
+    }
+
+    [Fact]
     public void Confirmed_member_command_refreshes_parent_detail_and_member_projections()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -442,6 +611,142 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             detailReads.ShouldBe(2);
             memberReads.ShouldBe(2);
             cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("new-member");
+        });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Initial_detail_load_contains_each_fault_and_observes_the_sibling_read(bool faultDetailRead)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int detailReads = 0;
+        int memberReads = 0;
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                Interlocked.Increment(ref detailReads);
+                return faultDetailRead
+                    ? Task.FromException<TenantDetailSnapshot>(new InvalidOperationException("detail transport detail"))
+                    : Task.FromResult(ReadyWithSafeConfiguration(
+                        Detail("tenant.alpha"),
+                        ProjectionLifecycleState.Current,
+                        "projection-v1"));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                Interlocked.Increment(ref memberReads);
+                return faultDetailRead
+                    ? Task.FromResult(MemberSnapshot(Detail("tenant.alpha")))
+                    : Task.FromException<TenantUsersSnapshot>(new InvalidOperationException("member transport detail"));
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement(faultDetailRead
+            ? "[data-testid='tenants-detail-error']"
+            : "[data-testid='tenants-member-unavailable']");
+        detailReads.ShouldBe(1);
+        memberReads.ShouldBe(1);
+        if (!faultDetailRead)
+        {
+            cut.Find("[data-testid='tenants-detail-identity']");
+        }
+    }
+
+    /// <summary>
+    /// Combined refresh must observe each read independently on the refresh path, not only on initial load.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Combined_detail_refresh_contains_each_fault_and_observes_the_sibling_read(bool faultDetailRead)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetailSnapshot initialDetail = ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"),
+            ProjectionLifecycleState.Current,
+            "projection-v1");
+        TenantUsersSnapshot initialMembers = TenantUsersSnapshot.Ready(
+            "tenant.alpha",
+            [new TenantMember("last-confirmed-user", TenantRole.TenantReader)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "members-v1-etag",
+            projectionVersion: "projection-v1",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current);
+        int detailReads = 0;
+        int memberReads = 0;
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                int call = Interlocked.Increment(ref detailReads);
+                if (call == 1)
+                {
+                    return Task.FromResult(initialDetail);
+                }
+
+                return faultDetailRead
+                    ? Task.FromException<TenantDetailSnapshot>(new InvalidOperationException("detail transport detail"))
+                    : Task.FromResult(initialDetail);
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                int call = Interlocked.Increment(ref memberReads);
+                if (call == 1)
+                {
+                    return Task.FromResult(initialMembers);
+                }
+
+                return faultDetailRead
+                    ? Task.FromResult(initialMembers)
+                    : Task.FromException<TenantUsersSnapshot>(new InvalidOperationException("member transport detail"));
+            });
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+        detailReads.ShouldBe(1);
+        memberReads.ShouldBe(1);
+
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() =>
+        {
+            detailReads.ShouldBe(2);
+            memberReads.ShouldBe(2);
+            if (faultDetailRead)
+            {
+                cut.Find("[data-testid='tenants-detail-degraded']");
+                cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("last-confirmed-user");
+            }
+            else
+            {
+                cut.Find("[data-testid='tenants-detail-identity']");
+                MemberAccessReview memberReview = cut.FindComponent<MemberAccessReview>().Instance;
+                memberReview.Members.Kind.ShouldBe(TenantUsersSurfaceKind.Degraded);
+                memberReview.Members.Reason.ShouldBe(TenantUsersReason.GatewayFailure);
+                cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("last-confirmed-user");
+                cut.FindAll("[data-testid='tenants-member-refreshing']").ShouldBeEmpty();
+            }
         });
     }
 
@@ -545,6 +850,92 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         component.GetProperty("Detail").ShouldBeNull();
         component.GetProperty("ProjectionEvidenceProvider").ShouldNotBeNull();
         component.GetProperty("ReauthorizeProvider").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Detail_page_reauthorizes_configuration_management_through_the_bff_on_set_submit()
+    {
+        // The page must call BffComposition.ReauthorizeConfigurationManagementAsync rather than returning
+        // the render-time snapshot context. Returning `_snapshot.ConfigurationManagement` would fail open:
+        // the render-time grant would authorize the submit even after policy revoked it.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        StubTenantCommandGateway gateway = new()
+        {
+            SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        StubTenantsBffComposition composition = new()
+        {
+            ReauthorizeConfigurationManagement = static (tenantId, status, _)
+                => TenantConfigurationManagementContext.Unavailable(tenantId, status),
+        };
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))));
+        queryGateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-config-set-open']");
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        // Scope to the set-flow form: the detail page hosts other forms, and clicking the Submit button
+        // is a no-op while IsSubmitDisabled is true (preview not yet complete in some bUnit sequences).
+        // EditForm.Submit() invokes OnSubmit directly, matching the standalone flow tests.
+        cut.Find("[data-testid='tenants-config-set-flow'] form").Submit();
+
+        composition.ReauthorizeConfigurationManagementCallCount.ShouldBeGreaterThan(0);
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Detail_page_configuration_summary_renders_unavailable_when_policy_cannot_be_verified()
+    {
+        // Deleting the `!configuration.IsAvailable` branch would render the absence claim for unverifiable
+        // policy. The sibling read landmark already pins this distinction; the page summary must too.
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantConfigurationComposition unavailableComposition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(detail),
+            TenantConfigurationSafeModel.Unavailable(detail.TenantId),
+            TenantConfigurationManagementContext.Unavailable(detail.TenantId, detail.Status));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(
+            unavailableComposition,
+            "\"etag\"",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "projection-v1")));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-configuration-summary']");
+
+        string summary = cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent;
+        summary.ShouldContain("Configuration unavailable");
+        summary.ShouldNotContain("No visible configuration");
+    }
+
+    [Fact]
+    public void Detail_page_configuration_summary_renders_valid_empty_without_unavailable_copy()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha", new Dictionary<string, string>()))));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-configuration-summary']");
+
+        string summary = cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent;
+        summary.ShouldContain("No visible configuration");
+        summary.ShouldNotContain("Configuration unavailable");
     }
 
     [Fact]
@@ -2923,7 +3314,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
-    private void RegisterServices(Func<NSubstitute.Core.CallInfo, Task<TenantDetailSnapshot>> detailFactory)
+    private void RegisterServices(
+        Func<NSubstitute.Core.CallInfo, Task<TenantDetailSnapshot>> detailFactory,
+        ITenantsBffComposition? bffComposition = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -2945,7 +3338,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton(bffComposition ?? new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
 
@@ -3009,6 +3402,20 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         elements.TryGetValue(key, out ElementReference reference).ShouldBeTrue(
             $"No launch control was captured for '{key}', so focus cannot have returned to it.");
         return reference.Id;
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow + timeout;
+        while (!condition())
+        {
+            if (DateTimeOffset.UtcNow > deadline)
+            {
+                throw new TimeoutException("The awaited condition was not met within the timeout.");
+            }
+
+            await Task.Delay(10);
+        }
     }
 
     private static TenantDetail Detail(string tenantId)
@@ -3164,8 +3571,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public TenantCommandSubmissionResult AddMemberSubmission { get; init; }
             = TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.");
 
+        public TenantCommandSubmissionResult SetConfigurationSubmission { get; init; }
+            = TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.");
+
         public TenantCommandStatusResult Status { get; init; }
             = TenantCommandStatusResult.Unknown("Tenant command status is unavailable.");
+
+        public int SetConfigurationCallCount { get; private set; }
+
+        public SetTenantConfiguration? LastSetConfigurationRequest { get; private set; }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
@@ -3183,7 +3597,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+        {
+            SetConfigurationCallCount++;
+            LastSetConfigurationRequest = request;
+            return Task.FromResult(SetConfigurationSubmission);
+        }
 
         public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(RemoveTenantConfiguration request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
@@ -3192,12 +3610,89 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             => Task.FromResult(Status);
     }
 
-    private sealed class StubTenantsBffComposition : ITenantsBffComposition
+    private sealed class StubTenantsBffComposition(
+        TenantLifecycleAuthorizationReflectionState lifecycleReflection
+            = TenantLifecycleAuthorizationReflectionState.Indeterminate) : ITenantsBffComposition
     {
+        private TenantLifecycleAuthorizationReflectionState _reflection = lifecycleReflection;
+
         public bool IsReadSurfaceConnected => true;
 
         public bool IsCommandSurfaceConnected => true;
+
+        public int ReauthorizeConfigurationManagementCallCount { get; private set; }
+
+        public Func<string, TenantStatus, TenantConfigurationSafeModel, TenantConfigurationManagementContext>?
+            ReauthorizeConfigurationManagement { get; set; }
+
+        /// <summary>Arms a one-shot suspension of the next lifecycle authorization resolve.</summary>
+        public TaskCompletionSource? ResolutionGate { get; set; }
+
+        /// <summary>Completes when a gated lifecycle authorization resolve has entered and suspended.</summary>
+        public TaskCompletionSource ResolutionEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Counts async lifecycle authorization resolutions.</summary>
+        public int AsyncResolutionCount { get; private set; }
+
+        public TenantLifecycleAuthorizationReflectionState Reflection
+        {
+            get => _reflection;
+            set => _reflection = value;
+        }
+
+        public async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveLifecycleAuthorizationAsync(
+            CancellationToken cancellationToken = default)
+        {
+            AsyncResolutionCount++;
+            TenantLifecycleAuthorizationReflectionState answer = Reflection;
+            TaskCompletionSource? gate = ResolutionGate;
+            if (gate is not null)
+            {
+                ResolutionGate = null;
+                _ = ResolutionEntered.TrySetResult();
+                await gate.Task.ConfigureAwait(false);
+            }
+
+            return answer;
+        }
+
+        public ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
+            string tenantId,
+            TenantStatus tenantStatus,
+            TenantConfigurationSafeModel safeModel,
+            CancellationToken cancellationToken = default)
+        {
+            ReauthorizeConfigurationManagementCallCount++;
+            if (ReauthorizeConfigurationManagement is not null)
+            {
+                return ValueTask.FromResult(ReauthorizeConfigurationManagement(tenantId, tenantStatus, safeModel));
+            }
+
+            return ValueTask.FromResult(TenantConfigurationManagementContext.Unavailable(tenantId, tenantStatus));
+        }
     }
+
+    private sealed class MutableAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        private AuthenticationState _state = new(AdministratorPrincipal());
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromResult(_state);
+
+        public void Notify(ClaimsPrincipal principal)
+        {
+            _state = new AuthenticationState(principal);
+            NotifyAuthenticationStateChanged(Task.FromResult(_state));
+        }
+    }
+
+    private static ClaimsPrincipal AdministratorPrincipal()
+        => new(new ClaimsIdentity(
+        [
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
+        ], "test"));
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
@@ -3287,6 +3782,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.Detail.Back"] = "Back to tenants",
             ["Tenants.Detail.Configuration.Empty"] = "No visible configuration is available in this detail projection.",
+            ["Tenants.Detail.Configuration.Unavailable"] = "Configuration unavailable",
             ["Tenants.Detail.Configuration.Summary"] = "{0} visible configuration keys across {1} namespaces.",
             ["Tenants.Detail.Configuration.Title"] = "Configuration summary",
             ["Tenants.Detail.CreatedAtLabel"] = "Created",
@@ -4232,6 +4728,57 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ShouldBe(3));
     }
 
+    [Fact]
+    public async Task Same_route_member_refresh_reopens_the_notification_setup_budget()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backendSubscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        backendSubscription
+            .SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException(new InvalidOperationException("subscription endpoint is down")));
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(backendSubscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+        for (int render = 0; render < 12; render++)
+        {
+            cut.Render();
+        }
+
+        CountAttempts().ShouldBe(3);
+
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        for (int render = 0; render < 12; render++)
+        {
+            cut.Render();
+        }
+
+        cut.WaitForAssertion(() => CountAttempts().ShouldBe(6));
+
+        int CountAttempts()
+            => backendSubscription.ReceivedCalls()
+                .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync)
+                    && (string)call.GetArguments()[1]! == "tenant.alpha");
+    }
+
     /// <summary>
     /// A dispose racing a suspended subscribe continuation must not leave the lease attached.
     /// </summary>
@@ -4563,7 +5110,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     /// rendered the jump as an ordinary step back.
     /// </remarks>
     [Fact]
-    public void The_member_pager_announces_a_previous_step_that_jumps_to_the_first_page()
+    public async Task The_member_pager_announces_a_previous_step_that_jumps_to_the_first_page()
     {
         // Driven through TenantDetailPage's real pager, which is where the defect lived: the notice is
         // computed by the PARENT from `_memberPagingHistoryTruncated && _memberCursor is null &&
@@ -4641,5 +5188,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // for an unrelated recovery string passed the previous `ShouldNotBeNullOrWhiteSpace` check.
         notice.TextContent.ShouldContain("first page", Case.Insensitive);
         cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-member-history-truncated']").ShouldBeEmpty(
+            "the page-one jump notice is one-shot evidence and a later authoritative refresh clears it"));
     }
 }

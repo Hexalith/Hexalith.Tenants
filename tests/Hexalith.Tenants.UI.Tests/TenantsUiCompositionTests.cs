@@ -990,6 +990,15 @@ public sealed class TenantsUiCompositionTests
             new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim("roles", "[\"tenant-reader\",\"global-admin\"]"))).ShouldBeTrue();
+        // ClaimTypes.Role must accept the same JSON-array shape that `roles` already accepts.
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim(ClaimTypes.Role, "[\"tenant-reader\",\"global-admin\"]"))).ShouldBeTrue();
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("role", "[\"global-admin\"]"))).ShouldBeTrue();
         TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
             new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
