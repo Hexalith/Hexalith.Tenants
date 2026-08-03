@@ -79,6 +79,36 @@ public class SolutionStructureTests {
     }
 
     [Fact]
+    public void StandaloneSolutionContainsExactOwnedInventoryAndNoReferenceEntries() {
+        string repoRoot = FindRepoRoot();
+        XDocument solution = XDocument.Load(Path.Combine(repoRoot, "Hexalith.Tenants.Standalone.slnx"));
+        string[] projectPaths = solution.Descendants("Project")
+            .Select(project => NormalizePath(project.Attribute("Path")?.Value))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        projectPaths.ShouldBe(EnumerateOwnedProjectFiles(repoRoot));
+        solution.Descendants()
+            .Where(element => element.Name.LocalName is "Project" or "File")
+            .Select(element => NormalizePath(element.Attribute("Path")?.Value))
+            .ShouldAllBe(path => !path.StartsWith("references/", StringComparison.Ordinal));
+    }
+
+    private static string[] EnumerateOwnedProjectFiles(string repoRoot) =>
+        [
+            .. new[] { "samples", "src", "tests" }
+                .SelectMany(root => Directory.EnumerateFiles(
+                    Path.Combine(repoRoot, root),
+                    "*.csproj",
+                    SearchOption.AllDirectories))
+                .Where(path => !NormalizePath(Path.GetRelativePath(repoRoot, path))
+                    .Split('/')
+                    .Any(segment => segment is "bin" or "obj"))
+                .Select(path => NormalizePath(Path.GetRelativePath(repoRoot, path)))
+                .Order(StringComparer.Ordinal),
+        ];
+
+    [Fact]
     public void Required_solution_projects_exist_on_disk() {
         string repoRoot = FindRepoRoot();
 

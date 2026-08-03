@@ -108,6 +108,11 @@ scripts/
 5. Run test projects individually; do not use solution-level `dotnet test`
 6. Submit a pull request against `main`
 
+`Hexalith.Tenants.slnx` remains the canonical development and topology solution.
+Dependency governance builds `Hexalith.Tenants.Standalone.slnx` in Release package
+mode (`-p:UseNuGetDeps=true`); that solution contains all 17 owned projects and no
+project or file entries under `references/`.
+
 ### Test Requirements
 
 All pull requests must pass the relevant existing test projects. Run test projects individually. With the current .NET 10 SDK, `dotnet test` can hit the Microsoft.Testing.Platform/VSTest incompatibility recorded in the Epic 2 story evidence; when that happens, build the test project and run its generated xUnit v3 executable from `bin/Release/net10.0`.

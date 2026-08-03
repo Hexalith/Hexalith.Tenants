@@ -244,6 +244,58 @@ public class PackageGovernanceTests {
         violations.ShouldBeEmpty("No EventStore project edge may survive into package mode.");
     }
 
+    [Fact]
+    public void Standalone_external_dependencies_have_complementary_source_and_package_edges() {
+        (string ProjectPath, string PackageId, string SourceProperty)[] expectedEdges =
+        [
+            ("src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj", "Hexalith.Commons.Aspire", "HexalithCommonsFromSource"),
+            ("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", "Hexalith.FrontComposer.Contracts", "HexalithFrontComposerFromSource"),
+            ("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", "Hexalith.FrontComposer.Shell", "HexalithFrontComposerFromSource"),
+            ("tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj", "Hexalith.FrontComposer.Contracts", "HexalithFrontComposerFromSource"),
+            ("tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj", "Hexalith.FrontComposer.Shell", "HexalithFrontComposerFromSource"),
+            ("tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj", "Hexalith.FrontComposer.Testing", "HexalithFrontComposerFromSource"),
+        ];
+
+        string repoRoot = FindRepoRoot();
+        List<string> violations = [];
+        foreach ((string projectPath, string packageId, string sourceProperty) in expectedEdges) {
+            XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
+            XElement[] projectReferences = project.Descendants("ProjectReference")
+                .Where(reference => string.Equals(
+                    ProjectFileToPackageId((string?)reference.Attribute("Include") ?? string.Empty),
+                    packageId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            XElement[] packageReferences = project.Descendants("PackageReference")
+                .Where(reference => string.Equals((string?)reference.Attribute("Include"), packageId, StringComparison.Ordinal))
+                .ToArray();
+            string sourceCondition = $"'$({sourceProperty})' == 'true'";
+            string packageCondition = $"'$({sourceProperty})' != 'true'";
+
+            if (projectReferences.Length != 1) {
+                violations.Add($"{projectPath}: expected one {packageId} ProjectReference, found {projectReferences.Length}.");
+            }
+            else if (!string.Equals(EffectiveCondition(projectReferences[0]), sourceCondition, StringComparison.Ordinal)) {
+                violations.Add($"{projectPath}: {packageId} ProjectReference must use condition {sourceCondition}.");
+            }
+
+            if (packageReferences.Length != 1) {
+                violations.Add($"{projectPath}: expected one {packageId} PackageReference, found {packageReferences.Length}.");
+            }
+            else {
+                if (!string.Equals(EffectiveCondition(packageReferences[0]), packageCondition, StringComparison.Ordinal)) {
+                    violations.Add($"{projectPath}: {packageId} PackageReference must use condition {packageCondition}.");
+                }
+
+                if (HasLocalVersionAuthority(packageReferences[0])) {
+                    violations.Add($"{projectPath}: {packageId} PackageReference must use the central catalog version.");
+                }
+            }
+        }
+
+        violations.ShouldBeEmpty("Every standalone-capable external edge must have exclusive source/package routing.");
+    }
+
     /// <summary>
     /// Collects the <c>Hexalith.EventStore*</c> references of the requested item type, keyed by
     /// package id. A <c>ProjectReference</c> id is derived from its project file name so the rule is
