@@ -5,27 +5,6 @@ using Shouldly;
 namespace Hexalith.Tenants.Contracts.Tests;
 
 public class SolutionStructureTests {
-    private static readonly string[] ExpectedStandaloneProjects =
-    [
-        "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
-        "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
-        "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
-        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
-        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
-        "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
-        "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj",
-        "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
-        "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
-        "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
-        "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
-        "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
-        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
-        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
-        "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
-        "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
-        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
-    ];
-
     private static readonly string[] RequiredSourceProjects =
     [
         "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj",
@@ -100,7 +79,7 @@ public class SolutionStructureTests {
     }
 
     [Fact]
-    public void Standalone_solution_contains_exact_owned_inventory_and_no_reference_entries() {
+    public void StandaloneSolutionContainsExactOwnedInventoryAndNoReferenceEntries() {
         string repoRoot = FindRepoRoot();
         XDocument solution = XDocument.Load(Path.Combine(repoRoot, "Hexalith.Tenants.Standalone.slnx"));
         string[] projectPaths = solution.Descendants("Project")
@@ -108,12 +87,26 @@ public class SolutionStructureTests {
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        projectPaths.ShouldBe(ExpectedStandaloneProjects.Order(StringComparer.Ordinal));
+        projectPaths.ShouldBe(EnumerateOwnedProjectFiles(repoRoot));
         solution.Descendants()
             .Where(element => element.Name.LocalName is "Project" or "File")
             .Select(element => NormalizePath(element.Attribute("Path")?.Value))
             .ShouldAllBe(path => !path.StartsWith("references/", StringComparison.Ordinal));
     }
+
+    private static string[] EnumerateOwnedProjectFiles(string repoRoot) =>
+        [
+            .. new[] { "samples", "src", "tests" }
+                .SelectMany(root => Directory.EnumerateFiles(
+                    Path.Combine(repoRoot, root),
+                    "*.csproj",
+                    SearchOption.AllDirectories))
+                .Where(path => !NormalizePath(Path.GetRelativePath(repoRoot, path))
+                    .Split('/')
+                    .Any(segment => segment is "bin" or "obj"))
+                .Select(path => NormalizePath(Path.GetRelativePath(repoRoot, path)))
+                .Order(StringComparer.Ordinal),
+        ];
 
     [Fact]
     public void Required_solution_projects_exist_on_disk() {
