@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj" />
+    <Project Path="samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj" />
+    <Project Path="src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj" />
+    <Project Path="src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj" />
+    <Project Path="src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj" />
+    <Project Path="src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj" />
+    <Project Path="src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj" />
+    <Project Path="src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj" />
+    <Project Path="src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj" />
+    <Project Path="src/Hexalith.Tenants/Hexalith.Tenants.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj" />
+    <Project Path="tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj" />
+    <Project Path="tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj" />
+    <Project Path="tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj" />
+    <Project Path="tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj" />
+    <Project Path="tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj" />
+  </Folder>
+</Solution>
