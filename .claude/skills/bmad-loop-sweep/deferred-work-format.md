@@ -35,6 +35,34 @@ reason: <why this was deferred rather than done now, one or two sentences>
 status: open
 ```
 
+`location:` is always written. Use `n/a` whenever there is nothing to open — a
+deferred goal, but equally a finding whose reporter recorded no place. The field
+says "no location was recorded", not "this item has none": a reader that finds
+`n/a` should fall back to `reason:`, which often names the file even when
+`location:` is empty. Entries written before this rule may omit the line; read
+an absent `location:` as `n/a`, never as "not yet known".
+
+Entries the orchestrator harvests from a spec carry one extra line,
+`source_spec:`, directly after `location:` — the spec the deferral came from. It
+is half the dedupe key (with `origin:`), so never edit or drop it when touching
+an entry; entries written by hand do not need it.
+
+**Every field line is exactly one line, and so is the title.** The format is
+line-oriented: readers find each field by scanning for `<name>:` at the start of
+a line, and an entry ends at whichever comes first — the next `### DW-<n>`
+entry, any other `#` .. `######` heading, or a `- source_spec:` flat-append
+bullet. A value carrying a line break therefore does not wrap; it becomes new
+ledger content, and three things can follow:
+
+- a break followed by `### ` mints an entry nobody filed;
+- a break before a `status:` line leaves one entry carrying two, so the ledger
+  no longer says one thing about it;
+- a break followed by `- source_spec:` cuts the entry short at that bullet, and
+  everything after it re-surfaces as a phantom _legacy_ item.
+
+Keep breaks out of field values, along with `### ` and a leading
+`- source_spec:`. If a reason needs two sentences, write them on one line.
+
 `severity:` is optional — entries written before this field existed have none
 and that is fine; readers must treat a missing or unrecognized value as
 "unspecified". Use `critical` for correctness/security issues, `high` for
