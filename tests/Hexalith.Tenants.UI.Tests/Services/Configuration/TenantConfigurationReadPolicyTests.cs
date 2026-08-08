@@ -215,6 +215,18 @@ public sealed class TenantConfigurationReadPolicyTests
         evidence.Subject.ShouldBe("operator.alpha");
     }
 
+    [Fact]
+    public void Evaluator_accepts_roles_separated_by_extended_whitespace_delimiters()
+    {
+        ClaimsPrincipal principalWithExtendedWhitespaceRoles = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "tenant-reader\u00A0global-admin\fother-role\vfinal-role"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principalWithExtendedWhitespaceRoles)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
     /// <summary>
     /// Fails closed on the prerender / static-SSR pass. There is no circuit, so the resolver's own injected
     /// AuthenticationStateProvider is the request-scoped one seeded from HttpContext.User -- the evidence source

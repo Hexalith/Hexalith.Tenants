@@ -188,7 +188,7 @@ internal static class TenantsGlobalAdministratorClaims
             // Split the normalized value, and treat every whitespace character as a separator rather than only
             // the space. "global-admin\ttenant-reader" previously tokenized as one unmatchable value.
             roles = trimmed.Split(
-                [' ', ',', '\t', '\n', '\r'],
+                [' ', ',', '\t', '\n', '\r', '\f', '\v', '\u00A0'],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (roles.Length == 0)
             {
