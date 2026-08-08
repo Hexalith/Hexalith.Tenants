@@ -885,3 +885,28 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   recorded above by loop 2 was re-confirmed still open by loop 3. Recorded here as a cross-reference only, not a
   second entry — see the loop-2 bullet immediately preceding this section.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]
+
+## Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)
+
+- TenantsWorkspace nests ProjectionLifecycleBadge inside polite atomic status region — deferred, pre-existing lifecycle-badge composition (not core 1.11 auth)
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171]
+- Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565]
+- Soft RefreshAsync blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
+- StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339]
+- IsSafeReturnUrl accepts any /tenants-prefixed path — deferred, already deferred earlier; same-origin relative only
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1250]
+- LoadAsync version bump after BeginLoad leaves a stale-apply window — deferred, pre-existing workspace load pattern
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
+- TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only
+  [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs]
+- EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page — deferred, covered by EditTenantMetadataFlowTests
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:146]
+- Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
+- ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603]
+- Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
+  [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:846]

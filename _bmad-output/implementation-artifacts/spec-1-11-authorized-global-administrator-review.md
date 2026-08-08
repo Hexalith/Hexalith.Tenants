@@ -5,10 +5,9 @@ created: '2026-07-28'
 status: 'review'
 baseline_commit: '2e61f57bda6379192007d1bc6fabbde61996b11d'
 baseline_revision: '2e61f57bda6379192007d1bc6fabbde61996b11d'
-review_loop_iteration: 5
+review_loop_iteration: 6
 followup_review_recommended: true
-# Remaining bmad-code-review chunks after loop-5 chunk-2 apply: (3) workspace + tenant detail,
-# (4) artifacts optional.
+# Remaining bmad-code-review chunks after loop-6 chunk-3: (4) artifacts optional.
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -402,6 +401,27 @@ all completed. Diff scoped to File List GA page/state/resources/tests vs baselin
 - [x] [Review][Patch] Assert the grant user-id input exposes no `maxlength` attribute after MaxLength removal [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:199] — **APPLIED (2026-08-08):** maxlength null assertion.
 - [x] [Review][Defer] Multi-page populations can permanently land grant/remove confirmation in page-scoped `UnableToVerify` because requery always loads page one — deferred, pre-existing by-design honesty path; page-scoped SafeMessages document the limit; expanding to search-by-id is out of this story's boundaries [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:178]
 - [x] [Review][Defer] UnableToVerify copy mentions the tenant audit trail without an in-page link — deferred, pre-existing; navigation to audit is outside chunk-2 / story boundary [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:184]
+
+### Review Findings — loop 6 (2026-08-08, chunk 3: workspace + tenant detail)
+
+- [ ] [Review][Patch] Dispose the read-refresh lease when `!lease.IsSubscribed` on TenantDetailPage (match GlobalAdministratorsPage) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:598]
+- [ ] [Review][Patch] Replace plain `_readRefreshSubscriptionInFlight` bool with Interlocked CompareExchange/Volatile like GlobalAdministratorsPage to prevent double-subscribe and orphaned leases [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:271]
+- [ ] [Review][Patch] Catch non-cancellation faults in RefreshTenantReadsAsync InvalidCursor recovery and restore members to Degraded/prior reason instead of leaving Refreshing [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:767]
+- [ ] [Review][Patch] Catch non-cancellation faults in LoadMemberPageAsync InvalidCursor recovery and clear IsRefreshing / restore Degraded instead of escaping [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:912]
+- [ ] [Review][Patch] Log notification setup failures on TenantDetailPage (parity with GlobalAdministratorsPage.LogNotificationSetupFailure) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:622]
+- [ ] [Review][Patch] Add `Tenants.Navigation.GlobalAdministrators` to TenantsWorkspaceTests StubTenantsLocalizer [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:616]
+- [ ] [Review][Patch] Fix stale ReadyWithSafeConfiguration comment that still claims default Unknown after default became Current [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1717]
+- [x] [Review][Defer] TenantsWorkspace nests ProjectionLifecycleBadge inside polite atomic status region [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171] — deferred, pre-existing lifecycle-badge composition (not core 1.11 auth)
+- [x] [Review][Defer] Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565] — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
+- [x] [Review][Defer] Soft RefreshAsync blanks the tenant list via Loading/ShowList [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679] — deferred, pre-existing UX; workspace never had retainConfirmed
+- [x] [Review][Defer] StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339] — deferred, mitigated by generation + CTS replace
+- [x] [Review][Defer] IsSafeReturnUrl accepts any /tenants-prefixed path [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1250] — deferred, already deferred earlier; same-origin relative only
+- [x] [Review][Defer] LoadAsync version bump after BeginLoad leaves a stale-apply window [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679] — deferred, pre-existing workspace load pattern
+- [x] [Review][Defer] TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs] — deferred, coverage gap only
+- [x] [Review][Defer] EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:146] — deferred, covered by EditTenantMetadataFlowTests
+- [x] [Review][Defer] Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447] — deferred, previously deferred; OnAfterRender retry partially mitigates
+- [x] [Review][Defer] ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603] — deferred, pre-existing; fail-closed hides entry until auth completes
+- [x] [Review][Defer] Member Next stays enabled when HasMore has blank NextCursor [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:846] — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
 
 ## Spec Change Log
 
