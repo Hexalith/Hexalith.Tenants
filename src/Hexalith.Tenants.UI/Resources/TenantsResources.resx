@@ -2199,17 +2199,26 @@
   <data name="Tenants.RemoveMember.Preview.AuditExpectation.Value" xml:space="preserve">
     <value>Audit evidence is pending or unavailable until the Epic 5 evidence source exists.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownConsequences" xml:space="preserve">
-    <value>Known consequences</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding" xml:space="preserve">
+    <value>Platform standing</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownConsequences.Value" xml:space="preserve">
-    <value>The tenant membership is removed only after projection confirmation proves the target user is absent.</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.Known" xml:space="preserve">
+    <value>Also a global administrator. Tenant membership removal does not change platform administrator authority.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownUnknowns" xml:space="preserve">
-    <value>Known unknowns</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.NotReflected" xml:space="preserve">
+    <value>Not reflected as a global administrator in the current complete projection.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownUnknowns.Value" xml:space="preserve">
-    <value>Session revocation, downstream enforcement, token invalidation, and global-administrator evidence are not proven by this flow.</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.Unknown" xml:space="preserve">
+    <value>Global-administrator standing is unproven in this view and is not guessed.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns" xml:space="preserve">
+    <value>Known consequences versus unknowns</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns.Value" xml:space="preserve">
+    <value>Known consequence: tenant membership is removed only after projection confirmation proves the target user is absent. Known unknowns: session revocation, downstream enforcement, and token invalidation are not proven by this flow.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.Blocked.Required" xml:space="preserve">
+    <value>Consequence preview is incomplete. Refresh current tenant detail before confirming removal.</value>
   </data>
   <data name="Tenants.RemoveMember.Freshness.Current" xml:space="preserve">
     <value>Current</value>
@@ -2244,17 +2253,20 @@
   <data name="Tenants.RemoveMember.GlobalAdminRisk.Known" xml:space="preserve">
     <value>Platform administrator authority is reflected for this user. This flow removes tenant membership only and will not remove global-administrator authority.</value>
   </data>
-  <data name="Tenants.RemoveMember.GlobalAdminRisk.Unknown" xml:space="preserve">
-    <value>Global-administrator authority is a known unknown in this view. This flow does not dispatch global-administrator commands.</value>
-  </data>
   <data name="Tenants.RemoveMember.GlobalAdminRisk.Accessible" xml:space="preserve">
     <value>Platform authority risk context.</value>
   </data>
   <data name="Tenants.RemoveMember.Confirmation.Label" xml:space="preserve">
     <value>Type the target user id to confirm removal</value>
   </data>
+  <data name="Tenants.RemoveMember.Confirmation.Elevated.Label" xml:space="preserve">
+    <value>Elevated risk: type the target user id exactly to confirm removal</value>
+  </data>
   <data name="Tenants.RemoveMember.Confirmation.Help" xml:space="preserve">
     <value>Type {0} exactly. Cancel or Escape closes without submitting.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirmation.Elevated.Help" xml:space="preserve">
+    <value>Elevated risk: type {0} exactly. Cancel or Escape closes without submitting.</value>
   </data>
   <data name="Tenants.RemoveMember.Confirm" xml:space="preserve">
     <value>Remove member</value>
@@ -2271,8 +2283,14 @@
   <data name="Tenants.RemoveMember.Validation.ConfirmationRequired" xml:space="preserve">
     <value>Type {0} exactly before removing this member.</value>
   </data>
+  <data name="Tenants.RemoveMember.Validation.ElevatedConfirmationRequired" xml:space="preserve">
+    <value>Elevated risk requires typing {0} exactly before removing this member.</value>
+  </data>
   <data name="Tenants.RemoveMember.Unavailable.Authorization" xml:space="preserve">
     <value>You are not authorized to remove members from this tenant.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.Narrow" xml:space="preserve">
+    <value>Member removal is unavailable on narrow layouts because the complete preview, risk context, and lifecycle must remain visible together. Widen the viewport or continue read-only.</value>
   </data>
   <data name="Tenants.RemoveMember.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before removing a member.</value>

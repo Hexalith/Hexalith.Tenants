@@ -2199,17 +2199,26 @@
   <data name="Tenants.RemoveMember.Preview.AuditExpectation.Value" xml:space="preserve">
     <value>La preuve d'audit est en attente ou indisponible tant que la source de preuve de l'Epic 5 n'existe pas.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownConsequences" xml:space="preserve">
-    <value>Conséquences connues</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding" xml:space="preserve">
+    <value>Statut de plateforme</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownConsequences.Value" xml:space="preserve">
-    <value>L'appartenance au locataire est retirée seulement après confirmation par projection que l'utilisateur cible est absent.</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.Known" xml:space="preserve">
+    <value>Également administrateur global. Le retrait de l'appartenance au locataire ne modifie pas l'autorité d'administrateur de plateforme.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownUnknowns" xml:space="preserve">
-    <value>Inconnues connues</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.NotReflected" xml:space="preserve">
+    <value>Non reflété comme administrateur global dans la projection complète actuelle.</value>
   </data>
-  <data name="Tenants.RemoveMember.Preview.KnownUnknowns.Value" xml:space="preserve">
-    <value>La révocation de session, l'application en aval, l'invalidation de jeton et la preuve d'administration globale ne sont pas prouvées par ce flux.</value>
+  <data name="Tenants.RemoveMember.Preview.PlatformStanding.Unknown" xml:space="preserve">
+    <value>Le statut d'administrateur global n'est pas prouvé dans cette vue et n'est pas inventé.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns" xml:space="preserve">
+    <value>Conséquences connues versus inconnues</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns.Value" xml:space="preserve">
+    <value>Conséquence connue : l'appartenance au locataire est retirée seulement après confirmation par projection que l'utilisateur cible est absent. Inconnues connues : la révocation de session, l'application en aval et l'invalidation de jeton ne sont pas prouvées par ce flux.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.Blocked.Required" xml:space="preserve">
+    <value>L'aperçu des conséquences est incomplet. Actualisez le détail du locataire courant avant de confirmer le retrait.</value>
   </data>
   <data name="Tenants.RemoveMember.Freshness.Current" xml:space="preserve">
     <value>Actuelle</value>
@@ -2244,17 +2253,20 @@
   <data name="Tenants.RemoveMember.GlobalAdminRisk.Known" xml:space="preserve">
     <value>Une autorité d'administrateur de plateforme est reflétée pour cet utilisateur. Ce flux retire uniquement l'appartenance au locataire et ne retire pas l'autorité d'administrateur global.</value>
   </data>
-  <data name="Tenants.RemoveMember.GlobalAdminRisk.Unknown" xml:space="preserve">
-    <value>L'autorité d'administrateur global est une inconnue connue dans cette vue. Ce flux n'envoie pas de commandes d'administrateur global.</value>
-  </data>
   <data name="Tenants.RemoveMember.GlobalAdminRisk.Accessible" xml:space="preserve">
     <value>Contexte de risque d'autorité de plateforme.</value>
   </data>
   <data name="Tenants.RemoveMember.Confirmation.Label" xml:space="preserve">
     <value>Saisir l'identifiant utilisateur cible pour confirmer le retrait</value>
   </data>
+  <data name="Tenants.RemoveMember.Confirmation.Elevated.Label" xml:space="preserve">
+    <value>Risque élevé : saisissez exactement l'identifiant utilisateur cible pour confirmer le retrait</value>
+  </data>
   <data name="Tenants.RemoveMember.Confirmation.Help" xml:space="preserve">
     <value>Saisissez exactement {0}. Annuler ou Échap ferme sans soumettre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirmation.Elevated.Help" xml:space="preserve">
+    <value>Risque élevé : saisissez exactement {0}. Annuler ou Échap ferme sans soumettre.</value>
   </data>
   <data name="Tenants.RemoveMember.Confirm" xml:space="preserve">
     <value>Retirer le membre</value>
@@ -2271,8 +2283,14 @@
   <data name="Tenants.RemoveMember.Validation.ConfirmationRequired" xml:space="preserve">
     <value>Saisissez exactement {0} avant de retirer ce membre.</value>
   </data>
+  <data name="Tenants.RemoveMember.Validation.ElevatedConfirmationRequired" xml:space="preserve">
+    <value>Le risque élevé exige de saisir exactement {0} avant de retirer ce membre.</value>
+  </data>
   <data name="Tenants.RemoveMember.Unavailable.Authorization" xml:space="preserve">
     <value>Vous n'êtes pas autorisé à retirer des membres de ce locataire.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.Narrow" xml:space="preserve">
+    <value>Le retrait de membre est indisponible sur les dispositions étroites car l'aperçu complet, le contexte de risque et le cycle de vie doivent rester visibles ensemble. Élargissez la fenêtre ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.RemoveMember.Unavailable.Freshness" xml:space="preserve">
     <value>Actualisez le détail actuel du locataire avant de retirer un membre.</value>

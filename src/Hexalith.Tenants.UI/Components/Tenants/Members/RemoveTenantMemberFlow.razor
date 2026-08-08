@@ -4,17 +4,30 @@
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
 <section class="tenants-remove-member-flow"
+         role="dialog"
+         aria-modal="true"
          data-testid="tenants-remove-member-flow"
          aria-labelledby="tenants-remove-member-heading"
          @onkeydown="HandleKeyDownAsync">
+    <span class="tenants-remove-member-flow__focus-sentinel"
+          tabindex="0"
+          data-testid="tenants-remove-member-focus-start"
+          @onfocus="FocusCancelAsync"></span>
+
     <div class="tenants-remove-member-flow__heading">
         <h3 id="tenants-remove-member-heading">@Localizer["Tenants.RemoveMember.Title"]</h3>
         <p>@Localizer["Tenants.RemoveMember.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
     </div>
+
+    <p class="tenants-remove-member-flow__narrow"
+       data-testid="tenants-remove-member-narrow-unavailable">
+        @Localizer["Tenants.RemoveMember.Unavailable.Narrow"]
+    </p>
 
     @if (!string.IsNullOrWhiteSpace(UnavailableReason))
     {
@@ -26,58 +39,70 @@
         </p>
     }
 
-    @if (IsPreviewComplete)
-    {
-        <section class="tenants-remove-member-flow__preview"
-                 data-testid="tenants-remove-member-preview"
-                 aria-labelledby="tenants-remove-member-preview-heading">
-            <h4 id="tenants-remove-member-preview-heading">@Localizer["Tenants.RemoveMember.Preview.Title"]</h4>
-            <dl>
-                @foreach ((string Label, string Value, string TestId) item in PreviewItems)
-                {
-                    <div data-testid="tenants-remove-member-preview-item">
-                        <dt>@item.Label</dt>
-                        <dd data-testid="@item.TestId">@item.Value</dd>
-                    </div>
-                }
-            </dl>
-        </section>
-    }
-
-    @if (LastOwnerRiskVisible)
-    {
-        <p class="tenants-remove-member-flow__risk"
-           id="tenants-remove-member-owner-risk"
-           data-testid="tenants-remove-member-owner-risk"
-           role="status"
-           aria-label="@Localizer["Tenants.RemoveMember.OwnerRisk.Accessible", OwnerCount]">
-            <span aria-hidden="true">!</span>
-            <span>@Localizer["Tenants.RemoveMember.OwnerRisk.LastOwner", OwnerCount]</span>
-        </p>
-    }
-
-    <p class="tenants-remove-member-flow__risk"
-       id="tenants-remove-member-global-admin-risk"
-       data-testid="tenants-remove-member-global-admin-risk"
-       role="status"
-       aria-label="@Localizer["Tenants.RemoveMember.GlobalAdminRisk.Accessible"]">
-        <span aria-hidden="true">?</span>
-        <span>@GlobalAdministratorRiskText</span>
-    </p>
-
     <EditForm Model="@_formModel"
               FormName="tenants-remove-member-flow"
               class="tenants-remove-member-flow__form"
               OnSubmit="SubmitAsync">
+        @if (IsPreviewComplete)
+        {
+            <section class="tenants-remove-member-flow__preview"
+                     data-testid="tenants-remove-member-preview"
+                     aria-labelledby="tenants-remove-member-preview-heading">
+                <h4 id="tenants-remove-member-preview-heading">@Localizer["Tenants.RemoveMember.Preview.Title"]</h4>
+                <dl>
+                    @foreach ((string Label, string Value, string TestId) item in PreviewItems)
+                    {
+                        <div data-testid="tenants-remove-member-preview-item">
+                            <dt>@item.Label</dt>
+                            <dd data-testid="@item.TestId">@item.Value</dd>
+                        </div>
+                    }
+                </dl>
+            </section>
+        }
+        else if (ShowPreviewBlockedBanner)
+        {
+            <p class="tenants-remove-member-flow__preview-blocked"
+               id="tenants-remove-member-preview-blocked"
+               data-testid="tenants-remove-member-preview-blocked"
+               role="status">
+                @Localizer["Tenants.RemoveMember.Preview.Blocked.Required"]
+            </p>
+        }
+
+        @if (LastOwnerRiskVisible)
+        {
+            <p class="tenants-remove-member-flow__risk"
+               id="tenants-remove-member-owner-risk"
+               data-testid="tenants-remove-member-owner-risk"
+               role="status"
+               aria-label="@Localizer["Tenants.RemoveMember.OwnerRisk.Accessible", OwnerCount]">
+                <span aria-hidden="true">!</span>
+                <span>@Localizer["Tenants.RemoveMember.OwnerRisk.LastOwner", OwnerCount]</span>
+            </p>
+        }
+
+        @if (TargetGlobalAdministratorFriction)
+        {
+            <p class="tenants-remove-member-flow__risk"
+               id="tenants-remove-member-global-admin-risk"
+               data-testid="tenants-remove-member-global-admin-risk"
+               role="status"
+               aria-label="@Localizer["Tenants.RemoveMember.GlobalAdminRisk.Accessible"]">
+                <span aria-hidden="true">!</span>
+                <span>@Localizer["Tenants.RemoveMember.GlobalAdminRisk.Known"]</span>
+            </p>
+        }
+
         <div class="tenants-remove-member-flow__field">
             <FluentTextInput Id="tenants-remove-member-confirmation"
                              @ref="_confirmationElement"
-                             Label="@Localizer["Tenants.RemoveMember.Confirmation.Label"]"
+                             Label="@ConfirmationLabel"
                              Value="@_confirmationText"
                              ValueChanged="OnConfirmationInput"
                              data-testid="tenants-remove-member-confirmation"
                              aria-describedby="@ConfirmationDescribedBy" />
-            <span id="tenants-remove-member-confirmation-help">@Localizer["Tenants.RemoveMember.Confirmation.Help", Member.UserId]</span>
+            <span id="tenants-remove-member-confirmation-help">@ConfirmationHelp</span>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
@@ -91,34 +116,44 @@
         }
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-remove-member-flow__actions">
-            <FluentButton Type="ButtonType.Submit"
-                          Appearance="ButtonAppearance.Primary"
-                          Class="tenants-remove-member-flow__confirm"
-                          data-testid="tenants-remove-member-confirm"
-                          Disabled="@IsSubmitDisabled">
-                @Localizer["Tenants.RemoveMember.Confirm"]
-            </FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Outline"
-                          data-testid="tenants-remove-member-refresh"
-                          Disabled="@(!CanRefresh)"
-                          OnClick="RefreshStatusAsync">
-                @Localizer["Tenants.RemoveMember.Refresh"]
-            </FluentButton>
-            @if (CanContinueReadOnly)
-            {
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              data-testid="tenants-remove-member-continue-read-only"
-                              OnClick="ContinueReadOnlyAsync">
-                    @Localizer["Tenants.RemoveMember.Action.ContinueReadOnly"]
+            <span class="tenants-remove-member-flow__button-focus" tabindex="-1" @ref="_submitElement">
+                <FluentButton Type="ButtonType.Submit"
+                              Appearance="ButtonAppearance.Primary"
+                              Class="tenants-remove-member-flow__confirm"
+                              data-testid="tenants-remove-member-confirm"
+                              Disabled="@IsSubmitDisabled">
+                    @Localizer["Tenants.RemoveMember.Confirm"]
                 </FluentButton>
-            }
+            </span>
+        </FluentStack>
+    </EditForm>
+
+    @* Cancel, refresh, and continue-read-only stay outside the form so narrow layouts that hide the form
+       still keep dismiss and named recovery controls reachable. *@
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-remove-member-flow__dismiss">
+        <FluentButton Appearance="ButtonAppearance.Outline"
+                      data-testid="tenants-remove-member-refresh"
+                      Disabled="@(!CanRefresh)"
+                      OnClick="RefreshStatusAsync">
+            @Localizer["Tenants.RemoveMember.Refresh"]
+        </FluentButton>
+        @if (CanContinueReadOnly)
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-remove-member-continue-read-only"
+                          OnClick="ContinueReadOnlyAsync">
+                @Localizer["Tenants.RemoveMember.Action.ContinueReadOnly"]
+            </FluentButton>
+        }
+        <span class="tenants-remove-member-flow__button-focus" tabindex="-1" @ref="_cancelElement">
             <FluentButton Appearance="ButtonAppearance.Outline"
                           data-testid="tenants-remove-member-cancel"
+                          Disabled="@_isSubmitting"
                           OnClick="CloseAsync">
                 @Localizer["Tenants.RemoveMember.Cancel"]
             </FluentButton>
-        </FluentStack>
-    </EditForm>
+        </span>
+    </FluentStack>
 
     <section class="tenants-remove-member-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -162,6 +197,11 @@
             @StateText
         </p>
     </section>
+
+    <span class="tenants-remove-member-flow__focus-sentinel"
+          tabindex="0"
+          data-testid="tenants-remove-member-focus-end"
+          @onfocus="FocusEndSentinelAsync"></span>
 </section>
 
 @code {
@@ -171,9 +211,13 @@
     private string? _validationMessage;
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
+    private bool _dismissed;
     private FluentTextInput _confirmationElement = default!;
+    private ElementReference _submitElement;
+    private ElementReference _cancelElement;
     private ElementReference _lifecycleElement;
     private bool _focusConfirmationPending;
+    private bool _focusCancelPending;
     private bool _focusLifecyclePending;
 
     [Parameter]
@@ -207,6 +251,13 @@
     [Parameter]
     public bool TargetGlobalAdministratorFriction { get; set; }
 
+    /// <summary>
+    /// When true, the authorized global-administrator projection is complete enough to assert that the
+    /// target is or is not a reflected platform administrator. Incomplete evidence stays Unknown.
+    /// </summary>
+    [Parameter]
+    public bool TargetPlatformStandingResolved { get; set; }
+
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
@@ -230,13 +281,24 @@
     private bool LastOwnerRiskVisible
         => OwnerCount == 1 && Member.Role is TenantRole.TenantOwner;
 
+    private bool ElevatedRiskVisible
+        => LastOwnerRiskVisible || TargetGlobalAdministratorFriction;
+
     private bool IsPreviewComplete
         => string.IsNullOrWhiteSpace(UnavailableReason)
         && !string.IsNullOrWhiteSpace(Detail.TenantId)
         && !string.IsNullOrWhiteSpace(Member.UserId)
         && Member.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
         && Freshness is ReadModelFreshnessState.Current
-        && TargetIsVisibleMember;
+        && TargetIsVisibleMember
+        && PreviewItems.Count == 10;
+
+    /// <summary>
+    /// Preview-blocked is only rendered when incomplete for a reason other than the unavailable alert,
+    /// so the same text is never shown twice.
+    /// </summary>
+    private bool ShowPreviewBlockedBanner
+        => !IsPreviewComplete && string.IsNullOrWhiteSpace(UnavailableReason);
 
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
@@ -300,8 +362,8 @@
             (Localizer["Tenants.RemoveMember.Preview.Freshness"], Localizer[$"Tenants.RemoveMember.Freshness.{Freshness}"], "tenants-remove-member-freshness"),
             (Localizer["Tenants.RemoveMember.Preview.RecoveryPath"], Localizer["Tenants.RemoveMember.Preview.RecoveryPath.Value"], "tenants-remove-member-recovery-path"),
             (Localizer["Tenants.RemoveMember.Preview.AuditExpectation"], Localizer["Tenants.RemoveMember.Preview.AuditExpectation.Value"], "tenants-remove-member-audit-expectation"),
-            (Localizer["Tenants.RemoveMember.Preview.KnownConsequences"], Localizer["Tenants.RemoveMember.Preview.KnownConsequences.Value"], "tenants-remove-member-known-consequences"),
-            (Localizer["Tenants.RemoveMember.Preview.KnownUnknowns"], Localizer["Tenants.RemoveMember.Preview.KnownUnknowns.Value"], "tenants-remove-member-known-unknowns"),
+            (Localizer["Tenants.RemoveMember.Preview.PlatformStanding"], PlatformStandingText, "tenants-remove-member-platform-standing"),
+            (Localizer["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns"], Localizer["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns.Value"], "tenants-remove-member-consequences-versus-unknowns"),
         ];
 
     private string OwnerContextText
@@ -312,10 +374,22 @@
             _ => Localizer["Tenants.RemoveMember.OwnerContext.MultipleOwners", OwnerCount],
         };
 
-    private string GlobalAdministratorRiskText
+    private string PlatformStandingText
         => TargetGlobalAdministratorFriction
-            ? Localizer["Tenants.RemoveMember.GlobalAdminRisk.Known"]
-            : Localizer["Tenants.RemoveMember.GlobalAdminRisk.Unknown"];
+            ? Localizer["Tenants.RemoveMember.Preview.PlatformStanding.Known"]
+            : TargetPlatformStandingResolved
+                ? Localizer["Tenants.RemoveMember.Preview.PlatformStanding.NotReflected"]
+                : Localizer["Tenants.RemoveMember.Preview.PlatformStanding.Unknown"];
+
+    private string ConfirmationLabel
+        => ElevatedRiskVisible
+            ? Localizer["Tenants.RemoveMember.Confirmation.Elevated.Label"]
+            : Localizer["Tenants.RemoveMember.Confirmation.Label"];
+
+    private string ConfirmationHelp
+        => ElevatedRiskVisible
+            ? Localizer["Tenants.RemoveMember.Confirmation.Elevated.Help", Member.UserId]
+            : Localizer["Tenants.RemoveMember.Confirmation.Help", Member.UserId];
 
     private string StateClass
         => $"tenants-remove-member-flow__state tenants-remove-member-flow__state--{_snapshot.State.ToString().ToLowerInvariant()}";
@@ -357,12 +431,20 @@
                 ids.Add("tenants-remove-member-unavailable");
             }
 
+            if (ShowPreviewBlockedBanner)
+            {
+                ids.Add("tenants-remove-member-preview-blocked");
+            }
+
             if (LastOwnerRiskVisible)
             {
                 ids.Add("tenants-remove-member-owner-risk");
             }
 
-            ids.Add("tenants-remove-member-global-admin-risk");
+            if (TargetGlobalAdministratorFriction)
+            {
+                ids.Add("tenants-remove-member-global-admin-risk");
+            }
 
             if (!string.IsNullOrWhiteSpace(_validationMessage))
             {
@@ -392,13 +474,33 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
+        }
+
+        if (_focusCancelPending)
+        {
+            _focusCancelPending = false;
+            await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
-            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task FocusSafelyAsync(ElementReference element)
+    {
+        try
+        {
+            await element.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
         }
     }
 
@@ -414,6 +516,11 @@
 
     private async Task SetCommandActivityRaisedAsync(bool isActive)
     {
+        if (isActive && _dismissed)
+        {
+            return;
+        }
+
         if (_hasRaisedCommandActivity == isActive)
         {
             return;
@@ -490,15 +597,19 @@
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        if (!string.IsNullOrWhiteSpace(UnavailableReason) || !IsPreviewComplete)
         {
-            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
+                UnavailableReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value,
+                TenantCommandFocusTarget.Submit));
             return;
         }
 
         if (!string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal))
         {
-            _validationMessage = Localizer["Tenants.RemoveMember.Validation.ConfirmationRequired", Member.UserId];
+            _validationMessage = ElevatedRiskVisible
+                ? Localizer["Tenants.RemoveMember.Validation.ElevatedConfirmationRequired", Member.UserId]
+                : Localizer["Tenants.RemoveMember.Validation.ConfirmationRequired", Member.UserId];
             _focusConfirmationPending = true;
             return;
         }
@@ -632,5 +743,32 @@
     }
 
     private async Task CloseAsync()
-        => await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
+    {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
+        _validationMessage = null;
+        _focusCancelPending = true;
+        _dismissed = true;
+        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
+    }
+
+    private async Task FocusEndSentinelAsync(FocusEventArgs args)
+    {
+        // Prefer the operable confirm control; otherwise land on cancel, which stays outside the
+        // CSS-hidden form on narrow layouts.
+        if (!IsSubmitDisabled)
+        {
+            await FocusSafelyAsync(_submitElement).ConfigureAwait(false);
+            return;
+        }
+
+        await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+    }
+
+    private async Task FocusCancelAsync(FocusEventArgs args)
+        => await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
 }

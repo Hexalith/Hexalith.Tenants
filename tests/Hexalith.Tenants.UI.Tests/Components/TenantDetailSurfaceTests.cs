@@ -26,6 +26,7 @@ using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -2041,6 +2042,80 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         region.Id.ShouldBe(regionId);
         region.QuerySelector($"[data-testid='{flowTestId}']").ShouldNotBeNull(
             $"aria-controls on {launchTestId} must point to the rendered {regionId} region containing the flow.");
+    }
+
+    [Fact]
+    public void Member_access_review_wires_complete_ga_standing_into_known_platform_friction()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
+            .index;
+        GlobalAdministratorsSnapshot completeGa = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"ga\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail))
+            .Add(view => view.GlobalAdministrators, completeGa));
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
+
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("Also a global administrator");
+        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
+            .ShouldContain("will not remove global-administrator authority");
+    }
+
+    [Fact]
+    public void Member_access_review_keeps_platform_standing_unknown_when_ga_evidence_is_incomplete()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
+            .index;
+        GlobalAdministratorsSnapshot incompleteGa = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"ga\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = false,
+        };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail))
+            .Add(view => view.GlobalAdministrators, incompleteGa));
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
+
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("unproven");
+        cut.Markup.ShouldNotContain("Not reflected as a global administrator", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-remove-member-global-admin-risk']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -4194,6 +4269,54 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Members.Action.ChangeRole"] = "Change role",
             ["Tenants.Members.Action.RemoveMember"] = "Remove member",
             ["Tenants.Members.Action.Unavailable"] = "Unavailable",
+            ["Tenants.RemoveMember.Title"] = "Remove tenant member",
+            ["Tenants.RemoveMember.Description"] = "Preview removal of user {1} from tenant {0}. Current confirmed role is {2}.",
+            ["Tenants.RemoveMember.Preview.Title"] = "Consequence preview",
+            ["Tenants.RemoveMember.Preview.Tenant"] = "Tenant",
+            ["Tenants.RemoveMember.Preview.TargetUser"] = "Target user",
+            ["Tenants.RemoveMember.Preview.CurrentRole"] = "Current role",
+            ["Tenants.RemoveMember.Preview.OwnerCount"] = "Owner count",
+            ["Tenants.RemoveMember.Preview.AccessPath"] = "Affected access path",
+            ["Tenants.RemoveMember.Preview.AccessPath.Value"] = "Tenant membership for the visible tenant only.",
+            ["Tenants.RemoveMember.Preview.Freshness"] = "Freshness",
+            ["Tenants.RemoveMember.Preview.RecoveryPath"] = "Recovery path",
+            ["Tenants.RemoveMember.Preview.RecoveryPath.Value"] = "Wait, refresh, inspect audit when available, or submit a forward correction to restore intended access.",
+            ["Tenants.RemoveMember.Preview.AuditExpectation"] = "Audit expectation",
+            ["Tenants.RemoveMember.Preview.AuditExpectation.Value"] = "Audit evidence is pending or unavailable until the Epic 5 evidence source exists.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding"] = "Platform standing",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.Known"] = "Also a global administrator. Tenant membership removal does not change platform administrator authority.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.NotReflected"] = "Not reflected as a global administrator in the current complete projection.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.Unknown"] = "Global-administrator standing is unproven in this view and is not guessed.",
+            ["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns"] = "Known consequences versus unknowns",
+            ["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns.Value"] = "Known consequence: tenant membership is removed only after projection confirmation proves the target user is absent. Known unknowns: session revocation, downstream enforcement, and token invalidation are not proven by this flow.",
+            ["Tenants.RemoveMember.Preview.Blocked.Required"] = "Consequence preview is incomplete. Refresh current tenant detail before confirming removal.",
+            ["Tenants.RemoveMember.Freshness.Current"] = "Current",
+            ["Tenants.RemoveMember.OwnerContext.MultipleOwners"] = "{0} visible owners.",
+            ["Tenants.RemoveMember.OwnerContext.LastOwner"] = "{0} visible owner; removing this member can leave zero visible owners.",
+            ["Tenants.RemoveMember.OwnerContext.NoOwners"] = "0 visible owners; owner context is unavailable.",
+            ["Tenants.RemoveMember.OwnerRisk.LastOwner"] = "Warning: {0} visible owner remains. Last-owner tenant membership removal is allowed, but it needs deliberate confirmation.",
+            ["Tenants.RemoveMember.OwnerRisk.Accessible"] = "Elevated last-owner removal warning for {0} visible owner.",
+            ["Tenants.RemoveMember.GlobalAdminRisk.Known"] = "Platform administrator authority is reflected for this user. This flow removes tenant membership only and will not remove global-administrator authority.",
+            ["Tenants.RemoveMember.GlobalAdminRisk.Accessible"] = "Platform authority risk context.",
+            ["Tenants.RemoveMember.Confirmation.Label"] = "Type the target user id to confirm removal",
+            ["Tenants.RemoveMember.Confirmation.Elevated.Label"] = "Elevated risk: type the target user id exactly to confirm removal",
+            ["Tenants.RemoveMember.Confirmation.Help"] = "Type {0} exactly. Cancel or Escape closes without submitting.",
+            ["Tenants.RemoveMember.Confirmation.Elevated.Help"] = "Elevated risk: type {0} exactly. Cancel or Escape closes without submitting.",
+            ["Tenants.RemoveMember.Confirm"] = "Remove member",
+            ["Tenants.RemoveMember.Refresh"] = "Refresh status",
+            ["Tenants.RemoveMember.Cancel"] = "Cancel",
+            ["Tenants.RemoveMember.Lifecycle.Title"] = "Remove member command lifecycle",
+            ["Tenants.RemoveMember.Unavailable.Narrow"] = "Member removal is unavailable on narrow layouts because the complete preview, risk context, and lifecycle must remain visible together. Widen the viewport or continue read-only.",
+            ["Tenants.RemoveMember.Unavailable.Freshness"] = "Refresh current tenant detail before removing a member.",
+            ["Tenants.RemoveMember.Role.TenantOwner"] = "Tenant owner",
+            ["Tenants.RemoveMember.Role.TenantContributor"] = "Tenant contributor",
+            ["Tenants.RemoveMember.Role.TenantReader"] = "Tenant reader",
+            ["Tenants.RemoveMember.Role.Unknown"] = "Unknown role",
+            ["Tenants.RemoveMember.State.Idle"] = "No remove-member preview opened.",
+            ["Tenants.RemoveMember.State.Previewed"] = "Consequence preview ready; no command has been submitted.",
+            ["Tenants.RemoveMember.Recovery.Idle"] = "Open the preview when current projection evidence is available.",
+            ["Tenants.RemoveMember.Recovery.Previewed"] = "Confirm deliberately, cancel, or continue read-only.",
+            ["Tenants.RemoveMember.Audit.NotStarted"] = "Audit evidence not started.",
             ["Tenants.Members.ActionSlotAccessible"] = "{0} is unavailable for {1}: {2}",
             ["Tenants.Members.Column.Actions"] = "Action availability",
             ["Tenants.Members.Column.Freshness"] = "Freshness",

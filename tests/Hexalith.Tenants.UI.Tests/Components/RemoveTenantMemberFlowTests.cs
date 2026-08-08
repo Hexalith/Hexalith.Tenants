@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 using Bunit;
 
@@ -34,13 +35,19 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-remove-member-flow']");
+        cut.Find("[data-testid='tenants-remove-member-flow']").GetAttribute("role").ShouldBe("dialog");
+        cut.Find("[data-testid='tenants-remove-member-flow']").GetAttribute("aria-modal").ShouldBe("true");
+        cut.Find("[data-testid='tenants-remove-member-focus-start']");
+        cut.Find("[data-testid='tenants-remove-member-focus-end']");
         cut.Find("[data-testid='tenants-remove-member-preview']");
         cut.FindAll("[data-testid='tenants-remove-member-preview-item']").Count.ShouldBe(10);
         cut.Find("[data-testid='tenants-remove-member-target-user-id']").TextContent.ShouldContain("reader-user");
         cut.Find("[data-testid='tenants-remove-member-current-role']").TextContent.ShouldContain("Tenant reader");
         cut.Find("[data-testid='tenants-remove-member-owner-context']").TextContent.ShouldContain("2 visible owners");
-        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent.ShouldContain("known unknown");
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent.ShouldContain("unproven");
+        cut.Find("[data-testid='tenants-remove-member-consequences-versus-unknowns']").TextContent
+            .ShouldContain("Known consequence");
+        cut.FindAll("[data-testid='tenants-remove-member-global-admin-risk']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldBeNull();
         cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
         cut.Markup.ShouldNotContain("receipt", Case.Insensitive);
@@ -65,7 +72,17 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-remove-member-owner-risk']").TextContent.ShouldContain("Last-owner");
+        cut.FindAll("[data-testid='tenants-remove-member-global-admin-risk']").ShouldBeEmpty();
+        cut.Markup.ShouldContain("Elevated risk: type the target user id exactly to confirm removal");
+        cut.Find("#tenants-remove-member-confirmation-help").TextContent
+            .ShouldContain("Elevated risk: type owner-user exactly");
         cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldBeNull();
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("Owner-User");
+        cut.Find("form").Submit();
+        cut.Find("[data-testid='tenants-remove-member-validation']").TextContent
+            .ShouldContain("Elevated risk requires typing owner-user exactly");
+        gateway.RemoveMemberCallCount.ShouldBe(0);
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("owner-user");
         cut.Find("form").Submit();
@@ -83,11 +100,82 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.TargetGlobalAdministratorFriction, true));
+            .Add(p => p.TargetGlobalAdministratorFriction, true)
+            .Add(p => p.TargetPlatformStandingResolved, true));
 
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("Also a global administrator");
         cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
             .ShouldContain("will not remove global-administrator authority");
+        cut.Markup.ShouldContain("Elevated risk", Case.Insensitive);
         cut.Markup.ShouldNotContain("RemoveGlobalAdministrator", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Resolved_non_global_admin_platform_standing_does_not_raise_elevated_ga_friction()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.TargetPlatformStandingResolved, true));
+
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("Not reflected as a global administrator");
+        cut.FindAll("[data-testid='tenants-remove-member-global-admin-risk']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Incomplete_preview_blocks_confirm_and_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Stale));
+
+        cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+        string unavailable = cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent;
+        unavailable.ShouldContain("Refresh current tenant detail", Case.Insensitive);
+        // Same reason must not also render as the preview-blocked banner.
+        cut.FindAll("[data-testid='tenants-remove-member-preview-blocked']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-preview-item']").ShouldBeEmpty();
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Css_contains_focus_trap_and_narrow_layout_hooks()
+    {
+        string styles = File.ReadAllText(Path.Combine(
+            RepoRoot(),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Members",
+            "RemoveTenantMemberFlow.razor.css"));
+
+        styles.ShouldContain("tenants-remove-member-flow__focus-sentinel");
+        styles.ShouldContain("tenants-remove-member-flow__narrow");
+        int narrowMedia = styles.IndexOf("@media (max-width: 767px)", StringComparison.Ordinal);
+        narrowMedia.ShouldBeGreaterThanOrEqualTo(0, "Expected a max-width: 767px media query for narrow fail-closed layout.");
+        int nextMedia = styles.IndexOf("@media", narrowMedia + 1, StringComparison.Ordinal);
+        string narrowBody = nextMedia < 0 ? styles[narrowMedia..] : styles[narrowMedia..nextMedia];
+        Regex.IsMatch(
+                narrowBody,
+                @"\.tenants-remove-member-flow__form\s*\{\s*display:\s*none\s*;",
+                RegexOptions.CultureInvariant)
+            .ShouldBeTrue("Narrow media query must hide .tenants-remove-member-flow__form with display: none.");
     }
 
     [Fact]
@@ -377,11 +465,58 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.RemoveMemberCallCount.ShouldBe(0);
     }
 
+    [Fact]
+    public void Escape_while_submitting_does_not_close_or_dispatch_again()
+    {
+        int closeCount = 0;
+        TaskCompletionSource<TenantCommandSubmissionResult> pendingSubmission = new();
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => pendingSubmission.Task,
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnCloseRequested, () => closeCount++));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+
+        cut.Find("[data-testid='tenants-remove-member-flow']").KeyDown("Escape");
+        cut.Find("[data-testid='tenants-remove-member-cancel']").GetAttribute("disabled").ShouldNotBeNull();
+
+        closeCount.ShouldBe(0);
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+    }
+
     private void RegisterServices(StubTenantCommandGateway gateway)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
+    }
+
+    private static string RepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Hexalith.Tenants.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Unable to locate repository root from test output.");
     }
 
     private static TenantDetail Detail(string tenantId)
@@ -467,10 +602,13 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.Preview.RecoveryPath.Value"] = "Wait, refresh, inspect audit when available, or submit a forward correction to restore intended access.",
             ["Tenants.RemoveMember.Preview.AuditExpectation"] = "Audit expectation",
             ["Tenants.RemoveMember.Preview.AuditExpectation.Value"] = "Audit evidence is pending or unavailable until the Epic 5 evidence source exists.",
-            ["Tenants.RemoveMember.Preview.KnownConsequences"] = "Known consequences",
-            ["Tenants.RemoveMember.Preview.KnownConsequences.Value"] = "The tenant membership is removed only after projection confirmation proves the target user is absent.",
-            ["Tenants.RemoveMember.Preview.KnownUnknowns"] = "Known unknowns",
-            ["Tenants.RemoveMember.Preview.KnownUnknowns.Value"] = "Session revocation, downstream enforcement, token invalidation, and global-administrator evidence are not proven by this flow.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding"] = "Platform standing",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.Known"] = "Also a global administrator. Tenant membership removal does not change platform administrator authority.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.NotReflected"] = "Not reflected as a global administrator in the current complete projection.",
+            ["Tenants.RemoveMember.Preview.PlatformStanding.Unknown"] = "Global-administrator standing is unproven in this view and is not guessed.",
+            ["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns"] = "Known consequences versus unknowns",
+            ["Tenants.RemoveMember.Preview.ConsequencesVersusUnknowns.Value"] = "Known consequence: tenant membership is removed only after projection confirmation proves the target user is absent. Known unknowns: session revocation, downstream enforcement, and token invalidation are not proven by this flow.",
+            ["Tenants.RemoveMember.Preview.Blocked.Required"] = "Consequence preview is incomplete. Refresh current tenant detail before confirming removal.",
             ["Tenants.RemoveMember.Freshness.Current"] = "Current",
             ["Tenants.RemoveMember.Freshness.Stale"] = "Stale",
             ["Tenants.RemoveMember.Freshness.Unknown"] = "Unknown",
@@ -480,16 +618,19 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.OwnerRisk.LastOwner"] = "Warning: {0} visible owner remains. Last-owner tenant membership removal is allowed, but it needs deliberate confirmation.",
             ["Tenants.RemoveMember.OwnerRisk.Accessible"] = "Elevated last-owner removal warning for {0} visible owner.",
             ["Tenants.RemoveMember.GlobalAdminRisk.Known"] = "Platform administrator authority is reflected for this user. This flow removes tenant membership only and will not remove global-administrator authority.",
-            ["Tenants.RemoveMember.GlobalAdminRisk.Unknown"] = "Global-administrator authority is a known unknown in this view. This flow does not dispatch global-administrator commands.",
             ["Tenants.RemoveMember.GlobalAdminRisk.Accessible"] = "Platform authority risk context.",
             ["Tenants.RemoveMember.Confirmation.Label"] = "Type the target user id to confirm removal",
+            ["Tenants.RemoveMember.Confirmation.Elevated.Label"] = "Elevated risk: type the target user id exactly to confirm removal",
             ["Tenants.RemoveMember.Confirmation.Help"] = "Type {0} exactly. Cancel or Escape closes without submitting.",
+            ["Tenants.RemoveMember.Confirmation.Elevated.Help"] = "Elevated risk: type {0} exactly. Cancel or Escape closes without submitting.",
             ["Tenants.RemoveMember.Confirm"] = "Remove member",
             ["Tenants.RemoveMember.Refresh"] = "Refresh status",
             ["Tenants.RemoveMember.Cancel"] = "Cancel",
             ["Tenants.RemoveMember.Lifecycle.Title"] = "Remove member command lifecycle",
             ["Tenants.RemoveMember.Validation.ConfirmationRequired"] = "Type {0} exactly before removing this member.",
+            ["Tenants.RemoveMember.Validation.ElevatedConfirmationRequired"] = "Elevated risk requires typing {0} exactly before removing this member.",
             ["Tenants.RemoveMember.Unavailable.Authorization"] = "You are not authorized to remove members from this tenant.",
+            ["Tenants.RemoveMember.Unavailable.Narrow"] = "Member removal is unavailable on narrow layouts because the complete preview, risk context, and lifecycle must remain visible together. Widen the viewport or continue read-only.",
             ["Tenants.RemoveMember.Unavailable.Freshness"] = "Refresh current tenant detail before removing a member.",
             ["Tenants.RemoveMember.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow removing members.",
             ["Tenants.RemoveMember.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",

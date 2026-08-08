@@ -1,5 +1,6 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.GlobalAdministrators
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
@@ -264,7 +265,8 @@
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     ProjectionVersion="@ProjectionVersion"
                                     ProjectionVersionProvider="@ProjectionVersionProvider"
-                                    TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
+                                    TargetGlobalAdministratorFriction="@ResolveTargetGlobalAdministratorFriction(ActiveRemoveMember)"
+                                    TargetPlatformStandingResolved="@TargetPlatformStandingResolved"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseRemoveMemberAsync"
                                     OnCommandActivityChanged="@HandleCommandActivityAsync"
@@ -386,8 +388,12 @@
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
+    /// <summary>
+    /// Optional authorized global-administrator projection used for target platform-standing friction.
+    /// Incomplete, stale, or unavailable evidence never invents standing.
+    /// </summary>
     [Parameter]
-    public bool TargetGlobalAdministratorFriction { get; set; }
+    public GlobalAdministratorsSnapshot? GlobalAdministrators { get; set; }
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -423,6 +429,9 @@
             ? null
             : Members.Rows.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal))
                 ?? _activeRemoveMemberCapture;
+
+    private bool TargetPlatformStandingResolved
+        => GlobalAdministrators is { IsCompleteEvidence: true, Freshness: ReadModelFreshnessState.Current };
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
@@ -773,6 +782,11 @@
         _activeRemoveMemberUserId = member.UserId;
         _activeRemoveMemberCapture = member;
     }
+
+    private bool ResolveTargetGlobalAdministratorFriction(TenantMember? member)
+        => TargetPlatformStandingResolved
+        && member is not null
+        && GlobalAdministrators!.Rows.Any(row => string.Equals(row.UserId, member.UserId, StringComparison.Ordinal));
 
     private async Task CloseChangeRoleAsync()
     {

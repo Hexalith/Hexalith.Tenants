@@ -6,6 +6,7 @@
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State
+@using Hexalith.Tenants.UI.State.GlobalAdministrators
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantUsers
 @using Microsoft.Extensions.Logging
@@ -187,6 +188,7 @@
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
                                             ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             Members="@_tenantUsersSnapshot"
+                                            GlobalAdministrators="@_globalAdministratorsSnapshot"
                                             CanGoPrevious="@(_memberCursorHistory.Count > 0)"
                                             PagingJumpedToFirstPage="@_memberPagingJumpedToFirstPage"
                                             OnNextPageRequested="@LoadNextMemberPageAsync"
@@ -233,6 +235,7 @@
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
     private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
+    private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     /// <summary>Upper bound on retained member paging history.</summary>
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
 
@@ -386,6 +389,7 @@
 
             _snapshot = TenantDetailSnapshot.Loading();
             _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
+            _globalAdministratorsSnapshot = null;
             _memberCursor = null;
             _memberCursorHistory.Clear();
             _memberPagingHistoryTruncated = false;
@@ -396,10 +400,13 @@
             .GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
         Task<TenantUsersSnapshot> membersTask = QueryGateway
             .GetTenantUsersAsync(new TenantUsersRequest(tenantId), null, cancellationToken);
-        // Observe both tasks regardless of which faults first: WhenAll surfaces only one exception, so the
-        // other would go unobserved and its surface would keep whatever state it had -- Loading, in practice.
+        Task<GlobalAdministratorsSnapshot> globalAdministratorsTask = QueryGateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, cancellationToken);
+        // Observe each task regardless of which faults first: WhenAll surfaces only one exception, so the
+        // others would go unobserved and their surfaces would keep whatever state they had -- Loading, in practice.
         TenantDetailSnapshot? detailResult = null;
         TenantUsersSnapshot? membersResult = null;
+        GlobalAdministratorsSnapshot? globalAdministratorsResult = null;
         bool cancelled = false;
         try
         {
@@ -427,6 +434,20 @@
             membersResult = null;
         }
 
+        try
+        {
+            globalAdministratorsResult = await globalAdministratorsTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancelled = true;
+        }
+        catch
+        {
+            // Platform standing stays unknown when the supplementary GA read faults; removal still works.
+            globalAdministratorsResult = null;
+        }
+
         if (cancelled || !CanApply(generation, tenantId))
         {
             return;
@@ -444,6 +465,7 @@
             // A faulted read resolves to its own terminal state rather than leaving the surface on Loading.
             _snapshot = detailResult ?? TenantDetailSnapshot.Unavailable(tenantId);
             _tenantUsersSnapshot = membersResult ?? TenantUsersSnapshot.Unavailable(tenantId);
+            _globalAdministratorsSnapshot = globalAdministratorsResult;
             StateHasChanged();
         }).ConfigureAwait(false);
 
@@ -751,6 +773,7 @@
         CancellationToken cancellationToken = operation.CancellationToken;
         TenantDetailSnapshot retainedDetail = _snapshot;
         TenantUsersSnapshot retainedMembers = _tenantUsersSnapshot;
+        GlobalAdministratorsSnapshot? retainedGlobalAdministrators = _globalAdministratorsSnapshot;
         _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retainedMembers);
         await InvokeAsync(StateHasChanged).ConfigureAwait(false);
         Task<TenantDetailSnapshot> detailTask = QueryGateway
@@ -763,11 +786,18 @@
                 new TenantUsersRequest(tenantId, _memberCursor, ETag: retainedMembers.ETag),
                 retainedMembers,
                 cancellationToken);
-        // Observe both reads independently. Task.WhenAll rethrew an operational fault before either result
-        // could be applied, leaving the retained member page permanently marked Refreshing. A failed refresh
-        // remains support-safe and fail-closed while still allowing a successful sibling read to land.
+        Task<GlobalAdministratorsSnapshot> globalAdministratorsTask = QueryGateway
+            .GetGlobalAdministratorsAsync(
+                new GlobalAdministratorsRequest(ETag: retainedGlobalAdministrators?.ETag),
+                retainedGlobalAdministrators,
+                cancellationToken);
+        // Observe detail, members, and global-administrator reads independently. Task.WhenAll rethrew an
+        // operational fault before either result could be applied, leaving the retained member page permanently
+        // marked Refreshing. A failed refresh remains support-safe and fail-closed while still allowing a
+        // successful sibling read to land.
         TenantDetailSnapshot detail;
         TenantUsersSnapshot members;
+        GlobalAdministratorsSnapshot? globalAdministrators;
         bool cancelled = false;
         try
         {
@@ -800,6 +830,21 @@
         catch
         {
             members = TenantUsersSnapshot.Error(tenantId, retainedMembers);
+        }
+
+        try
+        {
+            globalAdministrators = await globalAdministratorsTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancelled = true;
+            globalAdministrators = retainedGlobalAdministrators;
+        }
+        catch
+        {
+            // Keep prior standing evidence when the supplementary GA refresh faults; do not invent standing.
+            globalAdministrators = retainedGlobalAdministrators;
         }
 
         if (cancelled || !CanApply(generation, tenantId))
@@ -883,6 +928,7 @@
 
             _snapshot = detail;
             _tenantUsersSnapshot = members;
+            _globalAdministratorsSnapshot = globalAdministrators;
             // The jump announcement describes the immediately preceding Previous action. Once an
             // authoritative refresh completes it is no longer new recovery evidence and must not remain in
             // the polite live region indefinitely.

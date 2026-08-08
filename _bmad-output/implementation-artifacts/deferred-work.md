@@ -946,3 +946,19 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
   summary: SignalR nudge is skipped when MemberAccessReview ref is still null.
   evidence: TenantDetailPage forwards only when `_memberAccessReview is not null`; early refresh before child attach can miss an in-flight nudge.
+
+## Deferred from: bmad-build scope split of Story 2.4 (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Story 2.4b — provenance reconciliation refinements, WP-2A removal-proof assembly (`audit_available`), proof-capability fail-closed gating, and proof-state recovery/tests.
+  evidence: Split from Story 2.4 so the first delivery goal (2.4a eligibility, complete preview, elevated friction, destructive dialog, dispatch, AggregateIdentity lock) stays within the 900–1600 token spec budget; Story 2.4 remains incomplete until 2.4b also passes.
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog.
+  evidence: Spec Ask First prefers Tenants role=dialog + focus-sentinel pattern; full Fluent/FrontComposer modal primitive was not authorized in this slice.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member.
+  evidence: Matches established RemoveTenantConfigurationFlow CSS-only narrow gate; changing to a runtime viewport gate needs an explicit Ask First decision.

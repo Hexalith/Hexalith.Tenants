@@ -1,4 +1,4 @@
-/* fc-css-exception: bordered command-flow card; border + container padding and block margin define
+/* fc-css-exception: bordered command-flow dialog card; border + container padding and block margin define
    the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-remove-member-flow {
     border: 1px solid var(--neutral-stroke-rest, CanvasText);
@@ -6,6 +6,16 @@
     gap: 1rem;
     margin-block: 1rem;
     padding: 1rem;
+}
+
+/* fc-css-exception: visually-hidden focus sentinels for the aria-modal trap; no Fluent primitive wraps
+   this off-screen tab-cycle technique. */
+.tenants-remove-member-flow__focus-sentinel {
+    block-size: 1px;
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
 }
 
 /* fc-css-exception: spacing reset on semantic heading elements; no Fluent typography primitive
@@ -16,10 +26,14 @@
     margin-block: 0 .35rem;
 }
 
+.tenants-remove-member-flow__narrow {
+    display: none;
+}
+
 /* fc-css-exception: left-accent callout padding on the semantic <section> preview region; preserves
    the border-accent treatment Fluent has no primitive for. */
 .tenants-remove-member-flow__preview {
-    border-inline-start: .25rem solid var(--accent-fill-rest, LinkText);
+    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
@@ -72,7 +86,9 @@
    preserves the border-accent treatment Fluent has no primitive for. */
 .tenants-remove-member-flow__unavailable,
 .tenants-remove-member-flow__validation,
-.tenants-remove-member-flow__risk {
+.tenants-remove-member-flow__risk,
+.tenants-remove-member-flow__preview-blocked,
+.tenants-remove-member-flow__narrow {
     border-inline-start: .25rem solid currentcolor;
     margin: 0;
     padding-inline-start: .75rem;
@@ -102,7 +118,17 @@
     outline-offset: 2px;
 }
 
-@media (max-width: 44rem) {
+@media (max-width: 767px) {
+    /* fc-css-exception: narrow layouts hide the form so incomplete safety context cannot be confirmed;
+       cancel remains outside the form. No Fluent primitive expresses this fail-closed breakpoint. */
+    .tenants-remove-member-flow__form {
+        display: none;
+    }
+
+    .tenants-remove-member-flow__narrow {
+        display: block;
+    }
+
     /* fc-css-exception: responsive breakpoint collapsing the content-sized label/value grid to a
        single column; no Fluent layout primitive expresses this column behaviour. */
     .tenants-remove-member-flow__preview div {
@@ -112,6 +138,11 @@
 
 @media (forced-colors: active) {
     .tenants-remove-member-flow {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenants-remove-member-flow__preview {
         border-color: CanvasText;
     }
 }
