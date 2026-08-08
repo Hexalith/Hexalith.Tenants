@@ -96,7 +96,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
-        // snapshot with the default Unknown lifecycle and no projection version, so the evidence is not
+        // snapshot with the default Current lifecycle and no projection version, so the evidence is not
         // version-consistent and the owner-context variant is correctly withheld. Both branches are covered
         // by Member_governance_claims_require_current_lifecycle_and_a_stated_matching_projection_version.
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent
@@ -1714,7 +1714,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
-        // snapshot with the default Unknown lifecycle and no projection version, so the evidence is not
+        // snapshot with the default Current lifecycle and no projection version, so the evidence is not
         // version-consistent and the owner-context variant is correctly withheld. Both branches are covered
         // by Member_governance_claims_require_current_lifecycle_and_a_stated_matching_projection_version.
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent
@@ -1829,9 +1829,41 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Unknown role");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("1 visible owner");
         cut.Find("[data-testid='tenants-member-truth-state']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-member-truth-badge']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-member-projection-lifecycle-status']").GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-member-projection-lifecycle-badge']").TextContent.Trim().ShouldBe("Current");
         cut.Markup.ShouldContain("aria-describedby=\"tenants-member-reasons-0\"");
         cut.Markup.ShouldContain("aria-label=\"Literal member user identifier OWNER/User.01\"");
         cut.Find("[data-testid='tenants-member-reason-list']").GetAttribute("tabindex").ShouldBe("0");
+    }
+
+    [Fact]
+    public void Member_access_review_keeps_lifecycle_badge_independent_of_freshness()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(),
+            TenantStatus.Active,
+            [new TenantMember("owner-user", TenantRole.TenantOwner)]);
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail) with
+            {
+                Freshness = ReadModelFreshnessState.Current,
+                Lifecycle = ProjectionLifecycleState.Stale,
+            }));
+
+        cut.Find("[data-testid='tenants-member-truth-badge']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-member-projection-lifecycle-badge']").TextContent.Trim().ShouldBe("Stale");
+        (cut.Find("[data-testid='tenants-member-projection-lifecycle-badge']").GetAttribute("class") ?? string.Empty)
+            .ShouldContain("projection-lifecycle-badge--stale");
+        cut.Find("[data-testid='tenants-member-row-projection-lifecycle']").TextContent.Trim().ShouldBe("Stale");
     }
 
     [Fact]
@@ -3773,6 +3805,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             // Without these, ProjectionLifecycleBadge rendered the literal resource key back through this
             // echoing stub, so the badge's label was never really asserted and only its CSS class was --
             // which project rules forbid relying on alone.
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
             ["Tenants.ProjectionLifecycle.Current"] = "Current",
             ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
             ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",

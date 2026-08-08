@@ -1,9 +1,10 @@
 @using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
 
+@* role and aria-live must agree. role="status" is implicitly polite; pairing it with
+   aria-live="assertive" for Unavailable was contradictory. role="alert" carries assertive. *@
 <div class="projection-lifecycle-status"
-     role="status"
-     aria-live="@LiveRegion"
+     role="@StatusRole"
      aria-atomic="true"
      data-testid="@TestId">
     <span>@Localizer["Tenants.ProjectionLifecycle.Label"]</span>
@@ -20,6 +21,6 @@
     [Parameter]
     public string BadgeTestId { get; set; } = "tenants-projection-lifecycle-status-badge";
 
-    private string LiveRegion
-        => Lifecycle is ProjectionLifecycleState.Unavailable ? "assertive" : "polite";
+    private string StatusRole
+        => Lifecycle is ProjectionLifecycleState.Unavailable ? "alert" : "status";
 }

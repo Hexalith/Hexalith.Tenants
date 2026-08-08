@@ -413,7 +413,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("platform-admin.alpha");
         cut.Find("[data-testid='tenants-global-admins-authority-scope']").TextContent.ShouldContain("Platform authority");
         cut.Find("[data-testid='tenants-global-admins-projection-lifecycle-status']")
+            .GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-global-admins-projection-lifecycle-status-badge']")
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+        cut.Find("[data-testid='tenants-global-admins-projection-lifecycle-status-badge']")
+            .TextContent.Trim().ShouldBe("Current");
         cut.Find("[data-testid='tenants-global-admins-projection-lifecycle']")
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
 
@@ -3528,6 +3532,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             // Without these, ProjectionLifecycleBadge rendered the literal resource key back through this
             // echoing stub, so the badge's label was never really asserted and only its CSS class was --
             // which project rules forbid relying on alone.
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
             ["Tenants.ProjectionLifecycle.Current"] = "Current",
             ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
             ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",

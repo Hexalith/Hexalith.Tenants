@@ -110,10 +110,14 @@
                 <div class="tenant-audit__state-copy">
                     <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
                     <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
-                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
-                                              TestId="tenants-audit-projection-lifecycle-status" />
                 </div>
             </section>
+            @* Lifecycle evidence is a sibling of the state section, not a child. StatusRole/StatusLive
+               resolve to alert/assertive for non-Ready states; nesting the badge re-announced the whole
+               state block. The wrapper owns polite/alert escalation for Unavailable. *@
+            <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                                       TestId="tenants-audit-projection-lifecycle-status"
+                                       BadgeTestId="tenants-audit-projection-lifecycle-status-badge" />
             @* Rendered as a sibling of the state section, not a child. StatusRole/StatusLive resolve to
                alert/assertive for the non-Ready states, and inserting or removing a child mutates that
                region's own subtree -- so every projection nudge re-announced the whole state block

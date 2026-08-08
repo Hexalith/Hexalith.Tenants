@@ -43,6 +43,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-state']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-lifecycle-freshness']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-lifecycle-projection-lifecycle-badge']")
+            .TextContent.Trim()
+            .ShouldBe("Current");
         cut.Find("[data-testid='tenants-lifecycle-governance-gate']").TextContent.ShouldContain("Unresolved");
         cut.Find("[data-testid='tenants-lifecycle-enable']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
@@ -57,6 +60,64 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
         cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Open_lifecycle_confirm_closes_when_tenant_identity_changes()
+    {
+        RegisterServices();
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-command-flow']");
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.beta")
+            .Add(component => component.Detail, Detail("tenant.beta", TenantStatus.Active))
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Facts_header_keeps_lifecycle_badge_independent_of_freshness()
+    {
+        RegisterServices();
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Stale)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        cut.Find("[data-testid='tenants-lifecycle-freshness-badge']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-lifecycle-projection-lifecycle-badge']")
+            .TextContent.Trim()
+            .ShouldBe("Stale");
+        (cut.Find("[data-testid='tenants-lifecycle-projection-lifecycle-badge']").GetAttribute("class") ?? string.Empty)
+            .ShouldContain("projection-lifecycle-badge--stale");
     }
 
     [Fact]
@@ -560,10 +621,23 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Operation.EnableTenant"] = "Enable tenant",
             ["Tenants.Lifecycle.StateLabel"] = "Lifecycle state",
             ["Tenants.Lifecycle.CurrentStatusLabel"] = "Current status",
+            ["Tenants.Lifecycle.FreshnessLabel"] = "Freshness",
+            ["Tenants.Lifecycle.Freshness.Current"] = "Current",
+            ["Tenants.Lifecycle.Freshness.Stale"] = "Stale",
+            ["Tenants.Lifecycle.Freshness.Unknown"] = "Unknown",
+            ["Tenants.Lifecycle.Freshness.Aging"] = "Aging",
             ["Tenants.Lifecycle.Status.Active"] = "Active",
             ["Tenants.Lifecycle.Status.Disabled"] = "Disabled",
             ["Tenants.Lifecycle.Status.Unknown"] = "Unknown",
             ["Tenants.Lifecycle.Title"] = "Lifecycle command availability",
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.Lifecycle.Audit.AuditPending"] = "Audit evidence pending; no receipt is fabricated.",
             ["Tenants.Lifecycle.Audit.AuditUnavailable"] = "Audit evidence unavailable for this result.",
             ["Tenants.Lifecycle.Audit.MissingSupport"] = "Audit support is missing for this visible state.",

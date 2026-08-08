@@ -9,6 +9,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -144,6 +145,28 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-user-lookup-results']").ShouldBeEmpty();
         cut.Markup.ShouldContain("User membership lookup cleared.");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
+    }
+
+    [Fact]
+    public void User_lookup_ready_path_renders_snapshot_and_row_lifecycle_evidence()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current, ProjectionLifecycleState.Rebuilding)],
+            targetUserId: "target.user") with
+        {
+            Lifecycle = ProjectionLifecycleState.Stale,
+        });
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+
+        cut.Find("[data-testid='tenants-user-projection-lifecycle-status']").GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-user-projection-lifecycle-status-badge']").TextContent.Trim().ShouldBe("Stale");
+        cut.Find("[data-testid='tenants-user-projection-lifecycle']").TextContent.Trim().ShouldBe("Rebuilding");
+        (cut.Find("[data-testid='tenants-user-projection-lifecycle']").GetAttribute("class") ?? string.Empty)
+            .ShouldContain("projection-lifecycle-badge--rebuilding");
     }
 
     /// <summary>
@@ -425,8 +448,9 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         string name,
         TenantStatus status,
         TenantRole role,
-        ReadModelFreshnessState freshness)
-        => new(tenantId, name, status, role, freshness);
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
+        => new(tenantId, name, status, role, freshness, lifecycle);
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -450,6 +474,14 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Workspace.Eyebrow"] = "Tenant workspace",
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
+            ["Tenants.ProjectionLifecycle.Current"] = "Current",
+            ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
+            ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",
+            ["Tenants.ProjectionLifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
+            ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
             ["Tenants.UserLookup.Announcement.Cleared"] = "User membership lookup cleared.",
             ["Tenants.UserLookup.Announcement.Degraded"] = "Membership evidence for {0} is degraded.",
             ["Tenants.UserLookup.Announcement.Empty"] = "No memberships are visible for {0} in this authorization-scoped lookup.",

@@ -75,7 +75,7 @@ development_status:
   # Spec authored 2026-07-31 by code-review loop 10 of Story 1.10, decision D-E:
   # spec-1-12-projection-lifecycle-badges.md now carries a full File List, split into files it declares
   # alone and files it shares with Stories 1.10 and 1.11. It still owes its own first review pass.
-  1-12-projection-lifecycle-badges: review
+  1-12-projection-lifecycle-badges: done
   epic-1-retrospective: done
 
   # --- Epic 2: Safe Tenant Membership Management ---

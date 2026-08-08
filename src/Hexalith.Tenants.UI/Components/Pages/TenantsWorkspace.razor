@@ -168,6 +168,14 @@
            not re-insert it together with an already-populated notice -- because a live region inserted in
            the same render that first populates it is routinely not announced. Only the bars inside are
            conditional. *@
+        @* Lifecycle evidence owns its own live region. Nesting the badge inside the notices stack
+           re-announced paging/info bars on every lifecycle change and kept Unavailable polite. *@
+        @if (IsTenantListView)
+        {
+            <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                                       TestId="tenants-list-projection-lifecycle-status"
+                                       BadgeTestId="tenants-list-projection-lifecycle-status-badge" />
+        }
         <FluentStack Orientation="Orientation.Vertical"
                      VerticalGap="8px"
                      Width="100%"
@@ -175,11 +183,6 @@
                      aria-live="polite"
                      aria-atomic="true"
                      data-testid="tenants-list-notices">
-            @if (IsTenantListView)
-            {
-                <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
-                                          TestId="tenants-list-projection-lifecycle-status" />
-            }
             @if (HasPrimaryNotice)
             {
                 <FluentMessageBar Intent="MessageBarIntent.Info"

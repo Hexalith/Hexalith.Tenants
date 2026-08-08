@@ -1130,9 +1130,15 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-list-empty']");
         cut.Find("[data-testid='tenants-list-projection-lifecycle-status']")
+            .GetAttribute("role")
+            .ShouldBe("status");
+        cut.Find("[data-testid='tenants-list-projection-lifecycle-status-badge']")
             .GetAttribute("class")
             .ShouldNotBeNull()
             .ShouldContain("projection-lifecycle-badge--rebuilding");
+        cut.Find("[data-testid='tenants-list-projection-lifecycle-status-badge']")
+            .TextContent.Trim()
+            .ShouldBe("Rebuilding");
         cut.FindAll("[data-testid='tenants-list-grid']").ShouldBeEmpty();
     }
 
@@ -2565,6 +2571,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             // Without these, ProjectionLifecycleBadge rendered the literal resource key back through this
             // echoing stub, so the badge's label was never really asserted and only its CSS class was --
             // which project rules forbid relying on alone.
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
             ["Tenants.ProjectionLifecycle.Current"] = "Current",
             ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
             ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",

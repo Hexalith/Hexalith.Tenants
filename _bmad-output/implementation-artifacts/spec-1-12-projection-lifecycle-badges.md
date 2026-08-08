@@ -2,11 +2,11 @@
 title: 'Story 1.12: Projection Lifecycle Badges'
 type: 'feature'
 created: '2026-07-31'
-status: 'review'
+status: 'done'
 baseline_commit: '25bdff0'
 final_revision: '33abe27'
-review_loop_iteration: 0
-followup_review_recommended: true
+review_loop_iteration: 1
+followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -27,7 +27,9 @@ non-current projection had no lifecycle input at all.
 **Approach:** Give lifecycle its own rendering primitive (`ProjectionLifecycleBadge`) and its own live-region
 wrapper (`ProjectionLifecycleStatus`), separate from the freshness badge; thread `ProjectionLifecycleState`
 from the read snapshots to every surface that displays or gates on it; and add a lifecycle clause to the
-command availability gates.
+command availability gates. Status mounts use `ProjectionLifecycleStatus` as a sibling of any page live
+region (never nested); grid/row cells keep the bare badge. Detail facts keep the `dt`/`dd` +
+`role="alert"|"status"` pattern inside the definition list.
 
 **Authored after the fact.** This story was split out of Story 1.10 by that story's code-review loop 9
 (decision D4, 2026-07-31) because commit `33abe27` "feat(ui): add projection lifecycle badges" (39 files)
@@ -75,11 +77,33 @@ positive claim; put a live region inside another live region; change public back
   `Tenants.ProjectionLifecycle.*` key with no one-sided entry.
 - Given the badge tests, when they run, then they assert the localized label and not only the state class.
 
+### Review Findings
+
+- [x] [Review][Patch] DECLARE four undeclared `references/` gitlink moves (+ refresh declared endpoints) — applied (loop 1, 2026-08-08)
+- [x] [Review][Patch] Standardize status mounts on `ProjectionLifecycleStatus` (bare badge in grid/row cells only) — applied
+- [x] [Review][Patch] Lift workspace list lifecycle out of `tenants-list-notices` — applied [`TenantsWorkspace.razor`]
+- [x] [Review][Patch] Lift audit lifecycle out of assertive state live region — applied [`TenantAuditPage.razor`]
+- [x] [Review][Patch] Lift user-membership lookup lifecycle out of status live region — applied [`UserMembershipLookupPanel.razor`]
+- [x] [Review][Patch] Fix `ProjectionLifecycleStatus` `role`/`aria-live` contradiction (`alert` when Unavailable) — applied
+- [x] [Review][Patch] Add tests for `ProjectionLifecycleStatus` — applied [`ProjectionLifecycleStatusTests.cs`]
+- [x] [Review][Patch] Close lifecycle confirm dialog when `TenantId`/detail identity changes — applied
+- [x] [Review][Patch] Assert non-default My Tenants row lifecycle binding — applied
+- [x] [Review][Patch] Assert user-lookup snapshot/row lifecycle selectors — applied
+- [x] [Review][Patch] Assert Member Access header/row lifecycle independently of freshness — applied
+- [x] [Review][Patch] Assert empty My Tenants snapshot still renders lifecycle status — applied
+- [x] [Review][Patch] Assert lifecycle facts header badge — applied
+- [x] [Review][Patch] Assert localized lifecycle labels on global-admins and audit status badges — applied
+- [x] [Review][Patch] Assert localized label on empty-list snapshot lifecycle badge — applied
+- [x] [Review][Patch] Add `ProjectionLifecycleBadge.razor.css` nowrap companion — applied
+- [x] [Review][Defer] Coarse `StaleData` category for every non-Current projection lifecycle — deferred, pre-existing [`src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs:64`]
+- [x] [Review][Defer] Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing pattern beyond this story's badge split [`src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor`]
+
 ## File List
 
 Declared by this story alone:
 
 - `src/Hexalith.Tenants.UI/Components/Shared/ProjectionLifecycleBadge.razor`
+- `src/Hexalith.Tenants.UI/Components/Shared/ProjectionLifecycleBadge.razor.css`
 - `src/Hexalith.Tenants.UI/Components/Shared/ProjectionLifecycleStatus.razor`
 - `src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor`
@@ -87,8 +111,10 @@ Declared by this story alone:
 - `src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor`
 - `src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor`
 - `tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/ProjectionLifecycleStatusTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TruthStateBadgeTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs`
 
 Shared with Story 1.10 — both stories changed these files in the same range and both declare them.
 Corrected by Story 1.10's review loop 12 (2026-08-01): seven paths below were previously listed above as
@@ -134,21 +160,29 @@ Shared with Story 1.11 — declared by both:
 
 `references/` pointers falling inside this story's window — **declared, not owned**:
 
+- `references/Hexalith.AI.Tools`
 - `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
 - `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
+- `references/Hexalith.PolymorphicSerializations`
 
-Their in-range endpoints are `Builds 61e43b1 -> b529b66`, `EventStore bb4c81d -> e4618d9` and
-`Memories 4a6f0d3 -> a1f64d5`.
+In-range endpoints (authoritative for the guard; last statement wins):
+`references/Hexalith.AI.Tools 859d53b -> a19a69d`,
+`references/Hexalith.Builds 61e43b1 -> a8a5085`,
+`references/Hexalith.Commons f2b5f1b -> 74ccb96`,
+`references/Hexalith.EventStore bb4c81d -> 37fdcd1`,
+`references/Hexalith.FrontComposer b6efcad -> 138a550`,
+`references/Hexalith.Memories 4a6f0d3 -> f78c80c`,
+`references/Hexalith.PolymorphicSerializations f3b2330 -> 5dd6aa8`.
 
 Story 1.12's own commit `33abe27` moves **no** submodule pointer — `git show --stat --name-only 33abe27`
-returns no `references/` path. These three moved in `b045129` ("build(deps): bump Builds and EventStore
-submodules") and `a49d793`, both of which belong to Story 1.10's range and are declared and justified in
-Story 1.10's File List. They appear here only because `validate-story-gitlinks.py` compares a story's
-`baseline_commit` against HEAD plus the working tree, and this story's baseline (`25bdff0`) predates those
-commits. They are declared here so the guard reports a deliberate, stated state rather than an undeclared
-one — this story asserts their provenance, not their ownership. Verified: the validator exits 0 with these
-entries present, and Story 1.10's own run also exits 0 with all six of its pointers declared.
+returns no `references/` path. These pointers moved in later/other story ranges after baseline `25bdff0`.
+They are declared here so `validate-story-gitlinks.py` (baseline → HEAD + working tree) reports a
+deliberate, stated state rather than an undeclared one — this story asserts their provenance, not their
+ownership. Review loop 1 (2026-08-08) expanded the declaration from three paths to all seven in-window
+moves after the guard failed on AI.Tools, Commons, FrontComposer, and PolymorphicSerializations.
 
 **Boundary note on `TenantListSurfaceTests.cs`.** Story 1.10's decision D-E (2026-07-31) settled this file
 explicitly: its badge-era content belongs to this story, but the change made in Story 1.10's loop-10 range —
@@ -163,11 +197,12 @@ Inherited from Story 1.10's loop-10 verification run against the same tree (2026
 parity 1,223 keys each. Loop 10 also added the localized-label assertions this story's AC4 requires, in
 `TenantListSurfaceTests`, `GlobalAdministratorsPageTests` and `TenantDetailSurfaceTests`.
 
-**This story has not had its own review loop.** It carries the open decision recorded against Story 1.10 as
-`spec:869` — resolved there by decision D-F (2026-07-31), which reversed D6, upheld the strict lifecycle gate
-at all five sites and reordered the clauses so the accurate failure reason wins. The clause ordering in
-`TenantLifecycleAvailability.cs` and in the four command flows now reflects that decision; a first review pass
-over this story should confirm the rest of `33abe27` against these acceptance criteria.
+**Review loop 1 (2026-08-08) applied.** Status mounts now use `ProjectionLifecycleStatus` (sibling live
+regions; `role="alert"` when Unavailable); verification gaps for My Tenants / user-lookup / members /
+facts header / empty-list labels were closed; gitlinks declared for all seven in-window submodule moves.
+Pre-existing Domain UI conformance failures (div/span budget 221>220; GlobalAdministrators
+`display: inline-flex` without `fc-css-exception`) remain on `main` and are outside this story's patches.
+Focused lifecycle tests PASS; full UI suite 1934/1936 with those two pre-existing governance failures.
 
 ## Review Findings — inherited from Story 1.10 review loop 8 (re-attributed 2026-07-31)
 
@@ -176,21 +211,12 @@ the projection-lifecycle-badge work forward to this story key. Both name files t
 describe behaviour `33abe27` introduced, so they are re-attributed here rather than closed under 1.10. They
 are recorded unchecked: this story still owes its first review pass, and these are part of it.
 
-- [ ] [Review][Patch] Add a test file for `ProjectionLifecycleStatus.razor` — mutating `LiveRegion` to always
-  return `"polite"` survived the full suite; the component has no test file and a repo-wide grep for its name
-  and for the six test-ids its call sites pass returns zero hits under `tests/`. Its sibling
-  `ProjectionLifecycleBadge` is thoroughly covered, so the gap is specific to the status wrapper. Note while
-  covering it that the component pairs `role="status"` with `aria-live="assertive"` — the same contradiction
-  Story 1.10's loop-10 item resolved in `TenantConfigurationView` and `TenantDetailPage` by switching to
-  `role="alert"`; resolve it the same way here or record why this site differs.
+- [x] [Review][Patch] Add a test file for `ProjectionLifecycleStatus.razor` — re-recorded unchecked under
+  `### Review Findings` (loop 0, 2026-08-08) together with the `role`/`aria-live` fix.
   [src/Hexalith.Tenants.UI/Components/Shared/ProjectionLifecycleStatus.razor:24]
-- [ ] [Review][Patch] Lift the lifecycle badge out of the workspace live region — `ProjectionLifecycleBadge`
-  sits inside the `role="status" aria-live="polite" aria-atomic="true"` notices stack, so any lifecycle
-  transition, and any tab switch that inserts or removes it, re-announces the whole notices block verbatim.
-  The same diff removes this defect from `GlobalAdministratorsPage` and `TenantAuditPage`, where the badges
-  were deliberately lifted out as siblings — except that in both of those the badge was then placed inside the
-  `role="@StatusRole" aria-live="@StatusLive"` state section, which is `alert` when the surface is stale, so a
-  rebuild re-announces the whole state block assertively.
+- [x] [Review][Patch] Lift the lifecycle badge out of the workspace live region — re-recorded unchecked under
+  `### Review Findings` (loop 0, 2026-08-08); audit and user-lookup nesting added there as well. Global-admins
+  nesting from `33abe27` is already lifted at HEAD.
   [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:178]
 
 Story 1.10 records both as re-attributed rather than resolved; neither is closed by 1.10's completion.

@@ -11,8 +11,9 @@
             <p class="tenant-config__scope">@Localizer["Tenants.Configuration.ScopeNotice"]</p>
         </div>
         <div class="tenant-config__truth" data-testid="tenants-config-read-truth-state">
-            <ProjectionLifecycleBadge Lifecycle="@Lifecycle"
-                                      TestId="tenants-config-read-projection-lifecycle-badge" />
+            <ProjectionLifecycleStatus Lifecycle="@Lifecycle"
+                                       TestId="tenants-config-read-projection-lifecycle-status"
+                                       BadgeTestId="tenants-config-read-projection-lifecycle-badge" />
             <TruthStateBadge Freshness="@EffectiveFreshness"
                              TestId="tenants-config-read-truth-badge"
                              ResourcePrefix="Tenants.Configuration" />

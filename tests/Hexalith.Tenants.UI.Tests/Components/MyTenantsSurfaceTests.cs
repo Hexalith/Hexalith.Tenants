@@ -9,6 +9,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -35,7 +36,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         const string tenantId = "  tenant/%2F?x=é&glyph=о  ";
         RegisterServices(ReadySnapshot(
             [
-                Row(tenantId, "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current),
+                Row(tenantId, "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current, ProjectionLifecycleState.Stale),
                 Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Unknown),
             ],
             nextCursor: "next",
@@ -55,9 +56,13 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-my-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
-        cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent.ShouldContain("Unknown");
+        cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent.Trim().ShouldBe("Stale");
+        (cut.Find("[data-testid='tenants-my-projection-lifecycle']").GetAttribute("class") ?? string.Empty)
+            .ShouldContain("projection-lifecycle-badge--stale");
         cut.Find("[data-testid='tenants-my-projection-lifecycle']").TextContent
             .ShouldNotContain("Tenants.ProjectionLifecycle", Case.Sensitive);
+        cut.Find("[data-testid='tenants-my-projection-lifecycle-status']").GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-my-projection-lifecycle-status-badge']").TextContent.Trim().ShouldBe("Unknown");
         cut.Find("[data-testid='tenants-my-summary']").TextContent.ShouldContain("2");
         // The self-audit surface is read-only. `tenants-lifecycle-actions` is emitted only by
         // TenantLifecycleActionAvailability, which nothing under Components/Users references, so asserting
@@ -179,7 +184,10 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             UserTenantMembershipSurfaceKind.Empty => UserTenantMembershipSnapshot.Empty(
                 isAuthorizationScoped: true,
                 ReadModelFreshnessState.Unknown,
-                eTag: null),
+                eTag: null) with
+            {
+                Lifecycle = ProjectionLifecycleState.Rebuilding,
+            },
             UserTenantMembershipSurfaceKind.Unauthorized => UserTenantMembershipSnapshot.Unauthorized(),
             UserTenantMembershipSurfaceKind.Unavailable => UserTenantMembershipSnapshot.Unavailable(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -192,6 +200,13 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldBe(expectedRole);
         cut.Markup.ShouldContain(expectedTitle);
         cut.Markup.ShouldNotContain("tenant.alpha");
+        if (kind is UserTenantMembershipSurfaceKind.Empty)
+        {
+            cut.Find("[data-testid='tenants-my-projection-lifecycle-status']").GetAttribute("role").ShouldBe("status");
+            cut.Find("[data-testid='tenants-my-projection-lifecycle-status-badge']")
+                .TextContent.Trim()
+                .ShouldBe("Rebuilding");
+        }
     }
 
     [Theory]
@@ -481,8 +496,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         string name,
         TenantStatus status,
         TenantRole role,
-        ReadModelFreshnessState freshness)
-        => new(tenantId, name, status, role, freshness);
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
+        => new(tenantId, name, status, role, freshness, lifecycle);
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -503,6 +519,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             // stub echoes any unknown key back. Without these entries the badge rendered the literal key
             // "Tenants.ProjectionLifecycle.Unknown", on which ShouldContain("Unknown") passes -- so a
             // localization break in the badge was invisible to every consumer test.
+            ["Tenants.ProjectionLifecycle.Label"] = "Projection lifecycle",
             ["Tenants.ProjectionLifecycle.Current"] = "Current",
             ["Tenants.ProjectionLifecycle.Stale"] = "Stale",
             ["Tenants.ProjectionLifecycle.Unknown"] = "Unknown",

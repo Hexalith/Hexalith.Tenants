@@ -53,9 +53,15 @@ public sealed class TenantAuditPageTests : BunitContext
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
         cut.Find("[data-testid='tenants-audit-projection-lifecycle-status']")
+            .GetAttribute("role").ShouldBe("status");
+        cut.Find("[data-testid='tenants-audit-projection-lifecycle-status-badge']")
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+        cut.Find("[data-testid='tenants-audit-projection-lifecycle-status-badge']")
+            .TextContent.Trim().ShouldBe("Current");
         cut.Find("[data-testid='tenants-audit-row-projection-lifecycle']")
             .GetAttribute("class").ShouldNotBeNull().ShouldContain("projection-lifecycle-badge--current");
+        cut.Find("[data-testid='tenants-audit-row-projection-lifecycle']")
+            .TextContent.Trim().ShouldBe("Current");
         await subscription.Received(1).SubscribeAsync(
             GetTenantAuditQuery.ProjectionType,
             "tenant.alpha",

@@ -120,8 +120,9 @@
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
                 </FluentStack>
             </section>
-            <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
-                                      TestId="tenants-global-admins-projection-lifecycle-status" />
+            <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                                       TestId="tenants-global-admins-projection-lifecycle-status"
+                                       BadgeTestId="tenants-global-admins-projection-lifecycle-status-badge" />
             @if (CanRecover)
             {
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">

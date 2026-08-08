@@ -110,6 +110,7 @@
     private ElementReference _enableElement;
     private ElementReference _disableElement;
     private TenantLifecycleOperation? _returnFocusOperation;
+    private string? _activeFlowTenantId;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -204,10 +205,22 @@
 
     protected override void OnParametersSet()
     {
-        if (_activeAvailability is not null)
+        if (_activeAvailability is null)
         {
-            _activeAvailability = Input.Evaluate(_activeAvailability.Operation);
+            return;
         }
+
+        // An open confirm must not retarget a different tenant when the parent remounts parameters.
+        if (!string.Equals(_activeFlowTenantId, TenantId, StringComparison.Ordinal)
+            || Detail is null
+            || !string.Equals(Detail.TenantId, TenantId, StringComparison.Ordinal))
+        {
+            _activeAvailability = null;
+            _activeFlowTenantId = null;
+            return;
+        }
+
+        _activeAvailability = Input.Evaluate(_activeAvailability.Operation);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -236,6 +249,7 @@
         }
 
         _activeAvailability = availability;
+        _activeFlowTenantId = TenantId;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -243,6 +257,7 @@
     {
         _returnFocusOperation = _activeAvailability?.Operation;
         _activeAvailability = null;
+        _activeFlowTenantId = null;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 }

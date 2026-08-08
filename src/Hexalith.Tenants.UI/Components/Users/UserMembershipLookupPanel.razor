@@ -63,11 +63,6 @@
                     @StatusHeading
                 </h2>
                 <p>@StatusMessage</p>
-                @if (_snapshot is not null)
-                {
-                    <ProjectionLifecycleBadge Lifecycle="@_snapshot.Lifecycle"
-                                              TestId="tenants-user-projection-lifecycle-status" />
-                }
                 @if (!string.IsNullOrEmpty(_targetUserId))
                 {
                     <p data-testid="tenants-user-lookup-target">
@@ -75,6 +70,12 @@
                     </p>
                 }
             </section>
+            @if (_snapshot is not null)
+            {
+                <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                                           TestId="tenants-user-projection-lifecycle-status"
+                                           BadgeTestId="tenants-user-projection-lifecycle-status-badge" />
+            }
         </FluentAccordionItem>
 
         @if (_snapshot is not null)
