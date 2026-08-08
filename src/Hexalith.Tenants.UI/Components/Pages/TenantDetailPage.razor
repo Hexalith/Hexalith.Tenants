@@ -149,6 +149,8 @@
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
+                                            ProjectionVersion="@_snapshot.ProjectionVersion"
+                                            ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             OnCommandActivityChanged="@SetCommandActivityAsync"

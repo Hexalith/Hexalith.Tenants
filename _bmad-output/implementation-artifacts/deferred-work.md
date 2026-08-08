@@ -996,3 +996,19 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
   summary: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender.
   evidence: Pre-existing composition pattern; Story 3.1 only threaded the existing flag into CreateTenantFlow.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: SignalR-elevated ProjectionPending can still confirm after unrelated projection-version advancement on metadata (and sibling create/membership) flows.
+  evidence: Story 3.2 edge-case review; SignalRNudge promotes Accepted/RequestSent to ProjectionPending without EventsStored, then ConfirmProjection may confirm on version inequality that is not command-qualified.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Edit metadata confirmation does not pass live audit-row provenance into ConfirmProjection (version advancement only on the live path).
+  evidence: Story 3.2 verification-gap review; AttemptStartedAtUtc and hasQualifyingAuditProvenance exist on the snapshot API but EditTenantMetadataFlow never supplies audit qualification (unlike remove-member WP-2A).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage.
+  evidence: Story 3.2 blind-hunter review and Ask First deferral; member flows share the same default-true pattern, so inventing metadata-only reflection was out of this slice.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID.
+  evidence: Story 3.2 edge-case review; same reuseMessageId pattern exists on AddTenantMemberFlow and was not uniquely introduced for metadata.

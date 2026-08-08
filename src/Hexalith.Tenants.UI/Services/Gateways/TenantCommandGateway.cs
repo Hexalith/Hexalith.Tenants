@@ -167,6 +167,7 @@ internal sealed class TenantCommandGateway(
 
     public async Task<TenantCommandSubmissionResult> UpdateTenantAsync(
         UpdateTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -174,9 +175,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
-        string messageId = ulidFactory.NewUlid();
+        string resolvedMessageId = ResolveMessageId(messageId);
         var submit = new SubmitCommandRequest(
-            messageId,
+            resolvedMessageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
@@ -188,7 +189,7 @@ internal sealed class TenantCommandGateway(
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
-            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+            return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
             return MapUpdateTenantGatewayException(ex);

@@ -2547,6 +2547,12 @@
   <data name="Tenants.EditMetadata.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de verifier le resultat de la commande de metadonnees.</value>
   </data>
+  <data name="Tenants.EditMetadata.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>La projection des metadonnees correspond sans reference de base avant envoi, cette tentative ne peut pas etre confirmee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
+    <value>La projection des metadonnees correspond a la demande, mais la provenance de mise a jour n'a pas pu etre verifiee. Actualisez le statut ou continuez en lecture seule.</value>
+  </data>
   <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
     <value>Preuve d'audit non demarree.</value>
   </data>

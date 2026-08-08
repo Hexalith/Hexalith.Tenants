@@ -1046,7 +1046,10 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
     TenantDetailProjection? LastConfirmedDetailProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? BaselineProjectionVersion = null,
+    DateTimeOffset? AttemptStartedAtUtc = null,
     string? SafeMessage = null,
+    string? SafeMessageKey = null,
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
@@ -1069,11 +1072,17 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantUpdateMetadataCommandSnapshot RequestSent(UpdateTenant intent)
+    public TenantUpdateMetadataCommandSnapshot RequestSent(
+        UpdateTenant intent,
+        string? baselineProjectionVersion,
+        DateTimeOffset? attemptStartedAtUtc = null)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
+            BaselineProjectionVersion = baselineProjectionVersion,
+            AttemptStartedAtUtc = attemptStartedAtUtc ?? DateTimeOffset.UtcNow,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -1088,6 +1097,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -1110,9 +1120,20 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
 
         return status.Status.Value switch {
             CommandStatus.Received or CommandStatus.Processing
-                => this with { State = TenantCommandLifecycleState.Accepted, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
+                => this with {
+                    State = TenantCommandLifecycleState.Accepted,
+                    SafeMessage = null,
+                    SafeMessageKey = null,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                },
             CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
-                => this with { State = TenantCommandLifecycleState.ProjectionPending, AuditState = TenantCommandAuditState.AuditPending, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
+                => this with {
+                    State = TenantCommandLifecycleState.ProjectionPending,
+                    SafeMessage = null,
+                    SafeMessageKey = null,
+                    AuditState = TenantCommandAuditState.AuditPending,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                },
             CommandStatus.Rejected
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
@@ -1156,12 +1177,16 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantUpdateMetadataCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantUpdateMetadataCommandSnapshot ConfirmProjection(
+        TenantDetailProjection? detailEvidence,
+        string? currentProjectionVersion = null,
+        bool hasQualifyingAuditProvenance = false) {
         if (Intent is null) {
             return this;
         }
 
-        if (State is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
+        // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
+        if (State is not TenantCommandLifecycleState.ProjectionPending) {
             return this;
         }
 
@@ -1174,12 +1199,47 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
+        // Same-value updates still require provenance; never confirm ambient Name+Description match alone.
+        if (string.IsNullOrWhiteSpace(BaselineProjectionVersion)) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                LastConfirmedName = LastConfirmedName,
+                LastConfirmedDescription = LastConfirmedDescription,
+                LastConfirmedDetailProjection = LastConfirmedDetailProjection,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.EditMetadata.Confirm.UnableToVerify.MissingBaseline",
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        bool versionAdvanced = TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+            BaselineProjectionVersion,
+            currentProjectionVersion);
+        if (!versionAdvanced && !hasQualifyingAuditProvenance) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                LastConfirmedName = LastConfirmedName,
+                LastConfirmedDescription = LastConfirmedDescription,
+                LastConfirmedDetailProjection = LastConfirmedDetailProjection,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance",
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
         return this with {
             State = TenantCommandLifecycleState.Confirmed,
             LastConfirmedName = detailEvidence!.Name,
             LastConfirmedDescription = detailEvidence.Description,
             LastConfirmedDetailProjection = detailEvidence,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,

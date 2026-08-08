@@ -140,6 +140,25 @@ public class TenantAggregateTests {
         ((TenantUpdated)evt).UpdatedAt.ShouldBeInRange(before, after);
     }
 
+    [Fact]
+    public async Task UpdateTenant_with_identical_name_and_description_still_produces_TenantUpdated() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Same Desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantContributor));
+
+        CommandEnvelope cmd = CreateCommand(new UpdateTenant("acme", "Acme Corp", "Same Desc"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        TenantUpdated evt = result.Events[0].ShouldBeOfType<TenantUpdated>();
+        evt.Name.ShouldBe("Acme Corp");
+        evt.Description.ShouldBe("Same Desc");
+        result.IsNoOp.ShouldBeFalse();
+    }
+
     // Test 4: UpdateTenant on non-existent tenant → Rejection (AC #7)
     [Fact]
     public async Task UpdateTenant_on_nonexistent_tenant_produces_rejection() {

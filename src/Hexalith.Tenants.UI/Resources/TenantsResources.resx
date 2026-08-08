@@ -2547,6 +2547,12 @@
   <data name="Tenants.EditMetadata.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the metadata command result.</value>
   </data>
+  <data name="Tenants.EditMetadata.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>Metadata projection matched without a pre-submit baseline, so this attempt cannot be confirmed.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
+    <value>Metadata projection matches the request, but update provenance could not be verified. Refresh status or continue read-only.</value>
+  </data>
   <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
     <value>Audit evidence not started.</value>
   </data>

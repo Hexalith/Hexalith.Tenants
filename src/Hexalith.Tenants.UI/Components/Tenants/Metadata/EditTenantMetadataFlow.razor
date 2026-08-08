@@ -144,9 +144,9 @@
             }
         </div>
         <p data-testid="tenants-edit-metadata-recovery">@RecoveryText</p>
-        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        @if (!string.IsNullOrWhiteSpace(SafeMessageText))
         {
-            <p data-testid="tenants-edit-metadata-safe-message">@_snapshot.SafeMessage</p>
+            <p data-testid="tenants-edit-metadata-safe-message">@SafeMessageText</p>
         }
         <p class="tenants-edit-metadata__live"
            data-testid="tenants-edit-metadata-live-region"
@@ -191,6 +191,16 @@
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public string? ProjectionVersion { get; set; }
+
+    /// <summary>
+    /// Optional live reader for the parent detail snapshot's projection version.
+    /// Prefer this during confirmation so refresh can observe the post-requery version before the next render.
+    /// </summary>
+    [Parameter]
+    public Func<string?>? ProjectionVersionProvider { get; set; }
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -287,6 +297,13 @@
 
     private string AuditText
         => Localizer[$"Tenants.EditMetadata.Audit.{_snapshot.AuditState}"];
+
+    private string? SafeMessageText
+        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessage)
+            ? _snapshot.SafeMessage
+            : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
+                ? Localizer[_snapshot.SafeMessageKey].Value
+                : null;
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
@@ -390,7 +407,13 @@
         => _snapshot = _snapshot.SignalRNudge();
 
     internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail);
+        => _snapshot = _snapshot.ConfirmProjection(detail, ResolveCurrentProjectionVersion());
+
+    private string? ResolveCurrentProjectionVersion()
+    {
+        string? fromProvider = ProjectionVersionProvider?.Invoke();
+        return string.IsNullOrWhiteSpace(fromProvider) ? ProjectionVersion : fromProvider;
+    }
 
     private async Task OpenEditorAsync()
     {
@@ -422,6 +445,17 @@
 
         if (!_isSubmitting && IsOwnedCommandInFlight)
         {
+            // Same logical attempt still in flight: re-query status with stored tracking; never mint a second dispatch.
+            if (!string.IsNullOrWhiteSpace(_snapshot.MessageId)
+                && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+                return;
+            }
+
+            SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(
+                Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value,
+                TenantCommandFocusTarget.Refresh));
             return;
         }
 
@@ -443,7 +477,13 @@
             Detail.TenantId,
             submittedName,
             string.IsNullOrWhiteSpace(_description) ? null : _description);
-        _snapshot = _snapshot.RequestSent(request);
+        string? reuseMessageId = string.IsNullOrWhiteSpace(_snapshot.MessageId) ? null : _snapshot.MessageId;
+        _snapshot = _snapshot.RequestSent(request, ResolveCurrentProjectionVersion());
+        if (reuseMessageId is not null)
+        {
+            _snapshot = _snapshot with { MessageId = reuseMessageId };
+        }
+
         _isSubmitting = true;
         await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
@@ -459,7 +499,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .UpdateTenantAsync(request, CancellationToken.None)
+                .UpdateTenantAsync(request, reuseMessageId, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -472,7 +512,10 @@
                 SetSnapshot(_snapshot with
                 {
                     State = result.State,
+                    MessageId = result.MessageId ?? _snapshot.MessageId,
+                    CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
+                    SafeMessageKey = null,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -489,8 +532,24 @@
 
     private async Task RefreshStatusAsync()
     {
-        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
         {
+            if (TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State)
+                || _snapshot.State is TenantCommandLifecycleState.UnableToVerify
+                    or TenantCommandLifecycleState.Degraded)
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
+                    SafeMessageKey = null,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
+
             return;
         }
 
@@ -511,7 +570,7 @@
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
         {
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+            SetSnapshot(_snapshot.ConfirmProjection(evidence, ResolveCurrentProjectionVersion()));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);

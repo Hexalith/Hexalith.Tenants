@@ -354,7 +354,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
             new UpdateTenant("Tenant.Mixed-01", "Updated tenant", string.Empty),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -370,6 +370,27 @@ public sealed class TenantCommandGatewayTests
         result.CorrelationId.ShouldBe("correlation-update");
     }
 
+    [Fact]
+    public async Task Update_tenant_reuses_provided_message_id_instead_of_minting()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-reuse"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
+            new UpdateTenant("tenant.alpha", "Alpha", null),
+            messageId: "01EXISTINGMESSAGEID000000000",
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        ulids.CallCount.ShouldBe(0);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]
@@ -383,7 +404,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
             new UpdateTenant("tenant.alpha", name!, "description"),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id and name are required");
@@ -410,7 +431,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
             new UpdateTenant("tenant.alpha", "Alpha", null),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);

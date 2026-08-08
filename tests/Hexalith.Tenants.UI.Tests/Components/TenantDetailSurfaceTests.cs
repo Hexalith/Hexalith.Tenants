@@ -1562,6 +1562,24 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_passes_projection_version_into_edit_metadata_flow()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"),
+            ProjectionLifecycleState.Current,
+            "projection-v1")));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        metadataFlow.ProjectionVersion.ShouldBe("projection-v1");
+        Func<string?> provider = metadataFlow.ProjectionVersionProvider.ShouldNotBeNull();
+        provider().ShouldBe("projection-v1");
+    }
+
+    [Fact]
     public void Management_closes_an_untouched_remove_flow_when_its_target_row_disappears()
     {
         // The stale-target reset still applies while no command has been submitted: nothing is settling,
@@ -3797,7 +3815,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
@@ -3840,7 +3858,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
-        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)

@@ -26,6 +26,7 @@ public interface ITenantCommandGateway {
 
     Task<TenantCommandSubmissionResult> UpdateTenantAsync(
         UpdateTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
