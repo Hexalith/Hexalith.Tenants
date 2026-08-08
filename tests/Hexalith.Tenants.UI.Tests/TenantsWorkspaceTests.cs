@@ -627,6 +627,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.Workspace.Tabs.Label"] = "Tenant workspace sections",
             ["Tenants.Workspace.Tabs.Tenants"] = "Tenants",
             ["Tenants.Workspace.Tabs.Users"] = "Users",
+            ["Tenants.Navigation.GlobalAdministrators"] = "Global Administrators",
             ["Tenants.Workspace.UnavailableHeading"] = "Tenant read surfaces are not connected yet",
             ["Tenants.Workspace.UnavailableMessage"] = "The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.",
             ["Tenants.List.Column.Freshness"] = "Freshness",

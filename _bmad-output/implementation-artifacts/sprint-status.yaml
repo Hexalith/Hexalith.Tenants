@@ -64,7 +64,7 @@ development_status:
   # Its implementation landed inside the 1.10 commit range (7d7b701, 536596f) rather than under its own
   # key. Code review of 1.10 (2026-07-28) split the scope forward: those commits are published on main, so
   # the work is attributed here and must clear its own review loop instead of closing silently under 1.10.
-  1-11-authorized-global-administrator-review: review
+  1-11-authorized-global-administrator-review: done
   # Split out of Story 1.10 by code-review loop 9 (2026-07-31), decision D4. Commit 33abe27
   # "feat(ui): add projection lifecycle badges" (39 files) is declared by no story: it adds
   # ProjectionLifecycleBadge.razor and ProjectionLifecycleStatus.razor, rewrites TruthStateBadge, adds

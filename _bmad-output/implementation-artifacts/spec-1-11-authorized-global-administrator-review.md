@@ -2,12 +2,12 @@
 title: 'Authorized Global Administrator Review'
 type: 'feature'
 created: '2026-07-28'
-status: 'review'
+status: 'done'
 baseline_commit: '2e61f57bda6379192007d1bc6fabbde61996b11d'
 baseline_revision: '2e61f57bda6379192007d1bc6fabbde61996b11d'
-review_loop_iteration: 6
-followup_review_recommended: true
-# Remaining bmad-code-review chunks after loop-6 chunk-3: (4) artifacts optional.
+review_loop_iteration: 7
+followup_review_recommended: false
+# Remaining bmad-code-review chunks after loop-7 chunk-4: none.
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -361,10 +361,15 @@ exit 0 with all seven pointers declared, no generic query path, `git diff --chec
   decision as the existing `EnsureReadRefreshLeaseAsync` `CancellationToken.None` deferral
 - [x] [Review][Defer] AC5 remains partially unmet while the story sits in `review`: on narrow viewports the per-row
   Remove control is hidden with no per-row localized reason and the grant cell still renders an "available" string
-  beside hidden controls [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466] — deferred,
-  already recorded by loop 2; re-confirmed still open
+  beside hidden controls [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466] — deferred
+  at loop 3; **SUPERSEDED (2026-08-08, loop 5):** closed by the AC5 mobile APPLIED patch
 
 ### Review Findings — loop 4 (2026-08-08, chunk 1: auth core)
+
+Note on numbering: an earlier 2026-08-02 unverified-guard closeout was also narrated as “loop 4” in the
+Spec Change Log. That closeout is historical evidence only; this section is the 2026-08-08 auth-core
+chunk that advances `review_loop_iteration` in the chunked bmad-code-review plan. Prefer these headings
+plus the Review Triage Log over bare “loop 4” prose when counting iterations.
 
 Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor completed. Verification Gap Reviewer returned empty
 and is recorded as failed. Diff scoped to File List auth-core files vs baseline `2e61f57`. Acceptance Auditor
@@ -404,13 +409,13 @@ all completed. Diff scoped to File List GA page/state/resources/tests vs baselin
 
 ### Review Findings — loop 6 (2026-08-08, chunk 3: workspace + tenant detail)
 
-- [ ] [Review][Patch] Dispose the read-refresh lease when `!lease.IsSubscribed` on TenantDetailPage (match GlobalAdministratorsPage) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:598]
-- [ ] [Review][Patch] Replace plain `_readRefreshSubscriptionInFlight` bool with Interlocked CompareExchange/Volatile like GlobalAdministratorsPage to prevent double-subscribe and orphaned leases [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:271]
-- [ ] [Review][Patch] Catch non-cancellation faults in RefreshTenantReadsAsync InvalidCursor recovery and restore members to Degraded/prior reason instead of leaving Refreshing [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:767]
-- [ ] [Review][Patch] Catch non-cancellation faults in LoadMemberPageAsync InvalidCursor recovery and clear IsRefreshing / restore Degraded instead of escaping [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:912]
-- [ ] [Review][Patch] Log notification setup failures on TenantDetailPage (parity with GlobalAdministratorsPage.LogNotificationSetupFailure) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:622]
-- [ ] [Review][Patch] Add `Tenants.Navigation.GlobalAdministrators` to TenantsWorkspaceTests StubTenantsLocalizer [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:616]
-- [ ] [Review][Patch] Fix stale ReadyWithSafeConfiguration comment that still claims default Unknown after default became Current [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1717]
+- [x] [Review][Patch] Dispose the read-refresh lease when `!lease.IsSubscribed` on TenantDetailPage (match GlobalAdministratorsPage) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:598] — **APPLIED (2026-08-08):** dispose via DisposeLeaseSupportSafelyAsync before return, matching GA.
+- [x] [Review][Patch] Replace plain `_readRefreshSubscriptionInFlight` bool with Interlocked CompareExchange/Volatile like GlobalAdministratorsPage to prevent double-subscribe and orphaned leases [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:271] — **APPLIED (2026-08-08):** int + CompareExchange/Volatile.Write.
+- [x] [Review][Patch] Catch non-cancellation faults in RefreshTenantReadsAsync InvalidCursor recovery and restore members to Degraded/prior reason instead of leaving Refreshing [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:767] — **APPLIED (2026-08-08):** broad catch assigns Degraded from retained members.
+- [x] [Review][Patch] Catch non-cancellation faults in LoadMemberPageAsync InvalidCursor recovery and clear IsRefreshing / restore Degraded instead of escaping [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:912] — **APPLIED (2026-08-08):** recovery try/catch with Degraded restore on fault.
+- [x] [Review][Patch] Log notification setup failures on TenantDetailPage (parity with GlobalAdministratorsPage.LogNotificationSetupFailure) [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:622] — **APPLIED (2026-08-08):** LogNotificationSetupFailure with fixed reason code.
+- [x] [Review][Patch] Add `Tenants.Navigation.GlobalAdministrators` to TenantsWorkspaceTests StubTenantsLocalizer [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:616] — **APPLIED (2026-08-08).**
+- [x] [Review][Patch] Fix stale ReadyWithSafeConfiguration comment that still claims default Unknown after default became Current [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1717] — **APPLIED (2026-08-08):** comments now say default Current lifecycle.
 - [x] [Review][Defer] TenantsWorkspace nests ProjectionLifecycleBadge inside polite atomic status region [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171] — deferred, pre-existing lifecycle-badge composition (not core 1.11 auth)
 - [x] [Review][Defer] Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565] — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
 - [x] [Review][Defer] Soft RefreshAsync blanks the tenant list via Loading/ShowList [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679] — deferred, pre-existing UX; workspace never had retainConfirmed
@@ -423,8 +428,31 @@ all completed. Diff scoped to File List GA page/state/resources/tests vs baselin
 - [x] [Review][Defer] ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603] — deferred, pre-existing; fail-closed hides entry until auth completes
 - [x] [Review][Defer] Member Next stays enabled when HasMore has blank NextCursor [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:846] — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
 
+### Review Findings — loop 7 (2026-08-08, chunk 4: artifacts / gitlinks)
+
+- [x] [Review][Patch] Mark the seven loop-6 workspace/tenant-detail patches APPLIED in the committed story record and keep the "remaining chunk (4) artifacts only" frontmatter claim consistent with that closeout [`spec-1-11-authorized-global-administrator-review.md:405`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Rewrite the File List intro that still says this story "has not run its own dev loop" / only records the 1.10 range [`spec-1-11-authorized-global-administrator-review.md:528`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Declare `TenantsUiServiceCollectionExtensions.cs` and `TenantQueryGateway.cs` in the File List — both have large `2e61f57..HEAD` diffs but are omitted while Code Map/Execution name them [`spec-1-11-authorized-global-administrator-review.md:525`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Clarify Completion Notes gitlink provenance: "this run did not move" for `references/Hexalith.PolymorphicSerializations` contradicts the declared baseline-range movement of all seven `references/*` pointers [`spec-1-11-authorized-global-administrator-review.md:743`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Close or withdraw deferred-work entries that Story 1.11 already RESOLVED/APPLIED: open "Deferred to Story 1.11" principal/auth bullets, AC5 "remains partially unmet", and incomplete-paging "SUPERSEDED … open loop-5 patch" [`deferred-work.md`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Update Scope Attribution footer still claiming `review_loop_iteration: 1` while frontmatter is `6` [`spec-1-11-authorized-global-administrator-review.md:649`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Align Scope Attribution decision-2 prose with the owner "exactly one *distinct* `sub`" resolution (still reads as the older single-literal lockout) [`spec-1-11-authorized-global-administrator-review.md:625`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Add Spec Change Log + Review Triage Log entries for 2026-08-08 auth-core (chunk 1 / dual "loop 4" label) and ensure loop-6 triage is present in the committed record [`spec-1-11-authorized-global-administrator-review.md:426`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Annotate the dual "loop 4" numbering (2026-08-02 unverified-guard closeout vs 2026-08-08 auth-core chunk) so `review_loop_iteration: 6` is unambiguous [`spec-1-11-authorized-global-administrator-review.md:367`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Reconcile Completion Notes / Dev Agent Record suite totals that still summarize UI **1,866** after later notes record **1,915** [`spec-1-11-authorized-global-administrator-review.md:745`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Disambiguate the two loop-6 deferred stubs that both cite `TenantsWorkspace.razor:679` (soft Refresh blanking vs LoadAsync version bump) [`deferred-work.md:895`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Replace the deferred-work recommendation to land BMAD render edits as a `chore`/`docs` commit with docs-only wording (Hexalith forbids `chore`) [`deferred-work.md:504`] — **APPLIED (2026-08-08, loop 7).**
+- [x] [Review][Patch] Consolidate the duplicated `EventStore:BaseAddress` / missing `.AddServiceDiscovery()` deferred entries into one authoritative open item [`deferred-work.md:510`] — **APPLIED (2026-08-08, loop 7).**
+
 ## Spec Change Log
 
+- 2026-08-08: Review loop 7 / chunk 4 (artifacts + gitlinks) — reconciled File List, Scope Attribution,
+  Completion Notes, triage/change-log gaps, and deferred-work closeouts for RESOLVED/APPLIED 1.11 items.
+- 2026-08-08: Review loop 6 / chunk 3 (workspace + tenant detail) — 7 patches applied, 11 deferred, 6 dismissed.
+- 2026-08-08: Review loop 5 / chunk 2 (GA page/state/resources/tests) — 13 patches applied including AC5 and
+  incomplete-paging recovery; 1 decision resolved.
+- 2026-08-08: Review loop 4 / chunk 1 (auth core; distinct from the 2026-08-02 “loop 4” unverified-guard
+  closeout in this log) — 7 patches applied; Verification Gap layer empty/failed.
 - 2026-08-02: Closed the remaining loop-3 unverified-guard carry-forward with mutation-verified coverage
   (1,887 → 1,915). Story returned to `review`.
 - 2026-08-01: Review loop 3 — 1 owner decision resolved (prerender fails closed), 14 patches applied,
@@ -436,6 +464,19 @@ all completed. Diff scoped to File List GA page/state/resources/tests vs baselin
   published dependency-pointer provenance, and validated the story for review.
 
 ## Review Triage Log
+
+- 2026-08-08, review loop 7, chunk 4 (artifacts / gitlinks, ~1,272 diff lines / 10 files vs `2e61f57`).
+  Blind Hunter + Acceptance Auditor completed; Edge Case Hunter and Verification Gap returned empty (recorded
+  failed). 0 decisions, 13 patches applied, 0 new deferrals, 6 dismissed. Story chunk plan complete.
+
+- 2026-08-08, review loop 6, chunk 3 (workspace + tenant detail, ~5,461 diff lines / 5 files vs `2e61f57`).
+  All four layers completed. 0 decisions, 7 patches applied, 11 deferred, 6 dismissed as noise.
+  Focused TenantDetail + TenantsWorkspace suite run after apply. Story remained `review` for remaining
+  chunk (4) artifacts optional.
+
+- 2026-08-08, review loop 4, chunk 1 (auth core vs `2e61f57`; numbering note: distinct from the 2026-08-02
+  unverified-guard “loop 4” Spec Change Log entry). Blind Hunter, Edge Case Hunter, and Acceptance Auditor
+  completed; Verification Gap empty/failed. 0 decisions, 7 patches applied, prior deferrals reaffirmed.
 
 - 2026-08-08, review loop 5, chunk 2 (GA page/state/resources/tests, ~7,358 diff lines / 15 files vs `2e61f57`).
   All four layers completed (Edge Case Hunter empty on first pass, succeeded on retry). 1 decision raised and
@@ -520,8 +561,10 @@ The registered policy controls discoverability and route presentation, while `GE
 ## File List
 
 Re-cut by the Story 1.10 code review (decision D-B, 2026-07-29) so the boundary between the two stories is
-stated once, consistently. This story has not run its own dev loop, so this list records the files that
-already carry its implementation inside the 1.10 commit range.
+stated once, consistently. The initial attribution recorded work that landed inside Story 1.10's published
+range; this story has since run its own review loops 1–7 (auth, GA page/state, workspace/tenant detail, and
+artifacts/gitlinks). The list below is the authoritative declared surface for `2e61f57..HEAD`, including
+files added by later review loops.
 
 Declared here only — their entire in-range net change is this story's work, and they were removed from
 Story 1.10's File List:
@@ -565,6 +608,11 @@ Added by review loop 1:
 Added by review loop 2 completion:
 
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs`
+
+Declared by review loop 7 (chunk 4) after verifying large `2e61f57..HEAD` diffs omitted from earlier lists:
+
+- `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
 
 Dependency pointers that moved inside this story's baseline range (`2e61f57..HEAD`). This story's baseline
 sits *inside* Story 1.10's range, so it inherits the same six movements, which are carried by the published
@@ -622,11 +670,11 @@ covers them. All are security-relevant and must be resolved against this story's
   identity is authoritative for authentication transitions; stale HTTP evidence must not restore privilege.
   Anonymous, pending, or faulty circuit evidence fails closed, with the review's cancellation and non-blocking
   patches handling availability separately. [TenantConfigurationPrincipalResolver.cs:17-48]
-- [x] [Review][Decision] `Evaluate` now requires exactly one authenticated identity carrying exactly one
-  literal, non-whitespace, control-char-free `sub` claim. Any handler mapping `sub` to
-  `ClaimTypes.NameIdentifier` (the ASP.NET default), or any principal with two authenticated identities
-  (cookie + bearer), denies a genuine global administrator. Confirm against
-  `docs/production-auth-claim-contract.md`. [TenantsGlobalAdministratorClaims.cs:36-46]
+- [x] [Review][Decision] **RESOLVED (2026-08-01, owner decision): require exactly one *distinct*
+  non-whitespace, control-char-free literal `sub` value** across authenticated identities. Duplicate identical
+  `sub` claims are accepted; conflicting values still fail closed to `Indeterminate`. Mapped
+  `ClaimTypes.NameIdentifier`-only principals without literal `sub` remain NonAdministrator. Confirmed against
+  `docs/production-auth-claim-contract.md` and host `MapInboundClaims = false`. [TenantsGlobalAdministratorClaims.cs:36-46]
 - [x] [Review][Decision] `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which
   is null for the whole interactive circuit, so `Evaluate(null)` returns `Indeterminate` permanently and
   `TenantDetailPage.razor:149` gates tenant lifecycle actions off for a signed-in global administrator for the rest of
@@ -641,8 +689,9 @@ covers them. All are security-relevant and must be resolved against this story's
   authentication transitions. The synchronous request reflection is no longer consumed by tenant lifecycle actions.
   [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21-27]
 
-This story completed review loop 1 (`review_loop_iteration: 1`), including the identity-shape decision and
-gitlink reconciliation. Its story status and sprint status are `review`.
+This story completed review loops 1–7 (`review_loop_iteration: 7`), including the identity-shape
+decision, GA/workspace/tenant-detail hardening, and artifacts/gitlinks reconciliation. Its story status and
+sprint status follow the loop-7 closeout.
 
 ## Dev Agent Record
 
@@ -734,14 +783,19 @@ gitlink reconciliation. Its story status and sprint status are `review`.
 - ✅ Resolved review finding [Patch]: retained the already-corrected superseded review-loop paragraph and
   closed its stale finding; the historical review-loop-2 `in-progress` entry remains explicitly historical,
   while the declared dependency pointer and current completion state are authoritative.
-- Kept strict single-identity, literal-`sub` authorization because Tenants JWT bearer and FrontComposer OIDC
-  preserve raw claim names; mapped aliases and multi-identity principals fail closed instead of widening trust.
+- Kept strict distinct-literal-`sub` authorization because Tenants JWT bearer and FrontComposer OIDC
+  preserve raw claim names; mapped aliases and conflicting multi-`sub` principals fail closed instead of widening trust.
 - Added evaluator coverage for the accepted literal subject and rejected mapped/multiple-identity shapes.
 - Preserved the prior review-loop fixes for circuit authorization, cancellation, non-blocking workspace loading,
   and tenant lifecycle reauthorization, and corrected their Blazor dispatcher regression.
-- Declared `references/Hexalith.PolymorphicSerializations` because published commit `3503890` moved the pointer in
-  the same baseline range as this story's global-administrator changes; this run did not move the pointer.
-- Release solution and project builds completed with zero warnings/errors. Full passing suites: Contracts 120,
-  Client 50, Testing 181, Sample 39, Server 738, UI 1,866; focused story UI lane 599, fixed-scope server lane 5,
-  and generated-controller integration lane 27. The broader non-blocking Aspire lane is recorded separately
+- Declared all seven `references/*` gitlinks that moved inside `2e61f57..HEAD` (AI.Tools, Builds, Commons,
+  EventStore, FrontComposer, Memories, PolymorphicSerializations). Published commits in that range — including
+  `3503890` for PolymorphicSerializations and the shared 1.10/1.11 dependency bumps — authored those tip
+  movements; later 1.11 review runs declared the range provenance rather than inventing new undeclared tips.
+  Do not read “declared here” as “untouched in the baseline range.”
+- Release solution and project builds completed with zero warnings/errors. Authoritative full UI suite after the
+  2026-08-02 unverified-guard closeout: **1,915** passed (see Spec Change Log). Earlier Completion Notes bullets
+  that cite 1,849–1,866 are historical mid-loop checkpoints, not the final total. Other package suites recorded
+  at the 1,866 checkpoint: Contracts 120, Client 50, Testing 181, Sample 39, Server 738; focused story UI lane
+  and fixed-scope server lane remain the story gates. The broader non-blocking Aspire lane is recorded separately
   above with its exact environment blocker and totals.

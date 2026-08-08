@@ -8,6 +8,7 @@
 @using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantUsers
+@using Microsoft.Extensions.Logging
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
@@ -268,7 +269,7 @@
     private int _readRefreshAttempts;
     private bool _memberPageLoadInFlight;
     private bool _commandInFlight;
-    private bool _readRefreshSubscriptionInFlight;
+    private int _readRefreshSubscriptionInFlight;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -550,6 +551,24 @@
         await EnsureReadRefreshLeaseAsync(TenantId).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Records that optional notification setup failed, using a fixed reason code only.
+    /// </summary>
+    /// <remarks>
+    /// The catch below is deliberately broad, so without this the surface could stop auto-refreshing for the
+    /// whole circuit with no signal anywhere. The logger is resolved optionally and the message carries a
+    /// constant reason code — no tenant id, projection scope, transport detail, or exception is emitted.
+    /// </remarks>
+    private void LogNotificationSetupFailure()
+    {
+        if (Services.GetService(typeof(ILoggerFactory)) is ILoggerFactory loggerFactory)
+        {
+            loggerFactory
+                .CreateLogger<TenantDetailPage>()
+                .LogWarning("Optional projection refresh setup failed. ReasonCode={NotificationReasonCode}", "notification-setup-failed");
+        }
+    }
+
     /// <summary>Subscribes this tenant's reads to projection notifications, at most once per tenant.</summary>
     /// <remarks>
     /// Deliberately does NOT take the load cancellation token. Binding setup to a load meant any Refresh,
@@ -571,14 +590,20 @@
             || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
             || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             || _readRefreshLease is not null
-            || _readRefreshSubscriptionInFlight
             || _readRefreshAttempts >= MaximumReadRefreshAttempts
             || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
         {
             return;
         }
 
-        _readRefreshSubscriptionInFlight = true;
+        // Atomic test-and-set, matching GlobalAdministratorsPage. OnParametersSetAsync and OnAfterRenderAsync
+        // both enter this method; a plain bool let both pass the guard, both subscribe, and the loser's finally
+        // clear the flag while the winner was still in flight.
+        if (Interlocked.CompareExchange(ref _readRefreshSubscriptionInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
         TenantReadRefreshLease? lease = null;
         try
         {
@@ -600,6 +625,8 @@
                 // Setup registered no callback. Recording it would satisfy the guards above forever and
                 // permanently disable auto-refresh; leaving both fields unset lets the next render retry.
                 _readRefreshAttempts++;
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                lease = null;
                 return;
             }
 
@@ -622,8 +649,9 @@
         catch
         {
             // Optional refresh only; a transport fault must not escape the render lifecycle. The next
-            // render retries.
+            // render retries. The budget is charged here, not before the attempt.
             _readRefreshAttempts++;
+            LogNotificationSetupFailure();
             if (lease is not null)
             {
                 await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
@@ -631,7 +659,7 @@
         }
         finally
         {
-            _readRefreshSubscriptionInFlight = false;
+            Volatile.Write(ref _readRefreshSubscriptionInFlight, 0);
         }
     }
 
@@ -767,6 +795,7 @@
         if (members.Reason is TenantUsersReason.InvalidCursor)
         {
             TenantUsersSnapshot recovered;
+            bool recoveryFailed = false;
             try
             {
                 recovered = await QueryGateway
@@ -777,8 +806,19 @@
             {
                 return;
             }
+            catch
+            {
+                // A non-cancellation fault on the recovery read must not escape after members were already
+                // painted Refreshing — that left the pager disabled with no degraded/error surface.
+                recoveryFailed = true;
+                recovered = retainedMembers;
+            }
 
-            if (IsUsableMemberPage(recovered, requestedCursor: null))
+            if (recoveryFailed)
+            {
+                members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, retainedMembers.Reason);
+            }
+            else if (IsUsableMemberPage(recovered, requestedCursor: null))
             {
                 members = recovered with
                 {
@@ -911,9 +951,25 @@
             // table on an Invalid surface with no way back.
             if (snapshot.Reason is TenantUsersReason.InvalidCursor)
             {
-                TenantUsersSnapshot recovered = await QueryGateway
-                    .GetTenantUsersAsync(new TenantUsersRequest(tenantId), retained, cancellationToken)
-                    .ConfigureAwait(false);
+                TenantUsersSnapshot recovered;
+                bool recoveryFailed = false;
+                try
+                {
+                    recovered = await QueryGateway
+                        .GetTenantUsersAsync(new TenantUsersRequest(tenantId), retained, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch
+                {
+                    // A non-cancellation fault on the recovery read must not escape after members were already
+                    // painted Refreshing — that left the pager disabled with no degraded/error surface.
+                    recoveryFailed = true;
+                    recovered = retained;
+                }
 
                 // The recovery read gets the same usability guard as the primary read. Assigning it
                 // unconditionally meant a transient failure on page one emptied the table *after* the history
@@ -925,7 +981,11 @@
                         return;
                     }
 
-                    if (IsUsableMemberPage(recovered, requestedCursor: null))
+                    if (recoveryFailed)
+                    {
+                        _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(tenantId, retained, retained.Reason);
+                    }
+                    else if (IsUsableMemberPage(recovered, requestedCursor: null))
                     {
                         _memberCursor = null;
                         _memberCursorHistory.Clear();

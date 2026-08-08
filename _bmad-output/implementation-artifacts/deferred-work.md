@@ -501,13 +501,15 @@ status: open
 
 ## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-28)
 
-- BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `chore`/`docs` commit rather than inside a feature story.
+- BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `docs` commit rather than inside a feature story (Hexalith commitlint forbids `chore`).
 - **Deferred to Story 1.11** — Principal-resolution precedence was inverted in `TenantConfigurationPrincipalResolver.cs:17-48`: the circuit `AuthenticationStateProvider` now outranks `HttpContext.User`, where previously `HttpContext` was primary. A circuit whose provider returns an anonymous or not-yet-populated state while `HttpContext.User` is authenticated collapses to `Indeterminate` and fails every configuration grant closed. Security-relevant; must be decided against Story 1.11's acceptance criteria, not 1.10's.
+  **CLOSED (2026-08-08, Story 1.11):** owner retained circuit-over-HTTP precedence with no request-principal fallback; see spec Scope Attribution decision 1.
 - **Deferred to Story 1.11** — `TenantsGlobalAdministratorClaims.Evaluate` now requires exactly one authenticated identity carrying exactly one literal `sub` claim (`TenantsGlobalAdministratorClaims.cs:36-46`). Any handler mapping `sub` to `ClaimTypes.NameIdentifier` (the ASP.NET default), or any principal with two authenticated identities (cookie + bearer), denies a genuine global administrator. Confirm the intended claim contract against `docs/production-auth-claim-contract.md` as part of 1.11.
-
+  **CLOSED (2026-08-08, Story 1.11):** owner requires exactly one *distinct* literal `sub` value; identical duplicates accepted. See spec loop-2 decision + Scope Attribution decision 2.
 ## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29)
 
-- `EventStore:BaseAddress` already accepted Aspire compound schemes before Story 1.10, but neither the EventStore gateway client nor the tenant command client attaches `.AddServiceDiscovery()`. A compound address can therefore be marked connected and fail when sent. This is real command/status transport debt, but it predates the active direct-read change and remains outside the chunk-1 patch set. [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
+- `EventStore:BaseAddress` already accepted Aspire compound schemes before Story 1.10, but neither the EventStore gateway client nor the tenant command client attaches `.AddServiceDiscovery()`. A compound address can therefore be marked connected and fail when sent. This is real command/status transport debt, but it predates the active direct-read change and remains outside the chunk-1 patch set.
+  **Canonical open entry** for this debt (later 2026-07-30 chunk A+B item is a duplicate reaffirmation). [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
 - **Future feature — reversible route identifiers:** Define an explicit backend route contract for literal tenant/user identifiers containing `/`, then update the six direct-read endpoints and clients to round-trip that representation. Until this is delivered, the direct-read client must fail closed for this identifier class rather than issue an ambiguous encoded-slash request. Owner: future Tenants API route-contract work. Reason: future feature. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
 
 ## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, review loop 4)
@@ -517,10 +519,13 @@ from 1.10). Story 1-11 is already in `review` status and must clear its own loop
 than in 1.10's patch set.
 
 - **Deferred to Story 1.11** — `ApplyAuthenticationStateChangedAsync` authorizes the page with the uncorroborated `TenantsGlobalAdministratorClaims.Evaluate` (`requireCorroboration: false`, so `sub` is never checked against `IUserContextAccessor.UserId`), then calls `LoadAsync(reuseETag: false, reauthorize: false)` to deliberately skip the corroborated path every other caller uses. A token refresh raising `AuthenticationStateChanged` with a principal whose `sub` does not match the server-side user context makes the grant/remove mutation surface reachable for the rest of the circuit. Security-relevant. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1178]
+  **CLOSED (2026-08-08, Story 1.11):** authentication transitions use the strict BFF/circuit resolver; uncorroborated Evaluate path removed. See applied GA/workspace patches.
 - **Deferred to Story 1.11** — `ResolveSystemScopeEvidence` returns `null` (→ `Indeterminate`) when the principal carries more than one distinct `eventstore:tenant` claim value, replacing a previous any-match `HasClaim(… == "system")`. A platform administrator whose token carries both `system` and a tenant scope now loses the Global Administrators page, the workspace entry link, and — because `GlobalAdministratorPolicy` was switched to `Evaluate(...) == Authorized` — every policy-gated FrontComposer surface. Extends the already-recorded single-identity/single-`sub` concern from the 2026-07-28 entry to the scope claim. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:116]
+  **CLOSED (2026-08-08, Story 1.11):** retained as intentional fail-closed contract for conflicting system-scope evidence; no longer awaiting a 1.11 decision.
 - **Deferred to Story 1.11** — A single transient authorization-resolution fault is indistinguishable from a permanent denial: `ResolveAuthorizationReflectionAsync` swallows every exception to `Indeterminate`, `CollapseAuthorizationAsync` then pins the restricted surface, and that surface offers no Refresh, Retry or Reset while `EnsureReadRefreshLeaseAsync` and `CanRecover` are both gated on `IsAuthorized`. Nothing re-enters resolution unless an `AuthenticationStateChanged` happens to fire. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1235]
+  **CLOSED (2026-08-08, Story 1.11):** Indeterminate Retry / RetryAuthorization path applied; see GA page patches.
 - **Deferred to Story 1.11** — The workspace's Global Administrators entry link evaluates authorization uncorroborated while initial resolution uses the corroborated resolver, so the link and the page it targets desynchronize in both directions after any `AuthenticationStateChanged`: the button can render for a principal the page then refuses, or hide while the claims are in fact sufficient. [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:602]
-
+  **CLOSED (2026-08-08, Story 1.11):** workspace authentication transitions resolve through the strict BFF seam before restoring the entry.
 ## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, core transport/state follow-up)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
@@ -533,7 +538,7 @@ than in 1.10's patch set.
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
   summary: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. `https+http://eventstore`) by the same `TryGetHttpBaseAddress` gate used for the read side, but no service discovery is attached to the command/status clients, so such a value can only fail at send time.
   evidence: The scheme gate is shared at `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:96`, while `.AddServiceDiscovery()` is attached only to the Tenants read client at `:74`. Pre-existing: the command-side gate predates Story 1.10's read transport.
-  status: open — pre-existing; reaffirms the same item already deferred in the 2026-07-29 chunk-1 follow-up. Resolve together with the read-side service-discovery provider decision recorded in the 2026-07-30 review findings, since both concern whether this module or its composing host owns service-discovery registration.
+  status: closed-as-duplicate (2026-08-08, Story 1.11 loop 7) — reaffirmation only; keep the 2026-07-29 `EventStore:BaseAddress` / missing `.AddServiceDiscovery()` bullet as the single open entry. Resolve together with the read-side service-discovery provider decision recorded in the 2026-07-30 review findings.
 
 ## Architectural decision recorded by code review of spec-1-10 (2026-07-30) — BFF read transport vs DAPR service invocation
 
@@ -571,7 +576,7 @@ than in 1.10's patch set.
     EventStore command/status and Memories clients.
 
 - **Deferred to Story 1.11** (owner decision, 1.10 chunk-A+B review 2026-07-30) — `LifecycleAuthorizationReflection` resolves the principal from `IHttpContextAccessor`, which is null for the whole interactive circuit, so `Evaluate(null)` returns `Indeterminate` permanently and `TenantDetailPage.razor:149` gates tenant lifecycle actions off for a signed-in global administrator for the rest of the session. Story 1.10 added `ResolveGlobalAdministratorsAuthorizationAsync` to the same type and migrated the workspace and global-administrators pages to circuit-aware resolution, leaving the tenant-detail consumer on the synchronous path. Reason for deferral: 1.11 already owns two open principal-resolution decisions on the same evaluator, so all three are settled together rather than by two stories patching it independently. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:21-27]
-
+  **CLOSED (2026-08-08, Story 1.11):** tenant detail consumes `ResolveLifecycleAuthorizationAsync`; synchronous HttpContext-only reflection no longer gates lifecycle actions.
 ## Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-30)
 
 - **Member evidence gate collapses lifecycle and permission reasons into "stale data"** — `MemberAccessReview.ResolveFailClosedReasons` gained a `!ActionsAreEvidenceBacked -> [UnavailableReason.StaleData]` arm inserted above the pre-existing `Detail.Status is Disabled or Unknown -> MissingLifecycleSupport` and `role is TenantRole.Unknown -> MissingPermission` arms. Because `ActionsAreEvidenceBacked` requires detail `Ready` + `Current` + `Current`, members `Ready|Empty` + `Current` + `Current`, and equal non-blank projection versions, a disabled tenant or an unknown-role member reports "stale data" whenever any clause is short — including the common `Unknown` freshness case. `PrimaryUnavailableReason` feeds the same value into the authorization-safe empty message, so that copy loses its permission wording too.
@@ -588,7 +593,7 @@ than in 1.10's patch set.
   Reason for deferral: the one-line fix's correctness depends entirely on how 1.11 resolves circuit-vs-`HttpContext` precedence. The chunk A+B review established that `LifecycleAuthorizationReflection` on this same type returns `Indeterminate` permanently on an interactive circuit because `HttpContext` is null; if `TenantConfigurationPrincipalResolver` shares that weakness, routing this path through it trades a fail-open for a fail-shut. Story 1.11 already owns both open principal-resolution decisions on this evaluator, and the structurally identical `TenantDetailPage` item was folded there on 2026-07-30 for the same stated reason — avoid two stories making conflicting fixes to the same evaluator.
   Accepted consequence until 1.11 lands: the fail-open divergence above ships in 1.10.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1279]
-
+  **CLOSED (2026-08-08, Story 1.11):** transition path aligned to the strict BFF resolver; see applied auth-transition patches.
 ## Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-31)
 
 UI-composition-and-accessibility chunk, `2f190a1..HEAD` narrowed to the Story 1.6 UI paths. Four review
@@ -845,6 +850,7 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   page-level reason satisfies that in substance; per-row parity is polish.
   Revisit if: the mobile read-only surface is revisited, or accessibility review flags the actions cell.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]
+  **CLOSED (2026-08-08, loop 5 APPLIED):** mobile/unavailable reason spans and mutation-initiation gating closed AC5; no longer open polish debt for Story 1.11.
 
 ## Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-08, loop 5 chunk 2)
 
@@ -866,7 +872,9 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   healthy surface, not a mechanical fix; the service should not normally produce this shape.
   Revisit if: the query contract allows `HasMore` without a cursor, or `CanRecover` is revised.
   **SUPERSEDED (2026-08-08, loop 5):** owner chose option 1 — condition-gated recoverable incomplete paging
-  (`HasMore && blank NextCursor`) with localized notice; tracked as an open loop-5 patch on the story.
+  (`HasMore && blank NextCursor`) with localized notice.
+  **CLOSED (2026-08-08, loop 5 APPLIED):** `HasIncompletePagingEvidence` / recovery + localized notice shipped;
+  no longer an open loop-5 patch.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:698]
 
 - Authorization resolution is uncancellable from both consuming pages. The loop-2 patch made
@@ -881,9 +889,10 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   Revisit if: a resolve/subscribe timeout policy is chosen, or a hung-provider incident is observed.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1634]
 
-- AC5 remains partially unmet while the story sits in `review`: the narrow-viewport per-row Remove reason gap
-  recorded above by loop 2 was re-confirmed still open by loop 3. Recorded here as a cross-reference only, not a
-  second entry — see the loop-2 bullet immediately preceding this section.
+- ~~AC5 remains partially unmet while the story sits in `review`: the narrow-viewport per-row Remove reason gap
+  recorded above by loop 2 was re-confirmed still open by loop 3.~~
+  **CLOSED (2026-08-08, loop 5 APPLIED):** mobile/unavailable reasons and mutation-initiation gating closed AC5.
+  Cross-reference only — see the loop-2 bullet and loop-5 APPLIED patch.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]
 
 ## Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)
@@ -892,13 +901,15 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171]
 - Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
   [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565]
-- Soft RefreshAsync blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
+- Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed.
+  Distinct from the LoadAsync version-bump stale-apply window below (same approximate line region, different method).
   [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
 - StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace
   [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339]
 - IsSafeReturnUrl accepts any /tenants-prefixed path — deferred, already deferred earlier; same-origin relative only
   [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1250]
-- LoadAsync version bump after BeginLoad leaves a stale-apply window — deferred, pre-existing workspace load pattern
+- `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern.
+  Distinct from soft `RefreshAsync` blanking above (same approximate line region, different method).
   [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
 - TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only
   [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs]
