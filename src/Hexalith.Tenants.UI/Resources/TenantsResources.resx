@@ -2640,6 +2640,9 @@
   <data name="Tenants.GlobalAdministrators.Recovery.Reset" xml:space="preserve">
     <value>Reset to first page</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.IncompletePaging" xml:space="preserve">
+    <value>More administrators are indicated, but no continuation page is available. Reset to the first page and retry the review.</value>
+  </data>
   <data name="Tenants.GlobalAdministrators.Recovery.PageRecovered" xml:space="preserve">
     <value>The protected page could not be restored. The review restarted at the first page.</value>
   </data>
@@ -2811,6 +2814,9 @@
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh projection freshness before granting platform authority.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Current projection lifecycle evidence is required before granting platform authority.</value>
+  </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
     <value>Another platform authority command is in flight.</value>
   </data>
@@ -2821,7 +2827,16 @@
     <value>Remove global administrator is handled by a separate guarded flow.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Help" xml:space="preserve">
-    <value>Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.</value>
+    <value>Enter the literal caller-supplied user id (256 characters or fewer, no control characters). It is not parsed as a tenant member, GUID, or ULID.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired" xml:space="preserve">
+    <value>Current projection evidence is required before confirming the global administrator grant.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm" xml:space="preserve">
+    <value>Projection re-query did not confirm the target global administrator.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Confirm.PageScoped" xml:space="preserve">
+    <value>The projection re-query covers only the first page of global administrators, which does not include this user, so the grant cannot be confirmed from this page. Confirm the outcome from the tenant audit trail.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
     <value>User id</value>
@@ -2970,11 +2985,23 @@
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh projection freshness before removing platform authority.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.ProjectionLifecycle" xml:space="preserve">
+    <value>Current projection lifecycle evidence is required before removing platform authority.</value>
+  </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.InFlight" xml:space="preserve">
     <value>Another platform authority command is in flight.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete" xml:space="preserve">
     <value>Current complete projection evidence is required before removing platform authority.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Confirm.PageScoped" xml:space="preserve">
+    <value>The projection re-query covers only the first page of global administrators, which cannot prove this administrator was removed platform-wide. Confirm the outcome from the tenant audit trail.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired" xml:space="preserve">
+    <value>Current complete projection evidence is required before confirming global administrator removal.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Confirm.StillPresent" xml:space="preserve">
+    <value>Projection re-query still shows the target global administrator. Do not treat removal as complete.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin" xml:space="preserve">
     <value>The last global administrator cannot be removed.</value>

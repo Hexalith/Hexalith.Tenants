@@ -139,6 +139,15 @@
                     </FluentButton>
                 </FluentStack>
             }
+            @if (HasIncompletePagingEvidence)
+            {
+                <p class="global-admins__nudge"
+                   role="status"
+                   aria-live="polite"
+                   data-testid="tenants-global-admins-incomplete-paging">
+                    @Localizer["Tenants.GlobalAdministrators.Recovery.IncompletePaging"]
+                </p>
+            }
             @* Rendered as siblings of the state section, not children. StatusRole/StatusLive resolve to
                alert/assertive for Invalid, Stale, Unknown, Degraded, Error, Unauthorized and Unavailable,
                and inserting or removing a child mutates that region's own subtree -- so every projection
@@ -250,12 +259,14 @@
                     </FluentButton>
                 </span>
                 <FluentButton Appearance="ButtonAppearance.Outline"
+                              Class="global-admins__mutation-initiation"
                               data-testid="tenants-global-admin-grant-cancel"
                               Disabled="@(!CanCancelGrant)"
                               OnClick="CancelGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
                 </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline"
+                              Class="global-admins__mutation-initiation"
                               data-testid="tenants-global-admin-grant-refresh"
                               Disabled="@(!CanRefreshGrantStatus)"
                               OnClick="RefreshGrantStatusAsync">
@@ -277,7 +288,7 @@
             </p>
             @if (!string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessage))
             {
-                <p data-testid="tenants-global-admin-grant-safe-message">@_grantSnapshot.SafeMessage</p>
+                <p data-testid="tenants-global-admin-grant-safe-message">@ResolveSafeMessage(_grantSnapshot.SafeMessage)</p>
             }
             <p data-testid="tenants-global-admin-grant-audit-state">@GrantAuditText</p>
             <p class="global-admins__grant-live"
@@ -378,7 +389,7 @@
                             @Localizer["Tenants.GlobalAdministrators.Remove.Submit"]
                         </FluentButton>
                     </span>
-                    <span class="global-admins__remove-cancel-focus" tabindex="-1" @ref="_removeCancelElement">
+                    <span class="global-admins__remove-cancel-focus global-admins__mutation-initiation" tabindex="-1" @ref="_removeCancelElement">
                         <FluentButton Appearance="ButtonAppearance.Outline"
                                       data-testid="tenants-global-admin-remove-cancel"
                                       OnClick="CancelRemoveAsync">
@@ -386,6 +397,7 @@
                         </FluentButton>
                     </span>
                     <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Class="global-admins__mutation-initiation"
                                   data-testid="tenants-global-admin-remove-refresh"
                                   Disabled="@(!CanRefreshRemoveStatus)"
                                   OnClick="RefreshRemoveStatusAsync">
@@ -412,7 +424,7 @@
             </p>
             @if (!string.IsNullOrWhiteSpace(_removeSnapshot.SafeMessage))
             {
-                <p data-testid="tenants-global-admin-remove-safe-message">@_removeSnapshot.SafeMessage</p>
+                <p data-testid="tenants-global-admin-remove-safe-message">@ResolveSafeMessage(_removeSnapshot.SafeMessage)</p>
             }
             <p data-testid="tenants-global-admin-remove-audit-state">@RemoveAuditText</p>
             <p class="global-admins__remove-live"
@@ -490,13 +502,27 @@
                                     ColumnId="global-admin-actions"
                                     Width="300px">
                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.375rem" Class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
-                            <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
+                            @* When grant is available, hide the affirmative Available claim with the initiation
+                               controls on narrow viewports so AC5 does not advertise availability beside CSS-hidden
+                               high-impact actions. The mobile-only reason stays visible at that breakpoint. *@
+                            <span data-testid="tenants-global-admins-grant-reason"
+                                  class="@(string.IsNullOrWhiteSpace(GrantUnavailableReason) ? "global-admins__mutation-initiation" : null)">
+                                @(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])
+                            </span>
+                            <span class="global-admins__mobile-mutation-reason"
+                                  data-testid="tenants-global-admins-grant-mobile-reason">
+                                @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
+                            </span>
                             @if (RemoveUnavailableReason(context) is { Length: > 0 } removeUnavailableReason)
                             {
                                 <span data-testid="tenants-global-admins-remove-reason">@removeUnavailableReason</span>
                             }
                             else
                             {
+                                <span class="global-admins__mobile-mutation-reason"
+                                      data-testid="tenants-global-admins-remove-reason">
+                                    @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
+                                </span>
                                 <FluentButton Appearance="ButtonAppearance.Outline"
                                               Class="global-admins__mutation-initiation"
                                               data-testid="tenants-global-admin-remove"
@@ -698,20 +724,45 @@
 
     private string SafeReturnUrl => NormalizeReturnUrl(ReturnUrl);
 
+    // ConfirmProjection stores Tenants.* resource keys so EN/FR stay whole-string parity; gateway/status
+    // SafeMessages remain support-safe English prose and pass through unchanged.
+    private string ResolveSafeMessage(string? safeMessage)
+        => string.IsNullOrWhiteSpace(safeMessage)
+            ? string.Empty
+            : safeMessage.StartsWith("Tenants.", StringComparison.Ordinal)
+                ? Localizer[safeMessage].Value
+                : safeMessage;
+
     // Empty is included deliberately. ShouldRenderRows requires Rows.Count > 0, and the pager, Refresh and
     // grid all live inside that branch, so an Empty page renders no controls at all. Paging into a page that
     // was emptied by a concurrent removal is a normal outcome (IsSuccessfulPage accepts Empty, so the cursor
     // commits), and without Reset the operator is stranded on that cursor with only a browser reload to
     // recover.
+    // Incomplete paging (HasMore with a blank cursor) and Ready pages that lack complete population evidence
+    // are included by owner decision (loop 5): do not broaden bare Ready into CanRecover.
     private bool CanRecover
         => IsAuthorized
-        && (_snapshot.Kind is GlobalAdministratorsSurfaceKind.Unknown
+        && (HasIncompletePagingEvidence
+            || HasIncompletePopulationOnReady
+            || _snapshot.Kind is GlobalAdministratorsSurfaceKind.Unknown
             or GlobalAdministratorsSurfaceKind.Stale
             or GlobalAdministratorsSurfaceKind.Degraded
             or GlobalAdministratorsSurfaceKind.Error
             or GlobalAdministratorsSurfaceKind.Unavailable
             or GlobalAdministratorsSurfaceKind.Invalid
             or GlobalAdministratorsSurfaceKind.Empty);
+
+    // Ready claims more administrators exist but supplies no usable continuation cursor.
+    private bool HasIncompletePagingEvidence
+        => _snapshot.HasMore && string.IsNullOrWhiteSpace(_snapshot.NextCursor);
+
+    // Ready page that is not complete evidence and cannot claim further pages — Remove stays blocked by
+    // Incomplete, and without Reset the operator cannot return to a complete first-page population.
+    private bool HasIncompletePopulationOnReady
+        => _snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
+            && !_snapshot.IsCompleteEvidence
+            && !_snapshot.HasMore
+            && _snapshot.Rows.Count > 0;
 
     private string? GrantUnavailableReason
         => !IsAuthorized
@@ -720,21 +771,23 @@
                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"].Value
-                    : !_snapshot.IsMutationEvidenceBacked
+                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"].Value
-                        : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
-                            or GlobalAdministratorsSurfaceKind.Unknown
-                            or GlobalAdministratorsSurfaceKind.Degraded
-                            or GlobalAdministratorsSurfaceKind.Error
-                            or GlobalAdministratorsSurfaceKind.Unauthorized
-                            or GlobalAdministratorsSurfaceKind.Unavailable
-                            or GlobalAdministratorsSurfaceKind.Invalid
-                            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
-                            : IsGrantInFlight
-                                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
-                                : IsRemoveInFlight
-                                    ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
-                                    : null;
+                        : _snapshot.Lifecycle is not ProjectionLifecycleState.Current
+                            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ProjectionLifecycle"].Value
+                            : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                                or GlobalAdministratorsSurfaceKind.Unknown
+                                or GlobalAdministratorsSurfaceKind.Degraded
+                                or GlobalAdministratorsSurfaceKind.Error
+                                or GlobalAdministratorsSurfaceKind.Unauthorized
+                                or GlobalAdministratorsSurfaceKind.Unavailable
+                                or GlobalAdministratorsSurfaceKind.Invalid
+                                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
+                                : IsGrantInFlight
+                                    ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
+                                    : IsRemoveInFlight
+                                        ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
+                                        : null;
 
     private string? RemoveUnavailableReason(GlobalAdministratorRow? row)
         => RemoveUnavailableReasonForUser(row?.UserId);
@@ -750,27 +803,29 @@
                 ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"].Value
-                    : !_snapshot.IsMutationEvidenceBacked
+                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"].Value
-                        : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
-                            or GlobalAdministratorsSurfaceKind.Unknown
-                            or GlobalAdministratorsSurfaceKind.Degraded
-                            or GlobalAdministratorsSurfaceKind.Error
-                            or GlobalAdministratorsSurfaceKind.Unauthorized
-                            or GlobalAdministratorsSurfaceKind.Unavailable
-                            or GlobalAdministratorsSurfaceKind.Invalid
-                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
-                            : IsGrantInFlight
-                                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
-                                : IsRemoveInFlight
-                                    ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
-                                    : userId is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, userId, StringComparison.Ordinal))
-                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"].Value
-                                        : _snapshot.IsCompleteEvidence && _snapshot.Rows.Count <= 1
-                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
-                                        : !HasPositiveRemovalPopulationEvidence
-                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"].Value
-                                            : null;
+                        : _snapshot.Lifecycle is not ProjectionLifecycleState.Current
+                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ProjectionLifecycle"].Value
+                            : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                                or GlobalAdministratorsSurfaceKind.Unknown
+                                or GlobalAdministratorsSurfaceKind.Degraded
+                                or GlobalAdministratorsSurfaceKind.Error
+                                or GlobalAdministratorsSurfaceKind.Unauthorized
+                                or GlobalAdministratorsSurfaceKind.Unavailable
+                                or GlobalAdministratorsSurfaceKind.Invalid
+                                ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
+                                : IsGrantInFlight
+                                    ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
+                                    : IsRemoveInFlight
+                                        ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
+                                        : userId is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, userId, StringComparison.Ordinal))
+                                                ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"].Value
+                                            : _snapshot.IsCompleteEvidence && _snapshot.Rows.Count <= 1
+                                                ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
+                                            : !HasPositiveRemovalPopulationEvidence
+                                                ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"].Value
+                                                : null;
 
     // Only server-stated population counts. _cursorHistory is client-local paging bookkeeping: it records
     // that this circuit navigated forward at some point, which says nothing about how many administrators
@@ -1297,6 +1352,8 @@
                 // guard above forever, permanently disabling auto-refresh for this circuit. This is a failed
                 // attempt, so it is what the bounded budget is for.
                 Interlocked.Increment(ref _readRefreshAttempts);
+                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                lease = null;
                 return;
             }
 
@@ -1895,8 +1952,24 @@
         using PendingOperation operation = BeginGrantMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        SetGrantSnapshot(_grantSnapshot.RequestSent(request));
-        _isGrantSubmitting = true;
+        // Marshal RequestSent onto the dispatcher and re-check generation: Cancel/collapse between
+        // BeginGrantMutation and these writes must not stick RequestSent after invalidation.
+        bool grantRequestArmed = false;
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyGrantMutation(generation))
+            {
+                return;
+            }
+
+            SetGrantSnapshot(_grantSnapshot.RequestSent(request));
+            _isGrantSubmitting = true;
+            grantRequestArmed = true;
+        }).ConfigureAwait(false);
+        if (!grantRequestArmed)
+        {
+            return;
+        }
 
         // ReauthorizeAsync is the handler's first await, so Blazor's automatic render at that suspension still
         // showed Idle; these writes then land on a thread-pool continuation. Without an explicit marshalled
@@ -1986,8 +2059,18 @@
 
     private async Task RequeryGrantProjectionAsync(long generation)
     {
+        if (!CanApplyGrantMutation(generation))
+        {
+            return;
+        }
+
         await InvokeAsync(() =>
         {
+            if (!CanApplyGrantMutation(generation))
+            {
+                return;
+            }
+
             // The re-query below deliberately renders page one; reset the cursor state that describes the
             // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
             _cursorHistory.Clear();
@@ -1996,6 +2079,11 @@
             _authorizationPagingReset = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
+        if (!CanApplyGrantMutation(generation))
+        {
+            return;
+        }
+
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,
@@ -2084,8 +2172,22 @@
         using PendingOperation operation = BeginRemoveMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        SetRemoveSnapshot(_removeSnapshot.RequestSent());
-        _isRemoveSubmitting = true;
+        bool removeRequestArmed = false;
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyRemoveMutation(generation))
+            {
+                return;
+            }
+
+            SetRemoveSnapshot(_removeSnapshot.RequestSent());
+            _isRemoveSubmitting = true;
+            removeRequestArmed = true;
+        }).ConfigureAwait(false);
+        if (!removeRequestArmed)
+        {
+            return;
+        }
 
         // Same reason as the grant submit: the hoisted re-authorization consumed the automatic render, so the
         // in-flight state needs an explicit marshalled one.
@@ -2173,8 +2275,18 @@
 
     private async Task RequeryRemoveProjectionAsync(long generation)
     {
+        if (!CanApplyRemoveMutation(generation))
+        {
+            return;
+        }
+
         await InvokeAsync(() =>
         {
+            if (!CanApplyRemoveMutation(generation))
+            {
+                return;
+            }
+
             // The re-query below deliberately renders page one; reset the cursor state that describes the
             // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
             _cursorHistory.Clear();
@@ -2183,6 +2295,11 @@
             _authorizationPagingReset = false;
             _currentCursor = null;
         }).ConfigureAwait(false);
+        if (!CanApplyRemoveMutation(generation))
+        {
+            return;
+        }
+
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,

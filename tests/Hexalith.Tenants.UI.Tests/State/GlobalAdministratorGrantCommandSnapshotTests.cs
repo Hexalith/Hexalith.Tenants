@@ -29,11 +29,47 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         withoutEvidence.LastConfirmedProjection.ShouldBeNull();
         withoutEvidence.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        // Ready() defaults IsCompleteEvidence=false, so absence hits the page-scoped arm.
+        withoutEvidence.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.PageScoped");
 
-        GlobalAdministratorGrantCommandSnapshot confirmed = snapshot.ConfirmProjection(Ready("User/CaseSensitive.01"));
+        GlobalAdministratorGrantCommandSnapshot confirmed = snapshot.ConfirmProjection(Ready("User/CaseSensitive.01") with { IsCompleteEvidence = true });
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedProjection.ShouldNotBeNull().UserId.ShouldBe("User/CaseSensitive.01");
+    }
+
+    [Fact]
+    public void Page_scoped_absence_is_distinguished_from_a_failed_verification_read()
+    {
+        GlobalAdministratorGrantCommandSnapshot pending = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(new SetGlobalAdministrator("target-admin"))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        GlobalAdministratorsSnapshot pageScoped = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current)],
+            nextCursor: "protected-next",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "projection-v1",
+        };
+        pageScoped.IsMutationEvidenceBacked.ShouldBeTrue();
+
+        GlobalAdministratorGrantCommandSnapshot pageScopedResult = pending.ConfirmProjection(pageScoped);
+
+        pageScopedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        pageScopedResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.PageScoped");
+
+        GlobalAdministratorsSnapshot completeAbsence = Ready("other-admin") with { IsCompleteEvidence = true };
+        GlobalAdministratorGrantCommandSnapshot completeResult = pending.ConfirmProjection(completeAbsence);
+
+        completeResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        completeResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm");
+        completeResult.SafeMessage.ShouldNotBe(pageScopedResult.SafeMessage);
     }
 
     // A projection re-query whose Current freshness came only from the legacy X-Hexalith-Is-Stale
@@ -57,6 +93,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.LastConfirmedProjection.ShouldBeNull();
         result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        result.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired");
     }
 
     [Fact]

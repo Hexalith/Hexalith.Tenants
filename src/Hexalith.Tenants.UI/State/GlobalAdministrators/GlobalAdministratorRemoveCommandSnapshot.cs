@@ -216,9 +216,10 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 LastConfirmedProjection = null,
+                // Resource keys — resolved by the page localizer so EN/FR stay whole-string parity.
                 SafeMessage = isPageScopedEvidence
-                    ? "The projection re-query covers only the first page of global administrators, which cannot prove this administrator was removed platform-wide. Confirm the outcome from the tenant audit trail."
-                    : "Current complete projection evidence is required before confirming global administrator removal.",
+                    ? "Tenants.GlobalAdministrators.Remove.Confirm.PageScoped"
+                    : "Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -229,7 +230,7 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             ? this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 LastConfirmedProjection = row,
-                SafeMessage = "Projection re-query still shows the target global administrator. Do not treat removal as complete.",
+                SafeMessage = "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

@@ -57,7 +57,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.LastConfirmedProjection.ShouldBeNull();
-        result.SafeMessage.ShouldNotBeNull().ShouldContain("complete", Case.Insensitive);
+        result.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired");
     }
 
     /// <summary>
@@ -97,9 +97,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         GlobalAdministratorRemoveCommandSnapshot pageScopedResult = pending.ConfirmProjection(pageScoped);
 
         pageScopedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        string pageScopedMessage = pageScopedResult.SafeMessage.ShouldNotBeNull();
-        pageScopedMessage.ShouldContain("first page", Case.Insensitive);
-        pageScopedMessage.ShouldContain("audit", Case.Insensitive);
+        pageScopedResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Remove.Confirm.PageScoped");
 
         // A read that could not be verified at all: same lifecycle state, different explanation.
         GlobalAdministratorsSnapshot failedRead = GlobalAdministratorsSnapshot.Ready(
@@ -113,9 +111,8 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         GlobalAdministratorRemoveCommandSnapshot failedResult = pending.ConfirmProjection(failedRead);
 
         failedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        string failedMessage = failedResult.SafeMessage.ShouldNotBeNull();
-        failedMessage.ShouldContain("complete", Case.Insensitive);
-        failedMessage.ShouldNotBe(pageScopedMessage);
+        failedResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired");
+        failedResult.SafeMessage.ShouldNotBe(pageScopedResult.SafeMessage);
 
         // Neither may be mistaken for the confirmed outcome.
         pageScopedResult.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);

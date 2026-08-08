@@ -1200,6 +1200,83 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
     }
 
+    [Fact]
+    public void Unknown_review_surface_with_rows_keeps_list_visible_and_actions_unavailable()
+    {
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Unknown(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Unknown)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"");
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admins-list']");
+        cut.Find("[data-testid='tenants-global-admins-row']").TextContent.ShouldContain("admin-1");
+        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Ready_has_more_without_cursor_offers_incomplete_paging_recovery()
+    {
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = false,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admins-next']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-global-admins-incomplete-paging']").TextContent
+            .ShouldContain("no continuation page", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-reset']");
+        cut.Find("[data-testid='tenants-global-admins-retry']");
+    }
+
+    [Fact]
+    public void Current_freshness_without_projection_lifecycle_uses_lifecycle_unavailable_copy()
+    {
+        GlobalAdministratorsSnapshot snapshot = GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Unknown,
+            IsCompleteEvidence = true,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("lifecycle", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData(GlobalAdministratorsSurfaceKind.Empty, "tenants-global-admins-empty", "No global administrators")]
     [InlineData(GlobalAdministratorsSurfaceKind.Unknown, "tenants-global-admins-unknown", "truth unknown")]
@@ -1934,6 +2011,24 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public void Grant_user_id_input_does_not_expose_maxlength_truncation()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").GetAttribute("maxlength").ShouldBeNull();
+    }
+
+    [Fact]
     public void Grant_submission_confirms_only_after_projection_requery_contains_target_user()
     {
         var queryGateway = new StubTenantQueryGateway(
@@ -2051,12 +2146,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
         cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
-            .ShouldContain("Refresh projection freshness before granting platform authority.");
+            .ShouldContain("Current projection lifecycle evidence is required before granting platform authority.");
 
         cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-global-admins-remove-reason']")
             .Select(static element => element.TextContent)
-            .ShouldAllBe(static text => text.Contains("Refresh projection freshness before removing platform authority.", StringComparison.Ordinal));
+            .ShouldAllBe(static text => text.Contains("Current projection lifecycle evidence is required before removing platform authority.", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -2327,6 +2422,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .ShouldBeTrue("the notice must be hidden by default, or it is permanently visible on desktop");
         mobileBreakpoint.Contains(".global-admins__mobile-readonly-host", StringComparison.Ordinal)
             .ShouldBeTrue("the notice must be revealed at the mobile breakpoint");
+        beforeBreakpoint.Contains(".global-admins__mobile-mutation-reason", StringComparison.Ordinal)
+            .ShouldBeTrue("per-row mobile reasons must be hidden by default");
+        mobileBreakpoint.Contains(".global-admins__mobile-mutation-reason", StringComparison.Ordinal)
+            .ShouldBeTrue("per-row mobile reasons must be revealed at the mobile breakpoint");
         beforeBreakpoint.Contains("::deep .global-admins__mutation-initiation", StringComparison.Ordinal)
             .ShouldBeFalse("hoisting the launcher rule out of the media query hides mutation affordances at every width");
         mobileBreakpoint.Contains("::deep .global-admins__mutation-initiation", StringComparison.Ordinal)
@@ -3481,10 +3580,14 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Unavailable.Authorization"] = "Platform authority is not confirmed, so grant fails closed without revealing administrator data.",
             ["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"] = "The command surface is unavailable for platform governance changes.",
             ["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"] = "Refresh projection freshness before granting platform authority.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.ProjectionLifecycle"] = "Current projection lifecycle evidence is required before granting platform authority.",
             ["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"] = "Another platform authority command is in flight.",
             ["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"] = "The global administrator read projection must be available before grant can be submitted.",
             ["Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred"] = "Remove global administrator is handled by a separate guarded flow.",
-            ["Tenants.GlobalAdministrators.Grant.UserId.Help"] = "Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.",
+            ["Tenants.GlobalAdministrators.Grant.UserId.Help"] = "Enter the literal caller-supplied user id (256 characters or fewer, no control characters). It is not parsed as a tenant member, GUID, or ULID.",
+            ["Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired"] = "Current projection evidence is required before confirming the global administrator grant.",
+            ["Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"] = "Projection re-query did not confirm the target global administrator.",
+            ["Tenants.GlobalAdministrators.Grant.Confirm.PageScoped"] = "The projection re-query covers only the first page of global administrators, which does not include this user, so the grant cannot be confirmed from this page. Confirm the outcome from the tenant audit trail.",
             ["Tenants.GlobalAdministrators.Grant.UserId.Label"] = "User id",
             ["Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid"] = "Enter a supported user id of 256 characters or fewer without control characters.",
             ["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"] = "User id is required before granting global administrator authority.",
@@ -3534,8 +3637,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Unavailable.Authorization"] = "Platform authority is not confirmed, so remove fails closed without revealing administrator data.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"] = "The command surface is unavailable for platform governance changes.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"] = "Refresh projection freshness before removing platform authority.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.ProjectionLifecycle"] = "Current projection lifecycle evidence is required before removing platform authority.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"] = "Another platform authority command is in flight.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.Incomplete"] = "Current complete projection evidence is required before removing platform authority.",
+            ["Tenants.GlobalAdministrators.Remove.Confirm.PageScoped"] = "The projection re-query covers only the first page of global administrators, which cannot prove this administrator was removed platform-wide. Confirm the outcome from the tenant audit trail.",
+            ["Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired"] = "Current complete projection evidence is required before confirming global administrator removal.",
+            ["Tenants.GlobalAdministrators.Remove.Confirm.StillPresent"] = "Projection re-query still shows the target global administrator. Do not treat removal as complete.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"] = "The last global administrator cannot be removed.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"] = "The global administrator read projection must be available before removal can be submitted.",
             ["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"] = "The target administrator is not visible in the current projection.",
@@ -3548,6 +3655,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Return"] = "Return to Tenants",
             ["Tenants.GlobalAdministrators.Recovery.Retry"] = "Retry review",
             ["Tenants.GlobalAdministrators.Recovery.Reset"] = "Reset to first page",
+            ["Tenants.GlobalAdministrators.Recovery.IncompletePaging"] = "More administrators are indicated, but no continuation page is available. Reset to the first page and retry the review.",
             ["Tenants.GlobalAdministrators.Recovery.PageRecovered"] = "The protected page could not be restored. The review restarted at the first page.",
             ["Tenants.GlobalAdministrators.Recovery.HistoryTruncated"] = "Paging history reached its limit, so this step went back to the first page instead of the previous one.",
             ["Tenants.GlobalAdministrators.Recovery.AuthorizationChanged"] = "Authorization changed. The review restarted at the first page.",

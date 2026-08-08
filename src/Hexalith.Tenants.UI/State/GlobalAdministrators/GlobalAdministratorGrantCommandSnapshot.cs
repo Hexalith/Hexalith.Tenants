@@ -152,7 +152,8 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             || snapshot.Kind is not (GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty)) {
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = "Current projection evidence is required before confirming the global administrator grant.",
+                // Resource keys — resolved by the page localizer so EN/FR stay whole-string parity.
+                SafeMessage = "Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -180,8 +181,8 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 // so "did not confirm" would report a permanent false negative for an outcome this page
                 // simply cannot see. Both arms stay UnableToVerify -- the difference is honesty about why.
                 SafeMessage = snapshot.IsCompleteEvidence
-                    ? "Projection re-query did not confirm the target global administrator."
-                    : "The projection re-query covers only the first page of global administrators, which does not include this user, so the grant cannot be confirmed from this page. Confirm the outcome from the tenant audit trail.",
+                    ? "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"
+                    : "Tenants.GlobalAdministrators.Grant.Confirm.PageScoped",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

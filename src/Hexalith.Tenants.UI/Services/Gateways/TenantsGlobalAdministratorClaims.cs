@@ -125,7 +125,9 @@ internal static class TenantsGlobalAdministratorClaims
             .Where(static claim => string.Equals(claim.Type, "eventstore:tenant", StringComparison.Ordinal))
             .Select(static claim => claim.Value)
             .ToArray();
-        if (scopes.Any(static scope => string.IsNullOrWhiteSpace(scope) || scope.Any(char.IsWhiteSpace))
+        if (scopes.Any(static scope =>
+                string.IsNullOrWhiteSpace(scope)
+                || scope.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c)))
             || scopes.Distinct(StringComparer.Ordinal).Skip(1).Any())
         {
             return null;
@@ -138,7 +140,10 @@ internal static class TenantsGlobalAdministratorClaims
     {
         if (claim.Type is "global_admin" or "is_global_admin")
         {
-            return bool.TryParse(claim.Value, out bool value)
+            // Trim before parse so padded values agree with role-token normalization. Untrimmed
+            // " true" previously failed TryParse and poisoned an otherwise clear administrator
+            // reflection to Indeterminate while " true"-padded roles still authorized after trim.
+            return bool.TryParse(claim.Value.AsSpan().Trim(), out bool value)
                 ? value
                 : null;
         }
@@ -185,11 +190,15 @@ internal static class TenantsGlobalAdministratorClaims
                 return null;
             }
 
-            // Split the normalized value, and treat every whitespace character as a separator rather than only
-            // the space. "global-admin\ttenant-reader" previously tokenized as one unmatchable value.
-            roles = trimmed.Split(
-                [' ', ',', '\t', '\n', '\r', '\f', '\v', '\u00A0'],
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            // Split on commas, then on every Unicode whitespace character. A fixed separator list left
+            // characters such as em-space (\u2003) inside a single unmatchable token and produced a
+            // definite NonAdministrator / MissingPermission instead of authorizing or failing closed.
+            roles = trimmed
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .SelectMany(static segment => segment.Split(
+                    (char[]?)null,
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .ToArray();
             if (roles.Length == 0)
             {
                 return null;

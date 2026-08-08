@@ -14,6 +14,13 @@
     display: none;
 }
 
+/* fc-css-exception: mobile-only per-row reason paired with CSS-hidden mutation initiation so AC5 does not
+   leave grant/remove unavailable without a localized explanation in the actions column. Hidden on wide
+   viewports where Available / Remove launchers render normally. */
+.global-admins__mobile-mutation-reason {
+    display: none;
+}
+
 /* fc-css-exception: vertical region gap on semantic <section> landmarks and the <EditForm> grant
    form; keeping the landmarks/form precludes replacing them with a FluentStack wrapper. */
 .global-admins__scope,
@@ -213,6 +220,11 @@
        attribute; see the base rule for why ::deep on the FluentMessageBar itself could never match. */
     .global-admins__mobile-readonly-host {
         display: block;
+    }
+
+    .global-admins__mobile-mutation-reason {
+        display: inline-flex;
+        max-width: 22rem;
     }
 
     /* fc-css-exception: responsive breakpoint collapsing the content-sized label/value columns to a

@@ -5,8 +5,10 @@ created: '2026-07-28'
 status: 'review'
 baseline_commit: '2e61f57bda6379192007d1bc6fabbde61996b11d'
 baseline_revision: '2e61f57bda6379192007d1bc6fabbde61996b11d'
-review_loop_iteration: 4
+review_loop_iteration: 5
 followup_review_recommended: true
+# Remaining bmad-code-review chunks after loop-5 chunk-2 apply: (3) workspace + tenant detail,
+# (4) artifacts optional.
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -363,6 +365,44 @@ exit 0 with all seven pointers declared, no generic query path, `git diff --chec
   beside hidden controls [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466] — deferred,
   already recorded by loop 2; re-confirmed still open
 
+### Review Findings — loop 4 (2026-08-08, chunk 1: auth core)
+
+Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor completed. Verification Gap Reviewer returned empty
+and is recorded as failed. Diff scoped to File List auth-core files vs baseline `2e61f57`. Acceptance Auditor
+raised no AC violations for this chunk. Provider hang / `CancellationToken.None` and Audit sync-HTTP leftovers
+were re-raised by agents and dismissed here as already deferred in loops 2–3.
+
+- [x] [Review][Patch] Trim `global_admin` / `is_global_admin` claim values before `bool.TryParse` so padded booleans fail closed consistently with trimmed role tokens [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:141] — **APPLIED (2026-08-08):** `bool.TryParse` now runs on the trimmed span; focused auth suite 91/91.
+- [x] [Review][Patch] Split role collections on every Unicode whitespace character, matching the comment that claims all whitespace is a separator [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:190] — **APPLIED (2026-08-08):** comma then `Split(null)` whitespace tokenization; em-space regression added.
+- [x] [Review][Patch] Treat control characters in `eventstore:tenant` scope values as indeterminate evidence instead of a definite NonAdministrator miss [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:128] — **APPLIED (2026-08-08):** scope validation rejects control characters as indeterminate.
+- [x] [Review][Patch] Fix misleading `httpPrincipal` resolver tests that never inject `HttpContext.User` and therefore do not prove HTTP identity is ignored [tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs:41] — **APPLIED (2026-08-08):** removed dead `httpPrincipal` helper parameter; renamed tests to state the real contract.
+- [x] [Review][Patch] Assert the interface-default `ResolveLifecycleAuthorizationAsync` fails closed, not only `ResolveGlobalAdministratorsAuthorizationAsync` [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs:234] — **APPLIED (2026-08-08):** both interface-default seams asserted.
+- [x] [Review][Patch] Add coverage for conflicting role grant plus explicit boolean denial (`roles`/`role` + `global_admin=false` → Indeterminate) [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:117] — **APPLIED (2026-08-08):** evaluator regression added.
+- [x] [Review][Patch] Add coverage for authenticated principal with valid `sub` and zero administrator claim types → definite NonAdministrator/MissingPermission [src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs:95] — **APPLIED (2026-08-08):** evaluator regression added.
+
+### Review Findings — loop 5 (2026-08-08, chunk 2: GA page/state/resources/tests)
+
+Layers: Blind Hunter, Edge Case Hunter (retried after empty first pass), Verification Gap, Acceptance Auditor —
+all completed. Diff scoped to File List GA page/state/resources/tests vs baseline `2e61f57` (~7,358 lines).
+`validate-story-gitlinks.py` PASS (7 declared).
+
+- [x] [Review][Decision] Ready page with `HasMore` and blank `NextCursor` is a silent recovery dead-end — **RESOLVED (2026-08-08, owner decision): option 1 — treat as recoverable.** Do not add bare `Ready` to `CanRecover`. Gate Retry/Reset on incomplete paging evidence (`HasMore && blank NextCursor`), add a localized incomplete-paging notice, and cover with a focused page regression. Converted to a patch below. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:706]
+- [x] [Review][Patch] Treat Ready+HasMore+blank-NextCursor as recoverable: condition-gated Retry/Reset plus localized incomplete-paging notice (do not broaden `CanRecover` to all Ready) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:706] — **APPLIED (2026-08-08):** `HasIncompletePagingEvidence` / `HasIncompletePopulationOnReady` gate `CanRecover`; IncompletePaging notice + page regression.
+- [x] [Review][Patch] Localize grant/remove `ConfirmProjection` `SafeMessage` strings (currently hardcoded English) into EN/FR whole-string resources [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:182] — **APPLIED (2026-08-08):** ConfirmProjection stores `Tenants.*` keys; page resolves via `ResolveSafeMessage`; EN/FR parity.
+- [x] [Review][Patch] Close AC5 on narrow viewports: do not advertise Grant.Available beside CSS-hidden initiation; when per-row Remove is hidden, render a localized mobile/unavailable reason [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:493] — **APPLIED (2026-08-08):** Available claim uses `mutation-initiation`; mobile-only reason spans for grant/remove.
+- [x] [Review][Patch] Hide grant/remove Cancel and status-Refresh on narrow viewports with the other mutation actions (they remain operable inside still-visible mutation sections) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:252] — **APPLIED (2026-08-08):** Cancel/Refresh carry `global-admins__mutation-initiation`.
+- [x] [Review][Patch] Dispose the failed notification lease when `SubscribeAsync` returns `IsSubscribed == false` before charging the attempt budget [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1294] — **APPLIED (2026-08-08):** dispose + null local lease before return.
+- [x] [Review][Patch] Marshal grant/remove `RequestSent` + submitting-flag writes through `InvokeAsync` and re-check `CanApply*Mutation` so cancel/collapse between `Begin*Mutation` and `RequestSent` cannot stick [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1898] — **APPLIED (2026-08-08):** grant and remove arm RequestSent only when generation still applies.
+- [x] [Review][Patch] Guard grant/remove projection requery cursor resets with `CanApply*Mutation` before clearing `_cursorHistory` / jumping to page one [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1989] — **APPLIED (2026-08-08):** generation checked before and inside cursor reset, and before LoadAsync.
+- [x] [Review][Patch] Stop using `*.Unavailable.Freshness` when `IsMutationEvidenceBacked` fails solely on non-Current projection lifecycle; add honest lifecycle-gated copy (parity with Configuration/EditMetadata) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:723] — **APPLIED (2026-08-08):** split Freshness vs ProjectionLifecycle gates + EN/FR strings.
+- [x] [Review][Patch] Align grant user-id help text with the comment that advertises the 256-character / control-character bound [src/Hexalith.Tenants.UI/Resources/TenantsResources.resx:2823] — **APPLIED (2026-08-08):** EN/FR help mentions 256 / no control characters.
+- [x] [Review][Patch] When Remove is blocked by incomplete population evidence on an otherwise Ready page, offer Reset/recovery (or steer copy to first-page complete evidence) so the operator is not stuck [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:771] — **APPLIED (2026-08-08):** `HasIncompletePopulationOnReady` included in `CanRecover`.
+- [x] [Review][Patch] Assert grant `ConfirmProjection` page-scoped SafeMessage (mirror remove `Page_scoped_absence_…`) [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs:27] — **APPLIED (2026-08-08):** page-scoped vs DidNotConfirm key assertions.
+- [x] [Review][Patch] Cover Unknown-with-rows list rendering (`ShouldRenderRows` includes Unknown) [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:609] — **APPLIED (2026-08-08):** retained-rows + blocked mutations regression.
+- [x] [Review][Patch] Assert the grant user-id input exposes no `maxlength` attribute after MaxLength removal [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:199] — **APPLIED (2026-08-08):** maxlength null assertion.
+- [x] [Review][Defer] Multi-page populations can permanently land grant/remove confirmation in page-scoped `UnableToVerify` because requery always loads page one — deferred, pre-existing by-design honesty path; page-scoped SafeMessages document the limit; expanding to search-by-id is out of this story's boundaries [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:178]
+- [x] [Review][Defer] UnableToVerify copy mentions the tenant audit trail without an in-page link — deferred, pre-existing; navigation to audit is outside chunk-2 / story boundary [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:184]
+
 ## Spec Change Log
 
 - 2026-08-02: Closed the remaining loop-3 unverified-guard carry-forward with mutation-verified coverage
@@ -376,6 +416,12 @@ exit 0 with all seven pointers declared, no generic query path, `git diff --chec
   published dependency-pointer provenance, and validated the story for review.
 
 ## Review Triage Log
+
+- 2026-08-08, review loop 5, chunk 2 (GA page/state/resources/tests, ~7,358 diff lines / 15 files vs `2e61f57`).
+  All four layers completed (Edge Case Hunter empty on first pass, succeeded on retry). 1 decision raised and
+  resolved (incomplete paging → condition-gated recovery), 13 patches applied, 2 deferred, 6 dismissed as noise.
+  Focused GA suite: 161/161 passed. AC5 mobile gaps previously deferred in loops 2–3 closed. Story returned to
+  `review` for remaining chunks (3) workspace + tenant detail, (4) artifacts optional.
 
 - 2026-08-01, review loop 1, auth/navigation chunk: 1 decision resolved, 4 patches applied, 1 pre-existing issue deferred, and 1 candidate dismissed as noise. Blind-hunter and verification-gap layers timed out; edge-case and acceptance layers completed and were corroborated against the implementation and focused tests.
 - Verification: UI test project and full solution built warning-clean; 214 directly affected UI tests, the story's 585-test focused UI lane, and 5 fixed-scope server authorization tests passed. The generic-query-path search and `git diff --check` passed.

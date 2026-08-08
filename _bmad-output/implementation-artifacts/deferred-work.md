@@ -846,6 +846,16 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   Revisit if: the mobile read-only surface is revisited, or accessibility review flags the actions cell.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:466]
 
+## Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-08, loop 5 chunk 2)
+
+- Multi-page populations can permanently land grant/remove confirmation in page-scoped `UnableToVerify`
+  because requery always loads page one. Page-scoped SafeMessages document the honesty limit; adding
+  search-by-id or deep-link verification would widen the story past its fixed-scope review boundary.
+  [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:178]
+- UnableToVerify copy mentions confirming via the tenant audit trail without an in-page navigation link.
+  Audit navigation is outside this story's File List and acceptance criteria.
+  [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:184]
+
 ## Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01, loop 3)
 
 - A `Ready` snapshot reporting `HasMore == true` with a blank `NextCursor` is a silent dead end. Loop 2 correctly
@@ -855,6 +865,8 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   Reason for deferral: needs a copy/design decision on how to announce incomplete evidence on an otherwise
   healthy surface, not a mechanical fix; the service should not normally produce this shape.
   Revisit if: the query contract allows `HasMore` without a cursor, or `CanRecover` is revised.
+  **SUPERSEDED (2026-08-08, loop 5):** owner chose option 1 — condition-gated recoverable incomplete paging
+  (`HasMore && blank NextCursor`) with localized notice; tracked as an open loop-5 patch on the story.
   [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:698]
 
 - Authorization resolution is uncancellable from both consuming pages. The loop-2 patch made

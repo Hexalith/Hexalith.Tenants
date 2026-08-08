@@ -228,7 +228,8 @@ public sealed class TenantsBffCompositionTests
     /// <summary>
     /// The interface default must also fail closed. Every implementation in the repo overrides the async
     /// resolver, so nothing exercised the default -- and forwarding it to the synchronous property would let
-    /// any future implementation silently inherit the discarded HTTP-only interpretation.
+    /// any future implementation silently inherit the discarded HTTP-only interpretation. Both authorization
+    /// seams must be pinned: lifecycle defaults by forwarding to the global-administrators default.
     /// </summary>
     [Fact]
     public async Task Interface_default_authorization_resolution_fails_closed_rather_than_forwarding()
@@ -236,6 +237,8 @@ public sealed class TenantsBffCompositionTests
         ITenantsBffComposition composition = new DefaultOnlyComposition();
 
         (await composition.ResolveGlobalAdministratorsAuthorizationAsync())
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        (await composition.ResolveLifecycleAuthorizationAsync())
             .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 

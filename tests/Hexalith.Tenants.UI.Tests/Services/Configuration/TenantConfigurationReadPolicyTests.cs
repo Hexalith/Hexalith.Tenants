@@ -37,17 +37,15 @@ public sealed class TenantConfigurationReadPolicyTests
         evidence.Subject.ShouldBe("operator.alpha");
     }
 
+    /// <summary>
+    /// With no circuit activity and no injectable fallback provider, resolution fails closed. The prior
+    /// "stale HTTP principal" framing was misleading: this helper never assigns <c>HttpContext.User</c>, and
+    /// the resolver no longer reads the request principal for evidence — only as a prerender discriminator.
+    /// </summary>
     [Fact]
     public async Task Resolver_without_a_circuit_authentication_provider_fails_closed()
     {
-        ClaimsPrincipal staleHttpPrincipal = Principal(
-            new Claim("sub", "operator.http"),
-            new Claim("eventstore:tenant", "system"),
-            new Claim("global_admin", "true"));
-
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(
-            httpPrincipal: staleHttpPrincipal,
-            userContextSubject: "operator.http").ResolveAsync();
+        TenantConfigurationPrincipalEvidence evidence = await Resolver().ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         evidence.Subject.ShouldBeNull();
@@ -105,19 +103,19 @@ public sealed class TenantConfigurationReadPolicyTests
             resolution.WaitAsync(TimeSpan.FromSeconds(2)));
     }
 
+    /// <summary>
+    /// Circuit activity-scoped authentication is the evidence source when present. A separately named
+    /// "stale HTTP" principal is not consulted — the resolver never reads <c>HttpContext.User</c> — so this
+    /// pins that the circuit identity alone decides the reflection.
+    /// </summary>
     [Fact]
-    public async Task Resolver_prefers_current_circuit_identity_over_stale_authenticated_http_identity()
+    public async Task Resolver_uses_current_circuit_identity_when_circuit_authentication_is_available()
     {
-        ClaimsPrincipal staleHttpPrincipal = Principal(
-            new Claim("sub", "operator.http"),
-            new Claim("eventstore:tenant", "system"),
-            new Claim("roles", "[\"global-admin\"]"));
         ClaimsPrincipal currentCircuitPrincipal = Principal(
             new Claim("sub", "operator.circuit"),
             new Claim("roles", "[\"tenant-reader\"]"));
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
-            httpPrincipal: staleHttpPrincipal,
             circuitPrincipal: currentCircuitPrincipal,
             userContextSubject: "operator.circuit").ResolveAsync();
 
@@ -225,6 +223,69 @@ public sealed class TenantConfigurationReadPolicyTests
 
         TenantsGlobalAdministratorClaims.Evaluate(principalWithExtendedWhitespaceRoles)
             .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
+    [Fact]
+    public void Evaluator_accepts_roles_separated_by_unicode_whitespace_not_in_the_legacy_separator_list()
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "tenant-reader\u2003global-admin"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
+    [Theory]
+    [InlineData(" true")]
+    [InlineData("true ")]
+    [InlineData("\ttrue")]
+    public void Evaluator_trims_boolean_administrator_claim_values(string claimValue)
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", claimValue));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
+    [Fact]
+    public void Evaluator_treats_role_grant_conflicting_with_explicit_boolean_denial_as_indeterminate()
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "global-admin"),
+            new Claim("global_admin", "false"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+    }
+
+    [Fact]
+    public void Evaluator_treats_authenticated_subject_without_administrator_claims_as_missing_permission()
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+    }
+
+    [Fact]
+    public void Evaluator_treats_control_characters_in_system_scope_as_indeterminate()
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system\0"),
+            new Claim("global_admin", "true"));
+
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 
     /// <summary>
@@ -1014,7 +1075,6 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     private static TenantConfigurationPrincipalResolver Resolver(
-        ClaimsPrincipal? httpPrincipal = null,
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
         bool supplyUserContext = true,
@@ -1032,7 +1092,7 @@ public sealed class TenantConfigurationReadPolicyTests
 
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(supplyUserContext
-            ? userContextSubject ?? SubjectFrom(httpPrincipal) ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal)
+            ? userContextSubject ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal)
             : null);
 
         // requestInScope models the prerender / static-SSR pass: an HttpContext is present and there is no
