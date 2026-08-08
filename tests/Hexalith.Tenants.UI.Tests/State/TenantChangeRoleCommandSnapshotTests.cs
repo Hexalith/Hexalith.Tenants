@@ -29,12 +29,12 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     }
 
     [Fact]
-    public void Completed_status_requires_target_user_role_projection_evidence_before_confirmation()
+    public void Completed_status_requires_role_projection_evidence_and_version_advancement_before_confirmation()
     {
         var intent = new ChangeUserRole("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
 
@@ -47,9 +47,18 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         withoutRequestedRole.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         withoutRequestedRole.LastConfirmedMemberProjection.ShouldBeNull();
 
+        TenantChangeRoleCommandSnapshot withoutAdvancement = snapshot.ConfirmProjection(Detail(
+            "Tenant.Mixed-01",
+            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantContributor)]),
+            currentProjectionVersion: "v1");
+
+        withoutAdvancement.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        withoutAdvancement.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+
         TenantChangeRoleCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantContributor)]));
+            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantContributor)]),
+            currentProjectionVersion: "v2");
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedMemberProjection.ShouldNotBeNull().Members
@@ -62,7 +71,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
 
@@ -81,7 +90,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot accepted = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received));
 
@@ -93,13 +102,35 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         stillAccepted.LastConfirmedMemberProjection.ShouldBeNull();
     }
 
+
+    [Fact]
+    public void Pre_existing_matching_role_maps_to_already_applied_not_confirmed()
+    {
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
+            .Idle()
+            .RequestSent(intent, TenantRole.TenantContributor, ownerCount: 2, baselineProjectionVersion: "v1", baselinePostconditionMet: true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+
+        TenantChangeRoleCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+            "tenant.alpha",
+            [new TenantMember("literal-user", TenantRole.TenantContributor)]),
+            currentProjectionVersion: "v2");
+
+        result.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        result.SafeMessageKey.ShouldBe("Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting");
+        result.SafeMessage.ShouldBeNull();
+    }
+
     [Fact]
     public void Signalr_nudge_cannot_confirm_role_or_audit_success()
     {
         var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
@@ -116,7 +147,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
 
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0));
 
@@ -137,7 +168,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
-            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
+            .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message."));
 

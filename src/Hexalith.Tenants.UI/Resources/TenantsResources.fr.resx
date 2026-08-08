@@ -1932,6 +1932,12 @@
   <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
     <value>La prise en charge de l'audit manque pour ce flux.</value>
   </data>
+  <data name="Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
+    <value>La projection du membre correspondait déjà sans preuve que cette tentative l'ait fait avancer. Actualisez le statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.AddMember.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continuer en lecture seule</value>
+  </data>
   <data name="Tenants.ChangeRole.Title" xml:space="preserve">
     <value>Changer le rôle du membre locataire</value>
   </data>
@@ -2054,6 +2060,18 @@
   </data>
   <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
     <value>La prise en charge de l'audit manque pour ce flux.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
+    <value>Le rôle demandé était déjà appliqué avant cette tentative ; aucun nouveau changement de rôle n'est affirmé.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>La projection du rôle correspond sans référence de base avant envoi, cette tentative ne peut pas être confirmée.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget" xml:space="preserve">
+    <value>La projection des membres ne contient plus l'utilisateur cible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continuer en lecture seule</value>
   </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Créer un locataire</value>
@@ -2294,6 +2312,18 @@
   </data>
   <data name="Tenants.RemoveMember.DuplicatePrevented.Message" xml:space="preserve">
     <value>Une commande de retrait de membre est déjà en cours pour ce flux.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
+    <value>Les preuves de projection confirment que l'utilisateur cible était déjà absent avant cette tentative ; aucun succès de retrait n'est affirmé.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence" xml:space="preserve">
+    <value>Les preuves de projection confirment que l'utilisateur cible est déjà absent ; aucun résultat de commande ni preuve d'audit n'est affirmé.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>L'absence du membre correspond sans référence de base avant envoi, cette tentative ne peut pas être confirmée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continuer en lecture seule</value>
   </data>
   <data name="Tenants.RemoveMember.State.Idle" xml:space="preserve">
     <value>Aucun aperçu de retrait de membre ouvert.</value>

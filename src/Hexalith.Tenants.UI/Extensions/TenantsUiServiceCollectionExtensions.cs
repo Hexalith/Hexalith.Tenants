@@ -11,6 +11,7 @@ using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -92,6 +93,7 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
         services.TryAddScoped<TenantSearchPagingState>();
         services.TryAddScoped<TenantReadRefreshSubscription>();
+        services.TryAddScoped<TenantAggregateCommandAdmissionGate>();
 
         services.AddAuthorizationCore(options =>
             options.AddPolicy(

@@ -928,3 +928,21 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   [`src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs:64`]
 - Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing command-flow pattern beyond this story's badge split
   [`src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor`]
+
+## Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation.md (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: CorrectionStartPanel still submits membership corrections without reusable messageId tracking.
+  evidence: Shared gateway now accepts optional messageId, but correction UI was outside Story 2.1 membership-flow File List and still mints a new ULID per attempt.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Projection-version advancement is opaque inequality only, with no causal/audit-qualified branch.
+  evidence: Confirm uses non-equal non-empty version strings; safe audit provenance newer than baseline remains unimplemented though the Always clause allows version OR audit.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: AggregateAdmissionGate falls back to a page-private instance when DI resolution fails.
+  evidence: A private gate cannot enforce circuit-scoped AggregateIdentity admission shared with other consumers; only the DI-registered singleton does.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: SignalR nudge is skipped when MemberAccessReview ref is still null.
+  evidence: TenantDetailPage forwards only when `_memberAccessReview is not null`; early refresh before child attach can miss an in-flight nudge.

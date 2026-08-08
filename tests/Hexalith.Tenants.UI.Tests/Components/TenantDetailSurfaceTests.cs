@@ -614,6 +614,106 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         });
     }
 
+    [Fact]
+    public void Same_aggregate_membership_command_makes_sibling_membership_surfaces_unavailable()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        TaskCompletionSource<TenantCommandSubmissionResult> pendingSubmission = new();
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with
+            {
+                ProjectionVersion = "projection-v1",
+            }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(admissionGate);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingMembershipCommandGateway(pendingSubmission.Task));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+
+        cut.WaitForAssertion(() =>
+            admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue());
+
+        cut.Find("[data-testid='tenants-change-role-open']").Click();
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-change-role-unavailable-reason']")
+                .TextContent.ShouldContain("command support is unavailable", Case.Insensitive));
+
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+    }
+
+    [Fact]
+    public void Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        int detailReads = 0;
+        TenantDetail refreshedDetail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" },
+            TenantStatus.Active,
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+                new TenantMember("new-member", TenantRole.TenantReader),
+            ]);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                int call = Interlocked.Increment(ref detailReads);
+                return Task.FromResult(ReadyWithSafeConfiguration(
+                    call == 1 ? Detail("tenant.alpha") : refreshedDetail,
+                    ProjectionLifecycleState.Current,
+                    call == 1 ? "projection-v1" : "projection-v2"));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(detailReads <= 1 ? Detail("tenant.alpha") : refreshedDetail) with
+            {
+                ProjectionVersion = detailReads <= 1 ? "projection-v1" : "projection-v2",
+            }));
+        var commandGateway = new TrackingMembershipCommandGateway(
+            Task.FromResult(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456")),
+            new TenantCommandStatusResult(CommandStatus.Received));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+
+        cut.WaitForAssertion(() =>
+            cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Accepted));
+
+        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() => detailReads.ShouldBeGreaterThan(1));
+        cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
+            .ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        commandGateway.AddMemberCallCount.ShouldBe(1);
+        commandGateway.StatusCallCount.ShouldBeGreaterThan(1);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -3598,6 +3698,45 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             configuration,
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
 
+    private sealed class TrackingMembershipCommandGateway(
+        Task<TenantCommandSubmissionResult> addMemberSubmission,
+        TenantCommandStatusResult? status = null) : ITenantCommandGateway
+    {
+        public int AddMemberCallCount { get; private set; }
+
+        public int StatusCallCount { get; private set; }
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+        {
+            AddMemberCallCount++;
+            return addMemberSubmission;
+        }
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(RemoveTenantConfiguration request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
+        {
+            StatusCallCount++;
+            return Task.FromResult(status ?? TenantCommandStatusResult.Unknown("Command status is unavailable."));
+        }
+    }
+
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
         public TenantCommandSubmissionResult AddMemberSubmission { get; init; }
@@ -3616,13 +3755,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(AddMemberSubmission);
 
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
@@ -4005,6 +4144,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.AddMember.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.AddMember.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.AddMember.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance"] = "Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.",
+            ["Tenants.AddMember.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.ChangeRole.Title"] = "Change tenant member role",
             ["Tenants.ChangeRole.Description"] = "Change the role for user {1} in tenant {0}. The current confirmed role is {2}.",
             ["Tenants.ChangeRole.UserId.Label"] = "User id",
@@ -4045,6 +4186,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.ChangeRole.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.ChangeRole.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.ChangeRole.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting"] = "The requested role was already applied before this attempt; no new role change is asserted.",
+            ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline"] = "Role projection matched without a pre-submit baseline, so this attempt cannot be confirmed.",
+            ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget"] = "The member projection no longer contains the target user.",
+            ["Tenants.ChangeRole.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Members.Action.AddMember"] = "Add member",
             ["Tenants.Members.Action.ChangeRole"] = "Change role",
             ["Tenants.Members.Action.RemoveMember"] = "Remove member",

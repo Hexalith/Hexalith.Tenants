@@ -1932,6 +1932,12 @@
   <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
     <value>Audit support is missing for this flow.</value>
   </data>
+  <data name="Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
+    <value>Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.</value>
+  </data>
+  <data name="Tenants.AddMember.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continue read-only</value>
+  </data>
   <data name="Tenants.ChangeRole.Title" xml:space="preserve">
     <value>Change tenant member role</value>
   </data>
@@ -2054,6 +2060,18 @@
   </data>
   <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
     <value>Audit support is missing for this flow.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
+    <value>The requested role was already applied before this attempt; no new role change is asserted.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>Role projection matched without a pre-submit baseline, so this attempt cannot be confirmed.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget" xml:space="preserve">
+    <value>The member projection no longer contains the target user.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continue read-only</value>
   </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Create tenant</value>
@@ -2294,6 +2312,18 @@
   </data>
   <data name="Tenants.RemoveMember.DuplicatePrevented.Message" xml:space="preserve">
     <value>A remove-member command is already in progress for this flow.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
+    <value>Projection evidence confirms the target user was already absent before this attempt; no removal success is asserted.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence" xml:space="preserve">
+    <value>Projection evidence confirms the target user is already absent; no command result or audit proof is asserted.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>Member absence matched without a pre-submit baseline, so this attempt cannot be confirmed.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continue read-only</value>
   </data>
   <data name="Tenants.RemoveMember.State.Idle" xml:space="preserve">
     <value>No remove-member preview opened.</value>

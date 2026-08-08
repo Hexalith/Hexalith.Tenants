@@ -577,6 +577,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
             AddUserToTenant request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
         {
             AddUserRequests.Add(request);
@@ -585,6 +586,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
             ChangeUserRole request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
         {
             ChangeRoleRequests.Add(request);
@@ -606,6 +608,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
             RemoveUserFromTenant request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

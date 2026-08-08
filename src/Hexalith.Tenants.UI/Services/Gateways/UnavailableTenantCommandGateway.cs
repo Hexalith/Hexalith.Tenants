@@ -11,16 +11,19 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway {
 
     public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
         AddUserToTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
 
     public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
         ChangeUserRole request,
+        string? messageId = null,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
 
     public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
         RemoveUserFromTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
 

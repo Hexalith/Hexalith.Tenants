@@ -10,14 +10,17 @@ public interface ITenantCommandGateway {
 
     Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
         AddUserToTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
         ChangeUserRole request,
+        string? messageId = null,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
         RemoveUserFromTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> UpdateTenantAsync(

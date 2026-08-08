@@ -19,7 +19,7 @@ public sealed class TenantCommandFlowGuardTests
     [InlineData(TenantCommandLifecycleState.Failed, false)]
     [InlineData(TenantCommandLifecycleState.Degraded, false)]
     [InlineData(TenantCommandLifecycleState.UnableToVerify, false)]
-    public void Guard_retains_parent_activity_only_for_submission_and_projection_pending_states(
+    public void Guard_retains_parent_activity_only_through_submission_and_projection_reconciliation(
         TenantCommandLifecycleState state,
         bool expected)
     {

@@ -33,7 +33,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     }
 
     [Fact]
-    public void Completed_status_requires_projection_confirmed_absence_before_confirmed_state()
+    public void Completed_status_requires_absence_and_version_advancement_before_confirmed_state()
     {
         var intent = new RemoveUserFromTenant("Tenant.Mixed-01", "User/CaseSensitive.01");
         TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
@@ -41,7 +41,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "Tenant.Mixed-01",
                 [new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader)]))
-            .RequestSent()
+            .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
 
@@ -55,9 +55,18 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         stillPending.LastConfirmedMemberProjection.ShouldNotBeNull().Members
             .ShouldContain(member => member.UserId == "User/CaseSensitive.01");
 
+        TenantRemoveMemberCommandSnapshot withoutAdvancement = snapshot.ConfirmProjection(Detail(
+            "Tenant.Mixed-01",
+            [new TenantMember("other-user", TenantRole.TenantOwner)]),
+            currentProjectionVersion: "v1");
+
+        withoutAdvancement.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        withoutAdvancement.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+
         TenantRemoveMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("other-user", TenantRole.TenantOwner)]));
+            [new TenantMember("other-user", TenantRole.TenantOwner)]),
+            currentProjectionVersion: "v2");
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedMemberProjection.ShouldNotBeNull().Members
@@ -74,7 +83,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent()
+            .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Rejected, "Safe rejection.", "UserNotInTenant"));
 
@@ -90,8 +99,32 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             [new TenantMember("owner-user", TenantRole.TenantOwner)]));
 
         alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
-        alreadyApplied.SafeMessage.ShouldNotBeNull().ShouldContain("already absent");
+        alreadyApplied.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence");
+        alreadyApplied.SafeMessage.ShouldBeNull();
         alreadyApplied.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+    }
+
+
+    [Fact]
+    public void Pre_existing_absence_maps_to_already_applied_not_confirmed()
+    {
+        var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
+        TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
+                "tenant.alpha",
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]))
+            .RequestSent(baselineProjectionVersion: "v1", baselinePostconditionMet: true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+
+        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+            "tenant.alpha",
+            [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+            currentProjectionVersion: "v2");
+
+        result.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
@@ -103,7 +136,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent()
+            .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
@@ -143,7 +176,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent()
+            .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(status, "Safe status.", "SafeCode"));
 

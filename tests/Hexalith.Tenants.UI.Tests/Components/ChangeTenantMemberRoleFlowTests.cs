@@ -74,6 +74,37 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void In_flight_retry_with_tracking_reuses_status_lookup_and_does_not_dispatch_again()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-789"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(1));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        int statusCallsAfterSubmit = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(1));
+        gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
     public void Allowed_role_change_submits_literal_user_id_and_confirms_only_with_requested_projection_evidence()
     {
         StubTenantCommandGateway gateway = new()
@@ -83,17 +114,24 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
 
+        string liveProjectionVersion = "v1";
         IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
-                request.TenantId,
-                [
-                    new TenantMember("owner-user", TenantRole.TenantOwner),
-                    new TenantMember(request.UserId, request.NewRole),
-                ]))));
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember(request.UserId, request.NewRole),
+                    ]));
+            }));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -357,19 +395,29 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
 
+        string liveProjectionVersion = "v1";
         IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
-                ? Detail(request.TenantId)
-                : Detail(
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                if (++projectionCalls == 1)
+                {
+                    return Task.FromResult<TenantDetail?>(Detail(request.TenantId));
+                }
+
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.NewRole),
-                    ]))));
+                    ]));
+            }));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -487,20 +535,22 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         public int ChangeRoleCallCount { get; private set; }
 
+        public int StatusCallCount { get; private set; }
+
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
         {
             ChangeRoleCallCount++;
             LastChangeRoleRequest = request;
             return ChangeRoleAsync is null ? Task.FromResult(Submission) : ChangeRoleAsync(request);
         }
 
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
@@ -510,7 +560,10 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
+        {
+            StatusCallCount++;
+            return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
+        }
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -557,6 +610,10 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             ["Tenants.ChangeRole.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.ChangeRole.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.ChangeRole.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting"] = "The requested role was already applied before this attempt; no new role change is asserted.",
+            ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline"] = "Role projection matched without a pre-submit baseline, so this attempt cannot be confirmed.",
+            ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget"] = "The member projection no longer contains the target user.",
+            ["Tenants.ChangeRole.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",

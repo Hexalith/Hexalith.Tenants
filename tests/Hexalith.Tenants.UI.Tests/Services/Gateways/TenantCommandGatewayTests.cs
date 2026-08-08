@@ -663,7 +663,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
             new RemoveUserFromTenant("Tenant.Mixed-01", "User/CaseSensitive.01"),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -691,7 +691,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
             new RemoveUserFromTenant("tenant.alpha", userId!),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id and user id are required");
@@ -719,7 +719,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
             new RemoveUserFromTenant("tenant.alpha", "literal-user"),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
@@ -741,7 +741,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
             new ChangeUserRole("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantReader),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -770,7 +770,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
             new ChangeUserRole("tenant.alpha", userId!, TenantRole.TenantReader),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id, user id, and new role are required");
@@ -788,7 +788,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
             new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.Unknown),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("new role");
@@ -817,7 +817,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
             new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
@@ -960,7 +960,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
             new AddUserToTenant("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -989,7 +989,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
             new AddUserToTenant("tenant.alpha", userId!, TenantRole.TenantReader),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id, user id, and role are required");
@@ -1007,7 +1007,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
             new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.Unknown),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("role");
@@ -1036,7 +1036,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
             new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
@@ -1045,6 +1045,132 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
         safeMessage.ShouldNotContain("token", Case.Insensitive);
         safeMessage.ShouldNotContain("correlation-456", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Add_user_to_tenant_reuses_provided_message_id_instead_of_minting()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-reuse"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            messageId: "01EXISTINGMESSAGEID000000000",
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.CorrelationId.ShouldBe("correlation-reuse");
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Add_user_to_tenant_mints_message_id_only_when_absent()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-new"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        ulids.CallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Change_user_role_reuses_provided_message_id_instead_of_minting()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-reuse"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
+            new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
+            messageId: "01EXISTINGMESSAGEID000000000",
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.CorrelationId.ShouldBe("correlation-reuse");
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Change_user_role_mints_message_id_only_when_absent()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-new"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
+            new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        ulids.CallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Remove_user_from_tenant_reuses_provided_message_id_instead_of_minting()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-reuse"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
+            new RemoveUserFromTenant("tenant.alpha", "literal-user"),
+            messageId: "01EXISTINGMESSAGEID000000000",
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.CorrelationId.ShouldBe("correlation-reuse");
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Remove_user_from_tenant_mints_message_id_only_when_absent()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-new"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
+            new RemoveUserFromTenant("tenant.alpha", "literal-user"),
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        ulids.CallCount.ShouldBe(1);
     }
 
     [Theory]
@@ -1451,7 +1577,13 @@ public sealed class TenantCommandGatewayTests
 
     private sealed class StubUlidFactory(string id) : IUlidFactory
     {
-        public string NewUlid() => id;
+        public int CallCount { get; private set; }
+
+        public string NewUlid()
+        {
+            CallCount++;
+            return id;
+        }
     }
 
     private sealed class StatusHandler(string body, HttpStatusCode statusCode = HttpStatusCode.OK) : HttpMessageHandler

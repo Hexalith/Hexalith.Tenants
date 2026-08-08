@@ -246,7 +246,10 @@ public sealed record TenantAddMemberCommandSnapshot(
     TenantDetailProjection? LastConfirmedMemberProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? BaselineProjectionVersion = null,
+    bool BaselinePostconditionMet = false,
     string? SafeMessage = null,
+    string? SafeMessageKey = null,
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
@@ -262,11 +265,17 @@ public sealed record TenantAddMemberCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantAddMemberCommandSnapshot RequestSent(AddUserToTenant intent)
+    public TenantAddMemberCommandSnapshot RequestSent(
+        AddUserToTenant intent,
+        string? baselineProjectionVersion = null,
+        bool baselinePostconditionMet = false)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
+            BaselineProjectionVersion = baselineProjectionVersion,
+            BaselinePostconditionMet = baselinePostconditionMet,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -281,6 +290,7 @@ public sealed record TenantAddMemberCommandSnapshot(
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -349,12 +359,15 @@ public sealed record TenantAddMemberCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantAddMemberCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantAddMemberCommandSnapshot ConfirmProjection(
+        TenantDetailProjection? detailEvidence,
+        string? currentProjectionVersion = null) {
         if (Intent is null) {
             return this;
         }
 
-        if (State is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
+        // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
+        if (State is not TenantCommandLifecycleState.ProjectionPending) {
             return this;
         }
 
@@ -368,10 +381,29 @@ public sealed record TenantAddMemberCommandSnapshot(
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
+        if (BaselinePostconditionMet || string.IsNullOrWhiteSpace(BaselineProjectionVersion)) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                LastConfirmedMemberProjection = detailEvidence,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance",
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        if (!TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                BaselineProjectionVersion,
+                currentProjectionVersion)) {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
         return this with {
             State = TenantCommandLifecycleState.Confirmed,
             LastConfirmedMemberProjection = detailEvidence,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -388,7 +420,10 @@ public sealed record TenantChangeRoleCommandSnapshot(
     int OwnerCount = 0,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? BaselineProjectionVersion = null,
+    bool BaselinePostconditionMet = false,
     string? SafeMessage = null,
+    string? SafeMessageKey = null,
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
@@ -407,13 +442,18 @@ public sealed record TenantChangeRoleCommandSnapshot(
     public TenantChangeRoleCommandSnapshot RequestSent(
         ChangeUserRole intent,
         TenantRole currentConfirmedRole,
-        int ownerCount)
+        int ownerCount,
+        string? baselineProjectionVersion = null,
+        bool baselinePostconditionMet = false)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
             CurrentConfirmedRole = currentConfirmedRole,
             OwnerCount = ownerCount,
+            BaselineProjectionVersion = baselineProjectionVersion,
+            BaselinePostconditionMet = baselinePostconditionMet,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -431,6 +471,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
             CurrentConfirmedRole = currentConfirmedRole,
             OwnerCount = ownerCount,
             SafeMessage = safeMessage,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -445,6 +486,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -521,12 +563,15 @@ public sealed record TenantChangeRoleCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantChangeRoleCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantChangeRoleCommandSnapshot ConfirmProjection(
+        TenantDetailProjection? detailEvidence,
+        string? currentProjectionVersion = null) {
         if (Intent is null) {
             return this;
         }
 
-        if (State is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
+        // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
+        if (State is not TenantCommandLifecycleState.ProjectionPending) {
             return this;
         }
 
@@ -540,7 +585,8 @@ public sealed record TenantChangeRoleCommandSnapshot(
         if (targetMember is null) {
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = "The member projection no longer contains the target user.",
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -551,10 +597,42 @@ public sealed record TenantChangeRoleCommandSnapshot(
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
+        if (BaselinePostconditionMet) {
+            return this with {
+                State = TenantCommandLifecycleState.AlreadyApplied,
+                LastConfirmedMemberProjection = detailEvidence,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting",
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(BaselineProjectionVersion)) {
+            return this with {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                LastConfirmedMemberProjection = detailEvidence,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline",
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        if (!TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                BaselineProjectionVersion,
+                currentProjectionVersion)) {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
         return this with {
             State = TenantCommandLifecycleState.Confirmed,
             LastConfirmedMemberProjection = detailEvidence,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -573,7 +651,10 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     TenantDetailProjection? LastConfirmedMemberProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? BaselineProjectionVersion = null,
+    bool BaselinePostconditionMet = false,
     string? SafeMessage = null,
+    string? SafeMessageKey = null,
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
@@ -604,6 +685,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             IsPreviewComplete = true,
             LastConfirmedMemberProjection = lastConfirmedMemberProjection,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Submit,
@@ -623,6 +705,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             OwnerCount = ownerCount,
             LastConfirmedMemberProjection = lastConfirmedMemberProjection,
             SafeMessage = safeMessage,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -633,15 +716,21 @@ public sealed record TenantRemoveMemberCommandSnapshot(
         => this with {
             State = TenantCommandLifecycleState.DuplicatePrevented,
             SafeMessage = safeMessage,
+            SafeMessageKey = null,
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
 
-    public TenantRemoveMemberCommandSnapshot RequestSent()
+    public TenantRemoveMemberCommandSnapshot RequestSent(
+        string? baselineProjectionVersion = null,
+        bool baselinePostconditionMet = false)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
+            BaselineProjectionVersion = baselineProjectionVersion,
+            BaselinePostconditionMet = baselinePostconditionMet,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -656,6 +745,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -724,7 +814,9 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantRemoveMemberCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence) {
+    public TenantRemoveMemberCommandSnapshot ConfirmProjection(
+        TenantDetailProjection? detailEvidence,
+        string? currentProjectionVersion = null) {
         if (Intent is null) {
             return this;
         }
@@ -744,11 +836,47 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             };
         }
 
-        if (State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending) {
+        // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
+        if (State is TenantCommandLifecycleState.ProjectionPending) {
+            if (BaselinePostconditionMet) {
+                return this with {
+                    State = TenantCommandLifecycleState.AlreadyApplied,
+                    LastConfirmedMemberProjection = detailEvidence,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.RemoveMember.Confirm.AlreadyApplied.PreExisting",
+                    RejectionCode = null,
+                    AuditState = TenantCommandAuditState.MissingSupport,
+                    FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(BaselineProjectionVersion)) {
+                return this with {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    LastConfirmedMemberProjection = detailEvidence,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline",
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+            }
+
+            if (!TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                    BaselineProjectionVersion,
+                    currentProjectionVersion)) {
+                return this with {
+                    LastConfirmedMemberProjection = detailEvidence,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                };
+            }
+
             return this with {
                 State = TenantCommandLifecycleState.Confirmed,
                 LastConfirmedMemberProjection = detailEvidence,
                 SafeMessage = null,
+                SafeMessageKey = null,
                 RejectionCode = null,
                 AuditState = TenantCommandAuditState.AuditPending,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -761,7 +889,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.AlreadyApplied,
                 LastConfirmedMemberProjection = detailEvidence,
-                SafeMessage = "Projection evidence confirms the target user is already absent; no command result or audit proof is asserted.",
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence",
                 RejectionCode = null,
                 AuditState = TenantCommandAuditState.MissingSupport,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,

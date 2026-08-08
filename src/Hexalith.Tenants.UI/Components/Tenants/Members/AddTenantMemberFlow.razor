@@ -80,6 +80,14 @@
                           OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.AddMember.Refresh"]
             </FluentButton>
+            @if (CanContinueReadOnly)
+            {
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-add-member-continue-read-only"
+                              OnClick="ContinueReadOnlyAsync">
+                    @Localizer["Tenants.AddMember.Action.ContinueReadOnly"]
+                </FluentButton>
+            }
         </FluentStack>
     </EditForm>
 
@@ -113,9 +121,9 @@
                 </AuditAvailabilityState>
             }
         </div>
-        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        @if (!string.IsNullOrWhiteSpace(DisplaySafeMessage))
         {
-            <p data-testid="tenants-add-member-safe-message">@_snapshot.SafeMessage</p>
+            <p data-testid="tenants-add-member-safe-message">@DisplaySafeMessage</p>
         }
         <p class="tenants-add-member-flow__live"
            data-testid="tenants-add-member-live-region"
@@ -164,6 +172,16 @@
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
+    public string? ProjectionVersion { get; set; }
+
+    /// <summary>
+    /// Optional live projection-version reader used after parent refresh. Prefer this over the
+    /// <see cref="ProjectionVersion"/> parameter, which can lag until the next render.
+    /// </summary>
+    [Parameter]
+    public Func<string?>? ProjectionVersionProvider { get; set; }
+
+    [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
     [Parameter]
@@ -202,11 +220,20 @@
         => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool CanRefresh
-        => _snapshot.CorrelationId is not null
+        => !string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.UnableToVerify
             or TenantCommandLifecycleState.Degraded;
+
+    private bool CanContinueReadOnly
+        => _snapshot.State is TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private string? DisplaySafeMessage
+        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
+            ? Localizer[_snapshot.SafeMessageKey].Value
+            : _snapshot.SafeMessage;
 
     private ITenantCommandGateway? CommandGateway
         => Services.GetService<ITenantCommandGateway>();
@@ -293,8 +320,21 @@
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
+    /// <summary>
+    /// SignalR / read-refresh path: nudge lifecycle, then re-query authoritative status/evidence.
+    /// Does not confirm from the notification alone.
+    /// </summary>
+    internal async Task HandleAuthoritativeRefreshNudgeAsync()
+    {
+        ApplySignalRNudge();
+        await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+    }
+
     internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail);
+        => _snapshot = _snapshot.ConfirmProjection(detail, ResolveCurrentProjectionVersion());
+
+    private string? ResolveCurrentProjectionVersion()
+        => ProjectionVersionProvider?.Invoke() ?? ProjectionVersion;
 
     private string RoleLabel(TenantRole role)
         => Localizer[$"Tenants.AddMember.Role.{role}"];
@@ -311,6 +351,17 @@
 
         if (!_isSubmitting && IsOwnedCommandInFlight)
         {
+            // Same logical attempt still in flight: re-query status with stored tracking; never mint a second dispatch.
+            if (!string.IsNullOrWhiteSpace(_snapshot.MessageId)
+                && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+                return;
+            }
+
+            SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
+                Localizer["Tenants.AddMember.Unavailable.InFlight"].Value,
+                TenantCommandFocusTarget.Refresh));
             return;
         }
 
@@ -335,7 +386,16 @@
         }
 
         var request = new AddUserToTenant(Detail.TenantId, _userId, role);
-        _snapshot = _snapshot.RequestSent(request);
+        bool baselinePostconditionMet = Detail.Members.Any(member =>
+            string.Equals(member.UserId, request.UserId, StringComparison.Ordinal)
+            && member.Role == request.Role);
+        string? reuseMessageId = string.IsNullOrWhiteSpace(_snapshot.MessageId) ? null : _snapshot.MessageId;
+        _snapshot = _snapshot.RequestSent(request, ResolveCurrentProjectionVersion(), baselinePostconditionMet);
+        if (reuseMessageId is not null)
+        {
+            _snapshot = _snapshot with { MessageId = reuseMessageId };
+        }
+
         _isSubmitting = true;
         await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
@@ -351,7 +411,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .AddUserToTenantAsync(request, CancellationToken.None)
+                .AddUserToTenantAsync(request, reuseMessageId, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -364,6 +424,8 @@
                 SetSnapshot(_snapshot with
                 {
                     State = result.State,
+                    MessageId = result.MessageId ?? _snapshot.MessageId,
+                    CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
@@ -379,10 +441,29 @@
         }
     }
 
-    private async Task RefreshStatusAsync()
+    private Task RefreshStatusAsync()
+        => RefreshCommandStatusAsync(requestProjectionRefresh: true);
+
+    private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
     {
-        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
         {
+            if (TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State)
+                || _snapshot.State is TenantCommandLifecycleState.UnableToVerify
+                    or TenantCommandLifecycleState.Degraded)
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value,
+                    SafeMessageKey = null,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
+
             return;
         }
 
@@ -399,14 +480,24 @@
             .ConfigureAwait(false);
         SetSnapshot(_snapshot.ApplyStatus(status));
 
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+        if (requestProjectionRefresh)
+        {
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+        }
+
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
         {
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+            SetSnapshot(_snapshot.ConfirmProjection(evidence, ResolveCurrentProjectionVersion()));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+    }
+
+    private async Task ContinueReadOnlyAsync()
+    {
+        SetSnapshot(TenantAddMemberCommandSnapshot.Idle());
+        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
     }
 
     private static bool TryParseAssignableRole(string value, out TenantRole role)

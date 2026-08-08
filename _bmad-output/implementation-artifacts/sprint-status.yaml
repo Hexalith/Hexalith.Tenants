@@ -80,7 +80,7 @@ development_status:
 
   # --- Epic 2: Safe Tenant Membership Management ---
   epic-2: done
-  2-1-reverify-projection-confirmed-membership-command-foundation: backlog
+  2-1-reverify-projection-confirmed-membership-command-foundation: review
   2-2-add-user-to-tenant-with-explicit-role: done
   2-3-change-tenant-member-role: done
   2-4-remove-tenant-member-with-complete-preview-and-proof: backlog

@@ -53,11 +53,14 @@
        HandleCommandActivityAsync would make one _childCommandInFlight field serve three owners, so an Add in
        flight could be released by tearing down an unrelated remove flow -- the defect this review found in
        the configuration landmark. *@
-    <AddTenantMemberFlow Detail="@Detail"
+    <AddTenantMemberFlow @ref="_addMemberFlow"
+                         Detail="@Detail"
                          SurfaceKind="@EffectiveSurfaceKind"
                          Freshness="@EffectiveFreshness"
                          IsAuthorized="@IsAddMemberAuthorized"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                         ProjectionVersion="@ProjectionVersion"
+                         ProjectionVersionProvider="@ProjectionVersionProvider"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                          OnCommandActivityChanged="@OnCommandActivityChanged"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
@@ -233,12 +236,15 @@
     @if (ActiveChangeRoleMember is not null)
     {
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
-            <ChangeTenantMemberRoleFlow Detail="@Detail"
+            <ChangeTenantMemberRoleFlow @ref="_changeRoleFlow"
+                                        Detail="@Detail"
                                         Member="@ActiveChangeRoleMember"
                                         SurfaceKind="@EffectiveSurfaceKind"
                                         Freshness="@EffectiveFreshness"
                                         IsAuthorized="@IsChangeRoleAuthorized"
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                        ProjectionVersion="@ProjectionVersion"
+                                        ProjectionVersionProvider="@ProjectionVersionProvider"
                                         OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                         OnCloseRequested="@CloseChangeRoleAsync"
                                         OnCommandActivityChanged="@HandleCommandActivityAsync"
@@ -249,12 +255,15 @@
     @if (ActiveRemoveMember is not null)
     {
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
-            <RemoveTenantMemberFlow Detail="@Detail"
+            <RemoveTenantMemberFlow @ref="_removeMemberFlow"
+                                    Detail="@Detail"
                                     Member="@ActiveRemoveMember"
                                     SurfaceKind="@EffectiveSurfaceKind"
                                     Freshness="@EffectiveFreshness"
                                     IsAuthorized="@IsRemoveMemberAuthorized"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    ProjectionVersion="@ProjectionVersion"
+                                    ProjectionVersionProvider="@ProjectionVersionProvider"
                                     TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseRemoveMemberAsync"
@@ -316,6 +325,9 @@
     private TenantMember? _activeRemoveMemberCapture;
     private string? _renderedTenantId;
     private string? _renderedMemberCursor;
+    private AddTenantMemberFlow? _addMemberFlow;
+    private ChangeTenantMemberRoleFlow? _changeRoleFlow;
+    private RemoveTenantMemberFlow? _removeMemberFlow;
 
     // One launch button is rendered per actionable member row, so a single shared reference would
     // be overwritten by the last row in the loop and return focus to the wrong member on close.
@@ -339,6 +351,9 @@
 
     [Parameter]
     public string? ProjectionVersion { get; set; }
+
+    [Parameter]
+    public Func<string?>? ProjectionVersionProvider { get; set; }
 
     [Parameter]
     public TenantUsersSnapshot Members { get; set; } = TenantUsersSnapshot.Unavailable();
@@ -685,6 +700,34 @@
     {
         _childCommandInFlight = isActive;
         await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Forwards a SignalR / read-refresh nudge into any in-flight membership flow without confirming
+    /// from the notification alone. Flows re-query authoritative status; locks release only via status path.
+    /// </summary>
+    /// <param name="detail">Authoritative detail evidence after the parent refresh (flows read via providers).</param>
+    internal async Task ApplySignalRNudgeAsync(TenantDetail? detail)
+    {
+        _ = detail;
+
+        if (_addMemberFlow is not null
+            && TenantCommandFlowGuard.RetainsCommandActivity(_addMemberFlow.Snapshot.State))
+        {
+            await _addMemberFlow.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+        }
+
+        if (_changeRoleFlow is not null
+            && TenantCommandFlowGuard.RetainsCommandActivity(_changeRoleFlow.Snapshot.State))
+        {
+            await _changeRoleFlow.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+        }
+
+        if (_removeMemberFlow is not null
+            && TenantCommandFlowGuard.RetainsCommandActivity(_removeMemberFlow.Snapshot.State))
+        {
+            await _removeMemberFlow.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task ReleaseChildCommandActivityAsync()

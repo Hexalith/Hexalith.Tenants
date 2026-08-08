@@ -101,22 +101,32 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
         int projectionCalls = 0;
+        string liveProjectionVersion = "v1";
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.Member, new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
-                ? Detail(
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                if (++projectionCalls == 1)
+                {
+                    return Task.FromResult<TenantDetail?>(Detail(
+                        request.TenantId,
+                        [
+                            new TenantMember("owner-user", TenantRole.TenantOwner),
+                            new TenantMember(request.UserId, TenantRole.TenantReader),
+                        ]));
+                }
+
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
                     request.TenantId,
-                    [
-                        new TenantMember("owner-user", TenantRole.TenantOwner),
-                        new TenantMember(request.UserId, TenantRole.TenantReader),
-                    ])
-                : Detail(
-                    request.TenantId,
-                    [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
+                    [new TenantMember("owner-user", TenantRole.TenantOwner)]));
+            }));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("User/CaseSensitive.01");
         cut.Find("form").Submit();
@@ -265,6 +275,37 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
     }
 
+    [Fact]
+    public void In_flight_retry_with_tracking_reuses_status_lookup_and_does_not_dispatch_again()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-999"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        int statusCallsAfterSubmit = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+        gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
     [Theory]
     [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "Refresh current tenant detail")]
     [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "Refresh current tenant detail")]
@@ -377,16 +418,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         public int RemoveMemberCallCount { get; private set; }
 
+        public int StatusCallCount { get; private set; }
+
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
         {
             RemoveMemberCallCount++;
             LastRemoveMemberRequest = request;
@@ -400,7 +443,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => Task.FromResult(Status);
+        {
+            StatusCallCount++;
+            return Task.FromResult(Status);
+        }
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -457,6 +503,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.Role.Unknown"] = "Unknown role",
             ["Tenants.RemoveMember.AlreadyApplied.BeforeSubmit"] = "User {0} is already absent from the current confirmed projection; no remove command was submitted.",
             ["Tenants.RemoveMember.DuplicatePrevented.Message"] = "A remove-member command is already in progress for this flow.",
+            ["Tenants.RemoveMember.Confirm.AlreadyApplied.PreExisting"] = "Projection evidence confirms the target user was already absent before this attempt; no removal success is asserted.",
+            ["Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence"] = "Projection evidence confirms the target user is already absent; no command result or audit proof is asserted.",
+            ["Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline"] = "Member absence matched without a pre-submit baseline, so this attempt cannot be confirmed.",
+            ["Tenants.RemoveMember.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.RemoveMember.State.Idle"] = "No remove-member preview opened.",
             ["Tenants.RemoveMember.State.Previewed"] = "Consequence preview ready; no command has been submitted.",
             ["Tenants.RemoveMember.State.RequestSent"] = "Remove-member request sent.",

@@ -3384,16 +3384,19 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
             AddUserToTenant request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
             ChangeUserRole request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
             RemoveUserFromTenant request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

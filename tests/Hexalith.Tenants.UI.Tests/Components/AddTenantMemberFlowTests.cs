@@ -90,16 +90,23 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
 
+        string liveProjectionVersion = "v1";
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
-                request.TenantId,
-                [
-                    new TenantMember("owner-user", TenantRole.TenantOwner),
-                    new TenantMember(request.UserId, request.Role),
-                ]))));
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember(request.UserId, request.Role),
+                    ]));
+            }));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
@@ -109,6 +116,115 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-add-member-live-region']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find("[data-testid='tenants-add-member-audit']").TextContent.ShouldContain("Audit evidence pending");
         cut.Markup.ShouldNotContain("correlation-456", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Signalr_nudge_requeries_status_without_confirming_from_notification_alone()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => "v2")
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail(
+                "tenant.alpha",
+                [
+                    new TenantMember("owner-user", TenantRole.TenantOwner),
+                    new TenantMember("literal-user", TenantRole.TenantReader),
+                ]))));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        // Baseline was captured via provider as v2 at submit; keep evidence matching to prove Received cannot confirm.
+        int statusCallsBeforeNudge = gateway.StatusCallCount;
+
+        cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+
+        cut.WaitForAssertion(() => gateway.StatusCallCount.ShouldBe(statusCallsBeforeNudge + 1));
+        // Status remains Received → Accepted; matching evidence alone must not confirm without Completed.
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void In_flight_retry_with_tracking_reuses_status_lookup_and_does_not_dispatch_again()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.AddMemberCallCount.ShouldBe(1));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        int statusCallsAfterSubmit = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.AddMemberCallCount.ShouldBe(1));
+        gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
+    public async Task Lost_tracking_refresh_maps_to_unable_to_verify_without_second_dispatch()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+
+        System.Reflection.FieldInfo snapshotField = typeof(AddTenantMemberFlow)
+            .GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        TenantAddMemberCommandSnapshot snapshot = (TenantAddMemberCommandSnapshot)snapshotField.GetValue(cut.Instance)!;
+        snapshotField.SetValue(cut.Instance, snapshot with { MessageId = null, CorrelationId = null });
+
+        await cut.InvokeAsync(async () =>
+        {
+            await cut.Instance.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+        });
+        cut.Render();
+
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        gateway.AddMemberCallCount.ShouldBe(1);
+        TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeFalse();
+        cut.Find("[data-testid='tenants-add-member-continue-read-only']");
     }
 
     [Fact]
@@ -299,22 +415,27 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         public AddUserToTenant? LastAddMemberRequest { get; private set; }
 
+        public string? LastAddMemberMessageId { get; private set; }
+
         public int AddMemberCallCount { get; private set; }
+
+        public int StatusCallCount { get; private set; }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
         {
             AddMemberCallCount++;
             LastAddMemberRequest = request;
+            LastAddMemberMessageId = messageId;
             return AddMemberAsync is null ? Task.FromResult(Submission) : AddMemberAsync(request);
         }
 
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
@@ -324,7 +445,10 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => Task.FromResult(Status);
+        {
+            StatusCallCount++;
+            return Task.FromResult(Status);
+        }
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -363,6 +487,8 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             ["Tenants.AddMember.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.AddMember.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.AddMember.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance"] = "Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.",
+            ["Tenants.AddMember.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",

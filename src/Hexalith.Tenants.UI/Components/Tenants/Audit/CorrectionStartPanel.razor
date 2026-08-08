@@ -445,10 +445,10 @@
             TenantCommandSubmissionResult result = _snapshot.Intent.IntendedCommandType switch
             {
                 TenantCorrectionCommandType.AddUserToTenant => await gateway
-                    .AddUserToTenantAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), CancellationToken.None)
+                    .AddUserToTenantAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), cancellationToken: CancellationToken.None)
                     .ConfigureAwait(false),
                 TenantCorrectionCommandType.ChangeUserRole => await gateway
-                    .ChangeUserRoleAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), CancellationToken.None)
+                    .ChangeUserRoleAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), cancellationToken: CancellationToken.None)
                     .ConfigureAwait(false),
                 _ => TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"]),
             };
