@@ -3379,6 +3379,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(
             CreateTenant request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

@@ -560,7 +560,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
-    public void Workspace_allows_create_flow_when_list_freshness_is_unknown()
+    public void Workspace_allows_create_flow_only_for_authoritatively_empty_unknown_list()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
@@ -582,6 +582,52 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
+    public void Workspace_blocks_create_flow_for_ambiguous_unknown_list()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: false, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']")
+            .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+    }
+
+    [Fact]
+    public void Workspace_blocks_create_flow_for_non_empty_unknown_list()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Ready(
+                [TenantListRow.FromSummary(new Hexalith.Tenants.Contracts.Queries.TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Unknown,
+                isDegraded: false)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']")
+            .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+    }
+
+    [Fact]
     public void Workspace_blocks_create_flow_when_list_freshness_is_stale()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -600,6 +646,26 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
             .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+    }
+
+    [Fact]
+    public void Workspace_blocks_create_when_command_surface_is_disconnected()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(commandSurfaceConnected: false));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']")
+            .TextContent.ShouldContain("Tenant command support is unavailable.");
     }
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)
@@ -777,7 +843,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
@@ -818,13 +884,14 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private sealed class StubTenantsBffComposition(
         TenantLifecycleAuthorizationReflectionState globalAdministratorReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
-        Func<ValueTask<TenantLifecycleAuthorizationReflectionState>>? resolver = null) : ITenantsBffComposition
+        Func<ValueTask<TenantLifecycleAuthorizationReflectionState>>? resolver = null,
+        bool commandSurfaceConnected = true) : ITenantsBffComposition
     {
         private TenantLifecycleAuthorizationReflectionState _reflection = globalAdministratorReflection;
 
         public bool IsReadSurfaceConnected => true;
 
-        public bool IsCommandSurfaceConnected => true;
+        public bool IsCommandSurfaceConnected => commandSurfaceConnected;
 
         public TenantLifecycleAuthorizationReflectionState Reflection
         {

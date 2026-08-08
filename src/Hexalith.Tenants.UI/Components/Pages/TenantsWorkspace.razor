@@ -153,7 +153,10 @@
                                      Expanded="false"
                                      data-testid="tenants-create-accordion">
                     <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                                      IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current or ReadModelFreshnessState.Unknown)"
+                                      IsFresh="@IsCreateFresh"
+                                      IsCommandSurfaceAvailable="@IsCommandSurfaceConnected"
+                                      BaselineProjectionVersion="@_snapshot.ProjectionVersion"
+                                      BaselineTenantAbsent="@(_snapshot.Kind is TenantListSurfaceKind.Empty && _snapshot.IsAuthorizationScopedEmpty)"
                                       ShowHeading="false"
                                       OnProjectionRefreshRequested="RefreshAsync"
                                       ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
@@ -404,6 +407,17 @@
 
     private bool HasActiveSearch
         => !string.IsNullOrWhiteSpace(_search);
+
+    private bool IsCreateFresh
+        => _snapshot.Freshness is ReadModelFreshnessState.Current
+            || (_snapshot.Freshness is ReadModelFreshnessState.Unknown
+                && _snapshot.Kind is TenantListSurfaceKind.Empty
+                && _snapshot.IsAuthorizationScopedEmpty
+                && _snapshot.Rows.Count == 0);
+
+    private bool IsCommandSurfaceConnected
+        => Services.GetService(typeof(ITenantsBffComposition)) is ITenantsBffComposition bffComposition
+            && bffComposition.IsCommandSurfaceConnected;
 
     // The scoped paging service resolved on a non-interactive (static SSR / prerender) render pass belongs
     // to that request's scope, not to the interactive circuit, so retained protected paging must neither be
@@ -948,19 +962,21 @@
     private static bool ExplainsSearchRestart(TenantListReason reason)
         => reason is TenantListReason.SearchRefreshed or TenantListReason.SearchPagingRestarted;
 
-    private async Task<TenantSummary?> FindTenantProjectionEvidenceAsync(string tenantId)
+    private async Task<(TenantSummary? Summary, string? ProjectionVersion)> FindTenantProjectionEvidenceAsync(string tenantId)
     {
-        IReadOnlyList<TenantListRow> confirmedRows = _lastConfirmedSnapshot?.Rows ?? _snapshot.Rows;
+        TenantListSnapshot evidenceSnapshot = _lastConfirmedSnapshot ?? _snapshot;
+        IReadOnlyList<TenantListRow> confirmedRows = evidenceSnapshot.Rows;
         if (!confirmedRows.Any(row => string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)))
         {
             await LoadAsync(reuseETag: false);
-            confirmedRows = _lastConfirmedSnapshot?.Rows ?? _snapshot.Rows;
+            evidenceSnapshot = _lastConfirmedSnapshot ?? _snapshot;
+            confirmedRows = evidenceSnapshot.Rows;
         }
 
         TenantListRow? row = confirmedRows.FirstOrDefault(r => string.Equals(r.TenantId, tenantId, StringComparison.Ordinal));
         return row is null
-            ? null
-            : new TenantSummary(row.TenantId, row.Name, row.Status);
+            ? (null, evidenceSnapshot.ProjectionVersion)
+            : (new TenantSummary(row.TenantId, row.Name, row.Status), evidenceSnapshot.ProjectionVersion);
     }
 
     private async Task ResetFiltersAsync()

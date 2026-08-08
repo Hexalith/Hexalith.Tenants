@@ -1965,7 +1965,7 @@ public sealed class TenantsUiCompositionTests
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)

@@ -106,7 +106,11 @@ public sealed record TenantCreateCommandSnapshot(
     TenantDetailSnapshot? LastConfirmedDetailEvidence = null,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? BaselineProjectionVersion = null,
+    bool BaselineTenantAbsent = false,
+    DateTimeOffset? AttemptStartedAtUtc = null,
     string? SafeMessage = null,
+    string? SafeMessageKey = null,
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
@@ -122,11 +126,19 @@ public sealed record TenantCreateCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantCreateCommandSnapshot RequestSent(CreateTenant intent)
+    public TenantCreateCommandSnapshot RequestSent(
+        CreateTenant intent,
+        string? baselineProjectionVersion,
+        bool baselineTenantAbsent,
+        DateTimeOffset? attemptStartedAtUtc = null)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
+            BaselineProjectionVersion = baselineProjectionVersion,
+            BaselineTenantAbsent = baselineTenantAbsent,
+            AttemptStartedAtUtc = attemptStartedAtUtc ?? DateTimeOffset.UtcNow,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -141,6 +153,7 @@ public sealed record TenantCreateCommandSnapshot(
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -209,24 +222,46 @@ public sealed record TenantCreateCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
-    public TenantCreateCommandSnapshot ConfirmProjection(TenantSummary? listEvidence, TenantDetailSnapshot? detailEvidence) {
+    public TenantCreateCommandSnapshot ConfirmProjection(
+        TenantSummary? listEvidence,
+        TenantDetailSnapshot? detailEvidence,
+        string? currentListProjectionVersion = null) {
         if (Intent is null) {
             return this;
         }
 
-        if (State is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
+        // Only a command status that reached event storage/completion may be reconciled into confirmation.
+        // Acceptance means receipt or processing only, not proof that the requested create occurred.
+        if (State is not TenantCommandLifecycleState.ProjectionPending) {
             return this;
         }
 
-        bool listProvesTenant = string.Equals(listEvidence?.TenantId, Intent.TenantId, StringComparison.Ordinal);
-        bool detailProvesTenant = string.Equals(detailEvidence?.Detail?.TenantId, Intent.TenantId, StringComparison.Ordinal);
-        if (!listProvesTenant && !detailProvesTenant) {
-            // No authoritative projection evidence yet: keep the lifecycle state exactly as the
-            // command status set it so Accepted (received/processing) and ProjectionPending
-            // (events stored/completed but not yet visible) stay distinct per AC4, instead of
-            // collapsing every unverified re-query into ProjectionPending. Only nudge focus to
-            // the refresh recovery action.
+        TenantSummary? list = listEvidence;
+        TenantDetailProjection? detail = detailEvidence?.Detail;
+        // TenantSummary intentionally omits Description, so list evidence can prove the complete submitted
+        // metadata only when the submitted description is absent. A non-null description requires detail.
+        bool listMatches = Intent.Description is null
+            && string.Equals(list?.TenantId, Intent.TenantId, StringComparison.Ordinal)
+            && string.Equals(list?.Name, Intent.Name, StringComparison.Ordinal);
+        bool detailMatches = string.Equals(detail?.TenantId, Intent.TenantId, StringComparison.Ordinal)
+            && string.Equals(detail?.Name, Intent.Name, StringComparison.Ordinal)
+            && string.Equals(detail?.Description, Intent.Description, StringComparison.Ordinal);
+        if (!listMatches && !detailMatches) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
+        if (!BaselineTenantAbsent) {
+            return UnableToVerify(listEvidence, detailEvidence);
+        }
+
+        string? currentProjectionVersion = detailEvidence?.ProjectionVersion ?? currentListProjectionVersion;
+        bool versionAdvanced = TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+            BaselineProjectionVersion,
+            currentProjectionVersion);
+        bool firstAppearanceWithVersion = string.IsNullOrWhiteSpace(BaselineProjectionVersion)
+            && !string.IsNullOrWhiteSpace(currentProjectionVersion);
+        if (!versionAdvanced && !firstAppearanceWithVersion) {
+            return UnableToVerify(listEvidence, detailEvidence);
         }
 
         return this with {
@@ -234,12 +269,27 @@ public sealed record TenantCreateCommandSnapshot(
             LastConfirmedListEvidence = listEvidence,
             LastConfirmedDetailEvidence = detailEvidence,
             SafeMessage = null,
+            SafeMessageKey = null,
             RejectionCode = null,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
     }
+
+    private TenantCreateCommandSnapshot UnableToVerify(
+        TenantSummary? listEvidence,
+        TenantDetailSnapshot? detailEvidence)
+        => this with {
+            State = TenantCommandLifecycleState.UnableToVerify,
+            LastConfirmedListEvidence = listEvidence,
+            LastConfirmedDetailEvidence = detailEvidence,
+            SafeMessage = null,
+            SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
+            AuditState = TenantCommandAuditState.AuditUnavailable,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
 }
 
 public sealed record TenantAddMemberCommandSnapshot(

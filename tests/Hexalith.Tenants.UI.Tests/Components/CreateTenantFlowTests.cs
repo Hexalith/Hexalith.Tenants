@@ -10,9 +10,12 @@ using Hexalith.Tenants.UI.Components.Tenants;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -80,7 +83,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantSummary?>(null)));
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<(TenantSummary?, string?)>((null, null))));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
         cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
@@ -104,7 +107,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
-            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantSummary?>(new TenantSummary(tenantId, "Mixed Tenant", TenantStatus.Active))));
+            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<(TenantSummary?, string?)>(
+                (new TenantSummary(tenantId, "Mixed Tenant", TenantStatus.Active), "projection-v2")))
+            .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
         cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
@@ -114,6 +119,71 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find("[data-testid='tenants-create-audit']").TextContent.ShouldContain("Audit evidence pending");
         cut.Markup.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Missing_provenance_renders_localized_unable_to_verify_copy()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.BaselineProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<(TenantSummary?, string?)>(
+                (new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v1"))));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldContain("provenance could not be verified");
+    }
+
+    [Fact]
+    public void Baseline_not_found_allows_detail_provenance_confirmation()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                Task.FromResult(TenantDetailSnapshot.NotFound("tenant.alpha")),
+                Task.FromResult(TenantDetailSnapshot.Ready(
+                    new TenantDetail(
+                        "tenant.alpha",
+                        "Alpha",
+                        null,
+                        TenantStatus.Active,
+                        [],
+                        new Dictionary<string, string>(),
+                        DateTimeOffset.UtcNow),
+                    "\"etag\"",
+                    Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current,
+                    projectionVersion: "projection-v2")));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton(queryGateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineProjectionVersion, "projection-v1"));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
     }
 
     [Fact]
@@ -157,6 +227,27 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         gateway.LastRequest.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData("   ", "Alpha", "Tenant id is required")]
+    [InlineData("tenant.alpha", "   ", "Name is required")]
+    public void Whitespace_required_fields_show_validation_without_gateway_dispatch(
+        string tenantId,
+        string name,
+        string expectedMessage)
+    {
+        StubTenantCommandGateway gateway = new();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change(tenantId);
+        cut.Find("[data-testid='tenants-create-name']").Change(name);
+        cut.Find("form").Submit();
+
+        cut.Find("[data-testid='tenants-create-validation']").TextContent.ShouldContain(expectedMessage);
+        gateway.CreateTenantCallCount.ShouldBe(0);
+    }
+
     [Fact]
     public void Rejected_status_remains_non_success_even_when_projection_contains_tenant()
     {
@@ -172,7 +263,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
-            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantSummary?>(new TenantSummary(tenantId, "Alpha", TenantStatus.Active))));
+            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<(TenantSummary?, string?)>(
+                (new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2"))));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
@@ -182,6 +274,31 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldContain("already exists");
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Retrying_the_same_tracked_attempt_refreshes_status_without_a_second_dispatch()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = TenantCommandStatusResult.Unknown("Command status could not be verified."),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.CreateTenantCallCount.ShouldBe(1));
+        gateway.StatusCallCount.ShouldBe(2);
     }
 
     [Fact]
@@ -278,7 +395,17 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         public int CreateTenantCallCount { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public int StatusCallCount { get; private set; }
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
+            CreateTenant request,
+            CancellationToken cancellationToken = default)
+            => CreateTenantAsync(request, messageId: null, cancellationToken: cancellationToken);
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
+            CreateTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
         {
             CreateTenantCallCount++;
             LastRequest = request;
@@ -301,7 +428,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => Task.FromResult(Status);
+        {
+            StatusCallCount++;
+            return Task.FromResult(Status);
+        }
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -323,6 +453,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             ["Tenants.Create.Unavailable.Freshness"] = "Refresh tenant data before submitting a command.",
             ["Tenants.Create.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.Create.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.Create.Unavailable.Tracking"] = "The previous tenant creation attempt cannot be replaced while its result is still being tracked. Refresh its status or continue read-only.",
+            ["Tenants.Create.Confirm.UnableToVerify.MissingProvenance"] = "The tenant projection matches the request, but creation provenance could not be verified.",
             ["Tenants.Create.State.Idle"] = "No command submitted.",
             ["Tenants.Create.State.RequestSent"] = "Request sent.",
             ["Tenants.Create.State.Accepted"] = "Accepted by EventStore; waiting for processing.",

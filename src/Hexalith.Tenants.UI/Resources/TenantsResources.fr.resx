@@ -2118,6 +2118,18 @@
   <data name="Tenants.Create.Unavailable.InFlight" xml:space="preserve">
     <value>Une commande locataire est déjà en cours.</value>
   </data>
+  <data name="Tenants.Create.Unavailable.Tracking" xml:space="preserve">
+    <value>La tentative précédente de création de locataire ne peut pas être remplacée tant que son résultat est suivi. Actualisez son statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.Create.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
+    <value>La projection du locataire correspond à la demande, mais la provenance de création n'a pas pu être vérifiée.</value>
+  </data>
+  <data name="Tenants.Create.Availability.FirstTenantUnknown" xml:space="preserve">
+    <value>La création est disponible car la liste autorisée des locataires est vide et attend sa première écriture de projection.</value>
+  </data>
+  <data name="Tenants.Create.Availability.Stale" xml:space="preserve">
+    <value>La création de locataire est indisponible car la liste autorisée est obsolète ou ne peut pas prouver un état vide de premier locataire.</value>
+  </data>
   <data name="Tenants.Create.State.Idle" xml:space="preserve">
     <value>Aucune commande soumise.</value>
   </data>

@@ -90,7 +90,7 @@ development_status:
 
   # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---
   epic-3: done
-  3-1-create-tenant-with-projection-confirmation: backlog
+  3-1-create-tenant-with-projection-confirmation: review
   3-2-edit-tenant-metadata-with-recorded-updates: backlog
   3-3-lifecycle-and-configuration-availability-guardrail: backlog
   3-4-disable-or-enable-tenant-with-complete-preview: backlog

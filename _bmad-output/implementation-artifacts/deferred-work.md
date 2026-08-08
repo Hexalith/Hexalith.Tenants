@@ -972,3 +972,27 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
   summary: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open.
   evidence: Per-row audit probes would add latency on every member render; Always clause capability language remains partially approximated until a shared capability signal exists.
+
+## Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: AggregateIdentity-scoped create admission lock through terminal evidence (unrelated aggregates may proceed; replace create-local submitting flag with TenantAggregateCommandAdmissionGate).
+  evidence: Split from Story 3.1 so the first delivery goal (provenance-qualified confirmation, first-tenant freshness exception, messageId reuse) stays within the 900–1600 token spec budget.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Workspace SignalR / read-refresh nudge wiring into CreateTenantFlow (ApplySignalRNudge + authoritative re-query; never notify-alone confirm).
+  evidence: Split from Story 3.1; membership already has the pattern, and create confirmation honesty can ship before host nudge plumbing.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy.
+  evidence: Split from Story 3.1; confirmation/freshness/idempotency core does not require viewport gating or interactive open-existing navigation in the first slice.
+
+## Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Create confirmation cannot correlate projection evidence to this attempt's messageId; concurrent same-id creates or unrelated list ProjectionVersion churn can still satisfy absence-then-presence + version rules.
+  evidence: ConfirmProjection uses metadata match plus opaque list/detail version advancement only; command-specific audit provenance branch remains unused (AttemptStartedAtUtc captured but not applied).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender.
+  evidence: Pre-existing composition pattern; Story 3.1 only threaded the existing flag into CreateTenantFlow.

@@ -6,6 +6,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway {
     public Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
 

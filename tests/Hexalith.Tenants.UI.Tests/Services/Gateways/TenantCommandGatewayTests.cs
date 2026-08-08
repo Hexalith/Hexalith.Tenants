@@ -1226,7 +1226,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("Tenant.Mixed-01", "Mixed Tenant", "literal id"),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -1243,6 +1243,27 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+    public async Task Create_tenant_reuses_provided_message_id_instead_of_minting()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-reuse"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
+            new CreateTenant("tenant.alpha", "Alpha", null),
+            messageId: "01EXISTINGMESSAGEID000000000",
+            cancellationToken: CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Create_tenant_maps_already_exists_rejection_to_safe_text()
     {
         CapturingGatewayClient client = new(new EventStoreGatewayException(
@@ -1256,7 +1277,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("tenant.alpha", "Alpha", null),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe("TenantAlreadyExists");
@@ -1288,7 +1309,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("tenant.alpha", "Alpha", null),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe("TenantAlreadyExists");
@@ -1310,10 +1331,29 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("", "Alpha", null),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldBe("Tenant id and name are required before the command can be submitted.");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("   ", "Alpha")]
+    [InlineData("tenant.alpha", "   ")]
+    public async Task Create_tenant_whitespace_validation_failure_does_not_submit_to_eventstore(string tenantId, string name)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-123"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
+            new CreateTenant(tenantId, name, null),
+            cancellationToken: CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         client.SubmittedCommands.ShouldBeEmpty();
     }
 
@@ -1331,7 +1371,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("tenant.alpha", "Alpha", null),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe("InsufficientPermissions");

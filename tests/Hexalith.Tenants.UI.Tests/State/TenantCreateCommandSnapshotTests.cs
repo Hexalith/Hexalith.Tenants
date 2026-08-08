@@ -3,6 +3,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Shouldly;
 
@@ -16,7 +17,7 @@ public sealed class TenantCreateCommandSnapshotTests
         var intent = new CreateTenant("Tenant.Mixed-01", "Mixed Tenant", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
-            .RequestSent(intent)
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
 
@@ -27,7 +28,8 @@ public sealed class TenantCreateCommandSnapshotTests
 
         TenantCreateCommandSnapshot confirmed = snapshot.ConfirmProjection(
             new TenantSummary("Tenant.Mixed-01", "Mixed Tenant", TenantStatus.Active),
-            null);
+            null,
+            "projection-v2");
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedListEvidence.ShouldNotBeNull().TenantId.ShouldBe("Tenant.Mixed-01");
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
@@ -39,7 +41,7 @@ public sealed class TenantCreateCommandSnapshotTests
         var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot accepted = TenantCreateCommandSnapshot
             .Idle()
-            .RequestSent(intent)
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received));
 
@@ -59,7 +61,7 @@ public sealed class TenantCreateCommandSnapshotTests
         var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
-            .RequestSent(intent)
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
@@ -95,7 +97,7 @@ public sealed class TenantCreateCommandSnapshotTests
         var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
-            .RequestSent(intent)
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message."));
 
@@ -106,5 +108,76 @@ public sealed class TenantCreateCommandSnapshotTests
         withProjectionEvidence.State.ShouldBe(expectedState);
         withProjectionEvidence.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         withProjectionEvidence.LastConfirmedListEvidence.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Matching_metadata_without_projection_advancement_is_unable_to_verify()
+    {
+        var intent = new CreateTenant("tenant.alpha", "Alpha", null);
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
+            .Idle()
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+
+        TenantCreateCommandSnapshot reconciled = snapshot.ConfirmProjection(
+            new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active),
+            null,
+            "projection-v1");
+
+        reconciled.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        reconciled.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void Pre_existing_baseline_can_never_be_confirmed_as_create()
+    {
+        var intent = new CreateTenant("tenant.alpha", "Alpha", null);
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
+            .Idle()
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: false)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+
+        TenantCreateCommandSnapshot reconciled = snapshot.ConfirmProjection(
+            new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active),
+            null,
+            "projection-v2");
+
+        reconciled.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        reconciled.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void Non_null_description_requires_matching_detail_evidence_before_confirmation()
+    {
+        var intent = new CreateTenant("tenant.alpha", "Alpha", "Description");
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
+            .Idle()
+            .RequestSent(intent, "projection-v1", baselineTenantAbsent: true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+
+        TenantCreateCommandSnapshot listOnly = snapshot.ConfirmProjection(
+            new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active),
+            null,
+            "projection-v2");
+        listOnly.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+
+        TenantDetailSnapshot detail = TenantDetailSnapshot.Ready(
+            new TenantDetail(
+                "tenant.alpha",
+                "Alpha",
+                "Description",
+                TenantStatus.Active,
+                [],
+                new Dictionary<string, string>(),
+                DateTimeOffset.UtcNow),
+            "\"etag\"",
+            Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current,
+            projectionVersion: "projection-v2");
+        TenantCreateCommandSnapshot confirmed = snapshot.ConfirmProjection(null, detail);
+
+        confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
     }
 }

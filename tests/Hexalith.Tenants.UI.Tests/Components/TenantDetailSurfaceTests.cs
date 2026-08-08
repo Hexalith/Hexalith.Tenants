@@ -3782,7 +3782,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         public int StatusCallCount { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
@@ -3828,7 +3828,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         public SetTenantConfiguration? LastSetConfigurationRequest { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)

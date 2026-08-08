@@ -6,6 +6,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
+        string? messageId = null,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> AddUserToTenantAsync(

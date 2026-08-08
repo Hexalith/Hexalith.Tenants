@@ -537,7 +537,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         public int StatusCallCount { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)

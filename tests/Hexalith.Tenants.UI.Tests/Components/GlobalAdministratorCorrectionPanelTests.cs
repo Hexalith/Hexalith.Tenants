@@ -510,7 +510,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             return Task.FromResult(Status);
         }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
