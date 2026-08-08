@@ -962,3 +962,13 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
   summary: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member.
   evidence: Matches established RemoveTenantConfigurationFlow CSS-only narrow gate; changing to a runtime viewport gate needs an explicit Ask First decision.
+
+## Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available.md (2026-08-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending.
+  evidence: GetTenantAuditAsync is called once without following HasMore/NextCursor; paging loop was deferred to keep this slice within review-patch scope.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open.
+  evidence: Per-row audit probes would add latency on every member render; Always clause capability language remains partially approximated until a shared capability signal exists.

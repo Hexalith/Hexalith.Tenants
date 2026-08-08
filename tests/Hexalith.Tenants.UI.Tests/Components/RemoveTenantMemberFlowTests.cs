@@ -10,6 +10,7 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -17,6 +18,8 @@ using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -496,11 +499,202 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
     }
 
-    private void RegisterServices(StubTenantCommandGateway gateway)
+    [Fact]
+    public void Missing_audit_proof_capability_fail_closes_before_dispatch()
+    {
+        RegisterServices(new StubTenantCommandGateway(), new UnavailableTenantQueryGateway());
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent
+            .ShouldContain("missing audit proof");
+        cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Confirmed_removal_with_matching_audit_row_renders_wp2a_receipt()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                DateTimeOffset from = request.From ?? DateTimeOffset.UtcNow.AddMinutes(-1);
+                TenantAuditRow match = new(
+                    "evt-remove-1",
+                    "UserRemovedFromTenant",
+                    AuditEventCategory.Access,
+                    "actor-1",
+                    from.AddSeconds(30),
+                    request.TenantId,
+                    "reader-user",
+                    request.TenantId,
+                    "removed",
+                    "userId: reader-user",
+                    ReadModelFreshnessState.Current);
+                return TenantAuditSnapshot.Ready(
+                    [match],
+                    nextCursor: null,
+                    hasMore: false,
+                    eTag: "etag-1",
+                    ReadModelFreshnessState.Current,
+                    request);
+            });
+        RegisterServices(gateway, queryGateway);
+
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember("second-owner", TenantRole.TenantOwner),
+                    ]));
+            }));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        });
+        cut.Find("[data-testid='tenants-audit-receipt']");
+        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("available");
+    }
+
+    [Fact]
+    public void Confirmed_removal_without_matching_audit_stays_pending_without_receipt()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+        RegisterServices(gateway);
+
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember("second-owner", TenantRole.TenantOwner),
+                    ]));
+            }));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        });
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("pending");
+    }
+
+    [Fact]
+    public void Confirmed_removal_with_unauthorized_audit_keeps_confirmed_without_available()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => TenantAuditSnapshot.Unauthorized(call.ArgAt<TenantAuditRequest>(0)));
+        RegisterServices(gateway, queryGateway);
+
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember("second-owner", TenantRole.TenantOwner),
+                    ]));
+            }));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        });
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("unavailable");
+    }
+
+    private void RegisterServices(StubTenantCommandGateway gateway, ITenantQueryGateway? queryGateway = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway ?? CreateCapableQueryGateway());
+    }
+
+    private static ITenantQueryGateway CreateCapableQueryGateway(TenantAuditSnapshot? audit = null)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => audit ?? TenantAuditSnapshot.Empty(
+                isAuthorizationScoped: true,
+                Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current,
+                eTag: null,
+                call.ArgAt<TenantAuditRequest>(0)));
+        return gateway;
     }
 
     private static string RepoRoot()
@@ -638,6 +832,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.Unavailable.Identity"] = "Tenant id and target user id are required before the preview can open.",
             ["Tenants.RemoveMember.Unavailable.UnknownRole"] = "The current role is unknown, so remove member fails closed until projection evidence is refreshed.",
             ["Tenants.RemoveMember.Unavailable.TargetAbsent"] = "The target user is already absent from the current confirmed projection.",
+            ["Tenants.Members.UnavailableReason.MissingAuditProof"] = "missing audit proof",
             ["Tenants.RemoveMember.Role.TenantOwner"] = "Tenant owner",
             ["Tenants.RemoveMember.Role.TenantContributor"] = "Tenant contributor",
             ["Tenants.RemoveMember.Role.TenantReader"] = "Tenant reader",
@@ -661,16 +856,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.State.Degraded"] = "Remove-member command result is degraded and needs review.",
             ["Tenants.RemoveMember.State.UnableToVerify"] = "Unable to verify the remove-member command result.",
             ["Tenants.RemoveMember.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.RemoveMember.Audit.AuditPending"] = "Audit evidence pending; no receipt is available in this story.",
-            ["Tenants.RemoveMember.Audit.AuditDelayed"] = "Audit evidence delayed; wait or inspect audit when Epic 5 evidence is available.",
-            ["Tenants.RemoveMember.Audit.AuditUnavailable"] = "Audit evidence unavailable; no proof or receipt is asserted.",
-            ["Tenants.RemoveMember.Audit.MissingSupport"] = "Audit evidence support is missing until Epic 5 implements the evidence source.",
+            ["Tenants.RemoveMember.Audit.AuditPending"] = "Audit evidence pending; removal is confirmed, wait or refresh for support-safe proof.",
+            ["Tenants.RemoveMember.Audit.AuditDelayed"] = "Audit evidence delayed; retry status lookup or inspect audit for removal proof.",
+            ["Tenants.RemoveMember.Audit.AuditUnavailable"] = "Audit evidence unavailable; confirmed removal stands without support-safe proof.",
+            ["Tenants.RemoveMember.Audit.AuditAvailable"] = "Audit evidence available; support-safe removal proof is ready.",
+            ["Tenants.RemoveMember.Audit.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate.",
             ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
             ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
+            ["Tenants.Audit.Availability.Accessible.Available"] = "Audit evidence is available; support-safe proof may be inspected or copied.",
             ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
             ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
             ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
@@ -683,9 +880,29 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
             ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
+            ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
+            ["Tenants.Audit.Receipt.Copy"] = "Copy support-safe audit references",
+            ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
+            ["Tenants.Audit.Receipt.Field.Target"] = "Target",
+            ["Tenants.Audit.Receipt.Field.Scope"] = "Scope",
+            ["Tenants.Audit.Receipt.Field.Outcome"] = "Outcome",
+            ["Tenants.Audit.Receipt.Field.Timestamp"] = "Timestamp",
+            ["Tenants.Audit.Receipt.Field.ProjectionMarker"] = "Projection marker",
+            ["Tenants.Audit.Receipt.Field.Reference"] = "Audit reference",
+            ["Tenants.Audit.Receipt.Field.CommandReference"] = "Command reference",
+            ["Tenants.Audit.Receipt.ActionsLabel"] = "Audit receipt recovery actions",
+            ["Tenants.Audit.Receipt.Action.ContinueReadOnly"] = "Continue read-only",
+            ["Tenants.Audit.Receipt.Action.Close"] = "Close",
+            ["Tenants.Audit.Receipt.Action.Retry"] = "Retry",
+            ["Tenants.Audit.Freshness.Current"] = "Current",
+            ["Tenants.Audit.Freshness.Stale"] = "Stale",
+            ["Tenants.Audit.Freshness.Unknown"] = "Unknown",
+            ["Tenants.Audit.Receipt.State.Ready"] = "Ready",
+            ["Tenants.Audit.Receipt.Empty"] = "—",
             ["Tenants.RemoveMember.Recovery.Idle"] = "Open the preview when current projection evidence is available.",
             ["Tenants.RemoveMember.Recovery.Previewed"] = "Confirm deliberately, cancel, or continue read-only.",
             ["Tenants.RemoveMember.Recovery.RequestSent"] = "Wait for command status and projection refresh.",

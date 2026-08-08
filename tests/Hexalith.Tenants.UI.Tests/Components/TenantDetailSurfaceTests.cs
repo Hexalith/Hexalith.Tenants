@@ -3482,6 +3482,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantQueryGateway>(Substitute.For<ITenantQueryGateway>());
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
 

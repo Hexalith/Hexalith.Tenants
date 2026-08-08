@@ -2383,16 +2383,19 @@
     <value>Audit evidence not started.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending; no receipt is available in this story.</value>
+    <value>Audit evidence pending; removal is confirmed, wait or refresh for support-safe proof.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed; wait or inspect audit when Epic 5 evidence is available.</value>
+    <value>Audit evidence delayed; retry status lookup or inspect audit for removal proof.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable; no proof or receipt is asserted.</value>
+    <value>Audit evidence unavailable; confirmed removal stands without support-safe proof.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.AuditAvailable" xml:space="preserve">
+    <value>Audit evidence available; support-safe removal proof is ready.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is missing until Epic 5 implements the evidence source.</value>
+    <value>Audit evidence support is missing; continue read-only or escalate.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Open the preview when current projection evidence is available.</value>
@@ -3105,6 +3108,9 @@
   <data name="Tenants.Audit.Availability.Accessible.Delayed" xml:space="preserve">
     <value>Audit evidence is delayed; retry status lookup or inspect audit before citing proof.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Accessible.Available" xml:space="preserve">
+    <value>Audit evidence is available; support-safe proof may be inspected or copied.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
     <value>Audit evidence support is missing; continue read-only or escalate with support-safe information.</value>
   </data>
@@ -3140,6 +3146,9 @@
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
     <value>Audit delayed</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.Available" xml:space="preserve">
+    <value>Audit available</value>
   </data>
   <data name="Tenants.Audit.Availability.State.MissingSupport" xml:space="preserve">
     <value>Missing implementation support</value>

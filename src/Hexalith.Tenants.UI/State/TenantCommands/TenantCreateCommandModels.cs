@@ -2,6 +2,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 // The Tenants.UI.State.TenantDetail namespace is a sibling of this namespace, so the bare name
@@ -45,6 +46,7 @@ public enum TenantCommandAuditState {
     AuditPending,
     AuditDelayed,
     AuditUnavailable,
+    AuditAvailable,
     MissingSupport,
 }
 
@@ -653,6 +655,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     string? CorrelationId = null,
     string? BaselineProjectionVersion = null,
     bool BaselinePostconditionMet = false,
+    DateTimeOffset? AttemptStartedAtUtc = null,
     string? SafeMessage = null,
     string? SafeMessageKey = null,
     string? RejectionCode = null,
@@ -724,11 +727,13 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
     public TenantRemoveMemberCommandSnapshot RequestSent(
         string? baselineProjectionVersion = null,
-        bool baselinePostconditionMet = false)
+        bool baselinePostconditionMet = false,
+        DateTimeOffset? attemptStartedAtUtc = null)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             BaselineProjectionVersion = baselineProjectionVersion,
             BaselinePostconditionMet = baselinePostconditionMet,
+            AttemptStartedAtUtc = attemptStartedAtUtc ?? DateTimeOffset.UtcNow,
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,
@@ -816,7 +821,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
     public TenantRemoveMemberCommandSnapshot ConfirmProjection(
         TenantDetailProjection? detailEvidence,
-        string? currentProjectionVersion = null) {
+        string? currentProjectionVersion = null,
+        bool hasQualifyingAuditProvenance = false) {
         if (Intent is null) {
             return this;
         }
@@ -863,9 +869,10 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 };
             }
 
-            if (!TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
-                    BaselineProjectionVersion,
-                    currentProjectionVersion)) {
+            bool versionAdvanced = TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                BaselineProjectionVersion,
+                currentProjectionVersion);
+            if (!versionAdvanced && !hasQualifyingAuditProvenance) {
                 return this with {
                     LastConfirmedMemberProjection = detailEvidence,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -900,6 +907,85 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
         return this;
     }
+
+    /// <summary>
+    /// Promotes confirmed removal to <see cref="TenantCommandAuditState.AuditAvailable"/> only when a
+    /// matching WP-2A removal audit row is supplied. Never invents available from empty or mismatched evidence.
+    /// Once available, unmatched rematches keep Available (confirmed outcome survives audit flaps).
+    /// </summary>
+    public TenantRemoveMemberCommandSnapshot ApplyRemovalProofMatch(bool matched) {
+        if (State is not TenantCommandLifecycleState.Confirmed) {
+            return this;
+        }
+
+        if (matched) {
+            return this with {
+                AuditState = TenantCommandAuditState.AuditAvailable,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
+        // Keep Available / Delayed / Unavailable across unmatched rematches; only Pending is the default wait state.
+        if (AuditState is TenantCommandAuditState.AuditAvailable
+            or TenantCommandAuditState.AuditDelayed
+            or TenantCommandAuditState.AuditUnavailable) {
+            return this;
+        }
+
+        return this with {
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+    }
+
+    /// <summary>
+    /// Maps audit-query surface failures after confirmation without reversing the confirmed access outcome.
+    /// </summary>
+    public TenantRemoveMemberCommandSnapshot ApplyRemovalProofQueryFailure(TenantCommandAuditState failureState) {
+        if (State is not TenantCommandLifecycleState.Confirmed) {
+            return this;
+        }
+
+        if (failureState is not (TenantCommandAuditState.AuditDelayed or TenantCommandAuditState.AuditUnavailable)) {
+            return this;
+        }
+
+        // Keep an already-matched available proof; later flaps must not silently downgrade success.
+        if (AuditState is TenantCommandAuditState.AuditAvailable) {
+            return this;
+        }
+
+        return this with {
+            AuditState = failureState,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = failureState is TenantCommandAuditState.AuditUnavailable
+                ? TenantCommandLiveRegionPoliteness.Assertive
+                : TenantCommandLiveRegionPoliteness.Polite,
+        };
+    }
+
+    public static bool IsMatchingRemovalProof(
+        TenantAuditRow? row,
+        string tenantId,
+        string targetUserId,
+        DateTimeOffset? attemptStartedAtUtc)
+        => row is not null
+        && string.Equals(row.EventType, "UserRemovedFromTenant", StringComparison.Ordinal)
+        && string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)
+        && string.Equals(row.Target, targetUserId, StringComparison.Ordinal)
+        && TenantMembershipCommandProvenance.HasQualifyingAuditProvenance(attemptStartedAtUtc, row.Timestamp);
+
+    public static TenantAuditRow? FindMatchingRemovalProof(
+        IReadOnlyList<TenantAuditRow> rows,
+        string tenantId,
+        string targetUserId,
+        DateTimeOffset? attemptStartedAtUtc)
+        => rows
+            .Where(row => IsMatchingRemovalProof(row, tenantId, targetUserId, attemptStartedAtUtc))
+            .OrderByDescending(row => row.Timestamp)
+            .FirstOrDefault();
 }
 
 public sealed record TenantUpdateMetadataCommandSnapshot(

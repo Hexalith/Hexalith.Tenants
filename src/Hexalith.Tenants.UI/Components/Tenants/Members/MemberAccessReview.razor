@@ -1,11 +1,14 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Services.Gateways
 @using Hexalith.Tenants.UI.State.GlobalAdministrators
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
 @using Hexalith.Tenants.UI.State.TenantUsers
+@using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
 
 <section class="tenant-members"
          aria-labelledby="tenants-member-heading"
@@ -585,12 +588,25 @@
             ];
         }
 
+        IReadOnlyList<UnavailableReason> removeReasons = IsAuditProofCapabilityAvailable
+            ? []
+            : [UnavailableReason.MissingAuditProof];
+
         return
         [
             new(MemberAction.AddMember, [UnavailableReason.MissingPermission, UnavailableReason.HighImpactFlowNotReady]),
             new(MemberAction.ChangeRole, []),
-            new(MemberAction.RemoveMember, []),
+            new(MemberAction.RemoveMember, removeReasons),
         ];
+    }
+
+    private bool IsAuditProofCapabilityAvailable
+    {
+        get
+        {
+            ITenantQueryGateway? gateway = Services.GetService<ITenantQueryGateway>();
+            return gateway is not null and not UnavailableTenantQueryGateway;
+        }
     }
 
     private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)

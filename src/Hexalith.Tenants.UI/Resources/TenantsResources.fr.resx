@@ -2383,16 +2383,19 @@
     <value>Preuve d'audit non démarrée.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente ; aucun reçu n'est disponible dans cette story.</value>
+    <value>Preuve d'audit en attente ; le retrait est confirmé, attendez ou actualisez pour la preuve sûre pour le support.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardée ; attendez ou inspectez l'audit lorsque la preuve de l'Epic 5 est disponible.</value>
+    <value>Preuve d'audit retardée ; réessayez le statut ou inspectez l'audit pour la preuve de retrait.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible ; aucune preuve ni aucun reçu n'est affirmé.</value>
+    <value>Preuve d'audit indisponible ; le retrait confirmé reste valide sans preuve sûre pour le support.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.AuditAvailable" xml:space="preserve">
+    <value>Preuve d'audit disponible ; la preuve de retrait sûre pour le support est prête.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implémente pas la source de preuve.</value>
+    <value>La prise en charge de la preuve d'audit manque ; continuez en lecture seule ou escaladez.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez l'aperçu lorsque la preuve de projection actuelle est disponible.</value>
@@ -3105,6 +3108,9 @@
   <data name="Tenants.Audit.Availability.Accessible.Delayed" xml:space="preserve">
     <value>La preuve d'audit est retardee ; reessayez la verification de statut ou inspectez l'audit avant de citer une preuve.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Accessible.Available" xml:space="preserve">
+    <value>La preuve d'audit est disponible ; une preuve sûre pour le support peut être inspectée ou copiée.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
     <value>Le support de preuve d'audit manque ; continuez en lecture seule ou escaladez avec des informations sures pour le support.</value>
   </data>
@@ -3140,6 +3146,9 @@
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
     <value>Audit retarde</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.Available" xml:space="preserve">
+    <value>Audit disponible</value>
   </data>
   <data name="Tenants.Audit.Availability.State.MissingSupport" xml:space="preserve">
     <value>Support d'implementation manquant</value>

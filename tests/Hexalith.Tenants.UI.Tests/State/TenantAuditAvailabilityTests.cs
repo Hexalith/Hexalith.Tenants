@@ -8,20 +8,22 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantAuditAvailabilityTests
 {
     [Theory]
-    [InlineData(TenantCommandAuditState.AuditPending, TenantAuditAvailabilityState.Pending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(TenantCommandAuditState.AuditDelayed, TenantAuditAvailabilityState.Delayed, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(TenantCommandAuditState.AuditUnavailable, TenantAuditAvailabilityState.Unavailable, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(TenantCommandAuditState.MissingSupport, TenantAuditAvailabilityState.MissingSupport, TenantCommandLiveRegionPoliteness.Assertive)]
-    public void Availability_maps_command_audit_states_without_success(
+    [InlineData(TenantCommandAuditState.AuditPending, TenantAuditAvailabilityState.Pending, TenantCommandLiveRegionPoliteness.Polite, false)]
+    [InlineData(TenantCommandAuditState.AuditDelayed, TenantAuditAvailabilityState.Delayed, TenantCommandLiveRegionPoliteness.Polite, false)]
+    [InlineData(TenantCommandAuditState.AuditUnavailable, TenantAuditAvailabilityState.Unavailable, TenantCommandLiveRegionPoliteness.Assertive, false)]
+    [InlineData(TenantCommandAuditState.AuditAvailable, TenantAuditAvailabilityState.Available, TenantCommandLiveRegionPoliteness.Polite, true)]
+    [InlineData(TenantCommandAuditState.MissingSupport, TenantAuditAvailabilityState.MissingSupport, TenantCommandLiveRegionPoliteness.Assertive, false)]
+    public void Availability_maps_command_audit_states(
         TenantCommandAuditState commandState,
         TenantAuditAvailabilityState expectedState,
-        TenantCommandLiveRegionPoliteness expectedPoliteness)
+        TenantCommandLiveRegionPoliteness expectedPoliteness,
+        bool expectedAvailable)
     {
         TenantAuditAvailability availability = TenantAuditAvailability.FromCommandAuditState(commandState);
 
         availability.State.ShouldBe(expectedState);
         availability.ShouldRender.ShouldBeTrue();
-        availability.IsAuditAvailable.ShouldBeFalse();
+        availability.IsAuditAvailable.ShouldBe(expectedAvailable);
         availability.LiveRegionPoliteness.ShouldBe(expectedPoliteness);
     }
 
@@ -41,6 +43,7 @@ public sealed class TenantAuditAvailabilityTests
     [InlineData(TenantCommandAuditState.AuditPending, new[] { TenantAuditRecoveryVerb.Wait, TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.InspectAudit })]
     [InlineData(TenantCommandAuditState.AuditDelayed, new[] { TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.InspectAudit })]
     [InlineData(TenantCommandAuditState.AuditUnavailable, new[] { TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.Escalate })]
+    [InlineData(TenantCommandAuditState.AuditAvailable, new[] { TenantAuditRecoveryVerb.InspectAudit, TenantAuditRecoveryVerb.ContinueReadOnly })]
     [InlineData(TenantCommandAuditState.MissingSupport, new[] { TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.Escalate })]
     public void Availability_maps_canonical_recovery_verbs(
         TenantCommandAuditState commandState,

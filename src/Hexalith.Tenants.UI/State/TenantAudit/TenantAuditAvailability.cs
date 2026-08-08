@@ -6,6 +6,7 @@ public enum TenantAuditAvailabilityState {
     Pending,
     Delayed,
     Unavailable,
+    Available,
     MissingSupport,
 }
 
@@ -25,7 +26,7 @@ public sealed record TenantAuditAvailability(
         => State is not null;
 
     public bool IsAuditAvailable
-        => false;
+        => State is TenantAuditAvailabilityState.Available;
 
     public static TenantAuditAvailability FromCommandAuditState(TenantCommandAuditState state)
         => state switch {
@@ -52,6 +53,13 @@ public sealed record TenantAuditAvailability(
                     TenantAuditRecoveryVerb.Escalate,
                 ],
                 TenantCommandLiveRegionPoliteness.Assertive),
+            TenantCommandAuditState.AuditAvailable => new(
+                TenantAuditAvailabilityState.Available,
+                [
+                    TenantAuditRecoveryVerb.InspectAudit,
+                    TenantAuditRecoveryVerb.ContinueReadOnly,
+                ],
+                TenantCommandLiveRegionPoliteness.Polite),
             TenantCommandAuditState.MissingSupport => new(
                 TenantAuditAvailabilityState.MissingSupport,
                 [
