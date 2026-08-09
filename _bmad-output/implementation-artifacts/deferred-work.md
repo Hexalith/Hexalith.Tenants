@@ -1012,3 +1012,9 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
   summary: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID.
   evidence: Story 3.2 edge-case review; same reuseMessageId pattern exists on AddTenantMemberFlow and was not uniquely introduced for metadata.
+
+## Deferred from: code review of spec-1-6-read-only-tenant-configuration.md (2026-08-09)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration.md`
+  summary: Configuration filter comment claims Ordinal matching while FilteredRows uses OrdinalIgnoreCase.
+  evidence: Pre-existing comment/code mismatch in TenantConfigurationView.razor; not introduced by the FluentStack host migration reviewed in this pass.

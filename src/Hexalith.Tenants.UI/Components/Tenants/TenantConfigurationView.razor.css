@@ -32,16 +32,16 @@
     max-width: 64rem;
 }
 
-/* fc-css-exception: truth-state stack uses grid justify-items:end that a responsive breakpoint flips to
-   start; FluentStack flex layout cannot honour the justify-items switch, so it stays a grid. */
+/* fc-css-exception: truth-state Class on a FluentStack host still needs grid justify-items:end that a
+   responsive breakpoint flips to start; FluentStack Orientation/VerticalGap cannot honour that switch. */
 .tenant-config__truth {
     display: grid;
     gap: 0.35rem;
     justify-items: end;
 }
 
-/* fc-css-exception: content-sized search controls grid (filter/clear/help columns); FluentGrid cannot
-   express content-sized columns and the rule has a responsive single-column breakpoint. */
+/* fc-css-exception: content-sized search controls grid (filter/clear/help columns) applied via Class on
+   a FluentStack host; FluentGrid cannot express content-sized columns or the single-column breakpoint. */
 .tenant-config__controls {
     align-items: end;
     display: grid;
@@ -75,8 +75,8 @@
     padding: 0.35rem 0.75rem;
 }
 
-/* fc-css-exception: horizontal availability container so literal keys and values stay reachable at every
-   width instead of being truncated or dropped; FluentDataGrid provides no such scroll container. */
+/* fc-css-exception: horizontal availability container Class on the FluentStack table host so literal keys
+   and values stay reachable at every width; FluentDataGrid provides no such scroll container. */
 .tenant-config__table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -89,8 +89,8 @@
     margin-block-end: 0.5rem;
 }
 
-/* fc-css-exception: vertical gap on the FluentAccordion group container and its inner data-grid wrapper;
-   the FluentAccordion is an existing Fluent component and must not be replaced by a FluentStack. */
+/* fc-css-exception: vertical gap on the FluentAccordion group container and the FluentStack-hosted
+   data-grid wrapper Class; FluentAccordion must not be replaced, and the inner host keeps CSS grid gap. */
 .tenant-config__groups,
 .tenant-config__group {
     display: grid;

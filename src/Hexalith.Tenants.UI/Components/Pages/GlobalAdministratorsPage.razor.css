@@ -222,6 +222,8 @@
         display: block;
     }
 
+    /* fc-css-exception: inline width-constrained wrapper for the per-row mobile mutation reason;
+       FluentStack adds no value over this inline-flex max-width constraint beside hidden launchers. */
     .global-admins__mobile-mutation-reason {
         display: inline-flex;
         max-width: 22rem;
