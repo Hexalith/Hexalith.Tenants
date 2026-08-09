@@ -1,5 +1,5 @@
 # generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-08-08
+# last_updated: 2026-08-09
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-08-08
+last_updated: 2026-08-09
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -115,6 +115,13 @@ development_status:
   5-6-preview-confirm-and-link-a-tenant-correction: backlog
   5-7-correct-global-administrator-authority-from-audit-evidence: backlog
   epic-5-retrospective: done
+
+  # --- Cross-cutting FrontComposer/Fluent conformance ---
+  # Restored 2026-08-09: key was dropped when sprint-status was regenerated from epics only.
+  cc-2026-06-17-frontcomposer-fluent-v5-page-component-conformance-sweep: done
+  cc-2026-06-18-frontcomposer-fluent-control-and-css-conformance-sweep: done
+  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: done
+  cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep: done
 
 action_items:
   - id: code-review-2026-07-27-submodule-bump-in-story-commits

@@ -2,7 +2,7 @@
 title: 'FrontComposer Fluent layout page-layout conformance sweep'
 type: 'refactor'
 created: '2026-06-18'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '974eac7fe6b7b6bc2545c2c51adb170ed587482a'
 approval: 'Administrator approved sprint-change-proposal-2026-06-18-fluent-layout-page-layout.md on 2026-06-18'
 scope_extension_approval: 'Administrator approved sprint-change-proposal-2026-06-18-page-header-frontcomposer.md on 2026-06-18'
@@ -257,7 +257,28 @@ Note: `min-*` longhands are intentionally excluded from the page-root blocked-pr
 - 2026-06-18: Full-story re-review (diff `974eac7..HEAD` + FrontComposer submodule `6edc855..e064573`) via three adversarial layers (Blind Hunter / Edge Case Hunter / Acceptance Auditor, all Opus 4.8). 3 decision-needed (DN1 HIGH `FcPageHeader` empty-`Name` crash → consumer fallback; DN2 landmark/a11y → FrontComposer/UX defer; DN3 → keep code + correct record), 3 patch + 2 decision-derived patches applied (P1/P3 partial by design, with rationale), 1 prior defer + DN2 newly deferred, 5 dismissed. Closed the HIGH crash (added `Tenants.Detail.UnnamedTenant` en/fr + fallback heading). `Hexalith.Tenants.UI.Tests` 682/682 (Release). Status → in-progress: residual deferred MEDIUM a11y regression handed to the `cc-2026-06-18` structural-and-style sweep, and a pending `Hexalith.FrontComposer` submodule commit + parent gitlink bump for the P3 CSS cleanup.
 - 2026-06-18: Resumed and finalized the reopened story. Re-verified both phases green against the current committed state (parent `c7da059` + FrontComposer submodule `f4910d7`): `Hexalith.Tenants.UI.Tests` 682/682 (Release), focused `FcPageHeaderTests` 4/4 (Release), `git diff --check` clean. Marked the three full-re-review Decision items `[x]` per the recorded Resolutions (DN1 patched P-DN1, DN2 deferred to the `cc-2026-06-18` structural-and-style sweep, DN3 patched P-DN3) — all tasks/subtasks now checked. Confirmed the P3 submodule commit landed and is pushed (`f4910d7` "remove unused .fc-page-header__actions class", working tree clean). One git-mechanics finalization item remains outside this workflow's commit scope and the repo's "no direct commits to `main`" policy: bump the parent gitlink `Hexalith.FrontComposer` `e064573` → `f4910d7` (already staged in the working tree as `modified: Hexalith.FrontComposer`) on a `fix/…` branch so the cleanup lands in CI/release. Status → review.
 - 2026-06-18: Independent third code review (bmad-code-review workflow) — three fresh adversarial layers (Blind Hunter / Edge Case Hunter / Acceptance Auditor, all Opus 4.8) over parent `974eac7..` + FrontComposer `6edc855..f4910d7`. 1 decision-needed, 1 patch, 3 deferred, 8 dismissed; all 7 ACs re-confirmed satisfied. **D1 (new, not caught by the prior two reviews):** the `pubsub.yaml` `enableDeadLetter`/`deadLetterTopic` component-metadata keys are inert (verified against DAPR docs — DLQ is per-subscription). Resolved option 1 (truthful correction): dead-lettering actually works via EventStore's application-level `DeadLetterPublisher`, so removed the inert keys from local + `deploy/dapr/pubsub.yaml`, corrected the comments + `docs/cross-aggregate-timing.md`, and updated `CrossAggregateTimingDocumentationTests` to assert their absence + the app-level mechanism (7/7 Release). **P1:** added a `TenantDetailSurfaceTests` regression theory guarding the P-DN1 blank-`Name` `UnnamedTenant` fallback (UI 684/684 Release, up from 682). Deferrals (a11y landmark DN2, `FcPageHeader` fail-open contract, out-of-scope DAPR/health bundling) recorded in `deferred-work.md`. Status → done.
+- 2026-08-09: Resume/verify pass against current `main`. No production code changes required — page layout (`FcPageLayout` / `FcAggregate*Page` measure), `FcPageHeader` migration, blank-`Name` fallback, and governance guards are already present. Story-scoped UI tests 55/55 (Release); focused `FcPageHeaderTests` 15/15 (Release); `git diff --check` clean. Synced frontmatter `status` (`in-progress` → `done`) with the Status section and restored the missing sprint-status key as `done`. Full `Hexalith.Tenants.UI.Tests` has 1 pre-existing unrelated failure (`LocalizerDoubleParityTests` vs `RemoveTenantMemberFlowTests` stub keys).
+- 2026-08-09: Review patch — hardened page-layout/header governance helpers to strip Razor/HTML comments before substring checks (same pattern as `CountLayoutWrappers`), and required every `@page` under `Pages/` to appear in `expectedDeclarations` with a justified FullWidth/Constrained rationale. Status → in-review.
 
 ## Status
 
 done
+
+## Suggested Review Order
+
+**Governance hardening (2026-08-09 resume)**
+
+- Entry: comment-stripped header declaration so commented tags cannot pass.
+  [`DomainUiFluentConformanceTests.cs:855`](../../tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs#L855)
+
+- Same strip for layout measure detection (`FcPageLayout` / aggregate wrappers).
+  [`DomainUiFluentConformanceTests.cs:865`](../../tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs#L865)
+
+- Same strip for FullWidth vs Constrained mode string checks.
+  [`DomainUiFluentConformanceTests.cs:873`](../../tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs#L873)
+
+- Every `@page` must be listed in `expectedDeclarations` with rationale.
+  [`DomainUiFluentConformanceTests.cs:312`](../../tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs#L312)
+
+- Shell still owns page chrome; pages declare measure through FrontComposer.
+  [`MainLayout.razor:1`](../../src/Hexalith.Tenants.UI/Components/Layout/MainLayout.razor#L1)

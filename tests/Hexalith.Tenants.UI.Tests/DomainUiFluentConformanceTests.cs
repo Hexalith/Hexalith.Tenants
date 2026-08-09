@@ -309,15 +309,25 @@ public sealed class DomainUiFluentConformanceTests
             }
         }
 
-        // Catch a newly added route page that declares no FcPageLayout measure at all (the explicit
-        // expectations above only cover the known pages).
+        // Every route page must appear in expectedDeclarations with a justified FullWidth vs Constrained
+        // rationale. Declaring any Mode/LayoutMode without that table entry is not enough.
+        HashSet<string> expectedFileNames = new(
+            expectedDeclarations.Select(declaration => declaration.FileName),
+            StringComparer.Ordinal);
         foreach (string razorFile in Directory.GetFiles(pagesRoot, "*.razor", SearchOption.AllDirectories))
         {
             string content = File.ReadAllText(razorFile);
-            if (content.Contains("@page", StringComparison.Ordinal)
-                && !DeclaresLayoutMeasure(content))
+            if (!content.Contains("@page", StringComparison.Ordinal))
             {
-                offenders.Add($"{Path.GetFileName(razorFile)} is a route page but declares no FcPageLayout measure");
+                continue;
+            }
+
+            string fileName = Path.GetFileName(razorFile);
+            if (!expectedFileNames.Contains(fileName))
+            {
+                offenders.Add(
+                    $"{fileName} is a route page but is missing from expectedDeclarations "
+                    + "(add FullWidth vs Constrained with rationale)");
             }
         }
 
@@ -840,21 +850,32 @@ public sealed class DomainUiFluentConformanceTests
     // FcPageHeader or through the FrontComposer aggregate page wrappers (FcAggregateListPage /
     // FcAggregateDetailPage), which compose FcPageHeader internally. Both are FrontComposer-owned; this
     // does NOT relax the raw <PageTitle>/<h1> bans, which are still enforced separately.
+    // Strip Razor/HTML comments first (same pattern as CountLayoutWrappers) so commented-out tags cannot
+    // satisfy the governance substring checks.
     private static bool DeclaresFrontComposerHeader(string content)
-        => content.Contains("<FcPageHeader", StringComparison.Ordinal)
-            || content.Contains("<FcAggregateListPage", StringComparison.Ordinal)
-            || content.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+    {
+        string active = RazorOrHtmlComment.Replace(content, string.Empty);
+        return active.Contains("<FcPageHeader", StringComparison.Ordinal)
+            || active.Contains("<FcAggregateListPage", StringComparison.Ordinal)
+            || active.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+    }
 
     // The FC-LYT measure may be declared directly via FcPageLayout or forwarded through an aggregate page
     // wrapper, which owns the FcPageLayout element and exposes the measure as its LayoutMode parameter.
     private static bool DeclaresLayoutMeasure(string content)
-        => content.Contains("<FcPageLayout", StringComparison.Ordinal)
-            || content.Contains("<FcAggregateListPage", StringComparison.Ordinal)
-            || content.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+    {
+        string active = RazorOrHtmlComment.Replace(content, string.Empty);
+        return active.Contains("<FcPageLayout", StringComparison.Ordinal)
+            || active.Contains("<FcAggregateListPage", StringComparison.Ordinal)
+            || active.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+    }
 
     private static bool DeclaresLayoutMode(string content, string expectedMode)
-        => content.Contains($"Mode=\"{expectedMode}\"", StringComparison.Ordinal)
-            || content.Contains($"LayoutMode=\"{expectedMode}\"", StringComparison.Ordinal);
+    {
+        string active = RazorOrHtmlComment.Replace(content, string.Empty);
+        return active.Contains($"Mode=\"{expectedMode}\"", StringComparison.Ordinal)
+            || active.Contains($"LayoutMode=\"{expectedMode}\"", StringComparison.Ordinal);
+    }
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
