@@ -2,7 +2,8 @@
 title: 'Story 1.6: Read-Only Tenant Configuration'
 type: 'feature'
 created: '2026-07-21'
-status: ready-for-dev
+status: done
+baseline_commit: '91914b948290aea4b0e5feef15e4937b4c0fe20a'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -47,22 +48,24 @@ warnings: []
 
 ## Code Map
 
-- `src/Hexalith.Tenants/Queries/Handlers/GetTenantQueryHandler.cs` -- currently copies every projected configuration entry after tenant-wide authorization.
-- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` -- retains the unfiltered `TenantDetail` and maps read freshness.
-- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs` -- current BFF seam has no configuration authorization/display-policy contract.
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- accordion composition, full-dictionary summary leak, and command-flow wiring.
-- `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- current grouping/filtering plus post-state blacklist redaction and embedded mutation controls.
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` -- existing configuration, accessibility, state, CSS, and localization coverage.
+- `src/Hexalith.Tenants.UI/Services/Configuration/` -- typed `Tenants:ConfigurationReadPolicy` binding/validation and safe composition (prefix grants + exact-key DisplaySafe).
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` / `ITenantsBffComposition.cs` -- BFF resolves safe configuration models and management context before Razor state.
+- `src/Hexalith.Tenants.UI/State/TenantDetail/` -- `TenantConfigurationSafeModel` / management context types consumed by the detail surface.
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- Configuration accordion composes read + sibling management landmarks from the safe model only.
+- `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- strictly read-only FluentStack-hosted view over the safe model (CSS Class still owns grid/overflow layout).
+- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/` -- sibling management landmark for Epic 3 set/remove flows.
+- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs` -- policy/authorization/display-safe matrix coverage.
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` -- read-only markup, empty/unavailable, freshness, overflow host Class, and management landmark coverage.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- `src/Hexalith.Tenants.UI/Services/Gateways/` and `src/Hexalith.Tenants.UI/State/TenantDetail/` -- add typed binding/validation for the deployment-owned BFF policy registry and the approved caller-prefix/value-display composition, producing a dedicated safe read model before Razor component state. Default configuration contains no ordinary-user grants and no display-safe keys.
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- derive configuration summary/state only from the safe model and preserve Story 1.10 transport boundaries.
-- `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- consume only the safe model, remove mutation affordances from the read-only region, and preserve grouping, filtering, responsive accessibility, freshness, and stable selectors.
-- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/` -- relocate existing Epic 3 set/remove entry points to a separate sibling management landmark within the same Configuration accordion. Set obtains ordinary-user prefixes from the registry (or the explicit global-administrator wildcard); remove launches only from keys in the authorized safe model. Preserve availability, preview, focus, locking, confirmation, and recovery behavior.
-- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` and `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` -- add or revise whole-string state/recovery copy with exact parity.
-- `tests/Hexalith.Tenants.UI.Tests/` -- prove pre-component filtering, absence of hidden and raw sensitive values from state/markup/announcements/copy, authorization-safe emptiness/counts, strict read-only markup, mutation-flow preservation, distinct truth states, Unicode/long literals, accessibility, responsive hooks, resources, and Fluent conformance.
+- [x] `src/Hexalith.Tenants.UI/Services/Gateways/` and `src/Hexalith.Tenants.UI/State/TenantDetail/` -- add typed binding/validation for the deployment-owned BFF policy registry and the approved caller-prefix/value-display composition, producing a dedicated safe read model before Razor component state. Default configuration contains no ordinary-user grants and no display-safe keys.
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- derive configuration summary/state only from the safe model and preserve Story 1.10 transport boundaries.
+- [x] `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- consume only the safe model, remove mutation affordances from the read-only region, and preserve grouping, filtering, responsive accessibility, freshness, and stable selectors.
+- [x] `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/` -- relocate existing Epic 3 set/remove entry points to a separate sibling management landmark within the same Configuration accordion. Set obtains ordinary-user prefixes from the registry (or the explicit global-administrator wildcard); remove launches only from keys in the authorized safe model. Preserve availability, preview, focus, locking, confirmation, and recovery behavior.
+- [x] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` and `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` -- add or revise whole-string state/recovery copy with exact parity.
+- [x] `tests/Hexalith.Tenants.UI.Tests/` -- prove pre-component filtering, absence of hidden and raw sensitive values from state/markup/announcements/copy, authorization-safe emptiness/counts, strict read-only markup, mutation-flow preservation, distinct truth states, Unicode/long literals, accessibility, responsive hooks, resources, and Fluent conformance.
 
 **Acceptance Criteria:**
 - Given an authenticated owner, contributor, or reader, when the BFF resolves namespace scope, then only ordinal prefix grants keyed by the literal tenant id and authenticated `sub` authorize keys; tenant role alone authorizes none.
@@ -78,8 +81,16 @@ warnings: []
 ## Spec Change Log
 
 - 2026-07-21: Human escalation resolution selected the explicit BFF policy-registry option: per-tenant/per-subject ordinary-user prefix grants, explicit global-administrator wildcard scope, exact-key positive display-safe registration with fail-closed omission, and sibling read/management landmarks within the Configuration accordion.
+- 2026-08-09: Implementation verified against this kernel on baseline `91914b9`. Story behavior was already present on `main`; completion work reduced the Fluent `<div>/<span>` budget via `TenantConfigurationView` FluentStack hosts, documented the missing GA mobile-reason CSS exception required by the listed Fluent gate, and marked Execution tasks complete.
 
 ## Review Triage Log
+
+- 2026-08-09 review loop 0:
+  - patch: removed redundant FluentStack `VerticalGap`/`Orientation` where CSS Class owns grid/overflow layout on truth, table-wrap, and group hosts; refreshed CSS exception rationales for FluentStack-hosted Classes.
+  - patch: pinned `tenant-config__table-wrap` on the live table host in `Configuration_read_view_preserves_literal_namespace_unicode_accessibility_and_responsive_overflow`.
+  - patch: refreshed Code Map to post-implementation BFF/safe-model reality.
+  - defer: filter comment claims Ordinal matching while `FilteredRows` uses `OrdinalIgnoreCase` (pre-existing; not introduced by this delta).
+  - reject: completion checkmarks / Intent Problem tense / empty triage / verification evidence-in-spec / GA exception “out of Code Map” (story already on main; Fluent gate listed in Verification; triage filled here).
 
 ## Design Notes
 
@@ -94,4 +105,33 @@ Later Epic 3 stories intentionally added set/remove flows to `TenantConfiguratio
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests` -- expected: all focused configuration tests pass.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests` -- expected: all BFF/freshness tests pass.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.DomainUiFluentConformanceTests` -- expected: all Fluent/FrontComposer governance tests pass.
+
+## Suggested Review Order
+
+**FluentStack hosts with CSS-owned layout**
+
+- Entry: truth host keeps CSS `justify-items` via Class, not Fluent gaps
+  [`TenantConfigurationView.razor:14`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor#L14)
+
+- Search controls Class still drives the content-sized grid
+  [`TenantConfigurationView.razor:49`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor#L49)
+
+- Overflow scroll Class must stay on the live table FluentStack host
+  [`TenantConfigurationView.razor:105`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor#L105)
+
+**CSS exception rationales**
+
+- Documents FluentStack + grid justify-items coexistence for truth
+  [`TenantConfigurationView.razor.css:35`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor.css#L35)
+
+- Documents why `overflow-x` stays on the FluentStack Class host
+  [`TenantConfigurationView.razor.css:78`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor.css#L78)
+
+**Governance / tests**
+
+- Marks GA mobile-reason rule for Fluent CSS exception gate
+  [`GlobalAdministratorsPage.razor.css:225`](../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css#L225)
+
+- Pins `tenant-config__table-wrap` so overflow Class regressions fail
+  [`TenantDetailSurfaceTests.cs:1147`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L1147)
 

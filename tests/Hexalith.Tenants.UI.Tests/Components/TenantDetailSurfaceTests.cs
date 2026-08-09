@@ -1144,6 +1144,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-read-clear-filter']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("tabindex").ShouldBe("0");
         cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
+        // Overflow contract is owned by Class="tenant-config__table-wrap" on the live FluentStack host.
+        cut.Find("[data-testid='tenants-config-read-table']").GetAttribute("class")!
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .ShouldContain("tenant-config__table-wrap");
     }
 
     [Theory]

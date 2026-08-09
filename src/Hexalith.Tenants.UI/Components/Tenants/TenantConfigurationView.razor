@@ -5,19 +5,21 @@
          aria-labelledby="tenants-config-read-heading"
          data-testid="tenants-config-read-section">
     <header class="tenant-config__header">
-        <div>
+        @* FluentStack replaces raw layout divs for the DivSpan budget; CSS owns title/truth spacing. *@
+        <FluentStack Orientation="Orientation.Vertical">
             <h2 id="tenants-config-read-heading">@Localizer["Tenants.Configuration.Title"]</h2>
             <p>@Localizer["Tenants.Configuration.Description"]</p>
             <p class="tenant-config__scope">@Localizer["Tenants.Configuration.ScopeNotice"]</p>
-        </div>
-        <div class="tenant-config__truth" data-testid="tenants-config-read-truth-state">
+        </FluentStack>
+        <FluentStack Class="tenant-config__truth"
+                     data-testid="tenants-config-read-truth-state">
             <ProjectionLifecycleStatus Lifecycle="@Lifecycle"
                                        TestId="tenants-config-read-projection-lifecycle-status"
                                        BadgeTestId="tenants-config-read-projection-lifecycle-badge" />
             <TruthStateBadge Freshness="@EffectiveFreshness"
                              TestId="tenants-config-read-truth-badge"
                              ResourcePrefix="Tenants.Configuration" />
-        </div>
+        </FluentStack>
     </header>
 
     @* The state section is the single owner of the truth sentence and the only live region for it. It was
@@ -44,9 +46,9 @@
     {
         @if (Rows.Count > 0)
         {
-            <div class="tenant-config__controls"
-                 role="search"
-                 aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
+            <FluentStack Class="tenant-config__controls"
+                         role="search"
+                         aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
                 <FluentTextInput Id="tenants-config-read-filter"
                                  Class="tenant-config__filter"
                                  Label="@Localizer["Tenants.Configuration.Filter.Label"]"
@@ -62,7 +64,7 @@
                     @Localizer["Tenants.Configuration.ClearFilter"]
                 </FluentButton>
                 <p id="tenants-config-read-filter-help">@Localizer["Tenants.Configuration.Filter.Help"]</p>
-            </div>
+            </FluentStack>
         }
 
         @* Routine result counts are always polite: assertive belongs to the truth state above, not to a
@@ -99,11 +101,12 @@
         }
         else
         {
-            <div class="tenant-config__table-wrap"
-                 data-testid="tenants-config-read-table"
-                 role="region"
-                 tabindex="0"
-                 aria-label="@Localizer["Tenants.Configuration.Table.AccessibleLabel"]">
+            @* FluentStack is the budget-safe host; CSS Class owns overflow and group grid layout. *@
+            <FluentStack Class="tenant-config__table-wrap"
+                         data-testid="tenants-config-read-table"
+                         role="region"
+                         tabindex="0"
+                         aria-label="@Localizer["Tenants.Configuration.Table.AccessibleLabel"]">
                 <p class="tenant-config__table-caption">@Localizer["Tenants.Configuration.Table.Caption"]</p>
                 <FluentAccordion Class="tenant-config__groups"
                                  ExpandMode="AccordionExpandMode.Multi"
@@ -115,7 +118,8 @@
                         <FluentAccordionItem @key="group.Key"
                                              Header="@Localizer["Tenants.Configuration.GroupLabel", group.Key]"
                                              Expanded="true">
-                            <div class="tenant-config__group" data-testid="tenants-config-read-group">
+                            <FluentStack Class="tenant-config__group"
+                                         data-testid="tenants-config-read-group">
                                 <FluentDataGrid Items="@group.AsQueryable()"
                                                 ItemKey="@(row => row.Key)"
                                                 Class="tenant-config__data-grid"
@@ -141,11 +145,11 @@
                                               data-testid="tenants-config-read-value">@context.Value</code>
                                     </TemplateColumn>
                                 </FluentDataGrid>
-                            </div>
+                            </FluentStack>
                         </FluentAccordionItem>
                     }
                 </FluentAccordion>
-            </div>
+            </FluentStack>
         }
     }
 </section>
