@@ -1044,3 +1044,23 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
   summary: Align RemoveTenantMemberFlowTests StubTenantsLocalizer keys/values with shipped TenantsResources (EN/FR) so LocalizerDoubleParityTests passes.
   evidence: Pre-existing full UI suite failure (1997/1998) unrelated to page-layout governance patches; stub audit-receipt keys drift from resx.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+  summary: Align release-tag validation with semantic-release SemVer parsing.
+  evidence: The pre-existing tag filter accepts leading-zero or oversized numeric tags that semantic-release may ignore, allowing the guard and release engine to select different floors.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+  summary: Validate normalized NuGet version grammar before excluding prereleases from the registry floor.
+  evidence: The pre-existing registry parser accepts malformed prerelease and non-normalized stable strings, which can turn unusable evidence into a passing drift check.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+  summary: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy.
+  evidence: Existing script and CONTRIBUTING guidance still recommends restoring deleted tags or advancing via a breaking footer without the producing-commit and reachability safeguards adopted by this spec.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+  summary: Correct stale release trigger and current release-line documentation.
+  evidence: Existing project context and contributor docs describe automatic workflow-run publication and a 4.x current line, while release is manually dispatched and reachable history extends through 5.x.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+  summary: Replace absolute collision wording with an accurate unproven-lineage risk statement.
+  evidence: The existing guard message says semantic-release would certainly propose an occupied version even though it does not compute the proposal and the registry range may contain gaps.

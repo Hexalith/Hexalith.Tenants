@@ -1,10 +1,10 @@
 ---
 title: 'Restore the release version floor and guard registry/tag drift'
 type: 'bugfix'
-created: '2026-07-28'
-status: 'in-review'
-baseline_commit: 'f6ccee0'
-review_loop_iteration: 1
+created: '2026-08-16'
+status: 'done'
+baseline_commit: 'f6ccee0c2c3e2d4eca55a66df434ab502e4d27fd'
+review_loop_iteration: 3
 context: []
 ---
 
@@ -12,65 +12,59 @@ context: []
 
 ## Intent
 
-**Problem:** Release run 30333764600 died at semantic-release `verifyRelease` with `[publication-preflight] version-collision`. Tags `v3.3.0`…`v3.15.1` were deleted from git, so the floor fell back to `v3.2.18` and semantic-release proposed **3.3.0** — already on nuget.org for `Hexalith.Tenants.Contracts`, `.Server` and `.Aspire`, published from this repository (nuspec `repository commit=5e27c2b`, an ancestor of `main`) on 2026-05-02. That abandoned lineage reached **3.15.1**, so the entire 3.3.0–3.15.1 band is unusable and every dispatch fails identically. Nothing was half-published — the preflight failed closed.
+**Problem:** Deleted release tags once let semantic-release propose an already-published NuGet version. The pre-approval drift guard now prevents recurrence, but it truncates nonzero NuGet revision components and gives remediation that could encourage a provenance-invalid replacement tag.
 
-**Approach:** Push an annotated tag `v3.15.1` at the commit `v3.2.18` points to (`7918ac69`) to restore the floor, and move the series to **4.0.0** — a band free on all five package IDs — via a `BREAKING CHANGE:` footer. Add a guard to `release.yml`'s unprotected `verify-source` job that refuses the dispatch when any published version exceeds the highest release tag reachable from the dispatched SHA.
+**Approach:** Preserve the guard and legitimate 4.x-or-later history, compare all four stable NuGet version components numerically, and permit recovery only by restoring a reachable tag at the commit that produced that published version. If provenance or reachability cannot be established, stop for a separately reviewed release-lineage recovery procedure.
 
 ## Boundaries & Constraints
 
 **Always:**
-- Guard lives in `verify-source`, so it fails **before** the production environment or any secret is reachable.
-- `gh api` + `curl` + `jq` only. `release.yml` must keep zero third-party actions — `PackageGovernanceTests` asserts every `uses:` is a `Hexalith/Hexalith.Builds/.github/workflows/…` reference pinned to a 40-hex SHA — so **no `actions/checkout`**: read `tools/release-packages.json` through the contents API at the dispatched SHA.
-- Compare versions numerically (`split(".") | map(tonumber)` array compare in `jq`), never lexically: `3.15.1 > 3.2.18`.
-- Floor = highest `v<semver>` tag **reachable from the dispatched SHA**, matching semantic-release's `git tag --merged` + highest-semver rule. Walk tags in descending semver order, take the first whose `compare/<tag>...<sha>` status is `behind` or `identical`.
-- Fail closed on any probe failure, unparseable response, or absence of a reachable release tag.
-- `tools/release-packages.json` stays the single inventory — read it, don't hard-code IDs.
+- Keep the guard in unprotected `verify-source`, before production approval and secrets.
+- Keep `release.yml` free of third-party actions; use `gh api`, `curl`, and `jq`, reading `tools/release-packages.json` at the dispatched SHA.
+- Compare stable versions numerically as `Major.Minor.Patch.Revision`; omitted or zero revision is equivalent to zero.
+- Use the highest reachable `vMajor.Minor.Patch` tag. `compare/<tag>...<sha>` accepts `ahead` or `identical`; `behind` is an unreachable descendant.
+- Fail closed on failed or malformed probes and when no reachable release tag exists.
+- Keep `tools/release-packages.json` as the sole package inventory.
 
 **Ask First:**
-- Deleting, moving or re-pointing any tag other than adding `v3.15.1`.
+- Creating, deleting, moving, or re-pointing any tag.
 - Changing package IDs, the container repository, or the expected package count.
 - Every push to `origin` (branch or tag).
 
 **Never:**
-- `feat!:` / `fix!:` to trigger the major. Pinned `conventional-changelog-angular@8.3.1` uses `headerPattern: /^(\w*)(?:\((.*)\))?: (.*)$/` and `noteKeywords: ['BREAKING CHANGE']` with no `breakingHeaderPattern`; a `!` header fails to parse and yields **no release at all**. Only a `BREAKING CHANGE:` footer works.
-- Reintroducing `--skip-duplicate` — it is what let the July lineage silently overlap the May one.
-- Editing `references/Hexalith.Builds`, or committing to `main`.
+- Never recreate `v3.15.1` unless its actual producing commit is recovered and verified.
+- Never use `feat!:`/`fix!:` for the major; this repository requires a `BREAKING CHANGE:` footer.
+- Never reintroduce `--skip-duplicate`, edit `references/Hexalith.Builds`, or commit/push.
 
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| Floor covers registry | floor `v3.15.1`, max published `3.15.1` | Passes | N/A |
-| Registry ahead of floor | floor `v3.2.18`, `Contracts` at `3.15.1` | Exit 1 naming package, published version, floor tag, and the restore-the-missing-tag remedy | Fails pre-approval |
-| Equal is not a collision | floor `v4.0.0`, max published `4.0.0` | Passes (strict `>`) | N/A |
-| Unreachable higher tag | `v9.9.9` not merged into the dispatched SHA | Ignored; next-highest reachable tag is the floor | N/A |
-| Never published | flatcontainer index 404 | Treated as no published versions | N/A |
-| Probe unusable | non-200/404, malformed JSON, `gh` failure | Exit 1, drift unproven | Fails closed |
-| No reachable tag | no `v*` semver tag merged into the dispatched SHA | Exit 1 | Fails closed |
+| Covered floor | floor `v3.15.1`, published `3.15.1` or `3.15.1.0` | Pass | N/A |
+| Nonzero revision drift | floor `v3.15.1`, published `3.15.1.1` | Exit 1 naming the exact version and floor | Fails pre-approval |
+| Registry ahead | floor `v3.2.18`, published `3.15.1` | Exit 1 with reachable authentic-tag guidance and separate-review escalation when provenance cannot be established | Fails pre-approval |
+| Unusable evidence | failed/malformed probe or no reachable tag | No release | Fails closed |
 
 </frozen-after-approval>
 
 ## Code Map
 
-- `.github/workflows/release.yml` -- `verify-source` job (lines 18–71); guard step goes after the exact-source CI check. `release` already `needs: verify-source`.
-- `tools/release-packages.json` -- five-package inventory the guard reads.
-- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- release governance suite; reuse `GetYamlJobBlock`, `GetYamlStepRunBlock`, and the fake-`gh` harness in `RunPublicationPostconditionAsync` (line 924).
-- `scripts/validate-publication-preflight.sh` + `references/Hexalith.Builds/Github/publish-containers/publication_preflight.py` -- where the collision surfaces today. Unchanged; still the last defence and the only check covering the container tag.
-- `_bmad-output/project-context.md` -- its release rule wrongly claims `feat!` triggers a major.
+- `.github/workflows/release.yml` -- `verify-source` guard; update `def parts` and authentic-tag-only remediation text only.
+- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- `Release_workflow_*tag_floor*` tests execute extracted Bash through `RunTagFloorGuardAsync`; use isolated revision and boundary-order fixtures.
+- `tools/release-packages.json` -- read-only five-package inventory.
+- `.releaserc.json` and `scripts/validate-publication-preflight.sh` -- read-only release/version policy and post-approval destination defense.
 
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `.github/workflows/release.yml` -- add a `Require registry versions at or below the release tag floor` step to `verify-source`: resolve the reachable floor tag, read manifest IDs at the dispatched SHA, probe `https://api.nuget.org/v3-flatcontainer/<id>/index.json` per package, fail per the matrix -- turns a post-approval collision into a named pre-approval failure.
-- [x] `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- assert the new step and its remedy wording in the release-workflow governance test, and add a behavioural test driving the extracted run block with stubbed `gh`/`curl` across every matrix row.
-- [x] `_bmad-output/project-context.md` -- correct the release rule to name the `BREAKING CHANGE:` footer as the only major trigger.
-- [x] Commit on a `fix/…` branch -- the `BREAKING CHANGE:` footer was DROPPED after `4.0.0` was published by run 30340676669; it would now drive 5.0.0. See the Spec Change Log.
-- [x] Create annotated tag `v3.15.1` at `7918ac69` -- created and pushed, then DELETED from `origin` and locally: `825b98c` had already declined that tag on provenance grounds and its 4.x floor made it inert. See the Spec Change Log.
+- [x] `.github/workflows/release.yml` -- compare padded four-component stable versions and direct recovery only to a reachable authentic tag or separate lineage review.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` -- prove isolated `3.15.1.0 == 3.15.1`, `3.15.1.1 > 3.15.1`, numeric revision ordering, `3.15.0.999 < 3.15.1`, and the authentic-tag-only guidance.
 
 **Acceptance Criteria:**
-- Given the tag is pushed and the branch merged, when Release is dispatched from the `main` tip with green exact-source CI, then `verify-source` passes and semantic-release proposes `4.0.0`.
-- Given the floor tag were absent, when Release is dispatched, then `verify-source` exits 1 naming `Hexalith.Tenants.Contracts 3.15.1` and the release job never starts.
-- Given any package probe cannot be completed, when `verify-source` runs, then it exits 1 rather than assuming absence.
+- Given the highest legitimate reachable tag covers every stable package version, when `verify-source` runs, then it passes without entering protected release state early.
+- Given any stable package version exceeds the floor by full numeric precedence, when the guard runs, then it exits 1 with package, version, floor, and reachable authentic-tag remediation.
+- Given authentic provenance or reachability cannot be established, when an operator reads the failure, then it directs them to stop for a separately reviewed lineage-recovery procedure rather than fabricate or bypass a tag.
+- Given evidence cannot be proved, when the guard runs, then it exits 1 rather than assuming absence.
 
 ## Spec Change Log
 
@@ -100,15 +94,52 @@ context: []
   `BREAKING CHANGE:` footer was dropped for the same reason — 4.0.0 is already published, so
   it would now drive 5.0.0. The drift guard remains as the general-case protection.
 
+- **2026-08-16 — review iteration 2 — human-approved intent correction and re-scope.**
+  Review found the frozen reachability polarity still contradicted the tested API semantics,
+  the recovery text could encourage fabricated provenance, and four-part versions were
+  truncated. The human authorized the frozen correction. The spec now preserves the working
+  highest-reachable-tag guard and real-shell harness while requiring provenance-safe recovery
+  and full NuGet revision comparison. This avoids recreating the rejected `v3.15.1` tag and
+  prevents `3.15.1.1` from passing a `v3.15.1` floor.
+
+- **2026-08-16 — review iteration 3 — recovery policy narrowed by human decision.**
+  Review proved a version-line advance was not executable because the guard blocks before
+  semantic-release analyzes the proposed release. The human selected authentic-tag-only
+  recovery. The spec now requires a reachable tag at the actual producing commit and a
+  separate reviewed lineage procedure when that proof is unavailable. KEEP the four-slot
+  comparator and real-shell harness; add isolated zero-revision and lower-core boundary tests.
+
 ## Design Notes
 
-The floor tag is required even though `v3.2.18` + BREAKING CHANGE alone already yields `4.0.0`: the guard compares the registry high-water mark (`3.15.1`) against the tag floor, so without the tag it would correctly block this very release. The tag is also the factual record — `3.15.1` really was published from here.
+`v4.0.0` at `825b98c` authentically escaped the occupied 3.x band; later legitimate tags now provide the floor. A replacement tag is valid only when it points to the actual producing commit and is reachable from the dispatched SHA. NuGet treats a missing or zero fourth revision as zero, while a nonzero revision participates in ordering.
 
 ## Verification
 
 **Commands:**
 - `actionlint .github/workflows/release.yml` -- expected: no findings.
-- `dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror` -- expected: 0 warnings, 0 errors.
-- `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` -- expected: all pass, including the new guard tests.
-- `git tag --merged HEAD --sort=-v:refname | head -1` -- expected: `v3.15.1` after tagging.
-- `git log v3.15.1..HEAD --format=%B | grep -c '^BREAKING CHANGE:'` -- expected: ≥ 1 after the fix commit.
+- `dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release -m:1 -nr:false -p:UseHexalithProjectReferences=false -p:NuGetAudit=false` -- expected: 0 warnings and errors.
+- `tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests -method 'Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests.Release_workflow_registry_drift_guard_fails_closed_on_every_unprovable_state' -method 'Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests.Release_workflow_proves_the_tag_floor_covers_the_registry_before_approval'` -- expected: both pass.
+- `git diff --check -- .github/workflows/release.yml tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs _bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` -- expected: no findings.
+
+## Suggested Review Order
+
+**Version-floor logic**
+
+- Four-slot numeric precedence closes nonzero NuGet revision drift.
+  [`release.yml:229`](../../.github/workflows/release.yml#L229)
+
+- Revision-aware recovery prevents impossible three-part tag advice.
+  [`release.yml:253`](../../.github/workflows/release.yml#L253)
+
+**Behavioral proof**
+
+- Real-shell tests cover registry drift and fail-closed evidence handling.
+  [`PackageGovernanceTests.cs:929`](../../tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs#L929)
+
+- Boundary fixtures pin zero, nonzero, numeric, and lower-core revision ordering.
+  [`PackageGovernanceTests.cs:1000`](../../tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs#L1000)
+
+**Deferred follow-up**
+
+- Pre-existing parser and operator-documentation gaps remain explicitly tracked.
+  [`deferred-work.md:1048`](deferred-work.md#L1048)

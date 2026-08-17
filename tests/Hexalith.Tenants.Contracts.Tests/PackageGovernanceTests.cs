@@ -891,7 +891,12 @@ public class PackageGovernanceTests {
         // published version above that floor makes every proposal collide. The guard must live in
         // the unprotected job, where an invalid dispatch cannot reach approval or release secrets.
         verifySourceJob.ShouldContain($"- name: {RegistryDriftGuardStepName}");
-        verifySourceJob.ShouldContain("Restore the missing release tag");
+        verifySourceJob.ShouldContain("authentic tag for that published version");
+        verifySourceJob.ShouldContain("commit that actually produced it");
+        verifySourceJob.ShouldContain("reachable from the dispatched source");
+        verifySourceJob.ShouldContain("separately reviewed release-lineage recovery procedure");
+        verifySourceJob.ShouldContain("never create or move a tag merely to clear this guard");
+        verifySourceJob.ShouldNotContain("tag at or above the highest published version");
         GetYamlJobBlock(workflow, "release").ShouldContain("needs: verify-source");
 
         // The behavioural harness supplies its own environment, so the step's declared env: is
@@ -964,7 +969,12 @@ public class PackageGovernanceTests {
         drifted.ExitCode.ShouldBe(1, drifted.Output);
         drifted.Error.ShouldContain("exceed the release tag floor v3.2.18");
         drifted.Error.ShouldContain("Hexalith.Tenants.Contracts 3.15.1");
-        drifted.Error.ShouldContain("Restore the missing release tag");
+        drifted.Error.ShouldContain("authentic tag for that published version");
+        drifted.Error.ShouldContain("commit that actually produced it");
+        drifted.Error.ShouldContain("reachable from the dispatched source");
+        drifted.Error.ShouldContain("separately reviewed release-lineage recovery procedure");
+        drifted.Error.ShouldContain("never create or move a tag merely to clear this guard");
+        drifted.Error.ShouldNotContain("tag at or above the highest published version");
 
         // 3.15.1 is above 3.2.18. A lexical comparison reverses that and reports no drift at all.
         (int ExitCode, string Output, string Error) lexical = await RunTagFloorGuardAsync(
@@ -986,6 +996,53 @@ public class PackageGovernanceTests {
                 (ManifestEndpoint, 0, ManifestResponse(allPackages))),
             RegistryResponses([.. allPackages.Select(id => (id, 0, "200", PublishedVersions("3.2.18", "4.0.0")))]));
         equal.ExitCode.ShouldBe(0, equal.Error);
+
+        // NuGet treats a missing revision and an explicit zero revision as the same stable version.
+        (int ExitCode, string Output, string Error) zeroRevision = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1.0"))));
+        zeroRevision.ExitCode.ShouldBe(0, zeroRevision.Error);
+
+        // A nonzero revision participates in ordering and therefore exceeds its three-part floor.
+        (int ExitCode, string Output, string Error) nonzeroRevision = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1.1"))));
+        nonzeroRevision.ExitCode.ShouldBe(1, nonzeroRevision.Output);
+        nonzeroRevision.Error.ShouldContain("exceed the release tag floor v3.15.1");
+        nonzeroRevision.Error.ShouldContain("Hexalith.Tenants.Contracts 3.15.1.1");
+        nonzeroRevision.Error.ShouldContain("cannot be represented by this repository's three-part release tags");
+        nonzeroRevision.Error.ShouldContain("separately reviewed release-lineage recovery procedure");
+        nonzeroRevision.Error.ShouldContain("never create or move a tag merely to clear this guard");
+        nonzeroRevision.Error.ShouldNotContain("authentic tag for that published version");
+
+        // Revisions are numeric components: 10 is newer than 9, not lexically older than it.
+        (int ExitCode, string Output, string Error) revisionOrdering = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.1.9", "3.15.1.10"))));
+        revisionOrdering.ExitCode.ShouldBe(1, revisionOrdering.Output);
+        revisionOrdering.Error.ShouldContain("Hexalith.Tenants.Contracts 3.15.1.10");
+
+        // Revision ordering cannot cross a lower patch boundary: 3.15.0.999 remains below 3.15.1.
+        (int ExitCode, string Output, string Error) lowerCoreHighRevision = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.15.1")),
+                (CompareEndpoint("v3.15.1"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.15.0.999"))));
+        lowerCoreHighRevision.ExitCode.ShouldBe(0, lowerCoreHighRevision.Error);
 
         // Semantic Release only considers tags merged into the released branch, so a higher tag on
         // an unmerged branch must not be mistaken for the floor.

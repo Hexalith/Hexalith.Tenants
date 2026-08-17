@@ -193,6 +193,7 @@ jobs:
           trap 'rm -f "$published_response"' EXIT
 
           violations=''
+          highest_violation=''
           while IFS= read -r package_id; do
             [ -n "$package_id" ] || continue
             index_url="https://api.nuget.org/v3-flatcontainer/$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')/index.json"
@@ -220,12 +221,12 @@ jobs:
             # Equality is not a collision, so only strictly greater versions are reported.
             #
             # A version this cannot parse is unprovable, not absent, so an unrecognised shape fails
-            # closed rather than being dropped. Four-segment versions are compared on their first
-            # three because NuGet normalises 3.16.0.0 to 3.16.0, which would otherwise occupy a
-            # version this reported as free. Prereleases are excluded: 4.1.0-rc.1 does not occupy
-            # 4.1.0, so treating one as a collision would block releases that cannot collide.
+            # closed rather than being dropped. NuGet's optional fourth revision participates in
+            # stable-version ordering when nonzero; an omitted revision and revision zero are the
+            # same floor. Prereleases are excluded: 4.1.0-rc.1 does not occupy 4.1.0, so treating
+            # one as a collision would block releases that cannot collide.
             if ! above_floor="$(jq -er --arg floor "$floor_version" '
-              def parts: split("-")[0] | split(".") | map(tonumber) | (. + [0, 0, 0])[0:3];
+              def parts: split("-")[0] | split(".") | map(tonumber) | (. + [0, 0, 0, 0])[0:4];
               if type == "object" and (.versions | type == "array") then
                 .versions
                 | map(
@@ -241,6 +242,11 @@ jobs:
             fi
             if [ -n "$above_floor" ]; then
               violations="${violations}  ${package_id} ${above_floor}"$'\n'
+              if [ -z "$highest_violation" ] || jq -en --arg candidate "$above_floor" --arg current "$highest_violation" '
+                def parts: split("-")[0] | split(".") | map(tonumber) | (. + [0, 0, 0, 0])[0:4];
+                ($candidate | parts) > ($current | parts)' >/dev/null; then
+                highest_violation="$above_floor"
+              fi
             fi
           done <<< "$package_ids"
 
@@ -248,7 +254,13 @@ jobs:
             echo "Published package versions exceed the release tag floor ${floor_tag}:" >&2
             printf '%s' "$violations" >&2
             echo "Semantic Release would propose a version that already exists, and the publication preflight would reject it." >&2
-            echo "Restore the missing release tag at or above the highest published version, then redispatch." >&2
+            if [[ "$highest_violation" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -ne 0 ]; then
+              echo "The highest offending version ${highest_violation} has a nonzero NuGet revision and cannot be represented by this repository's three-part release tags." >&2
+              echo "Stop and use a separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard." >&2
+            else
+              echo "Restore a missing release tag only when it is the authentic tag for that published version, points to the commit that actually produced it, and is reachable from the dispatched source." >&2
+              echo "If that provenance or reachability cannot be established, stop and use a separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard." >&2
+            fi
             exit 1
           fi
           echo "Release tag floor ${floor_tag} is at or above every published version of the declared packages."
