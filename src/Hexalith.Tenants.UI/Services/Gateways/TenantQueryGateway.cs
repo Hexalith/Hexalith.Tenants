@@ -141,8 +141,9 @@ internal sealed class TenantQueryGateway(
             // review-loop-4 patch forbids. The tenant-users read already avoids it.
             string? requestValidator = request.ETag
                 ?? (HasSameTenantDetail(previous, request.TenantId) ? previous!.ETag : null);
-            // A matching retained snapshot can safely consume a metadata-complete 304. A conditional
-            // response without matching retained state is retried unconditionally below.
+            // A safe snapshot cannot reconstruct raw entries newly approved by a deployment-policy reload.
+            // Every 304 therefore gets exactly one unconditional detail read before current principal and
+            // policy are applied, even when the retained validator and tenant match.
             EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
                 .GetTenantAsync(
                     new GetTenantQuery { TenantId = request.TenantId },
@@ -150,9 +151,7 @@ internal sealed class TenantQueryGateway(
                     cancellationToken)
                 .ConfigureAwait(false), TenantDetailReadName);
 
-            bool hasMatchingPrevious = HasSameTenantDetail(previous, request.TenantId)
-                && MatchesRetainedValidator(requestValidator, previous!.ETag);
-            if (result.IsNotModified && !hasMatchingPrevious) {
+            if (result.IsNotModified) {
                 result = ToEventStoreResult(await queryClient
                     .GetTenantAsync(
                         new GetTenantQuery { TenantId = request.TenantId },
@@ -161,44 +160,13 @@ internal sealed class TenantQueryGateway(
                     .ConfigureAwait(false), TenantDetailReadName);
             }
 
-            /*
-             * A supported 304 retains the separately held server-side snapshot. Only a 304 without a
-             * matching retained detail requires the unconditional recovery read above.
-             */
-            if (result.IsNotModified && hasMatchingPrevious) {
-                if (!HasSupportedProjectionVersion(result.Metadata)) {
-                    return await RetainPreviousTenantDetailAsync(
-                        request.TenantId,
-                        previous,
-                        "Tenant detail conditional metadata did not match retained evidence.",
-                        previous!.ETag,
-                        cancellationToken).ConfigureAwait(false);
-                }
-
-                ReadModelFreshnessState retainedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous!.Freshness);
-                ProjectionLifecycleState retainedLifecycle = ResolveNotModifiedLifecycle(result.Metadata);
-                TenantConfigurationComposition retainedComposition = bffComposition is null
-                    ? new(
-                        TenantConfigurationSafeComposer.SanitizeDetail(previous.Detail!),
-                        TenantConfigurationSafeModel.Unavailable(request.TenantId),
-                        TenantConfigurationManagementContext.Unavailable(request.TenantId, previous.Detail!.Status))
-                    : await bffComposition.ReauthorizeTenantDetailAsync(
-                        previous.Detail!,
-                        previous.Configuration,
-                        degraded: false,
-                        cancellationToken).ConfigureAwait(false);
-                return retainedFreshness == ReadModelFreshnessState.Stale
-                    ? TenantDetailSnapshot.Stale(
-                        retainedComposition,
-                        previous.ETag,
-                        retainedLifecycle,
-                        previous.ProjectionVersion)
-                    : TenantDetailSnapshot.Ready(
-                        retainedComposition,
-                        previous.ETag,
-                        retainedFreshness,
-                        retainedLifecycle,
-                        previous.ProjectionVersion);
+            if (result.IsNotModified && !HasSameTenantDetail(previous, request.TenantId)) {
+                // The required unconditional retry still supplied no current payload, and there is no
+                // same-tenant evidence to retain. Calling the retention helper here fabricates a degraded
+                // state with null detail; this is an unknown first-load truth state instead.
+                return TenantDetailSnapshot.Unknown(
+                    "Tenant detail projection did not provide current payload evidence.",
+                    result.ETag);
             }
 
             // A payload-less success with nothing to retain is unknown, not degraded: there is no
@@ -253,8 +221,8 @@ internal sealed class TenantQueryGateway(
                 throw;
             }
             catch (Exception) {
-                // Continue-read-only with the last-confirmed safe model. Degraded(previous.Detail) rebuilds via
-                // UnavailableComposition and would clear approved rows that AC5 requires we retain.
+                // A same-tenant prior can be retained only through a fresh policy/principal decision in the
+                // helper below. If that reauthorization also fails, configuration becomes unavailable.
                 return HasSameTenantDetail(previous, request.TenantId)
                     ? await RetainPreviousTenantDetailAsync(
                         request.TenantId,
@@ -2163,12 +2131,17 @@ internal sealed class TenantQueryGateway(
             throw;
         }
         catch (Exception) {
-            // Reauthorization failed after a qualifying prior was proven. Keep the last-confirmed safe rows
-            // labeled degraded rather than UnavailableComposition, which would drop them.
+            // Retaining rows without a successful current-policy decision would turn an indeterminate or
+            // revoked policy into continued disclosure. Preserve only sanitized tenant detail and make both
+            // configuration boundaries unavailable.
+            TenantDetail sanitized = TenantConfigurationSafeComposer.SanitizeDetail(previous!.Detail!);
             return TenantDetailSnapshot.DegradedFromComposition(
-                ContinueReadOnlyComposition(previous!),
+                new TenantConfigurationComposition(
+                    sanitized,
+                    TenantConfigurationSafeModel.Unavailable(tenantId),
+                    TenantConfigurationManagementContext.Unavailable(tenantId, sanitized.Status)),
                 "Tenant configuration authorization could not be refreshed.",
-                previous!.ETag,
+                previous.ETag,
                 lifecycle,
                 previous.ProjectionVersion);
         }
@@ -2181,26 +2154,11 @@ internal sealed class TenantQueryGateway(
             previous.ProjectionVersion);
     }
 
-    private static TenantConfigurationComposition ContinueReadOnlyComposition(TenantDetailSnapshot previous) {
-        TenantDetail sanitized = TenantConfigurationSafeComposer.SanitizeDetail(previous.Detail!);
-        TenantConfigurationSafeModel safeModel = previous.Configuration.IsAvailable
-            ? TenantConfigurationSafeModel.Available(
-                previous.Configuration.TenantId,
-                previous.Configuration.Rows,
-                isDegraded: true)
-            : TenantConfigurationSafeModel.Unavailable(previous.Configuration.TenantId);
-        return new(
-            sanitized,
-            safeModel,
-            TenantConfigurationManagementContext.Unavailable(
-                previous.Configuration.TenantId,
-                previous.Detail!.Status));
-    }
-
     private static bool HasSameTenantDetail(TenantDetailSnapshot? previous, string tenantId)
         => previous?.Detail is not null
             && string.Equals(previous.Detail.TenantId, tenantId, StringComparison.Ordinal)
-            && string.Equals(previous.Configuration.TenantId, tenantId, StringComparison.Ordinal);
+            && string.Equals(previous.Configuration.TenantId, tenantId, StringComparison.Ordinal)
+            && string.Equals(previous.ConfigurationManagement.TenantId, tenantId, StringComparison.Ordinal);
 
     private static TenantUsersSnapshot MapTenantUsersResponse(
         TenantUsersRequest request,

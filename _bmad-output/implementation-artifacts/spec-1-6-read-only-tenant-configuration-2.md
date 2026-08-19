@@ -2,8 +2,9 @@
 title: 'Story 1.6: Read-Only Tenant Configuration'
 type: 'feature'
 created: '2026-07-22'
-status: 'in-progress'
+status: 'done'
 baseline_revision: '91d59806c5731661fdf156cfa833293adc69c98d'
+baseline_commit: '020b099a5170b98fef177ce42b1d5d106e0dc81d'
 review_loop_iteration: 1
 followup_review_recommended: false
 context:
@@ -54,14 +55,14 @@ warnings:
 ## Tasks & Acceptance
 
 **Execution:**
-- `src/Hexalith.Tenants.UI/Services/Configuration/ITenantConfigurationPrincipalResolver.cs`, `TenantConfigurationPrincipalResolver.cs`, `TenantConfigurationPrincipalEvidence.cs`, `TenantConfigurationReadPolicyOptions.cs`, `TenantConfigurationPrefixGrantOptions.cs`, `TenantConfigurationReadPolicyProvider.cs`, `TenantConfigurationSafeComposer.cs`, and `TenantConfigurationServiceCollectionExtensions.cs` -- add one-type-per-file typed binding, non-startup-fatal semantic validation, three-outcome principal reflection, longest-prefix ordinal authorization, exact-key positive approval, safe result types, and idempotent registration. Resolve one authenticated identity from `IHttpContextAccessor` during SSR or `AuthenticationStateProvider` through FrontComposer's `CircuitServicesAccessor` during interactive activity; subject, system scope, and administrator claims must come from that same identity. Unsupported/malformed role encodings, multiple authenticated identities, scalar values on collection-shaped policy sections, whitespace/trailing-dot prefixes, and duplicate/conflicting grants or safe keys are unavailable without logging claim/policy data.
-- `src/Hexalith.Tenants.UI/Program.cs`, `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`, and `src/Hexalith.Tenants.UI/appsettings.json` -- register the same composition seam in standalone/embedded hosts and declare a valid-empty `Tenants:ConfigurationReadPolicy`; do not use `ValidateOnStart` or repository-default grants.
-- `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationSafeRow.cs`, `TenantConfigurationSafeModel.cs`, `TenantConfigurationManagementContext.cs`, `TenantConfigurationProjectionProof.cs`, and `TenantDetailSnapshot.cs` -- introduce immutable non-sensitive read/management/proof DTOs with defensive copies and no public constructor/`with` path capable of accepting raw configuration. Snapshots and last-confirmed state contain only factory-sanitized tenant detail plus safe configuration; no caller-owned mutable collection is shared across read and management boundaries.
-- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`, `ITenantQueryGateway.cs`, `ITenantsBffComposition.cs`, `TenantsBffComposition.cs`, and `UnavailableTenantQueryGateway.cs` -- compose immediately after the server response and before snapshots. Require every detail/proof payload and every reusable prior snapshot to match the requested tenant ordinally. A `304` must perform one unconditional detail read before applying current principal/policy because safe rows cannot reconstruct newly approved raw entries. A degraded/failed refresh may retain only a same-tenant last-confirmed safe model reauthorized against current policy. Set/remove proof is available only from a matching-tenant, projection-backed, explicitly current, non-degraded response; missing payload, `304`, unknown/stale metadata, exceptions, or mismatches fail closed.
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` and `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- derive summary/state only from the safe model; make the read landmark inspection-only with `tenants-config-read-*` selectors, Fluent/FrontComposer composition, multi-expand grouping, distinct truth states, literal Unicode support, and accessible responsive overflow. Remove action columns, command parameters, and `LegacyConfigurationDisplaySanitizer` from the read path. Accessible value text must include the approved literal value rather than replacing it with a key-only label.
-- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor`, `SetTenantConfigurationFlow.razor`, `RemoveTenantConfigurationFlow.razor`, and `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` -- host commands in a sibling landmark in the same expanded Configuration accordion. Re-resolve principal and deployment policy immediately before each command dispatch; revoked/indeterminate scope blocks the gateway call. Set accepts an exact literal full key so grant `P` covers both exact `P` and `P.*`; remove uses only current safe keys. Unavailable management never also renders valid-empty copy; remove launch eligibility includes lifecycle/truth/command availability. Each action accessible name identifies its literal key, and each focusable overflow region has a localized accessible name. Projection callbacks/snapshots retain proof status rather than raw dictionaries while preserving preview, focus, locking, duplicate prevention, confirmation, audit, and recovery behavior.
-- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` and `TenantsResources.fr.resx` -- provide whole-string parity for read-only, valid-empty, policy-unavailable, recovery, truth-state, and management copy.
-- `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`, `Services/Gateways/TenantQueryGatewayTests.cs`, `Components/TenantDetailSurfaceTests.cs`, `Components/SetTenantConfigurationFlowTests.cs`, `Components/RemoveTenantConfigurationFlowTests.cs`, `TenantsUiCompositionTests.cs`, `TenantConfigurationEndToEndTests.cs`, and `DomainUiFluentConformanceTests.cs` -- cover the matrix plus: circuit/SSR principal resolution from one identity; every supported positive administrator claim shape; malformed JSON-like and cross-identity claims; scalar/duplicate/conflicting policy; `a`/`a.`/`ab`/`A`; exact-key set; mutable input defense; wrong-tenant detail/prior/proof; unconditional `304` policy recovery; degraded payload with same-tenant prior safe state; proof gateway query shape and matching/nonmatching/missing/304/stale/degraded/unknown/exception outcomes; submission-time policy revocation; mutually exclusive empty/unavailable management; remove fail-closed lifecycle/truth/command states; target-specific accessible names; literal accessible values; Unicode/confusables; and hidden-state absence. Add one outer tenant-detail test that runs an authenticated circuit/SSR principal plus configured policy through raw gateway response, BFF composition, snapshot, and rendered DOM/accessibility state. Preserve EN/FR parity, focus/live regions, responsive/forced-colors/reduced-motion hooks, and stable data-independent selectors.
+- [x] `src/Hexalith.Tenants.UI/Services/Configuration/ITenantConfigurationPrincipalResolver.cs`, `TenantConfigurationPrincipalResolver.cs`, `TenantConfigurationPrincipalEvidence.cs`, `TenantConfigurationReadPolicyOptions.cs`, `TenantConfigurationPrefixGrantOptions.cs`, `TenantConfigurationReadPolicyProvider.cs`, `TenantConfigurationSafeComposer.cs`, and `TenantConfigurationServiceCollectionExtensions.cs` -- add one-type-per-file typed binding, non-startup-fatal semantic validation, three-outcome principal reflection, longest-prefix ordinal authorization, exact-key positive approval, safe result types, and idempotent registration. Resolve one authenticated identity from `IHttpContextAccessor` during SSR or `AuthenticationStateProvider` through FrontComposer's `CircuitServicesAccessor` during interactive activity; subject, system scope, and administrator claims must come from that same identity. Unsupported/malformed role encodings, multiple authenticated identities, scalar values on collection-shaped policy sections, whitespace/trailing-dot prefixes, and duplicate/conflicting grants or safe keys are unavailable without logging claim/policy data.
+- [x] `src/Hexalith.Tenants.UI/Program.cs`, `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`, and `src/Hexalith.Tenants.UI/appsettings.json` -- register the same composition seam in standalone/embedded hosts and declare a valid-empty `Tenants:ConfigurationReadPolicy`; do not use `ValidateOnStart` or repository-default grants.
+- [x] `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationSafeRow.cs`, `TenantConfigurationSafeModel.cs`, `TenantConfigurationManagementContext.cs`, `TenantConfigurationProjectionProof.cs`, and `TenantDetailSnapshot.cs` -- introduce immutable non-sensitive read/management/proof DTOs with defensive copies and no public constructor/`with` path capable of accepting raw configuration. Snapshots and last-confirmed state contain only factory-sanitized tenant detail plus safe configuration; no caller-owned mutable collection is shared across read and management boundaries.
+- [x] `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`, `ITenantQueryGateway.cs`, `ITenantsBffComposition.cs`, `TenantsBffComposition.cs`, and `UnavailableTenantQueryGateway.cs` -- compose immediately after the server response and before snapshots. Require every detail/proof payload and every reusable prior snapshot to match the requested tenant ordinally. A `304` must perform one unconditional detail read before applying current principal/policy because safe rows cannot reconstruct newly approved raw entries. A degraded/failed refresh may retain only a same-tenant last-confirmed safe model reauthorized against current policy. Set/remove proof is available only from a matching-tenant, projection-backed, explicitly current, non-degraded response; missing payload, `304`, unknown/stale metadata, exceptions, or mismatches fail closed.
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` and `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` -- derive summary/state only from the safe model; make the read landmark inspection-only with `tenants-config-read-*` selectors, Fluent/FrontComposer composition, multi-expand grouping, distinct truth states, literal Unicode support, and accessible responsive overflow. Remove action columns, command parameters, and `LegacyConfigurationDisplaySanitizer` from the read path. Accessible value text must include the approved literal value rather than replacing it with a key-only label.
+- [x] `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor`, `SetTenantConfigurationFlow.razor`, `RemoveTenantConfigurationFlow.razor`, and `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` -- host commands in a sibling landmark in the same expanded Configuration accordion. Re-resolve principal and deployment policy immediately before each command dispatch; revoked/indeterminate scope blocks the gateway call. Set accepts an exact literal full key so grant `P` covers both exact `P` and `P.*`; remove uses only current safe keys. Unavailable management never also renders valid-empty copy; remove launch eligibility includes lifecycle/truth/command availability. Each action accessible name identifies its literal key, and each focusable overflow region has a localized accessible name. Projection callbacks/snapshots retain proof status rather than raw dictionaries while preserving preview, focus, locking, duplicate prevention, confirmation, audit, and recovery behavior.
+- [x] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` and `TenantsResources.fr.resx` -- provide whole-string parity for read-only, valid-empty, policy-unavailable, recovery, truth-state, and management copy.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs`, `Services/Gateways/TenantQueryGatewayTests.cs`, `Components/TenantDetailSurfaceTests.cs`, `Components/SetTenantConfigurationFlowTests.cs`, `Components/RemoveTenantConfigurationFlowTests.cs`, `TenantsUiCompositionTests.cs`, `TenantConfigurationEndToEndTests.cs`, and `DomainUiFluentConformanceTests.cs` -- cover the matrix plus: circuit/SSR principal resolution from one identity; every supported positive administrator claim shape; malformed JSON-like and cross-identity claims; scalar/duplicate/conflicting policy; `a`/`a.`/`ab`/`A`; exact-key set; mutable input defense; wrong-tenant detail/prior/proof; unconditional `304` policy recovery; degraded payload with same-tenant prior safe state; proof gateway query shape and matching/nonmatching/missing/304/stale/degraded/unknown/exception outcomes; submission-time policy revocation; mutually exclusive empty/unavailable management; remove fail-closed lifecycle/truth/command states; target-specific accessible names; literal accessible values; Unicode/confusables; and hidden-state absence. Add one outer tenant-detail test that runs an authenticated circuit/SSR principal plus configured policy through raw gateway response, BFF composition, snapshot, and rendered DOM/accessibility state. Preserve EN/FR parity, focus/live regions, responsive/forced-colors/reduced-motion hooks, and stable data-independent selectors.
 
 **Acceptance Criteria:**
 - Given mixed authorized, hidden, and undefined-policy configuration, when the BFF composes tenant detail, then only entries passing literal prefix authorization and exact-key positive approval reach snapshot/component state and no observable UI or diagnostic surface reveals the rest.
@@ -115,6 +116,26 @@ warnings:
   - `[medium]` `[bad_spec]` Test degraded payload refresh with a same-tenant previous safe snapshot.
   - `[medium]` `[bad_spec]` Test remove management across unsafe lifecycle, truth, policy, and command states.
 
+### 2026-08-19 — Review pass 2
+- intent_gap: 0
+- bad_spec: 0
+- patch: 16
+- defer: 2
+- reject: 5
+- addressed_findings:
+  - Contained circuit-service lookup faults and failed closed when an active circuit lacks its authoritative authentication provider.
+  - Proved static-SSR request identity precedence over a distinct injected provider and added malformed-request coverage.
+  - Exercised every supported positive administrator claim shape through the real resolver and BFF composition bridge.
+  - Made configuration filtering ordinal, case-sensitive, and literal for whitespace-only input, with key-specific regression coverage.
+  - Made a second `304` without same-tenant prior evidence return `Unknown` rather than fabricate a degraded state.
+  - Added same-provider policy reload coverage across `304` expansion, revocation, and invalid-policy outcomes.
+  - Propagated cancellation from the concrete unavailable projection-proof methods and mutation-tested those concrete methods.
+  - Corrected the stale localization test double so the full UI suite verifies shipped EN/FR resource parity.
+  - Persisted executed verification evidence and the unchanged `Hexalith.Memories` solution-build blocker below.
+- deferred_findings:
+  - Require explicit set/remove projection-proof implementations from every `ITenantQueryGateway` implementation instead of retaining pre-existing interface defaults.
+  - Adopt a shape-preserving policy schema or discriminator because `IConfiguration` cannot distinguish JSON `[]` from scalar `""` while preserving the valid-empty default.
+
 ## Design Notes
 
 Raw configuration may exist only transiently inside the server-side gateway/composer. A safe snapshot carries immutable approved rows plus non-sensitive policy state; management receives immutable proven prefixes/safe targets, while projection comparison occurs server-side and returns only proof status from matching, current projection evidence. `LegacyConfigurationDisplaySanitizer` may remain transitional inside command previews only and is never read approval.
@@ -134,3 +155,61 @@ Use FrontComposer's established SSR/circuit principal resolution pattern; do not
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.TenantConfigurationEndToEndTests` -- expected: authenticated principal/policy/raw-response/render chain passes at the tenant-detail surface.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` -- expected: full UI suite passes.
 - `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` -- expected: zero warnings/errors.
+
+**Executed 2026-08-19:**
+- UI Release warning-as-error build passed with 0 warnings and 0 errors.
+- Focused suites passed without skips or not-run cases: policy 78/78, gateway 400/400, tenant detail 154/154, set flow 55/55, remove flow 32/32, Fluent conformance 51/51, and circuit/static-SSR end-to-end 2/2.
+- Full UI suite passed 2010/2010; localization parity is included.
+- `git diff --check` and `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` passed; no `references/` pointer changed.
+- The exact solution build reached and built the Tenants projects, then failed only in unchanged `references/Hexalith.Memories`: `CS0618` at `TenantExportService.cs:134`, `TenantExportService.cs:417`, and `TenantIsolationVerifier.cs:785`; `SER301` at `ReleaseDedupKeyIfOwnedActivity.cs:35`; and aggregate `MSB4181` from `Directory.Solution.targets:3`. The story forbids modifying `references/`.
+
+## Suggested Review Order
+
+**Identity trust boundary**
+
+- Start here: selects one authoritative identity and contains provider failures.
+  [`TenantConfigurationPrincipalResolver.cs:12`](../../src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs#L12)
+
+- Separates static SSR from active circuit evidence without cross-source fallback.
+  [`TenantConfigurationPrincipalResolver.cs:45`](../../src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs#L45)
+
+**Projection refresh and proof**
+
+- Re-fetches every conditional hit before applying current deployment policy.
+  [`TenantQueryGateway.cs:145`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs#L145)
+
+- Keeps double-304 first loads unknown instead of fabricating retained evidence.
+  [`TenantQueryGateway.cs:163`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs#L163)
+
+- Reauthorizes same-tenant retained state and drops rows when current proof fails.
+  [`TenantQueryGateway.cs:2106`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs#L2106)
+
+- Makes the unavailable proof seam explicit and cancellation-aware.
+  [`UnavailableTenantQueryGateway.cs:12`](../../src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs#L12)
+
+**Literal read surface**
+
+- Applies ordinal case-sensitive filtering while preserving literal whitespace and Unicode.
+  [`TenantConfigurationView.razor:175`](../../src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor#L175)
+
+**Boundary verification**
+
+- Proves request identity precedence and real-BFF administrator claim handling.
+  [`TenantConfigurationReadPolicyTests.cs:345`](../../tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs#L345)
+
+- Exercises expansion, revocation, and invalid policy across one reloaded provider.
+  [`TenantQueryGatewayTests.cs:1250`](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs#L1250)
+
+- Pins case-sensitive key matching and literal whitespace filters in rendered UI.
+  [`TenantDetailSurfaceTests.cs:3717`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L3717)
+
+- Runs circuit and static-SSR identities through raw response to rendered DOM.
+  [`TenantConfigurationEndToEndTests.cs:43`](../../tests/Hexalith.Tenants.UI.Tests/TenantConfigurationEndToEndTests.cs#L43)
+
+**Peripherals and follow-up**
+
+- Aligns the removal-flow localizer double with shipped resource truth.
+  [`RemoveTenantMemberFlowTests.cs:888`](../../tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs#L888)
+
+- Records interface-contract and configuration-shape debts outside this patch.
+  [`deferred-work.md:1068`](deferred-work.md#L1068)

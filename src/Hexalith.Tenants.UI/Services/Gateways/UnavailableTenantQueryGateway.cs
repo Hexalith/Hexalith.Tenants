@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -8,6 +9,22 @@ using Hexalith.Tenants.UI.State.UserTenants;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
+    public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+        SetTenantConfiguration request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+    }
+
+    public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        RemoveTenantConfiguration request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+    }
+
     public Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
         TenantDetailSnapshot? previous,

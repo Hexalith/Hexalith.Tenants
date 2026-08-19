@@ -3687,13 +3687,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Configuration_filter_matches_literally_rather_than_by_culture_collation()
+    public void Configuration_filter_does_not_normalize_or_ignore_literal_code_points()
     {
-        // Every other comparison in the feature is ordinal. Culture-sensitive Contains applies ICU
-        // collation, which normalizes: the decomposed filter below matched the composed key even though
-        // the policy treats those as different keys, and a zero-width space matched every row because
-        // ICU treats it as fully ignorable. Code points are spelled out so the intent cannot be lost to
-        // editor normalization.
+        // Ordinal comparison keeps canonical composition and zero-width characters literal. Code points
+        // are spelled out so the intent cannot be lost to editor normalization.
         const string composed = "billing.caf\u00E9";      // NFC: e-acute as one code point
         const string decomposed = "caf\u0065\u0301";      // NFD: e + combining acute
         const string zeroWidthSpace = "\u200B";
@@ -3714,6 +3711,48 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-read-filter']").Change("caf\u00E9");
         cut.FindAll("[data-testid='tenants-config-read-group']").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Configuration_filter_is_ordinal_and_case_sensitive()
+    {
+        RegisterComponentServices();
+        TenantConfigurationSafeModel model = SafeConfiguration(
+            ("billing", "billing.mode", "lower"),
+            ("billing", "billing.Mode", "upper"));
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, model)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current));
+
+        cut.Find("[data-testid='tenants-config-read-filter']").Change("Mode");
+
+        IElement key = cut.Find("[data-testid='tenants-config-read-key']");
+        key.TextContent.ShouldBe("billing.Mode");
+        cut.Markup.ShouldNotContain(">billing.mode<", Case.Sensitive);
+    }
+
+    [Fact]
+    public void Configuration_filter_treats_whitespace_only_input_as_literal_data()
+    {
+        RegisterComponentServices();
+        TenantConfigurationSafeModel model = SafeConfiguration(
+            ("billing", "billing.mode", "compact"),
+            ("billing", "billing mode", "spaced"));
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, model)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current));
+
+        cut.Find("[data-testid='tenants-config-read-filter']").Change(" ");
+
+        IElement key = cut.Find("[data-testid='tenants-config-read-key']");
+        key.TextContent.ShouldBe("billing mode");
+        cut.Markup.ShouldNotContain(">billing.mode<", Case.Sensitive);
     }
 
     private static TenantConfigurationSafeModel SafeConfiguration(

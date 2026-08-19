@@ -37,8 +37,11 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class TenantConfigurationEndToEndTests : BunitContext
 {
-    [Fact]
-    public void Authenticated_circuit_policy_filters_raw_configuration_before_rendered_dom_and_accessibility_state()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Authenticated_circuit_or_ssr_policy_filters_raw_configuration_before_rendered_dom_and_accessibility_state(
+        bool useStaticSsrPrincipal)
     {
         const string tenantId = "tenant.alpha";
         const string subject = "operator-user";
@@ -88,14 +91,17 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
                 }
                 """)))
             .Build();
-        var circuitServicesAccessor = new CircuitServicesAccessor
+        var circuitServicesAccessor = new CircuitServicesAccessor();
+        if (!useStaticSsrPrincipal)
         {
-            Services = new ServiceCollection()
+            circuitServicesAccessor.Services = new ServiceCollection()
                 .AddSingleton<AuthenticationStateProvider>(
                     new StubAuthenticationStateProvider(new ClaimsPrincipal(identity)))
-                .BuildServiceProvider(),
-        };
-        TenantConfigurationPrincipalResolver principalResolver = new(circuitServicesAccessor, userContext);
+                .BuildServiceProvider();
+        }
+        TenantConfigurationPrincipalResolver principalResolver = new(
+            circuitServicesAccessor,
+            httpContextAccessor: httpContextAccessor);
         ITenantCommandGateway commandGateway = new UnavailableTenantCommandGateway();
         ITenantsBffComposition composition = new TenantsBffComposition(
             commandGateway,

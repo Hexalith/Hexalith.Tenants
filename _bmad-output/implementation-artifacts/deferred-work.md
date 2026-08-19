@@ -1064,3 +1064,11 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
   summary: Replace absolute collision wording with an accurate unproven-lineage risk statement.
   evidence: The existing guard message says semantic-release would certainly propose an occupied version even though it does not compute the proposal and the registry range may contain gaps.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
+  summary: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly.
+  evidence: The pre-existing interface defaults allow a future implementation to omit both methods, compile successfully, and silently return unavailable proof; the concrete unavailable gateway is now covered directly, but the interface design debt remains outside this review diff.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
+  summary: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations.
+  evidence: Standard IConfiguration flattening makes JSON [] and scalar "" observationally identical, so the current provider safely withholds all approval but cannot render the scalar form as policy-unavailable without also rejecting the repository's valid-empty default.

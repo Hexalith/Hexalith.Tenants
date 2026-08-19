@@ -42,11 +42,9 @@ public sealed class UnavailableTenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Configuration_projection_proof_defaults_fail_closed_on_unavailable_gateway()
+    public async Task Concrete_configuration_projection_proof_methods_fail_closed_on_unavailable_gateway()
     {
-        // Default interface members are only reachable through the interface — that is exactly the
-        // host-misconfiguration binding shape (ITenantQueryGateway → UnavailableTenantQueryGateway).
-        ITenantQueryGateway gateway = CreateGateway();
+        UnavailableTenantQueryGateway gateway = CreateGateway();
 
         TenantConfigurationProjectionProof setProof = await gateway.GetSetConfigurationProjectionProofAsync(
             new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
@@ -59,6 +57,23 @@ public sealed class UnavailableTenantQueryGatewayTests
         setProof.TenantId.ShouldBe("tenant.alpha");
         removeProof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
         removeProof.TenantId.ShouldBe("tenant.alpha");
+    }
+
+    [Fact]
+    public async Task Concrete_configuration_projection_proof_methods_propagate_entry_cancellation()
+    {
+        UnavailableTenantQueryGateway gateway = CreateGateway();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Should.ThrowAsync<OperationCanceledException>(async () =>
+            await gateway.GetSetConfigurationProjectionProofAsync(
+                new SetTenantConfiguration("tenant.alpha", "billing.mode", "trial"),
+                cancellation.Token));
+        await Should.ThrowAsync<OperationCanceledException>(async () =>
+            await gateway.GetRemoveConfigurationProjectionProofAsync(
+                new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
+                cancellation.Token));
     }
 
     [Fact]

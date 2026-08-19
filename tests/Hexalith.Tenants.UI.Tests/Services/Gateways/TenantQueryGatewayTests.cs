@@ -1075,7 +1075,7 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_not_modified_retains_matching_snapshot_without_refetch()
+    public async Task Get_tenant_not_modified_refetches_and_recomposes_even_with_a_matching_snapshot()
     {
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
@@ -1084,6 +1084,13 @@ public sealed class TenantQueryGatewayTests
             projectionVersion: "detail-v6");
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("known");
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            eTag: "fresh",
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "detail-v7"));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -1092,10 +1099,11 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
-        snapshot.ETag.ShouldBe("known");
-        snapshot.ProjectionVersion.ShouldBe("detail-v6");
-        client.SubmittedQueries.Count.ShouldBe(1);
+        snapshot.ETag.ShouldBe("fresh");
+        snapshot.ProjectionVersion.ShouldBe("detail-v7");
+        client.SubmittedQueries.Count.ShouldBe(2);
         client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
+        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
     }
 
     [Fact]
@@ -1113,6 +1121,12 @@ public sealed class TenantQueryGatewayTests
             projectionVersion: "detail-v6");
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            eTag: "fresh",
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Unknown));
 
         TenantDetailSnapshot snapshot = await CreateGateway(client)
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), previous, CancellationToken.None);
@@ -1164,6 +1178,150 @@ public sealed class TenantQueryGatewayTests
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         client.SubmittedQueries.Count.ShouldBe(2);
         client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Get_tenant_double_not_modified_without_matching_snapshot_is_unknown()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("known");
+        client.EnqueueDetailNotModified("still-known");
+
+        TenantDetailSnapshot snapshot = await CreateGateway(client).GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", ETag: "known"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unknown);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Get_tenant_not_modified_refetches_raw_detail_so_current_policy_can_approve_a_new_row()
+    {
+        TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("prior");
+        client.EnqueueQueryResult(
+            Detail(
+                "tenant.alpha",
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["billing.mode"] = "fresh-mode",
+                    ["billing.region"] = "newly-approved",
+                }),
+            eTag: "fresh",
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(
+                """
+                {
+                  "Tenants": {
+                    "ConfigurationReadPolicy": {
+                      "PrefixGrants": [
+                        { "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "billing" }
+                      ],
+                      "DisplaySafe": ["billing.mode", "billing.region"]
+                    }
+                  }
+                }
+                """));
+
+        TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", ETag: "prior"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Configuration.Rows.Select(static row => row.Key)
+            .ShouldBe(["billing.mode", "billing.region"]);
+        snapshot.Configuration.Rows.Single(static row => row.Key == "billing.region").Value
+            .ShouldBe("newly-approved");
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Get_tenant_not_modified_applies_expanded_revoked_and_invalid_reloaded_policy_from_one_provider()
+    {
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:TenantId"] = "tenant.alpha",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator-user",
+                ["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Prefix"] = "billing",
+                ["Tenants:ConfigurationReadPolicy:DisplaySafe:0"] = "billing.mode",
+            })
+            .Build();
+        var raw = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["billing.mode"] = "trial",
+            ["billing.region"] = "eu-west",
+        };
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(configuration));
+
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", raw),
+            eTag: "v1",
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        TenantDetailSnapshot initial = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous: null,
+            CancellationToken.None);
+        initial.Configuration.Rows.Select(static row => row.Key).ShouldBe(["billing.mode"]);
+
+        configuration["Tenants:ConfigurationReadPolicy:DisplaySafe:1"] = "billing.region";
+        configuration.Reload();
+        client.EnqueueDetailNotModified("v1");
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", raw),
+            eTag: "v2",
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        TenantDetailSnapshot expanded = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", ETag: "v1"),
+            initial,
+            CancellationToken.None);
+        expanded.Configuration.Rows.Select(static row => row.Key)
+            .ShouldBe(["billing.mode", "billing.region"]);
+
+        configuration["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator.other";
+        configuration.Reload();
+        client.EnqueueDetailNotModified("v2");
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", raw),
+            eTag: "v3",
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        TenantDetailSnapshot revoked = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", ETag: "v2"),
+            expanded,
+            CancellationToken.None);
+        revoked.Configuration.IsAvailable.ShouldBeTrue();
+        revoked.Configuration.Rows.ShouldBeEmpty();
+
+        configuration["Tenants:ConfigurationReadPolicy:PrefixGrants"] = "invalid-scalar";
+        configuration.Reload();
+        client.EnqueueDetailNotModified("v3");
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha", raw),
+            eTag: "v4",
+            metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
+        TenantDetailSnapshot invalid = await gateway.GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha", ETag: "v3"),
+            revoked,
+            CancellationToken.None);
+        invalid.Configuration.IsAvailable.ShouldBeFalse();
+        invalid.Configuration.Rows.ShouldBeEmpty();
+
+        client.SubmittedQueries.Count.ShouldBe(7);
+        client.SubmittedQueries.Where(static query => query.IfNoneMatch is null).Count().ShouldBe(4);
     }
 
     [Fact]
@@ -1294,6 +1452,36 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_never_reuses_a_prior_with_a_mismatched_management_tenant()
+    {
+        TenantConfigurationSafeRow priorRow = new("billing", "billing.mode", "prior-visible");
+        TenantConfigurationComposition priorComposition = new(
+            TenantConfigurationSafeComposer.SanitizeDetail(Detail("tenant.alpha")),
+            TenantConfigurationSafeModel.Available("tenant.alpha", [priorRow]),
+            TenantConfigurationManagementContext.Available(
+                "tenant.other",
+                TenantStatus.Active,
+                false,
+                ["billing"],
+                [priorRow]));
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            priorComposition,
+            "prior",
+            ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new InvalidOperationException("gateway unavailable"));
+
+        TenantDetailSnapshot snapshot = await CreateGateway(client).GetTenantAsync(
+            new TenantDetailRequest("tenant.alpha"),
+            previous,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Configuration.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Get_tenant_wrong_tenant_payload_without_same_tenant_prior_is_unavailable()
     {
         CapturingGatewayClient client = new();
@@ -1371,7 +1559,7 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_retained_reauthorization_failure_returns_safe_degraded_state()
+    public async Task Get_tenant_retained_reauthorization_failure_makes_configuration_unavailable()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
         CapturingGatewayClient client = new();
@@ -1397,19 +1585,19 @@ public sealed class TenantQueryGatewayTests
             previous,
             CancellationToken.None);
 
-        // AC5 continue-read-only: reauth failure must keep last-confirmed safe rows, not UnavailableComposition.
+        // Rows may be retained only after current policy and principal evidence are successfully reauthorized.
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Degraded);
         snapshot.Detail.ShouldNotBeNull().Configuration.ShouldBeEmpty();
-        snapshot.Configuration.IsAvailable.ShouldBeTrue();
-        snapshot.Configuration.IsDegraded.ShouldBeTrue();
-        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        snapshot.Configuration.IsDegraded.ShouldBeFalse();
+        snapshot.Configuration.Rows.ShouldBeEmpty();
         snapshot.ConfigurationManagement.IsAvailable.ShouldBeFalse();
         snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("raw secret authorization details", Case.Sensitive);
     }
 
     [Fact]
-    public async Task Get_tenant_compose_failure_with_same_tenant_prior_keeps_last_confirmed_safe_rows()
+    public async Task Get_tenant_compose_and_reauthorization_failure_drops_prior_safe_rows()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
         CapturingGatewayClient client = new();
@@ -1421,7 +1609,7 @@ public sealed class TenantQueryGatewayTests
             .ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), Arg.Any<CancellationToken>())
             .Returns(ValueTask.FromException<TenantConfigurationComposition>(
                 new InvalidOperationException("compose blew up with secret")));
-        // Retain path reauth also fails: both catch arms must still continue-read-only.
+        // Retain path reauth also fails, so current authorization cannot be proven.
         composition
             .ReauthorizeTenantDetailAsync(
                 Arg.Any<TenantDetail>(),
@@ -1438,9 +1626,9 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
-        snapshot.Configuration.IsAvailable.ShouldBeTrue();
-        snapshot.Configuration.IsDegraded.ShouldBeTrue();
-        snapshot.Configuration.Rows.ShouldHaveSingleItem().Value.ShouldBe("prior-visible");
+        snapshot.Configuration.IsAvailable.ShouldBeFalse();
+        snapshot.Configuration.IsDegraded.ShouldBeFalse();
+        snapshot.Configuration.Rows.ShouldBeEmpty();
         snapshot.ErrorMessage.ShouldNotBeNull().ShouldNotContain("secret", Case.Insensitive);
     }
 
@@ -1762,10 +1950,11 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_without_previous_snapshot_reports_unavailable_when_unconditional_refetch_fails()
+    public async Task Get_tenant_without_previous_snapshot_reports_unavailable_when_second_request_fails()
     {
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("known");
+        client.EnqueueException(new InvalidOperationException("unconditional read failed with secret"));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -1775,6 +1964,8 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
     }
 
     [Fact]
@@ -5689,6 +5880,11 @@ public sealed class TenantQueryGatewayTests
         IConfiguration configuration = new ConfigurationBuilder()
             .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
             .Build();
+        return ConfigurationComposition(configuration);
+    }
+
+    private static ITenantsBffComposition ConfigurationComposition(IConfiguration configuration)
+    {
         ITenantConfigurationPrincipalResolver principalResolver = new StubConfigurationPrincipalResolver(
             TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
         return new TenantsBffComposition(

@@ -10,11 +10,10 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
-using NSubstitute;
 
 using Shouldly;
 
@@ -38,9 +37,8 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     /// <summary>
-    /// With no circuit activity and no injectable fallback provider, resolution fails closed. The prior
-    /// "stale HTTP principal" framing was misleading: this helper never assigns <c>HttpContext.User</c>, and
-    /// the resolver no longer reads the request principal for evidence — only as a prerender discriminator.
+    /// With no circuit activity, SSR request, or injectable fallback provider, there is no authoritative
+    /// identity source and resolution fails closed.
     /// </summary>
     [Fact]
     public async Task Resolver_without_a_circuit_authentication_provider_fails_closed()
@@ -91,8 +89,7 @@ public sealed class TenantConfigurationReadPolicyTests
         var provider = new PendingAuthenticationStateProvider();
         using var cancellation = new CancellationTokenSource();
         Task<TenantConfigurationPrincipalEvidence> resolution = Resolver(
-            circuitProvider: provider,
-            userContextSubject: "operator.circuit")
+            circuitProvider: provider)
             .ResolveAsync(cancellation.Token)
             .AsTask();
         await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -104,9 +101,8 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     /// <summary>
-    /// Circuit activity-scoped authentication is the evidence source when present. A separately named
-    /// "stale HTTP" principal is not consulted — the resolver never reads <c>HttpContext.User</c> — so this
-    /// pins that the circuit identity alone decides the reflection.
+    /// Circuit activity-scoped authentication is the evidence source when present. A request principal must
+    /// not be borrowed by an interactive operation.
     /// </summary>
     [Fact]
     public async Task Resolver_uses_current_circuit_identity_when_circuit_authentication_is_available()
@@ -114,13 +110,52 @@ public sealed class TenantConfigurationReadPolicyTests
         ClaimsPrincipal currentCircuitPrincipal = Principal(
             new Claim("sub", "operator.circuit"),
             new Claim("roles", "[\"tenant-reader\"]"));
+        ClaimsPrincipal requestPrincipal = Principal(
+            new Claim("sub", "operator.request"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
             circuitPrincipal: currentCircuitPrincipal,
-            userContextSubject: "operator.circuit").ResolveAsync();
+            requestPrincipal: requestPrincipal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
         evidence.Subject.ShouldBe("operator.circuit");
+    }
+
+    [Fact]
+    public async Task Resolver_does_not_borrow_the_request_identity_when_circuit_authentication_is_missing()
+    {
+        ClaimsPrincipal requestPrincipal = Principal(
+            new Claim("sub", "operator.request"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            circuitActivityWithoutProvider: true,
+            injectedPrincipal: Principal(
+                new Claim("sub", "operator.injected"),
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true")),
+            requestPrincipal: requestPrincipal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Resolver_contains_a_disposed_circuit_service_lookup_as_indeterminate()
+    {
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            publishedCircuitServices: new ThrowingServiceProvider(
+                new ObjectDisposedException("circuit scope")),
+            injectedPrincipal: Principal(
+                new Claim("sub", "operator.injected"),
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"))).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
     }
 
     [Fact]
@@ -289,12 +324,10 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     /// <summary>
-    /// Fails closed on the prerender / static-SSR pass. There is no circuit, so the resolver's own injected
-    /// AuthenticationStateProvider is the request-scoped one seeded from HttpContext.User -- the evidence source
-    /// the owner decision removed. Deleting the HttpContext discriminator makes this authorize.
+    /// Static SSR has no circuit provider, so the authenticated request principal supplies all evidence.
     /// </summary>
     [Fact]
-    public async Task Resolver_fails_closed_when_only_a_request_scoped_provider_is_available()
+    public async Task Resolver_uses_the_http_request_identity_during_static_ssr()
     {
         ClaimsPrincipal requestPrincipal = Principal(
             new Claim("sub", "operator.alpha"),
@@ -302,9 +335,47 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("global_admin", "true"));
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
-            injectedPrincipal: requestPrincipal,
-            requestInScope: true,
-            userContextSubject: "operator.alpha").ResolveAsync();
+            requestPrincipal: requestPrincipal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
+    }
+
+    [Fact]
+    public async Task Resolver_static_ssr_request_identity_precedes_a_distinct_injected_administrator()
+    {
+        ClaimsPrincipal requestPrincipal = Principal(
+            new Claim("sub", "operator.request"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "tenant-reader"));
+        ClaimsPrincipal injectedAdministrator = Principal(
+            new Claim("sub", "operator.injected"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            injectedPrincipal: injectedAdministrator,
+            requestPrincipal: requestPrincipal).ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+        evidence.Subject.ShouldBe("operator.request");
+    }
+
+    [Fact]
+    public async Task Resolver_static_ssr_malformed_request_identity_fails_closed_without_injected_fallback()
+    {
+        ClaimsPrincipal malformedRequestPrincipal = Principal(
+            new Claim("sub", "operator.request"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "[\"global-admin\""));
+        ClaimsPrincipal injectedAdministrator = Principal(
+            new Claim("sub", "operator.injected"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(
+            injectedPrincipal: injectedAdministrator,
+            requestPrincipal: malformedRequestPrincipal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         evidence.Subject.ShouldBeNull();
@@ -325,8 +396,7 @@ public sealed class TenantConfigurationReadPolicyTests
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
             injectedPrincipal: circuitPrincipal,
-            requestInScope: false,
-            userContextSubject: "operator.alpha").ResolveAsync();
+            requestInScope: false).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
         evidence.Subject.ShouldBe("operator.alpha");
@@ -393,21 +463,17 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
-    public async Task Resolver_requires_user_context_subject_to_match_the_authenticated_identity()
+    public async Task Resolver_derives_the_subject_from_the_same_authenticated_identity_as_scope_and_roles()
     {
-        ClaimsPrincipal principal = Principal(new Claim("sub", "operator.alpha"));
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "tenant-reader"));
 
-        TenantConfigurationPrincipalEvidence missing = await Resolver(
-            circuitPrincipal: principal,
-            supplyUserContext: false).ResolveAsync();
-        TenantConfigurationPrincipalEvidence mismatched = await Resolver(
-            circuitPrincipal: principal,
-            userContextSubject: "operator.beta").ResolveAsync();
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
 
-        missing.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
-        mismatched.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
-        missing.Subject.ShouldBeNull();
-        mismatched.Subject.ShouldBeNull();
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
     }
 
     [Theory]
@@ -417,16 +483,38 @@ public sealed class TenantConfigurationReadPolicyTests
     [InlineData("role", "global-administrator")]
     [InlineData("roles", "tenant-reader,global-admin")]
     [InlineData("roles", "[\"tenant-reader\",\"global-admin\"]")]
-    public async Task Resolver_supports_each_positive_administrator_claim_shape(string claimType, string claimValue)
+    public async Task Real_resolver_and_bff_support_each_positive_administrator_claim_shape(
+        string claimType,
+        string claimValue)
     {
         ClaimsPrincipal principal = Principal(
             new Claim("sub", "operator.alpha"),
             new Claim("eventstore:tenant", "system"),
             new Claim(claimType, claimValue));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: Resolver(circuitPrincipal: principal),
+            policyProvider: new TenantConfigurationReadPolicyProvider(Configuration("""
+                {
+                  "Tenants": {
+                    "ConfigurationReadPolicy": {
+                      "PrefixGrants": [],
+                      "DisplaySafe": ["approved.value"]
+                    }
+                  }
+                }
+                """)));
 
-        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
+        TenantConfigurationComposition result = await composition.ComposeTenantDetailAsync(
+            Detail(new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["approved.value"] = "visible",
+                ["unregistered.value"] = "hidden",
+            }));
 
-        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        result.ManagementContext.AuthorizedPrefixes.ShouldBe(["*"]);
+        result.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("approved.value");
+        result.SafeModel.Rows.ShouldHaveSingleItem().Value.ShouldBe("visible");
     }
 
     [Fact]
@@ -730,8 +818,7 @@ public sealed class TenantConfigurationReadPolicyTests
             new Claim("roles", "[\"tenant-reader\"]"));
 
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
-            circuitPrincipal: principal,
-            userContextSubject: "operator.alpha").ResolveAsync();
+            circuitPrincipal: principal).ResolveAsync();
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         evidence.Subject.ShouldBeNull();
@@ -1077,49 +1164,43 @@ public sealed class TenantConfigurationReadPolicyTests
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
-        bool supplyUserContext = true,
-        string? userContextSubject = null,
+        bool circuitActivityWithoutProvider = false,
+        IServiceProvider? publishedCircuitServices = null,
         ClaimsPrincipal? injectedPrincipal = null,
-        bool requestInScope = false)
+        bool requestInScope = false,
+        ClaimsPrincipal? requestPrincipal = null)
     {
         CircuitServicesAccessor circuit = new();
-        if (circuitPrincipal is not null || circuitProvider is not null)
+        if (publishedCircuitServices is not null)
         {
-            circuit.Services = new ServiceCollection()
-                .AddSingleton(circuitProvider ?? new StubAuthenticationStateProvider(circuitPrincipal!))
-                .BuildServiceProvider();
+            circuit.Services = publishedCircuitServices;
+        }
+        else if (circuitPrincipal is not null || circuitProvider is not null || circuitActivityWithoutProvider)
+        {
+            ServiceCollection services = new();
+            if (!circuitActivityWithoutProvider)
+            {
+                services.AddSingleton(circuitProvider ?? new StubAuthenticationStateProvider(circuitPrincipal!));
+            }
+
+            circuit.Services = services.BuildServiceProvider();
         }
 
-        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
-        userContext.UserId.Returns(supplyUserContext
-            ? userContextSubject ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal)
-            : null);
-
-        // requestInScope models the prerender / static-SSR pass: an HttpContext is present and there is no
-        // circuit at all. Inside a real circuit, and on notification threads, IHttpContextAccessor.HttpContext
-        // is null, which is what admits the injected fallback.
-        Microsoft.AspNetCore.Http.IHttpContextAccessor? httpContextAccessor = null;
-        if (requestInScope)
+        IHttpContextAccessor? httpContextAccessor = null;
+        if (requestInScope || requestPrincipal is not null)
         {
-            httpContextAccessor = Substitute.For<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
-            httpContextAccessor.HttpContext.Returns(new Microsoft.AspNetCore.Http.DefaultHttpContext());
+            var httpContext = new DefaultHttpContext
+            {
+                User = requestPrincipal ?? new ClaimsPrincipal(),
+            };
+            httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
         }
 
         return new TenantConfigurationPrincipalResolver(
             circuit,
-            userContext,
             injectedPrincipal is null ? null : new StubAuthenticationStateProvider(injectedPrincipal),
             httpContextAccessor);
     }
-
-    // Distinct values, mirroring the evaluator's own rule: a principal carrying the same `sub` twice is one
-    // identity, so the corroborating IUserContextAccessor.UserId this helper derives must resolve it the same way.
-    private static string? SubjectFrom(ClaimsPrincipal? principal)
-        => principal?.Claims
-            .Where(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))
-            .Select(static claim => claim.Value)
-            .Distinct(StringComparer.Ordinal)
-            .SingleOrDefault();
 
     private static ClaimsPrincipal Principal(params Claim[] claims)
         => new(new ClaimsIdentity(claims, "test"));
@@ -1149,6 +1230,11 @@ public sealed class TenantConfigurationReadPolicyTests
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
             => Task.FromException<AuthenticationState>(exception);
+    }
+
+    private sealed class ThrowingServiceProvider(Exception exception) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => throw exception;
     }
 
     private sealed class PendingAuthenticationStateProvider : AuthenticationStateProvider
