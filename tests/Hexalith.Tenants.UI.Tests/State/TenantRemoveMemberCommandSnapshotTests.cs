@@ -44,7 +44,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
@@ -117,7 +117,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))
             .RequestSent(baselineProjectionVersion: "v1", baselinePostconditionMet: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
             "tenant.alpha",
@@ -141,7 +141,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
-        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
         snapshot.LastConfirmedMemberProjection.ShouldNotBeNull().Members
             .ShouldContain(member => member.UserId == "literal-user");
@@ -201,7 +201,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: null)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
             "tenant.alpha",
@@ -211,6 +211,32 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline");
         result.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        result.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Blank_baseline_maps_to_unable_to_verify_without_audit_available(string baselineProjectionVersion)
+    {
+        var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
+        TenantRemoveMemberCommandSnapshot result = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(
+                intent,
+                TenantRole.TenantReader,
+                ownerCount: 2,
+                targetGlobalAdministratorFriction: false,
+                Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]))
+            .RequestSent(baselineProjectionVersion)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(
+                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+                currentProjectionVersion: "v2");
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline");
         result.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
     }
 
@@ -226,7 +252,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: "v1", attemptStartedAtUtc: started)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         TenantRemoveMemberCommandSnapshot withoutProvenance = snapshot.ConfirmProjection(Detail(
             "tenant.alpha",
@@ -258,7 +284,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: "v1", attemptStartedAtUtc: started)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
             .ConfirmProjection(Detail(
                 "tenant.alpha",
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]),
@@ -286,7 +312,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
             .ConfirmProjection(Detail(
                 "tenant.alpha",
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]),

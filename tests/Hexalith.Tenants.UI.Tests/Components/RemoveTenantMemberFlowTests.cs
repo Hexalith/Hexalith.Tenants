@@ -187,7 +187,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-999"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
@@ -521,7 +521,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
 
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
@@ -592,7 +592,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
 
@@ -633,7 +633,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
         queryGateway.GetTenantAuditAsync(

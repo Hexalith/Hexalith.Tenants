@@ -2,7 +2,7 @@
 title: 'Reverify Projection-Confirmed Membership Command Foundation'
 type: 'feature'
 created: '2026-08-08'
-status: 'done'
+status: 'in-review'
 baseline_commit: '222d5ac614e182a5eefdc3fd282a5bfc14f075e9'
 review_loop_iteration: 0
 context:
@@ -85,6 +85,24 @@ context:
 - [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` -- cover messageId reuse vs new attempt -- idempotency
 - [x] `tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs` (+ Change/Remove + `TenantDetailSurfaceTests.cs` / conformance) -- cover AggregateIdentity lock, BFF surface availability, SignalR nudge wiring, reconnect reuse -- page/flow integration
 - [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- move `2-1-reverify-projection-confirmed-membership-command-foundation` through ready-for-dev → in-progress → review/done with the story -- tracking only
+
+### Review Findings
+
+- [ ] [Review][Patch] Mint and retain the attempt `messageId` before dispatch so an indeterminate POST response cannot lose the idempotency key [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:82]
+- [ ] [Review][Patch] Separate status recovery for the same attempt from deliberate new intent so retries do not redispatch and new intents do not inherit an old `messageId` [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:348]
+- [ ] [Review][Patch] Make AggregateIdentity admission exclusive and owner-aware, and honor acquisition failure instead of incrementing every same-key request [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:23]
+- [ ] [Review][Patch] Release owned command activity consistently when a flow is cancelled, the page is disposed, or tracking becomes irrecoverable [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:777]
+- [ ] [Review][Patch] Surface a localized same-aggregate lock reason instead of collapsing contention into the generic command-support outage [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
+- [ ] [Review][Patch] Replace opaque projection-token inequality with causal evidence that cannot confirm from regression, unrelated churn, or a concurrent matching command [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:15]
+- [ ] [Review][Patch] Validate caller-supplied reusable message ids as ULIDs before forwarding them [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:929]
+- [ ] [Review][Patch] Clear stale `SafeMessageKey` values on every status transition so recovered states cannot display an earlier provenance failure [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:301]
+- [ ] [Review][Patch] Serialize or generation-guard status/evidence refreshes and stop explicit projection refreshes from recursively triggering duplicate status lookups [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:447]
+- [ ] [Review][Patch] Fail closed when the scoped admission gate is missing instead of silently creating a page-private gate, and verify its scoped lifetime [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:298]
+- [ ] [Review][Patch] Add null and whitespace baseline-provenance tests for add, change-role, and remove snapshots [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:42]
+- [ ] [Review][Patch] Add parent-to-flow SignalR forwarding tests for change-role and remove-member commands [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:720]
+- [ ] [Review][Patch] Add a page-level disconnected-BFF test proving membership dispatch is disabled with an inline reason [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
+- [ ] [Review][Patch] Add page-boundary verification that an advanced live projection version reaches the child flow and earns confirmation [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:187]
+- [x] [Review][Defer] The mandatory story gitlink validator currently fails on seven later, unrelated submodule pointer bumps even though the isolated Story 2.1 commit changes no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:7] — deferred, pre-existing
 
 **Acceptance Criteria:**
 - Given a membership command reaches projection reconciliation, when the postcondition matches but projection version/audit does not advance past the pre-submit baseline, then the attempt is not `Confirmed`.

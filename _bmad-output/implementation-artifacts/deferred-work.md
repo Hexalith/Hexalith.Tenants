@@ -947,6 +947,12 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   summary: SignalR nudge is skipped when MemberAccessReview ref is still null.
   evidence: TenantDetailPage forwards only when `_memberAccessReview is not null`; early refresh before child attach can miss an in-flight nudge.
 
+## Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation.md (2026-08-19)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: The mandatory story gitlink validator fails against current HEAD because seven unrelated submodule pointer bumps landed after the isolated Story 2.1 commit.
+  evidence: `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` reports all seven `references/` pointers as undeclared between baseline `222d5ac` and HEAD `020b099`, while `222d5ac..29c4aec` changes no gitlink.
+
 ## Deferred from: bmad-build scope split of Story 2.4 (2026-08-08)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
@@ -972,6 +978,10 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
   summary: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open.
   evidence: Per-row audit probes would add latency on every member render; Always clause capability language remains partially approximated until a shared capability signal exists.
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-19)
+
+- Default `validate-story-gitlinks.py` execution compares the Story 2.4 baseline to the later repository `HEAD` and reports seven undeclared `references/` pointer moves made by post-story dependency commits. Exact story-range validation with `--ref fa5ca559` passes for both 2.4 specifications with no gitlink changes. Keep the later dependency bumps outside Story 2.4 review scope; make story-end range selection durable if old stories must remain independently re-reviewable after `main` advances.
 
 ## Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)
 

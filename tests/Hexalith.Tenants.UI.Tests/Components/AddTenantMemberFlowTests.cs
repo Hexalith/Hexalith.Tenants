@@ -56,7 +56,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
@@ -86,7 +86,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
 
@@ -186,6 +186,43 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => gateway.AddMemberCallCount.ShouldBe(1));
         gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
+    public async Task SignalR_nudge_during_unresolved_submission_keeps_request_and_activity_in_flight()
+    {
+        TaskCompletionSource<TenantCommandSubmissionResult> submission = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            AddMemberAsync = _ => submission.Task,
+        };
+        RegisterServices(gateway);
+        List<bool> activity = [];
+
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.CommandActivityLease, isActive =>
+            {
+                activity.Add(isActive);
+                return Task.FromResult(true);
+            }));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent));
+
+        await cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        gateway.StatusCallCount.ShouldBe(0);
+        activity.ShouldBe([true]);
+
+        submission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+        cut.WaitForAssertion(() => activity.ShouldBe([true, false]));
     }
 
     [Fact]

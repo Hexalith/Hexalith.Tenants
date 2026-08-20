@@ -196,7 +196,8 @@
                                             OnNextPageRequested="@LoadNextMemberPageAsync"
                                             OnPreviousPageRequested="@LoadPreviousMemberPageAsync"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                            OnCommandActivityChanged="@SetCommandActivityAsync"
+                                            CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
+                                            CommandActivityLease="@SetCommandActivityLeaseAsync"
                                             OnProjectionRefreshRequested="@RefreshTenantReadsAsync"
                                             ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                             ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
@@ -279,6 +280,7 @@
     private string? _activeAggregateLockKey;
     private MemberAccessReview? _memberAccessReview;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
+    private readonly object _commandLockOwner = new();
     private int _readRefreshSubscriptionInFlight;
 
     [Parameter]
@@ -298,16 +300,24 @@
     private bool IsCommandSurfaceAvailable
         => !_commandInFlight
         && !IsCurrentAggregateLocked
+        && AggregateAdmissionGate is not null
         && BffComposition.IsCommandSurfaceConnected;
 
-    private TenantAggregateCommandAdmissionGate AggregateAdmissionGate
-        => _aggregateAdmissionGate
-            ??= Services.GetService<TenantAggregateCommandAdmissionGate>()
-            ?? new TenantAggregateCommandAdmissionGate();
+    private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
+        => _aggregateAdmissionGate ??= Services.GetService<TenantAggregateCommandAdmissionGate>();
 
     private bool IsCurrentAggregateLocked
         => !string.IsNullOrWhiteSpace(TenantId)
-            && AggregateAdmissionGate.IsLocked(TenantCommandAggregateLock.ForTenant(TenantId));
+            && AggregateAdmissionGate?.IsLocked(TenantCommandAggregateLock.ForTenant(TenantId)) == true;
+
+    private bool IsCurrentAggregateLockedByAnother
+        => !string.IsNullOrWhiteSpace(TenantId)
+            && AggregateAdmissionGate?.IsLockedByAnother(TenantCommandAggregateLock.ForTenant(TenantId), _commandLockOwner) == true;
+
+    private string? CommandSurfaceUnavailableReason
+        => _commandInFlight || IsCurrentAggregateLockedByAnother
+            ? Localizer["Tenants.Members.UnavailableReason.AggregateLocked"].Value
+            : null;
 
     private bool MemberEvidenceIsVersionConsistent
         => _snapshot.Kind is TenantDetailSurfaceKind.Ready
@@ -1341,38 +1351,48 @@
                 : null);
 
     private async Task SetCommandActivityAsync(bool isActive)
+        => _ = await SetCommandActivityLeaseAsync(isActive).ConfigureAwait(false);
+
+    private async Task<bool> SetCommandActivityLeaseAsync(bool isActive)
     {
         if (isActive)
         {
-            if (string.IsNullOrWhiteSpace(TenantId))
+            TenantAggregateCommandAdmissionGate? gate = AggregateAdmissionGate;
+            if (string.IsNullOrWhiteSpace(TenantId) || gate is null)
             {
-                // Refuse to raise without a lockable identity, but keep the surface closed while local
-                // in-flight is true so sibling command surfaces do not stay open.
                 _activeAggregateLockKey = null;
-                _commandInFlight = true;
-                await Task.CompletedTask.ConfigureAwait(false);
-                return;
+                _commandInFlight = false;
+                return false;
             }
 
-            _activeAggregateLockKey = TenantCommandAggregateLock.ForTenant(TenantId);
-            _ = AggregateAdmissionGate.TryAcquire(_activeAggregateLockKey);
+            string aggregateLockKey = TenantCommandAggregateLock.ForTenant(TenantId);
+            if (!gate.TryAcquire(aggregateLockKey, _commandLockOwner))
+            {
+                _activeAggregateLockKey = null;
+                _commandInFlight = false;
+                return false;
+            }
+
+            _activeAggregateLockKey = aggregateLockKey;
             _commandInFlight = true;
         }
         else if (_activeAggregateLockKey is not null)
         {
-            AggregateAdmissionGate.Release(_activeAggregateLockKey);
-            _commandInFlight = AggregateAdmissionGate.IsLocked(_activeAggregateLockKey);
-            if (!_commandInFlight)
-            {
-                _activeAggregateLockKey = null;
-            }
+            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
+            _commandInFlight = false;
+            _activeAggregateLockKey = null;
         }
         else
         {
             _commandInFlight = false;
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        // Membership flows acquire the lease through a Func delegate rather than an EventCallback owned by
+        // this component. Blazor therefore does not schedule a TenantDetailPage render when that child event
+        // completes. Render explicitly so the owner-aware lock reason and disabled sibling surfaces become
+        // visible immediately after acquisition (and disappear immediately after release).
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        return true;
     }
 
     private string ConfigurationSummary(TenantConfigurationSafeModel configuration)
@@ -1429,6 +1449,13 @@
 
         CancelLifecycleAuthorizationCancellation();
         CancelActiveCancellation();
+
+        if (_activeAggregateLockKey is not null)
+        {
+            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
+            _activeAggregateLockKey = null;
+            _commandInFlight = false;
+        }
 
         if (_readRefreshLease is not null)
         {

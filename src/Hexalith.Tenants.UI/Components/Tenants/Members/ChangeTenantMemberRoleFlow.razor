@@ -172,6 +172,7 @@
     private ElementReference _lifecycleElement;
     private bool _focusRolePending;
     private bool _focusLifecyclePending;
+    private int _refreshInFlight;
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -192,6 +193,9 @@
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
+    public string? CommandSurfaceUnavailableReason { get; set; }
+
+    [Parameter]
     public string? ProjectionVersion { get; set; }
 
     /// <summary>
@@ -209,6 +213,9 @@
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
     public Func<ChangeUserRole, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
@@ -238,7 +245,7 @@
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.ChangeRole.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
-                        ? Localizer["Tenants.ChangeRole.Unavailable.CommandSurface"].Value
+                        ? CommandSurfaceUnavailableReason ?? Localizer["Tenants.ChangeRole.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.ChangeRole.Unavailable.InFlight"].Value
                             : Member.Role is TenantRole.Unknown
@@ -361,19 +368,33 @@
         }
     }
 
-    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
         if (_hasRaisedCommandActivity == isActive)
         {
-            return;
+            return true;
+        }
+
+        if (CommandActivityLease is not null)
+        {
+            bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
+            if (isActive && !accepted)
+            {
+                return false;
+            }
         }
 
         _hasRaisedCommandActivity = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        if (CommandActivityLease is null)
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+        => _ = await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
@@ -385,6 +406,11 @@
     internal async Task HandleAuthoritativeRefreshNudgeAsync()
     {
         ApplySignalRNudge();
+        if (_isSubmitting)
+        {
+            return;
+        }
+
         await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
     }
 
@@ -443,20 +469,22 @@
             return;
         }
 
-        string? reuseMessageId = string.IsNullOrWhiteSpace(_snapshot.MessageId) ? null : _snapshot.MessageId;
-        _snapshot = _snapshot.RequestSent(
+        _snapshot = TenantChangeRoleCommandSnapshot.Idle().RequestSent(
             request,
             Member.Role,
             OwnerCount,
             ResolveCurrentProjectionVersion(),
             baselinePostconditionMet: Member.Role == newRole);
-        if (reuseMessageId is not null)
-        {
-            _snapshot = _snapshot with { MessageId = reuseMessageId };
-        }
 
         _isSubmitting = true;
-        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
+        if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
+        {
+            _isSubmitting = false;
+            SetSnapshot(TenantChangeRoleCommandSnapshot.Blocked(
+                CommandSurfaceUnavailableReason ?? Localizer["Tenants.ChangeRole.Unavailable.InFlight"].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
 
         try
         {
@@ -470,7 +498,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .ChangeUserRoleAsync(request, reuseMessageId, CancellationToken.None)
+                .ChangeUserRoleAsync(request, messageId: null, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -486,6 +514,7 @@
                     MessageId = result.MessageId ?? _snapshot.MessageId,
                     CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
+                    SafeMessageKey = null,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -504,6 +533,23 @@
         => RefreshCommandStatusAsync(requestProjectionRefresh: true);
 
     private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
+    {
+        if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await RefreshCommandStatusCoreAsync(requestProjectionRefresh).ConfigureAwait(false);
+        }
+        finally
+        {
+            Volatile.Write(ref _refreshInFlight, 0);
+        }
+    }
+
+    private async Task RefreshCommandStatusCoreAsync(bool requestProjectionRefresh)
     {
         if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
         {
@@ -556,11 +602,19 @@
     private async Task ContinueReadOnlyAsync()
     {
         SetSnapshot(TenantChangeRoleCommandSnapshot.Idle());
-        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
     }
 
     private async Task CloseAsync()
-        => await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
+    {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
+        _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
+    }
 
     private static bool TryParseAssignableRole(string value, out TenantRole role)
     {

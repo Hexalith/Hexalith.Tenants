@@ -138,6 +138,32 @@ public sealed class TenantsUiCompositionTests
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
     }
 
+    [Fact]
+    public void Aggregate_command_admission_gate_is_scoped_to_a_circuit()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor descriptor = services.Single(static candidate =>
+            candidate.ServiceType == typeof(TenantAggregateCommandAdmissionGate));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantAggregateCommandAdmissionGate first = firstScope.ServiceProvider
+            .GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantAggregateCommandAdmissionGate firstAgain = firstScope.ServiceProvider
+            .GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantAggregateCommandAdmissionGate second = secondScope.ServiceProvider
+            .GetRequiredService<TenantAggregateCommandAdmissionGate>();
+
+        firstAgain.ShouldBeSameAs(first);
+        second.ShouldNotBeSameAs(first);
+    }
+
     /// <summary>
     /// Resolves the composed graph rather than inspecting descriptors, so a container cycle is caught.
     /// </summary>

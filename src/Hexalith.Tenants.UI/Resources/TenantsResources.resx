@@ -1776,6 +1776,9 @@
   <data name="Tenants.Members.UnavailableReason.HighImpactFlowNotReady" xml:space="preserve">
     <value>high-impact flow not ready</value>
   </data>
+  <data name="Tenants.Members.UnavailableReason.AggregateLocked" xml:space="preserve">
+    <value>Another command is already in progress for this tenant. Wait for its terminal evidence or continue read-only.</value>
+  </data>
   <data name="Tenants.Members.UnavailableReason.MissingAuditProof" xml:space="preserve">
     <value>missing audit proof</value>
   </data>

@@ -382,12 +382,12 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
             new UpdateTenant("tenant.alpha", "Alpha", null),
-            messageId: "01EXISTINGMESSAGEID000000000",
+            messageId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
-        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         ulids.CallCount.ShouldBe(0);
     }
 
@@ -1080,12 +1080,12 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
             new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
-            messageId: "01EXISTINGMESSAGEID000000000",
+            messageId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
-        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-reuse");
         ulids.CallCount.ShouldBe(0);
     }
@@ -1110,6 +1110,52 @@ public sealed class TenantCommandGatewayTests
         ulids.CallCount.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData("not-a-ulid")]
+    [InlineData("8ZZZZZZZZZZZZZZZZZZZZZZZZZ")]
+    [InlineData("01ARZ3NDEKTSV4RRFFQ69G5FAI")]
+    public async Task Add_user_to_tenant_rejects_noncanonical_reusable_message_id(string messageId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-unused"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            messageId,
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("ULID");
+        client.SubmittedCommands.ShouldBeEmpty();
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Add_user_to_tenant_retains_minted_message_id_when_submission_is_indeterminate()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "gateway unavailable"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            cancellationToken: CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(result.MessageId);
+        ulids.CallCount.ShouldBe(1);
+    }
+
     [Fact]
     public async Task Change_user_role_reuses_provided_message_id_instead_of_minting()
     {
@@ -1122,12 +1168,12 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
             new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
-            messageId: "01EXISTINGMESSAGEID000000000",
+            messageId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
-        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-reuse");
         ulids.CallCount.ShouldBe(0);
     }
@@ -1164,12 +1210,12 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
             new RemoveUserFromTenant("tenant.alpha", "literal-user"),
-            messageId: "01EXISTINGMESSAGEID000000000",
+            messageId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
-        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-reuse");
         ulids.CallCount.ShouldBe(0);
     }
@@ -1275,12 +1321,12 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
             new CreateTenant("tenant.alpha", "Alpha", null),
-            messageId: "01EXISTINGMESSAGEID000000000",
+            messageId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             cancellationToken: CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
-        result.MessageId.ShouldBe("01EXISTINGMESSAGEID000000000");
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         ulids.CallCount.ShouldBe(0);
     }
 

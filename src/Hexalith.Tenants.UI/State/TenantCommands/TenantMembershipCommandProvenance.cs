@@ -6,8 +6,9 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 internal static class TenantMembershipCommandProvenance
 {
     /// <summary>
-    /// Returns whether the current projection version is a usable advancement past the captured baseline.
-    /// Projection versions are opaque; advancement is unequal, non-empty ordinal comparison only.
+    /// Returns whether two opaque projection versions differ.
+    /// This legacy overload remains for non-membership command snapshots whose contracts only expose an
+    /// opaque change token. Membership commands use the causal overload below.
     /// </summary>
     /// <param name="baselineProjectionVersion">Projection version captured before submit.</param>
     /// <param name="currentProjectionVersion">Projection version observed after re-query.</param>
@@ -18,6 +19,38 @@ internal static class TenantMembershipCommandProvenance
         => !string.IsNullOrWhiteSpace(baselineProjectionVersion)
         && !string.IsNullOrWhiteSpace(currentProjectionVersion)
         && !string.Equals(baselineProjectionVersion, currentProjectionVersion, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Returns whether the current projection version is a causally qualified advancement past the captured baseline.
+    /// A tracked command must have produced event evidence, and both versions must expose the same ordered
+    /// numeric suffix so regressions and opaque-token churn fail closed.
+    /// </summary>
+    /// <param name="baselineProjectionVersion">Projection version captured before submit.</param>
+    /// <param name="currentProjectionVersion">Projection version observed after re-query.</param>
+    /// <param name="hasCommandEventEvidence">Whether status for this exact tracked command proves events were produced.</param>
+    /// <returns><see langword="true"/> when the current ordered version is strictly newer.</returns>
+    public static bool HasProjectionVersionAdvancement(
+        string? baselineProjectionVersion,
+        string? currentProjectionVersion,
+        bool hasCommandEventEvidence)
+    {
+        return hasCommandEventEvidence
+            && HasOrderedProjectionVersionAdvancement(baselineProjectionVersion, currentProjectionVersion);
+    }
+
+    private static bool HasOrderedProjectionVersionAdvancement(
+        string? baselineProjectionVersion,
+        string? currentProjectionVersion)
+    {
+        if (!TrySplitOrderedVersion(baselineProjectionVersion, out string baselinePrefix, out ulong baselineSequence)
+            || !TrySplitOrderedVersion(currentProjectionVersion, out string currentPrefix, out ulong currentSequence))
+        {
+            return false;
+        }
+
+        return string.Equals(baselinePrefix, currentPrefix, StringComparison.Ordinal)
+            && currentSequence > baselineSequence;
+    }
 
     /// <summary>
     /// Returns whether an audit event timestamp is a usable causal advancement past the attempt start.
@@ -32,4 +65,30 @@ internal static class TenantMembershipCommandProvenance
         => attemptStartedAtUtc is not null
         && auditEventTimestamp is not null
         && auditEventTimestamp.Value >= attemptStartedAtUtc.Value;
+
+    private static bool TrySplitOrderedVersion(string? value, out string prefix, out ulong sequence)
+    {
+        prefix = string.Empty;
+        sequence = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> span = value.AsSpan();
+        int sequenceStart = span.Length;
+        while (sequenceStart > 0 && char.IsAsciiDigit(span[sequenceStart - 1]))
+        {
+            sequenceStart--;
+        }
+
+        if (sequenceStart == span.Length
+            || !ulong.TryParse(span[sequenceStart..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out sequence))
+        {
+            return false;
+        }
+
+        prefix = value[..sequenceStart];
+        return true;
+    }
 }

@@ -9,6 +9,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <section class="tenant-members"
          aria-labelledby="tenants-member-heading"
@@ -52,11 +53,8 @@
         }
     </FluentStack>
 
-    @* Deliberately still passed straight through. This flow renders unconditionally, so no teardown here can
-       unmount it and it never needs the lease lowered on its behalf. Routing it through
-       HandleCommandActivityAsync would make one _childCommandInFlight field serve three owners, so an Add in
-       flight could be released by tearing down an unrelated remove flow -- the defect this review found in
-       the configuration landmark. *@
+    @* All membership flows acquire the same exclusive aggregate lease. The add flow renders unconditionally;
+       the conditional change/remove flows additionally rely on this landmark's teardown release below. *@
     <AddTenantMemberFlow @ref="_addMemberFlow"
                          Detail="@Detail"
                          SurfaceKind="@EffectiveSurfaceKind"
@@ -65,8 +63,9 @@
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          ProjectionVersion="@ProjectionVersion"
                          ProjectionVersionProvider="@ProjectionVersionProvider"
+                         CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                         OnCommandActivityChanged="@OnCommandActivityChanged"
+                         CommandActivityLease="@HandleAddCommandActivityLeaseAsync"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
     @if (Members.PagingRecovered)
@@ -249,9 +248,10 @@
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                         ProjectionVersion="@ProjectionVersion"
                                         ProjectionVersionProvider="@ProjectionVersionProvider"
+                                        CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
                                         OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                         OnCloseRequested="@CloseChangeRoleAsync"
-                                        OnCommandActivityChanged="@HandleCommandActivityAsync"
+                                        CommandActivityLease="@HandleChangeRoleCommandActivityLeaseAsync"
                                         ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
         </FluentStack>
     }
@@ -268,11 +268,12 @@
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     ProjectionVersion="@ProjectionVersion"
                                     ProjectionVersionProvider="@ProjectionVersionProvider"
+                                    CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
                                     TargetGlobalAdministratorFriction="@ResolveTargetGlobalAdministratorFriction(ActiveRemoveMember)"
                                     TargetPlatformStandingResolved="@TargetPlatformStandingResolved"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseRemoveMemberAsync"
-                                    OnCommandActivityChanged="@HandleCommandActivityAsync"
+                                    CommandActivityLease="@HandleRemoveMemberCommandActivityLeaseAsync"
                                     ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
         </FluentStack>
     }
@@ -310,14 +311,15 @@
         UnavailableReason.MissingConsequencePreview,
         UnavailableReason.MissingAuditProof,
         UnavailableReason.HighImpactFlowNotReady,
+        UnavailableReason.AggregateLocked,
     ];
 
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
 
-    // True while a child member flow owns an in-flight command. Tracked here rather than passed straight
-    // through so that a teardown of the flow region can lower the lease it raised.
-    private bool _childCommandInFlight;
+    // Tracks the exact child that owns the aggregate lease. A single Boolean lets teardown of an unrelated
+    // conditional flow lower the add flow's lease, so ownership must survive independently of render branches.
+    private MemberCommandLeaseOwner? _childCommandLeaseOwner;
 
     // The member record captured when the flow was launched. Resolving the open flow's target against
     // Members.Rows on every render made a successful removal destroy its own evidence: the confirmation
@@ -391,6 +393,9 @@
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
+    [Parameter]
+    public string? CommandSurfaceUnavailableReason { get; set; }
+
     /// <summary>
     /// Optional authorized global-administrator projection used for target platform-standing friction.
     /// Incomplete, stale, or unavailable evidence never invents standing.
@@ -403,6 +408,9 @@
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
     public Func<AddUserToTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
@@ -611,6 +619,11 @@
 
     private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)
     {
+        if (!string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
+        {
+            return [UnavailableReason.AggregateLocked];
+        }
+
         if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
         {
             return [UnavailableReason.MissingPermission];
@@ -712,7 +725,9 @@
             // TenantDetailPage._commandInFlight stayed raised for the life of the circuit and every command
             // surface on the page -- lifecycle, metadata, configuration, membership -- was disabled behind a
             // command no longer on screen.
-            if (hadOpenFlow)
+            if (hadOpenFlow
+                && _childCommandLeaseOwner is MemberCommandLeaseOwner.ChangeRole
+                    or MemberCommandLeaseOwner.RemoveMember)
             {
                 await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
             }
@@ -721,10 +736,42 @@
 
     // The member flows used to pass OnCommandActivityChanged straight through, so this landmark never learned
     // it owned an in-flight command and could not release the lease when it tore a flow down.
-    private async Task HandleCommandActivityAsync(bool isActive)
+    private Task<bool> HandleAddCommandActivityLeaseAsync(bool isActive)
+        => HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner.Add, isActive);
+
+    private Task<bool> HandleChangeRoleCommandActivityLeaseAsync(bool isActive)
+        => HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner.ChangeRole, isActive);
+
+    private Task<bool> HandleRemoveMemberCommandActivityLeaseAsync(bool isActive)
+        => HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner.RemoveMember, isActive);
+
+    private async Task<bool> HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner owner, bool isActive)
     {
-        _childCommandInFlight = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        if (isActive && _childCommandLeaseOwner is not null)
+        {
+            return false;
+        }
+
+        if (!isActive && _childCommandLeaseOwner != owner)
+        {
+            return true;
+        }
+
+        bool accepted = CommandActivityLease is not null
+            ? await CommandActivityLease(isActive).ConfigureAwait(false)
+            : true;
+        if (isActive && !accepted)
+        {
+            return false;
+        }
+
+        _childCommandLeaseOwner = isActive ? owner : null;
+        if (CommandActivityLease is null)
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -757,13 +804,20 @@
 
     private async Task ReleaseChildCommandActivityAsync()
     {
-        if (!_childCommandInFlight)
+        if (_childCommandLeaseOwner is null)
         {
             return;
         }
 
-        _childCommandInFlight = false;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+        _childCommandLeaseOwner = null;
+        if (CommandActivityLease is not null)
+        {
+            _ = await CommandActivityLease(false).ConfigureAwait(false);
+        }
+        else
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -838,7 +892,9 @@
         };
 
     private string ReasonLabel(UnavailableReason reason)
-        => Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
+        => reason is UnavailableReason.AggregateLocked && !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason)
+            ? CommandSurfaceUnavailableReason
+            : Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
 
     private string ReasonSummary(IReadOnlyList<UnavailableReason> reasons)
         => string.Join(", ", reasons.Select(ReasonLabel));
@@ -855,6 +911,7 @@
             UnavailableReason.MissingConsequencePreview => "missing-consequence-preview",
             UnavailableReason.MissingAuditProof => "missing-audit-proof",
             UnavailableReason.HighImpactFlowNotReady => "high-impact-flow-not-ready",
+            UnavailableReason.AggregateLocked => "aggregate-locked",
             _ => "unknown",
         };
 
@@ -867,6 +924,7 @@
             UnavailableReason.MissingConsequencePreview => "?",
             UnavailableReason.MissingAuditProof => "?",
             UnavailableReason.HighImpactFlowNotReady => "!",
+            UnavailableReason.AggregateLocked => "!",
             _ => "?",
         };
 
@@ -893,5 +951,18 @@
         MissingConsequencePreview,
         MissingAuditProof,
         HighImpactFlowNotReady,
+        AggregateLocked,
+    }
+
+    private enum MemberCommandLeaseOwner
+    {
+        Add,
+        ChangeRole,
+        RemoveMember,
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
     }
 }

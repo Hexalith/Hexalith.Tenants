@@ -47,7 +47,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
-        string resolvedMessageId = ResolveMessageId(messageId);
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+        }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
             SystemTenant,
@@ -64,7 +66,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapGatewayException(ex);
+            return MapGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
@@ -80,7 +82,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and role are required before the command can be submitted.");
         }
 
-        string resolvedMessageId = ResolveMessageId(messageId);
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+        }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
             SystemTenant,
@@ -97,7 +101,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapAddUserToTenantGatewayException(ex);
+            return MapAddUserToTenantGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
@@ -113,7 +117,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and new role are required before the command can be submitted.");
         }
 
-        string resolvedMessageId = ResolveMessageId(messageId);
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+        }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
             SystemTenant,
@@ -130,7 +136,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapChangeUserRoleGatewayException(ex);
+            return MapChangeUserRoleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
@@ -144,7 +150,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and user id are required before the command can be submitted.");
         }
 
-        string resolvedMessageId = ResolveMessageId(messageId);
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+        }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
             SystemTenant,
@@ -161,7 +169,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapRemoveUserFromTenantGatewayException(ex);
+            return MapRemoveUserFromTenantGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
@@ -175,7 +183,9 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
-        string resolvedMessageId = ResolveMessageId(messageId);
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+        }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
             SystemTenant,
@@ -192,7 +202,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapUpdateTenantGatewayException(ex);
+            return MapUpdateTenantGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
@@ -928,8 +938,18 @@ internal sealed class TenantCommandGateway(
     private static bool IsAssignableTenantRole(TenantRole role)
         => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
 
-    private string ResolveMessageId(string? messageId)
-        => string.IsNullOrWhiteSpace(messageId) ? ulidFactory.NewUlid() : messageId;
+    private bool TryResolveMessageId(string? messageId, out string resolvedMessageId) {
+        string candidate = string.IsNullOrWhiteSpace(messageId)
+            ? ulidFactory.NewUlid()
+            : messageId.Trim().ToUpperInvariant();
+        if (!NUlid.Ulid.TryParse(candidate, out NUlid.Ulid parsed)) {
+            resolvedMessageId = string.Empty;
+            return false;
+        }
+
+        resolvedMessageId = parsed.ToString();
+        return string.Equals(candidate, resolvedMessageId, StringComparison.Ordinal);
+    }
 
     private static string? BoundSafeFailureReason(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {

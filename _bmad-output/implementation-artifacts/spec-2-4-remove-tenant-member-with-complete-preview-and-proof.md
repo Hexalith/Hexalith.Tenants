@@ -2,7 +2,7 @@
 title: 'Remove Tenant Member with Complete Preview and Proof'
 type: 'feature'
 created: '2026-08-08'
-status: 'done'
+status: 'in-progress'
 baseline_commit: '29c4aec965e9cba4165a8844a86edc67ba7d756b'
 review_loop_iteration: 0
 context:
@@ -69,6 +69,19 @@ context:
 - [x] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` (+ `.fr.resx`) -- friction/unavailable/dialog copy parity as needed
 - [x] `tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs` (+ surface/gateway as needed) -- incomplete preview, friction, Escape/focus, lock, dispatch; do not assert WP-2A complete
 - [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` -- advance `2-4-remove-tenant-member-with-complete-preview-and-proof` with this slice (incomplete until 2.4b)
+
+### Review Findings
+
+- [ ] [Review][Patch] Fail closed on live audit-proof capability rather than gateway registration alone [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:591]
+- [ ] [Review][Patch] Follow audit pagination when assembling WP-2A removal proof [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:801]
+- [ ] [Review][Patch] Preserve the original causal lower bound when retrying with the same message ID [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:728]
+- [ ] [Review][Patch] Promote audit available only from current lifecycle-backed evidence and a ready receipt [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:818]
+- [ ] [Review][Patch] Wire rendered audit recovery and receipt inspection actions to real behavior [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:173]
+- [ ] [Review][Patch] Resolve positive and paged global-administrator standing before suppressing elevated friction [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:436]
+- [ ] [Review][Patch] Keep the supplementary global-administrator read from blocking primary tenant detail [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:399]
+- [ ] [Review][Patch] Replace stale Epic 5 and unsupported access-restoration preview promises [src/Hexalith.Tenants.UI/Resources/TenantsResources.resx:2193]
+- [ ] [Review][Patch] Add component coverage for audit-provenance confirmation, later proof recovery, parent capability gating, and page-level GA wiring [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:518]
+- [x] [Review][Defer] Default HEAD-based gitlink validation includes seven post-story dependency bumps [_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md:1] — deferred, pre-existing
 
 **Acceptance Criteria:**
 - Given remove eligibility is calculated, when freshness, auth, preview completeness, or layout safety is indeterminate, then the action fails closed with localized reason and named recovery.

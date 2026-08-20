@@ -110,7 +110,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
 
@@ -150,7 +150,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
@@ -391,7 +391,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
                 ? new TenantCommandStatusResult(CommandStatus.Received)
-                : new TenantCommandStatusResult(CommandStatus.Completed)),
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
         };
         RegisterServices(gateway);
 

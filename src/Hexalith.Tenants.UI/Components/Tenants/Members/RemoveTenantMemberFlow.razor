@@ -229,6 +229,7 @@
     private bool _focusConfirmationPending;
     private bool _focusCancelPending;
     private bool _focusLifecyclePending;
+    private int _refreshInFlight;
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -247,6 +248,9 @@
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public string? CommandSurfaceUnavailableReason { get; set; }
 
     [Parameter]
     public string? ProjectionVersion { get; set; }
@@ -276,6 +280,9 @@
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
     public Func<RemoveUserFromTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
@@ -322,7 +329,7 @@
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
-                        ? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
+                        ? CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
                         : !IsAuditProofCapabilityAvailable && !IsOwnedCommandInFlight
                             ? Localizer["Tenants.Members.UnavailableReason.MissingAuditProof"].Value
                             : _isSubmitting
@@ -543,24 +550,38 @@
         }
     }
 
-    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
         if (isActive && _dismissed)
         {
-            return;
+            return false;
         }
 
         if (_hasRaisedCommandActivity == isActive)
         {
-            return;
+            return true;
+        }
+
+        if (CommandActivityLease is not null)
+        {
+            bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
+            if (isActive && !accepted)
+            {
+                return false;
+            }
         }
 
         _hasRaisedCommandActivity = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        if (CommandActivityLease is null)
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+        => _ = await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
@@ -572,6 +593,11 @@
     internal async Task HandleAuthoritativeRefreshNudgeAsync()
     {
         ApplySignalRNudge();
+        if (_isSubmitting)
+        {
+            return;
+        }
+
         await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
     }
 
@@ -650,15 +676,18 @@
             return;
         }
 
-        string? reuseMessageId = string.IsNullOrWhiteSpace(_snapshot.MessageId) ? null : _snapshot.MessageId;
+        _snapshot = _snapshot with { MessageId = null, CorrelationId = null };
         _snapshot = _snapshot.RequestSent(ResolveCurrentProjectionVersion(), baselinePostconditionMet: !TargetIsVisibleMember);
-        if (reuseMessageId is not null)
-        {
-            _snapshot = _snapshot with { MessageId = reuseMessageId };
-        }
 
         _isSubmitting = true;
-        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
+        if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
+        {
+            _isSubmitting = false;
+            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
+                CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
 
         try
         {
@@ -672,7 +701,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .RemoveUserFromTenantAsync(request, reuseMessageId, CancellationToken.None)
+                .RemoveUserFromTenantAsync(request, messageId: null, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -688,6 +717,7 @@
                     MessageId = result.MessageId ?? _snapshot.MessageId,
                     CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
+                    SafeMessageKey = null,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -706,6 +736,23 @@
         => RefreshCommandStatusAsync(requestProjectionRefresh: true);
 
     private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
+    {
+        if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await RefreshCommandStatusCoreAsync(requestProjectionRefresh).ConfigureAwait(false);
+        }
+        finally
+        {
+            Volatile.Write(ref _refreshInFlight, 0);
+        }
+    }
+
+    private async Task RefreshCommandStatusCoreAsync(bool requestProjectionRefresh)
     {
         if (_snapshot.Intent is null)
         {
@@ -889,7 +936,7 @@
     {
         _removalProof = null;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
-        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)
@@ -910,7 +957,7 @@
         _validationMessage = null;
         _focusCancelPending = true;
         _dismissed = true;
-        await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 

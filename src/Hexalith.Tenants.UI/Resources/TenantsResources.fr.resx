@@ -1776,6 +1776,9 @@
   <data name="Tenants.Members.UnavailableReason.HighImpactFlowNotReady" xml:space="preserve">
     <value>flux à fort impact pas prêt</value>
   </data>
+  <data name="Tenants.Members.UnavailableReason.AggregateLocked" xml:space="preserve">
+    <value>Une autre commande est déjà en cours pour ce locataire. Attendez sa preuve finale ou continuez en lecture seule.</value>
+  </data>
   <data name="Tenants.Members.UnavailableReason.MissingAuditProof" xml:space="preserve">
     <value>preuve d'audit manquante</value>
   </data>

@@ -52,7 +52,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
     public TenantDetailSurfaceTests()
     {
-        Services.AddScoped<TenantSearchPagingState>();    }
+        Services.AddScoped<TenantSearchPagingState>();
+        Services.AddScoped<TenantAggregateCommandAdmissionGate>();
+    }
 
     [Fact]
     public void Detail_page_loads_through_gateway_and_renders_operational_overview()
@@ -579,16 +581,23 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 new TenantMember("new-member", TenantRole.TenantReader),
             ]);
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
-                Interlocked.Increment(ref detailReads) == 1 ? initialDetail : refreshedDetail,
-                ProjectionLifecycleState.Current,
-                "projection-v1")));
-        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(MemberSnapshot(
-                Interlocked.Increment(ref memberReads) == 1 ? initialDetail : refreshedDetail) with
+            .Returns(_ =>
             {
-                ProjectionVersion = "projection-v1",
-            }));
+                int call = Interlocked.Increment(ref detailReads);
+                return Task.FromResult(ReadyWithSafeConfiguration(
+                    call == 1 ? initialDetail : refreshedDetail,
+                    ProjectionLifecycleState.Current,
+                    call == 1 ? "projection-v1" : "projection-v2"));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                int call = Interlocked.Increment(ref memberReads);
+                return Task.FromResult(MemberSnapshot(call == 1 ? initialDetail : refreshedDetail) with
+                {
+                    ProjectionVersion = call == 1 ? "projection-v1" : "projection-v2",
+                });
+            });
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
@@ -596,7 +605,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             AddMemberSubmission = TenantCommandSubmissionResult.Accepted(
                 "01ARZ3NDEKTSV4RRFFQ69G5FAV",
                 "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
@@ -612,7 +621,58 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             detailReads.ShouldBe(2);
             memberReads.ShouldBe(2);
             cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("new-member");
+            cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Confirmed);
         });
+    }
+
+    [Fact]
+    public void Missing_aggregate_admission_gate_fails_membership_dispatch_closed()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ServiceDescriptor gateDescriptor = Services.Single(static descriptor =>
+            descriptor.ServiceType == typeof(TenantAggregateCommandAdmissionGate));
+        _ = Services.Remove(gateDescriptor);
+        var commandGateway = new TrackingMembershipCommandGateway(
+            Task.FromResult(TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "correlation-456")));
+        RegisterMembershipPageServices(commandGateway, new StubTenantsBffComposition());
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+
+        cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent
+            .ShouldContain("command support is unavailable", Case.Insensitive);
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+        commandGateway.AddMemberCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Disconnected_bff_fails_membership_dispatch_closed_with_inline_reason()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var commandGateway = new TrackingMembershipCommandGateway(
+            Task.FromResult(TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "correlation-456")));
+        RegisterMembershipPageServices(
+            commandGateway,
+            new StubTenantsBffComposition(commandSurfaceConnected: false));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+
+        cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent
+            .ShouldContain("command support is unavailable", Case.Insensitive);
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+        commandGateway.AddMemberCallCount.ShouldBe(0);
     }
 
     [Fact]
@@ -648,12 +708,58 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() =>
             admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue());
 
-        cut.Find("[data-testid='tenants-change-role-open']").Click();
         cut.WaitForAssertion(() =>
-            cut.Find("[data-testid='tenants-change-role-unavailable-reason']")
-                .TextContent.ShouldContain("command support is unavailable", Case.Insensitive));
+            cut.FindAll("[data-testid='tenants-member-unavailable-reason']")
+                .ShouldContain(reason => reason.TextContent.Contains("already in progress for this tenant", StringComparison.OrdinalIgnoreCase)));
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
 
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+    }
+
+    [Fact]
+    public async Task Tearing_down_unrelated_member_flow_does_not_release_unresolved_add_submission()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        TaskCompletionSource<TenantCommandSubmissionResult> pendingSubmission = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        int memberReads = 0;
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Interlocked.Increment(ref memberReads) == 1
+                ? Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with { ProjectionVersion = "projection-v1" })
+                : Task.FromResult(TenantUsersSnapshot.Unauthorized("tenant.alpha")));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(admissionGate);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingMembershipCommandGateway(pendingSubmission.Task));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElements("[data-testid='tenants-change-role-open']")[0].Click();
+        cut.Find("[data-testid='tenants-change-role-flow']");
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue());
+
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForElement("[data-testid='tenants-member-unauthorized']");
+        cut.FindAll("[data-testid='tenants-change-role-flow']").ShouldBeEmpty();
+        cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
+            .ShouldBe(TenantCommandLifecycleState.RequestSent);
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse());
     }
 
     [Fact]
@@ -713,6 +819,61 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         commandGateway.AddMemberCallCount.ShouldBe(1);
         commandGateway.StatusCallCount.ShouldBeGreaterThan(1);
+    }
+
+    [Theory]
+    [InlineData("change-role")]
+    [InlineData("remove-member")]
+    public void Detail_read_refresh_forwards_nudge_to_each_in_flight_membership_flow(string commandKind)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var commandGateway = new TrackingMembershipCommandGateway(
+            Task.FromResult(TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "correlation-456")),
+            new TenantCommandStatusResult(CommandStatus.Received));
+        RegisterMembershipPageServices(commandGateway, new StubTenantsBffComposition());
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        if (commandKind == "change-role")
+        {
+            cut.WaitForElements("[data-testid='tenants-change-role-open']")[1].Click();
+            FluentSelectInterop.ChangeFluentSelect(
+                cut,
+                "tenants-change-role-new-role",
+                nameof(TenantRole.TenantContributor));
+            cut.Find("[data-testid='tenants-change-role-flow'] form").Submit();
+            cut.WaitForAssertion(() => cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Accepted));
+        }
+        else
+        {
+            cut.WaitForElements("[data-testid='tenants-remove-member-open']")[1].Click();
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+            cut.Find("[data-testid='tenants-remove-member-flow'] form").Submit();
+            cut.WaitForAssertion(() => cut.FindComponent<RemoveTenantMemberFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Accepted));
+        }
+
+        int statusCallsBeforeNudge = commandGateway.StatusCallCount;
+        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() => commandGateway.StatusCallCount.ShouldBeGreaterThan(statusCallsBeforeNudge));
+        if (commandKind == "change-role")
+        {
+            commandGateway.ChangeRoleCallCount.ShouldBe(1);
+            cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Accepted);
+        }
+        else
+        {
+            commandGateway.RemoveMemberCallCount.ShouldBe(1);
+            cut.FindComponent<RemoveTenantMemberFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.Accepted);
+        }
     }
 
     [Theory]
@@ -3544,6 +3705,28 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
+    private void RegisterMembershipPageServices(
+        ITenantCommandGateway commandGateway,
+        ITenantsBffComposition bffComposition)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with
+            {
+                ProjectionVersion = "projection-v1",
+            }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton(bffComposition);
+        Services.AddFluentUIComponents();
+    }
+
     private void RegisterServices(
         Func<NSubstitute.Core.CallInfo, Task<TenantDetailSnapshot>> detailFactory,
         ITenantsBffComposition? bffComposition = null)
@@ -3841,6 +4024,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     {
         public int AddMemberCallCount { get; private set; }
 
+        public int ChangeRoleCallCount { get; private set; }
+
+        public int RemoveMemberCallCount { get; private set; }
+
         public int StatusCallCount { get; private set; }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
@@ -3853,10 +4040,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+        {
+            ChangeRoleCallCount++;
+            return addMemberSubmission;
+        }
 
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+        {
+            RemoveMemberCallCount++;
+            return addMemberSubmission;
+        }
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
@@ -3920,13 +4113,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private sealed class StubTenantsBffComposition(
         TenantLifecycleAuthorizationReflectionState lifecycleReflection
-            = TenantLifecycleAuthorizationReflectionState.Indeterminate) : ITenantsBffComposition
+            = TenantLifecycleAuthorizationReflectionState.Indeterminate,
+        bool commandSurfaceConnected = true) : ITenantsBffComposition
     {
         private TenantLifecycleAuthorizationReflectionState _reflection = lifecycleReflection;
 
         public bool IsReadSurfaceConnected => true;
 
-        public bool IsCommandSurfaceConnected => true;
+        public bool IsCommandSurfaceConnected => commandSurfaceConnected;
 
         public int ReauthorizeConfigurationManagementCallCount { get; private set; }
 
@@ -4428,6 +4622,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Members.Table.Caption"] = "Visible tenant members and read-only action availability",
             ["Tenants.Members.Title"] = "Member access review",
             ["Tenants.Members.UnavailableReason.HighImpactFlowNotReady"] = "high-impact flow not ready",
+            ["Tenants.Members.UnavailableReason.AggregateLocked"] = "Another command is already in progress for this tenant. Wait for its terminal evidence or continue read-only.",
             ["Tenants.Members.UnavailableReason.MissingAuditProof"] = "missing audit proof",
             ["Tenants.Members.UnavailableReason.MissingConsequencePreview"] = "missing consequence preview",
             ["Tenants.Members.UnavailableReason.MissingLifecycleSupport"] = "missing lifecycle support",
