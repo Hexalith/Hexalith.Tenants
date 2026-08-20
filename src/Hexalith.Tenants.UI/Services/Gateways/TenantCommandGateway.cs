@@ -76,8 +76,8 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId)
-            || string.IsNullOrEmpty(request.UserId)
+        if (string.IsNullOrWhiteSpace(request.TenantId)
+            || string.IsNullOrWhiteSpace(request.UserId)
             || !IsAssignableTenantRole(request.Role)) {
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and role are required before the command can be submitted.");
         }
@@ -111,8 +111,8 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId)
-            || string.IsNullOrEmpty(request.UserId)
+        if (string.IsNullOrWhiteSpace(request.TenantId)
+            || string.IsNullOrWhiteSpace(request.UserId)
             || !IsAssignableTenantRole(request.NewRole)) {
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and new role are required before the command can be submitted.");
         }
@@ -146,7 +146,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.UserId)) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || string.IsNullOrWhiteSpace(request.UserId)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and user id are required before the command can be submitted.");
         }
 
@@ -412,7 +412,10 @@ internal sealed class TenantCommandGateway(
                 .ReadFromJsonAsync<TenantCommandStatusResponse>(WebJsonOptions, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (status is null || !Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
+            if (status is null
+                || string.IsNullOrWhiteSpace(status.CorrelationId)
+                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal)
+                || !Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
                 return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
             }
 

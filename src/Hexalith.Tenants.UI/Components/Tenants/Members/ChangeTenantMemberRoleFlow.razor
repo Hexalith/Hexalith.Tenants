@@ -105,6 +105,7 @@
             }
             <FluentButton Appearance="ButtonAppearance.Outline"
                           data-testid="tenants-change-role-cancel"
+                          Disabled="@IsOwnedCommandInFlight"
                           OnClick="CloseAsync">
                 @Localizer["Tenants.ChangeRole.Cancel"]
             </FluentButton>
@@ -173,6 +174,8 @@
     private bool _focusRolePending;
     private bool _focusLifecyclePending;
     private int _refreshInFlight;
+    private int _refreshPending;
+    private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -406,7 +409,8 @@
     internal async Task HandleAuthoritativeRefreshNudgeAsync()
     {
         ApplySignalRNudge();
-        if (_isSubmitting)
+        if (_isProjectionRefreshCallback.Value
+            || (_isSubmitting && _snapshot.State is TenantCommandLifecycleState.RequestSent))
         {
             return;
         }
@@ -445,6 +449,18 @@
             return;
         }
 
+        if (_snapshot.State is TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded)
+        {
+            if (!string.IsNullOrWhiteSpace(_snapshot.MessageId)
+                && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
             SetSnapshot(TenantChangeRoleCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
@@ -469,12 +485,22 @@
             return;
         }
 
+        string? retryMessageId = _snapshot.State is TenantCommandLifecycleState.Failed
+            && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+            && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+            && Equals(_snapshot.Intent, request)
+                ? _snapshot.MessageId
+                : null;
         _snapshot = TenantChangeRoleCommandSnapshot.Idle().RequestSent(
             request,
             Member.Role,
             OwnerCount,
             ResolveCurrentProjectionVersion(),
-            baselinePostconditionMet: Member.Role == newRole);
+            baselinePostconditionMet: Member.Role == newRole) with
+        {
+            MessageId = retryMessageId,
+            CorrelationId = null,
+        };
 
         _isSubmitting = true;
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
@@ -498,7 +524,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .ChangeUserRoleAsync(request, messageId: null, CancellationToken.None)
+                .ChangeUserRoleAsync(request, retryMessageId, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -536,16 +562,29 @@
     {
         if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
         {
+            Volatile.Write(ref _refreshPending, 1);
             return;
         }
 
         try
         {
-            await RefreshCommandStatusCoreAsync(requestProjectionRefresh).ConfigureAwait(false);
+            bool refreshProjection = requestProjectionRefresh;
+            do
+            {
+                Volatile.Write(ref _refreshPending, 0);
+                await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
+                refreshProjection = false;
+            }
+            while (Interlocked.Exchange(ref _refreshPending, 0) != 0);
         }
         finally
         {
             Volatile.Write(ref _refreshInFlight, 0);
+        }
+
+        if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
+        {
+            await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
         }
     }
 
@@ -587,7 +626,15 @@
 
         if (requestProjectionRefresh)
         {
-            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            _isProjectionRefreshCallback.Value = true;
+            try
+            {
+                await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            }
+            finally
+            {
+                _isProjectionRefreshCallback.Value = false;
+            }
         }
 
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
@@ -607,7 +654,7 @@
 
     private async Task CloseAsync()
     {
-        if (_isSubmitting)
+        if (IsOwnedCommandInFlight)
         {
             return;
         }

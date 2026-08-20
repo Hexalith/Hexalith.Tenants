@@ -2,7 +2,7 @@
 title: 'Reverify Projection-Confirmed Membership Command Foundation'
 type: 'feature'
 created: '2026-08-08'
-status: 'in-review'
+status: 'done'
 baseline_commit: '222d5ac614e182a5eefdc3fd282a5bfc14f075e9'
 review_loop_iteration: 0
 context:
@@ -88,20 +88,20 @@ context:
 
 ### Review Findings
 
-- [ ] [Review][Patch] Mint and retain the attempt `messageId` before dispatch so an indeterminate POST response cannot lose the idempotency key [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:82]
-- [ ] [Review][Patch] Separate status recovery for the same attempt from deliberate new intent so retries do not redispatch and new intents do not inherit an old `messageId` [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:348]
-- [ ] [Review][Patch] Make AggregateIdentity admission exclusive and owner-aware, and honor acquisition failure instead of incrementing every same-key request [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:23]
-- [ ] [Review][Patch] Release owned command activity consistently when a flow is cancelled, the page is disposed, or tracking becomes irrecoverable [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:777]
-- [ ] [Review][Patch] Surface a localized same-aggregate lock reason instead of collapsing contention into the generic command-support outage [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
-- [ ] [Review][Patch] Replace opaque projection-token inequality with causal evidence that cannot confirm from regression, unrelated churn, or a concurrent matching command [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:15]
-- [ ] [Review][Patch] Validate caller-supplied reusable message ids as ULIDs before forwarding them [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:929]
-- [ ] [Review][Patch] Clear stale `SafeMessageKey` values on every status transition so recovered states cannot display an earlier provenance failure [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:301]
-- [ ] [Review][Patch] Serialize or generation-guard status/evidence refreshes and stop explicit projection refreshes from recursively triggering duplicate status lookups [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:447]
-- [ ] [Review][Patch] Fail closed when the scoped admission gate is missing instead of silently creating a page-private gate, and verify its scoped lifetime [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:298]
-- [ ] [Review][Patch] Add null and whitespace baseline-provenance tests for add, change-role, and remove snapshots [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:42]
-- [ ] [Review][Patch] Add parent-to-flow SignalR forwarding tests for change-role and remove-member commands [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:720]
-- [ ] [Review][Patch] Add a page-level disconnected-BFF test proving membership dispatch is disabled with an inline reason [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
-- [ ] [Review][Patch] Add page-boundary verification that an advanced live projection version reaches the child flow and earns confirmation [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:187]
+- [x] [Review][Patch] Mint and retain the attempt `messageId` before dispatch so an indeterminate POST response cannot lose the idempotency key [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:82]
+- [x] [Review][Patch] Separate status recovery for the same attempt from deliberate new intent so retries do not redispatch and new intents do not inherit an old `messageId` [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:348]
+- [x] [Review][Patch] Make AggregateIdentity admission exclusive and owner-aware, and honor acquisition failure instead of incrementing every same-key request [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:23]
+- [x] [Review][Patch] Release owned command activity consistently when a flow is cancelled, the page is disposed, or tracking becomes irrecoverable [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:777]
+- [x] [Review][Patch] Surface a localized same-aggregate lock reason instead of collapsing contention into the generic command-support outage [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
+- [x] [Review][Patch] Replace opaque projection-token inequality with causal evidence that cannot confirm from regression, unrelated churn, or a concurrent matching command [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:15]
+- [x] [Review][Patch] Validate caller-supplied reusable message ids as ULIDs before forwarding them [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:929]
+- [x] [Review][Patch] Clear stale `SafeMessageKey` values on every status transition so recovered states cannot display an earlier provenance failure [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:301]
+- [x] [Review][Patch] Serialize or generation-guard status/evidence refreshes and stop explicit projection refreshes from recursively triggering duplicate status lookups [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:447]
+- [x] [Review][Patch] Fail closed when the scoped admission gate is missing instead of silently creating a page-private gate, and verify its scoped lifetime [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:298]
+- [x] [Review][Patch] Add null and whitespace baseline-provenance tests for add, change-role, and remove snapshots [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:42]
+- [x] [Review][Patch] Add parent-to-flow SignalR forwarding tests for change-role and remove-member commands [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:720]
+- [x] [Review][Patch] Add a page-level disconnected-BFF test proving membership dispatch is disabled with an inline reason [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
+- [x] [Review][Patch] Add page-boundary verification that an advanced live projection version reaches the child flow and earns confirmation [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:187]
 - [x] [Review][Defer] The mandatory story gitlink validator currently fails on seven later, unrelated submodule pointer bumps even though the isolated Story 2.1 commit changes no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:7] — deferred, pre-existing
 
 **Acceptance Criteria:**
@@ -114,6 +114,7 @@ context:
 
 ## Spec Change Log
 
+- 2026-08-20: Completed adversarial review patches for exact-intent idempotent retry, owner-aware route-scoped leases, fail-closed correlation/identifier checks, coalesced refreshes, uncertain-outcome recovery, and projection-only removal confirmation; package-isolated Release verification passed all 2,053 UI tests.
 - 2026-08-08: Patch pass — SignalR nudge no longer confirms from notification alone; baseline via ResolveCurrentProjectionVersion; ChangeRole baseline postcondition; continue-read-only + FlowGuard releases Degraded/UnableToVerify locks; SafeMessageKey localization; blank-TenantId / captured lock-key admission; whitespace messageId; expanded gateway/flow/page tests; Code Map refreshed.
 - 2026-08-08: Implemented provenance-qualified membership confirmation, optional messageId reuse, AggregateIdentity-shaped admission, SignalR nudge wiring, and expanded flow-guard retention; verification suite passed (361 tests).
 
@@ -126,56 +127,53 @@ Baseline capture should use the authoritative detail `ProjectionVersion` already
 ## Verification
 
 **Commands:**
-- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --filter "FullyQualifiedName~TenantAddMemberCommandSnapshotTests|FullyQualifiedName~TenantChangeRoleCommandSnapshotTests|FullyQualifiedName~TenantRemoveMemberCommandSnapshotTests|FullyQualifiedName~TenantCommandGatewayTests|FullyQualifiedName~TenantCommandFlowGuardTests|FullyQualifiedName~CommandFlowGuardConformanceTests|FullyQualifiedName~AddTenantMemberFlowTests|FullyQualifiedName~ChangeTenantMemberRoleFlowTests|FullyQualifiedName~RemoveTenantMemberFlowTests|FullyQualifiedName~TenantDetailSurfaceTests"` -- expected: all matching tests pass (use xUnit v3 executable fallback if MTP/VSTest incompatibility hits)
-- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` -- expected: exit 0; declare or revert any `references/` moves
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:BuildInParallel=false -p:RestoreBuildInParallel=false -m:1 -v:minimal` -- passed: 0 warnings, 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor` -- passed: 2,053 total, 0 failed, 0 skipped.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug --no-restore -p:UseHexalithProjectReferences=true -p:BuildInParallel=false -p:RestoreBuildInParallel=false -m:1 -v:minimal` -- blocked before Tenants compilation by the pre-existing EventStore/Commons package-version conflict (`CS1704`, `Hexalith.Commons.UniqueIds` 3.95.0 vs 2.30.0).
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` -- expected deferred failure: seven unrelated `references/` pointer changes remain undeclared from the Story 2.1 baseline.
 
 ## Suggested Review Order
 
+**Aggregate-scoped entry point**
+
+- Tenant-keyed page leases prevent route changes and stale callbacks from crossing aggregates.
+  [`TenantDetailPage.razor:312`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L312)
+
+- Owner-aware admission rejects same-aggregate overlap while allowing independent aggregate work.
+  [`TenantAggregateCommandAdmissionGate.cs:26`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs#L26)
+
+- Child-specific lease ownership keeps sibling flows unavailable until terminal evidence.
+  [`MemberAccessReview.razor:748`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L748)
+
+**Idempotency and authoritative recovery**
+
+- Add-member submission distinguishes exact-intent retry from a deliberate new command.
+  [`AddTenantMemberFlow.razor:377`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor#L377)
+
+- Coalesced status refreshes preserve independent nudges without recursive duplicate polling.
+  [`AddTenantMemberFlow.razor:502`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor#L502)
+
+- Parent refresh nudges every active membership flow, never confirming from SignalR alone.
+  [`MemberAccessReview.razor:789`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L789)
+
+- Reusable keys are validated ULIDs; status responses must match requested correlation.
+  [`TenantCommandGateway.cs:393`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L393)
+
 **Provenance-qualified confirmation**
 
-- Opaque baseline advancement is the confirmation gate for all membership snapshots.
-  [`TenantMembershipCommandProvenance.cs:15`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs#L15)
+- Ordered version advancement blocks regressions, opaque churn, and pre-existing matches.
+  [`TenantMembershipCommandProvenance.cs:16`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs#L16)
 
-- Add-member confirm rejects pre-existing/missing baseline before version check.
-  [`TenantCreateCommandModels.cs:362`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L362)
+- Removal confirmation requires projection provenance before assembling its audit receipt.
+  [`RemoveTenantMemberFlow.razor:861`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L861)
 
-**SignalR nudge-only wiring**
+**Regression evidence**
 
-- Parent refresh forwards nudge without confirming from the notification alone.
-  [`MemberAccessReview.razor:710`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L710)
+- Route-switch tests prove late releases cannot unlock the newly selected tenant.
+  [`TenantDetailSurfaceTests.cs:685`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L685)
 
-- Detail page only nudges while membership activity is retained.
-  [`TenantDetailPage.razor:900`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L900)
+- Gateway tests cover blank identifiers and mismatched status correlations.
+  [`TenantCommandGatewayTests.cs:1659`](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L1659)
 
-**AggregateIdentity admission**
-
-- Surface availability combines BFF connectivity, local in-flight, and aggregate lock.
-  [`TenantDetailPage.razor:293`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L293)
-
-- Acquire/release captures the lock key so TenantId changes cannot orphan admission.
-  [`TenantDetailPage.razor:1295`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L1295)
-
-- AggregateIdentity-shaped keys avoid EventStore identity validation on literal ids.
-  [`TenantCommandAggregateLock.cs:16`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs#L16)
-
-**Idempotency and recovery**
-
-- Optional messageId reuse mints a ULID only when absent/whitespace.
-  [`TenantCommandGateway.cs:929`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L929)
-
-- Lock retention stops before Degraded/UnableToVerify so continue-read-only works.
-  [`TenantCommandFlowGuard.cs:16`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandFlowGuard.cs#L16)
-
-- Continue read-only returns Idle and releases parent activity.
-  [`AddTenantMemberFlow.razor:497`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor#L497)
-
-**Tests**
-
-- Snapshot provenance, SignalR non-confirm, and UnableToVerify mappings.
-  [`TenantAddMemberCommandSnapshotTests.cs:1`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs#L1)
-
-- Gateway messageId reuse for add/change/remove.
-  [`TenantCommandGatewayTests.cs:1051`](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L1051)
-
-- Page sibling lock and SignalR nudge integration.
-  [`TenantDetailSurfaceTests.cs:1`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L1)
+- Concurrency regression proves overlapping nudges produce one later authoritative lookup.
+  [`AddTenantMemberFlowTests.cs:229`](../../tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs#L229)

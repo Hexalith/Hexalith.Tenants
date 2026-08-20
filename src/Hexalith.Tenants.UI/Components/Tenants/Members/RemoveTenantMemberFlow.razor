@@ -150,7 +150,7 @@
         <span class="tenants-remove-member-flow__button-focus" tabindex="-1" @ref="_cancelElement">
             <FluentButton Appearance="ButtonAppearance.Outline"
                           data-testid="tenants-remove-member-cancel"
-                          Disabled="@_isSubmitting"
+                          Disabled="@IsOwnedCommandInFlight"
                           OnClick="CloseAsync">
                 @Localizer["Tenants.RemoveMember.Cancel"]
             </FluentButton>
@@ -230,6 +230,8 @@
     private bool _focusCancelPending;
     private bool _focusLifecyclePending;
     private int _refreshInFlight;
+    private int _refreshPending;
+    private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -593,7 +595,8 @@
     internal async Task HandleAuthoritativeRefreshNudgeAsync()
     {
         ApplySignalRNudge();
-        if (_isSubmitting)
+        if (_isProjectionRefreshCallback.Value
+            || (_isSubmitting && _snapshot.State is TenantCommandLifecycleState.RequestSent))
         {
             return;
         }
@@ -643,6 +646,18 @@
             return;
         }
 
+        if (_snapshot.State is TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded)
+        {
+            if (!string.IsNullOrWhiteSpace(_snapshot.MessageId)
+                && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+
+            return;
+        }
+
         RemoveUserFromTenant request = new(Detail.TenantId, Member.UserId);
         if (!TargetIsVisibleMember
             && SurfaceKind is TenantDetailSurfaceKind.Ready
@@ -676,8 +691,17 @@
             return;
         }
 
-        _snapshot = _snapshot with { MessageId = null, CorrelationId = null };
-        _snapshot = _snapshot.RequestSent(ResolveCurrentProjectionVersion(), baselinePostconditionMet: !TargetIsVisibleMember);
+        string? retryMessageId = _snapshot.State is TenantCommandLifecycleState.Failed
+            && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+            && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+            && Equals(_snapshot.Intent, request)
+                ? _snapshot.MessageId
+                : null;
+        _snapshot = _snapshot.RequestSent(ResolveCurrentProjectionVersion(), baselinePostconditionMet: !TargetIsVisibleMember) with
+        {
+            MessageId = retryMessageId,
+            CorrelationId = null,
+        };
 
         _isSubmitting = true;
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
@@ -701,7 +725,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .RemoveUserFromTenantAsync(request, messageId: null, CancellationToken.None)
+                .RemoveUserFromTenantAsync(request, retryMessageId, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
@@ -739,16 +763,29 @@
     {
         if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
         {
+            Volatile.Write(ref _refreshPending, 1);
             return;
         }
 
         try
         {
-            await RefreshCommandStatusCoreAsync(requestProjectionRefresh).ConfigureAwait(false);
+            bool refreshProjection = requestProjectionRefresh;
+            do
+            {
+                Volatile.Write(ref _refreshPending, 0);
+                await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
+                refreshProjection = false;
+            }
+            while (Interlocked.Exchange(ref _refreshPending, 0) != 0);
         }
         finally
         {
             Volatile.Write(ref _refreshInFlight, 0);
+        }
+
+        if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
+        {
+            await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
         }
     }
 
@@ -799,7 +836,15 @@
 
         if (requestProjectionRefresh)
         {
-            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            _isProjectionRefreshCallback.Value = true;
+            try
+            {
+                await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+            }
+            finally
+            {
+                _isProjectionRefreshCallback.Value = false;
+            }
         }
 
         if (ProjectionEvidenceProvider is not null)
@@ -816,7 +861,7 @@
     private async Task TryAssembleRemovalProofAsync()
     {
         if (_snapshot.Intent is null
-            || _snapshot.State is not (TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.ProjectionPending))
+            || _snapshot.State is not TenantCommandLifecycleState.Confirmed)
         {
             return;
         }
@@ -896,17 +941,6 @@
             _snapshot.Intent.UserId,
             _snapshot.AttemptStartedAtUtc);
 
-        if (_snapshot.State is TenantCommandLifecycleState.ProjectionPending
-            && match is not null
-            && ProjectionEvidenceProvider is not null)
-        {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(
-                evidence,
-                ResolveCurrentProjectionVersion(),
-                hasQualifyingAuditProvenance: true));
-        }
-
         if (_snapshot.State is not TenantCommandLifecycleState.Confirmed)
         {
             return;
@@ -949,7 +983,7 @@
 
     private async Task CloseAsync()
     {
-        if (_isSubmitting)
+        if (IsOwnedCommandInFlight)
         {
             return;
         }

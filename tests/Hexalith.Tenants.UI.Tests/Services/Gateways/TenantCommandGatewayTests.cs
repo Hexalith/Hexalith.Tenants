@@ -1657,6 +1657,62 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("etag", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public async Task Membership_commands_reject_blank_identifiers_without_dispatch(string blank)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-unused"));
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandSubmissionResult add = await gateway.AddUserToTenantAsync(
+            new AddUserToTenant("tenant.alpha", blank, TenantRole.TenantReader),
+            cancellationToken: CancellationToken.None);
+        TenantCommandSubmissionResult change = await gateway.ChangeUserRoleAsync(
+            new ChangeUserRole(blank, "literal-user", TenantRole.TenantReader),
+            cancellationToken: CancellationToken.None);
+        TenantCommandSubmissionResult remove = await gateway.RemoveUserFromTenantAsync(
+            new RemoveUserFromTenant("tenant.alpha", blank),
+            cancellationToken: CancellationToken.None);
+
+        add.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        change.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        remove.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("different-correlation")]
+    public async Task Status_lookup_fails_closed_when_response_correlation_is_not_the_requested_handle(string responseCorrelation)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "{{responseCorrelation}}",
+              "status": "Completed",
+              "statusCode": 4,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 1
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-requested")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-1", "correlation-requested"),
+            CancellationToken.None);
+
+        result.Status.ShouldBeNull();
+        result.SafeMessage.ShouldBe("Command status response was unavailable.");
+    }
+
     private sealed class CapturingGatewayClient(object response) : IEventStoreGatewayClient
     {
         public List<SubmitCommandRequest> SubmittedCommands { get; } = [];

@@ -226,6 +226,45 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Independent_nudge_overlapping_status_refresh_is_coalesced_into_a_later_lookup()
+    {
+        TaskCompletionSource overlappingStatusStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseOverlappingStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            StatusAsync = async _ =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 2)
+                {
+                    overlappingStatusStarted.SetResult();
+                    await releaseOverlappingStatus.Task.ConfigureAwait(false);
+                }
+
+                return new TenantCommandStatusResult(CommandStatus.Received);
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => statusCalls.ShouldBe(1));
+        cut.Find("[data-testid='tenants-add-member-refresh']").Click();
+        await overlappingStatusStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        await cut.Instance.HandleAuthoritativeRefreshNudgeAsync();
+        releaseOverlappingStatus.SetResult();
+
+        cut.WaitForAssertion(() => statusCalls.ShouldBe(3));
+    }
+
+    [Fact]
     public async Task Lost_tracking_refresh_maps_to_unable_to_verify_without_second_dispatch()
     {
         StubTenantCommandGateway gateway = new()
@@ -262,6 +301,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         gateway.AddMemberCallCount.ShouldBe(1);
         TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeFalse();
         cut.Find("[data-testid='tenants-add-member-continue-read-only']");
+
+        cut.Find("form").Submit();
+        gateway.AddMemberCallCount.ShouldBe(1);
     }
 
     [Fact]
@@ -307,11 +349,73 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-add-member-validation']").TextContent.ShouldContain("User id is required");
         gateway.AddMemberCallCount.ShouldBe(0);
 
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("   ");
+        cut.Find("form").Submit();
+
+        cut.Find("[data-testid='tenants-add-member-validation']").TextContent.ShouldContain("User id is required");
+        gateway.AddMemberCallCount.ShouldBe(0);
+
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         cut.Find("form").Submit();
 
         cut.Find("[data-testid='tenants-add-member-validation']").TextContent.ShouldContain("Select TenantOwner");
         gateway.AddMemberCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Ambiguous_failure_reuses_message_id_only_for_the_exact_same_intent()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.Find("form").Submit();
+
+        gateway.LastAddMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("different-user");
+        cut.Find("form").Submit();
+
+        gateway.LastAddMemberMessageId.ShouldBeNull();
+        gateway.AddMemberCallCount.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Programmatic_submit_while_unable_to_verify_recovers_status_without_dispatching()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.TimedOut),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        int statusCalls = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        gateway.AddMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(statusCalls + 1);
     }
 
     [Theory]
@@ -448,6 +552,8 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         public TenantCommandStatusResult Status { get; init; }
             = TenantCommandStatusResult.Unknown("Command status is unavailable.");
 
+        public Func<TenantCommandTrackingHandle, Task<TenantCommandStatusResult>>? StatusAsync { get; init; }
+
         public Func<AddUserToTenant, Task<TenantCommandSubmissionResult>>? AddMemberAsync { get; init; }
 
         public AddUserToTenant? LastAddMemberRequest { get; private set; }
@@ -484,7 +590,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
             StatusCallCount++;
-            return Task.FromResult(Status);
+            return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
         }
     }
 

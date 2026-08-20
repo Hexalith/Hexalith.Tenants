@@ -1082,3 +1082,35 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
   summary: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations.
   evidence: Standard IConfiguration flattening makes JSON [] and scalar "" observationally identical, so the current provider safely withholds all approval but cannot render the scalar form as policy-unavailable without also rejecting the repository's valid-empty default.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof.
+  evidence: TenantAuditRow exposes event, tenant, target, actor, and time but no message or correlation identifier, so a concurrent same-target removal can currently be rendered as this attempt's receipt.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Page through bounded tenant-audit results while assembling remove-member proof.
+  evidence: The existing proof query reads only the first audit page and ignores HasMore and NextCursor, so a qualifying event outside the first page is never found.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Require current projection lifecycle, freshness, and projection-backed provenance before promoting removal audit evidence to available proof.
+  evidence: A Ready audit surface can carry unknown lifecycle or provenance, yet the current proof path accepts its rows once the surface is neither stale nor degraded.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Replace client/server wall-clock matching for removal proof with a causally stable boundary.
+  evidence: AttemptStartedAtUtc is captured on the UI clock and compared directly with server event timestamps, so ordinary clock skew can hide a legitimate event or admit an equal-time event despite strict-advancement wording.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Downgrade retained global-administrator evidence when a tenant-detail supplementary refresh fails.
+  evidence: The existing refresh failure path keeps the previous Current and complete snapshot unchanged, allowing a removal preview to continue asserting platform standing from silently stale evidence.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Focus the actual remove-member controls rather than tabindex wrappers during dialog trapping and restoration.
+  evidence: The existing focus sentinels and close restoration target noninteractive span wrappers, which can move keyboard focus away from the intended confirm, cancel, or launch button.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Refresh remove-member audit guidance now that the flow queries and renders audit receipts.
+  evidence: Existing English and French preview copy still says audit evidence is unavailable until a future evidence source exists, contradicting the implemented receipt query.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Verify the tenant-detail global-administrator evidence bridge at the page boundary.
+  evidence: Existing tests inject GlobalAdministratorsSnapshot directly into MemberAccessReview, so removing the page assignment or parameter binding would not fail coverage.

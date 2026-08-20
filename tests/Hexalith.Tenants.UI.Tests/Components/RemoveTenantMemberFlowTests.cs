@@ -369,6 +369,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     [Fact]
     public void In_flight_retry_with_tracking_reuses_status_lookup_and_does_not_dispatch_again()
     {
+        int closeCount = 0;
+        List<bool> activity = [];
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-999"),
@@ -381,7 +383,13 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionVersion, "v1"));
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                activity.Add(active);
+                return Task.FromResult(true);
+            })
+            .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
@@ -395,6 +403,69 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
         gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Find("[data-testid='tenants-remove-member-cancel']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-remove-member-flow']").KeyDown("Escape");
+        closeCount.ShouldBe(0);
+        activity.ShouldBe([true]);
+    }
+
+    [Fact]
+    public void Ambiguous_failure_reuses_message_id_only_for_the_exact_same_removal()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.Find("form").Submit();
+        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("second-owner", TenantRole.TenantOwner))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("second-owner");
+        cut.Find("form").Submit();
+
+        gateway.LastRemoveMemberMessageId.ShouldBeNull();
+        gateway.RemoveMemberCallCount.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Programmatic_submit_while_unable_to_verify_recovers_status_without_dispatching()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.TimedOut),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        int statusCalls = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(statusCalls + 1);
     }
 
     [Theory]
@@ -745,6 +816,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         public RemoveUserFromTenant? LastRemoveMemberRequest { get; private set; }
 
+        public string? LastRemoveMemberMessageId { get; private set; }
+
         public int RemoveMemberCallCount { get; private set; }
 
         public int StatusCallCount { get; private set; }
@@ -762,6 +835,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         {
             RemoveMemberCallCount++;
             LastRemoveMemberRequest = request;
+            LastRemoveMemberMessageId = messageId;
             return RemoveMemberAsync is null ? Task.FromResult(Submission) : RemoveMemberAsync(request);
         }
 

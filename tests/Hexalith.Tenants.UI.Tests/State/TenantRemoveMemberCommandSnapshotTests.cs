@@ -241,7 +241,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     }
 
     [Fact]
-    public void Audit_provenance_can_confirm_when_version_has_not_advanced()
+    public void Concurrent_same_user_audit_does_not_confirm_without_ordered_version_advancement()
     {
         DateTimeOffset started = DateTimeOffset.Parse("2026-08-08T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
         var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
@@ -254,22 +254,14 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
-        TenantRemoveMemberCommandSnapshot withoutProvenance = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
             "tenant.alpha",
             [new TenantMember("owner-user", TenantRole.TenantOwner)]),
             currentProjectionVersion: "v1");
 
-        withoutProvenance.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-
-        TenantRemoveMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail(
-            "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v1",
-            hasQualifyingAuditProvenance: true);
-
-        confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
-        confirmed.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        result.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
     }
 
     [Fact]

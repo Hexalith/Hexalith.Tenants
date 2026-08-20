@@ -102,6 +102,94 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(1));
         gateway.StatusCallCount.ShouldBeGreaterThan(statusCallsAfterSubmit);
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Find("[data-testid='tenants-change-role-cancel']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Ambiguous_failure_reuses_message_id_only_for_the_exact_same_role_change()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.Find("form").Submit();
+        gateway.LastChangeRoleMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantOwner));
+        cut.Find("form").Submit();
+
+        gateway.LastChangeRoleMessageId.ShouldBeNull();
+        gateway.ChangeRoleCallCount.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Programmatic_submit_while_degraded_recovers_status_without_dispatching()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.PublishFailed),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Degraded));
+        int statusCalls = gateway.StatusCallCount;
+
+        cut.Find("form").Submit();
+
+        gateway.ChangeRoleCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(statusCalls + 1);
+    }
+
+    [Fact]
+    public void In_flight_change_role_cannot_be_closed_or_release_its_activity_lease()
+    {
+        bool closeRequested = false;
+        List<bool> activity = [];
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                activity.Add(active);
+                return Task.FromResult(true);
+            })
+            .Add(p => p.OnCloseRequested, () => closeRequested = true));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+
+        cut.Find("[data-testid='tenants-change-role-cancel']").Click();
+
+        closeRequested.ShouldBeFalse();
+        activity.ShouldBe([true]);
     }
 
     [Fact]
@@ -533,6 +621,8 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         public ChangeUserRole? LastChangeRoleRequest { get; private set; }
 
+        public string? LastChangeRoleMessageId { get; private set; }
+
         public int ChangeRoleCallCount { get; private set; }
 
         public int StatusCallCount { get; private set; }
@@ -547,6 +637,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         {
             ChangeRoleCallCount++;
             LastChangeRoleRequest = request;
+            LastChangeRoleMessageId = messageId;
             return ChangeRoleAsync is null ? Task.FromResult(Submission) : ChangeRoleAsync(request);
         }
 

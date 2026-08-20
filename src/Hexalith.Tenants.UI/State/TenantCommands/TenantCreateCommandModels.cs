@@ -893,8 +893,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
     public TenantRemoveMemberCommandSnapshot ConfirmProjection(
         TenantDetailProjection? detailEvidence,
-        string? currentProjectionVersion = null,
-        bool hasQualifyingAuditProvenance = false) {
+        string? currentProjectionVersion = null) {
         if (Intent is null) {
             return this;
         }
@@ -945,7 +944,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 BaselineProjectionVersion,
                 currentProjectionVersion,
                 HasCommandEventEvidence);
-            if (!versionAdvanced && !hasQualifyingAuditProvenance) {
+            if (!versionAdvanced) {
                 return this with {
                     LastConfirmedMemberProjection = detailEvidence,
                     FocusTarget = TenantCommandFocusTarget.Refresh,

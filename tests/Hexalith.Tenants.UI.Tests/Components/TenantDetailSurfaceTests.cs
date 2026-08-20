@@ -652,6 +652,71 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public async Task Reacquiring_the_page_owned_aggregate_lease_is_idempotent_and_keeps_the_release_key()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ServiceDescriptor gateDescriptor = Services.Single(static descriptor =>
+            descriptor.ServiceType == typeof(TenantAggregateCommandAdmissionGate));
+        _ = Services.Remove(gateDescriptor);
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        Services.AddSingleton(admissionGate);
+        RegisterMembershipPageServices(
+            new TrackingMembershipCommandGateway(Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."))),
+            new StubTenantsBffComposition());
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        Func<bool, Task<bool>> lease = cut.FindComponent<AddTenantMemberFlow>().Instance.CommandActivityLease.ShouldNotBeNull();
+        const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object owner = typeof(TenantDetailPage).GetField("_commandLockOwner", Flags)!.GetValue(cut.Instance).ShouldNotBeNull();
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        admissionGate.TryAcquire(lockKey, owner).ShouldBeTrue();
+        typeof(TenantDetailPage).GetField("_activeAggregateLockKey", Flags)!.SetValue(cut.Instance, lockKey);
+
+        bool duplicate = await cut.InvokeAsync(() => lease(true));
+
+        duplicate.ShouldBeTrue();
+        admissionGate.IsLocked(lockKey).ShouldBeTrue();
+
+        _ = await cut.InvokeAsync(() => lease(false));
+        admissionGate.IsLocked(lockKey).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Changing_routes_releases_the_previous_page_owned_lease_and_does_not_disable_the_new_tenant()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ServiceDescriptor gateDescriptor = Services.Single(static descriptor =>
+            descriptor.ServiceType == typeof(TenantAggregateCommandAdmissionGate));
+        _ = Services.Remove(gateDescriptor);
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        Services.AddSingleton(admissionGate);
+        RegisterMembershipPageServices(
+            new TrackingMembershipCommandGateway(Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."))),
+            new StubTenantsBffComposition());
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        Func<bool, Task<bool>> lease = cut.FindComponent<AddTenantMemberFlow>().Instance.CommandActivityLease.ShouldNotBeNull();
+        _ = await cut.InvokeAsync(() => lease(true));
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.beta"));
+
+        cut.WaitForAssertion(() =>
+        {
+            admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+            cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldBeNull();
+        });
+
+        Func<bool, Task<bool>> betaLease = cut.FindComponent<AddTenantMemberFlow>().Instance.CommandActivityLease.ShouldNotBeNull();
+        bool betaAccepted = await cut.InvokeAsync(() => betaLease(true));
+        betaAccepted.ShouldBeTrue();
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.beta")).ShouldBeTrue();
+        _ = await cut.InvokeAsync(() => lease(false));
+
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.beta")).ShouldBeTrue();
+    }
+
+    [Fact]
     public void Disconnected_bff_fails_membership_dispatch_closed_with_inline_reason()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

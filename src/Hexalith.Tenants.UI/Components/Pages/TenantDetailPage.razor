@@ -182,7 +182,8 @@
                             <p>@MemberSummary</p>
                         </section>
 
-                        <MemberAccessReview @ref="_memberAccessReview"
+                        <MemberAccessReview @key="TenantId"
+                                            @ref="_memberAccessReview"
                                             Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
@@ -197,7 +198,7 @@
                                             OnPreviousPageRequested="@LoadPreviousMemberPageAsync"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
-                                            CommandActivityLease="@SetCommandActivityLeaseAsync"
+                                            CommandActivityLease="@MembershipCommandActivityLease"
                                             OnProjectionRefreshRequested="@RefreshTenantReadsAsync"
                                             ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                             ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
@@ -281,6 +282,8 @@
     private MemberAccessReview? _memberAccessReview;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
     private readonly object _commandLockOwner = new();
+    private string? _membershipCommandActivityLeaseTenantId;
+    private Func<bool, Task<bool>>? _membershipCommandActivityLease;
     private int _readRefreshSubscriptionInFlight;
 
     [Parameter]
@@ -305,6 +308,22 @@
 
     private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
         => _aggregateAdmissionGate ??= Services.GetService<TenantAggregateCommandAdmissionGate>();
+
+    private Func<bool, Task<bool>> MembershipCommandActivityLease
+    {
+        get
+        {
+            string tenantId = TenantId;
+            if (_membershipCommandActivityLease is null
+                || !string.Equals(_membershipCommandActivityLeaseTenantId, tenantId, StringComparison.Ordinal))
+            {
+                _membershipCommandActivityLeaseTenantId = tenantId;
+                _membershipCommandActivityLease = isActive => SetCommandActivityLeaseAsync(tenantId, isActive);
+            }
+
+            return _membershipCommandActivityLease;
+        }
+    }
 
     private bool IsCurrentAggregateLocked
         => !string.IsNullOrWhiteSpace(TenantId)
@@ -371,6 +390,17 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
+        string? incomingAggregateLockKey = string.IsNullOrWhiteSpace(tenantId)
+            ? null
+            : TenantCommandAggregateLock.ForTenant(tenantId);
+        if (_activeAggregateLockKey is not null
+            && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
+        {
+            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
+            _activeAggregateLockKey = null;
+            _commandInFlight = false;
+        }
+
         StartLifecycleAuthorizationResolution(tenantId);
         if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             && _readRefreshLease is not null)
@@ -1351,24 +1381,30 @@
                 : null);
 
     private async Task SetCommandActivityAsync(bool isActive)
-        => _ = await SetCommandActivityLeaseAsync(isActive).ConfigureAwait(false);
+        => _ = await SetCommandActivityLeaseAsync(TenantId, isActive).ConfigureAwait(false);
 
-    private async Task<bool> SetCommandActivityLeaseAsync(bool isActive)
+    private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive)
     {
         if (isActive)
         {
             TenantAggregateCommandAdmissionGate? gate = AggregateAdmissionGate;
-            if (string.IsNullOrWhiteSpace(TenantId) || gate is null)
+            if (string.IsNullOrWhiteSpace(leaseTenantId)
+                || !string.Equals(leaseTenantId, TenantId, StringComparison.Ordinal)
+                || gate is null)
             {
-                _activeAggregateLockKey = null;
-                _commandInFlight = false;
                 return false;
             }
 
-            string aggregateLockKey = TenantCommandAggregateLock.ForTenant(TenantId);
+            string aggregateLockKey = TenantCommandAggregateLock.ForTenant(leaseTenantId);
+            if (string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal))
+            {
+                _commandInFlight = true;
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return true;
+            }
+
             if (!gate.TryAcquire(aggregateLockKey, _commandLockOwner))
             {
-                _activeAggregateLockKey = null;
                 _commandInFlight = false;
                 return false;
             }
@@ -1376,15 +1412,18 @@
             _activeAggregateLockKey = aggregateLockKey;
             _commandInFlight = true;
         }
-        else if (_activeAggregateLockKey is not null)
-        {
-            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
-            _commandInFlight = false;
-            _activeAggregateLockKey = null;
-        }
         else
         {
-            _commandInFlight = false;
+            string? aggregateLockKey = string.IsNullOrWhiteSpace(leaseTenantId)
+                ? null
+                : TenantCommandAggregateLock.ForTenant(leaseTenantId);
+            if (aggregateLockKey is not null
+                && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal))
+            {
+                AggregateAdmissionGate?.Release(aggregateLockKey, _commandLockOwner);
+                _commandInFlight = false;
+                _activeAggregateLockKey = null;
+            }
         }
 
         // Membership flows acquire the lease through a Func delegate rather than an EventCallback owned by
