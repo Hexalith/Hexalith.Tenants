@@ -985,12 +985,15 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     /// matching WP-2A removal audit row is supplied. Never invents available from empty or mismatched evidence.
     /// Once available, unmatched rematches keep Available (confirmed outcome survives audit flaps).
     /// </summary>
-    public TenantRemoveMemberCommandSnapshot ApplyRemovalProofMatch(bool matched) {
+    public TenantRemoveMemberCommandSnapshot ApplyRemovalProofMatch(
+        bool matched,
+        bool hasCurrentLifecycleBackedEvidence = false,
+        bool hasReadyReceipt = false) {
         if (State is not TenantCommandLifecycleState.Confirmed) {
             return this;
         }
 
-        if (matched) {
+        if (matched && hasCurrentLifecycleBackedEvidence && hasReadyReceipt) {
             return this with {
                 AuditState = TenantCommandAuditState.AuditAvailable,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,

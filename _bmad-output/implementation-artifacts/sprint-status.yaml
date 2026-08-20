@@ -85,7 +85,7 @@ development_status:
   2-3-change-tenant-member-role: done
   # 2026-08-08: 2.4a + 2.4b implemented (eligibility/preview/dialog + WP-2A proof /
   # audit_available, MissingAuditProof fail-closed, provenance refine). Awaiting review gate.
-  2-4-remove-tenant-member-with-complete-preview-and-proof: in-progress
+  2-4-remove-tenant-member-with-complete-preview-and-proof: review
   epic-2-retrospective: done
 
   # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---

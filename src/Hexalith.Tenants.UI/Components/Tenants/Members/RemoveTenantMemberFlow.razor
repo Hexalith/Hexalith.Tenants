@@ -1,14 +1,18 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.Services.Gateways
+@using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.TenantAudit
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
+@using Hexalith.EventStore.Contracts.Queries
 @using Microsoft.Extensions.DependencyInjection
 @using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject NavigationManager Navigation
 @inject IServiceProvider Services
+@implements IDisposable
 
 <section class="tenants-remove-member-flow"
          role="dialog"
@@ -171,7 +175,8 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
-                                        OnRefresh="RefreshStatusAsync">
+                                        OnRefresh="RefreshStatusAsync"
+                                        OnContinueReadOnly="ContinueReadOnlyAsync">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                                  TargetUserId="@Member.UserId"
@@ -181,17 +186,20 @@
                                                  AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-remove-member-lifecycle"
+                                                 SupportSafeCommandReference="@_snapshot.MessageId"
                                                  AvailabilityText="@AuditText"
                                                  UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
             @if (_removalProof is not null
+                && _removalProof.State is TenantAuditReceiptState.Ready
                 && TenantAuditAvailability.FromCommandAuditState(_snapshot.AuditState).IsAuditAvailable)
             {
                 <AuditEvidenceReceipt Receipt="@_removalProof"
                                       OnRetry="RefreshStatusAsync"
-                                      OnClose="ContinueReadOnlyAsync" />
+                                      OnClose="ContinueReadOnlyAsync"
+                                      OnInspectAudit="InspectAuditAsync" />
             }
         </div>
         <p data-testid="tenants-remove-member-recovery">@RecoveryText</p>
@@ -231,7 +239,13 @@
     private bool _focusLifecyclePending;
     private int _refreshInFlight;
     private int _refreshPending;
+    private int _projectionRefreshPending;
+    private readonly Lock _proofCancellationLock = new();
+    private CancellationTokenSource? _proofCancellation;
+    private long _proofGeneration;
+    private bool _disposed;
     private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
+    private const int MaximumAuditProofPageCount = CursorHistory.DefaultMaximum;
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -273,6 +287,13 @@
     /// </summary>
     [Parameter]
     public bool TargetPlatformStandingResolved { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the parent has a connected authoritative audit read surface.
+    /// Gateway registration alone is not capability evidence.
+    /// </summary>
+    [Parameter]
+    public bool AuditProofCapabilityAvailable { get; set; } = true;
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -332,7 +353,7 @@
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
-                        : !IsAuditProofCapabilityAvailable && !IsOwnedCommandInFlight
+                        : (!AuditProofCapabilityAvailable || !HasAuditProofGateway) && !IsOwnedCommandInFlight
                             ? Localizer["Tenants.Members.UnavailableReason.MissingAuditProof"].Value
                             : _isSubmitting
                                 ? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value
@@ -375,7 +396,7 @@
     private ITenantQueryGateway? QueryGateway
         => Services.GetService<ITenantQueryGateway>();
 
-    private bool IsAuditProofCapabilityAvailable
+    private bool HasAuditProofGateway
         => QueryGateway is not null and not UnavailableTenantQueryGateway;
 
     private IReadOnlyList<(string Label, string Value, string TestId)> PreviewItems
@@ -697,7 +718,10 @@
             && Equals(_snapshot.Intent, request)
                 ? _snapshot.MessageId
                 : null;
-        _snapshot = _snapshot.RequestSent(ResolveCurrentProjectionVersion(), baselinePostconditionMet: !TargetIsVisibleMember) with
+        _snapshot = _snapshot.RequestSent(
+            ResolveCurrentProjectionVersion(),
+            baselinePostconditionMet: !TargetIsVisibleMember,
+            attemptStartedAtUtc: retryMessageId is null ? null : _snapshot.AttemptStartedAtUtc) with
         {
             MessageId = retryMessageId,
             CorrelationId = null,
@@ -764,28 +788,39 @@
         if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
         {
             Volatile.Write(ref _refreshPending, 1);
+            if (requestProjectionRefresh)
+            {
+                Volatile.Write(ref _projectionRefreshPending, 1);
+            }
+
             return;
         }
 
         try
         {
             bool refreshProjection = requestProjectionRefresh;
-            do
+            while (true)
             {
+                refreshProjection |= Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
                 Volatile.Write(ref _refreshPending, 0);
                 await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
-                refreshProjection = false;
+                bool refreshPending = Interlocked.Exchange(ref _refreshPending, 0) != 0;
+                refreshProjection = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
+                if (!refreshPending && !refreshProjection)
+                {
+                    break;
+                }
             }
-            while (Interlocked.Exchange(ref _refreshPending, 0) != 0);
         }
         finally
         {
             Volatile.Write(ref _refreshInFlight, 0);
         }
 
-        if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
+        bool followUpProjectionRefresh = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
+        if (Interlocked.Exchange(ref _refreshPending, 0) != 0 || followUpProjectionRefresh)
         {
-            await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+            await RefreshCommandStatusAsync(followUpProjectionRefresh).ConfigureAwait(false);
         }
     }
 
@@ -860,16 +895,20 @@
 
     private async Task TryAssembleRemovalProofAsync()
     {
+        long proofGeneration = Interlocked.Increment(ref _proofGeneration);
         if (_snapshot.Intent is null
             || _snapshot.State is not TenantCommandLifecycleState.Confirmed)
         {
+            CancelProofSearch();
             return;
         }
 
+        RemoveUserFromTenant intent = _snapshot.Intent;
         ITenantQueryGateway? queryGateway = QueryGateway;
         if (queryGateway is null or UnavailableTenantQueryGateway)
         {
-            if (_snapshot.State is TenantCommandLifecycleState.Confirmed)
+            CancelProofSearch();
+            if (CanApplyProof(proofGeneration, intent))
             {
                 SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable));
             }
@@ -879,7 +918,8 @@
 
         if (_snapshot.AttemptStartedAtUtc is null)
         {
-            if (_snapshot.State is TenantCommandLifecycleState.Confirmed)
+            CancelProofSearch();
+            if (CanApplyProof(proofGeneration, intent))
             {
                 SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
             }
@@ -887,83 +927,165 @@
             return;
         }
 
-        TenantAuditSnapshot audit;
+        DateTimeOffset attemptStartedAtUtc = _snapshot.AttemptStartedAtUtc.Value;
+        CancellationTokenSource source = ReplaceProofCancellation();
+        TenantAuditRequest request = new(intent.TenantId, From: attemptStartedAtUtc);
+        var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
+        bool weakMatchObserved = false;
         try
         {
-            audit = await queryGateway
-                .GetTenantAuditAsync(
-                    new TenantAuditRequest(_snapshot.Intent.TenantId, From: _snapshot.AttemptStartedAtUtc),
-                    previous: null,
-                    CancellationToken.None)
-                .ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            if (_snapshot.State is TenantCommandLifecycleState.Confirmed)
+            for (int pageNumber = 0; pageNumber < MaximumAuditProofPageCount; pageNumber++)
+            {
+                source.Token.ThrowIfCancellationRequested();
+                TenantAuditSnapshot audit = await queryGateway
+                    .GetTenantAuditAsync(request, previous: null, source.Token)
+                    .ConfigureAwait(false);
+                source.Token.ThrowIfCancellationRequested();
+                if (!CanApplyProof(proofGeneration, intent))
+                {
+                    return;
+                }
+
+                if (audit.Kind is TenantAuditSurfaceKind.Unauthorized
+                    or TenantAuditSurfaceKind.Unavailable
+                    or TenantAuditSurfaceKind.Error
+                    or TenantAuditSurfaceKind.InvalidCursor
+                    or TenantAuditSurfaceKind.Loading)
+                {
+                    TenantCommandAuditState failure = audit.Kind is TenantAuditSurfaceKind.Unauthorized
+                        ? TenantCommandAuditState.AuditUnavailable
+                        : TenantCommandAuditState.AuditDelayed;
+                    SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(failure));
+                    return;
+                }
+
+                bool currentLifecycleBackedPage = audit.Kind is TenantAuditSurfaceKind.Ready
+                        or TenantAuditSurfaceKind.Empty
+                        or TenantAuditSurfaceKind.FilteredEmpty
+                        or TenantAuditSurfaceKind.ListRefreshed
+                    && audit.Freshness is ReadModelFreshnessState.Current
+                    && audit.Lifecycle is ProjectionLifecycleState.Current;
+                if (!currentLifecycleBackedPage)
+                {
+                    SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
+                    return;
+                }
+
+                foreach (TenantAuditRow match in audit.Rows
+                    .Where(row => TenantRemoveMemberCommandSnapshot.IsMatchingRemovalProof(
+                        row,
+                        intent.TenantId,
+                        intent.UserId,
+                        attemptStartedAtUtc))
+                    .OrderByDescending(static row => row.Timestamp))
+                {
+                    bool currentLifecycleBackedRow = match.Freshness is ReadModelFreshnessState.Current
+                        && match.Lifecycle is ProjectionLifecycleState.Current
+                        && match.Provenance is QueryResponseProvenance.ProjectionBacked;
+                    TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(
+                        match,
+                        supportSafeCommandReference: _snapshot.MessageId,
+                        surfaceKind: TenantAuditSurfaceKind.Ready,
+                        auditState: TenantCommandAuditState.AuditAvailable);
+                    bool receiptReady = receipt.State is TenantAuditReceiptState.Ready;
+                    if (currentLifecycleBackedRow && receiptReady)
+                    {
+                        _removalProof = receipt;
+                        SetSnapshot(_snapshot.ApplyRemovalProofMatch(
+                            matched: true,
+                            hasCurrentLifecycleBackedEvidence: true,
+                            hasReadyReceipt: true));
+                        return;
+                    }
+
+                    weakMatchObserved = true;
+                }
+
+                if (!audit.HasMore)
+                {
+                    if (_snapshot.AuditState is not TenantCommandAuditState.AuditAvailable)
+                    {
+                        _removalProof = null;
+                    }
+
+                    SetSnapshot(weakMatchObserved
+                        ? _snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed)
+                        : _snapshot.ApplyRemovalProofMatch(matched: false));
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(audit.NextCursor) || !visitedCursors.Add(audit.NextCursor))
+                {
+                    SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
+                    return;
+                }
+
+                request = request with { Cursor = audit.NextCursor, ETag = null };
+            }
+
+            if (CanApplyProof(proofGeneration, intent))
             {
                 SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
             }
-
-            return;
         }
-
-        if (audit.Kind is TenantAuditSurfaceKind.Unauthorized
-            or TenantAuditSurfaceKind.Unavailable
-            or TenantAuditSurfaceKind.Error
-            or TenantAuditSurfaceKind.InvalidCursor
-            or TenantAuditSurfaceKind.Loading)
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
         {
-            if (_snapshot.State is TenantCommandLifecycleState.Confirmed)
-            {
-                TenantCommandAuditState failure = audit.Kind is TenantAuditSurfaceKind.Unauthorized
-                    ? TenantCommandAuditState.AuditUnavailable
-                    : TenantCommandAuditState.AuditDelayed;
-                SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(failure));
-            }
-
-            return;
-        }
-
-        if (audit.Kind is TenantAuditSurfaceKind.Stale or TenantAuditSurfaceKind.Degraded)
-        {
-            if (_snapshot.State is TenantCommandLifecycleState.Confirmed
-                && _snapshot.AuditState is not TenantCommandAuditState.AuditAvailable)
+            if (CanApplyProof(proofGeneration, intent))
             {
                 SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
             }
-
-            return;
         }
-
-        TenantAuditRow? match = TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
-            audit.Rows,
-            _snapshot.Intent.TenantId,
-            _snapshot.Intent.UserId,
-            _snapshot.AttemptStartedAtUtc);
-
-        if (_snapshot.State is not TenantCommandLifecycleState.Confirmed)
+        catch
         {
-            return;
-        }
-
-        if (match is null)
-        {
-            // Keep an already-assembled receipt when Available survives unmatched rematch flaps.
-            if (_snapshot.AuditState is not TenantCommandAuditState.AuditAvailable)
+            if (CanApplyProof(proofGeneration, intent))
             {
-                _removalProof = null;
+                SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
             }
+        }
+        finally
+        {
+            CompleteProofCancellation(source);
+        }
+    }
 
-            SetSnapshot(_snapshot.ApplyRemovalProofMatch(matched: false));
-            return;
+    private bool CanApplyProof(long generation, RemoveUserFromTenant intent)
+        => !_disposed
+        && generation == Volatile.Read(ref _proofGeneration)
+        && _snapshot.State is TenantCommandLifecycleState.Confirmed
+        && Equals(_snapshot.Intent, intent);
+
+    private CancellationTokenSource ReplaceProofCancellation()
+    {
+        var source = new CancellationTokenSource();
+        lock (_proofCancellationLock)
+        {
+            _proofCancellation?.Cancel();
+            _proofCancellation = source;
         }
 
-        _removalProof = TenantAuditReceipt.FromRow(
-            match,
-            supportSafeCommandReference: _snapshot.MessageId,
-            surfaceKind: TenantAuditSurfaceKind.Ready,
-            auditState: TenantCommandAuditState.AuditAvailable);
-        SetSnapshot(_snapshot.ApplyRemovalProofMatch(matched: true));
+        return source;
+    }
+
+    private void CancelProofSearch()
+    {
+        lock (_proofCancellationLock)
+        {
+            _proofCancellation?.Cancel();
+            _proofCancellation = null;
+        }
+    }
+
+    private void CompleteProofCancellation(CancellationTokenSource source)
+    {
+        lock (_proofCancellationLock)
+        {
+            if (ReferenceEquals(_proofCancellation, source))
+            {
+                _proofCancellation = null;
+            }
+        }
+
+        source.Dispose();
     }
 
     private async Task ContinueReadOnlyAsync()
@@ -971,6 +1093,18 @@
         _removalProof = null;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+    }
+
+    private Task InspectAuditAsync()
+    {
+        string target = Uri.EscapeDataString(Member.UserId);
+        string commandReference = string.IsNullOrWhiteSpace(_snapshot.MessageId)
+            ? string.Empty
+            : $"&supportSafeCommandReference={Uri.EscapeDataString(_snapshot.MessageId)}";
+        string returnUrl = Uri.EscapeDataString(CommandAuditReturnUrl);
+        Navigation.NavigateTo(
+            $"{CommandAuditReturnUrl}/audit?targetUserId={target}{commandReference}&source=command-result&returnUrl={returnUrl}&returnFocus=tenants-remove-member-lifecycle");
+        return Task.CompletedTask;
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)
@@ -1010,4 +1144,11 @@
 
     private async Task FocusCancelAsync(FocusEventArgs args)
         => await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _ = Interlocked.Increment(ref _proofGeneration);
+        CancelProofSearch();
+    }
 }

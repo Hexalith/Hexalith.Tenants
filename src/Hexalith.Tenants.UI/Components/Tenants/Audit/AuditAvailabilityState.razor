@@ -18,7 +18,7 @@
             <p class="tenants-audit-availability__reason">@ReasonText</p>
         }
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
-            @foreach (TenantAuditRecoveryVerb verb in Availability.RecoveryVerbs)
+            @foreach (TenantAuditRecoveryVerb verb in Availability.RecoveryVerbs.Where(CanRenderRecovery))
             {
                 @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
                 {
@@ -79,11 +79,16 @@
     private string AccessibleLabel
         => Availability.State is null
             ? string.Empty
-            : Localizer[$"Tenants.Audit.Availability.Accessible.{Availability.State}"];
+            : Localizer[$"Tenants.Audit.Availability.Accessible.{Availability.State}{RecoveryCopySuffix}"];
 
     private string ReasonText
         => Availability.State is TenantAuditAvailabilityState.Unavailable or TenantAuditAvailabilityState.MissingSupport
-            ? Localizer[$"Tenants.Audit.Availability.Reason.{Availability.State}"]
+            ? Localizer[$"Tenants.Audit.Availability.Reason.{Availability.State}{RecoveryCopySuffix}"]
+            : string.Empty;
+
+    private string RecoveryCopySuffix
+        => Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.Escalate) && !OnEscalate.HasDelegate
+            ? ".NoEscalation"
             : string.Empty;
 
     private string StateGlyph
@@ -99,6 +104,17 @@
 
     private static string VerbCss(TenantAuditRecoveryVerb verb)
         => verb.ToString().ToLowerInvariant();
+
+    private bool CanRenderRecovery(TenantAuditRecoveryVerb verb)
+        => verb switch
+        {
+            TenantAuditRecoveryVerb.Wait => true,
+            TenantAuditRecoveryVerb.Refresh => OnRefresh.HasDelegate,
+            TenantAuditRecoveryVerb.InspectAudit => InspectAuditAction is not null || OnInspectAudit.HasDelegate,
+            TenantAuditRecoveryVerb.ContinueReadOnly => OnContinueReadOnly.HasDelegate,
+            TenantAuditRecoveryVerb.Escalate => OnEscalate.HasDelegate,
+            _ => false,
+        };
 
     private async Task InvokeRecoveryAsync(TenantAuditRecoveryVerb verb)
     {

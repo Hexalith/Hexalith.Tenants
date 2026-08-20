@@ -269,6 +269,7 @@
                                     ProjectionVersion="@ProjectionVersion"
                                     ProjectionVersionProvider="@ProjectionVersionProvider"
                                     CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
+                                    AuditProofCapabilityAvailable="@AuditProofCapabilityAvailable"
                                     TargetGlobalAdministratorFriction="@ResolveTargetGlobalAdministratorFriction(ActiveRemoveMember)"
                                     TargetPlatformStandingResolved="@TargetPlatformStandingResolved"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
@@ -403,6 +404,12 @@
     [Parameter]
     public GlobalAdministratorsSnapshot? GlobalAdministrators { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the composing parent has an authoritative audit read surface.
+    /// </summary>
+    [Parameter]
+    public bool AuditProofCapabilityAvailable { get; set; } = true;
+
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
@@ -442,7 +449,12 @@
                 ?? _activeRemoveMemberCapture;
 
     private bool TargetPlatformStandingResolved
-        => GlobalAdministrators is { IsCompleteEvidence: true, Freshness: ReadModelFreshnessState.Current };
+        => GlobalAdministrators is
+        {
+            IsCompleteEvidence: true,
+            Freshness: ReadModelFreshnessState.Current,
+            Lifecycle: ProjectionLifecycleState.Current,
+        };
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
@@ -596,7 +608,7 @@
             ];
         }
 
-        IReadOnlyList<UnavailableReason> removeReasons = IsAuditProofCapabilityAvailable
+        IReadOnlyList<UnavailableReason> removeReasons = AuditProofCapabilityAvailable
             ? []
             : [UnavailableReason.MissingAuditProof];
 
@@ -606,15 +618,6 @@
             new(MemberAction.ChangeRole, []),
             new(MemberAction.RemoveMember, removeReasons),
         ];
-    }
-
-    private bool IsAuditProofCapabilityAvailable
-    {
-        get
-        {
-            ITenantQueryGateway? gateway = Services.GetService<ITenantQueryGateway>();
-            return gateway is not null and not UnavailableTenantQueryGateway;
-        }
     }
 
     private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)
@@ -854,9 +857,11 @@
     }
 
     private bool ResolveTargetGlobalAdministratorFriction(TenantMember? member)
-        => TargetPlatformStandingResolved
-        && member is not null
-        && GlobalAdministrators!.Rows.Any(row => string.Equals(row.UserId, member.UserId, StringComparison.Ordinal));
+        => member is not null
+        && GlobalAdministrators?.Rows.Any(row =>
+            string.Equals(row.UserId, member.UserId, StringComparison.Ordinal)
+            && row.Freshness is ReadModelFreshnessState.Current
+            && row.Lifecycle is ProjectionLifecycleState.Current) == true;
 
     private async Task CloseChangeRoleAsync()
     {
