@@ -1115,6 +1115,28 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
   summary: Verify the tenant-detail global-administrator evidence bridge at the page boundary.
   evidence: Existing tests inject GlobalAdministratorsSnapshot directly into MemberAccessReview, so removing the page assignment or parameter binding would not fail coverage.
 
+## Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Pre-existing flaky false-success in the global-administrator grant re-query.
+  evidence: `Grant_requery_does_not_confirm_from_a_superseded_snapshot` fails in 3 of 4 clean-HEAD Release runs, rendering "Projection confirmed the target user" from a superseded snapshot. Introduced by `d0f74a48` (Story 1.11), not by Story 2.1. This is a live non-collapse violation of the same class Epic 2 exists to prevent.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Global-administrator command surface is not covered by the new AggregateIdentity admission gate.
+  evidence: `TenantCommandAggregateLock.ForGlobalAdministrators()` and `TenantAggregateCommandAdmissionGate.HasActiveLock` have zero call sites in `src/` or `tests/`; `GlobalAdministratorsPage` and `GlobalAdministratorCorrectionPanel` dispatch ungated, so one-at-a-time exclusivity holds for tenant aggregates only.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Optional `messageId` reached create-tenant and update-tenant beyond the declared membership scope.
+  evidence: The Code Map scopes optional `messageId` to add/change/remove, but `ITenantCommandGateway.CreateTenantAsync` and `UpdateTenantAsync` also gained `string? messageId = null` and the new ULID-canonicality rejection.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: A missing admission-gate registration disables Epic 3 command surfaces as well as membership.
+  evidence: `IsCommandSurfaceAvailable` now requires `AggregateAdmissionGate is not null`, and that value is passed to `EditTenantMetadataFlow`, `TenantLifecycleActionAvailability`, and `TenantConfigurationManagement`. Fail-closed, so acceptable, but it widens the blast radius of a composition mistake beyond this story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Gateway and snapshot safe-message strings are still hard-coded English.
+  evidence: `TenantCommandGateway` returns raw `SafeMessage` text and `TenantCreateCommandModels` hard-codes strings with `SafeMessageKey = null`; `DisplaySafeMessage` renders them verbatim, so French users see English on exactly the paths the `SafeMessageKey` mechanism was introduced to fix.
+
 ## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
