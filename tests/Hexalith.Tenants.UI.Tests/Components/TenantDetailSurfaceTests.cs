@@ -27,6 +27,7 @@ using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -116,6 +117,404 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-surface-testid='tenants-member-copy-reference']").Click();
         cut.WaitForAssertion(() => memberWrite.Invocations.Count.ShouldBe(1));
         memberWrite.Invocations.Single().Arguments[0].ShouldBe(memberId);
+    }
+
+    [Fact]
+    public void Detail_page_requires_a_current_authoritative_audit_read_for_remove_actions()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "v1")));
+        gateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with
+            {
+                ProjectionVersion = "v1",
+            }));
+        gateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                return TenantAuditSnapshot.Stale([], null, false, "audit-etag", request) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Stale,
+                    ProjectionVersion = "audit-v1",
+                };
+            });
+        RegisterDetailPageServices(gateway, configureAuthoritativeAuditCapability: false);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-member-summary']");
+
+        IRenderedComponent<MemberAccessReview> access = cut.FindComponent<MemberAccessReview>();
+        access.Instance.AuditProofCapabilityAvailable.ShouldBeFalse();
+        gateway.Received().GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.TenantId == "tenant.alpha" && request.PageSize == 1),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+        cut.Markup.ShouldContain("missing audit proof", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Detail_page_loads_all_global_administrator_pages_before_resolving_platform_standing()
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "v1")));
+        gateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail)));
+        List<GlobalAdministratorsRequest> requests = [];
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                requests.Add(request);
+                return request.Cursor is null
+                    ? GlobalAdministratorsSnapshot.Ready(
+                        [new GlobalAdministratorRow(
+                            "another-admin",
+                            ReadModelFreshnessState.Current,
+                            ProjectionLifecycleState.Current)],
+                        nextCursor: "opaque-ga-page-2",
+                        hasMore: true,
+                        eTag: "ga-etag-1",
+                        ReadModelFreshnessState.Current) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "ga-v1",
+                    }
+                    : GlobalAdministratorsSnapshot.Ready(
+                        [new GlobalAdministratorRow(
+                            "reader-user",
+                            ReadModelFreshnessState.Current,
+                            ProjectionLifecycleState.Current)],
+                        nextCursor: null,
+                        hasMore: false,
+                        eTag: "ga-etag-2",
+                        ReadModelFreshnessState.Current) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "ga-v1",
+                    };
+            });
+        RegisterDetailPageServices(gateway);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() =>
+        {
+            GlobalAdministratorsSnapshot standing = cut.FindComponent<MemberAccessReview>()
+                .Instance.GlobalAdministrators.ShouldNotBeNull();
+            standing.IsCompleteEvidence.ShouldBeTrue();
+            standing.Rows.ShouldContain(row => row.UserId == "reader-user");
+        });
+
+        requests.Select(static request => request.Cursor).ShouldBe([null, "opaque-ga-page-2"]);
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => pair.UserId == "reader-user")
+            .index;
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
+        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
+            .ShouldContain("will not remove global-administrator authority");
+    }
+
+    [Fact]
+    public void Supplementary_global_administrator_read_does_not_block_primary_detail_rendering()
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        var pendingStanding = new TaskCompletionSource<GlobalAdministratorsSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "v1")));
+        gateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail)));
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(pendingStanding.Task);
+        RegisterDetailPageServices(gateway);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-detail-member-summary']");
+        pendingStanding.Task.IsCompleted.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("reader-user");
+
+        pendingStanding.SetResult(GlobalAdministratorsSnapshot.Empty(
+            isAuthorizationScoped: true,
+            ReadModelFreshnessState.Current,
+            eTag: "ga-empty") with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "ga-v1",
+        });
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>()
+            .Instance.GlobalAdministrators.ShouldNotBeNull());
+    }
+
+    [Theory]
+    [InlineData("stale", 1)]
+    [InlineData("version-mismatch", 2)]
+    [InlineData("missing-cursor", 1)]
+    [InlineData("cyclic-cursor", 2)]
+    public void Incomplete_global_administrator_walk_keeps_absent_platform_standing_unresolved(
+        string scenario,
+        int expectedCalls)
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                calls++;
+                if (scenario == "stale")
+                {
+                    return GlobalAdministratorsSnapshot.Stale([], null, false, "ga-stale") with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Stale,
+                        ProjectionVersion = "ga-v1",
+                    };
+                }
+
+                string? nextCursor = scenario switch
+                {
+                    "missing-cursor" => null,
+                    "cyclic-cursor" => "cycle",
+                    _ => calls == 1 ? "page-2" : null,
+                };
+                bool hasMore = scenario is "missing-cursor" or "cyclic-cursor" || calls == 1;
+                return GlobalAdministratorsSnapshot.Ready(
+                    [],
+                    nextCursor,
+                    hasMore,
+                    $"ga-etag-{calls}",
+                    ReadModelFreshnessState.Current) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = scenario == "version-mismatch" && calls > 1 ? "ga-v2" : "ga-v1",
+                };
+            });
+        RegisterDetailPageServices(gateway);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, detail.TenantId));
+
+        cut.WaitForAssertion(() =>
+        {
+            calls.ShouldBe(expectedCalls);
+            GlobalAdministratorsSnapshot standing = cut.FindComponent<MemberAccessReview>()
+                .Instance.GlobalAdministrators.ShouldNotBeNull();
+            standing.IsCompleteEvidence.ShouldBeFalse();
+        });
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>()
+            .Instance.AuditProofCapabilityAvailable.ShouldBeTrue());
+        OpenReaderRemoval(cut, detail);
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("unproven", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Global_administrator_walk_stops_at_page_cap_and_keeps_absence_unresolved()
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => GlobalAdministratorsSnapshot.Ready(
+                [],
+                nextCursor: $"ga-page-{++calls}",
+                hasMore: true,
+                eTag: $"ga-etag-{calls}",
+                ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+                ProjectionVersion = "ga-v1",
+            });
+        RegisterDetailPageServices(gateway);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, detail.TenantId));
+
+        cut.WaitForAssertion(() =>
+        {
+            calls.ShouldBe(CursorHistory.DefaultMaximum);
+            cut.FindComponent<MemberAccessReview>().Instance.GlobalAdministrators
+                .ShouldNotBeNull().IsCompleteEvidence.ShouldBeFalse();
+        });
+        OpenReaderRemoval(cut, detail);
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("unproven", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Route_change_cancels_supplementary_reads_and_late_tenant_a_results_cannot_overwrite_tenant_b()
+    {
+        var lateAdministrators = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lateAudit = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tenantATokens = new List<CancellationToken>();
+        ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
+        int globalAdministratorCalls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                CancellationToken token = call.ArgAt<CancellationToken>(2);
+                if (Interlocked.Increment(ref globalAdministratorCalls) == 1)
+                {
+                    tenantATokens.Add(token);
+                    return lateAdministrators.Task;
+                }
+
+                return Task.FromResult(
+                    GlobalAdministratorsSnapshot.Empty(true, ReadModelFreshnessState.Current, "ga-b") with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "ga-b-v1",
+                    });
+            });
+        gateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                if (request.TenantId == "tenant.a")
+                {
+                    tenantATokens.Add(call.ArgAt<CancellationToken>(2));
+                    return lateAudit.Task;
+                }
+
+                return Task.FromResult(
+                    TenantAuditSnapshot.Stale([], null, false, "audit-b", request) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Stale,
+                        ProjectionVersion = "audit-b-v1",
+                    });
+            });
+        RegisterDetailPageServices(gateway, configureAuthoritativeAuditCapability: false);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.a"));
+        cut.WaitForElement("[data-testid='tenants-detail-member-summary']");
+        cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.b"));
+        cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.b"));
+        await WaitUntilAsync(
+            () => tenantATokens.Count >= 2 && tenantATokens.All(static token => token.IsCancellationRequested),
+            TimeSpan.FromSeconds(2));
+
+        lateAdministrators.SetResult(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+            null,
+            false,
+            "ga-a",
+            ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "ga-a-v1",
+        });
+        TenantAuditRequest tenantARequest = new("tenant.a", PageSize: 1);
+        lateAudit.SetResult(TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "audit-a", tenantARequest) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "audit-a-v1",
+        });
+        await Task.Delay(50);
+
+        MemberAccessReview access = cut.FindComponent<MemberAccessReview>().Instance;
+        access.GlobalAdministrators.ShouldNotBeNull().Rows.ShouldBeEmpty();
+        access.AuditProofCapabilityAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Failed_global_administrator_refresh_retains_rows_only_as_incomplete_unknown_evidence()
+    {
+        ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => ++calls == 1
+                ? GlobalAdministratorsSnapshot.Ready(
+                    [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+                    null,
+                    false,
+                    "ga-current",
+                    ReadModelFreshnessState.Current) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = "ga-v1",
+                }
+                : throw new InvalidOperationException("supplementary refresh fault"));
+        RegisterDetailPageServices(gateway);
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>().Instance.GlobalAdministrators
+            .ShouldNotBeNull().IsCompleteEvidence.ShouldBeTrue());
+
+        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() =>
+        {
+            GlobalAdministratorsSnapshot retained = cut.FindComponent<MemberAccessReview>()
+                .Instance.GlobalAdministrators.ShouldNotBeNull();
+            retained.Rows.ShouldContain(row => row.UserId == "reader-user");
+            retained.IsCompleteEvidence.ShouldBeFalse();
+            retained.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+            retained.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+            retained.ProjectionVersion.ShouldBeNull();
+        });
     }
 
     [Fact]
@@ -2302,7 +2701,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
             .index;
         GlobalAdministratorsSnapshot completeGa = GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current)],
+            [new GlobalAdministratorRow(
+                "reader-user",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"ga\"",
@@ -2330,7 +2732,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Member_access_review_keeps_platform_standing_unknown_when_ga_evidence_is_incomplete()
+    public void Member_access_review_keeps_current_positive_ga_standing_when_the_page_is_incomplete()
     {
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
@@ -2339,7 +2741,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
             .index;
         GlobalAdministratorsSnapshot incompleteGa = GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current)],
+            [new GlobalAdministratorRow(
+                "reader-user",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"ga\"",
@@ -2361,9 +2766,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
 
         cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
-            .ShouldContain("unproven");
-        cut.Markup.ShouldNotContain("Not reflected as a global administrator", Case.Insensitive);
-        cut.FindAll("[data-testid='tenants-remove-member-global-admin-risk']").ShouldBeEmpty();
+            .ShouldContain("Also a global administrator");
+        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
+            .ShouldContain("will not remove global-administrator authority");
     }
 
     [Fact]
@@ -3738,6 +4143,66 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
+    private static ITenantQueryGateway CreateCurrentDetailPageGateway()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.ArgAt<TenantDetailRequest>(0).TenantId;
+                return Task.FromResult(ReadyWithSafeConfiguration(
+                    Detail(tenantId),
+                    ProjectionLifecycleState.Current,
+                    "v1"));
+            });
+        gateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.ArgAt<TenantUsersRequest>(0).TenantId;
+                return Task.FromResult(MemberSnapshot(Detail(tenantId)) with
+                {
+                    ProjectionVersion = "v1",
+                });
+            });
+        return gateway;
+    }
+
+    private static void OpenReaderRemoval(IRenderedComponent<TenantDetailPage> cut, TenantDetail detail)
+    {
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => pair.UserId == "reader-user")
+            .index;
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-remove-member-open']")
+            .Count.ShouldBe(detail.Members.Count));
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
+    }
+
+    private void RegisterDetailPageServices(
+        ITenantQueryGateway gateway,
+        ITenantsBffComposition? bffComposition = null,
+        bool configureAuthoritativeAuditCapability = true)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        if (configureAuthoritativeAuditCapability)
+        {
+            ConfigureAuthoritativeAuditCapability(gateway);
+        }
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton(bffComposition ?? new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+    }
+
     private void RegisterServices(TenantListSnapshot snapshot)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -3785,6 +4250,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             {
                 ProjectionVersion = "projection-v1",
             }));
+        ConfigureAuthoritativeAuditCapability(gateway);
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton(commandGateway);
@@ -3813,12 +4279,32 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     ?? throw new InvalidOperationException("A tenant-users request is required.");
                 return Task.FromResult(MemberSnapshot(observedDetail ?? Detail(request.TenantId)));
             });
+        ConfigureAuthoritativeAuditCapability(gateway);
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton(bffComposition ?? new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
+
+    private static void ConfigureAuthoritativeAuditCapability(ITenantQueryGateway gateway)
+        => gateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                return TenantAuditSnapshot.Empty(
+                    isAuthorizationScoped: true,
+                    ReadModelFreshnessState.Current,
+                    eTag: "audit-capability-etag",
+                    request) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = "audit-capability-v1",
+                };
+            });
 
     private static TenantDetailSnapshot Snapshot(TenantDetailSurfaceKind kind)
         => kind switch
@@ -4179,11 +4665,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     private sealed class StubTenantsBffComposition(
         TenantLifecycleAuthorizationReflectionState lifecycleReflection
             = TenantLifecycleAuthorizationReflectionState.Indeterminate,
-        bool commandSurfaceConnected = true) : ITenantsBffComposition
+        bool commandSurfaceConnected = true,
+        bool readSurfaceConnected = true) : ITenantsBffComposition
     {
         private TenantLifecycleAuthorizationReflectionState _reflection = lifecycleReflection;
 
-        public bool IsReadSurfaceConnected => true;
+        public bool IsReadSurfaceConnected => readSurfaceConnected;
 
         public bool IsCommandSurfaceConnected => commandSurfaceConnected;
 
@@ -4601,9 +5088,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.RemoveMember.Preview.AccessPath.Value"] = "Tenant membership for the visible tenant only.",
             ["Tenants.RemoveMember.Preview.Freshness"] = "Freshness",
             ["Tenants.RemoveMember.Preview.RecoveryPath"] = "Recovery path",
-            ["Tenants.RemoveMember.Preview.RecoveryPath.Value"] = "Wait, refresh, inspect audit when available, or submit a forward correction to restore intended access.",
+            ["Tenants.RemoveMember.Preview.RecoveryPath.Value"] = "Wait, refresh, inspect audit when available, or continue read-only.",
             ["Tenants.RemoveMember.Preview.AuditExpectation"] = "Audit expectation",
-            ["Tenants.RemoveMember.Preview.AuditExpectation.Value"] = "Audit evidence is pending or unavailable until the Epic 5 evidence source exists.",
+            ["Tenants.RemoveMember.Preview.AuditExpectation.Value"] = "Audit evidence is requested after projection confirmation and may be pending, delayed, or unavailable.",
             ["Tenants.RemoveMember.Preview.PlatformStanding"] = "Platform standing",
             ["Tenants.RemoveMember.Preview.PlatformStanding.Known"] = "Also a global administrator. Tenant membership removal does not change platform administrator authority.",
             ["Tenants.RemoveMember.Preview.PlatformStanding.NotReflected"] = "Not reflected as a global administrator in the current complete projection.",

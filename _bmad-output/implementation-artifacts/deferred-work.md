@@ -1114,3 +1114,75 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
   summary: Verify the tenant-detail global-administrator evidence bridge at the page boundary.
   evidence: Existing tests inject GlobalAdministratorsSnapshot directly into MemberAccessReview, so removing the page assignment or parameter binding would not fail coverage.
+
+## Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Pre-existing flaky false-success in the global-administrator grant re-query.
+  evidence: `Grant_requery_does_not_confirm_from_a_superseded_snapshot` fails in 3 of 4 clean-HEAD Release runs, rendering "Projection confirmed the target user" from a superseded snapshot. Introduced by `d0f74a48` (Story 1.11), not by Story 2.1. This is a live non-collapse violation of the same class Epic 2 exists to prevent.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Global-administrator command surface is not covered by the new AggregateIdentity admission gate.
+  evidence: `TenantCommandAggregateLock.ForGlobalAdministrators()` and `TenantAggregateCommandAdmissionGate.HasActiveLock` have zero call sites in `src/` or `tests/`; `GlobalAdministratorsPage` and `GlobalAdministratorCorrectionPanel` dispatch ungated, so one-at-a-time exclusivity holds for tenant aggregates only.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Optional `messageId` reached create-tenant and update-tenant beyond the declared membership scope.
+  evidence: The Code Map scopes optional `messageId` to add/change/remove, but `ITenantCommandGateway.CreateTenantAsync` and `UpdateTenantAsync` also gained `string? messageId = null` and the new ULID-canonicality rejection.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: A missing admission-gate registration disables Epic 3 command surfaces as well as membership.
+  evidence: `IsCommandSurfaceAvailable` now requires `AggregateAdmissionGate is not null`, and that value is passed to `EditTenantMetadataFlow`, `TenantLifecycleActionAvailability`, and `TenantConfigurationManagement`. Fail-closed, so acceptable, but it widens the blast radius of a composition mistake beyond this story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+  summary: Gateway and snapshot safe-message strings are still hard-coded English.
+  evidence: `TenantCommandGateway` returns raw `SafeMessage` text and `TenantCreateCommandModels` hard-codes strings with `SafeMessageKey = null`; `DisplaySafeMessage` renders them verbatim, so French users see English on exactly the paths the `SafeMessageKey` mechanism was introduced to fix.
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Fail membership action availability closed against live authorization reflection.
+  evidence: `MemberAccessReview` defaults add/change/remove authorization parameters to true, `TenantDetailPage` does not bind membership authorization evidence, and `BuildActionSlots` ignores the change-role and remove-member authorization values when deciding whether to render launch buttons; denial is enforced only after a flow is opened.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Serialize child membership-command lease acquisition.
+  evidence: `HandleCommandActivityLeaseAsync` checks `_childCommandLeaseOwner` before awaiting the parent lease without a local serialization gate, so two reentrant acquisitions can both observe no owner and dispatch under the same aggregate lock.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Keep an open membership command flow keyed to its captured target.
+  evidence: Opening another row updates the active member parameters while reusing the existing change-role or remove-member component instance, whose snapshot can retain the previous intent and command identity.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Give Continue read-only a stable dialog lifecycle.
+  evidence: `RemoveTenantMemberFlow.ContinueReadOnlyAsync` resets the snapshot to Idle without dismissing the dialog; the next parameter/render cycle can immediately reconstruct the preview, leaving the operator in an ambiguous open-flow state.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Do not initialize a pre-command removal preview as missing audit support.
+  evidence: `TenantRemoveMemberCommandSnapshot.Previewed` assigns `AuditState = MissingSupport` before dispatch or proof lookup, so the preview can report missing support even when the parent has already proven live audit capability.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Map command-status HTTP timeouts to a support-safe unknown result.
+  evidence: `TenantCommandGateway.GetStatusAsync` catches JSON failures but not `TaskCanceledException` from an `HttpClient` timeout, while removal status refresh calls it with `CancellationToken.None`; an operational timeout can therefore escape the UI recovery path.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Restore focus safely when a successful removal deletes the launcher row.
+  evidence: `MemberAccessReview.OnAfterRenderAsync` focuses a retained row wrapper without verifying that the target still exists or providing a fallback, so a stale `ElementReference` can fault instead of returning focus after the row disappears.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Make remove-member focus trapping visibility-aware and verify it at the responsive breakpoint.
+  evidence: The narrow-layout CSS hides the confirmation form, but initial focus and the end sentinel can still target controls inside that hidden form; current tests only inspect CSS/source structure and do not exercise computed visibility or an actual keyboard focus cycle.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog.
+  evidence: `RemoveTenantMemberFlow.razor.css` still uses `--neutral-stroke-rest`, `--error-fill-rest`, and `--focus-stroke-outer`, contrary to the repository's Fluent UI v5 token guidance.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Align rejected remove-member recovery copy with actions the surface actually provides.
+  evidence: The EN/FR rejected-state recovery text tells the operator to request permission, but the rejected flow renders no permission-request action or delegate.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Preserve queued projection-refresh intent in add-member and change-role flows.
+  evidence: Both sibling flows collapse a projection refresh requested during an in-flight status-only refresh into a follow-up call with `requestProjectionRefresh: false`, so authoritative projection confirmation can remain pending.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Reconcile story gitlink validation with the seven post-baseline dependency pointer changes.
+  evidence: The story validator reports only `Hexalith.AI.Tools`, `Hexalith.Builds`, `Hexalith.Commons`, `Hexalith.EventStore`, `Hexalith.FrontComposer`, `Hexalith.Memories`, and `Hexalith.PolymorphicSerializations`, all introduced after the preserved story baseline and outside this patch.

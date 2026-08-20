@@ -26,7 +26,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), supportSafeCommandReference: "command-safe-reference")));
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), supportSafeCommandReference: "command-safe-reference"))
+            .Add(component => component.OnInspectAudit, () => { }));
 
         cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("role").ShouldBe("region");
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-safe-reference");
@@ -59,11 +60,24 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
+    public void Ready_receipt_hides_inspect_action_without_a_real_inspect_delegate()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row())));
+
+        cut.FindAll(".audit-evidence-receipt__action").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("Inspect audit", Case.Insensitive);
+    }
+
+    [Fact]
     public void Receipt_component_recovery_actions_invoke_refresh_or_close_callbacks()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         int retryCount = 0;
         int closeCount = 0;
+        int inspectCount = 0;
         IRenderedComponent<AuditEvidenceReceipt> pending = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditPending))
             .Add(component => component.OnRetry, () => retryCount++));
@@ -74,13 +88,15 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
 
         IRenderedComponent<AuditEvidenceReceipt> ready = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
-            .Add(component => component.OnClose, () => closeCount++));
+            .Add(component => component.OnClose, () => closeCount++)
+            .Add(component => component.OnInspectAudit, () => inspectCount++));
 
         ready.FindAll(".audit-evidence-receipt__action")
             .Single(button => button.TextContent.Contains("Inspect audit", StringComparison.Ordinal))
             .Click();
 
-        closeCount.ShouldBe(1);
+        inspectCount.ShouldBe(1);
+        closeCount.ShouldBe(0);
     }
 
     [Fact]
@@ -141,11 +157,12 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
-    public void Receipt_availability_continue_and_inspect_actions_return_focus_through_close_callback()
+    public void Receipt_availability_forwards_inspect_and_continue_to_their_real_callbacks()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         int retryCount = 0;
         int closeCount = 0;
+        int inspectCount = 0;
         IRenderedComponent<AuditEvidenceReceipt> unavailable = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditUnavailable))
             .Add(component => component.OnRetry, () => retryCount++)
@@ -159,11 +176,13 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         IRenderedComponent<AuditEvidenceReceipt> delayed = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditDelayed))
             .Add(component => component.OnRetry, () => retryCount++)
-            .Add(component => component.OnClose, () => closeCount++));
+            .Add(component => component.OnClose, () => closeCount++)
+            .Add(component => component.OnInspectAudit, () => inspectCount++));
 
         delayed.Find("[data-recovery-verb='inspectaudit']").Click();
 
-        closeCount.ShouldBe(2);
+        inspectCount.ShouldBe(1);
+        closeCount.ShouldBe(1);
         retryCount.ShouldBe(0);
     }
 
@@ -171,7 +190,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     [InlineData(TenantCommandAuditState.AuditPending, "Wait", "polite")]
     [InlineData(TenantCommandAuditState.AuditDelayed, "Inspect audit", "polite")]
     [InlineData(TenantCommandAuditState.AuditUnavailable, "Continue read-only", "assertive")]
-    [InlineData(TenantCommandAuditState.MissingSupport, "Escalate", "assertive")]
+    [InlineData(TenantCommandAuditState.MissingSupport, "Continue read-only", "assertive")]
     public void Receipt_component_renders_recovery_actions_without_success_copy(
         TenantCommandAuditState auditState,
         string expectedAction,
@@ -180,12 +199,16 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: auditState)));
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: auditState))
+            .Add(component => component.OnRetry, () => { })
+            .Add(component => component.OnClose, () => { })
+            .Add(component => component.OnInspectAudit, () => { }));
 
         cut.Markup.ShouldContain(expectedAction);
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
         cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
         cut.Find("[data-testid='tenants-audit-availability']");
+        cut.FindAll("[data-recovery-verb='escalate']").ShouldBeEmpty();
     }
 
     [Theory]
@@ -246,8 +269,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Freshness.Current"] = "Current",
             ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
             ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
+            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
             ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
             ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
+            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
@@ -255,7 +280,9 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
             ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
             ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
+            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",

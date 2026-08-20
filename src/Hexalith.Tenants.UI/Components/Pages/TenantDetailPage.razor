@@ -7,6 +7,7 @@
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.GlobalAdministrators
+@using Hexalith.Tenants.UI.State.TenantAudit
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantUsers
 @using Microsoft.Extensions.Logging
@@ -192,6 +193,7 @@
                                             ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             Members="@_tenantUsersSnapshot"
                                             GlobalAdministrators="@_globalAdministratorsSnapshot"
+                                            AuditProofCapabilityAvailable="@_auditProofCapabilityAvailable"
                                             CanGoPrevious="@(_memberCursorHistory.Count > 0)"
                                             PagingJumpedToFirstPage="@_memberPagingJumpedToFirstPage"
                                             OnNextPageRequested="@LoadNextMemberPageAsync"
@@ -240,8 +242,11 @@
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
     private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
+    private bool _auditProofCapabilityAvailable;
     /// <summary>Upper bound on retained member paging history.</summary>
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
+    /// <summary>Upper bound on supplementary full-list walks that must not block the primary detail.</summary>
+    private const int MaximumSupplementaryPageCount = CursorHistory.DefaultMaximum;
 
     private readonly Stack<string?> _memberCursorHistory = new();
 
@@ -255,6 +260,8 @@
     private IAsyncDisposable? _readRefreshLease;
     private string? _subscriptionTenantId;
     private CancellationTokenSource? _loadCancellation;
+    private CancellationTokenSource? _globalAdministratorsCancellation;
+    private CancellationTokenSource? _auditCapabilityCancellation;
     private AuthenticationStateProvider? _authenticationStateProvider;
     private CancellationTokenSource? _lifecycleAuthorizationCancellation;
     private long _lifecycleAuthorizationGeneration;
@@ -432,6 +439,7 @@
             _snapshot = TenantDetailSnapshot.Loading();
             _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
             _globalAdministratorsSnapshot = null;
+            _auditProofCapabilityAvailable = false;
             _memberCursor = null;
             _memberCursorHistory.Clear();
             _memberPagingHistoryTruncated = false;
@@ -442,13 +450,12 @@
             .GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
         Task<TenantUsersSnapshot> membersTask = QueryGateway
             .GetTenantUsersAsync(new TenantUsersRequest(tenantId), null, cancellationToken);
-        Task<GlobalAdministratorsSnapshot> globalAdministratorsTask = QueryGateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, cancellationToken);
+        StartGlobalAdministratorsLoad(tenantId, generation, retained: null);
+        StartAuditCapabilityProbe(tenantId, generation);
         // Observe each task regardless of which faults first: WhenAll surfaces only one exception, so the
         // others would go unobserved and their surfaces would keep whatever state they had -- Loading, in practice.
         TenantDetailSnapshot? detailResult = null;
         TenantUsersSnapshot? membersResult = null;
-        GlobalAdministratorsSnapshot? globalAdministratorsResult = null;
         bool cancelled = false;
         try
         {
@@ -476,20 +483,6 @@
             membersResult = null;
         }
 
-        try
-        {
-            globalAdministratorsResult = await globalAdministratorsTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            cancelled = true;
-        }
-        catch
-        {
-            // Platform standing stays unknown when the supplementary GA read faults; removal still works.
-            globalAdministratorsResult = null;
-        }
-
         if (cancelled || !CanApply(generation, tenantId))
         {
             return;
@@ -507,7 +500,6 @@
             // A faulted read resolves to its own terminal state rather than leaving the surface on Loading.
             _snapshot = detailResult ?? TenantDetailSnapshot.Unavailable(tenantId);
             _tenantUsersSnapshot = membersResult ?? TenantUsersSnapshot.Unavailable(tenantId);
-            _globalAdministratorsSnapshot = globalAdministratorsResult;
             StateHasChanged();
         }).ConfigureAwait(false);
 
@@ -817,6 +809,8 @@
         TenantUsersSnapshot retainedMembers = _tenantUsersSnapshot;
         GlobalAdministratorsSnapshot? retainedGlobalAdministrators = _globalAdministratorsSnapshot;
         _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retainedMembers);
+        _globalAdministratorsSnapshot = ToFailClosedGlobalAdministrators(retainedGlobalAdministrators);
+        _auditProofCapabilityAvailable = false;
         await InvokeAsync(StateHasChanged).ConfigureAwait(false);
         Task<TenantDetailSnapshot> detailTask = QueryGateway
             .GetTenantAsync(
@@ -828,18 +822,14 @@
                 new TenantUsersRequest(tenantId, _memberCursor, ETag: retainedMembers.ETag),
                 retainedMembers,
                 cancellationToken);
-        Task<GlobalAdministratorsSnapshot> globalAdministratorsTask = QueryGateway
-            .GetGlobalAdministratorsAsync(
-                new GlobalAdministratorsRequest(ETag: retainedGlobalAdministrators?.ETag),
-                retainedGlobalAdministrators,
-                cancellationToken);
+        StartGlobalAdministratorsLoad(tenantId, generation, retainedGlobalAdministrators);
+        StartAuditCapabilityProbe(tenantId, generation);
         // Observe detail, members, and global-administrator reads independently. Task.WhenAll rethrew an
         // operational fault before either result could be applied, leaving the retained member page permanently
         // marked Refreshing. A failed refresh remains support-safe and fail-closed while still allowing a
         // successful sibling read to land.
         TenantDetailSnapshot detail;
         TenantUsersSnapshot members;
-        GlobalAdministratorsSnapshot? globalAdministrators;
         bool cancelled = false;
         try
         {
@@ -872,21 +862,6 @@
         catch
         {
             members = TenantUsersSnapshot.Error(tenantId, retainedMembers);
-        }
-
-        try
-        {
-            globalAdministrators = await globalAdministratorsTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            cancelled = true;
-            globalAdministrators = retainedGlobalAdministrators;
-        }
-        catch
-        {
-            // Keep prior standing evidence when the supplementary GA refresh faults; do not invent standing.
-            globalAdministrators = retainedGlobalAdministrators;
         }
 
         if (cancelled || !CanApply(generation, tenantId))
@@ -970,7 +945,6 @@
 
             _snapshot = detail;
             _tenantUsersSnapshot = members;
-            _globalAdministratorsSnapshot = globalAdministrators;
             // The jump announcement describes the immediately preceding Previous action. Once an
             // authoritative refresh completes it is no longer new recovery evidence and must not remain in
             // the polite live region indefinitely.
@@ -1254,6 +1228,67 @@
         source.Dispose();
     }
 
+    private CancellationTokenSource ReplaceGlobalAdministratorsCancellation()
+    {
+        var source = new CancellationTokenSource();
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_globalAdministratorsCancellation);
+            _globalAdministratorsCancellation = source;
+        }
+
+        return source;
+    }
+
+    private void CompleteGlobalAdministratorsCancellation(CancellationTokenSource source)
+    {
+        lock (_cancellationLock)
+        {
+            if (ReferenceEquals(_globalAdministratorsCancellation, source))
+            {
+                _globalAdministratorsCancellation = null;
+            }
+        }
+
+        source.Dispose();
+    }
+
+    private CancellationTokenSource ReplaceAuditCapabilityCancellation()
+    {
+        var source = new CancellationTokenSource();
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_auditCapabilityCancellation);
+            _auditCapabilityCancellation = source;
+        }
+
+        return source;
+    }
+
+    private void CompleteAuditCapabilityCancellation(CancellationTokenSource source)
+    {
+        lock (_cancellationLock)
+        {
+            if (ReferenceEquals(_auditCapabilityCancellation, source))
+            {
+                _auditCapabilityCancellation = null;
+            }
+        }
+
+        source.Dispose();
+    }
+
+    private void CancelSupplementaryReads()
+    {
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_globalAdministratorsCancellation);
+            _globalAdministratorsCancellation = null;
+            RetireCancellationCore(_auditCapabilityCancellation);
+            _auditCapabilityCancellation = null;
+        }
+    }
+
     private CancellationTokenSource ReplaceLifecycleAuthorizationCancellation()
     {
         var source = new CancellationTokenSource();
@@ -1311,6 +1346,237 @@
             or TenantUsersSurfaceKind.NotFound
             or TenantUsersSurfaceKind.Invalid;
 
+    private void StartGlobalAdministratorsLoad(
+        string tenantId,
+        long generation,
+        GlobalAdministratorsSnapshot? retained)
+    {
+        CancellationTokenSource source = ReplaceGlobalAdministratorsCancellation();
+        _ = LoadGlobalAdministratorsForGenerationAsync(tenantId, generation, retained, source);
+    }
+
+    private async Task LoadGlobalAdministratorsForGenerationAsync(
+        string tenantId,
+        long generation,
+        GlobalAdministratorsSnapshot? retained,
+        CancellationTokenSource source)
+    {
+        GlobalAdministratorsSnapshot snapshot;
+        try
+        {
+            snapshot = await LoadCompleteGlobalAdministratorsAsync(source.Token).ConfigureAwait(false);
+            source.Token.ThrowIfCancellationRequested();
+        }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            snapshot = ToFailClosedGlobalAdministrators(retained)
+                ?? GlobalAdministratorsSnapshot.Unavailable();
+        }
+        finally
+        {
+            CompleteGlobalAdministratorsCancellation(source);
+        }
+
+        if (!CanApply(generation, tenantId))
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (CanApply(generation, tenantId))
+                {
+                    _globalAdministratorsSnapshot = snapshot;
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed between the generation check and renderer dispatch.
+        }
+    }
+
+    private async Task<GlobalAdministratorsSnapshot> LoadCompleteGlobalAdministratorsAsync(
+        CancellationToken cancellationToken)
+    {
+        GlobalAdministratorsRequest request = new();
+        var rows = new Dictionary<string, GlobalAdministratorRow>(StringComparer.Ordinal);
+        var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
+        string? projectionVersion = null;
+        GlobalAdministratorsSnapshot? page = null;
+        for (int pageNumber = 0; pageNumber < MaximumSupplementaryPageCount; pageNumber++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            page = await QueryGateway
+                .GetGlobalAdministratorsAsync(request, previous: null, cancellationToken)
+                .ConfigureAwait(false);
+            ArgumentNullException.ThrowIfNull(page);
+            projectionVersion ??= page.ProjectionVersion;
+
+            foreach (GlobalAdministratorRow row in page.Rows)
+            {
+                if (!rows.ContainsKey(row.UserId))
+                {
+                    rows.Add(row.UserId, row);
+                }
+            }
+
+            bool currentPage = page.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
+                && page.Freshness is ReadModelFreshnessState.Current
+                && page.Lifecycle is ProjectionLifecycleState.Current
+                && !string.IsNullOrWhiteSpace(page.ProjectionVersion)
+                && string.Equals(projectionVersion, page.ProjectionVersion, StringComparison.Ordinal);
+            if (!currentPage)
+            {
+                return ToIncompleteGlobalAdministrators(page, rows.Values);
+            }
+
+            if (!page.HasMore)
+            {
+                return page with
+                {
+                    Kind = rows.Count == 0
+                        ? GlobalAdministratorsSurfaceKind.Empty
+                        : GlobalAdministratorsSurfaceKind.Ready,
+                    Rows = rows.Values.ToArray(),
+                    NextCursor = null,
+                    HasMore = false,
+                    IsAuthorizationScopedEmpty = rows.Count == 0,
+                    IsCompleteEvidence = true,
+                    RequestCursor = null,
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(page.NextCursor) || !visitedCursors.Add(page.NextCursor))
+            {
+                return ToIncompleteGlobalAdministrators(page, rows.Values);
+            }
+
+            request = request with { Cursor = page.NextCursor, ETag = null };
+        }
+
+        return ToIncompleteGlobalAdministrators(
+            page ?? GlobalAdministratorsSnapshot.Unavailable(),
+            rows.Values);
+    }
+
+    private void StartAuditCapabilityProbe(string tenantId, long generation)
+    {
+        CancellationTokenSource source = ReplaceAuditCapabilityCancellation();
+        _ = LoadAuditCapabilityForGenerationAsync(tenantId, generation, source);
+    }
+
+    private async Task LoadAuditCapabilityForGenerationAsync(
+        string tenantId,
+        long generation,
+        CancellationTokenSource source)
+    {
+        bool available = false;
+        try
+        {
+            if (BffComposition.IsReadSurfaceConnected)
+            {
+                TenantAuditRequest request = new(tenantId, PageSize: 1);
+                TenantAuditSnapshot audit = await QueryGateway
+                    .GetTenantAuditAsync(request, previous: null, source.Token)
+                    .ConfigureAwait(false);
+                source.Token.ThrowIfCancellationRequested();
+                available = IsAuthoritativeAuditCapability(audit, request);
+            }
+        }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            available = false;
+        }
+        finally
+        {
+            CompleteAuditCapabilityCancellation(source);
+        }
+
+        if (!CanApply(generation, tenantId))
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (CanApply(generation, tenantId))
+                {
+                    _auditProofCapabilityAvailable = available;
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed between the generation check and renderer dispatch.
+        }
+    }
+
+    private static bool IsAuthoritativeAuditCapability(
+        TenantAuditSnapshot audit,
+        TenantAuditRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(audit);
+        ArgumentNullException.ThrowIfNull(request);
+
+        bool authorizedEmpty = audit.Kind is not (TenantAuditSurfaceKind.Empty or TenantAuditSurfaceKind.FilteredEmpty)
+            || audit.IsAuthorizationScopedEmpty;
+        return audit.Kind is TenantAuditSurfaceKind.Ready
+                or TenantAuditSurfaceKind.Empty
+                or TenantAuditSurfaceKind.FilteredEmpty
+                or TenantAuditSurfaceKind.ListRefreshed
+            && audit.MatchesScope(request)
+            && audit.Freshness is ReadModelFreshnessState.Current
+            && audit.Lifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
+            && authorizedEmpty
+            && audit.Rows.All(static row =>
+                row.Freshness is ReadModelFreshnessState.Current
+                && row.Lifecycle is ProjectionLifecycleState.Current
+                && row.Provenance is QueryResponseProvenance.ProjectionBacked);
+    }
+
+    private static GlobalAdministratorsSnapshot ToIncompleteGlobalAdministrators(
+        GlobalAdministratorsSnapshot snapshot,
+        IEnumerable<GlobalAdministratorRow> rows)
+        => snapshot with
+        {
+            Rows = rows.ToArray(),
+            IsCompleteEvidence = false,
+            RequestCursor = null,
+        };
+
+    private static GlobalAdministratorsSnapshot? ToFailClosedGlobalAdministrators(
+        GlobalAdministratorsSnapshot? retained)
+        => retained is null
+            ? null
+            : retained with
+            {
+                Kind = GlobalAdministratorsSurfaceKind.Degraded,
+                NextCursor = null,
+                HasMore = false,
+                Freshness = ReadModelFreshnessState.Unknown,
+                IsAuthorizationScopedEmpty = false,
+                Reason = GlobalAdministratorsReason.GatewayFailure,
+                Lifecycle = ProjectionLifecycleState.Unknown,
+                ProjectionVersion = null,
+                IsCompleteEvidence = false,
+                RequestCursor = null,
+            };
 
     private PendingOperation BeginLoad()
     {
@@ -1488,6 +1754,7 @@
 
         CancelLifecycleAuthorizationCancellation();
         CancelActiveCancellation();
+        CancelSupplementaryReads();
 
         if (_activeAggregateLockKey is not null)
         {

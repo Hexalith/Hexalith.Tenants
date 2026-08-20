@@ -71,9 +71,8 @@
             <AuditAvailabilityState AuditState="@ReceiptAuditState.Value"
                                     StateTestId="tenants-audit-receipt-state"
                                     OnRefresh="OnRetry"
-                                    OnInspectAudit="OnClose"
-                                    OnContinueReadOnly="OnClose"
-                                    OnEscalate="OnRetry" />
+                                    OnInspectAudit="OnInspectAudit"
+                                    OnContinueReadOnly="OnClose" />
         }
         else
         {
@@ -100,16 +99,19 @@
                     }
                 </FluentStack>
             }
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
-                @foreach (string action in ActionResourceKeys)
-                {
-                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                  Class="audit-evidence-receipt__action"
-                                  OnClick="() => InvokeActionAsync(action)">
-                        @Localizer[action]
-                    </FluentButton>
-                }
-            </FluentStack>
+            @if (ActionResourceKeys.Count > 0)
+            {
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
+                    @foreach (string action in ActionResourceKeys)
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      Class="audit-evidence-receipt__action"
+                                      OnClick="() => InvokeActionAsync(action)">
+                            @Localizer[action]
+                        </FluentButton>
+                    }
+                </FluentStack>
+            }
         }
     </section>
 }
@@ -123,6 +125,9 @@
 
     [Parameter]
     public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnInspectAudit { get; set; }
 
     [Parameter]
     public TenantCorrectionStartIntent? CorrectionIntent { get; set; }
@@ -184,11 +189,19 @@
     private IReadOnlyList<string> ActionResourceKeys
         => Receipt?.State switch
         {
-            TenantAuditReceiptState.Ready => ["Tenants.Audit.Receipt.Action.InspectAudit"],
-            TenantAuditReceiptState.InvalidReference => ["Tenants.Audit.Receipt.Action.InspectAudit", "Tenants.Audit.Receipt.Action.Refresh"],
-            TenantAuditReceiptState.Unauthorized => ["Tenants.Audit.Receipt.Action.ContinueReadOnly"],
-            TenantAuditReceiptState.Stale or TenantAuditReceiptState.Degraded or TenantAuditReceiptState.Partial => ["Tenants.Audit.Receipt.Action.Refresh"],
-            _ => ["Tenants.Audit.Receipt.Action.Refresh"],
+            TenantAuditReceiptState.Ready when OnInspectAudit.HasDelegate
+                => ["Tenants.Audit.Receipt.Action.InspectAudit"],
+            TenantAuditReceiptState.InvalidReference
+                => AvailableReceiptActions(
+                    (OnInspectAudit.HasDelegate, "Tenants.Audit.Receipt.Action.InspectAudit"),
+                    (OnRetry.HasDelegate, "Tenants.Audit.Receipt.Action.Refresh")),
+            TenantAuditReceiptState.Unauthorized when OnClose.HasDelegate
+                => ["Tenants.Audit.Receipt.Action.ContinueReadOnly"],
+            TenantAuditReceiptState.Stale or TenantAuditReceiptState.Degraded or TenantAuditReceiptState.Partial
+                when OnRetry.HasDelegate
+                => ["Tenants.Audit.Receipt.Action.Refresh"],
+            _ when OnRetry.HasDelegate => ["Tenants.Audit.Receipt.Action.Refresh"],
+            _ => [],
         };
 
     private TenantCommandAuditState? ReceiptAuditState
@@ -209,7 +222,13 @@
 
     private async Task InvokeActionAsync(string actionResourceKey)
     {
-        if (actionResourceKey is "Tenants.Audit.Receipt.Action.ContinueReadOnly" or "Tenants.Audit.Receipt.Action.InspectAudit")
+        if (actionResourceKey is "Tenants.Audit.Receipt.Action.InspectAudit")
+        {
+            await InvokeAsync(() => OnInspectAudit.InvokeAsync()).ConfigureAwait(false);
+            return;
+        }
+
+        if (actionResourceKey is "Tenants.Audit.Receipt.Action.ContinueReadOnly")
         {
             await InvokeAsync(() => OnClose.InvokeAsync()).ConfigureAwait(false);
             return;
@@ -217,6 +236,13 @@
 
         await InvokeAsync(() => OnRetry.InvokeAsync()).ConfigureAwait(false);
     }
+
+    private static IReadOnlyList<string> AvailableReceiptActions(
+        params (bool Available, string ResourceKey)[] candidates)
+        => candidates
+            .Where(static candidate => candidate.Available)
+            .Select(static candidate => candidate.ResourceKey)
+            .ToArray();
 
     private async Task StartCorrectionAsync()
     {

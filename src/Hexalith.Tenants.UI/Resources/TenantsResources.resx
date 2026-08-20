@@ -2206,13 +2206,13 @@
     <value>Recovery path</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.RecoveryPath.Value" xml:space="preserve">
-    <value>Wait, refresh, inspect audit when available, or submit a forward correction to restore intended access.</value>
+    <value>Wait, refresh, inspect audit when available, or continue read-only.</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.AuditExpectation" xml:space="preserve">
     <value>Audit expectation</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.AuditExpectation.Value" xml:space="preserve">
-    <value>Audit evidence is pending or unavailable until the Epic 5 evidence source exists.</value>
+    <value>Audit evidence is requested after projection confirmation and may be pending, delayed, or unavailable.</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.PlatformStanding" xml:space="preserve">
     <value>Platform standing</value>
@@ -2410,7 +2410,7 @@
     <value>Audit evidence available; support-safe removal proof is ready.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is missing; continue read-only or escalate.</value>
+    <value>Audit evidence support is missing; continue read-only.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Open the preview when current projection evidence is available.</value>
@@ -2431,22 +2431,22 @@
     <value>Continue read-only or inspect audit when evidence becomes available.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Rejected" xml:space="preserve">
-    <value>Refresh projection evidence, request permission, start correction, or escalate.</value>
+    <value>Refresh projection evidence or request permission before retrying.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Continue read-only or restore intended access with a forward correction if needed.</value>
+    <value>Continue read-only or refresh current membership evidence before taking any further action.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.DuplicatePrevented" xml:space="preserve">
     <value>Wait for the in-flight command, retry status lookup, or continue read-only.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Failed" xml:space="preserve">
-    <value>Retry after checking current projection evidence or escalate.</value>
+    <value>Retry after checking current projection evidence.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Degraded" xml:space="preserve">
-    <value>Wait, retry status lookup, inspect audit when available, or escalate.</value>
+    <value>Wait, retry status lookup, inspect audit when available, or continue read-only.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
+    <value>Refresh, retry status lookup, or continue read-only.</value>
   </data>
   <data name="Tenants.EditMetadata.Title" xml:space="preserve">
     <value>Tenant metadata</value>
@@ -3135,11 +3135,17 @@
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
     <value>Audit evidence support is missing; continue read-only or escalate with support-safe information.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation" xml:space="preserve">
+    <value>Audit evidence support is missing; continue read-only.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Accessible.Pending" xml:space="preserve">
     <value>Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.</value>
   </data>
   <data name="Tenants.Audit.Availability.Accessible.Unavailable" xml:space="preserve">
     <value>Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation" xml:space="preserve">
+    <value>Audit evidence is unavailable; continue read-only or retry status lookup.</value>
   </data>
   <data name="Tenants.Audit.Availability.Action.ContinueReadOnly" xml:space="preserve">
     <value>Continue read-only</value>
@@ -3162,8 +3168,14 @@
   <data name="Tenants.Audit.Availability.Reason.MissingSupport" xml:space="preserve">
     <value>This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation" xml:space="preserve">
+    <value>This flow cannot verify audit proof from the available implementation support. Continue read-only.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Reason.Unavailable" xml:space="preserve">
     <value>Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoEscalation" xml:space="preserve">
+    <value>Audit proof cannot be verified right now. Continue read-only or retry status lookup.</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
     <value>Audit delayed</value>

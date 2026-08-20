@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-08-08'
 status: 'done'
 baseline_commit: '222d5ac614e182a5eefdc3fd282a5bfc14f075e9'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-2-context.md'
@@ -103,6 +103,33 @@ context:
 - [x] [Review][Patch] Add a page-level disconnected-BFF test proving membership dispatch is disabled with an inline reason [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:293]
 - [x] [Review][Patch] Add page-boundary verification that an advanced live projection version reaches the child flow and earns confirmation [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:187]
 - [x] [Review][Defer] The mandatory story gitlink validator currently fails on seven later, unrelated submodule pointer bumps even though the isolated Story 2.1 commit changes no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:7] — deferred, pre-existing
+
+#### Review Loop 1 (2026-08-20)
+
+- [ ] [Review][Patch] DECIDED (declare): add a File List entry declaring `references/Hexalith.EventStore` (`454b4d10` -> `c21bd749`) with its reason, and correct the false Defer entry that claims the story moves no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [ ] [Review][Patch] DECIDED (renegotiate): amend the frozen `Always` clause to require ordered projection-version advancement only, recording the renegotiation explicitly so the frozen intent matches the shipped fail-closed behavior [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [ ] [Review][Patch] DECIDED (document + test): keep ordered-only comparison, state that Tenants requires an ordered-token state store, and add a test pinning the real ETag shape the query path emits so both ends of the contract fail together [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:1]
+- [ ] [Review][Patch] Off-Dispatcher `StateHasChanged()` after `ConfigureAwait(false)` on the nudge forward tears down the circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:990]
+- [ ] [Review][Patch] Honor the admission refusal instead of discarding the lease result, so metadata/lifecycle/configuration surfaces cannot dispatch after `TryAcquire` fails [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1383]
+- [ ] [Review][Patch] Make the idempotent re-acquire branch owner-aware so a second surface cannot share the lease and release it while the first command is still in flight [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1399]
+- [ ] [Review][Patch] Order the aggregate-lock reason after authorization, staleness, and lifecycle checks so it stops masking the real fail-closed reason [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:620]
+- [ ] [Review][Patch] Give the no-advancement `ProjectionPending` outcome a terminal escape; the lock is retained and `CanContinueReadOnly` excludes that state despite the matrix promising continue-read-only [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:238]
+- [ ] [Review][Patch] Give the user feedback when submit is pressed with lost tracking instead of returning silently [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:396]
+- [ ] [Review][Patch] Declare `NUlid` as a PackageReference/PackageVersion instead of relying on a transitive type [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:948]
+- [ ] [Review][Patch] Align `HasQualifyingAuditProvenance` with its documented "strictly newer" contract; it implements `>=` [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:67]
+- [ ] [Review][Patch] Fix the refresh-coalescing protocol: a request arriving after the exchange is dropped, the post-drain is checked once, and it re-enters recursively; extract the copy-pasted logic [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:503]
+- [ ] [Review][Patch] Await the fired `cut.InvokeAsync(...)` nudges so exceptions are observed and the assertions stop racing an unjoined task [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1022]
+- [ ] [Review][Patch] Close test gaps: indeterminate-messageId retention only covers `AddUserToTenant`; `SafeMessageKey` clearing only covers add-member; page disposal releasing the lease is unasserted; continue-read-only is never clicked; the coalescing regression proves serialization, not coalescing [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:1138]
+- [ ] [Review][Patch] Correct the Verification record: a clean-HEAD Release run is 2,053 total with 1 failing test in 3 of 4 runs, not "0 failed" [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [ ] [Review][Patch] Use or drop the unused `detail` parameter on `ApplySignalRNudgeAsync`, which is documented as authoritative evidence but discarded via `_ = detail` [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:1]
+- [ ] [Review][Patch] Repoint the Suggested Review Order anchors; they cite the legacy overload, the wrong remove-member branch, and an unrelated transport test [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [ ] [Review][Patch] Record the new admission gate and ~30 new tests in the tracked test inventory [tests/test-summary.md:1]
+- [ ] [Review][Patch] Escape or reject separator characters when composing the aggregate lock key so distinct tenant ids cannot collide [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs:19]
+- [x] [Review][Defer] Pre-existing flaky false-success: `Grant_requery_does_not_confirm_from_a_superseded_snapshot` renders "Projection confirmed the target user" from a superseded snapshot in 3 of 4 clean-HEAD runs [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2679] — deferred, pre-existing (introduced by `d0f74a48`, Story 1.11)
+- [x] [Review][Defer] Global-administrator command surface is not gated by the admission gate; `ForGlobalAdministrators()` and `HasActiveLock` have zero call sites [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs:1] — deferred, pre-existing
+- [x] [Review][Defer] Optional `messageId` was added to `CreateTenantAsync`/`UpdateTenantAsync` beyond the declared membership Code Map scope [src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs:1] — deferred, pre-existing
+- [x] [Review][Defer] Gating `IsCommandSurfaceAvailable` on a non-null admission gate also disables Epic 3 metadata/lifecycle/configuration surfaces [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:310] — deferred, pre-existing
+- [x] [Review][Defer] Gateway and snapshot safe-message strings remain hard-coded English with `SafeMessageKey = null`, so French users see English on those paths [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:1] — deferred, pre-existing
 
 **Acceptance Criteria:**
 - Given a membership command reaches projection reconciliation, when the postcondition matches but projection version/audit does not advance past the pre-submit baseline, then the attempt is not `Confirmed`.

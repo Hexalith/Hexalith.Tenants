@@ -2206,13 +2206,13 @@
     <value>Chemin de reprise</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.RecoveryPath.Value" xml:space="preserve">
-    <value>Attendre, actualiser, inspecter l'audit lorsqu'il est disponible, ou soumettre une correction en avant pour restaurer l'accès prévu.</value>
+    <value>Attendre, actualiser, inspecter l'audit lorsqu'il est disponible ou continuer en lecture seule.</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.AuditExpectation" xml:space="preserve">
     <value>Attente d'audit</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.AuditExpectation.Value" xml:space="preserve">
-    <value>La preuve d'audit est en attente ou indisponible tant que la source de preuve de l'Epic 5 n'existe pas.</value>
+    <value>La preuve d'audit est demandée après confirmation par projection et peut être en attente, retardée ou indisponible.</value>
   </data>
   <data name="Tenants.RemoveMember.Preview.PlatformStanding" xml:space="preserve">
     <value>Statut de plateforme</value>
@@ -2410,7 +2410,7 @@
     <value>Preuve d'audit disponible ; la preuve de retrait sûre pour le support est prête.</value>
   </data>
   <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit manque ; continuez en lecture seule ou escaladez.</value>
+    <value>La prise en charge de la preuve d'audit manque ; continuez en lecture seule.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez l'aperçu lorsque la preuve de projection actuelle est disponible.</value>
@@ -2431,22 +2431,22 @@
     <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Rejected" xml:space="preserve">
-    <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
+    <value>Actualisez la preuve de projection ou demandez l'autorisation avant de réessayer.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Continuez en lecture seule ou restaurez l'accès prévu par une correction en avant si nécessaire.</value>
+    <value>Continuez en lecture seule ou actualisez la preuve d'appartenance actuelle avant toute autre action.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.DuplicatePrevented" xml:space="preserve">
     <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Failed" xml:space="preserve">
-    <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>
+    <value>Réessayez après vérification de la preuve de projection actuelle.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Degraded" xml:space="preserve">
-    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+    <value>Actualisez, relancez la recherche de statut ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.EditMetadata.Title" xml:space="preserve">
     <value>Metadonnees du locataire</value>
@@ -3135,11 +3135,17 @@
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
     <value>Le support de preuve d'audit manque ; continuez en lecture seule ou escaladez avec des informations sures pour le support.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation" xml:space="preserve">
+    <value>Le support de preuve d'audit manque ; continuez en lecture seule.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Accessible.Pending" xml:space="preserve">
     <value>La preuve d'audit est en attente ; attendez, actualisez le statut ou inspectez l'audit avant de citer une preuve.</value>
   </data>
   <data name="Tenants.Audit.Availability.Accessible.Unavailable" xml:space="preserve">
     <value>La preuve d'audit est indisponible ; continuez en lecture seule, reessayez la verification de statut ou escaladez avec des informations sures pour le support.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation" xml:space="preserve">
+    <value>La preuve d'audit est indisponible ; continuez en lecture seule ou reessayez la verification de statut.</value>
   </data>
   <data name="Tenants.Audit.Availability.Action.ContinueReadOnly" xml:space="preserve">
     <value>Continuer en lecture seule</value>
@@ -3162,8 +3168,14 @@
   <data name="Tenants.Audit.Availability.Reason.MissingSupport" xml:space="preserve">
     <value>Ce flux ne peut pas verifier la preuve d'audit avec le support d'implementation disponible. Continuez en lecture seule ou escaladez uniquement avec la reference visible sure pour le support.</value>
   </data>
+  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation" xml:space="preserve">
+    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support d'implementation disponible. Continuez en lecture seule.</value>
+  </data>
   <data name="Tenants.Audit.Availability.Reason.Unavailable" xml:space="preserve">
     <value>La preuve d'audit ne peut pas etre verifiee maintenant. Continuez en lecture seule, reessayez la verification de statut ou escaladez sans inclure de diagnostics bruts, jetons, charges utiles ou donnees personnelles.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoEscalation" xml:space="preserve">
+    <value>La preuve d'audit ne peut pas etre verifiee maintenant. Continuez en lecture seule ou reessayez la verification de statut.</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
     <value>Audit retarde</value>

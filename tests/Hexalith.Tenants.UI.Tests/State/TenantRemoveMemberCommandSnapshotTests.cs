@@ -285,13 +285,46 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
 
-        TenantRemoveMemberCommandSnapshot available = confirmed.ApplyRemovalProofMatch(matched: true);
+        TenantRemoveMemberCommandSnapshot available = confirmed.ApplyRemovalProofMatch(
+            matched: true,
+            hasCurrentLifecycleBackedEvidence: true,
+            hasReadyReceipt: true);
         available.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         available.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
 
         TenantRemoveMemberCommandSnapshot unmatched = confirmed.ApplyRemovalProofMatch(matched: false);
         unmatched.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         unmatched.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public void Matching_removal_proof_requires_current_lifecycle_backed_evidence_and_a_ready_receipt(
+        bool hasCurrentLifecycleBackedEvidence,
+        bool hasReadyReceipt)
+    {
+        TenantRemoveMemberCommandSnapshot confirmed = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(new RemoveUserFromTenant("tenant.alpha", "literal-user"), TenantRole.TenantReader, 2, false, Detail(
+                "tenant.alpha",
+                [new TenantMember("literal-user", TenantRole.TenantReader)]))
+            .RequestSent(baselineProjectionVersion: "v1")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(Detail(
+                "tenant.alpha",
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+                currentProjectionVersion: "v2");
+
+        TenantRemoveMemberCommandSnapshot result = confirmed.ApplyRemovalProofMatch(
+            matched: true,
+            hasCurrentLifecycleBackedEvidence,
+            hasReadyReceipt);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]
@@ -314,7 +347,10 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         delayed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         delayed.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
 
-        TenantRemoveMemberCommandSnapshot available = confirmed.ApplyRemovalProofMatch(matched: true);
+        TenantRemoveMemberCommandSnapshot available = confirmed.ApplyRemovalProofMatch(
+            matched: true,
+            hasCurrentLifecycleBackedEvidence: true,
+            hasReadyReceipt: true);
         TenantRemoveMemberCommandSnapshot stillAvailable = available.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable);
         stillAvailable.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         stillAvailable.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
