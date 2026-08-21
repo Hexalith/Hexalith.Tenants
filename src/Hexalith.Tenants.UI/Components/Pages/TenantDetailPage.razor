@@ -154,7 +154,7 @@
                                             ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                            OnCommandActivityChanged="@SetCommandActivityAsync"
+                                            OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_metadataLeaseOwner, isActive))"
                                             ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
                 </FluentAccordionItem>
 
@@ -171,7 +171,7 @@
                                                         GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                        OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                        OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_lifecycleLeaseOwner, isActive))"
                                                         ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
                 </FluentAccordionItem>
 
@@ -227,7 +227,7 @@
                                                        Lifecycle="@_snapshot.Lifecycle"
                                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                        OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                       OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                       OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_configurationLeaseOwner, isActive))"
                                                        SetProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
                                                        RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync"
                                                        ReauthorizeProvider="@ReauthorizeConfigurationManagementAsync" />
@@ -289,6 +289,15 @@
     private MemberAccessReview? _memberAccessReview;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
     private readonly object _commandLockOwner = new();
+
+    // The page is a single owner to the circuit-scoped gate, but four command surfaces share it. Each gets a
+    // distinct token so the lease can tell idempotent re-entry by its holder from a second surface trying to
+    // share (and later release) a lock it never acquired.
+    private readonly object _metadataLeaseOwner = new();
+    private readonly object _lifecycleLeaseOwner = new();
+    private readonly object _configurationLeaseOwner = new();
+    private readonly object _membershipLeaseOwner = new();
+    private object? _aggregateLeaseHolder;
     private string? _membershipCommandActivityLeaseTenantId;
     private Func<bool, Task<bool>>? _membershipCommandActivityLease;
     private int _readRefreshSubscriptionInFlight;
@@ -325,7 +334,7 @@
                 || !string.Equals(_membershipCommandActivityLeaseTenantId, tenantId, StringComparison.Ordinal))
             {
                 _membershipCommandActivityLeaseTenantId = tenantId;
-                _membershipCommandActivityLease = isActive => SetCommandActivityLeaseAsync(tenantId, isActive);
+                _membershipCommandActivityLease = isActive => SetCommandActivityLeaseAsync(tenantId, isActive, _membershipLeaseOwner);
             }
 
             return _membershipCommandActivityLease;
@@ -405,6 +414,7 @@
         {
             AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
             _activeAggregateLockKey = null;
+            _aggregateLeaseHolder = null;
             _commandInFlight = false;
         }
 
@@ -959,9 +969,12 @@
 
             // SignalR / coalesced read refresh is a nudge only: forward into in-flight membership flows so
             // they re-query authoritative evidence without treating the notification as confirmation.
+            // No ConfigureAwait(false) here: this lambda already runs on the renderer's dispatcher, the nudge
+            // awaits an authoritative status/evidence re-query that yields, and resuming off the dispatcher
+            // would make the StateHasChanged() below throw and tear the circuit down.
             if ((_commandInFlight || IsCurrentAggregateLocked) && _memberAccessReview is not null)
             {
-                await _memberAccessReview.ApplySignalRNudgeAsync(detail.Detail).ConfigureAwait(false);
+                await _memberAccessReview.ApplySignalRNudgeAsync();
             }
 
             StateHasChanged();
@@ -1646,11 +1659,22 @@
                 ? _snapshot.Detail
                 : null);
 
-    private async Task SetCommandActivityAsync(bool isActive)
-        => _ = await SetCommandActivityLeaseAsync(TenantId, isActive).ConfigureAwait(false);
-
-    private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive)
+    private async Task SetCommandActivityAsync(object surfaceOwner, bool isActive)
     {
+        // The lease answer is not discarded. A refused acquisition must leave the page reflecting the lock
+        // that refused it, so every command surface renders unavailable instead of staying enabled while
+        // another surface's command is still in flight.
+        bool granted = await SetCommandActivityLeaseAsync(TenantId, isActive, surfaceOwner).ConfigureAwait(false);
+        if (isActive && !granted)
+        {
+            _commandInFlight = IsCurrentAggregateLocked;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)
+    {
+        ArgumentNullException.ThrowIfNull(surfaceOwner);
         if (isActive)
         {
             TenantAggregateCommandAdmissionGate? gate = AggregateAdmissionGate;
@@ -1664,6 +1688,15 @@
             string aggregateLockKey = TenantCommandAggregateLock.ForTenant(leaseTenantId);
             if (string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal))
             {
+                // Re-entry is idempotent only for the surface that already holds the lease. A different
+                // surface must be refused: granting it here made the lease multi-owner, and whichever
+                // surface reported completion first released the aggregate while the other command was
+                // still in flight, breaking one-at-a-time exclusivity (AD-12).
+                if (!ReferenceEquals(_aggregateLeaseHolder, surfaceOwner))
+                {
+                    return false;
+                }
+
                 _commandInFlight = true;
                 await InvokeAsync(StateHasChanged).ConfigureAwait(false);
                 return true;
@@ -1676,6 +1709,7 @@
             }
 
             _activeAggregateLockKey = aggregateLockKey;
+            _aggregateLeaseHolder = surfaceOwner;
             _commandInFlight = true;
         }
         else
@@ -1684,11 +1718,13 @@
                 ? null
                 : TenantCommandAggregateLock.ForTenant(leaseTenantId);
             if (aggregateLockKey is not null
-                && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal))
+                && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
+                && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner))
             {
                 AggregateAdmissionGate?.Release(aggregateLockKey, _commandLockOwner);
                 _commandInFlight = false;
                 _activeAggregateLockKey = null;
+                _aggregateLeaseHolder = null;
             }
         }
 
@@ -1760,6 +1796,7 @@
         {
             AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
             _activeAggregateLockKey = null;
+            _aggregateLeaseHolder = null;
             _commandInFlight = false;
         }
 

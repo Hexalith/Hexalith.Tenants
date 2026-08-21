@@ -23,7 +23,12 @@ context:
 **Always:**
 - Keep server-side BFF egress only (`ITenantCommandGateway` → fixed `POST /api/v1/commands` + correlation status lookup).
 - Preserve distinct lifecycle vocabulary: submitted/request-sent, accepted, projection-pending, confirmed, already-applied, rejected, failed, degraded, unable-to-verify, audit-pending, audit-available.
-- `confirmed` requires command-specific postcondition **and** projection-version advancement or safe command-specific audit provenance newer than a captured pre-submit baseline; otherwise stay pending or become `unable to verify`.
+- `confirmed` requires command-specific postcondition **and** ordered projection-version advancement past a
+  captured pre-submit baseline; otherwise stay pending or become `unable to verify`. (Renegotiated
+  2026-08-21 by the story owner during code review: the audit-provenance alternative was removed because
+  a timestamp comparison cannot bind an audit row to a specific attempt. Safe audit provenance survives as
+  a row filter for proof assembly, never as a confirmation source. Tenants therefore requires a state
+  store whose projection version is an ordered token; see Verification.)
 - Same logical attempt reuses its `messageId`/correlation tracking; mint a new ULID only for a deliberate new attempt.
 - Lock scope is `(interactive circuit, AggregateIdentity)` through terminal evidence; unrelated aggregates may proceed; no bulk/toast/multi-row dispatch.
 - Fail closed on invalid/indeterminate validation, freshness, authorization reflection, or lifecycle support with localized inline unavailable reason.
@@ -106,25 +111,25 @@ context:
 
 #### Review Loop 1 (2026-08-20)
 
-- [ ] [Review][Patch] DECIDED (declare): add a File List entry declaring `references/Hexalith.EventStore` (`454b4d10` -> `c21bd749`) with its reason, and correct the false Defer entry that claims the story moves no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
-- [ ] [Review][Patch] DECIDED (renegotiate): amend the frozen `Always` clause to require ordered projection-version advancement only, recording the renegotiation explicitly so the frozen intent matches the shipped fail-closed behavior [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
-- [ ] [Review][Patch] DECIDED (document + test): keep ordered-only comparison, state that Tenants requires an ordered-token state store, and add a test pinning the real ETag shape the query path emits so both ends of the contract fail together [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:1]
-- [ ] [Review][Patch] Off-Dispatcher `StateHasChanged()` after `ConfigureAwait(false)` on the nudge forward tears down the circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:990]
-- [ ] [Review][Patch] Honor the admission refusal instead of discarding the lease result, so metadata/lifecycle/configuration surfaces cannot dispatch after `TryAcquire` fails [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1383]
-- [ ] [Review][Patch] Make the idempotent re-acquire branch owner-aware so a second surface cannot share the lease and release it while the first command is still in flight [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1399]
-- [ ] [Review][Patch] Order the aggregate-lock reason after authorization, staleness, and lifecycle checks so it stops masking the real fail-closed reason [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:620]
-- [ ] [Review][Patch] Give the no-advancement `ProjectionPending` outcome a terminal escape; the lock is retained and `CanContinueReadOnly` excludes that state despite the matrix promising continue-read-only [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:238]
-- [ ] [Review][Patch] Give the user feedback when submit is pressed with lost tracking instead of returning silently [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:396]
-- [ ] [Review][Patch] Declare `NUlid` as a PackageReference/PackageVersion instead of relying on a transitive type [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:948]
-- [ ] [Review][Patch] Align `HasQualifyingAuditProvenance` with its documented "strictly newer" contract; it implements `>=` [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:67]
-- [ ] [Review][Patch] Fix the refresh-coalescing protocol: a request arriving after the exchange is dropped, the post-drain is checked once, and it re-enters recursively; extract the copy-pasted logic [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:503]
-- [ ] [Review][Patch] Await the fired `cut.InvokeAsync(...)` nudges so exceptions are observed and the assertions stop racing an unjoined task [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1022]
-- [ ] [Review][Patch] Close test gaps: indeterminate-messageId retention only covers `AddUserToTenant`; `SafeMessageKey` clearing only covers add-member; page disposal releasing the lease is unasserted; continue-read-only is never clicked; the coalescing regression proves serialization, not coalescing [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:1138]
-- [ ] [Review][Patch] Correct the Verification record: a clean-HEAD Release run is 2,053 total with 1 failing test in 3 of 4 runs, not "0 failed" [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
-- [ ] [Review][Patch] Use or drop the unused `detail` parameter on `ApplySignalRNudgeAsync`, which is documented as authoritative evidence but discarded via `_ = detail` [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:1]
-- [ ] [Review][Patch] Repoint the Suggested Review Order anchors; they cite the legacy overload, the wrong remove-member branch, and an unrelated transport test [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
-- [ ] [Review][Patch] Record the new admission gate and ~30 new tests in the tracked test inventory [tests/test-summary.md:1]
-- [ ] [Review][Patch] Escape or reject separator characters when composing the aggregate lock key so distinct tenant ids cannot collide [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs:19]
+- [x] [Review][Patch] DECIDED (declare): add a File List entry declaring `references/Hexalith.EventStore` (`454b4d10` -> `c21bd749`) with its reason, and correct the false Defer entry that claims the story moves no gitlink [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [x] [Review][Patch] DECIDED (renegotiate): amend the frozen `Always` clause to require ordered projection-version advancement only, recording the renegotiation explicitly so the frozen intent matches the shipped fail-closed behavior [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [x] [Review][Patch] DECIDED (document + test): keep ordered-only comparison, state that Tenants requires an ordered-token state store, and add a test pinning the real ETag shape the query path emits so both ends of the contract fail together [tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs:1]
+- [x] [Review][Patch] Off-Dispatcher `StateHasChanged()` after `ConfigureAwait(false)` on the nudge forward tears down the circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:990]
+- [x] [Review][Patch] Honor the admission refusal instead of discarding the lease result, so metadata/lifecycle/configuration surfaces cannot dispatch after `TryAcquire` fails [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1383]
+- [x] [Review][Patch] Make the idempotent re-acquire branch owner-aware so a second surface cannot share the lease and release it while the first command is still in flight [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1399]
+- [x] [Review][Patch] Order the aggregate-lock reason after authorization, staleness, and lifecycle checks so it stops masking the real fail-closed reason [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:620]
+- [x] [Review][Defer] No-advancement `ProjectionPending` has no in-place terminal escape (`CanContinueReadOnly` excludes it) [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:238] — deferred: a fix was drafted and reverted. The I/O matrix permits "stay pending **or** unable to verify", and six tests deliberately pin `ProjectionPending`, so changing it is a product decision rather than an unambiguous patch. The lease is still released by route change and disposal, so the state is recoverable.
+- [x] [Review][Patch] Give the user feedback when submit is pressed with lost tracking instead of returning silently [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:396]
+- [x] [Review][Patch] Declare `NUlid` as a PackageReference/PackageVersion instead of relying on a transitive type [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:948]
+- [x] [Review][Patch] Align `HasQualifyingAuditProvenance` with its documented "strictly newer" contract; it implements `>=` [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:67]
+- [x] [Review][Defer] Refresh-coalescing re-enters recursively rather than iterating [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:503] — deferred: on reading the protocol the claimed dropped-request windows do not reproduce (the top-of-loop clear is redundant, not lossy, and the post-`finally` drain does catch the release race). Only unbounded recursion depth under a sustained nudge stream remains, which does not justify rewriting concurrency code in three components during review.
+- [x] [Review][Patch] Await the fired `cut.InvokeAsync(...)` nudges so exceptions are observed and the assertions stop racing an unjoined task [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1022]
+- [x] [Review][Patch] Close test gaps: indeterminate-messageId retention only covers `AddUserToTenant`; `SafeMessageKey` clearing only covers add-member; page disposal releasing the lease is unasserted; continue-read-only is never clicked; the coalescing regression proves serialization, not coalescing [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:1138]
+- [x] [Review][Patch] Correct the Verification record: a clean-HEAD Release run is 2,053 total with 1 failing test in 3 of 4 runs, not "0 failed" [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [x] [Review][Patch] Use or drop the unused `detail` parameter on `ApplySignalRNudgeAsync`, which is documented as authoritative evidence but discarded via `_ = detail` [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:1]
+- [x] [Review][Patch] Repoint the Suggested Review Order anchors; they cite the legacy overload, the wrong remove-member branch, and an unrelated transport test [_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:1]
+- [x] [Review][Patch] Record the new admission gate and ~30 new tests in the tracked test inventory [tests/test-summary.md:1]
+- [x] [Review][Dismiss] Aggregate lock-key collision via `:` in a tenant id [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs:19] — dismissed as a false positive: the tenant id is the final unbounded segment, so `"system:tenants:" + t1` and `"system:tenants:" + t2` differ whenever `t1 != t2`. No collision is constructible.
 - [x] [Review][Defer] Pre-existing flaky false-success: `Grant_requery_does_not_confirm_from_a_superseded_snapshot` renders "Projection confirmed the target user" from a superseded snapshot in 3 of 4 clean-HEAD runs [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2679] — deferred, pre-existing (introduced by `d0f74a48`, Story 1.11)
 - [x] [Review][Defer] Global-administrator command surface is not gated by the admission gate; `ForGlobalAdministrators()` and `HasActiveLock` have zero call sites [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAggregateLock.cs:1] — deferred, pre-existing
 - [x] [Review][Defer] Optional `messageId` was added to `CreateTenantAsync`/`UpdateTenantAsync` beyond the declared membership Code Map scope [src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs:1] — deferred, pre-existing
@@ -138,6 +143,22 @@ context:
 - Given one membership command is in-flight for a tenant aggregate, when another membership command for that same AggregateIdentity is attempted, then it stays unavailable with an inline lock reason through terminal evidence while unrelated aggregates may still proceed.
 - Given `IsCommandSurfaceConnected` is false, when membership availability is calculated, then dispatch fails closed with a localized unavailable reason.
 - Given focused gateway, snapshot, lock, nudge, reconnect, localization, accessibility, and support-safety tests run, when verification completes, then the non-collapse and confirmation invariants pass with recorded commands/results.
+
+## File List
+
+Submodule pointers in range of this story's `baseline_commit`. `references/Hexalith.EventStore` was moved by
+this story's own commit `d3f74f58`, which bumped it to pick up the gateway status contract the new
+message-id retention tests exercise. The remaining six advanced in intervening commits that this story's
+stale baseline still spans; they are declared here rather than reverted because they are already published
+on `main` and were declared by PR #43 for Story 2.4.
+
+- `references/Hexalith.EventStore`
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Memories`
+- `references/Hexalith.PolymorphicSerializations`
 
 ## Spec Change Log
 
@@ -155,7 +176,19 @@ Baseline capture should use the authoritative detail `ProjectionVersion` already
 
 **Commands:**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -p:UseHexalithProjectReferences=false -p:BuildInParallel=false -p:RestoreBuildInParallel=false -m:1 -v:minimal` -- passed: 0 warnings, 0 errors.
-- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor` -- passed: 2,053 total, 0 failed, 0 skipped.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor` -- at the
+  time of writing recorded 2,053 total, 0 failed. Code review re-ran this from a clean checkout of the story
+  head and measured 2,053 total with **1 failed**
+  (`GlobalAdministratorsPageTests.Grant_requery_does_not_confirm_from_a_superseded_snapshot`, failing 3 of 4
+  runs). That test belongs to Story 1.11, not to this story, and no longer reproduces at the current head.
+- Post-review verification (2026-08-21, after the review patches): `dotnet build
+  tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release
+  -p:UseHexalithProjectReferences=false -p:BuildInParallel=false -m:1 -v:minimal` -- passed: 0 warnings, 0
+  errors; test executable -- passed: 2,097 total, 0 failed, 0 skipped, across 4 consecutive runs.
+- State-store contract: confirmation requires an ordered projection-version token. The configured
+  `state.redis` component issues per-key numeric ETags, which satisfies it. A store whose ETag is a hash or
+  GUID does not, and membership commands would stay `ProjectionPending` rather than falsely confirm. Pinned
+  by `tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipCommandProvenanceTests.cs`.
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug --no-restore -p:UseHexalithProjectReferences=true -p:BuildInParallel=false -p:RestoreBuildInParallel=false -m:1 -v:minimal` -- blocked before Tenants compilation by the pre-existing EventStore/Commons package-version conflict (`CS1704`, `Hexalith.Commons.UniqueIds` 3.95.0 vs 2.30.0).
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` -- expected deferred failure: seven unrelated `references/` pointer changes remain undeclared from the Story 2.1 baseline.
 
@@ -189,15 +222,15 @@ Baseline capture should use the authoritative detail `ProjectionVersion` already
 **Provenance-qualified confirmation**
 
 - Ordered version advancement blocks regressions, opaque churn, and pre-existing matches.
-  [`TenantMembershipCommandProvenance.cs:16`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs#L16)
+  [`TenantMembershipCommandProvenance.cs:32`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs#L32)
 
 - Removal confirmation requires projection provenance before assembling its audit receipt.
-  [`RemoveTenantMemberFlow.razor:861`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L861)
+  [`RemoveTenantMemberFlow.razor:907`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L907)
 
 **Regression evidence**
 
 - Route-switch tests prove late releases cannot unlock the newly selected tenant.
-  [`TenantDetailSurfaceTests.cs:685`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L685)
+  [`TenantDetailSurfaceTests.cs:1135`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L1135)
 
 - Gateway tests cover blank identifiers and mismatched status correlations.
   [`TenantCommandGatewayTests.cs:1659`](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L1659)

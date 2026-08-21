@@ -119,7 +119,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Signalr_nudge_requeries_status_without_confirming_from_notification_alone()
+    public async Task Signalr_nudge_requeries_status_without_confirming_from_notification_alone()
     {
         StubTenantCommandGateway gateway = new()
         {
@@ -149,7 +149,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         // Baseline was captured via provider as v2 at submit; keep evidence matching to prove Received cannot confirm.
         int statusCallsBeforeNudge = gateway.StatusCallCount;
 
-        cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
 
         cut.WaitForAssertion(() => gateway.StatusCallCount.ShouldBe(statusCallsBeforeNudge + 1));
         // Status remains Received → Accepted; matching evidence alone must not confirm without Completed.
@@ -617,6 +617,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             ["Tenants.AddMember.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow adding members.",
             ["Tenants.AddMember.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.AddMember.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.Members.Submit.TrackingLost"] = "This attempt can no longer be tracked, so it cannot be verified or resubmitted here. Refresh the tenant and check the member list before trying again.",
             ["Tenants.AddMember.State.Idle"] = "No add-member command submitted.",
             ["Tenants.AddMember.State.RequestSent"] = "Add-member request sent.",
             ["Tenants.AddMember.State.Accepted"] = "Accepted by EventStore; waiting for member processing.",

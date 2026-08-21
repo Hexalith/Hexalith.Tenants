@@ -1,5 +1,5 @@
 # generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-08-20
+# last_updated: 2026-08-21
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -80,7 +80,7 @@ development_status:
 
   # --- Epic 2: Safe Tenant Membership Management ---
   epic-2: done
-  2-1-reverify-projection-confirmed-membership-command-foundation: review
+  2-1-reverify-projection-confirmed-membership-command-foundation: done
   2-2-add-user-to-tenant-with-explicit-role: done
   2-3-change-tenant-member-role: done
   # 2026-08-08: 2.4a + 2.4b implemented (eligibility/preview/dialog + WP-2A proof /

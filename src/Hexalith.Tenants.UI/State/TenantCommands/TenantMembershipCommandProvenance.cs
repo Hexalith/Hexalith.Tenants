@@ -58,7 +58,12 @@ internal static class TenantMembershipCommandProvenance
     /// </summary>
     /// <param name="attemptStartedAtUtc">UTC instant captured when the attempt was submitted.</param>
     /// <param name="auditEventTimestamp">Timestamp of the candidate command-specific audit row.</param>
-    /// <returns><see langword="true"/> when the audit event is strictly newer than the attempt start.</returns>
+    /// <returns><see langword="true"/> when the audit event is at or after the attempt start.</returns>
+    /// <remarks>
+    /// The bound is inclusive because the attempt start and the audit event can share a timestamp when the
+    /// source clock resolution is coarser than the round trip. Callers must therefore treat this as a row
+    /// filter that admits same-instant evidence, not as proof of causal advancement on its own.
+    /// </remarks>
     public static bool HasQualifyingAuditProvenance(
         DateTimeOffset? attemptStartedAtUtc,
         DateTimeOffset? auditEventTimestamp)

@@ -1156,6 +1156,53 @@ public sealed class TenantCommandGatewayTests
         ulids.CallCount.ShouldBe(1);
     }
 
+    // Retention was proven for add-member only. The same indeterminate-submission contract carries the
+    // idempotency key for every submit path: without it a 503 loses the key, the flow's retry mints a new
+    // ULID, and a command that may already have applied is dispatched twice.
+    [Fact]
+    public async Task Change_user_role_retains_minted_message_id_when_submission_is_indeterminate()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "gateway unavailable"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
+            new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantOwner),
+            cancellationToken: CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(result.MessageId);
+        ulids.CallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Remove_user_from_tenant_retains_minted_message_id_when_submission_is_indeterminate()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "gateway unavailable"));
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
+            new RemoveUserFromTenant("tenant.alpha", "literal-user"),
+            cancellationToken: CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(result.MessageId);
+        ulids.CallCount.ShouldBe(1);
+    }
+
     [Fact]
     public async Task Change_user_role_reuses_provided_message_id_instead_of_minting()
     {

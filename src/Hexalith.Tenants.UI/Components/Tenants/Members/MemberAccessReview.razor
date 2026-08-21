@@ -622,11 +622,6 @@
 
     private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)
     {
-        if (!string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
-        {
-            return [UnavailableReason.AggregateLocked];
-        }
-
         if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
         {
             return [UnavailableReason.MissingPermission];
@@ -655,6 +650,14 @@
         if (role is TenantRole.Unknown)
         {
             return [UnavailableReason.MissingPermission];
+        }
+
+        // Contention is reported only once the prerequisites that would block the action anyway have been
+        // cleared. Reporting it first masked missing permission, stale evidence and disabled lifecycle
+        // behind "another command is already in progress" for as long as any command held the aggregate.
+        if (!string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
+        {
+            return [UnavailableReason.AggregateLocked];
         }
 
         return [];
@@ -781,11 +784,8 @@
     /// Forwards a SignalR / read-refresh nudge into any in-flight membership flow without confirming
     /// from the notification alone. Flows re-query authoritative status; locks release only via status path.
     /// </summary>
-    /// <param name="detail">Authoritative detail evidence after the parent refresh (flows read via providers).</param>
-    internal async Task ApplySignalRNudgeAsync(TenantDetail? detail)
+    internal async Task ApplySignalRNudgeAsync()
     {
-        _ = detail;
-
         if (_addMemberFlow is not null
             && TenantCommandFlowGuard.RetainsCommandActivity(_addMemberFlow.Snapshot.State))
         {

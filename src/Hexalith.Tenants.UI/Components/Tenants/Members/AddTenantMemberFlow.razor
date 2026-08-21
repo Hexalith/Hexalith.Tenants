@@ -401,8 +401,19 @@
                 && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
             {
                 await RefreshStatusAsync().ConfigureAwait(false);
+                return;
             }
 
+            // Tracking is gone, so this attempt can neither be re-queried nor safely re-dispatched. Say so:
+            // returning silently left the enabled submit button doing nothing at all -- no state change, no
+            // message, no announcement -- which reads as a broken control rather than a safety stop.
+            SetSnapshot(_snapshot with
+            {
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Members.Submit.TrackingLost",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            });
             return;
         }
 

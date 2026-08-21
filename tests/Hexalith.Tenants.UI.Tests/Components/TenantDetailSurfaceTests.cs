@@ -476,7 +476,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Failed_global_administrator_refresh_retains_rows_only_as_incomplete_unknown_evidence()
+    public async Task Failed_global_administrator_refresh_retains_rows_only_as_incomplete_unknown_evidence()
     {
         ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
         int calls = 0;
@@ -503,7 +503,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>().Instance.GlobalAdministrators
             .ShouldNotBeNull().IsCompleteEvidence.ShouldBeTrue());
 
-        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
 
         cut.WaitForAssertion(() =>
         {
@@ -1070,6 +1070,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
         admissionGate.TryAcquire(lockKey, owner).ShouldBeTrue();
         typeof(TenantDetailPage).GetField("_activeAggregateLockKey", Flags)!.SetValue(cut.Instance, lockKey);
+        // The lease is owner-aware: re-entry is idempotent only for the surface that holds it, so the held
+        // state must name that holder. Setting the key alone models a lease held by nobody, which is now
+        // correctly refused rather than silently shared.
+        object membershipOwner = typeof(TenantDetailPage).GetField("_membershipLeaseOwner", Flags)!
+            .GetValue(cut.Instance).ShouldNotBeNull();
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.SetValue(cut.Instance, membershipOwner);
 
         bool duplicate = await cut.InvokeAsync(() => lease(true));
 
@@ -1077,6 +1083,51 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         admissionGate.IsLocked(lockKey).ShouldBeTrue();
 
         _ = await cut.InvokeAsync(() => lease(false));
+        admissionGate.IsLocked(lockKey).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_second_command_surface_cannot_share_or_release_the_aggregate_lease_of_another()
+    {
+        // Regression for the multi-owner lease: the re-acquire branch used to grant the lease to any surface
+        // once the key matched, so whichever surface finished first released the aggregate while the other
+        // command was still in flight -- breaking one-at-a-time exclusivity (AD-12).
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ServiceDescriptor gateDescriptor = Services.Single(static descriptor =>
+            descriptor.ServiceType == typeof(TenantAggregateCommandAdmissionGate));
+        _ = Services.Remove(gateDescriptor);
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        Services.AddSingleton(admissionGate);
+        RegisterMembershipPageServices(
+            new TrackingMembershipCommandGateway(Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."))),
+            new StubTenantsBffComposition());
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        Func<bool, Task<bool>> membershipLease = cut.FindComponent<AddTenantMemberFlow>()
+            .Instance.CommandActivityLease.ShouldNotBeNull();
+        const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+
+        (await cut.InvokeAsync(() => membershipLease(true))).ShouldBeTrue();
+        admissionGate.IsLocked(lockKey).ShouldBeTrue();
+
+        // A different surface on the same page asks for the same aggregate while membership still holds it.
+        object metadataOwner = typeof(TenantDetailPage).GetField("_metadataLeaseOwner", Flags)!
+            .GetValue(cut.Instance).ShouldNotBeNull();
+        System.Reflection.MethodInfo leaseMethod = typeof(TenantDetailPage)
+            .GetMethod("SetCommandActivityLeaseAsync", Flags)!;
+        bool sharedByOtherSurface = await cut.InvokeAsync(
+            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, ["tenant.alpha", true, metadataOwner])!);
+
+        sharedByOtherSurface.ShouldBeFalse();
+
+        // The refused surface reporting completion must not free a lock it never held.
+        _ = await cut.InvokeAsync(
+            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, ["tenant.alpha", false, metadataOwner])!);
+        admissionGate.IsLocked(lockKey).ShouldBeTrue();
+
+        // The real holder still releases it.
+        _ = await cut.InvokeAsync(() => membershipLease(false));
         admissionGate.IsLocked(lockKey).ShouldBeFalse();
     }
 
@@ -1227,7 +1278,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification()
+    public async Task Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         int detailReads = 0;
@@ -1275,7 +1326,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
                 .ShouldBe(TenantCommandLifecycleState.Accepted));
 
-        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
             .OnProjectionRefreshRequested.InvokeAsync());
 
         cut.WaitForAssertion(() => detailReads.ShouldBeGreaterThan(1));
@@ -1288,7 +1339,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Theory]
     [InlineData("change-role")]
     [InlineData("remove-member")]
-    public void Detail_read_refresh_forwards_nudge_to_each_in_flight_membership_flow(string commandKind)
+    public async Task Detail_read_refresh_forwards_nudge_to_each_in_flight_membership_flow(string commandKind)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var commandGateway = new TrackingMembershipCommandGateway(
@@ -1322,7 +1373,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
 
         int statusCallsBeforeNudge = commandGateway.StatusCallCount;
-        cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
             .OnProjectionRefreshRequested.InvokeAsync());
 
         cut.WaitForAssertion(() => commandGateway.StatusCallCount.ShouldBeGreaterThan(statusCallsBeforeNudge));
@@ -5014,6 +5065,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.AddMember.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow adding members.",
             ["Tenants.AddMember.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.AddMember.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.Members.Submit.TrackingLost"] = "This attempt can no longer be tracked, so it cannot be verified or resubmitted here. Refresh the tenant and check the member list before trying again.",
             ["Tenants.AddMember.State.Idle"] = "No add-member command submitted.",
             ["Tenants.AddMember.State.RequestSent"] = "Add-member request sent.",
             ["Tenants.AddMember.State.Accepted"] = "Accepted by EventStore; waiting for member processing.",

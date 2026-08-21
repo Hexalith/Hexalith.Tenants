@@ -29,6 +29,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+    <!-- TenantCommandGateway validates reusable message ids with NUlid.Ulid.TryParse. Declared directly so
+         the type does not depend on an upstream package continuing to expose it transitively. Version comes
+         from the central catalog in references/Hexalith.Builds. -->
+    <PackageReference Include="NUlid" />
   </ItemGroup>
 
 </Project>
