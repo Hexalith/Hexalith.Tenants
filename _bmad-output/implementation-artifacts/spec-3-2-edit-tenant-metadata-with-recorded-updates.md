@@ -101,7 +101,7 @@ Reuse `TenantMembershipCommandProvenance` rather than copying opaque version com
 
 **Commands:**
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --filter "FullyQualifiedName~TenantUpdateMetadataCommandSnapshotTests|FullyQualifiedName~EditTenantMetadataFlowTests|FullyQualifiedName~TenantCommandGatewayTests"` -- expected: matching tests pass (xUnit v3 executable fallback if MTP/VSTest hits)
-- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` -- expected: exit 0
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md --ref 91914b948290aea4b0e5feef15e4937b4c0fe20a` -- expected: exit 0; compare the preserved baseline to the Story 3.2 implementation commit so later `main` gitlink changes remain outside this story
 
 ## Suggested Review Order
 
