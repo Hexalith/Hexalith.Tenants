@@ -2,7 +2,7 @@
 title: 'Edit Tenant Metadata with Recorded Updates'
 type: 'feature'
 created: '2026-08-08'
-status: 'in-review'
+status: 'done'
 baseline_commit: '753f1ead9e155a0ea53009e9a9d8f9dcb3d5024a'
 review_loop_iteration: 1
 context:
@@ -182,3 +182,55 @@ _Original review header:_ Range `753f1ead..91914b94`. Four layers: blind-hunter,
 - [x] [Review][Defer] `ApplyProjectionEvidence` on the metadata flow is dead code; the diff threaded a version into an entry point with no callers [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:409] — deferred, pre-existing
 - [x] [Review][Defer] Reflection-based tests poke private `_snapshot` / `RefreshStatusAsync` to synthesize states production reaches only narrowly [tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs:395] — deferred, pre-existing
 - [x] [Review][Defer] `messageId` is now inconsistent across `ITenantCommandGateway` — configuration, global-administrator, and lifecycle methods still lack it [src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs:27] — deferred, pre-existing
+
+## Suggested Review Order
+
+**Reconciliation entry point**
+
+- Tracked updates reconcile status, authoritative detail, and audit proof without collapsing confirmed truth.
+  [`EditTenantMetadataFlow.razor:661`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L661)
+
+- Confirmation separates changed-value version proof from identical-value command-specific audit proof.
+  [`TenantCreateCommandModels.cs:1324`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1324)
+
+- Exact audit matching binds proof to message, tenant, event type, and attempt time.
+  [`TenantCreateCommandModels.cs:1424`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1424)
+
+**Evidence and tenant isolation**
+
+- Route-keyed composition prevents metadata lifecycle state leaking between tenant navigations.
+  [`TenantDetailPage.razor:149`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L149)
+
+- Authoritative detail proof uses route-scoped cancellation and post-await generation checks.
+  [`TenantDetailPage.razor:1765`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L1765)
+
+- Audit proof requires one complete, current, projection-backed attempt-scoped result.
+  [`TenantDetailPage.razor:1809`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L1809)
+
+- The BFF query gateway owns authoritative metadata projection reads.
+  [`TenantQueryGateway.cs:285`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs#L285)
+
+**Retry and support safety**
+
+- Submit distinguishes reconnect retries from deliberate new attempts while preserving causal baselines.
+  [`EditTenantMetadataFlow.razor:515`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L515)
+
+- Optional message identity enables idempotent metadata retry through the command gateway.
+  [`TenantCommandGateway.cs:176`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L176)
+
+- Missing localization keys fall back to generic support-safe unable-to-verify copy.
+  [`EditTenantMetadataFlow.razor:322`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L322)
+
+**Regression evidence**
+
+- Snapshot tests pin same-value audit causality and reject unrelated version churn.
+  [`TenantUpdateMetadataCommandSnapshotTests.cs:136`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs#L136)
+
+- Flow tests preserve retry identity, baseline, timestamps, and last-confirmed metadata.
+  [`EditTenantMetadataFlowTests.cs:382`](../../tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs#L382)
+
+- Page tests prove exact audit confirmation and reject non-authoritative evidence.
+  [`TenantDetailSurfaceTests.cs:2390`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L2390)
+
+- Delayed proof tests prevent superseded tenant routes from mutating current state.
+  [`TenantDetailSurfaceTests.cs:2447`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L2447)

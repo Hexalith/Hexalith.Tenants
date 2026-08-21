@@ -146,7 +146,8 @@
                              Block="true">
                 <FluentAccordionItem Header="@Localizer["Tenants.EditMetadata.Title"]"
                                      Expanded="true">
-                    <EditTenantMetadataFlow Detail="@Detail"
+                    <EditTenantMetadataFlow @key="TenantId"
+                                            Detail="@Detail"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
@@ -155,7 +156,8 @@
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             CommandActivityLease="@MetadataCommandActivityLease"
-                                            ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
+                                            ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync"
+                                            AuditEvidenceProvider="@GetUpdateMetadataAuditEvidenceAsync" />
                 </FluentAccordionItem>
 
                 <FluentAccordionItem Header="@Localizer["Tenants.Lifecycle.Title"]"
@@ -253,6 +255,7 @@
     /// changed how many global-administrator pages were walked before the evidence degraded to incomplete.
     /// </summary>
     private const int MaximumSupplementaryPageCount = 50;
+    private const int MetadataAuditProofPageSize = 100;
 
     private readonly Stack<string?> _memberCursorHistory = new();
 
@@ -282,6 +285,10 @@
     // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
     private readonly Lock _cancellationLock = new();
     private long _loadGeneration;
+    private readonly Lock _metadataProofLock = new();
+    private readonly HashSet<CancellationTokenSource> _metadataProofCancellations = [];
+    private string? _metadataProofTenantId;
+    private long _metadataProofGeneration;
     private bool _disposed;
 
     /// <summary>Upper bound on optional notification-setup attempts for one route.</summary>
@@ -448,6 +455,24 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
+        using PendingOperation operation = BeginLoad();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
+
+        // Invalidate the prior route before the first await. Unsubscribing the previous tenant can genuinely
+        // suspend, and allowing a render during that suspension retained the old detail (and therefore the old
+        // metadata flow) under the new route parameter. The keyed flow is then constructed only from the
+        // incoming tenant's completed detail, never from the outgoing tenant's intent or confirmed snapshot.
+        ResetMetadataProofScope(tenantId);
+        _snapshot = TenantDetailSnapshot.Loading();
+        _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
+        _globalAdministratorsSnapshot = null;
+        _auditProofCapabilityAvailable = false;
+        _memberCursor = null;
+        _memberCursorHistory.Clear();
+        _memberPagingHistoryTruncated = false;
+        _memberPagingJumpedToFirstPage = false;
+
         string? incomingAggregateLockKey = string.IsNullOrWhiteSpace(tenantId)
             ? null
             : TenantCommandAggregateLock.ForTenant(tenantId);
@@ -473,30 +498,10 @@
             await DisposeLeaseSupportSafelyAsync(previousLease).ConfigureAwait(false);
         }
 
-        using PendingOperation operation = BeginLoad();
-        long generation = operation.Generation;
-        CancellationToken cancellationToken = operation.CancellationToken;
-
-        // Marshalled for the same reason the result application below is: the optional lease dispose above
-        // can genuinely suspend, so this continuation may run on a thread-pool thread while the render
-        // ComponentBase queued for the incomplete task is in flight. _memberCursorHistory is a Stack the
-        // renderer reads for CanGoPrevious, so clearing it unsynchronised races that read.
-        await InvokeAsync(() =>
+        if (!CanApply(generation, tenantId))
         {
-            if (!CanApply(generation, tenantId))
-            {
-                return;
-            }
-
-            _snapshot = TenantDetailSnapshot.Loading();
-            _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
-            _globalAdministratorsSnapshot = null;
-            _auditProofCapabilityAvailable = false;
-            _memberCursor = null;
-            _memberCursorHistory.Clear();
-            _memberPagingHistoryTruncated = false;
-            _memberPagingJumpedToFirstPage = false;
-        }).ConfigureAwait(false);
+            return;
+        }
 
         Task<TenantDetailSnapshot> detailTask = QueryGateway
             .GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
@@ -1653,6 +1658,87 @@
             && generation == Volatile.Read(ref _loadGeneration)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
+    private void ResetMetadataProofScope(string? tenantId)
+    {
+        lock (_metadataProofLock)
+        {
+            if (string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _metadataProofTenantId = tenantId;
+            _ = Interlocked.Increment(ref _metadataProofGeneration);
+            _updateMetadataProofProjectionVersion = null;
+            // Each proof operation owns disposal of its source. Route invalidation only cancels it, avoiding
+            // the CancellationToken.Register-after-Dispose race described for the main page-load path. Keep
+            // cancellation under the same lock as completion so a source cannot be disposed between selection
+            // and Cancel.
+            foreach (CancellationTokenSource source in _metadataProofCancellations)
+            {
+                RetireCancellationCore(source);
+            }
+
+            _metadataProofCancellations.Clear();
+        }
+    }
+
+    private PendingOperation? BeginMetadataProof(string tenantId)
+    {
+        lock (_metadataProofLock)
+        {
+            if (_disposed
+                || !string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
+                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var source = new CancellationTokenSource();
+            _ = _metadataProofCancellations.Add(source);
+            long generation = Volatile.Read(ref _metadataProofGeneration);
+            return new PendingOperation(generation, source, () => CompleteMetadataProof(source));
+        }
+    }
+
+    private bool CanApplyMetadataProof(long generation, string tenantId)
+    {
+        lock (_metadataProofLock)
+        {
+            return CanApplyMetadataProofCore(generation, tenantId);
+        }
+    }
+
+    private bool TryApplyMetadataProofVersion(long generation, string tenantId, string? projectionVersion)
+    {
+        lock (_metadataProofLock)
+        {
+            if (!CanApplyMetadataProofCore(generation, tenantId))
+            {
+                return false;
+            }
+
+            _updateMetadataProofProjectionVersion = projectionVersion;
+            return true;
+        }
+    }
+
+    private bool CanApplyMetadataProofCore(long generation, string tenantId)
+        => !_disposed
+            && generation == Volatile.Read(ref _metadataProofGeneration)
+            && string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
+            && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
+
+    private void CompleteMetadataProof(CancellationTokenSource source)
+    {
+        lock (_metadataProofLock)
+        {
+            _ = _metadataProofCancellations.Remove(source);
+        }
+
+        source.Dispose();
+    }
+
     private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
@@ -1678,19 +1764,112 @@
 
     private async Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
     {
-        TenantDetailSnapshot? proof = await QueryGateway
-            .GetUpdateMetadataProjectionProofAsync(request, CancellationToken.None)
-            .ConfigureAwait(false);
-
-        if (proof is null || !string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
+        using PendingOperation? operation = BeginMetadataProof(request.TenantId);
+        if (operation is null)
         {
-            // Fail closed: without authoritative evidence there is no version that may imply advancement.
-            _updateMetadataProofProjectionVersion = null;
             return null;
         }
 
-        _updateMetadataProofProjectionVersion = proof.ProjectionVersion;
-        return proof.Detail;
+        TenantDetailSnapshot? proof;
+        try
+        {
+            proof = await QueryGateway
+                .GetUpdateMetadataProjectionProofAsync(request, operation.CancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
+        {
+            return null;
+        }
+
+        if (proof is null
+            || proof.Kind is not TenantDetailSurfaceKind.Ready
+            || proof.Freshness is not ReadModelFreshnessState.Current
+            || proof.Lifecycle is not ProjectionLifecycleState.Current
+            || string.IsNullOrWhiteSpace(proof.ProjectionVersion)
+            || proof.Detail?.Status is TenantStatus.Disabled or TenantStatus.Unknown
+            || !string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
+        {
+            // Fail closed: payload presence alone is not authoritative. A stale, unknown, or non-current
+            // proof must also clear any version retained from an earlier proof so it cannot qualify this read.
+            _ = TryApplyMetadataProofVersion(operation.Generation, request.TenantId, projectionVersion: null);
+            return null;
+        }
+
+        return TryApplyMetadataProofVersion(operation.Generation, request.TenantId, proof.ProjectionVersion)
+            ? proof.Detail
+            : null;
+    }
+
+    private async Task<TenantAuditRow?> GetUpdateMetadataAuditEvidenceAsync(
+        UpdateTenant request,
+        string? messageId,
+        DateTimeOffset? attemptStartedAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(messageId) || attemptStartedAtUtc is null)
+        {
+            return null;
+        }
+
+        var auditRequest = new TenantAuditRequest(
+            request.TenantId,
+            From: attemptStartedAtUtc,
+            Category: AuditEventCategory.Administrative,
+            PageSize: MetadataAuditProofPageSize);
+        using PendingOperation? operation = BeginMetadataProof(request.TenantId);
+        if (operation is null)
+        {
+            return null;
+        }
+
+        TenantAuditSnapshot audit;
+        try
+        {
+            audit = await QueryGateway
+                .GetTenantAuditAsync(auditRequest, previous: null, operation.CancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
+        {
+            return null;
+        }
+
+        bool authoritativeCompletePage = audit.Kind is TenantAuditSurfaceKind.Ready
+            && audit.MatchesScope(auditRequest)
+            && audit.Freshness is ReadModelFreshnessState.Current
+            && audit.Lifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
+            && !audit.HasMore
+            && string.IsNullOrWhiteSpace(audit.NextCursor)
+            && audit.Rows.All(row =>
+                string.Equals(row.TenantId, request.TenantId, StringComparison.Ordinal)
+                && row.Freshness is ReadModelFreshnessState.Current
+                && row.Lifecycle is ProjectionLifecycleState.Current
+                && row.Provenance is QueryResponseProvenance.ProjectionBacked);
+        if (!authoritativeCompletePage)
+        {
+            return null;
+        }
+
+        TenantAuditRow[] matches = audit.Rows
+            .Where(row => TenantUpdateMetadataCommandSnapshot.IsMatchingUpdateAuditProof(
+                row,
+                request,
+                messageId,
+                attemptStartedAtUtc))
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1 ? matches[0] : null;
     }
 
     private Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)
@@ -1827,6 +2006,7 @@
         _disposed = true;
         _ = Interlocked.Increment(ref _loadGeneration);
         _ = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
+        ResetMetadataProofScope(tenantId: null);
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;

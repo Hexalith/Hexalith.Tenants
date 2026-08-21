@@ -391,6 +391,29 @@ public sealed class TenantCommandGatewayTests
         ulids.CallCount.ShouldBe(0);
     }
 
+    [Fact]
+    public async Task Update_tenant_gateway_exception_retains_resolved_message_id_for_exact_retry()
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "gateway unavailable"));
+        StubUlidFactory ulids = new(messageId);
+        TenantCommandGateway gateway = new(client, ulids, new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
+            new UpdateTenant("tenant.alpha", "Alpha", null),
+            cancellationToken: CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.MessageId.ShouldBe(messageId);
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+        ulids.CallCount.ShouldBe(1);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]

@@ -1,6 +1,8 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -1322,7 +1324,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
     public TenantUpdateMetadataCommandSnapshot ConfirmProjection(
         TenantDetailProjection? detailEvidence,
         string? currentProjectionVersion = null,
-        bool hasQualifyingAuditProvenance = false) {
+        TenantAuditRow? auditEvidence = null) {
         if (Intent is null) {
             return this;
         }
@@ -1362,7 +1364,18 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             BaselineProjectionVersion,
             currentProjectionVersion,
             HasCommandEventEvidence);
-        if (!versionAdvanced && !hasQualifyingAuditProvenance) {
+        bool submittedMetadataIsSameAsLastConfirmed = IsSameValueAttempt;
+        bool hasQualifyingAuditProvenance = IsMatchingUpdateAuditProof(
+            auditEvidence,
+            Intent,
+            MessageId,
+            AttemptStartedAtUtc);
+        // Version advancement is aggregate-wide and can therefore be caused by a different command. It is
+        // sufficient when the submitted metadata changed (the matching new values are a postcondition), but
+        // identical values need command-specific audit provenance to distinguish this update from ambient churn.
+        bool hasSafeCommandSpecificProvenance = hasQualifyingAuditProvenance
+            || (!submittedMetadataIsSameAsLastConfirmed && versionAdvanced);
+        if (!hasSafeCommandSpecificProvenance) {
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 LastConfirmedName = LastConfirmedName,
@@ -1385,10 +1398,50 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,
-            AuditState = TenantCommandAuditState.AuditPending,
+            AuditState = hasQualifyingAuditProvenance
+                ? TenantCommandAuditState.AuditAvailable
+                : TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
+    }
+
+    internal bool IsSameValueAttempt {
+        get {
+            if (Intent is null) {
+                return false;
+            }
+
+            string? lastConfirmedName = LastConfirmedDetailProjection?.Name ?? LastConfirmedName;
+            string? lastConfirmedDescription = LastConfirmedDetailProjection is { } lastConfirmedProjection
+                ? lastConfirmedProjection.Description
+                : LastConfirmedDescription;
+            return string.Equals(Intent.Name, lastConfirmedName, StringComparison.Ordinal)
+                && string.Equals(Intent.Description, lastConfirmedDescription, StringComparison.Ordinal);
+        }
+    }
+
+    public static bool IsMatchingUpdateAuditProof(
+        TenantAuditRow? row,
+        UpdateTenant intent,
+        string? messageId,
+        DateTimeOffset? attemptStartedAtUtc) {
+        ArgumentNullException.ThrowIfNull(intent);
+
+        return row is not null
+            && !string.IsNullOrWhiteSpace(messageId)
+            && string.Equals(row.EventReference, messageId, StringComparison.Ordinal)
+            && string.Equals(row.EventType, nameof(TenantUpdated), StringComparison.Ordinal)
+            && row.Category is AuditEventCategory.Administrative
+            && string.Equals(row.TenantId, intent.TenantId, StringComparison.Ordinal)
+            && string.Equals(row.Target, intent.TenantId, StringComparison.Ordinal)
+            && string.Equals(row.Scope, intent.TenantId, StringComparison.Ordinal)
+            && string.Equals(row.Outcome, nameof(TenantUpdated), StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(row.ActorId)
+            && row.Freshness is Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current
+            && row.Lifecycle is ProjectionLifecycleState.Current
+            && row.Provenance is Hexalith.EventStore.Contracts.Queries.QueryResponseProvenance.ProjectionBacked
+            && TenantMembershipCommandProvenance.HasQualifyingAuditProvenance(attemptStartedAtUtc, row.Timestamp);
     }
 }
 

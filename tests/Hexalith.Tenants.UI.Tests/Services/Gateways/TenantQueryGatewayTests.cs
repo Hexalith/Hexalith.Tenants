@@ -1012,6 +1012,33 @@ public sealed class TenantQueryGatewayTests
         snapshot.ProjectionVersion.ShouldBe("detail-v7");
     }
 
+    [Fact]
+    public async Task Update_metadata_projection_proof_reads_current_same_tenant_detail_without_a_validator()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(
+                Detail("tenant.alpha"),
+                eTag: "proof-etag",
+                projectionVersion: "projection-v9"));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot proof = await gateway.GetUpdateMetadataProjectionProofAsync(
+            new UpdateTenant("tenant.alpha", "Alpha", "Tenant alpha description"),
+            CancellationToken.None);
+
+        _ = client.Received(1).GetTenantAsync(
+            Arg.Is<GetTenantQuery>(query => query != null && query.TenantId == "tenant.alpha"),
+            null,
+            Arg.Any<CancellationToken>());
+        proof.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
+        proof.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        proof.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        proof.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        proof.Detail!.Name.ShouldBe("Alpha");
+        proof.ProjectionVersion.ShouldBe("projection-v9");
+    }
+
     [Theory]
     [InlineData(QueryResponseProvenance.Unknown, false)]
     [InlineData(QueryResponseProvenance.Unknown, true)]
