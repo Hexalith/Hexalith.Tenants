@@ -4,7 +4,7 @@ type: 'feature'
 created: '2026-08-08'
 status: 'done'
 baseline_commit: '753f1ead9e155a0ea53009e9a9d8f9dcb3d5024a'
-review_loop_iteration: 1
+review_loop_iteration: 2
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-3-context.md'
@@ -103,53 +103,19 @@ Reuse `TenantMembershipCommandProvenance` rather than copying opaque version com
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --filter "FullyQualifiedName~TenantUpdateMetadataCommandSnapshotTests|FullyQualifiedName~EditTenantMetadataFlowTests|FullyQualifiedName~TenantCommandGatewayTests"` -- expected: matching tests pass (xUnit v3 executable fallback if MTP/VSTest hits)
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md --ref 91914b948290aea4b0e5feef15e4937b4c0fe20a` -- expected: exit 0; compare the preserved baseline to the Story 3.2 implementation commit so later `main` gitlink changes remain outside this story
 
-## Suggested Review Order
-
-**Provenance-qualified confirmation**
-
-- Confirm only from ProjectionPending with metadata match plus version or audit provenance.
-  [`TenantCreateCommandModels.cs:1180`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1180)
-
-- Match without advancement fails closed to UnableToVerify MissingProvenance.
-  [`TenantCreateCommandModels.cs:1221`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1221)
-
-- Missing baseline fails closed without overwriting last-confirmed metadata.
-  [`TenantCreateCommandModels.cs:1203`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1203)
-
-**Flow reconnect and evidence**
-
-- Whitespace-safe live projection version reader with parameter fallback.
-  [`EditTenantMetadataFlow.razor:412`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L412)
-
-- In-flight same attempt refreshes status; missing tracking blocks without redispatch.
-  [`EditTenantMetadataFlow.razor:443`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L443)
-
-- Capture baseline and reuse messageId on deliberate reconnect submit.
-  [`EditTenantMetadataFlow.razor:477`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L477)
-
-- Lost-tracking refresh maps to UnableToVerify with command-surface copy.
-  [`EditTenantMetadataFlow.razor:533`](../../src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor#L533)
-
-**Page and gateway wiring**
-
-- Detail page supplies ProjectionVersion into the metadata flow like membership.
-  [`TenantDetailPage.razor:152`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L152)
-
-- UpdateTenantAsync reuses ResolveMessageId for optional reconnect identity.
-  [`TenantCommandGateway.cs:168`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L168)
-
-**Tests**
-
-- Snapshot matrix covers provenance, Accepted no-confirm, and same-value honesty.
-  [`TenantUpdateMetadataCommandSnapshotTests.cs:14`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs#L14)
-
-- Flow covers MissingProvenance, reconnect, lost tracking, and MissingBaseline UI.
-  [`EditTenantMetadataFlowTests.cs:290`](../../tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs#L290)
-
-- Composition asserts page→flow ProjectionVersion wiring.
-  [`TenantDetailSurfaceTests.cs:1565`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L1565)
-
 ### Review Findings
+
+_Code review 2026-08-21 (loop 2)._ Range `8f6f8cb8..a53cb979` (the story's own implementation commit). Four layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor.
+
+- [x] [Review][Patch] Spec frontmatter regresses to `status: 'done'` while `sprint-status.yaml` only reaches `review` — reproduces the exact tracking contradiction already fixed in loop 1 (see the `Tracking metadata contradicts itself` item below) [_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md:5]
+- [x] [Review][Patch] Duplicate `## Suggested Review Order` H2 heading (lines 106 and 186) with no loop/date qualifier distinguishing the two competing sections [_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md:106]
+- [x] [Review][Patch] `RefreshStatusAsync` now requests the parent projection refresh only when state settles at `ProjectionPending`, dropping the previously-unconditional callback for Failed/Rejected/Degraded outcomes (sibling `AddTenantMemberFlow` still fires unconditionally) [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:717]
+- [x] [Review][Patch] `GetUpdateMetadataAuditEvidenceAsync` fetches a single 100-row audit page and never follows `NextCursor`; a tenant with more than 100 qualifying administrative events in the attempt window permanently fails closed on same-value audit confirmation instead of walking pages like the file's own GA-evidence pattern [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1809]
+- [x] [Review][Patch] New fail-closed reconciliation gate `ProjectionConfirmationUnavailableReason` and the `Degraded` resubmit path are untested beyond the Authorization branch — no test covers Freshness/SurfaceKind, Lifecycle, tenant Disabled/Unknown, or CommandSurface branches, and no test resubmits from `Degraded` or exercises an `AuditEvidenceProvider` exception [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:498]
+- [x] [Review][Patch] Duplicate `deferred-work.md` entries: the create-command messageId defect is recorded twice with inconsistent `source_spec` path conventions (one hardcoded absolute developer path) and a missing blank-line separator [_bmad-output/implementation-artifacts/deferred-work.md:29]
+- [x] [Review][Patch] `ProjectionConfirmationUnavailableReason` is a deeply nested mixed ternary (6+ conditions combining `is X or Y or Z` with `||`) guarding a support-safety-critical fail-closed decision — hard to verify by inspection [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:498]
+
+_Loop 2 patches verified: UI suite 2173/2173 green (`dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`); production build 0 warnings/0 errors. The audit-pagination fix preserves the pre-existing "an incomplete page never confirms, even if it already contains a match" invariant (verified against `Detail_page_does_not_confirm_identical_metadata_from_non_authoritative_audit_evidence("incomplete")`) while adding a bounded cursor-follow loop; a new test (`Detail_page_confirms_identical_metadata_from_a_qualifying_row_on_a_later_audit_page`) proves a match on a later page now confirms._
 
 _Code review 2026-08-21 (loop 1). All 12 patch items applied. Verified: UI suite 2121/2121 green, plus
 mutation-verification of the messageId gate and the causal-provenance gate (each fix confirmed to fail

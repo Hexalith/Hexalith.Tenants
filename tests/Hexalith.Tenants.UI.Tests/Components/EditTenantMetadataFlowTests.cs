@@ -482,6 +482,48 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Exact_degraded_resubmit_refreshes_existing_tracking_without_redispatch()
+    {
+        int statusCalls = 0;
+        string? proofProjectionVersion = "projection-v1";
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? new TenantCommandStatusResult(CommandStatus.PublishFailed, "Publish failed.")
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                proofProjectionVersion = "projection-v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Degraded));
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(2);
+        cut.Instance.Snapshot.MessageId.ShouldBe("message-1");
+    }
+
+    [Fact]
     public void Same_metadata_submission_is_still_sent_but_null_projection_proof_fails_closed()
     {
         List<bool> activity = [];
@@ -663,6 +705,138 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         cut.Instance.Snapshot.SafeMessage.ShouldNotBeNull().ShouldContain("not authorized", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Reconciliation_fails_closed_when_projection_freshness_degrades_after_acceptance()
+    {
+        int statusCalls = 0;
+        string? proofProjectionVersion = "projection-v1";
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? new TenantCommandStatusResult(CommandStatus.Received)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                proofProjectionVersion = "projection-v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                proofProjectionVersion = "projection-v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+        cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        cut.Instance.Snapshot.SafeMessage.ShouldNotBeNull().ShouldContain("refresh current tenant detail", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Reconciliation_fails_closed_when_projection_lifecycle_regresses_after_acceptance()
+    {
+        int statusCalls = 0;
+        string? proofProjectionVersion = "projection-v1";
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? new TenantCommandStatusResult(CommandStatus.Received)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                proofProjectionVersion = "projection-v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                proofProjectionVersion = "projection-v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+        cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        cut.Instance.Snapshot.SafeMessage.ShouldNotBeNull().ShouldContain("projection-confirmed lifecycle", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Audit_evidence_provider_exception_maps_to_localized_unable_to_verify_state()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => "projection-v2")
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
+                Detail(request.TenantId, request.Name, request.Description)))
+            .Add(p => p.AuditEvidenceProvider, (_, _, _) =>
+                Task.FromException<TenantAuditRow?>(new InvalidOperationException("raw audit failure"))));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
+        cut.Markup.ShouldNotContain("raw audit failure", Case.Insensitive);
     }
 
     [Fact]
@@ -944,12 +1118,14 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
 
+        int projectionRefreshRequestedCount = 0;
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.OnProjectionRefreshRequested, () => projectionRefreshRequestedCount++)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail("tenant.alpha", "Updated", null))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -965,6 +1141,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
         cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+
+        // Every terminal outcome -- not only ProjectionPending -- must still nudge the parent to re-query,
+        // or the ambient tenant detail can go stale after a rejected/degraded/unable-to-verify command.
+        projectionRefreshRequestedCount.ShouldBe(1);
     }
 
     [Fact]

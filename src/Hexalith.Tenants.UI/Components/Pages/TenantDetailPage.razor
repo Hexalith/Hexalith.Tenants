@@ -256,6 +256,7 @@
     /// </summary>
     private const int MaximumSupplementaryPageCount = 50;
     private const int MetadataAuditProofPageSize = 100;
+    private const int MetadataAuditProofMaximumPageCount = 50;
 
     private readonly Stack<string?> _memberCursorHistory = new();
 
@@ -1816,60 +1817,83 @@
             return null;
         }
 
-        var auditRequest = new TenantAuditRequest(
-            request.TenantId,
-            From: attemptStartedAtUtc,
-            Category: AuditEventCategory.Administrative,
-            PageSize: MetadataAuditProofPageSize);
         using PendingOperation? operation = BeginMetadataProof(request.TenantId);
         if (operation is null)
         {
             return null;
         }
 
-        TenantAuditSnapshot audit;
-        try
+        TenantAuditRequest auditRequest = new(
+            request.TenantId,
+            From: attemptStartedAtUtc,
+            Category: AuditEventCategory.Administrative,
+            PageSize: MetadataAuditProofPageSize);
+        string? projectionVersion = null;
+        var matches = new List<TenantAuditRow>();
+        for (int pageNumber = 0; pageNumber < MetadataAuditProofMaximumPageCount; pageNumber++)
         {
-            audit = await QueryGateway
-                .GetTenantAuditAsync(auditRequest, previous: null, operation.CancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
-        {
-            return null;
-        }
+            TenantAuditSnapshot audit;
+            try
+            {
+                audit = await QueryGateway
+                    .GetTenantAuditAsync(auditRequest, previous: null, operation.CancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
 
-        if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
-        {
-            return null;
-        }
+            if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
+            {
+                return null;
+            }
 
-        bool authoritativeCompletePage = audit.Kind is TenantAuditSurfaceKind.Ready
-            && audit.MatchesScope(auditRequest)
-            && audit.Freshness is ReadModelFreshnessState.Current
-            && audit.Lifecycle is ProjectionLifecycleState.Current
-            && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
-            && !audit.HasMore
-            && string.IsNullOrWhiteSpace(audit.NextCursor)
-            && audit.Rows.All(row =>
-                string.Equals(row.TenantId, request.TenantId, StringComparison.Ordinal)
-                && row.Freshness is ReadModelFreshnessState.Current
-                && row.Lifecycle is ProjectionLifecycleState.Current
-                && row.Provenance is QueryResponseProvenance.ProjectionBacked);
-        if (!authoritativeCompletePage)
-        {
-            return null;
-        }
+            // Fail closed on the first non-authoritative page: a later page cannot redeem an already-degraded
+            // read, and every page must belong to the same projection snapshot as the first. A page that still
+            // has more rows beyond it is not itself trustworthy evidence -- only a complete, consistent walk of
+            // the whole attempt window (bounded by MetadataAuditProofMaximumPageCount) may confirm.
+            projectionVersion ??= audit.ProjectionVersion;
+            bool authoritativePage = audit.Kind is TenantAuditSurfaceKind.Ready
+                && audit.MatchesScope(auditRequest)
+                && audit.Freshness is ReadModelFreshnessState.Current
+                && audit.Lifecycle is ProjectionLifecycleState.Current
+                && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
+                && string.Equals(projectionVersion, audit.ProjectionVersion, StringComparison.Ordinal)
+                && audit.Rows.All(row =>
+                    string.Equals(row.TenantId, request.TenantId, StringComparison.Ordinal)
+                    && row.Freshness is ReadModelFreshnessState.Current
+                    && row.Lifecycle is ProjectionLifecycleState.Current
+                    && row.Provenance is QueryResponseProvenance.ProjectionBacked);
+            if (!authoritativePage)
+            {
+                return null;
+            }
 
-        TenantAuditRow[] matches = audit.Rows
-            .Where(row => TenantUpdateMetadataCommandSnapshot.IsMatchingUpdateAuditProof(
+            matches.AddRange(audit.Rows.Where(row => TenantUpdateMetadataCommandSnapshot.IsMatchingUpdateAuditProof(
                 row,
                 request,
                 messageId,
-                attemptStartedAtUtc))
-            .Take(2)
-            .ToArray();
-        return matches.Length == 1 ? matches[0] : null;
+                attemptStartedAtUtc)));
+            if (matches.Count > 1)
+            {
+                return null;
+            }
+
+            if (!audit.HasMore)
+            {
+                return matches.Count == 1 ? matches[0] : null;
+            }
+
+            if (string.IsNullOrWhiteSpace(audit.NextCursor))
+            {
+                return null;
+            }
+
+            auditRequest = auditRequest with { Cursor = audit.NextCursor, ETag = null };
+        }
+
+        return null;
     }
 
     private Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)

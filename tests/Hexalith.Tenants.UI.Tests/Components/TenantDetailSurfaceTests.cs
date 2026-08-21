@@ -2444,6 +2444,67 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_confirms_identical_metadata_from_a_qualifying_row_on_a_later_audit_page()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail original = Detail("tenant.alpha");
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v2")));
+        ConfigureAuthoritativeAuditCapability(gateway);
+        ConfigureMetadataAuditProof(gateway, request =>
+        {
+            TenantAuditRow unrelatedRow = MetadataAuditRow(
+                "message-unrelated",
+                request.TenantId,
+                request.From.ShouldNotBeNull());
+            return string.IsNullOrWhiteSpace(request.Cursor)
+                ? MetadataAuditSnapshot(request, unrelatedRow, hasMore: true)
+                : MetadataAuditSnapshot(
+                    request,
+                    MetadataAuditRow("message-1", request.TenantId, request.From.ShouldNotBeNull()));
+        });
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("form").Submit();
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        _ = gateway.Received(1).GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.PageSize == 100 && string.IsNullOrWhiteSpace(request.Cursor)),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+        _ = gateway.Received(1).GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.PageSize == 100 && request.Cursor == "opaque-next-page"),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Route_change_discards_a_delayed_metadata_detail_proof_and_resets_the_flow_for_the_new_tenant()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -3313,67 +3374,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Member_access_review_wires_complete_ga_standing_into_known_platform_friction()
-    {
-        RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
-        int readerIndex = detail.Members
-            .Select((member, index) => (member.UserId, index))
-            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
-            .index;
-        GlobalAdministratorsSnapshot completeGa = GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow(
-                "reader-user",
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)],
-            nextCursor: null,
-            hasMore: false,
-            eTag: "\"ga\"",
-            freshness: ReadModelFreshnessState.Current) with
-        {
-            Lifecycle = ProjectionLifecycleState.Current,
-            IsCompleteEvidence = true,
-        };
-
-        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
-            .Add(p => p.AuditProofCapabilityAvailable, true)
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
-            .Add(view => view.Members, MemberSnapshot(detail))
-            .Add(view => view.GlobalAdministrators, completeGa));
-
-        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
-
-        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
-            .ShouldContain("Also a global administrator");
-        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
-            .ShouldContain("will not remove global-administrator authority");
-    }
-
-    [Fact]
-    public void Member_access_review_keeps_current_positive_ga_standing_when_the_page_is_incomplete()
-    {
-        RegisterComponentServices();
-        TenantDetail detail = Detail("tenant.alpha");
-        int readerIndex = detail.Members
-            .Select((member, index) => (member.UserId, index))
-            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
-            .index;
-        GlobalAdministratorsSnapshot incompleteGa = GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow(
-                "reader-user",
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)],
-            nextCursor: null,
-            hasMore: false,
-            eTag: "\"ga\"",
-            freshness: ReadModelFreshnessState.Current) with
-        {
-            Lifecycle = ProjectionLifecycleState.Current,
-    [Fact]
     public void Member_access_review_retargeting_creates_fresh_change_and_remove_flow_instances()
     {
         RegisterComponentServices();
@@ -3506,6 +3506,67 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ShouldAllBe(static reason => reason.TextContent.Contains("command", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void Member_access_review_wires_complete_ga_standing_into_known_platform_friction()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
+            .index;
+        GlobalAdministratorsSnapshot completeGa = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow(
+                "reader-user",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"ga\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        };
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail))
+            .Add(view => view.GlobalAdministrators, completeGa));
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[readerIndex].Click();
+
+        cut.Find("[data-testid='tenants-remove-member-platform-standing']").TextContent
+            .ShouldContain("Also a global administrator");
+        cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
+            .ShouldContain("will not remove global-administrator authority");
+    }
+
+    [Fact]
+    public void Member_access_review_keeps_current_positive_ga_standing_when_the_page_is_incomplete()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int readerIndex = detail.Members
+            .Select((member, index) => (member.UserId, index))
+            .First(pair => string.Equals(pair.UserId, "reader-user", StringComparison.Ordinal))
+            .index;
+        GlobalAdministratorsSnapshot incompleteGa = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow(
+                "reader-user",
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"ga\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = false,
         };
 

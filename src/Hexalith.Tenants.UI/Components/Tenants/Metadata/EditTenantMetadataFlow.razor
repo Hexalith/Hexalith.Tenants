@@ -328,25 +328,45 @@
     }
 
     private string? ProjectionConfirmationUnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
-            ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Stale
+    {
+        get
+        {
+            if (!IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
+            {
+                return Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value;
+            }
+
+            bool isStaleSurface = SurfaceKind is TenantDetailSurfaceKind.Stale
                 or TenantDetailSurfaceKind.Unavailable
                 or TenantDetailSurfaceKind.Unknown
-                or TenantDetailSurfaceKind.Degraded
-                || Freshness is not ReadModelFreshnessState.Current
-                ? Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value
-            : Lifecycle is not ProjectionLifecycleState.Current
-                ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
-                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
-                    ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
-                    // The parent lowers command-surface admission while this flow owns the aggregate lease.
-                    // That blocks sibling/new commands, but must not disqualify the owner's reconciliation.
-                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
-                        ? Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value
-                        : string.IsNullOrWhiteSpace(Detail.TenantId)
-                            ? Localizer["Tenants.EditMetadata.Unavailable.Identity"].Value
-                            : null;
+                or TenantDetailSurfaceKind.Degraded;
+            if (isStaleSurface || Freshness is not ReadModelFreshnessState.Current)
+            {
+                return Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value;
+            }
+
+            if (Lifecycle is not ProjectionLifecycleState.Current)
+            {
+                return Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value;
+            }
+
+            if (Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown)
+            {
+                return Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value;
+            }
+
+            // The parent lowers command-surface admission while this flow owns the aggregate lease.
+            // That blocks sibling/new commands, but must not disqualify the owner's reconciliation.
+            if ((!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null)
+            {
+                return Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value;
+            }
+
+            return string.IsNullOrWhiteSpace(Detail.TenantId)
+                ? Localizer["Tenants.EditMetadata.Unavailable.Identity"].Value
+                : null;
+        }
+    }
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
@@ -714,6 +734,8 @@
 
             SetSnapshot(_snapshot.ApplyStatus(status));
 
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+
             if (_snapshot.Intent is null || _snapshot.State is not TenantCommandLifecycleState.ProjectionPending)
             {
                 return;
@@ -721,7 +743,6 @@
 
             try
             {
-                await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
                 string? confirmationUnavailableReason = ProjectionConfirmationUnavailableReason;
                 if (!string.IsNullOrWhiteSpace(confirmationUnavailableReason))
                 {
