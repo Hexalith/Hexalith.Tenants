@@ -1,7 +1,7 @@
 ---
 project_name: 'Hexalith.Tenants'
 user_name: 'Administrator'
-date: '2026-06-29'
+date: '2026-08-21'
 sections_completed:
   [
     'technology_stack',
@@ -17,7 +17,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 118
+rule_count: 119
 optimized_for_llm: true
 ---
 
@@ -31,14 +31,15 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **.NET 10 / C#** — SDK pinned to `10.0.302` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
-- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.19.0`; `Hexalith.Memories` packages pinned to `1.31.1`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
-- **DAPR** — DAPR SDK packages `1.18.4`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default).
-- **Aspire** — Aspire packages `13.4.6`; Keycloak/Kubernetes packages use `13.4.6-preview.1.26319.6`; DAPR hosting via `CommunityToolkit.Aspire.Hosting.Dapr` `13.4.0-preview.1.260602-0230`.
-- **Backend stack** — MediatR `14.1.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.19.1`, OpenAPI `10.0.9`, Swagger UI `10.2.3`, OpenTelemetry `1.16.0` with Runtime instrumentation `1.15.1`.
-- **UI stack** — Blazor InteractiveServer, FrontComposer Shell/Contracts source references, Fluent UI Blazor V5 `5.0.0-rc.3-26138.1`, bUnit `2.8.4-preview`.
+- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.96.2`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
+- **DAPR** — DAPR SDK packages `1.18.5`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default). The `1.19.0-preview.2` SDK family is intentionally held because stable pins do not move to prerelease channels in a dependency refresh.
+- **Aspire** — Aspire packages `13.4.6`; Keycloak/Kubernetes packages use `13.4.6-preview.1.26319.6`; DAPR hosting uses `CommunityToolkit.Aspire.Hosting.Dapr` `13.4.1-beta.706`. The `13.5.1` family is held until the shared catalog and every allowlisted external AppHost SDK owner can advance together.
+- **Backend stack** — MediatR `14.2.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.22.0`, OpenAPI `10.0.11`, Swagger UI `10.2.3`, and OpenTelemetry `1.17.0` including Runtime instrumentation.
+- **UI stack** — Blazor InteractiveServer, FrontComposer Shell/Contracts source references, Fluent UI Blazor V5 `5.0.0-rc.5-26219.1`, bUnit `2.9.0`.
 - **Memories search** — Tenants UI uses `MemoriesClient.SearchAsync` as an index lookup only; rows are hydrated from Tenants REST query endpoints.
-- **Testing** — xUnit v3 `3.2.2`, Shouldly `4.3.0`, NSubstitute `6.0.0-rc.1`, Testcontainers `4.12.0`, coverlet `10.0.1`, Microsoft.NET.Test.Sdk `18.7.0`, YamlDotNet `18.0.0`.
-- **Release tooling** — semantic-release `25.0.5`, commitlint `21.1.0`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
+- **Testing** — xUnit v3 `3.2.2` with runner `3.1.5`, Shouldly `4.3.0`, NSubstitute `6.2.0`, Testcontainers `4.14.0`, coverlet `10.0.1`, Microsoft.NET.Test.Sdk `18.9.0`, YamlDotNet `18.1.0`. xUnit `4.0.0` is held because it requires a non-mechanical parallelization migration; Shouldly `5.0.0-preview.2` is held because stable pins do not move to prerelease channels in a dependency refresh.
+- **Release tooling** — semantic-release `25.0.9`, commitlint `21.2.2`, `@semantic-release/changelog` `7.0.0`, and `@semantic-release/git` `11.0.1`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
+- **Framework family held at .NET 10.** `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and `System.Collections.Immutable` stay on `10.0.x` stable. Their higher versions are .NET 11 prereleases, and several publish only `net11.0` assets that cannot restore against `net10.0` / SDK `10.0.302`. Do not update this family without an approved platform migration.
 
 ## Critical Implementation Rules
 
@@ -193,4 +194,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Update when the technology stack, analyzer policy, MediatR pipeline, test tiers, or coverage gates change
 - Remove rules that become obvious over time
 
-Last Updated: 2026-06-29
+Last Updated: 2026-08-21
