@@ -2320,6 +2320,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         TenantDetail original = Detail("tenant.alpha");
         TenantDetail renamed = original with { Name = "Alpha renamed" };
+        TaskCompletionSource<TenantDetailSnapshot> refreshRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         int detailReads = 0;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -2327,9 +2328,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(_ =>
             {
                 detailReads++;
-                return Task.FromResult(detailReads == 1
-                    ? ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")
-                    : ReadyWithSafeConfiguration(renamed, ProjectionLifecycleState.Current, "projection-v2"));
+                return detailReads == 1
+                    ? Task.FromResult(ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1"))
+                    : refreshRead.Task;
             });
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
@@ -2361,8 +2362,467 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("form").Submit();
 
         EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        cut.WaitForAssertion(() =>
+        {
+            detailReads.ShouldBe(2);
+            metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+            // The page has genuinely rerendered during the suspended refresh and lowered admission for
+            // sibling commands. The metadata flow still owns that lease and must remain eligible to settle.
+            metadataFlow.IsCommandSurfaceAvailable.ShouldBeFalse();
+        });
+
+        refreshRead.SetResult(ReadyWithSafeConfiguration(
+            renamed,
+            ProjectionLifecycleState.Current,
+            "projection-v2"));
+
         cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha renamed");
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        _ = gateway.DidNotReceive().GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.From.HasValue),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Detail_page_confirms_identical_metadata_from_the_exact_authoritative_audit_row()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail original = Detail("tenant.alpha");
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v2")));
+        ConfigureAuthoritativeAuditCapability(gateway);
+        ConfigureMetadataAuditProof(gateway, request => MetadataAuditSnapshot(
+            request,
+            MetadataAuditRow(
+                "message-1",
+                request.TenantId,
+                request.From.ShouldNotBeNull())));
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("form").Submit();
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        _ = gateway.Received(1).GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request =>
+                request.TenantId == "tenant.alpha"
+                && request.From.HasValue
+                && request.Category == AuditEventCategory.Administrative
+                && request.PageSize == 100),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Route_change_discards_a_delayed_metadata_detail_proof_and_resets_the_flow_for_the_new_tenant()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail alpha = Detail("tenant.alpha");
+        TenantDetail beta = Detail("tenant.beta") with
+        {
+            Name = "Beta",
+            Description = "Tenant beta description",
+        };
+        var proofStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delayedProof = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken proofCancellation = default;
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.Arg<TenantDetailRequest>().TenantId;
+                TenantDetail detail = tenantId == beta.TenantId ? beta : alpha;
+                string projectionVersion = tenantId == beta.TenantId ? "beta-v1" : "alpha-v1";
+                return Task.FromResult(ReadyWithSafeConfiguration(
+                    detail,
+                    ProjectionLifecycleState.Current,
+                    projectionVersion));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.Arg<TenantUsersRequest>().TenantId;
+                TenantDetail detail = tenantId == beta.TenantId ? beta : alpha;
+                return Task.FromResult(MemberSnapshot(detail) with
+                {
+                    ProjectionVersion = tenantId == beta.TenantId ? "beta-v1" : "alpha-v1",
+                });
+            });
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                proofCancellation = call.ArgAt<CancellationToken>(1);
+                proofStarted.TrySetResult();
+                return delayedProof.Task;
+            });
+        ConfigureAuthoritativeAuditCapability(gateway);
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("alpha-message", "alpha-correlation")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, alpha.TenantId));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+        EditTenantMetadataFlow alphaFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed");
+        cut.Find("form").Submit();
+        await proofStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Render(parameters => parameters.Add(page => page.TenantId, beta.TenantId));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+        EditTenantMetadataFlow betaFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        ReferenceEquals(alphaFlow, betaFlow).ShouldBeFalse();
+        proofCancellation.IsCancellationRequested.ShouldBeTrue();
+
+        delayedProof.SetResult(ReadyWithSafeConfiguration(
+            alpha with { Name = "Alpha renamed" },
+            ProjectionLifecycleState.Current,
+            "alpha-v2"));
+        await Task.Yield();
+
+        cut.WaitForAssertion(() =>
+        {
+            betaFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+            betaFlow.Snapshot.Intent.ShouldBeNull();
+            betaFlow.Snapshot.MessageId.ShouldBeNull();
+            betaFlow.Snapshot.CorrelationId.ShouldBeNull();
+            betaFlow.Snapshot.LastConfirmedDetailProjection.ShouldNotBeNull().TenantId.ShouldBe(beta.TenantId);
+            betaFlow.Snapshot.LastConfirmedName.ShouldBe("Beta");
+            betaFlow.ProjectionVersionProvider.ShouldNotBeNull().Invoke().ShouldBe("beta-v1");
+            betaFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        });
+        cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldContain("Beta");
+        cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldNotContain("Alpha renamed");
+        alphaFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public async Task Route_change_discards_a_delayed_metadata_audit_proof_and_cannot_confirm_the_new_tenant()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail alpha = Detail("tenant.alpha");
+        TenantDetail beta = Detail("tenant.beta") with
+        {
+            Name = "Beta",
+            Description = "Tenant beta description",
+        };
+        var auditStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delayedAudit = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantAuditRequest? alphaAuditRequest = null;
+        CancellationToken auditCancellation = default;
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.Arg<TenantDetailRequest>().TenantId;
+                TenantDetail detail = tenantId == beta.TenantId ? beta : alpha;
+                string projectionVersion = tenantId == beta.TenantId ? "beta-v1" : "alpha-v1";
+                return Task.FromResult(ReadyWithSafeConfiguration(
+                    detail,
+                    ProjectionLifecycleState.Current,
+                    projectionVersion));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                string tenantId = call.Arg<TenantUsersRequest>().TenantId;
+                TenantDetail detail = tenantId == beta.TenantId ? beta : alpha;
+                return Task.FromResult(MemberSnapshot(detail) with
+                {
+                    ProjectionVersion = tenantId == beta.TenantId ? "beta-v1" : "alpha-v1",
+                });
+            });
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                alpha,
+                ProjectionLifecycleState.Current,
+                "alpha-v2")));
+        ConfigureAuthoritativeAuditCapability(gateway);
+        gateway.GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(request => request.From.HasValue),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                alphaAuditRequest = call.ArgAt<TenantAuditRequest>(0);
+                auditCancellation = call.ArgAt<CancellationToken>(2);
+                auditStarted.TrySetResult();
+                return delayedAudit.Task;
+            });
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("alpha-message", "alpha-correlation")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, alpha.TenantId));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+        EditTenantMetadataFlow alphaFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("form").Submit();
+        await auditStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Render(parameters => parameters.Add(page => page.TenantId, beta.TenantId));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+        EditTenantMetadataFlow betaFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        ReferenceEquals(alphaFlow, betaFlow).ShouldBeFalse();
+        auditCancellation.IsCancellationRequested.ShouldBeTrue();
+
+        TenantAuditRequest completedRequest = alphaAuditRequest.ShouldNotBeNull();
+        delayedAudit.SetResult(MetadataAuditSnapshot(
+            completedRequest,
+            MetadataAuditRow(
+                "alpha-message",
+                alpha.TenantId,
+                completedRequest.From.ShouldNotBeNull())));
+        await Task.Yield();
+
+        cut.WaitForAssertion(() =>
+        {
+            betaFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+            betaFlow.Snapshot.Intent.ShouldBeNull();
+            betaFlow.Snapshot.MessageId.ShouldBeNull();
+            betaFlow.Snapshot.CorrelationId.ShouldBeNull();
+            betaFlow.Snapshot.LastConfirmedDetailProjection.ShouldNotBeNull().TenantId.ShouldBe(beta.TenantId);
+            betaFlow.Snapshot.LastConfirmedName.ShouldBe("Beta");
+            betaFlow.ProjectionVersionProvider.ShouldNotBeNull().Invoke().ShouldBe("beta-v1");
+            betaFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        });
+        cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldContain("Beta");
+        alphaFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Theory]
+    [InlineData("unrelated")]
+    [InlineData("mismatched-event")]
+    [InlineData("mismatched-tenant")]
+    [InlineData("stale")]
+    [InlineData("unauthorized")]
+    [InlineData("incomplete")]
+    [InlineData("absent")]
+    public void Detail_page_does_not_confirm_identical_metadata_from_non_authoritative_audit_evidence(
+        string evidenceKind)
+        => AssertMetadataAuditProofDoesNotConfirm(evidenceKind);
+
+    [Fact]
+    public void Detail_page_rejects_stale_metadata_projection_proof()
+        => AssertMetadataProjectionProofDoesNotConfirm(renamed => TenantDetailSnapshot.Stale(
+            renamed,
+            "proof-etag",
+            ProjectionLifecycleState.Current,
+            "projection-v2"));
+
+    [Fact]
+    public void Detail_page_rejects_unknown_freshness_metadata_projection_proof()
+        => AssertMetadataProjectionProofDoesNotConfirm(renamed => TenantDetailSnapshot.Ready(
+            renamed,
+            "proof-etag",
+            ReadModelFreshnessState.Unknown,
+            ProjectionLifecycleState.Current,
+            "projection-v2"));
+
+    [Fact]
+    public void Detail_page_rejects_non_current_lifecycle_metadata_projection_proof()
+        => AssertMetadataProjectionProofDoesNotConfirm(renamed => TenantDetailSnapshot.Ready(
+            renamed,
+            "proof-etag",
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Rebuilding,
+            "projection-v2"));
+
+    [Fact]
+    public void Detail_page_rejects_unversioned_metadata_projection_proof()
+        => AssertMetadataProjectionProofDoesNotConfirm(renamed => ReadyWithSafeConfiguration(
+            renamed,
+            ProjectionLifecycleState.Current,
+            projectionVersion: null));
+
+    [Fact]
+    public void Detail_page_rejects_disabled_tenant_metadata_projection_proof()
+        => AssertMetadataProjectionProofDoesNotConfirm(renamed => ReadyWithSafeConfiguration(
+            renamed with { Status = TenantStatus.Disabled },
+            ProjectionLifecycleState.Current,
+            "projection-v2"));
+
+    private void AssertMetadataAuditProofDoesNotConfirm(string evidenceKind)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail original = Detail("tenant.alpha");
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v2")));
+        ConfigureAuthoritativeAuditCapability(gateway);
+        ConfigureMetadataAuditProof(gateway, request =>
+        {
+            DateTimeOffset attemptStartedAtUtc = request.From.ShouldNotBeNull();
+            TenantAuditRow row = MetadataAuditRow("message-1", request.TenantId, attemptStartedAtUtc);
+            return evidenceKind switch
+            {
+                "unrelated" => MetadataAuditSnapshot(
+                    request,
+                    row with { EventReference = "message-from-another-update" }),
+                "mismatched-event" => MetadataAuditSnapshot(
+                    request,
+                    row with { EventType = "TenantEnabled", Outcome = "TenantEnabled" }),
+                "mismatched-tenant" => MetadataAuditSnapshot(
+                    request,
+                    row with { TenantId = "tenant.other", Target = "tenant.other", Scope = "tenant.other" }),
+                "stale" => MetadataAuditSnapshot(
+                    request,
+                    row with { Freshness = ReadModelFreshnessState.Stale }),
+                "unauthorized" => TenantAuditSnapshot.Unauthorized(request),
+                "incomplete" => MetadataAuditSnapshot(request, row, hasMore: true),
+                "absent" => TenantAuditSnapshot.Empty(
+                    isAuthorizationScoped: true,
+                    ReadModelFreshnessState.Current,
+                    eTag: "audit-proof-etag",
+                    request) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = "audit-proof-v2",
+                },
+                _ => throw new ArgumentOutOfRangeException(nameof(evidenceKind), evidenceKind, null),
+            };
+        });
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("form").Submit();
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        metadataFlow.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+    }
+
+    private void AssertMetadataProjectionProofDoesNotConfirm(
+        Func<TenantDetail, TenantDetailSnapshot> proofFactory)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail original = Detail("tenant.alpha");
+        TenantDetail renamed = original with { Name = "Alpha renamed" };
+
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(
+                ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(proofFactory(renamed)));
+        ConfigureAuthoritativeAuditCapability(gateway);
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        Func<string?> projectionVersionProvider = metadataFlow.ProjectionVersionProvider.ShouldNotBeNull();
+        projectionVersionProvider().ShouldBe("projection-v1");
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        metadataFlow.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+        metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
+        projectionVersionProvider().ShouldBe("projection-v1");
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        _ = gateway.Received(1).GetUpdateMetadataProjectionProofAsync(
+            Arg.Is<UpdateTenant>(request => request.TenantId == "tenant.alpha"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -4483,6 +4943,52 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     ProjectionVersion = "audit-capability-v1",
                 };
             });
+
+    private static void ConfigureMetadataAuditProof(
+        ITenantQueryGateway gateway,
+        Func<TenantAuditRequest, TenantAuditSnapshot> proofFactory)
+        => gateway.GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(request =>
+                    request.From.HasValue
+                    && request.Category == AuditEventCategory.Administrative),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(proofFactory(call.ArgAt<TenantAuditRequest>(0))));
+
+    private static TenantAuditSnapshot MetadataAuditSnapshot(
+        TenantAuditRequest request,
+        TenantAuditRow row,
+        bool hasMore = false)
+        => TenantAuditSnapshot.Ready(
+            [row],
+            hasMore ? "opaque-next-page" : null,
+            hasMore,
+            "audit-proof-etag",
+            ReadModelFreshnessState.Current,
+            request) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "audit-proof-v2",
+        };
+
+    private static TenantAuditRow MetadataAuditRow(
+        string messageId,
+        string tenantId,
+        DateTimeOffset timestamp)
+        => new(
+            messageId,
+            "TenantUpdated",
+            AuditEventCategory.Administrative,
+            "operator-user",
+            timestamp,
+            tenantId,
+            tenantId,
+            tenantId,
+            "TenantUpdated",
+            string.Empty,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 
     private static TenantDetailSnapshot Snapshot(TenantDetailSurfaceKind kind)
         => kind switch

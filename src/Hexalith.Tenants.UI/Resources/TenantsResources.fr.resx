@@ -2565,20 +2565,29 @@
   <data name="Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
     <value>La projection des metadonnees correspond a la demande, mais la provenance de mise a jour n'a pas pu etre verifiee. Actualisez le statut ou continuez en lecture seule.</value>
   </data>
+  <data name="Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure" xml:space="preserve">
+    <value>Le statut de la commande n'a pas pu etre verifie. Reessayez la consultation du statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure" xml:space="preserve">
+    <value>La preuve de projection des metadonnees n'a pas pu etre verifiee. Actualisez le statut ou continuez en lecture seule.</value>
+  </data>
   <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
     <value>Preuve d'audit non demarree.</value>
   </data>
   <data name="Tenants.EditMetadata.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente ; aucun recu n'est disponible dans cette story.</value>
+    <value>Preuve d'audit en attente ; aucun recu de commande correspondant n'est encore disponible.</value>
   </data>
   <data name="Tenants.EditMetadata.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardee ; attendez ou inspectez l'audit lorsque la preuve de l'Epic 5 est disponible.</value>
+    <value>Preuve d'audit retardee ; attendez ou inspectez la piste d'audit.</value>
   </data>
   <data name="Tenants.EditMetadata.Audit.AuditUnavailable" xml:space="preserve">
     <value>Preuve d'audit indisponible ; aucune preuve ni aucun recu n'est affirme.</value>
   </data>
+  <data name="Tenants.EditMetadata.Audit.AuditAvailable" xml:space="preserve">
+    <value>La preuve d'audit confirme cette mise a jour des metadonnees.</value>
+  </data>
   <data name="Tenants.EditMetadata.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implemente pas la source de preuve.</value>
+    <value>La prise en charge de la preuve d'audit est indisponible pour cette tentative.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez le formulaire lorsque la preuve de projection actuelle est disponible.</value>

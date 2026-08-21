@@ -1,7 +1,10 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Shouldly;
@@ -130,7 +133,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     }
 
     [Fact]
-    public void Identical_submitted_metadata_confirms_with_provenance_and_never_becomes_already_applied()
+    public void Identical_submitted_metadata_does_not_borrow_version_only_aggregate_churn()
     {
         var intent = new UpdateTenant("tenant.alpha", "Alpha", "same description");
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
@@ -139,13 +142,84 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
-        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
+        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(
             Detail("tenant.alpha", "Alpha", "same description"),
             currentProjectionVersion: "v2");
+
+        unable.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        unable.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        unable.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        unable.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+        unable.LastConfirmedName.ShouldBe("Alpha");
+    }
+
+    [Fact]
+    public void Identical_submitted_metadata_confirms_with_command_specific_audit_provenance()
+    {
+        DateTimeOffset attemptStartedAtUtc = DateTimeOffset.Parse(
+            "2026-08-21T12:00:00Z",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var intent = new UpdateTenant("tenant.alpha", "Alpha", "same description");
+        TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
+            .Idle("Alpha", "same description")
+            .RequestSent(intent, baselineProjectionVersion: "v1", attemptStartedAtUtc)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
+            Detail("tenant.alpha", "Alpha", "same description"),
+            currentProjectionVersion: "v2",
+            auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
         confirmed.SafeMessageKey.ShouldBeNull();
+        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+    }
+
+    [Theory]
+    [InlineData("message")]
+    [InlineData("event")]
+    [InlineData("tenant")]
+    [InlineData("stale")]
+    [InlineData("lifecycle")]
+    [InlineData("provenance")]
+    [InlineData("timestamp")]
+    [InlineData("incomplete")]
+    public void Identical_metadata_rejects_non_command_specific_or_non_authoritative_audit_rows(
+        string invalidField)
+    {
+        DateTimeOffset attemptStartedAtUtc = DateTimeOffset.Parse(
+            "2026-08-21T12:00:00Z",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var intent = new UpdateTenant("tenant.alpha", "Alpha", "same description");
+        TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
+            .Idle("Alpha", "same description")
+            .RequestSent(intent, "v1", attemptStartedAtUtc)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        TenantAuditRow proof = AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc);
+        proof = invalidField switch
+        {
+            "message" => proof with { EventReference = "message-from-another-update" },
+            "event" => proof with { EventType = "TenantEnabled", Outcome = "TenantEnabled" },
+            "tenant" => proof with { TenantId = "tenant.other", Target = "tenant.other", Scope = "tenant.other" },
+            "stale" => proof with { Freshness = ReadModelFreshnessState.Stale },
+            "lifecycle" => proof with { Lifecycle = ProjectionLifecycleState.Rebuilding },
+            "provenance" => proof with { Provenance = QueryResponseProvenance.HandlerComputed },
+            "timestamp" => proof with { Timestamp = attemptStartedAtUtc.AddTicks(-1) },
+            "incomplete" => proof with { ActorId = string.Empty },
+            _ => throw new ArgumentOutOfRangeException(nameof(invalidField), invalidField, null),
+        };
+
+        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(
+            Detail("tenant.alpha", "Alpha", "same description"),
+            "v2",
+            proof);
+
+        unable.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        unable.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+        unable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
     }
 
     [Fact]
@@ -191,19 +265,23 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     [Fact]
     public void Qualifying_audit_provenance_can_confirm_without_version_advancement()
     {
+        DateTimeOffset attemptStartedAtUtc = DateTimeOffset.Parse(
+            "2026-08-21T12:00:00Z",
+            System.Globalization.CultureInfo.InvariantCulture);
         var intent = new UpdateTenant("tenant.alpha", "Updated", null);
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
             .Idle("Original", "Original description")
-            .RequestSent(intent, baselineProjectionVersion: "v1")
+            .RequestSent(intent, baselineProjectionVersion: "v1", attemptStartedAtUtc)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
             Detail("tenant.alpha", "Updated", null),
             currentProjectionVersion: "v1",
-            hasQualifyingAuditProvenance: true);
+            auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
     }
 
     [Fact]
@@ -303,4 +381,23 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             [new TenantMember("owner-user", TenantRole.TenantOwner)],
             new Dictionary<string, string>(),
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+
+    private static TenantAuditRow AuditProof(
+        string messageId,
+        string tenantId,
+        DateTimeOffset timestamp)
+        => new(
+            messageId,
+            "TenantUpdated",
+            AuditEventCategory.Administrative,
+            "operator-user",
+            timestamp,
+            tenantId,
+            tenantId,
+            tenantId,
+            "TenantUpdated",
+            string.Empty,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked);
 }

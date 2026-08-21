@@ -1318,3 +1318,38 @@ Review loop 3, chunk B (surfaces, resources & shared services; 22 files, +1469/-
 
 - summary: An eighth undeclared `references/` pointer move appeared during this review.
   evidence: `references/Hexalith.EventStore` moved `c890235` -> `f8b514f` in the working tree while the review was running, on top of the seven `validate-story-gitlinks.py` already reports. Extends the open chunk-A gitlink decision rather than forming a new one.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Preserve and reuse the create command message ID after an indeterminate gateway failure.
+  evidence: `CreateTenantAsync` returns the resolved message ID on gateway exceptions, but `CreateTenantFlow` discards it on the non-accepted path, so an exact retry can mint a second idempotency key for a command that may already have reached EventStore.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Exercise the production create-attempt tracker across a real component remount.
+  evidence: Existing remount coverage pre-seeds a tracker manually and does not prove the scoped registration plus production `Remember` call preserve the original intent and baseline from the first dispatched flow.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion.
+  evidence: `CreateTenantFlow`, `AddTenantMemberFlow`, and `ChangeTenantMemberRoleFlow` can enter their unavailable branches while `_isSubmitting`, replacing the active request snapshot before the original gateway continuation applies its result.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Require current authoritative projection state for create and membership command confirmation evidence.
+  evidence: Review found create/list and membership/detail evidence providers that can forward stale, degraded, or non-current-lifecycle payloads to confirmers that cannot recover the discarded freshness metadata.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Retain aggregate command admission across tenant route changes and disposal until the old command is terminal.
+  evidence: `TenantDetailPage` can release the old aggregate lease while command and status operations continue with `CancellationToken.None`, allowing another surface to acquire the same tenant and dispatch concurrently.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Preserve the resolved create-command message ID after an indeterminate submission so an exact retry cannot mint a duplicate identity.
+  evidence: `CreateTenantFlow` does not adopt `TenantCommandSubmissionResult.MessageId` on its non-accepted branch, so a failed result that may already have reached EventStore is retried with a null ID even though the gateway returned the reusable identity.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Define causal projection-change handling for valid opaque or content-hash version tokens across command flows.
+  evidence: `IReadModelFreshness.ProjectionVersion` explicitly permits opaque content hashes, while the shared causal helper accepts only matching prefixes with increasing numeric suffixes; valid changed tokens therefore fail closed across create and membership consumers.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge.
+  evidence: Both membership flows return from an in-flight refresh without recording that the later caller requested projection reload, so the user-requested refresh can be dropped and confirmation delayed indefinitely.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog.
+  evidence: `sprint-status.yaml` currently reports `epic-3: done` and `epic-3-retrospective: done` alongside unfinished Epic 3 story entries, so aggregate status is internally contradictory.

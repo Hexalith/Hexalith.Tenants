@@ -1,5 +1,6 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantAudit
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
@@ -165,6 +166,7 @@
     private string? _validationMessage;
     private bool _isOpen;
     private bool _isSubmitting;
+    private bool _isRefreshing;
     private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
     private FluentTextInput _nameElement = default!;
@@ -220,6 +222,9 @@
 
     [Parameter]
     public Func<UpdateTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<UpdateTenant, string?, DateTimeOffset?, Task<TenantAuditRow?>>? AuditEvidenceProvider { get; set; }
 
     internal TenantUpdateMetadataCommandSnapshot Snapshot => _snapshot;
 
@@ -277,7 +282,8 @@
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
-        => !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+        => !_isRefreshing
+        && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
         && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
@@ -313,11 +319,34 @@
                 : null;
 
     // A drifted or missing key must not surface its raw resource id to the user.
-    private string? ResolveSafeMessageKey(string key)
+    private string ResolveSafeMessageKey(string key)
     {
         var localized = Localizer[key];
-        return localized.ResourceNotFound ? null : localized.Value;
+        return localized.ResourceNotFound
+            ? Localizer["Tenants.EditMetadata.State.UnableToVerify"].Value
+            : localized.Value;
     }
+
+    private string? ProjectionConfirmationUnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+            ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale
+                or TenantDetailSurfaceKind.Unavailable
+                or TenantDetailSurfaceKind.Unknown
+                or TenantDetailSurfaceKind.Degraded
+                || Freshness is not ReadModelFreshnessState.Current
+                ? Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value
+            : Lifecycle is not ProjectionLifecycleState.Current
+                ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
+                    // The parent lowers command-surface admission while this flow owns the aggregate lease.
+                    // That blocks sibling/new commands, but must not disqualify the owner's reconciliation.
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
+                        ? Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value
+                        : string.IsNullOrWhiteSpace(Detail.TenantId)
+                            ? Localizer["Tenants.EditMetadata.Unavailable.Identity"].Value
+                            : null;
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
@@ -433,6 +462,20 @@
         }
     }
 
+    private TenantUpdateMetadataCommandSnapshot BlockCurrentSnapshot(
+        string safeMessage,
+        TenantCommandFocusTarget focusTarget)
+        => _snapshot with
+        {
+            State = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage = safeMessage,
+            SafeMessageKey = null,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = focusTarget,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
@@ -471,9 +514,17 @@
 
     private async Task SubmitAsync()
     {
+        // A queued form event can re-enter while the active dispatch still awaits the gateway. It belongs
+        // to the same physical submit, not a retry decision, so it must not replace RequestSent (and its
+        // intent/baseline) with the `_isSubmitting` unavailable state or dispatch a second command.
+        if (_isSubmitting)
+        {
+            return;
+        }
+
         _validationMessage = null;
 
-        if (!_isSubmitting && IsOwnedCommandInFlight)
+        if (IsOwnedCommandInFlight)
         {
             // Same logical attempt still in flight: re-query status with stored tracking; never mint a second dispatch.
             if (!string.IsNullOrWhiteSpace(_snapshot.MessageId)
@@ -501,7 +552,7 @@
 
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
-            SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            SetSnapshot(BlockCurrentSnapshot(UnavailableReason, TenantCommandFocusTarget.Submit));
             return;
         }
 
@@ -517,17 +568,38 @@
             Detail.TenantId,
             submittedName,
             string.IsNullOrWhiteSpace(_description) ? null : _description);
-        // Reuse the attempt identity only for a genuine retry of the same logical attempt: a Failed dispatch
-        // whose correlation was never established. Every other resubmit is a deliberate new attempt and must
-        // mint a fresh ULID, otherwise an idempotent command bus dedupes the new values away and the flow
-        // reconciles against the previous command's status. Mirrors AddTenantMemberFlow.
-        string? retryMessageId = _snapshot.State is TenantCommandLifecycleState.Failed
-            && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
-            && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+        bool isSameRecoverableAttempt = _snapshot.State is (
+            TenantCommandLifecycleState.Failed
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded)
             && Equals(_snapshot.Intent, request)
+            && !string.IsNullOrWhiteSpace(_snapshot.MessageId);
+        if (isSameRecoverableAttempt && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+        {
+            // The attempt is already tracked. Treat an unchanged resubmit as reconnect/status recovery;
+            // changed form values below remain a deliberate new attempt with a new identity.
+            await RefreshStatusAsync().ConfigureAwait(false);
+            return;
+        }
+
+        // Reuse the attempt identity only for a genuine retry of the same logical attempt whose correlation
+        // was never established. Every changed request is a deliberate new attempt and must mint a fresh ULID,
+        // otherwise an idempotent command bus dedupes the new values away. Mirrors AddTenantMemberFlow.
+        string? retryMessageId = isSameRecoverableAttempt
+            && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
                 ? _snapshot.MessageId
                 : null;
-        _snapshot = _snapshot.RequestSent(request, ResolveCurrentProjectionVersion()) with
+        // Capture the rendered detail snapshot as the pre-submit baseline. ProjectionVersionProvider may
+        // retain the version from a prior proof read so confirmation can pair evidence and version from one
+        // response; using that sticky proof value here would let already-observed ambient churn qualify a
+        // later same-value attempt.
+        string? attemptBaselineProjectionVersion = isSameRecoverableAttempt
+            ? _snapshot.BaselineProjectionVersion
+            : ProjectionVersion;
+        DateTimeOffset? attemptStartedAtUtc = isSameRecoverableAttempt
+            ? _snapshot.AttemptStartedAtUtc
+            : null;
+        _snapshot = _snapshot.RequestSent(request, attemptBaselineProjectionVersion, attemptStartedAtUtc) with
         {
             MessageId = retryMessageId,
             CorrelationId = null,
@@ -537,7 +609,7 @@
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
         {
             _isSubmitting = false;
-            SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(
+            SetSnapshot(BlockCurrentSnapshot(
                 Localizer["Tenants.Commands.Unavailable.AggregateInFlight"].Value,
                 TenantCommandFocusTarget.Submit));
             return;
@@ -548,7 +620,7 @@
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
-                SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(
+                SetSnapshot(BlockCurrentSnapshot(
                     Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
                     TenantCommandFocusTarget.Submit));
                 return;
@@ -571,7 +643,7 @@
                     MessageId = result.MessageId ?? _snapshot.MessageId,
                     CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = result.SafeMessageKey,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -588,49 +660,138 @@
 
     private async Task RefreshStatusAsync()
     {
-        if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+        if (_isRefreshing)
         {
-            if (TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State)
-                || _snapshot.State is TenantCommandLifecycleState.UnableToVerify
-                    or TenantCommandLifecycleState.Degraded)
+            return;
+        }
+
+        _isRefreshing = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
             {
-                SetSnapshot(_snapshot with
+                if (TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State)
+                    || _snapshot.State is TenantCommandLifecycleState.UnableToVerify
+                        or TenantCommandLifecycleState.Degraded)
                 {
-                    State = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
-                    SafeMessageKey = null,
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                });
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                    SetSnapshot(_snapshot with
+                    {
+                        State = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessage = Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
+                        SafeMessageKey = null,
+                        AuditState = TenantCommandAuditState.AuditUnavailable,
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    });
+                }
+
+                return;
             }
 
-            return;
-        }
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)));
+                return;
+            }
 
-        ITenantCommandGateway? gateway = CommandGateway;
-        if (gateway is null)
+            TenantCommandStatusResult status;
+            try
+            {
+                status = await gateway
+                    .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                SetUnableToVerify("Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure");
+                return;
+            }
+
+            SetSnapshot(_snapshot.ApplyStatus(status));
+
+            if (_snapshot.Intent is null || _snapshot.State is not TenantCommandLifecycleState.ProjectionPending)
+            {
+                return;
+            }
+
+            try
+            {
+                await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+                string? confirmationUnavailableReason = ProjectionConfirmationUnavailableReason;
+                if (!string.IsNullOrWhiteSpace(confirmationUnavailableReason))
+                {
+                    SetSnapshot(_snapshot with
+                    {
+                        State = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessage = confirmationUnavailableReason,
+                        SafeMessageKey = null,
+                        AuditState = TenantCommandAuditState.AuditUnavailable,
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    });
+                    return;
+                }
+
+                if (ProjectionEvidenceProvider is null)
+                {
+                    SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+                    return;
+                }
+
+                UpdateTenant intent = _snapshot.Intent;
+                TenantDetail? evidence = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
+                if (evidence is null)
+                {
+                    SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+                    return;
+                }
+
+                TenantAuditRow? auditEvidence = null;
+                if (_snapshot.IsSameValueAttempt && AuditEvidenceProvider is not null)
+                {
+                    auditEvidence = await AuditEvidenceProvider(
+                        intent,
+                        _snapshot.MessageId,
+                        _snapshot.AttemptStartedAtUtc).ConfigureAwait(false);
+                }
+
+                SetSnapshot(_snapshot.ConfirmProjection(
+                    evidence,
+                    ResolveCurrentProjectionVersion(),
+                    auditEvidence));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
+            }
+        }
+        finally
         {
-            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)));
+            _isRefreshing = false;
             await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
-            return;
         }
-
-        TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
-            .ConfigureAwait(false);
-        SetSnapshot(_snapshot.ApplyStatus(status));
-
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
-        {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence, ResolveCurrentProjectionVersion()));
-        }
-
-        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
+
+    private void SetUnableToVerify(string safeMessageKey)
+        => SetSnapshot(_snapshot with
+        {
+            State = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage = null,
+            SafeMessageKey = safeMessageKey,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.AuditUnavailable,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        });
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)
     {
