@@ -17,8 +17,10 @@
         {
             <p class="tenants-audit-availability__reason">@ReasonText</p>
         }
+        @if (RenderableRecoveryVerbs.Count > 0)
+        {
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
-            @foreach (TenantAuditRecoveryVerb verb in Availability.RecoveryVerbs.Where(CanRenderRecovery))
+            @foreach (TenantAuditRecoveryVerb verb in RenderableRecoveryVerbs)
             {
                 @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
                 {
@@ -37,6 +39,7 @@
                 }
             }
         </FluentStack>
+        }
     </section>
 }
 
@@ -86,10 +89,43 @@
             ? Localizer[$"Tenants.Audit.Availability.Reason.{Availability.State}{RecoveryCopySuffix}"]
             : string.Empty;
 
+    private IReadOnlyList<TenantAuditRecoveryVerb> RenderableRecoveryVerbs
+        => [.. Availability.RecoveryVerbs.Where(CanRenderRecovery)];
+
+    // Derived from what will actually render, not from OnEscalate alone. The old rule only compensated for a
+    // missing escalate delegate, so a surface that also lacked OnContinueReadOnly still announced "continue
+    // read-only" with no such control -- and MissingSupport, whose verbs are ContinueReadOnly + Escalate,
+    // announced a recovery while rendering no buttons at all.
     private string RecoveryCopySuffix
-        => Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.Escalate) && !OnEscalate.HasDelegate
-            ? ".NoEscalation"
-            : string.Empty;
+    {
+        get
+        {
+            // Only the two recovery-bearing states carry copy variants; Pending/Delayed/Available keep their
+            // base key. This also matches the old behaviour, which was scoped to these states implicitly
+            // because Escalate appears in no other verb set.
+            if (Availability.State is not (TenantAuditAvailabilityState.Unavailable
+                or TenantAuditAvailabilityState.MissingSupport))
+            {
+                return string.Empty;
+            }
+
+            IReadOnlyList<TenantAuditRecoveryVerb> renderable = RenderableRecoveryVerbs;
+            if (renderable.Count == 0)
+            {
+                return ".NoRecovery";
+            }
+
+            bool readOnlyOffered = Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.ContinueReadOnly);
+            if (readOnlyOffered && !renderable.Contains(TenantAuditRecoveryVerb.ContinueReadOnly))
+            {
+                return ".RefreshOnly";
+            }
+
+            return Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.Escalate) && !OnEscalate.HasDelegate
+                ? ".NoEscalation"
+                : string.Empty;
+        }
+    }
 
     private string StateGlyph
         => Availability.State switch
@@ -97,7 +133,7 @@
             TenantAuditAvailabilityState.Pending => "...",
             TenantAuditAvailabilityState.Delayed => "!",
             TenantAuditAvailabilityState.Unavailable => "?",
-            TenantAuditAvailabilityState.Available => "OK",
+            TenantAuditAvailabilityState.Available => "\u2713",
             TenantAuditAvailabilityState.MissingSupport => "?",
             _ => string.Empty,
         };
@@ -108,7 +144,9 @@
     private bool CanRenderRecovery(TenantAuditRecoveryVerb verb)
         => verb switch
         {
-            TenantAuditRecoveryVerb.Wait => true,
+            // Wait has no handler (InvokeRecoveryAsync breaks on it), so rendering it as a FluentButton gave
+            // the operator a live, enabled control that did nothing. Waiting is conveyed by the state copy.
+            TenantAuditRecoveryVerb.Wait => false,
             TenantAuditRecoveryVerb.Refresh => OnRefresh.HasDelegate,
             TenantAuditRecoveryVerb.InspectAudit => InspectAuditAction is not null || OnInspectAudit.HasDelegate,
             TenantAuditRecoveryVerb.ContinueReadOnly => OnContinueReadOnly.HasDelegate,

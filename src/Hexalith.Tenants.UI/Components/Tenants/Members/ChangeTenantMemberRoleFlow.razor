@@ -126,7 +126,8 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
-                                        OnRefresh="RefreshStatusAsync">
+                                        OnRefresh="RefreshStatusAsync"
+                                        OnContinueReadOnly="ContinueReadOnlyAsync">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                                  TargetUserId="@Member.UserId"
@@ -667,6 +668,17 @@
     {
         if (IsOwnedCommandInFlight)
         {
+            // Returning silently left a dead control: Cancel is disabled, Submit is disabled and
+            // CanContinueReadOnly is false for RequestSent/Accepted/ProjectionPending, so Escape was the only
+            // remaining exit and it did nothing at all. Say so assertively and point at the one named
+            // recovery that is still live, matching the remove flow's blocked-dismissal behaviour.
+            SetSnapshot(_snapshot with
+            {
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.ChangeRole.Dismiss.Blocked",
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+            });
             return;
         }
 

@@ -2,9 +2,9 @@
 title: 'Edit Tenant Metadata with Recorded Updates'
 type: 'feature'
 created: '2026-08-08'
-status: 'done'
+status: 'in-review'
 baseline_commit: '753f1ead9e155a0ea53009e9a9d8f9dcb3d5024a'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-3-context.md'
@@ -151,21 +151,30 @@ Reuse `TenantMembershipCommandProvenance` rather than copying opaque version com
 
 ### Review Findings
 
-_Code review 2026-08-21 (loop 1). Range `753f1ead..91914b94`. Four layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor. Line refs are HEAD (`44362aed`); the metadata regions are byte-identical between the story commit and HEAD, so they resolve correctly._
+_Code review 2026-08-21 (loop 1). All 12 patch items applied. Verified: UI suite 2121/2121 green, plus
+mutation-verification of the messageId gate and the causal-provenance gate (each fix confirmed to fail
+when reverted). EXCEPTION: the page-level test `Detail_page_confirms_metadata_update_from_the_authoritative_proof_read`
+is written but NOT yet compiled or run -- a concurrent session bumped `references/Hexalith.Builds` to
+`744b282`, whose catalog pins xunit.v3 4.0.0 against xunit.v3.assert/extensibility 3.2.2, so every test
+project now fails restore with NU1107. Production code still builds clean (0 warnings). Re-run
+`dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj` once that gitlink is
+coherent. Not a Story 3.2 defect._
 
-- [ ] [Review][Patch] Metadata confirmation evidence is the ambient page snapshot, not an authoritative re-query — add a `GetUpdateMetadataProjectionProofAsync` on the query gateway and use it, mirroring `GetSetConfigurationProjectionProofAsync` / `GetRemoveConfigurationProjectionProofAsync`. Resolved from [Review][Decision] on 2026-08-21: user chose to patch. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1632]
+_Original review header:_ Range `753f1ead..91914b94`. Four layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor. Line refs are HEAD (`44362aed`); the metadata regions are byte-identical between the story commit and HEAD, so they resolve correctly._
 
-- [ ] [Review][Patch] HIGH — Unconditional `messageId` reuse replays the previous attempt on a deliberate new edit (regression) [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:479]
-- [ ] [Review][Patch] Metadata confirmation uses the non-causal legacy provenance overload while all three membership siblings were since hardened onto the causal one [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1243]
-- [ ] [Review][Patch] Stale `SafeMessageKey` survives the Rejected / PublishFailed / TimedOut / null-status / default `ApplyStatus` arms [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1136]
-- [ ] [Review][Patch] In-flight-without-tracking `Blocked(...)` discards last-confirmed metadata and leaks the aggregate command-activity lease [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:456]
-- [ ] [Review][Patch] No page-level test drives the provenance handshake end to end; the two halves stub each other out [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1565]
-- [ ] [Review][Patch] No flow-level test observes a non-null reused `messageId` reaching the gateway — the reason the reuse regression shipped green [tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs:380]
-- [ ] [Review][Patch] Tracking metadata contradicts itself: spec frontmatter `status: 'done'` vs `sprint-status.yaml: review`; `epic-3: done` while 3-1/3-2 are `review` and 3-3..3-6 are `backlog` [_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md:5]
-- [ ] [Review][Patch] `ProjectionPending` is synthesizable by `SignalRNudge`, so the new guard's comment "Only status-driven ProjectionPending (Completed/Events*) may confirm" is not enforced — latent only, as the metadata flow's nudge entry point has no callers [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1197]
-- [ ] [Review][Patch] `CanRefresh` uses `is not null` while `RefreshStatusAsync` uses `IsNullOrWhiteSpace`; a blank tracking id enables a refresh button that immediately takes the lost-tracking branch [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:272]
-- [ ] [Review][Patch] `SafeMessageText` resolves `Localizer[key].Value` with no `ResourceNotFound` guard, so a drifted key renders the raw resource id to the user [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:301]
-- [ ] [Review][Patch] The four new `deferred-work.md` entries land under the preceding `## Deferred from: ... spec-3-1 ...` heading (each entry does carry a correct `source_spec:`, so this is cosmetic) [_bmad-output/implementation-artifacts/deferred-work.md:999]
+- [x] [Review][Patch] Metadata confirmation evidence is the ambient page snapshot, not an authoritative re-query — add a `GetUpdateMetadataProjectionProofAsync` on the query gateway and use it, mirroring `GetSetConfigurationProjectionProofAsync` / `GetRemoveConfigurationProjectionProofAsync`. Resolved from [Review][Decision] on 2026-08-21: user chose to patch. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1632]
+
+- [x] [Review][Patch] HIGH — Unconditional `messageId` reuse replays the previous attempt on a deliberate new edit (regression) [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:479]
+- [x] [Review][Patch] Metadata confirmation uses the non-causal legacy provenance overload while all three membership siblings were since hardened onto the causal one [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1243]
+- [x] [Review][Patch] Stale `SafeMessageKey` survives the Rejected / PublishFailed / TimedOut / null-status / default `ApplyStatus` arms [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1136]
+- [x] [Review][Patch] In-flight-without-tracking `Blocked(...)` discards last-confirmed metadata and leaks the aggregate command-activity lease [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:456]
+- [x] [Review][Patch] No page-level test drives the provenance handshake end to end; the two halves stub each other out [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1565]
+- [x] [Review][Patch] No flow-level test observes a non-null reused `messageId` reaching the gateway — the reason the reuse regression shipped green [tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs:380]
+- [x] [Review][Patch] Tracking metadata contradicts itself: spec frontmatter `status: 'done'` vs `sprint-status.yaml: review`; `epic-3: done` while 3-1/3-2 are `review` and 3-3..3-6 are `backlog` [_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md:5]
+- [x] [Review][Patch] `ProjectionPending` is synthesizable by `SignalRNudge`, so the new guard's comment "Only status-driven ProjectionPending (Completed/Events*) may confirm" is not enforced — latent only, as the metadata flow's nudge entry point has no callers [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1197]
+- [x] [Review][Patch] `CanRefresh` uses `is not null` while `RefreshStatusAsync` uses `IsNullOrWhiteSpace`; a blank tracking id enables a refresh button that immediately takes the lost-tracking branch [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:272]
+- [x] [Review][Patch] `SafeMessageText` resolves `Localizer[key].Value` with no `ResourceNotFound` guard, so a drifted key renders the raw resource id to the user [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:301]
+- [x] [Review][Patch] The four new `deferred-work.md` entries land under the preceding `## Deferred from: ... spec-3-1 ...` heading (each entry does carry a correct `source_spec:`, so this is cosmetic) [_bmad-output/implementation-artifacts/deferred-work.md:999]
 
 - [x] [Review][Defer] `AttemptStartedAtUtc` and `hasQualifyingAuditProvenance` are dead in production; a test pins an unreachable branch [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1181] — deferred, pre-existing
 - [x] [Review][Defer] Story premise unproven on the projection side: nothing asserts `ProjectionVersion` advances for a same-value update [tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs] — deferred, pre-existing

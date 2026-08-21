@@ -6,8 +6,12 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class CommandFlowGuardConformanceTests
 {
+    // Both release mechanisms must be policed. The flows moved from the EventCallback to the Func-based
+    // CommandActivityLease, and this guard matched only the retired path -- so it kept passing while no
+    // longer guarding anything the live code does.
     private static readonly Regex DirectParentLockRelease = new(
-        "OnCommandActivityChanged\\.InvokeAsync\\(false\\)",
+        "OnCommandActivityChanged\\.InvokeAsync\\(\\s*false\\s*\\)"
+        + "|CommandActivityLease(\\.Invoke)?\\(\\s*false\\s*\\)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     [Fact]
@@ -31,7 +35,8 @@ public sealed class CommandFlowGuardConformanceTests
 
         offenders.ShouldBeEmpty(
             "Command flows must route page-level command activity through TenantCommandFlowGuard so Accepted "
-            + "and ProjectionPending work keeps sibling command surfaces locked until projection truth or a terminal state.");
+            + "and ProjectionPending work keeps sibling command surfaces locked until projection truth or a terminal state. "
+            + "This applies to the CommandActivityLease delegate as well as the OnCommandActivityChanged callback.");
     }
 
     private static string ProjectRoot()

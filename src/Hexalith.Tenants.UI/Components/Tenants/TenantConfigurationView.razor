@@ -5,7 +5,8 @@
          aria-labelledby="tenants-config-read-heading"
          data-testid="tenants-config-read-section">
     <header class="tenant-config__header">
-        @* FluentStack replaces raw layout divs for the DivSpan budget; CSS owns title/truth spacing. *@
+        @* FluentStack replaces raw layout divs for the DivSpan budget. Classes on these hosts are styled through
+           ::deep in the scoped sheet; a plain selector would never match a component's root element. *@
         <FluentStack Orientation="Orientation.Vertical">
             <h2 id="tenants-config-read-heading">@Localizer["Tenants.Configuration.Title"]</h2>
             <p>@Localizer["Tenants.Configuration.Description"]</p>
@@ -101,7 +102,8 @@
         }
         else
         {
-            @* FluentStack is the budget-safe host; CSS Class owns overflow and group grid layout. *@
+            @* FluentStack is the budget-safe host. The Class is styled from the scoped sheet through ::deep, because
+               scoped CSS never stamps its attribute onto a child component's root element. *@
             <FluentStack Class="tenant-config__table-wrap"
                          data-testid="tenants-config-read-table"
                          role="region"

@@ -101,6 +101,7 @@
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseFlowAsync"
                                     OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    CommandActivityLease="@CommandActivityLease"
                                     ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
     }
 </section>
@@ -150,6 +151,13 @@
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate command-activity lease, forwarded to the lifecycle command flow so a
+    /// refused acquisition aborts the dispatch instead of being discarded.
+    /// </summary>
+    [Parameter]
+    public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
     public Func<TenantLifecycleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }

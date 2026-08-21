@@ -7,10 +7,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 namespace Hexalith.Tenants.UI.Services.Configuration;
 
 /// <summary>
-/// Resolves tenant configuration evidence from the authoritative SSR request or interactive-circuit identity.
+/// Resolves tenant configuration evidence from the authoritative interactive-circuit identity.
 /// </summary>
 internal sealed class TenantConfigurationPrincipalResolver(
     CircuitServicesAccessor circuitServicesAccessor,
+    IUserContextAccessor userContextAccessor,
     AuthenticationStateProvider? authenticationStateProvider = null,
     IHttpContextAccessor? httpContextAccessor = null) : ITenantConfigurationPrincipalResolver
 {
@@ -41,54 +42,56 @@ internal sealed class TenantConfigurationPrincipalResolver(
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
+        if (circuitServices is not null && provider is null)
+        {
+            // An inbound circuit activity was published, but it did not carry its authoritative
+            // AuthenticationStateProvider. Do not borrow either request or constructor-injected state.
+            return TenantConfigurationPrincipalEvidence.Indeterminate();
+        }
+
+        // An active HttpContext is the discriminator that keeps HttpContext.User out of the evidence chain.
+        // This resolver is registered Scoped, so on the prerender and static-SSR passes its own scope IS the
+        // request scope and the injected AuthenticationStateProvider is seeded from HttpContext.User --
+        // exactly the source the 2026-08-01 owner decision removed
+        // (spec-1-11-authorized-global-administrator-review.md:75: "keep the current circuit-over-HTTP
+        // precedence with no HttpContext.User fallback"), because a stale request principal must not retain
+        // privilege after a live circuit authentication change. IHttpContextAccessor.HttpContext is
+        // AsyncLocal, so the establishing request's context can also surface on circuit-owned work; refusing
+        // whenever it is in scope is what closes that path. Prerender therefore stays Indeterminate and
+        // renders the restricted surface; the interactive instance resolves for real once the circuit is up.
+        // The availability cost of this rule is addressed by the cancellation and non-blocking read patches,
+        // not by switching identity sources.
+        provider ??= httpContextAccessor?.HttpContext is null
+            ? authenticationStateProvider
+            : null;
+        if (provider is null)
+        {
+            return TenantConfigurationPrincipalEvidence.Indeterminate();
+        }
+
         System.Security.Claims.ClaimsPrincipal principal;
-        if (circuitServices is null
-            && provider is null
-            && httpContextAccessor?.HttpContext is { } httpContext)
+        try
         {
-            // Static SSR has no circuit provider. HttpContext.User is the authoritative request identity, and
-            // all subject, scope, and administrator evidence is derived from that one principal below.
-            principal = httpContext.User;
+            AuthenticationState state = await provider
+                .GetAuthenticationStateAsync()
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+            principal = state.User;
         }
-        else
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            if (circuitServices is not null && provider is null)
-            {
-                // An inbound circuit activity was published, but it did not carry its authoritative
-                // AuthenticationStateProvider. Do not borrow either request or constructor-injected state.
-                return TenantConfigurationPrincipalEvidence.Indeterminate();
-            }
-
-            // The scoped fallback covers circuit-owned work that runs outside an inbound activity, such as a
-            // projection notification or authentication-state transition. It is never used while an SSR
-            // request is in scope.
-            provider ??= authenticationStateProvider;
-            if (provider is null)
-            {
-                return TenantConfigurationPrincipalEvidence.Indeterminate();
-            }
-
-            try
-            {
-                AuthenticationState state = await provider
-                    .GetAuthenticationStateAsync()
-                    .WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                principal = state.User;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch
-            {
-                return TenantConfigurationPrincipalEvidence.Indeterminate();
-            }
+            throw;
+        }
+        catch
+        {
+            return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
+        // Corroborated: the principal's sub claim must agree with the independently resolved user context.
+        // Claims alone are not sufficient evidence for global-administrator standing.
         return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
             principal,
-            corroboratedSubject: null,
-            requireCorroboration: false);
+            userContextAccessor.UserId,
+            requireCorroboration: true);
     }
 }

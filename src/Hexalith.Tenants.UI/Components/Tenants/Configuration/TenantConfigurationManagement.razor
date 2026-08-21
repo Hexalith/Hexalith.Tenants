@@ -44,7 +44,7 @@
                                     Lifecycle="@Lifecycle"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                    OnCommandActivityChanged="@HandleSetCommandActivityAsync"
+                                    CommandActivityLease="@SetFlowCommandActivityLease"
                                     ProjectionEvidenceProvider="@SetProjectionEvidenceProvider"
                                     ReauthorizeProvider="@ReauthorizeProvider" />
 
@@ -101,7 +101,7 @@
                                            Lifecycle="@Lifecycle"
                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                            OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
-                                           OnCommandActivityChanged="@HandleRemoveCommandActivityAsync"
+                                           CommandActivityLease="@RemoveFlowCommandActivityLease"
                                            OnCloseRequested="@CloseRemoveFlowAsync"
                                            ProjectionEvidenceProvider="@RemoveProjectionEvidenceProvider"
                                            ReauthorizeProvider="@ReauthorizeProvider" />
@@ -154,6 +154,20 @@
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate lease for the set-configuration flow. The landmark hosts two independent
+    /// command flows, so each must hold its own lease: sharing one token makes the page-level lease
+    /// multi-owner and lets whichever flow finishes first release an aggregate the other is still using.
+    /// </summary>
+    [Parameter]
+    public Func<bool, Task<bool>>? SetCommandActivityLease { get; set; }
+
+    /// <summary>
+    /// Gets or sets the aggregate lease for the remove-configuration flow.
+    /// </summary>
+    [Parameter]
+    public Func<bool, Task<bool>>? RemoveCommandActivityLease { get; set; }
 
     [Parameter]
     public Func<SetTenantConfiguration, Task<TenantConfigurationProjectionProof>>? SetProjectionEvidenceProvider { get; set; }
@@ -298,24 +312,76 @@
         }
     }
 
-    private async Task HandleRemoveCommandActivityAsync(bool isActive)
+    // Cached so the delegate identity stays stable across renders; a fresh lambda each render reads as a
+    // changed parameter to the child flow.
+    private Func<bool, Task<bool>>? _setFlowCommandActivityLease;
+    private Func<bool, Task<bool>>? _removeFlowCommandActivityLease;
+
+    private Func<bool, Task<bool>> SetFlowCommandActivityLease
+        => _setFlowCommandActivityLease ??= HandleSetCommandActivityLeaseAsync;
+
+    private Func<bool, Task<bool>> RemoveFlowCommandActivityLease
+        => _removeFlowCommandActivityLease ??= HandleRemoveCommandActivityLeaseAsync;
+
+    private async Task<bool> HandleRemoveCommandActivityLeaseAsync(bool isActive)
     {
+        // The flags are raised *before* the lease call, then rolled back on refusal. Ordering is load-bearing:
+        // acquiring makes the detail page set _commandInFlight, which comes straight back down as
+        // IsCommandSurfaceAvailable=false. If ChildCommandInFlight were still false at that moment, the
+        // UnavailableReason branch would replace both flows with a static paragraph at the exact instant of
+        // submit, so no terminal outcome could ever render.
+        bool previousStarted = _removeCommandStarted;
+        bool previousInFlight = _removeCommandInFlight;
         if (isActive)
         {
             _removeCommandStarted = true;
         }
 
         _removeCommandInFlight = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+
+        if (RemoveCommandActivityLease is not null)
+        {
+            bool accepted = await RemoveCommandActivityLease(isActive).ConfigureAwait(false);
+            if (isActive && !accepted)
+            {
+                _removeCommandStarted = previousStarted;
+                _removeCommandInFlight = previousInFlight;
+                return false;
+            }
+        }
+        else
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     // The set flow used to pass OnCommandActivityChanged straight through, so the landmark never learned it
     // owned an in-flight command and unavailability came back down as an unmount. It reports here now, into
     // its own lease -- see the field declarations for why the two cannot share one.
-    private async Task HandleSetCommandActivityAsync(bool isActive)
+    private async Task<bool> HandleSetCommandActivityLeaseAsync(bool isActive)
     {
+        // Raised before the lease call and rolled back on refusal -- see HandleRemoveCommandActivityLeaseAsync
+        // for why the ordering matters.
+        bool previousInFlight = _setCommandInFlight;
         _setCommandInFlight = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+
+        if (SetCommandActivityLease is not null)
+        {
+            bool accepted = await SetCommandActivityLease(isActive).ConfigureAwait(false);
+            if (isActive && !accepted)
+            {
+                _setCommandInFlight = previousInFlight;
+                return false;
+            }
+        }
+        else
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private void OpenRemoveFlow(string key)
@@ -347,7 +413,7 @@
         _removeCommandStarted = false;
 
         // Only the remove half. This runs as an EventCallback from the remove child, which has already
-        // lowered its own lease through HandleRemoveCommandActivityAsync, so this is defensive -- but it must
+        // lowered its own lease through HandleRemoveCommandActivityLeaseAsync, so this is defensive -- but it must
         // never touch _setCommandInFlight: a sibling Set command settling behind this dialog owns that lease
         // and clearing it here unmounted the Set flow mid-command.
         _removeCommandInFlight = false;

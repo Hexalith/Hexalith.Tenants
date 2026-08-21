@@ -3828,4 +3828,37 @@
   <data name="Tenants.UserLookup.Recovery.PageRecovered" xml:space="preserve">
     <value>Les résultats ont redémarré à la première page car la référence de page précédente a expiré.</value>
   </data>
+  <data name="Tenants.Commands.Unavailable.AggregateInFlight" xml:space="preserve">
+    <value>Une autre commande est deja en cours pour ce locataire, celle-ci n'a donc pas ete soumise. Attendez son resultat, puis reessayez.</value>
+  </data>
+  <data name="Tenants.Members.UnavailableReason.AggregateLocked.Catalog" xml:space="preserve">
+    <value>autre commande en cours</value>
+  </data>
+  <data name="Tenants.ChangeRole.Dismiss.Blocked" xml:space="preserve">
+    <value>Ce changement de role est toujours en cours, le formulaire ne peut donc pas encore etre ferme. Utilisez Actualiser pour verifier le resultat.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoRecovery" xml:space="preserve">
+    <value>La preuve d'audit ne peut pas etre verifiee pour le moment et aucune action de recuperation n'est disponible sur cette surface. Le resultat enregistre ci-dessus reste inchange.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoRecovery" xml:space="preserve">
+    <value>La preuve d'audit est indisponible ; aucune action de recuperation n'est disponible sur cette surface.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoRecovery" xml:space="preserve">
+    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support disponible et aucune action de recuperation n'est disponible sur cette surface. Le resultat enregistre ci-dessus reste inchange.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoRecovery" xml:space="preserve">
+    <value>Le support de preuve d'audit manque ; aucune action de recuperation n'est disponible sur cette surface.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Unavailable.RefreshOnly" xml:space="preserve">
+    <value>La preuve d'audit ne peut pas etre verifiee pour le moment. Relancez la consultation du statut sans inclure de diagnostics bruts, de jetons, de charges utiles ou de donnees personnelles.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Unavailable.RefreshOnly" xml:space="preserve">
+    <value>La preuve d'audit est indisponible ; relancez la consultation du statut.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.MissingSupport.RefreshOnly" xml:space="preserve">
+    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support disponible. Relancez la consultation du statut.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly" xml:space="preserve">
+    <value>Le support de preuve d'audit manque ; relancez la consultation du statut.</value>
+  </data>
 </root>

@@ -582,6 +582,74 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         closeRequested.ShouldBeTrue();
     }
 
+    /// <summary>
+    /// The change-role flow gained the same nudge coalescing and projection-refresh re-entrancy guard as the
+    /// add flow, but nothing exercised it here: the only test that reached this nudge asserted merely "more
+    /// status calls than before", so removing the coalescing wrapper left the suite green while the flow
+    /// regressed to overlapping status polling on one tracked attempt.
+    /// </summary>
+    [Fact]
+    public async Task Independent_nudge_overlapping_status_refresh_is_coalesced_into_a_later_lookup()
+    {
+        TaskCompletionSource overlappingStatusStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseOverlappingStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        int inFlight = 0;
+        int maxConcurrentStatusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            StatusAsync = async _ =>
+            {
+                // Concurrency, not call count, is what separates coalescing from not coalescing: both shapes
+                // issue three lookups, but only the uncoalesced one runs two of them at the same time.
+                int concurrent = Interlocked.Increment(ref inFlight);
+                int observed;
+                while (concurrent > (observed = Volatile.Read(ref maxConcurrentStatusCalls))
+                    && Interlocked.CompareExchange(ref maxConcurrentStatusCalls, concurrent, observed) != observed)
+                {
+                    // Retry until the observed maximum is at least this call's concurrency level.
+                }
+
+                try
+                {
+                    if (Interlocked.Increment(ref statusCalls) == 2)
+                    {
+                        overlappingStatusStarted.SetResult();
+                        await releaseOverlappingStatus.Task.ConfigureAwait(false);
+                    }
+
+                    return new TenantCommandStatusResult(CommandStatus.Received);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref inFlight);
+                }
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => statusCalls.ShouldBe(1));
+
+        cut.Find("[data-testid='tenants-change-role-refresh']").Click();
+        await overlappingStatusStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Arrives while the second lookup is still suspended: it must coalesce into exactly one later
+        // lookup, not issue its own and not re-enter.
+        await cut.Instance.HandleAuthoritativeRefreshNudgeAsync();
+        releaseOverlappingStatus.SetResult();
+
+        cut.WaitForAssertion(() => statusCalls.ShouldBe(3));
+        maxConcurrentStatusCalls.ShouldBe(1);
+    }
+
     private void RegisterServices(StubTenantCommandGateway gateway)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

@@ -105,7 +105,8 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
-                                        OnRefresh="RefreshStatusAsync">
+                                        OnRefresh="RefreshStatusAsync"
+                                        OnContinueReadOnly="ContinueReadOnlyAsync">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                                  TargetUserId="@_userId"

@@ -122,26 +122,26 @@ context:
 - [x] [Review][Decision] **RESOLVED (2026-08-21, owner decision): BOTH.** Bind `OnContinueReadOnly` in `AddTenantMemberFlow` and `ChangeTenantMemberRoleFlow`, where `ContinueReadOnlyAsync`/`CanContinueReadOnly` already exist (pure wiring, no new behaviour), AND derive `RecoveryCopySuffix` from the verbs `CanRenderRecovery` will actually render, so `CreateTenantFlow` and `EditTenantMetadataFlow` degrade honestly without inventing a read-only concept they do not have. This finding is a regression of the loop-2 resolution "align EN/FR recovery copy with rendered actions", so the fix is deliberately drift-proof. Original finding: `MissingSupport` renders zero recovery actions while its copy still names one — `CanRenderRecovery` gates `ContinueReadOnly` on `OnContinueReadOnly.HasDelegate` and `Escalate` on `OnEscalate.HasDelegate`, but the four call sites (`CreateTenantFlow.razor:102`, `AddTenantMemberFlow.razor:107`, `ChangeTenantMemberRoleFlow.razor:128`, `EditTenantMetadataFlow.razor:130`) bind only `OnRefresh` + `InspectAuditAction`. `MissingSupport`'s verb set is `[ContinueReadOnly, Escalate]`, so **no button renders at all**, yet `Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation` reads "Continue read-only." `RecoveryCopySuffix` only compensates for a missing `OnEscalate`. Violates epic-2 "Every failure or uncertain state provides an applicable named recovery" and regresses the loop-2 resolution "align EN/FR recovery copy with rendered actions". Choose: bind `OnContinueReadOnly` at the four call sites, derive the copy from the actually-renderable verb set, or both. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:89]
 - [x] [Review][Decision] **RESOLVED (2026-08-21, owner decision): DECLARE IN FILE LIST.** Add each out-of-scope file to this spec's File List with a reason, mirroring the repository's gitlink-declaration policy. Splitting was rejected because it would require reopening `1-6-read-only-tenant-configuration` and `3-1-create-tenant-with-projection-confirmation` (both `done`) and would collide with a peer session actively rewriting `CreateTenantFlow.razor` (+152/-50 during this review); reverting was rejected as maximum churn against tested, wanted work. NOTE: `3-1` is marked `done` in sprint-status while its files are being actively rewritten -- status accuracy to be reconciled separately. Original finding: the committed range changes ~11 source files outside both specs' Code Maps and reshapes the command-gateway contract — `ITenantCommandGateway.CreateTenantAsync`/`UpdateTenantAsync` gained `string? messageId` (story 3.1/3.2 surfaces), and the tenant-detail 304 path was rewritten so every conditional hit costs a second unconditional read while `ContinueReadOnlyComposition` was deleted, so a reauthorization failure now drops approved configuration rows the removed comment said "AC5 requires we retain". Both behaviours are tested, so both are deliberate, but neither is covered by a spec entry. Choose: DECLARE the expanded scope in this spec's File List with reasons, SPLIT the create/metadata/query-gateway work into stories 3.1/3.2/1.6, or REVERT the out-of-scope parts. [src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs:7]
 
-- [ ] [Review][Patch] Converting four config layout wrappers from `div` to `FluentStack` voids every scoped CSS rule that styles them, losing horizontal scroll, the focus ring and both responsive grids [src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:14]
-- [ ] [Review][Patch] A refused aggregate lease still dispatches for the metadata, lifecycle, set-configuration and remove-configuration flows [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1662]
-- [ ] [Review][Patch] The configuration landmark shares one lease-owner token across its set and remove flows, re-creating the AD-12 multi-owner early-release the new lease code documents as fixed [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:230]
-- [ ] [Review][Patch] EditTenantMetadataFlow reuses a consumed messageId for a different payload; the sibling flows added Intent/CorrelationId/Failed guards in the same commit [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:480]
-- [ ] [Review][Patch] Degraded global-administrator evidence still yields a positive "also a global administrator" preview claim; only the negative direction checks IsCompleteEvidence [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:859]
-- [ ] [Review][Patch] ChangeTenantMemberRoleFlow is non-exitable while a command is in flight — Cancel disabled and CloseAsync silently no-ops, with no announcement [src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor:666]
-- [ ] [Review][Patch] The Wait recovery verb renders as a live enabled button wired to an empty switch arm [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:111]
-- [ ] [Review][Patch] AggregateLocked puts a two-sentence instruction into the terse always-visible reason-catalog legend [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:315]
-- [ ] [Review][Patch] CommandFlowGuardConformanceTests matches only the retired OnCommandActivityChanged release path, so it now passes vacuously for the live CommandActivityLease mechanism [tests/Hexalith.Tenants.UI.Tests/CommandFlowGuardConformanceTests.cs:8]
-- [ ] [Review][Patch] AuditAvailabilityState renders an empty labelled actions region when every verb is filtered out; AuditEvidenceReceipt guards the same case [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:21]
-- [ ] [Review][Patch] A Ready receipt with no inspect delegate falls through to offering Refresh, contradicting the state it reports [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:192]
-- [ ] [Review][Patch] The lease acquire/release path and MemberAccessReview.DisposeAsync can throw ObjectDisposedException on teardown; sibling dispatches are guarded [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1738]
-- [ ] [Review][Patch] The global-administrator page walk is bounded by the unrelated CursorHistory.DefaultMaximum, truncates indistinguishably from a gateway failure, and logs nothing [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:249]
-- [ ] [Review][Patch] StateGlyph returns the untranslated English literal "OK" for the Available state where every sibling returns punctuation [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:100]
-- [ ] [Review][Patch] A missing admission-gate registration disables every command surface with a null reason string [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:322]
-- [ ] [Review][Patch] UnavailableTenantQueryGateway throws synchronously from Task-returning members instead of returning a faulted task [src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs:15]
-- [ ] [Review][Patch] No test covers change-role nudge coalescing or the projection-refresh re-entrancy guard; the add-flow equivalent is pinned with an exact call count [tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs:1]
-- [ ] [Review][Patch] No test covers the new MemberAccessReview.DisposeAsync lease release; deleting it orphans the aggregate lock for the life of the circuit [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1235]
-- [ ] [Review][Patch] No assertion distinguishes the .NoEscalation copy variants, so recovery copy can name absent controls undetected [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:24]
-- [ ] [Review][Patch] The AuditAvailable state is absent from the glyph theory, so a blank success glyph would ship green [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:19]
+- [x] [Review][Patch] Converting four config layout wrappers from `div` to `FluentStack` voids every scoped CSS rule that styles them, losing horizontal scroll, the focus ring and both responsive grids [src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:14]
+- [x] [Review][Patch] A refused aggregate lease still dispatches for the metadata, lifecycle, set-configuration and remove-configuration flows [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1662]
+- [x] [Review][Patch] The configuration landmark shares one lease-owner token across its set and remove flows, re-creating the AD-12 multi-owner early-release the new lease code documents as fixed [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:230]
+- [x] [Review][Patch] EditTenantMetadataFlow reuses a consumed messageId for a different payload — **NO CHANGE NEEDED (2026-08-21):** a peer session fixed this independently while this review was running; the landed guard at `EditTenantMetadataFlow.razor:524-529` is identical to the sibling rule (`State is Failed` + blank `CorrelationId` + non-blank `MessageId` + `Equals(_snapshot.Intent, request)`). Verified, not merely observed. [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:524]
+- [x] [Review][Patch] Degraded global-administrator evidence still yields a positive "also a global administrator" preview claim; only the negative direction checks IsCompleteEvidence [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:859]
+- [x] [Review][Patch] ChangeTenantMemberRoleFlow is non-exitable while a command is in flight — Cancel disabled and CloseAsync silently no-ops, with no announcement [src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor:666]
+- [x] [Review][Patch] The Wait recovery verb renders as a live enabled button wired to an empty switch arm [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:111]
+- [x] [Review][Patch] AggregateLocked puts a two-sentence instruction into the terse always-visible reason-catalog legend [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:315]
+- [x] [Review][Patch] CommandFlowGuardConformanceTests matches only the retired OnCommandActivityChanged release path, so it now passes vacuously for the live CommandActivityLease mechanism [tests/Hexalith.Tenants.UI.Tests/CommandFlowGuardConformanceTests.cs:8]
+- [x] [Review][Patch] AuditAvailabilityState renders an empty labelled actions region when every verb is filtered out; AuditEvidenceReceipt guards the same case [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:21]
+- [x] [Review][Patch] A Ready receipt with no inspect delegate falls through to offering Refresh, contradicting the state it reports [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:192]
+- [x] [Review][Patch] The lease acquire/release path and MemberAccessReview.DisposeAsync can throw ObjectDisposedException on teardown; sibling dispatches are guarded [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1738]
+- [x] [Review][Patch] The global-administrator page walk is bounded by the unrelated CursorHistory.DefaultMaximum, truncates indistinguishably from a gateway failure, and logs nothing [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:249]
+- [x] [Review][Patch] StateGlyph returns the untranslated English literal "OK" for the Available state where every sibling returns punctuation [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:100]
+- [x] [Review][Patch] A missing admission-gate registration disables every command surface with a null reason string — **NO CHANGE NEEDED (2026-08-21):** premise did not survive verification. A reason is already rendered; the child surfaces supply their own (`Missing_aggregate_admission_gate_fails_membership_dispatch_closed` asserts "command support is unavailable"). A page-level reason was implemented and then reverted because it *overrode* the more accurate child reason. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:322]
+- [x] [Review][Patch] UnavailableTenantQueryGateway throws synchronously from Task-returning members — **NO CHANGE NEEDED (2026-08-21):** premise did not survive verification. The finding claimed the two new members were inconsistent with the class; in fact the synchronous-throw idiom is the majority pattern there (6 of 10 members, including pre-existing ones such as `GetTenantAuditAsync`). This is a pre-existing class-wide style question, not a defect these members introduced, and changing it would alter fallback-gateway behaviour with no demonstrated consumer impact. [src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs:15]
+- [x] [Review][Patch] No test covers change-role nudge coalescing or the projection-refresh re-entrancy guard; the add-flow equivalent is pinned with an exact call count [tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs:1]
+- [x] [Review][Patch] No test covers the new MemberAccessReview.DisposeAsync lease release; deleting it orphans the aggregate lock for the life of the circuit [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1235]
+- [x] [Review][Patch] No assertion distinguishes the .NoEscalation copy variants, so recovery copy can name absent controls undetected [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:24]
+- [x] [Review][Patch] The AuditAvailable state is absent from the glyph theory, so a blank success glyph would ship green [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:19]
 
 - [x] [Review][Defer] Refresh coalescing downgrades a user-initiated projection refresh to status-only and re-enters recursively, duplicated verbatim across three flows [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:513] — deferred, pre-existing
 - [x] [Review][Defer] AsyncLocal<bool> used for dispatcher-bound re-entrancy state where a plain field is correct and cheaper [src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:160] — deferred, pre-existing
@@ -169,12 +169,55 @@ context:
 - Given the user confirms a current complete preview, when submit runs, then `RemoveUserFromTenant` is dispatched once with retained messageId under AggregateIdentity lock, using Story 2.1 confirmation rules without optimistic removal.
 - Given EN/FR resources and focused tests run, when verification completes, then elevated-risk, fail-closed, dialog, lock, and dispatch scenarios pass without asserting WP-2A/`audit_available` complete.
 
+
+## File List — declared scope expansion (2026-08-21, loop 3 chunk B decision)
+
+Files this story's committed range changed that are **outside** the Code Map above. Declared here rather
+than split out, because splitting would require reopening `1-6-read-only-tenant-configuration` and
+`3-1-create-tenant-with-projection-confirmation` (both `done`) and would collide with a peer session
+actively rewriting `CreateTenantFlow.razor`. Each entry states why the change belongs to this range.
+
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs` (+ `UnavailableTenantCommandGateway.cs`)
+  — `CreateTenantAsync`/`UpdateTenantAsync` gained `string? messageId` so a retry of one logical attempt keeps
+  its tracking identity. Same affordance the membership commands needed for WP-2A retry causality; the
+  create/metadata call sites belong to stories 3.1/3.2.
+- `src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor`,
+  `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` — create-flow lifecycle and absence-baseline
+  work owned by story `3-1-create-tenant-with-projection-confirmation`.
+- `src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor` — metadata command
+  lifecycle owned by story `3-2-edit-tenant-metadata-with-recorded-updates`.
+- `src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor`,
+  `src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor` — refresh coalescing,
+  message-id retention and the shared aggregate-lease contract the remove flow depends on.
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` — tenant-detail 304 handling reworked so a
+  conditional hit re-reads unconditionally, and `ContinueReadOnlyComposition` removed so a reauthorization
+  failure reports configuration unavailable instead of retaining approved rows. Changes Story 1.6 read
+  behaviour; both directions are covered by tests but neither was spec'd here.
+- `src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs` — the loop-2 change
+  here was REVERSED by the loop-3 chunk B decision above; the file now matches the 2026-08-01 owner decision.
+- `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor` (+ `.css`) — configuration read
+  surface: filter comparison made ordinal/case-sensitive (deliberate, tested), and the scoped-CSS regression
+  introduced by the `div` → `FluentStack` conversion fixed via `::deep`.
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`,
+  `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs`,
+  `src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailability.cs`,
+  `src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs`,
+  `src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj` — supporting changes for the audit-availability and
+  aggregate-lease work in this range.
+
+**Not declared here:** the `references/` gitlink moves remain an open chunk-A decision. Eight pointers now
+differ from the baseline (`AI.Tools`, `Builds`, `Commons`, `EventStore`, `FrontComposer`, `Memories`,
+`PolymorphicSerializations`, and a second `EventStore` move that appeared during the loop-3 chunk B review);
+`Builds` also moved to a dependabot xunit.v3 4.0.0 merge that leaves `xunit.v3.assert` and
+`xunit.v3.extensibility.core` at 3.2.2 and therefore breaks test restore with NU1107.
+
 ## Spec Change Log
 
 - 2026-08-08: Scope split — regenerated for 2.4a; deferred 2.4b WP-2A proof/reconciliation to `deferred-work.md`.
 - 2026-08-08: 2.4a implemented — dialog, ten-item preview with platform-standing, live GA wiring; adversarial review patches applied.
 - 2026-08-20: Review patches implemented — live proof capability, paged/current proof and GA evidence, real recovery actions, non-blocking supplementary reads, corrected EN/FR copy, and focused regression coverage.
 - 2026-08-21: Review loop 3 (chunk A) — 12 patches applied: confirmed-outcome retention across status polls, non-destructive receipt dismissal, real preview completeness, identity-preserving lease refusal, fail-closed proof capability, announced in-flight dismissal, no target-absent alert on success, localized gateway tracking failure, focus trap kept out of the hidden narrow form, bounded proof re-walk, whitespace tenant-id guards, shared proof ordering. Dispose lease release attempted and reverted (governance invariant). 4 decisions open.
+- 2026-08-21: Review loop 3 (chunk B, surfaces/resources/shared services) — 3 decisions resolved by the owner (restore both principal-resolver guards per the 2026-08-01 decision; derive audit recovery copy from rendered verbs AND bind continue-read-only where it exists; declare the scope expansion in a File List) and 20 patch findings closed: 17 applied, 3 recorded NO CHANGE NEEDED after their premise failed verification. Headline fixes: scoped-CSS regression that voided the configuration card's overflow/focus/responsive rules, a refused aggregate lease that still dispatched for four command surfaces, and a configuration landmark sharing one lease token across two flows (AD-12). 19 items deferred. UI tests 2128/2128.
 - 2026-08-20: Review follow-up implemented — authoritative live audit capability, fail-closed bounded/cancellable GA and proof walks, retained-evidence degradation, lossless refresh coalescing, delegate-accurate recovery actions/copy, and route-generation regressions.
 
 ## Design Notes
@@ -192,7 +235,11 @@ Platform-standing is preview item #9; known GA also raises an elevated sibling r
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-build --no-restore` (loop 3, after patches) -- 2102 passed, 0 failed, 0 skipped
 - `dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Release --no-restore` (loop 3) -- passed with 0 warnings and 0 errors
 - `dotnet build Hexalith.Tenants.slnx -c Release --no-restore` (loop 3) -- FAILS in `references/Hexalith.Memories` (CS0618/SER301). Reproduced with this story's work stashed, so pre-existing submodule breakage, not caused by these patches.
-- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` -- fails only on the seven pre-existing post-baseline dependency bumps recorded in the deferred review finding above
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj` (loop 3 chunk B, after patches) -- 2128 passed, 0 failed, 0 skipped (2121 baseline + 7 new: 4 coverage tests, 3 audit-availability tests). Confirmed stable across repeated runs.
+- `dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Release` (loop 3 chunk B) -- passed with 0 warnings and 0 errors
+- Mutation-verified the three new behavioural tests: removing `MemberAccessReview.DisposeAsync`'s release, bypassing the change-role refresh coalescing, and restoring the escalate-only recovery-copy rule each turn the corresponding test red. The change-role test was strengthened after its first form let the mutant survive -- coalescing and non-coalescing issue the same number of status lookups, so the assertion had to move from call count to maximum observed concurrency.
+- BLOCKER (external, not caused by these patches): `dotnet test` cannot restore at the working-tree `references/Hexalith.Builds` pointer `744b282` ("build: merge origin/dependabot/nuget/Props/xunit.v3-4.0.0"), which sets `xunit.v3` to 4.0.0 while leaving `xunit.v3.assert` and `xunit.v3.extensibility.core` at 3.2.2 -- `error NU1107: Version conflict detected for xunit.v3.common`. The suite above was run with the submodule temporarily checked out at the HEAD-committed `eadddc7`, where the pins are coherent at 3.2.2; the submodule was then restored to `744b282` exactly. Either advance the sibling xunit pins in Builds or revert that gitlink before CI can pass.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` -- FAILS; see the open chunk-A gitlink decision and the File List note. Eight pointers now differ from the baseline.
 
 ## Suggested Review Order
 

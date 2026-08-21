@@ -1277,6 +1277,56 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse());
     }
 
+    /// <summary>
+    /// MemberAccessReview releases the aggregate lease from its own DisposeAsync, but nothing covered the
+    /// teardown that motivates it: every existing lease test either keeps the landmark mounted or changes
+    /// route (which the page releases instead). When a refresh reclassifies the detail snapshot out of Ready,
+    /// the whole ReadyContent subtree -- landmark included -- is replaced while a membership command still
+    /// holds the lock, and without DisposeAsync the page latches into a permanently locked command state for
+    /// the life of the circuit.
+    /// </summary>
+    [Fact]
+    public async Task Unmounting_the_member_landmark_releases_the_aggregate_lease()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var admissionGate = new TenantAggregateCommandAdmissionGate();
+        TaskCompletionSource<TenantCommandSubmissionResult> pendingSubmission = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int detailReads = 0;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Interlocked.Increment(ref detailReads) == 1
+                ? Task.FromResult(ReadyWithSafeConfiguration(
+                    Detail("tenant.alpha"),
+                    ProjectionLifecycleState.Current,
+                    "projection-v1"))
+                : Task.FromResult(TenantDetailSnapshot.Unauthorized("tenant.alpha")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with { ProjectionVersion = "projection-v1" }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(admissionGate);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingMembershipCommandGateway(pendingSubmission.Task));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-add-member-user-id']").Change("new-member");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-flow'] form").Submit();
+        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue());
+
+        // The detail read now reclassifies the surface, so ReadyContent -- and the member landmark holding
+        // the lease -- is replaced wholesale while the add command is still unresolved.
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+
+        cut.WaitForAssertion(() => cut.FindComponents<MemberAccessReview>().ShouldBeEmpty());
+        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse());
+
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+    }
+
     [Fact]
     public async Task Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification()
     {
@@ -1991,7 +2041,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         // The flow reports its command activity before the parent refresh lands.
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(true));
 
         TenantConfigurationManagementContext withoutRow = TenantConfigurationManagementContext.Available(
             "tenant.alpha", TenantStatus.Active, false, ["billing"], []);
@@ -2027,7 +2077,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(true));
 
         // The page reflects the in-flight command back as an unavailable command surface.
         cut.Render(parameters => parameters
@@ -2041,7 +2091,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
 
         // Once the command settles, the ordinary unavailable rule applies again.
-        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(false));
+        await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(false));
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
@@ -2072,7 +2122,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.IsCommandSurfaceAvailable, true));
 
         IRenderedComponent<SetTenantConfigurationFlow> setFlow = cut.FindComponent<SetTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => setFlow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        await cut.InvokeAsync(() => setFlow.Instance.CommandActivityLease!(true));
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
@@ -2089,7 +2139,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
 
         setFlow = cut.FindComponent<SetTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => setFlow.Instance.OnCommandActivityChanged.InvokeAsync(false));
+        await cut.InvokeAsync(() => setFlow.Instance.CommandActivityLease!(false));
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
@@ -2159,7 +2209,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(true));
 
         // The projection proves the removal: the row leaves, and with it the launch control focus would
         // otherwise return to.
@@ -2260,6 +2310,62 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_confirms_metadata_update_from_the_authoritative_proof_read()
+    {
+        // End-to-end page handshake. The flow-level tests supply their own version/evidence providers, and
+        // the composition test only reads the provider once against a static snapshot -- so nothing pinned
+        // that the PAGE actually produces post-refresh evidence at the moment ConfirmProjection runs. A
+        // regression in the page half would otherwise turn every real edit into UnableToVerify while the
+        // suite stayed green.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail original = Detail("tenant.alpha");
+        TenantDetail renamed = original with { Name = "Alpha renamed" };
+
+        int detailReads = 0;
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                detailReads++;
+                return Task.FromResult(detailReads == 1
+                    ? ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1")
+                    : ReadyWithSafeConfiguration(renamed, ProjectionLifecycleState.Current, "projection-v2"));
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+
+        // The authoritative proof read is what the page must consult for confirmation evidence.
+        gateway.GetUpdateMetadataProjectionProofAsync(Arg.Any<UpdateTenant>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(
+                ReadyWithSafeConfiguration(renamed, ProjectionLifecycleState.Current, "projection-v2")));
+        ConfigureAuthoritativeAuditCapability(gateway);
+
+        ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-flow']");
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed");
+        cut.Find("form").Submit();
+
+        EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
+        cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha renamed");
+    }
+
+    [Fact]
     public void Management_closes_an_untouched_remove_flow_when_its_target_row_disappears()
     {
         // The stale-target reset still applies while no command has been submitted: nothing is settling,
@@ -2300,7 +2406,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
-        await cut.InvokeAsync(() => flow.Instance.OnCommandActivityChanged.InvokeAsync(true));
+        await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(true));
 
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)

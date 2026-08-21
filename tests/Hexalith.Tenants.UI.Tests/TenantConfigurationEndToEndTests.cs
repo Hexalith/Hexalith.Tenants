@@ -101,6 +101,7 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
         }
         TenantConfigurationPrincipalResolver principalResolver = new(
             circuitServicesAccessor,
+            userContext,
             httpContextAccessor: httpContextAccessor);
         ITenantCommandGateway commandGateway = new UnavailableTenantCommandGateway();
         ITenantsBffComposition composition = new TenantsBffComposition(
@@ -142,6 +143,25 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, tenantId));
+
+        if (useStaticSsrPrincipal)
+        {
+            // The 2026-08-01 owner decision keeps circuit-over-HTTP precedence with no HttpContext.User
+            // fallback, so the prerender / static-SSR pass resolves Indeterminate and renders the restricted
+            // surface. Nothing is approved on that pass, and no raw literal may reach the markup either --
+            // which is the guarantee this test exists to prove.
+            cut.WaitForAssertion(() =>
+                cut.FindAll("[data-testid='tenants-config-read-key']").ShouldBeEmpty());
+
+            string restrictedMarkup = cut.Markup;
+            restrictedMarkup.ShouldNotContain("visible-literal", Case.Sensitive);
+            restrictedMarkup.ShouldNotContain("billing.secret", Case.Sensitive);
+            restrictedMarkup.ShouldNotContain("hidden-undefined-value", Case.Sensitive);
+            restrictedMarkup.ShouldNotContain("private.mode", Case.Sensitive);
+            restrictedMarkup.ShouldNotContain("hidden-namespace-value", Case.Sensitive);
+            return;
+        }
+
         cut.WaitForElement("[data-testid='tenants-config-read-table']");
 
         string markup = cut.Markup;

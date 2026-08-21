@@ -1,3 +1,11 @@
+/* Scope note: Blazor CSS isolation stamps the scope attribute onto HTML elements written in this
+   component's own markup, never onto a child component's root element. Every rule below that targets a
+   Class placed on a Fluent component (FluentStack, FluentTextInput, FluentButton, FluentAccordion,
+   FluentDataGrid) therefore needs ::deep, which moves the scope onto the ancestor instead:
+   "::deep .x" compiles to "[b-xxx] .x". The <section class="tenant-config"> root is plain markup, so it
+   carries the scope and every wrapper below is a descendant of it. Rules targeting plain elements this
+   component writes itself (section, header, h2/h3/p, code) must NOT use ::deep. */
+
 /* fc-css-exception: bordered configuration card region on a semantic <section> landmark; border +
    padding + vertical gap define the card chrome and keeping the landmark precludes a FluentStack wrapper. */
 .tenant-config {
@@ -34,7 +42,7 @@
 
 /* fc-css-exception: truth-state Class on a FluentStack host still needs grid justify-items:end that a
    responsive breakpoint flips to start; FluentStack Orientation/VerticalGap cannot honour that switch. */
-.tenant-config__truth {
+::deep .tenant-config__truth {
     display: grid;
     gap: 0.35rem;
     justify-items: end;
@@ -42,7 +50,7 @@
 
 /* fc-css-exception: content-sized search controls grid (filter/clear/help columns) applied via Class on
    a FluentStack host; FluentGrid cannot express content-sized columns or the single-column breakpoint. */
-.tenant-config__controls {
+::deep .tenant-config__controls {
     align-items: end;
     display: grid;
     gap: 0.5rem;
@@ -51,14 +59,14 @@
 
 /* fc-css-exception: emphasis weight on the Fluent-generated search <label>; FluentLabel cannot wrap the
    label emitted by FluentTextInput. */
-.tenant-config__controls label {
+::deep .tenant-config__controls label {
     font-weight: 600;
     grid-column: 1 / -1;
 }
 
 /* fc-css-exception: control affordance padding on the FluentTextInput filter control; this is the search
    field box model, not page layout spacing. */
-.tenant-config__filter {
+::deep .tenant-config__filter {
     border: 1px solid CanvasText;
     border-radius: 6px;
     min-height: 2.25rem;
@@ -68,7 +76,7 @@
 
 /* fc-css-exception: control affordance padding on the clear-filter FluentButton; this is the control box
    model, not page layout spacing. */
-.tenant-config__clear {
+::deep .tenant-config__clear {
     border: 1px solid CanvasText;
     border-radius: 6px;
     min-height: 2.25rem;
@@ -77,7 +85,7 @@
 
 /* fc-css-exception: horizontal availability container Class on the FluentStack table host so literal keys
    and values stay reachable at every width; FluentDataGrid provides no such scroll container. */
-.tenant-config__table-wrap {
+::deep .tenant-config__table-wrap {
     overflow-x: auto;
     width: 100%;
 }
@@ -91,8 +99,8 @@
 
 /* fc-css-exception: vertical gap on the FluentAccordion group container and the FluentStack-hosted
    data-grid wrapper Class; FluentAccordion must not be replaced, and the inner host keeps CSS grid gap. */
-.tenant-config__groups,
-.tenant-config__group {
+::deep .tenant-config__groups,
+::deep .tenant-config__group {
     display: grid;
     gap: 0.75rem;
     min-width: 0;
@@ -100,7 +108,7 @@
 
 /* fc-css-exception: minimum grid width that keeps namespace, key and value columns simultaneously legible;
    below it the safety-critical value column would collapse. */
-.tenant-config__data-grid {
+::deep .tenant-config__data-grid {
     min-width: 58rem;
     width: 100%;
 }
@@ -113,9 +121,9 @@
     overflow-wrap: anywhere;
 }
 
-.tenant-config__filter:focus-visible,
-.tenant-config__clear:focus-visible,
-.tenant-config__table-wrap:focus-visible {
+::deep .tenant-config__filter:focus-visible,
+::deep .tenant-config__clear:focus-visible,
+::deep .tenant-config__table-wrap:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -128,40 +136,50 @@
     }
 
     /* fc-css-exception: responsive breakpoint collapsing the content-sized header/controls grids to a
-       single column; no Fluent primitive expresses this content-sized column behaviour. */
-    .tenant-config__header,
-    .tenant-config__controls {
+       single column; no Fluent primitive expresses this content-sized column behaviour. The header is a
+       semantic landmark this component writes, so it stays unscoped; the controls host is a FluentStack. */
+    .tenant-config__header {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .tenant-config__truth {
+    /* fc-css-exception: same responsive collapse for the FluentStack-hosted controls grid; it is a separate
+       rule because the Class sits on a component root and therefore needs ::deep. */
+    ::deep .tenant-config__controls {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    ::deep .tenant-config__truth {
         justify-items: start;
     }
 
     /* fc-css-exception: narrow-viewport minimum grid width; the region scrolls rather than dropping columns. */
-    .tenant-config__data-grid {
+    ::deep .tenant-config__data-grid {
         min-width: 48rem;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
     /* fc-css-exception: tablet minimum grid width; the region scrolls rather than dropping columns. */
-    .tenant-config__data-grid {
+    ::deep .tenant-config__data-grid {
         min-width: 54rem;
     }
 }
 
 @media (forced-colors: active) {
-    .tenant-config,
-    .tenant-config__filter,
-    .tenant-config__clear {
+    .tenant-config {
         border-color: CanvasText;
         color: CanvasText;
     }
 
-    .tenant-config__filter:focus-visible,
-    .tenant-config__clear:focus-visible,
-    .tenant-config__table-wrap:focus-visible {
+    ::deep .tenant-config__filter,
+    ::deep .tenant-config__clear {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    ::deep .tenant-config__filter:focus-visible,
+    ::deep .tenant-config__clear:focus-visible,
+    ::deep .tenant-config__table-wrap:focus-visible {
         outline-color: Highlight;
     }
 }

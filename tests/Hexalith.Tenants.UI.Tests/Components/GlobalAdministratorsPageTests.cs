@@ -165,8 +165,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     public void Real_principal_resolver_authorizes_the_page_outside_an_inbound_circuit_activity()
     {
         var authentication = new MutableAuthenticationStateProvider(GlobalAdministratorPrincipal());
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns("operator.alpha");
         var principalResolver = new TenantConfigurationPrincipalResolver(
             new CircuitServicesAccessor(),
+            userContext,
             authentication);
         var composition = new TenantsBffComposition(
             new StubTenantCommandGateway(),

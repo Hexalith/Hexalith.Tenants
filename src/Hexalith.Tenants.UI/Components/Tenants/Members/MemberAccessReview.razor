@@ -48,7 +48,7 @@
                   role="listitem"
                   data-testid="@ReasonTestId(reason)">
                 <span aria-hidden="true">@ReasonIcon(reason)</span>
-                <span>@ReasonLabel(reason)</span>
+                <span>@ReasonCatalogLabel(reason)</span>
             </span>
         }
     </FluentStack>
@@ -856,8 +856,19 @@
         _activeRemoveMemberCapture = member;
     }
 
+    // Row-level freshness alone was not enough. ToFailClosedGlobalAdministrators degrades the snapshot to
+    // Unknown freshness/lifecycle but leaves Rows in place, so retained rows kept asserting a positive "also
+    // a global administrator" standing from evidence the page had already declared non-authoritative.
+    // Deliberately NOT gated on IsCompleteEvidence: an incomplete list can only hide a global administrator
+    // it has not paged to yet, so a row already seen at current freshness stays positive proof. It is the
+    // snapshot's own freshness/lifecycle that says whether these rows still describe reality.
     private bool ResolveTargetGlobalAdministratorFriction(TenantMember? member)
         => member is not null
+        && GlobalAdministrators is
+        {
+            Freshness: ReadModelFreshnessState.Current,
+            Lifecycle: ProjectionLifecycleState.Current,
+        }
         && GlobalAdministrators?.Rows.Any(row =>
             string.Equals(row.UserId, member.UserId, StringComparison.Ordinal)
             && row.Freshness is ReadModelFreshnessState.Current
@@ -899,6 +910,15 @@
     private string ReasonLabel(UnavailableReason reason)
         => reason is UnavailableReason.AggregateLocked && !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason)
             ? CommandSurfaceUnavailableReason
+            : Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
+
+    // The always-visible catalog is a legend of terse noun fragments ("stale data", "missing audit proof").
+    // AggregateLocked's live copy is a two-sentence instruction, which reads as an alert when parked in that
+    // legend and made ReasonSummary emit a full sentence mid-comma-list. The legend uses a matching short
+    // register; the instructional string stays on the live per-row reason, where it is actionable.
+    private string ReasonCatalogLabel(UnavailableReason reason)
+        => reason is UnavailableReason.AggregateLocked
+            ? Localizer["Tenants.Members.UnavailableReason.AggregateLocked.Catalog"]
             : Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
 
     private string ReasonSummary(IReadOnlyList<UnavailableReason> reasons)
@@ -968,6 +988,15 @@
 
     public async ValueTask DisposeAsync()
     {
-        await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
+        try
+        {
+            await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The release reaches the parent's InvokeAsync(StateHasChanged). On a torn-down renderer that
+            // throws, and DisposeAsync must not propagate it -- the lease dies with the circuit anyway.
+            // The page guards its own dispatches the same way.
+        }
     }
 }

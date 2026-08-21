@@ -225,6 +225,13 @@
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
+    /// <summary>
+    /// Gets or sets the aggregate command-activity lease. Returns false when the parent refuses the
+    /// acquisition because another surface holds the tenant aggregate, which must abort the dispatch.
+    /// </summary>
+    [Parameter]
+    public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
+
     [Parameter]
     public Func<SetTenantConfiguration, Task<TenantConfigurationProjectionProof>>? ProjectionEvidenceProvider { get; set; }
 
@@ -477,19 +484,35 @@
         }
     }
 
-    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
         if (_hasRaisedCommandActivity == isActive)
         {
-            return;
+            return true;
+        }
+
+        // The lease answer must reach the caller. An EventCallback<bool> cannot return one, so a refused
+        // acquisition used to leave this flow free to dispatch against an aggregate another surface held.
+        if (CommandActivityLease is not null)
+        {
+            bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
+            if (isActive && !accepted)
+            {
+                return false;
+            }
         }
 
         _hasRaisedCommandActivity = isActive;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        if (CommandActivityLease is null)
+        {
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+        }
+
+        return true;
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+        => _ = await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
@@ -628,7 +651,14 @@
 
         _snapshot = _snapshot.RequestSent();
         _isSubmitting = true;
-        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
+        if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
+        {
+            _isSubmitting = false;
+            SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                Localizer["Tenants.Commands.Unavailable.AggregateInFlight"].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
 
         try
         {

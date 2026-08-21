@@ -15,6 +15,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Services.Configuration;
@@ -324,10 +326,13 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     /// <summary>
-    /// Static SSR has no circuit provider, so the authenticated request principal supplies all evidence.
+    /// The 2026-08-01 owner decision keeps circuit-over-HTTP precedence with no HttpContext.User fallback: a
+    /// stale request principal must not retain privilege after a live circuit authentication change. An
+    /// active HttpContext is the discriminator, so the prerender and static-SSR passes stay Indeterminate and
+    /// render the restricted surface; the interactive instance resolves for real once the circuit is up.
     /// </summary>
     [Fact]
-    public async Task Resolver_uses_the_http_request_identity_during_static_ssr()
+    public async Task Resolver_does_not_use_the_http_request_identity_during_static_ssr()
     {
         ClaimsPrincipal requestPrincipal = Principal(
             new Claim("sub", "operator.alpha"),
@@ -337,12 +342,16 @@ public sealed class TenantConfigurationReadPolicyTests
         TenantConfigurationPrincipalEvidence evidence = await Resolver(
             requestPrincipal: requestPrincipal).ResolveAsync();
 
-        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
-        evidence.Subject.ShouldBe("operator.alpha");
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
     }
 
+    /// <summary>
+    /// With a request in scope the injected provider is refused too: inside the request scope it is itself
+    /// seeded from HttpContext.User, which is the source the owner decision removed.
+    /// </summary>
     [Fact]
-    public async Task Resolver_static_ssr_request_identity_precedes_a_distinct_injected_administrator()
+    public async Task Resolver_static_ssr_refuses_the_injected_administrator_while_a_request_is_in_scope()
     {
         ClaimsPrincipal requestPrincipal = Principal(
             new Claim("sub", "operator.request"),
@@ -357,8 +366,35 @@ public sealed class TenantConfigurationReadPolicyTests
             injectedPrincipal: injectedAdministrator,
             requestPrincipal: requestPrincipal).ResolveAsync();
 
-        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.NonAdministrator);
-        evidence.Subject.ShouldBe("operator.request");
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Claims alone are not sufficient evidence: the principal's sub must agree with the independently
+    /// resolved user context before global-administrator standing is granted.
+    /// </summary>
+    [Fact]
+    public async Task Resolver_requires_the_user_context_to_corroborate_the_circuit_subject()
+    {
+        ClaimsPrincipal circuitPrincipal = Principal(
+            new Claim("sub", "operator.circuit"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+
+        TenantConfigurationPrincipalEvidence corroborated = await Resolver(
+            circuitPrincipal: circuitPrincipal).ResolveAsync();
+        corroborated.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+
+        TenantConfigurationPrincipalEvidence conflicting = await Resolver(
+            circuitPrincipal: circuitPrincipal,
+            userContextSubject: "operator.other").ResolveAsync();
+        conflicting.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+
+        TenantConfigurationPrincipalEvidence missing = await Resolver(
+            circuitPrincipal: circuitPrincipal,
+            supplyUserContext: false).ResolveAsync();
+        missing.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
     }
 
     [Fact]
@@ -1168,7 +1204,9 @@ public sealed class TenantConfigurationReadPolicyTests
         IServiceProvider? publishedCircuitServices = null,
         ClaimsPrincipal? injectedPrincipal = null,
         bool requestInScope = false,
-        ClaimsPrincipal? requestPrincipal = null)
+        ClaimsPrincipal? requestPrincipal = null,
+        bool supplyUserContext = true,
+        string? userContextSubject = null)
     {
         CircuitServicesAccessor circuit = new();
         if (publishedCircuitServices is not null)
@@ -1196,11 +1234,26 @@ public sealed class TenantConfigurationReadPolicyTests
             httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
         }
 
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(supplyUserContext
+            ? userContextSubject ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal) ?? SubjectFrom(requestPrincipal)
+            : null);
+
         return new TenantConfigurationPrincipalResolver(
             circuit,
+            userContext,
             injectedPrincipal is null ? null : new StubAuthenticationStateProvider(injectedPrincipal),
             httpContextAccessor);
     }
+
+    // Distinct values, mirroring the evaluator's own rule: a principal carrying the same `sub` twice is one
+    // identity, so the corroborating IUserContextAccessor.UserId this helper derives must resolve it the same way.
+    private static string? SubjectFrom(ClaimsPrincipal? principal)
+        => principal?.Claims
+            .Where(static claim => string.Equals(claim.Type, "sub", StringComparison.Ordinal))
+            .Select(static claim => claim.Value)
+            .Distinct(StringComparer.Ordinal)
+            .SingleOrDefault();
 
     private static ClaimsPrincipal Principal(params Claim[] claims)
         => new(new ClaimsIdentity(claims, "test"));

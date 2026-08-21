@@ -154,7 +154,7 @@
                                             ProjectionVersionProvider="@(() => _updateMetadataProofProjectionVersion ?? _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                            OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_metadataLeaseOwner, isActive))"
+                                            CommandActivityLease="@MetadataCommandActivityLease"
                                             ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
                 </FluentAccordionItem>
 
@@ -171,7 +171,7 @@
                                                         GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                        OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_lifecycleLeaseOwner, isActive))"
+                                                        CommandActivityLease="@LifecycleCommandActivityLease"
                                                         ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
                 </FluentAccordionItem>
 
@@ -227,7 +227,8 @@
                                                        Lifecycle="@_snapshot.Lifecycle"
                                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                        OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                       OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_configurationLeaseOwner, isActive))"
+                                                       SetCommandActivityLease="@SetConfigurationCommandActivityLease"
+                                                       RemoveCommandActivityLease="@RemoveConfigurationCommandActivityLease"
                                                        SetProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
                                                        RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync"
                                                        ReauthorizeProvider="@ReauthorizeConfigurationManagementAsync" />
@@ -245,8 +246,13 @@
     private bool _auditProofCapabilityAvailable;
     /// <summary>Upper bound on retained member paging history.</summary>
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
-    /// <summary>Upper bound on supplementary full-list walks that must not block the primary detail.</summary>
-    private const int MaximumSupplementaryPageCount = CursorHistory.DefaultMaximum;
+    /// <summary>
+    /// Upper bound on supplementary full-list walks that must not block the primary detail. Deliberately its
+    /// own constant: it was aliased to <see cref="CursorHistory.DefaultMaximum"/>, which is a *paging-history
+    /// retention* bound with no relationship to evidence completeness, so tuning member paging silently
+    /// changed how many global-administrator pages were walked before the evidence degraded to incomplete.
+    /// </summary>
+    private const int MaximumSupplementaryPageCount = 50;
 
     private readonly Stack<string?> _memberCursorHistory = new();
 
@@ -295,11 +301,18 @@
     // share (and later release) a lock it never acquired.
     private readonly object _metadataLeaseOwner = new();
     private readonly object _lifecycleLeaseOwner = new();
-    private readonly object _configurationLeaseOwner = new();
+
+    // The configuration landmark hosts two independent command flows. They must not share one token: a shared
+    // token makes ReferenceEquals succeed for the second flow, so the lease goes multi-owner and whichever
+    // flow reports completion first releases the aggregate while the other command is still in flight (AD-12).
+    private readonly object _setConfigurationLeaseOwner = new();
+    private readonly object _removeConfigurationLeaseOwner = new();
     private readonly object _membershipLeaseOwner = new();
+
+    // Leases are cached per owner so the delegate identity is stable across renders; a fresh lambda every
+    // render would look like a changed parameter to every child command surface.
+    private readonly Dictionary<object, (string TenantId, Func<bool, Task<bool>> Lease)> _commandActivityLeases = [];
     private object? _aggregateLeaseHolder;
-    private string? _membershipCommandActivityLeaseTenantId;
-    private Func<bool, Task<bool>>? _membershipCommandActivityLease;
     private int _readRefreshSubscriptionInFlight;
 
     [Parameter]
@@ -326,19 +339,48 @@
         => _aggregateAdmissionGate ??= Services.GetService<TenantAggregateCommandAdmissionGate>();
 
     private Func<bool, Task<bool>> MembershipCommandActivityLease
-    {
-        get
-        {
-            string tenantId = TenantId;
-            if (_membershipCommandActivityLease is null
-                || !string.Equals(_membershipCommandActivityLeaseTenantId, tenantId, StringComparison.Ordinal))
-            {
-                _membershipCommandActivityLeaseTenantId = tenantId;
-                _membershipCommandActivityLease = isActive => SetCommandActivityLeaseAsync(tenantId, isActive, _membershipLeaseOwner);
-            }
+        => CommandActivityLeaseFor(_membershipLeaseOwner);
 
-            return _membershipCommandActivityLease;
+    private Func<bool, Task<bool>> MetadataCommandActivityLease
+        => CommandActivityLeaseFor(_metadataLeaseOwner);
+
+    private Func<bool, Task<bool>> LifecycleCommandActivityLease
+        => CommandActivityLeaseFor(_lifecycleLeaseOwner);
+
+    private Func<bool, Task<bool>> SetConfigurationCommandActivityLease
+        => CommandActivityLeaseFor(_setConfigurationLeaseOwner);
+
+    private Func<bool, Task<bool>> RemoveConfigurationCommandActivityLease
+        => CommandActivityLeaseFor(_removeConfigurationLeaseOwner);
+
+    // The lease is also lowered from child DisposeAsync during teardown, where the renderer may already be
+    // gone. Every other dispatch on this page guards ObjectDisposedException; the lease path did not, so a
+    // disposal race escaped as an unhandled exception instead of dying quietly with the circuit.
+    private async Task RenderIfAliveAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
         }
+        catch (ObjectDisposedException)
+        {
+            // Renderer torn down between the lease change and the dispatch.
+        }
+    }
+
+    // Every command surface acquires through this seam so a refusal is returned to the caller. An
+    // EventCallback<bool> cannot carry the answer back, which let a refused surface dispatch anyway.
+    private Func<bool, Task<bool>> CommandActivityLeaseFor(object surfaceOwner)
+    {
+        string tenantId = TenantId;
+        if (!_commandActivityLeases.TryGetValue(surfaceOwner, out (string TenantId, Func<bool, Task<bool>> Lease) entry)
+            || !string.Equals(entry.TenantId, tenantId, StringComparison.Ordinal))
+        {
+            entry = (tenantId, isActive => SetCommandActivityLeaseAsync(tenantId, isActive, surfaceOwner));
+            _commandActivityLeases[surfaceOwner] = entry;
+        }
+
+        return entry.Lease;
     }
 
     private bool IsCurrentAggregateLocked
@@ -1636,11 +1678,11 @@
 
     private async Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
     {
-        TenantDetailSnapshot proof = await QueryGateway
+        TenantDetailSnapshot? proof = await QueryGateway
             .GetUpdateMetadataProjectionProofAsync(request, CancellationToken.None)
             .ConfigureAwait(false);
 
-        if (!string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
+        if (proof is null || !string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
         {
             // Fail closed: without authoritative evidence there is no version that may imply advancement.
             _updateMetadataProofProjectionVersion = null;
@@ -1675,19 +1717,6 @@
                 ? _snapshot.Detail
                 : null);
 
-    private async Task SetCommandActivityAsync(object surfaceOwner, bool isActive)
-    {
-        // The lease answer is not discarded. A refused acquisition must leave the page reflecting the lock
-        // that refused it, so every command surface renders unavailable instead of staying enabled while
-        // another surface's command is still in flight.
-        bool granted = await SetCommandActivityLeaseAsync(TenantId, isActive, surfaceOwner).ConfigureAwait(false);
-        if (isActive && !granted)
-        {
-            _commandInFlight = IsCurrentAggregateLocked;
-            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-        }
-    }
-
     private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)
     {
         ArgumentNullException.ThrowIfNull(surfaceOwner);
@@ -1714,7 +1743,7 @@
                 }
 
                 _commandInFlight = true;
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                await RenderIfAliveAsync().ConfigureAwait(false);
                 return true;
             }
 
@@ -1744,11 +1773,11 @@
             }
         }
 
-        // Membership flows acquire the lease through a Func delegate rather than an EventCallback owned by
+        // Command surfaces acquire the lease through a Func delegate rather than an EventCallback owned by
         // this component. Blazor therefore does not schedule a TenantDetailPage render when that child event
         // completes. Render explicitly so the owner-aware lock reason and disabled sibling surfaces become
         // visible immediately after acquisition (and disappear immediately after release).
-        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        await RenderIfAliveAsync().ConfigureAwait(false);
         return true;
     }
 

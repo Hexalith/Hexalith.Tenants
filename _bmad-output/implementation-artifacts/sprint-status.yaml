@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-08-21
+last_updated: '2026-08-21'
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -85,8 +85,10 @@ development_status:
   2-3-change-tenant-member-role: done
   # 2026-08-08: 2.4a + 2.4b implemented (eligibility/preview/dialog + WP-2A proof /
   # audit_available, MissingAuditProof fail-closed, provenance refine). Awaiting review gate.
-  # 2026-08-21: code-review loop 3 (chunk A) applied 12 patches; 4 decision items and review
-  # chunks B (surfaces/resources) and C (tests/docs) remain.
+  # 2026-08-21: code-review loop 3 (chunk A) applied 12 patches; (chunk B) resolved 3 decisions and
+  # closed 20 patch findings (17 applied, 3 no-change-needed), deferring 19. Remaining: the 4 chunk-A
+  # decision items and review chunk C (tests/docs). Blocked for CI until the references/Hexalith.Builds
+  # xunit.v3 4.0.0 pointer is made coherent (NU1107 on test restore).
   2-4-remove-tenant-member-with-complete-preview-and-proof: in-progress
   epic-2-retrospective: done
 
@@ -94,7 +96,7 @@ development_status:
   epic-3: done
   # 2026-08-21: code review loop 1 -- 5 decisions resolved, 23 patches applied, 5 deferred.
   3-1-create-tenant-with-projection-confirmation: done
-  3-2-edit-tenant-metadata-with-recorded-updates: review
+  3-2-edit-tenant-metadata-with-recorded-updates: in-progress
   3-3-lifecycle-and-configuration-availability-guardrail: backlog
   3-4-disable-or-enable-tenant-with-complete-preview: backlog
   3-5-set-namespaced-configuration-with-complete-preview: backlog
