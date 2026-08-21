@@ -1,6 +1,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Localization
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
@@ -21,6 +22,13 @@
            data-testid="tenants-create-unavailable-reason"
            role="alert">
             @UnavailableReason
+        </p>
+    }
+    else if (IsFirstTenantBootstrap)
+    {
+        <p class="tenants-create-flow__availability"
+           data-testid="tenants-create-availability-note">
+            @Localizer["Tenants.Create.Availability.FirstTenantUnknown"]
         </p>
     }
 
@@ -115,16 +123,18 @@
                 </AuditAvailabilityState>
             }
         </div>
-        @if (!string.IsNullOrWhiteSpace(SafeMessageText))
-        {
-            <p data-testid="tenants-create-safe-message">@SafeMessageText</p>
-        }
-        <p class="tenants-create-flow__live"
-           data-testid="tenants-create-live-region"
-           aria-live="@LiveRegionMode"
-           aria-atomic="true">
-            @StateText
-        </p>
+        @* The reason lives inside the live region: announcing the state alone left a screen-reader
+           user with "Unable to verify" and no explanation of why. *@
+        <section class="tenants-create-flow__live"
+                 data-testid="tenants-create-live-region"
+                 aria-live="@LiveRegionMode"
+                 aria-atomic="true">
+            <p>@StateText</p>
+            @if (!string.IsNullOrWhiteSpace(SafeMessageText))
+            {
+                <p data-testid="tenants-create-safe-message">@SafeMessageText</p>
+            }
+        </section>
     </section>
 </section>
 
@@ -162,6 +172,9 @@
     public bool BaselineTenantAbsent { get; set; }
 
     [Parameter]
+    public bool IsFirstTenantBootstrap { get; set; }
+
+    [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
     [Parameter]
@@ -173,7 +186,7 @@
         => !IsAuthorized
             ? Localizer["Tenants.Create.Unavailable.Authorization"].Value
             : !IsFresh
-                ? Localizer["Tenants.Create.Unavailable.Freshness"].Value
+                ? Localizer["Tenants.Create.Availability.Stale"].Value
                 : !IsCommandSurfaceAvailable || CommandGateway is null
                     ? Localizer["Tenants.Create.Unavailable.CommandSurface"].Value
                     : _isSubmitting
@@ -211,11 +224,25 @@
         => Localizer[$"Tenants.Create.Audit.{_snapshot.AuditState}"];
 
     private string? SafeMessageText
-        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessage)
-            ? _snapshot.SafeMessage
-            : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-                ? Localizer[_snapshot.SafeMessageKey].Value
-                : null;
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+            {
+                return _snapshot.SafeMessage;
+            }
+
+            if (string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey))
+            {
+                return null;
+            }
+
+            // A missing or renamed resource makes IStringLocalizer hand back the key itself, which
+            // would print an internal identifier onto a support-safe surface.
+            LocalizedString localized = Localizer[_snapshot.SafeMessageKey];
+            return localized.ResourceNotFound ? null : localized.Value;
+        }
+    }
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
@@ -265,11 +292,14 @@
         }
     }
 
+    private TenantCreateAttemptTracker? AttemptTracker
+        => Services.GetService<TenantCreateAttemptTracker>();
+
     internal void ApplySignalRNudge()
-        => _snapshot = _snapshot.SignalRNudge();
+        => SetSnapshot(_snapshot.SignalRNudge());
 
     internal void ApplyProjectionEvidence(TenantSummary? summary, string? projectionVersion)
-        => _snapshot = _snapshot.ConfirmProjection(summary, null, projectionVersion);
+        => SetSnapshot(_snapshot.ConfirmProjection(summary, null, projectionVersion));
 
     private void OnTenantIdInput(string? value)
         => _tenantId = value;
@@ -305,17 +335,43 @@
         }
 
         var request = new CreateTenant(_tenantId, _name, _description);
+
         if (_snapshot.MessageId is not null || _snapshot.CorrelationId is not null)
         {
             if (_snapshot.Intent == request && _snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
             {
+                // Same logical attempt: refresh its tracked status. Never dispatch a second command.
                 await RefreshStatusAsync().ConfigureAwait(false);
                 return;
             }
 
-            SetSnapshot(TenantCreateCommandSnapshot.Blocked(
-                Localizer["Tenants.Create.Unavailable.Tracking"].Value,
-                TenantCommandFocusTarget.Refresh));
+            if (!_snapshot.IsTerminal)
+            {
+                // A different intent while the tracked attempt is still resolving. Surface the block but
+                // keep MessageId/CorrelationId so the refresh recovery the copy names stays operable.
+                SetSnapshot(_snapshot.BlockedWithTracking(Localizer["Tenants.Create.Unavailable.Tracking"].Value));
+                return;
+            }
+
+            // The tracked attempt reached a terminal outcome, so a different intent is a deliberate new
+            // attempt: release the old tracking and let a fresh ULID be minted for it.
+            if (_snapshot.Intent is not null)
+            {
+                AttemptTracker?.Forget(_snapshot.Intent.TenantId);
+            }
+
+            _snapshot = TenantCreateCommandSnapshot.Idle();
+        }
+
+        // This component instance carries no tracking of its own but the circuit still retains a handle
+        // for this tenant id (re-mount, workspace tab round trip): adopt it and reconcile rather than
+        // dispatching the same create a second time.
+        if (AttemptTracker?.Find(request.TenantId) is TenantCommandTrackingHandle retained)
+        {
+            SetSnapshot(_snapshot
+                .RequestSent(request, BaselineProjectionVersion, BaselineTenantAbsent)
+                .Accepted(TenantCommandSubmissionResult.Accepted(retained.MessageId, retained.CorrelationId)));
+            await RefreshStatusAsync().ConfigureAwait(false);
             return;
         }
 
@@ -323,8 +379,8 @@
 
         try
         {
-            bool? baselineTenantAbsent = await CaptureBaselineTenantAbsenceAsync(request.TenantId).ConfigureAwait(false);
-            if (baselineTenantAbsent is null)
+            CreateAttemptBaseline? baseline = await CaptureBaselineAsync(request.TenantId).ConfigureAwait(false);
+            if (baseline is null)
             {
                 SetSnapshot(TenantCreateCommandSnapshot.Blocked(
                     Localizer["Tenants.Create.Unavailable.Freshness"].Value,
@@ -335,7 +391,8 @@
             _snapshot = _snapshot.RequestSent(
                 request,
                 BaselineProjectionVersion,
-                baselineTenantAbsent.Value);
+                baseline.Value.TenantAbsent,
+                baseline.Value.DetailProjectionVersion);
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
@@ -345,13 +402,22 @@
                 return;
             }
 
+            // Reuse the tracked message id when one exists so a re-dispatch of the same logical attempt
+            // collapses onto the same command instead of creating a second one.
             TenantCommandSubmissionResult result = await gateway
-                .CreateTenantAsync(request, messageId: null, cancellationToken: CancellationToken.None)
+                .CreateTenantAsync(request, messageId: _snapshot.MessageId, cancellationToken: CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)
             {
                 SetSnapshot(_snapshot.Accepted(result));
+                if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+                {
+                    AttemptTracker?.Remember(
+                        request.TenantId,
+                        new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId));
+                }
+
                 await RefreshStatusAsync().ConfigureAwait(false);
             }
             else
@@ -363,7 +429,12 @@
                     SafeMessageKey = null,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    // Focus moves to refresh only when refresh is operable. A rejected or failed
+                    // submission carries no correlation, so CanRefresh is false and sending focus there
+                    // would land the caller on a disabled control.
+                    FocusTarget = result.CorrelationId is not null
+                        ? TenantCommandFocusTarget.Refresh
+                        : TenantCommandFocusTarget.Submit,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 });
             }
@@ -398,43 +469,63 @@
         // callback there triggers the parent's StateHasChanged off-Dispatcher, which throws
         // "The current thread is not associated with the Dispatcher" and tears down the circuit.
         await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        if (_snapshot.Intent is not null)
-        {
-            try
-            {
-                (TenantSummary? Summary, string? ProjectionVersion) listResult = ProjectionEvidenceProvider is null
-                    ? (null, null)
-                    : await ProjectionEvidenceProvider(_snapshot.Intent.TenantId).ConfigureAwait(false);
-                TenantDetailSnapshot? detailEvidence = null;
-                if (Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway queryGateway)
-                {
-                    detailEvidence = await queryGateway
-                        .GetTenantAsync(
-                            new TenantDetailRequest(_snapshot.Intent.TenantId),
-                            previous: null,
-                            cancellationToken: CancellationToken.None)
-                        .ConfigureAwait(false);
-                }
 
-                SetSnapshot(_snapshot.ConfirmProjection(listResult.Summary, detailEvidence, listResult.ProjectionVersion));
-            }
-            catch (Exception)
+        // Reconciliation applies only while the attempt is projection-pending. Running it on a terminal
+        // Rejected/Failed/Degraded attempt would issue a pointless detail read, and a throw from that read
+        // would overwrite a definitive rejection with "unable to verify".
+        if (_snapshot.Intent is null || _snapshot.State is not TenantCommandLifecycleState.ProjectionPending)
+        {
+            ReleaseTrackingIfTerminal();
+            return;
+        }
+
+        try
+        {
+            (TenantSummary? Summary, string? ProjectionVersion) listResult = ProjectionEvidenceProvider is null
+                ? (null, null)
+                : await ProjectionEvidenceProvider(_snapshot.Intent.TenantId).ConfigureAwait(false);
+            TenantDetailSnapshot? detailEvidence = null;
+            if (Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway queryGateway)
             {
-                SetSnapshot(UnableToVerifyProjection());
+                detailEvidence = await queryGateway
+                    .GetTenantAsync(
+                        new TenantDetailRequest(_snapshot.Intent.TenantId),
+                        previous: null,
+                        cancellationToken: CancellationToken.None)
+                    .ConfigureAwait(false);
             }
+
+            SetSnapshot(_snapshot.ConfirmProjection(listResult.Summary, detailEvidence, listResult.ProjectionVersion));
+        }
+        catch (Exception)
+        {
+            SetSnapshot(UnableToVerifyProjection());
+        }
+
+        ReleaseTrackingIfTerminal();
+    }
+
+    private void ReleaseTrackingIfTerminal()
+    {
+        if (_snapshot.IsTerminal && _snapshot.Intent is not null)
+        {
+            AttemptTracker?.Forget(_snapshot.Intent.TenantId);
         }
     }
 
-    private async Task<bool?> CaptureBaselineTenantAbsenceAsync(string tenantId)
+    // Returns null when baseline absence can be neither proved nor disproved, so the caller fails closed
+    // before dispatch. Recording an indeterminate read as "tenant was present" would dispatch a write that
+    // could then never be confirmed.
+    private async Task<CreateAttemptBaseline?> CaptureBaselineAsync(string tenantId)
     {
         if (BaselineTenantAbsent)
         {
-            return true;
+            return new CreateAttemptBaseline(true, null);
         }
 
         if (Services.GetService<ITenantQueryGateway>() is not ITenantQueryGateway queryGateway)
         {
-            return false;
+            return null;
         }
 
         try
@@ -445,7 +536,16 @@
                     previous: null,
                     cancellationToken: CancellationToken.None)
                 .ConfigureAwait(false);
-            return detail.Kind is TenantDetailSurfaceKind.NotFound;
+            return detail.Kind switch
+            {
+                TenantDetailSurfaceKind.NotFound => new CreateAttemptBaseline(true, detail.ProjectionVersion),
+                // Present at baseline: dispatching is still correct because the backend answers with the
+                // safe TenantAlreadyExists rejection, but confirmation can never claim this create.
+                TenantDetailSurfaceKind.Ready => new CreateAttemptBaseline(false, detail.ProjectionVersion),
+                // Loading, Stale, Degraded, Unknown, Unavailable, and Unauthorized prove nothing either
+                // way, so they must block before dispatch rather than be recorded as "present".
+                _ => null,
+            };
         }
         catch (Exception)
         {
@@ -463,4 +563,6 @@
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
+
+    private readonly record struct CreateAttemptBaseline(bool TenantAbsent, string? DetailProjectionVersion);
 }

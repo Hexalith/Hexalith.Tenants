@@ -2605,6 +2605,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2647,6 +2648,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             [new TenantMember("owner-user", TenantRole.TenantOwner)]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2679,6 +2681,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2720,6 +2723,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2766,6 +2770,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2806,6 +2811,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2828,6 +2834,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2881,6 +2888,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = MemberSnapshot(detail) with { HasMore = true, NextCursor = "page-2" };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2904,6 +2912,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantDetail alpha = Detail("tenant.alpha");
         TenantDetail beta = Detail("tenant.beta");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, alpha)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2930,6 +2939,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -2973,6 +2983,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 status,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, surfaceKind)
             .Add(view => view.Freshness, freshness)
@@ -2999,6 +3010,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3023,6 +3035,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 [new TenantMember("literal-user", TenantRole.TenantOwner)]);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3050,6 +3063,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 []);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Unknown)
@@ -3091,6 +3105,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = TerminalMemberSnapshot(kind, detail.TenantId);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3180,6 +3195,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         members.IsAuthorizationScopedEmpty.ShouldBeFalse();
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3217,6 +3233,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ProjectionLifecycleState.Current);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3243,6 +3260,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3267,6 +3285,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot mismatched = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
 
         IRenderedComponent<MemberAccessReview> mismatch = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3279,6 +3298,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         withheld.ShouldNotContain("visible owner");
 
         IRenderedComponent<MemberAccessReview> agreeing = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -3298,6 +3318,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -5533,6 +5554,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -5573,6 +5595,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -5614,6 +5637,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ProjectionLifecycleState.Current) with { IsRefreshing = true };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -6094,6 +6118,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 CultureInfo.CurrentUICulture = culture;
                 CultureInfo.CurrentCulture = culture;
                 IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+                    .Add(p => p.AuditProofCapabilityAvailable, true)
                     .Add(view => view.Detail, detail)
                     .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
                     .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -6158,6 +6183,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         degraded.IsAuthorizationScopedEmpty.ShouldBeFalse();
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -6197,6 +6223,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -6241,6 +6268,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)

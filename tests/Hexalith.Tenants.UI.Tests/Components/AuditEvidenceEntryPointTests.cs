@@ -169,6 +169,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         TenantDetail detail = Detail("tenant.alpha");
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(component => component.Detail, detail)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)

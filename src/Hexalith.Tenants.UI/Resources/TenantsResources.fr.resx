@@ -1896,6 +1896,12 @@
   <data name="Tenants.AddMember.Unavailable.InFlight" xml:space="preserve">
     <value>Une commande locataire est déjà en cours.</value>
   </data>
+  <data name="Tenants.Commands.Unavailable.InvalidTrackingReference" xml:space="preserve">
+    <value>Cette commande n'a pas pu être envoyée car son identifiant de suivi n'était pas valide. Actualisez le locataire et relancez l'action.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Dismiss.Blocked" xml:space="preserve">
+    <value>Cette suppression est toujours en cours : la boîte de dialogue ne peut pas encore être fermée. Utilisez Actualiser pour vérifier le résultat.</value>
+  </data>
   <data name="Tenants.Members.Submit.TrackingLost" xml:space="preserve">
     <value>Cette tentative n'est plus suivie : elle ne peut être ni vérifiée ni renvoyée ici. Actualisez le locataire et vérifiez la liste des membres avant de réessayer.</value>
   </data>

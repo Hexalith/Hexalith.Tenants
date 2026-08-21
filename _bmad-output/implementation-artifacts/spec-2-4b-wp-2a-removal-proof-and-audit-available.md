@@ -2,9 +2,9 @@
 title: 'Remove Tenant Member WP-2A Proof and audit_available'
 type: 'feature'
 created: '2026-08-08'
-status: 'done'
+status: 'in-progress'
 baseline_commit: 'bb85fadb149fed1fa00dfd9c8d3315df541566e8'
-review_loop_iteration: 0
+review_loop_iteration: 3
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-2-context.md'

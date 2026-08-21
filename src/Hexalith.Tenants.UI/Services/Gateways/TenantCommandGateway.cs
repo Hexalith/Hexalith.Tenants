@@ -48,7 +48,7 @@ internal sealed class TenantCommandGateway(
         }
 
         if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
-            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
@@ -83,7 +83,7 @@ internal sealed class TenantCommandGateway(
         }
 
         if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
-            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
@@ -118,7 +118,7 @@ internal sealed class TenantCommandGateway(
         }
 
         if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
-            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
@@ -151,7 +151,7 @@ internal sealed class TenantCommandGateway(
         }
 
         if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
-            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
@@ -179,12 +179,12 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Name)) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || string.IsNullOrWhiteSpace(request.Name)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
         if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
-            return TenantCommandSubmissionResult.Failed("A valid ULID message id is required before the command can be submitted.");
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
@@ -211,7 +211,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId)
+        if (string.IsNullOrWhiteSpace(request.TenantId)
             || string.IsNullOrWhiteSpace(request.Key)
             || request.Value is null) {
             return TenantCommandSubmissionResult.Failed("Tenant id, configuration key, and value are required before the command can be submitted.");
@@ -243,7 +243,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Key)) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || string.IsNullOrWhiteSpace(request.Key)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and configuration key are required before the command can be submitted.");
         }
 
@@ -333,7 +333,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant) {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
@@ -364,7 +364,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant) {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 

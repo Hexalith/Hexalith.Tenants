@@ -54,6 +54,82 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     }
 
     [Fact]
+    public void Projection_version_regression_or_opaque_churn_is_not_advancement()
+    {
+        // Causal provenance: a version that merely DIFFERS from the baseline is not proof this command
+        // landed. A regression (v2 -> v1) and an unordered token swap must both fail closed.
+        var intent = new UpdateTenant("tenant.alpha", "Updated", null);
+        TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
+            .Idle("Original", "Original description", Detail("tenant.alpha", "Original", "Original description"))
+            .RequestSent(intent, baselineProjectionVersion: "projection-v2")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        TenantUpdateMetadataCommandSnapshot regressed = snapshot.ConfirmProjection(
+            Detail("tenant.alpha", "Updated", null),
+            currentProjectionVersion: "projection-v1");
+
+        regressed.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        regressed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        regressed.LastConfirmedName.ShouldBe("Original");
+
+        TenantUpdateMetadataCommandSnapshot unorderedToken = snapshot.ConfirmProjection(
+            Detail("tenant.alpha", "Updated", null),
+            currentProjectionVersion: "an-unrelated-opaque-token");
+
+        unorderedToken.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        unorderedToken.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        unorderedToken.LastConfirmedName.ShouldBe("Original");
+    }
+
+    [Fact]
+    public void Advancing_version_without_command_event_evidence_does_not_confirm()
+    {
+        // Completed with no events proves nothing was produced by THIS command, so a concurrent unrelated
+        // write that advances the tenant's projection version must not be borrowed as confirmation.
+        var intent = new UpdateTenant("tenant.alpha", "Updated", null);
+        TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
+            .Idle("Original", "Original description", Detail("tenant.alpha", "Original", "Original description"))
+            .RequestSent(intent, baselineProjectionVersion: "projection-v1")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        snapshot.HasCommandEventEvidence.ShouldBeFalse();
+
+        TenantUpdateMetadataCommandSnapshot borrowed = snapshot.ConfirmProjection(
+            Detail("tenant.alpha", "Updated", null),
+            currentProjectionVersion: "projection-v2");
+
+        borrowed.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        borrowed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        borrowed.LastConfirmedName.ShouldBe("Original");
+    }
+
+    [Fact]
+    public void Signalr_elevated_projection_pending_cannot_confirm_without_event_evidence()
+    {
+        // SignalRNudge promotes Accepted to ProjectionPending with no status evidence. It must not become a
+        // confirmation channel just because an unrelated write advanced the version.
+        var intent = new UpdateTenant("tenant.alpha", "Updated", null);
+        TenantUpdateMetadataCommandSnapshot nudged = TenantUpdateMetadataCommandSnapshot
+            .Idle("Original", "Original description", Detail("tenant.alpha", "Original", "Original description"))
+            .RequestSent(intent, baselineProjectionVersion: "projection-v1")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .SignalRNudge();
+
+        nudged.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        nudged.HasCommandEventEvidence.ShouldBeFalse();
+
+        TenantUpdateMetadataCommandSnapshot confirmed = nudged.ConfirmProjection(
+            Detail("tenant.alpha", "Updated", null),
+            currentProjectionVersion: "projection-v2");
+
+        confirmed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        confirmed.LastConfirmedName.ShouldBe("Original");
+    }
+
+    [Fact]
     public void Identical_submitted_metadata_confirms_with_provenance_and_never_becomes_already_applied()
     {
         var intent = new UpdateTenant("tenant.alpha", "Alpha", "same description");

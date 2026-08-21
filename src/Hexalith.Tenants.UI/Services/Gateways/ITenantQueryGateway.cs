@@ -23,6 +23,21 @@ public interface ITenantQueryGateway {
         return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
     }
 
+    /// <summary>
+    /// Reads authoritative confirmation evidence for a metadata update. Returning the full snapshot keeps the
+    /// detail and its projection version from a single read, so confirmation cannot pair stale evidence with
+    /// an advanced version. Defaults to unavailable so implementors opt in.
+    /// </summary>
+    /// <param name="request">Metadata update whose tenant should be re-read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An authoritative tenant detail snapshot, or an unavailable snapshot.</returns>
+    Task<TenantDetailSnapshot> GetUpdateMetadataProjectionProofAsync(
+        UpdateTenant request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant metadata projection proof is unavailable."));
+    }
+
     Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
         TenantDetailSnapshot? previous,

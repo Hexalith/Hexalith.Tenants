@@ -1129,7 +1129,8 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
-        result.SafeMessage.ShouldNotBeNull().ShouldContain("ULID");
+        result.SafeMessageKey.ShouldBe("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        result.SafeMessage.ShouldBeNull();
         client.SubmittedCommands.ShouldBeEmpty();
         ulids.CallCount.ShouldBe(0);
     }

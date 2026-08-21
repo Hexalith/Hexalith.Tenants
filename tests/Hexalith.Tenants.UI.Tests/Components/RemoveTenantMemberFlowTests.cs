@@ -36,6 +36,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -72,6 +73,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         TenantDetail detail = Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.Member, new TenantMember("owner-user", TenantRole.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -102,6 +104,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -123,6 +126,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -141,6 +145,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
@@ -198,6 +203,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         string liveProjectionVersion = "v1";
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.Member, new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -250,6 +256,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -276,6 +283,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -307,6 +315,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -327,6 +336,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -351,6 +361,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -382,6 +393,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -424,6 +436,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -458,6 +471,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -488,6 +502,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, surfaceKind)
@@ -512,6 +527,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -531,6 +547,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -556,6 +573,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -581,6 +599,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway(), new UnavailableTenantQueryGateway());
 
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -638,6 +657,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -853,6 +873,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         int projectionRefreshCount = 0;
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -973,6 +994,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1020,6 +1042,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1084,6 +1107,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     {
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1176,6 +1200,78 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
             await Task.Delay(10);
         }
+    }
+
+    [Fact]
+    public void Unproven_audit_proof_capability_fails_closed_by_default()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        // AuditProofCapabilityAvailable is deliberately not supplied. Gateway registration alone is not
+        // capability evidence, so a parent that never proves it must not get a dispatchable removal.
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Instance.AuditProofCapabilityAvailable.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent
+            .ShouldContain("missing audit proof", Case.Insensitive);
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Confirmed_removal_does_not_raise_a_target_absent_unavailability()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        TenantDetail after = Detail(
+            "tenant.alpha",
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("second-owner", TenantRole.TenantOwner),
+            ]);
+
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, _ =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(after);
+            }));
+
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+
+        // The parent keeps the flow mounted after the removed row leaves the page. Reporting that
+        // by-design absence as an assertive unavailability would contradict the confirmed outcome.
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, after)
+            .Add(p => p.ProjectionVersion, "v2"));
+
+        cut.WaitForAssertion(() =>
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.FindAll("[data-testid='tenants-remove-member-unavailable-reason']").ShouldBeEmpty();
     }
 
     private static TenantDetail Detail(string tenantId)

@@ -1005,7 +1005,12 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
   summary: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender.
-  evidence: Pre-existing composition pattern; Story 3.1 only threaded the existing flag into CreateTenantFlow.
+  evidence: The `ITenantsBffComposition.IsCommandSurfaceConnected` property pre-existed, but Story 3.1 introduced the workspace-side render-time lookup and the `IsCommandSurfaceAvailable` parameter binding themselves. Corrected by code review 2026-08-21: the original wording understated what this story added.
+
+## Deferred from: implementation of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-08)
+
+Filed by the Story 3.2 implementation commit. Re-headed by code review 2026-08-21: these four entries
+were appended under the preceding Story 3.1 heading, though each already named its own source_spec.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
   summary: SignalR-elevated ProjectionPending can still confirm after unrelated projection-version advancement on metadata (and sibling create/membership) flows.
@@ -1194,3 +1199,122 @@ Review loop 9, chunk D (`tests/`). Three items deferred.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
   summary: Refresh-coalescing re-enters recursively instead of iterating.
   evidence: RefreshCommandStatusAsync calls itself after the finally block when a request arrived during the in-flight release window. Under a sustained nudge stream this grows the async frame chain without bound. The dropped-request windows reported by review did not reproduce on inspection. Duplicated verbatim across AddTenantMemberFlow, ChangeTenantMemberRoleFlow and RemoveTenantMemberFlow, so any rewrite should extract a shared helper.
+
+## Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)
+
+Review loop 1, four layers. Six items deferred as pre-existing or cross-tier.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: AttemptStartedAtUtc and hasQualifyingAuditProvenance are dead in production for metadata; the snapshot test pins a branch no production call site can reach.
+  evidence: Both ConfirmProjection call sites (EditTenantMetadataFlow.razor:410 and :573) use the two-argument form, so the flag is permanently false; AttemptStartedAtUtc is stamped in RequestSent and never read for metadata. The frozen "version advancement OR audit provenance" rule is satisfied by the version half, so this is dead API surface rather than a violation. Already partially recorded by this story's own deferred entry.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Nothing proves the tenant-detail read model's ProjectionVersion actually advances for a same-value update, which is the premise the whole confirmation path now rests on.
+  evidence: TenantAggregateTests proves the aggregate always emits TenantUpdated for identical Name+Description, but not that the projection version moves. A projection that deduped or content-hashed would make every same-value "recorded update" fail closed to UnableToVerify. Requires a Server/Integration-tier test, outside this UI slice's test shape.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Hard-coded English strings remain on paths this story made localizable.
+  evidence: TenantCreateCommandModels.cs:1165 default ApplyStatus arm ("Command status could not be verified.") and TenantCommandGateway.cs validation literal. Both verified as pre-existing context lines in the diff, not introduced by this story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: EditTenantMetadataFlow.ApplyProjectionEvidence and ApplySignalRNudge have no callers; the story threaded a projection version into a dead entry point.
+  evidence: grep over src/ finds only the declarations; TenantDetailPage holds an @ref to _memberAccessReview only and nudges only that component. Consequence: SignalR nudges never reach the metadata flow today.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: New defensive branches are covered only by reflection-poking private fields, so they will break silently on rename and do not exercise the real gateway path.
+  evidence: EditTenantMetadataFlowTests.cs sets the private _snapshot field and invokes private RefreshStatusAsync to build an Accepted snapshot with null tracking ids. The only realistic production route to that state is a gateway returning Accepted with a blank CorrelationId, which no test drives.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+  summary: Optional messageId is now inconsistent across ITenantCommandGateway.
+  evidence: Create, Add, Change, Remove and Update carry it; SetTenantConfigurationAsync, RemoveTenantConfigurationAsync, SetGlobalAdministratorAsync, RemoveGlobalAdministratorAsync, EnableTenantAsync and DisableTenantAsync do not. The reconnect/idempotency contract is therefore partial. Hexalith.Tenants.UI is not a published package, so there is no external consumer break.
+
+## Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-21)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock.
+  evidence: The audit-provenance branch it feeds (`HasQualifyingAuditProvenance`) is never called for create and is already recorded as deferred work from the 2026-08-08 review; removing or wiring the field belongs with that slice.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired.
+  evidence: Its signature was updated for the tuple change, but the SignalR nudge wiring that would call it is itself deferred; fixing the seam in isolation has no observable effect.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Baseline and evidence projection versions are read from different snapshot lineages -- baseline from `_snapshot.ProjectionVersion`, evidence from `_lastConfirmedSnapshot ?? _snapshot` -- so a failed post-create reload makes a genuinely successful create report `UnableToVerify`.
+  evidence: Fail-closed direction (false negative, not false confirm) and entangled with the open provenance-gate decision; resolving that decision determines whether this seam changes at all.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: `TenantsWorkspace.IsCommandSurfaceConnected` is a render-time `Services.GetService` lookup with no subscription, duplicating an existing resolution in the same component and using the non-generic overload.
+  evidence: Pre-existing composition pattern; the no-subscription half is already recorded in this ledger from the 2026-08-08 review. Story 3.1 added the workspace-side call site but not the pattern.
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)
+
+- **`ApplyProjectionEvidence` is dead code across all eight command flows.** A repo-wide search finds eight `internal void ApplyProjectionEvidence` declarations in `src/` and zero invocations in `src/` or `tests/`. Loop 2 rewrote the remove-member copy (`RemoveTenantMemberFlow.razor:628`) to fire a discarded `InvokeAsync` that calls `TryAssembleRemovalProofAsync` and `UpdateCommandActivityForSnapshotAsync` without `StateHasChanged` and outside any try/catch. The live proof path is `HandleAuthoritativeRefreshNudgeAsync` → `TryAssembleRemovalProofAsync` (`:902`), reached from `MemberAccessReview.razor:804`, so WP-2A still works — the rewritten method is simply unreachable. Pre-existing pattern, spans seven files outside story 2.4.
+- **`CreateTenantFlow` never adopts the reusable `messageId` affordance this story added.** `TenantCommandGateway.CreateTenantAsync` gained `string? messageId = null` and now returns `MessageId` on indeterminate failure (`TenantCommandGateway.cs:42,69`), but `CreateTenantFlow.razor:348` hard-codes `messageId: null` and `:359-368` discards `result.MessageId`. Its own tracking guard at `:307-319` therefore never engages, and a retry after an ambiguous 503 mints a fresh ULID — surfacing `TenantAlreadyExistsRejection` for a tenant the operator just created. Belongs to story `3-1-create-tenant-with-projection-confirmation` (currently `review`).
+- **Missing test coverage for three branches this story introduced.** No test asserts `CreateTenantAsync`/`UpdateTenantAsync` retain the minted ULID on indeterminate failure (the three membership equivalents exist at `TenantCommandGatewayTests.cs:1137-1184`); no test hands any flow a denying `CommandActivityLease` (every stub returns `Task.FromResult(true)`, and `FromResult(false)` appears nowhere in `tests/`), so the pre-dispatch lease guard at `RemoveTenantMemberFlow.razor:742-750` can be deleted with the suite still green; and no test observes the tracking-lost submit branch at `:669-690`. Test files are chunk C of this review.
+- **Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`.** `project-context.md` bans `--neutral-*` outright, yet `DomainUiFluentConformanceTests` passes — the guard does not cover custom-property names. Noted rather than patched because this story's diff moved *off* a banned token (`--accent-fill-rest` → `--error-fill-rest` at `.css:36`), i.e. it improved the file; the residual token and the guard gap are pre-existing.
+- **`RemoveTenantMemberFlow.Dispose` does not release the command-activity lease — attempted and reverted.** An unmount path other than `CloseAsync` leaves `_hasRaisedCommandActivity` true, so the parent's `_childCommandLeaseOwner` and the page's aggregate key stay held. Releasing from the flow was implemented and then reverted: `CommandFlowGuardConformanceTests.Command_flows_do_not_release_page_activity_directly` forbids any `*Flow.razor` from calling `OnCommandActivityChanged.InvokeAsync(false)`, because a flow that self-releases while still Accepted/ProjectionPending would unlock sibling command surfaces before terminal evidence. The parent is the designated owner and already compensates in `MemberAccessReview.DisposeAsync` and on the authorization-teardown path (`MemberAccessReview.razor:734-738`). Any residual gap is a parent-side concern and should be closed there, not in the flow.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+  summary: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause.
+  evidence: Deferred to Story 3.3 by code-review decision D5 (2026-08-21). Story 3.3 is scoped exactly as the fail-closed availability guardrail for lifecycle and configuration; server/API/domain authorization remains the enforcement boundary, so this is UI honesty rather than a security hole. Story 3.3 must cover create availability, not only lifecycle and configuration.
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)
+
+Review loop 3, chunk B (surfaces, resources & shared services; 22 files, +1469/-338). Four layers ran. Nineteen items deferred as pre-existing, cross-story, or raised against files a peer session rewrote mid-review.
+
+- summary: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively.
+  evidence: `AddTenantMemberFlow.razor:513-541` and the verbatim duplicate at `ChangeTenantMemberRoleFlow.razor:572-600` hard-code `requestProjectionRefresh: false` on every replay, so a Refresh pressed during an in-flight nudge never re-reads the projection. The post-`finally` tail re-enters the same method rather than looping. Already recorded from the story 2.1 review; a shared helper should be extracted rather than fixing three copies.
+
+- summary: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state.
+  evidence: `AddTenantMemberFlow.razor:160`, `ChangeTenantMemberRoleFlow.razor:178`. Blazor components already run serialized on the renderer dispatcher, so a plain field is correct and avoids an ExecutionContext copy-on-write per set; the AsyncLocal also fails to flow into callbacks invoked from a context it was not captured on.
+
+- summary: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components.
+  evidence: `AddTenantMemberFlow.razor:397-416` is byte-identical to `ChangeTenantMemberRoleFlow.razor:452-471` including its six-line comment; `SetCommandActivityRaisedAsync` duplicated at `:315-341`/`:374-400`; `SafeMessageText` duplicated at `CreateTenantFlow.razor:213-218` and `EditTenantMetadataFlow.razor:301-306`.
+
+- summary: The scoped-CSS-on-a-Fluent-host trap predates this change in five other components.
+  evidence: Plain scoped selectors are applied to classes placed on Fluent components in `UserMembershipLookupPanel.razor.css`, `TenantAuditPage.razor.css`, `GlobalAdministratorsPage.razor.css`, `AuditEvidenceReceipt.razor.css` and `AuditEvidenceEntryPoint.razor.css`. Per Microsoft's CSS-isolation contract, scoped CSS applies to HTML elements only, so these selectors cannot match. Only the four `TenantConfigurationView` wrappers are a regression introduced by this story.
+
+- summary: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value.
+  evidence: `TenantAuditAvailability.cs:5-11`. Harmless today (no numeric persistence or interop), but it makes the enum unsafe to serialize by value later.
+
+- summary: French resource additions are inconsistently accented against their neighbours.
+  evidence: `TenantsResources.fr.resx:3141` is fully accented while `:3138` and `:3147` are deliberately unaccented; the same split appears at `:2562-2567` versus `:2134`. The same screen can render both conventions.
+
+- summary: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload.
+  evidence: `:26-46` — same-owner `TryAcquire` now returns `false`, forcing every caller to keep its own bookkeeping (which `TenantDetailPage.razor:1689-1703` reimplements); `Release` at `:55-70` silently no-ops on owner mismatch with no return value, so a leaked lock is undetectable. The `<returns>` doc never mentions the same-owner case.
+
+- summary: The audit-capability probe has no reconnect subscription, and every read refresh briefly blocks removal.
+  evidence: `TenantDetailPage.razor:823` clears `_auditProofCapabilityAvailable` before restarting the probe, and `MemberAccessReview.razor:611-613` turns that into `UnavailableReason.MissingAuditProof`, so every refresh (including SignalR-nudged ones) flips Remove to unavailable with a misleading reason until the extra round trip lands. A `BffComposition` reconnect never re-probes.
+
+- summary: `messageId` remains absent from six `ITenantCommandGateway` methods.
+  evidence: `ITenantCommandGateway.cs:32,36,41,46,51,56` — configuration set/remove, global-administrator set/remove, and tenant enable/disable have no way to reuse a tracking id, so the duplicate-dispatch hazard this change closed for five commands stays open for six. Already recorded from the story 3.2 review.
+
+- summary: `TenantQueryGateway` dereferences `Detail!` inside the catch that exists to fail safe.
+  evidence: `:2131-2152` — if reauthorization throws in the retention helper, the null-forgiving `SanitizeDetail(previous!.Detail!)` can throw from within the safety path.
+
+- summary: `HasSameTenantDetail` newly compares `ConfigurationManagement.TenantId`.
+  evidence: `:2166-2170` — a default-constructed `ConfigurationManagement` with a mismatched `TenantId` now makes the comparison false, so retention paths degrade instead of retaining.
+
+- summary: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method.
+  evidence: `TenantDetailPage.razor:1681-1686` returns `false` leaving a stale `true`; `:1705-1709` explicitly clears it first. The removed code carried a comment explaining the no-lockable-identity path; it was dropped rather than preserved or refuted.
+
+- summary: A `TenantId` change does not notify non-keyed command surfaces that their lease was revoked.
+  evidence: `TenantDetailPage.razor:406-418` releases the old aggregate key on route change, but metadata, lifecycle and configuration flows keep `_hasRaisedCommandActivity` true with no lease behind it.
+
+- summary: The global-administrator aggregation loop uses `ContainsKey`+`Add` and silently drops duplicate or null `UserId` rows.
+  evidence: `TenantDetailPage.razor:1435-1442`. `TryAdd` does one lookup; a null `UserId` would throw into the fail-closed catch rather than being handled explicitly.
+
+- summary: Add and change-role `retryMessageId` exclude the `Rejected` state.
+  evidence: `AddTenantMemberFlow.razor:441-447`, `ChangeTenantMemberRoleFlow.razor:499-505` reuse the id only when `State is Failed`, so a `Rejected` attempt for the same intent re-dispatches under a fresh ULID.
+
+- summary: `MemberAccessReview` sets child lease ownership after the await.
+  evidence: `:754-780` — `_childCommandLeaseOwner` is assigned only after `await CommandActivityLease(isActive)` returns, so two concurrent membership callers can both pass the `is not null` pre-check and both be granted; the first release then frees an aggregate whose other command is still in flight.
+
+- summary: `CreateTenantFlow` and `TenantsWorkspace` findings were raised against files a peer session rewrote mid-review.
+  evidence: A concurrent session working story 3.1 changed `CreateTenantFlow.razor` by +152/-50 and `TenantsWorkspace.razor` by +17/-5 during this review, and added `TenantCreateAttemptTracker.cs`. The raised items — fail-open absence baseline at `:435-438`, empty-string tracking ids blocking submit, a transient refresh fault downgrading a confirmed create to `UnableToVerify`, a fabricated `(null, null)` evidence tuple, and `TenantsWorkspace` asserting tenant absence from a stale empty list — must be re-reviewed against the peer's version and belong to story `3-1-create-tenant-with-projection-confirmation`.
+
+- summary: `TenantsWorkspace` resolves `ITenantsBffComposition` per render and duplicates its own absence predicate.
+  evidence: `:418-420` uses the untyped `Services.GetService(typeof(...))` inside a per-render property with no caching, where `TenantDetailPage` caches the equivalent in a field; the `Empty && IsAuthorizationScopedEmpty` predicate appears at both `:413-414` and `:159` and must not be allowed to drift.
+
+- summary: An eighth undeclared `references/` pointer move appeared during this review.
+  evidence: `references/Hexalith.EventStore` moved `c890235` -> `f8b514f` in the working tree while the review was running, on top of the seven `validate-story-gitlinks.py` already reports. Extends the open chunk-A gitlink decision rather than forming a new one.

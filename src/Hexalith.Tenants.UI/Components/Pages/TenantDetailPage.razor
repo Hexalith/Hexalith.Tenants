@@ -151,7 +151,7 @@
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
-                                            ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
+                                            ProjectionVersionProvider="@(() => _updateMetadataProofProjectionVersion ?? _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             OnCommandActivityChanged="@(isActive => SetCommandActivityAsync(_metadataLeaseOwner, isActive))"
@@ -1629,11 +1629,27 @@
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
-        => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    // Projection version observed by the last authoritative metadata proof read. The flow asks for evidence
+    // first and the version second, so this is always the version of the very read that produced the
+    // evidence -- never a version from an unrelated refresh that happened in between.
+    private string? _updateMetadataProofProjectionVersion;
+
+    private async Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
+    {
+        TenantDetailSnapshot proof = await QueryGateway
+            .GetUpdateMetadataProjectionProofAsync(request, CancellationToken.None)
+            .ConfigureAwait(false);
+
+        if (!string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
+        {
+            // Fail closed: without authoritative evidence there is no version that may imply advancement.
+            _updateMetadataProofProjectionVersion = null;
+            return null;
+        }
+
+        _updateMetadataProofProjectionVersion = proof.ProjectionVersion;
+        return proof.Detail;
+    }
 
     private Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)
         => QueryGateway.GetSetConfigurationProjectionProofAsync(request, CancellationToken.None);

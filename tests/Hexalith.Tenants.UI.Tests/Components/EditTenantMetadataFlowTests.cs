@@ -261,6 +261,50 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Deliberate_second_edit_after_confirmation_mints_a_new_message_id()
+    {
+        // Regression guard: reusing the confirmed attempt's messageId makes an idempotent command bus
+        // dedupe the second edit away, so the new name is silently never applied while the UI reconciles
+        // against the first command's status.
+        string currentProjectionVersion = "v1";
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Original description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => currentProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                currentProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+            }));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+
+        // The editor stays open after confirmation, so the next edit is submitted straight from it.
+        // A second, genuinely different edit is a new logical attempt and must not inherit the old identity.
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed twice");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.UpdateTenantCallCount.ShouldBe(2));
+        gateway.LastUpdateTenantMessageId.ShouldBeNull();
+        gateway.LastUpdateTenantRequest.ShouldNotBeNull().Name.ShouldBe("Alpha renamed twice");
+    }
+
+    [Fact]
     public void Same_metadata_submission_is_still_sent_and_waits_for_projection_truth()
     {
         StubTenantCommandGateway gateway = new()

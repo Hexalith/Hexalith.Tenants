@@ -156,7 +156,8 @@
                                       IsFresh="@IsCreateFresh"
                                       IsCommandSurfaceAvailable="@IsCommandSurfaceConnected"
                                       BaselineProjectionVersion="@_snapshot.ProjectionVersion"
-                                      BaselineTenantAbsent="@(_snapshot.Kind is TenantListSurfaceKind.Empty && _snapshot.IsAuthorizationScopedEmpty)"
+                                      BaselineTenantAbsent="@IsAuthoritativeFirstTenantEmpty"
+                                      IsFirstTenantBootstrap="@IsFirstTenantBootstrap"
                                       ShowHeading="false"
                                       OnProjectionRefreshRequested="RefreshAsync"
                                       ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
@@ -408,12 +409,23 @@
     private bool HasActiveSearch
         => !string.IsNullOrWhiteSpace(_search);
 
+    // The first-tenant exception is only for a list that is authoritatively empty for the whole
+    // authorization scope. A page past the end of a non-empty list also reports Empty, and a projection
+    // that is Rebuilding, Degraded, Stale, Unavailable, or LocalOnly is ambiguous rather than "no first
+    // write yet", so both must fail closed instead of opening create.
+    private bool IsAuthoritativeFirstTenantEmpty
+        => _snapshot.Kind is TenantListSurfaceKind.Empty
+            && _snapshot.IsAuthorizationScopedEmpty
+            && _snapshot.Rows.Count == 0
+            && string.IsNullOrWhiteSpace(_snapshot.RequestCursor)
+            && _snapshot.Lifecycle is ProjectionLifecycleState.Unknown or ProjectionLifecycleState.Current;
+
     private bool IsCreateFresh
         => _snapshot.Freshness is ReadModelFreshnessState.Current
-            || (_snapshot.Freshness is ReadModelFreshnessState.Unknown
-                && _snapshot.Kind is TenantListSurfaceKind.Empty
-                && _snapshot.IsAuthorizationScopedEmpty
-                && _snapshot.Rows.Count == 0);
+            || (_snapshot.Freshness is ReadModelFreshnessState.Unknown && IsAuthoritativeFirstTenantEmpty);
+
+    private bool IsFirstTenantBootstrap
+        => _snapshot.Freshness is ReadModelFreshnessState.Unknown && IsAuthoritativeFirstTenantEmpty;
 
     private bool IsCommandSurfaceConnected
         => Services.GetService(typeof(ITenantsBffComposition)) is ITenantsBffComposition bffComposition

@@ -1896,6 +1896,12 @@
   <data name="Tenants.AddMember.Unavailable.InFlight" xml:space="preserve">
     <value>A tenant command is already in progress.</value>
   </data>
+  <data name="Tenants.Commands.Unavailable.InvalidTrackingReference" xml:space="preserve">
+    <value>This command could not be submitted because its tracking identifier was not valid. Refresh the tenant and start the action again.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Dismiss.Blocked" xml:space="preserve">
+    <value>This removal is still in progress, so the dialog cannot be closed yet. Use Refresh to check the outcome.</value>
+  </data>
   <data name="Tenants.Members.Submit.TrackingLost" xml:space="preserve">
     <value>This attempt can no longer be tracked, so it cannot be verified or resubmitted here. Refresh the tenant and check the member list before trying again.</value>
   </data>

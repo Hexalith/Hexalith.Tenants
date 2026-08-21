@@ -270,8 +270,8 @@
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
-        => _snapshot.MessageId is not null
-        && _snapshot.CorrelationId is not null
+        => !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+        && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.UnableToVerify
@@ -302,8 +302,15 @@
         => !string.IsNullOrWhiteSpace(_snapshot.SafeMessage)
             ? _snapshot.SafeMessage
             : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-                ? Localizer[_snapshot.SafeMessageKey].Value
+                ? ResolveSafeMessageKey(_snapshot.SafeMessageKey)
                 : null;
+
+    // A drifted or missing key must not surface its raw resource id to the user.
+    private string? ResolveSafeMessageKey(string key)
+    {
+        var localized = Localizer[key];
+        return localized.ResourceNotFound ? null : localized.Value;
+    }
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
@@ -453,9 +460,19 @@
                 return;
             }
 
-            SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(
-                Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value,
-                TenantCommandFocusTarget.Refresh));
+            // Keep last-confirmed metadata visible: the static Blocked factory builds a fresh record and would
+            // drop LastConfirmed*/Intent, letting the display fall back to ambient Detail. Update command
+            // activity too, or the terminal state silently retains the aggregate lock for the whole circuit.
+            SetSnapshot(_snapshot with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value,
+                SafeMessageKey = null,
+                AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            });
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
             return;
         }
 
@@ -477,12 +494,21 @@
             Detail.TenantId,
             submittedName,
             string.IsNullOrWhiteSpace(_description) ? null : _description);
-        string? reuseMessageId = string.IsNullOrWhiteSpace(_snapshot.MessageId) ? null : _snapshot.MessageId;
-        _snapshot = _snapshot.RequestSent(request, ResolveCurrentProjectionVersion());
-        if (reuseMessageId is not null)
+        // Reuse the attempt identity only for a genuine retry of the same logical attempt: a Failed dispatch
+        // whose correlation was never established. Every other resubmit is a deliberate new attempt and must
+        // mint a fresh ULID, otherwise an idempotent command bus dedupes the new values away and the flow
+        // reconciles against the previous command's status. Mirrors AddTenantMemberFlow.
+        string? retryMessageId = _snapshot.State is TenantCommandLifecycleState.Failed
+            && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+            && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+            && Equals(_snapshot.Intent, request)
+                ? _snapshot.MessageId
+                : null;
+        _snapshot = _snapshot.RequestSent(request, ResolveCurrentProjectionVersion()) with
         {
-            _snapshot = _snapshot with { MessageId = reuseMessageId };
-        }
+            MessageId = retryMessageId,
+            CorrelationId = null,
+        };
 
         _isSubmitting = true;
         await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
@@ -499,7 +525,7 @@
             }
 
             TenantCommandSubmissionResult result = await gateway
-                .UpdateTenantAsync(request, reuseMessageId, CancellationToken.None)
+                .UpdateTenantAsync(request, retryMessageId, CancellationToken.None)
                 .ConfigureAwait(false);
 
             if (result.State is TenantCommandLifecycleState.Accepted)

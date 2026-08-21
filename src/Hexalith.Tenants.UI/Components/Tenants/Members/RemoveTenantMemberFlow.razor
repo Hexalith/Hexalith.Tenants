@@ -193,12 +193,13 @@
                 </AuditAvailabilityState>
             }
             @if (_removalProof is not null
+                && !_receiptDismissed
                 && _removalProof.State is TenantAuditReceiptState.Ready
                 && TenantAuditAvailability.FromCommandAuditState(_snapshot.AuditState).IsAuditAvailable)
             {
                 <AuditEvidenceReceipt Receipt="@_removalProof"
                                       OnRetry="RefreshStatusAsync"
-                                      OnClose="ContinueReadOnlyAsync"
+                                      OnClose="DismissReceiptAsync"
                                       OnInspectAudit="InspectAuditAsync" />
             }
         </div>
@@ -225,6 +226,7 @@
     private readonly object _formModel = new();
     private TenantRemoveMemberCommandSnapshot _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
     private TenantAuditReceipt? _removalProof;
+    private bool _receiptDismissed;
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
@@ -293,7 +295,7 @@
     /// Gateway registration alone is not capability evidence.
     /// </summary>
     [Parameter]
-    public bool AuditProofCapabilityAvailable { get; set; } = true;
+    public bool AuditProofCapabilityAvailable { get; set; }
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -331,7 +333,21 @@
         && Member.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
         && Freshness is ReadModelFreshnessState.Current
         && TargetIsVisibleMember
-        && PreviewItems.Count == 10;
+        && IsPreviewFullyPopulated;
+
+    // The ten-item consequence preview is only complete when every required item actually carries a
+    // value. Counting a fixed collection expression was a compile-time constant and proved nothing.
+    private const int RequiredPreviewItemCount = 10;
+
+    private bool IsPreviewFullyPopulated
+    {
+        get
+        {
+            IReadOnlyList<(string Label, string Value, string TestId)> items = PreviewItems;
+            return items.Count == RequiredPreviewItemCount
+                && items.All(static item => !string.IsNullOrWhiteSpace(item.Value));
+        }
+    }
 
     /// <summary>
     /// Preview-blocked is only rendered when incomplete for a reason other than the unavailable alert,
@@ -361,9 +377,15 @@
                                     ? Localizer["Tenants.RemoveMember.Unavailable.Identity"].Value
                                     : Member.Role is TenantRole.Unknown
                                         ? Localizer["Tenants.RemoveMember.Unavailable.UnknownRole"].Value
-                                        : !TargetIsVisibleMember
+                                        : !TargetIsVisibleMember && !HasTerminalOutcome
                                             ? Localizer["Tenants.RemoveMember.Unavailable.TargetAbsent"].Value
                                             : null;
+
+    // After a confirmed or already-applied removal the target is absent by design. Reporting that
+    // absence as an assertive unavailability would contradict the success the lifecycle just announced.
+    private bool HasTerminalOutcome
+        => _snapshot.State is TenantCommandLifecycleState.Confirmed
+            or TenantCommandLifecycleState.AlreadyApplied;
 
     private bool IsSubmitDisabled
         => IsOwnedCommandInFlight
@@ -563,6 +585,7 @@
                     or TenantCommandLifecycleState.DuplicatePrevented))
         {
             _removalProof = null;
+            _receiptDismissed = false;
         }
 
         _snapshot = snapshot;
@@ -742,9 +765,20 @@
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
         {
             _isSubmitting = false;
-            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
-                CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value,
-                TenantCommandFocusTarget.Submit));
+
+            // Blocked() builds a fresh record, which would drop the Intent, MessageId, CorrelationId and
+            // AttemptStartedAtUtc captured by RequestSent above. A retry would then fail its "same tracked
+            // attempt" precondition and mint a new ULID for a removal that may already have reached the
+            // server, so the refusal is applied in place instead.
+            SetSnapshot(_snapshot with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value,
+                SafeMessageKey = null,
+                AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Submit,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            });
             return;
         }
 
@@ -776,7 +810,7 @@
                     MessageId = result.MessageId ?? _snapshot.MessageId,
                     CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
                     SafeMessage = result.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = result.SafeMessageKey,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -914,6 +948,16 @@
             return;
         }
 
+        // Proof is already assembled and rendered. Re-walking the tenant audit trail (up to
+        // MaximumAuditProofPageCount pages) on every subsequent refresh buys nothing and cannot improve
+        // an Available state, so the walk stops here.
+        if (_snapshot.AuditState is TenantCommandAuditState.AuditAvailable
+            && _removalProof is { State: TenantAuditReceiptState.Ready })
+        {
+            CancelProofSearch();
+            return;
+        }
+
         RemoveUserFromTenant intent = _snapshot.Intent;
         ITenantQueryGateway? queryGateway = QueryGateway;
         if (queryGateway is null or UnavailableTenantQueryGateway)
@@ -982,13 +1026,11 @@
                     return;
                 }
 
-                foreach (TenantAuditRow match in audit.Rows
-                    .Where(row => TenantRemoveMemberCommandSnapshot.IsMatchingRemovalProof(
-                        row,
-                        intent.TenantId,
-                        intent.UserId,
-                        attemptStartedAtUtc))
-                    .OrderByDescending(static row => row.Timestamp))
+                foreach (TenantAuditRow match in TenantRemoveMemberCommandSnapshot.EnumerateMatchingRemovalProofs(
+                    audit.Rows,
+                    intent.TenantId,
+                    intent.UserId,
+                    attemptStartedAtUtc))
                 {
                     bool currentLifecycleBackedRow = match.Freshness is ReadModelFreshnessState.Current
                         && match.Lifecycle is ProjectionLifecycleState.Current
@@ -1102,8 +1144,19 @@
     private async Task ContinueReadOnlyAsync()
     {
         _removalProof = null;
+        _receiptDismissed = false;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Hides the WP-2A receipt without touching the confirmed lifecycle, the audit state or the retained
+    /// tracking identifiers. The audit entry point stays reachable so the evidence can be re-opened.
+    /// </summary>
+    private Task DismissReceiptAsync()
+    {
+        _receiptDismissed = true;
+        return Task.CompletedTask;
     }
 
     private Task InspectAuditAsync()
@@ -1130,6 +1183,16 @@
     {
         if (IsOwnedCommandInFlight)
         {
+            // Returning silently made Escape read as a broken control: no dismissal, no message and no
+            // announcement. The dialog still refuses to close while the command is in flight, but it now
+            // says so assertively and points at the named recovery that is available.
+            SetSnapshot(_snapshot with
+            {
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.RemoveMember.Dismiss.Blocked",
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+            });
             return;
         }
 
@@ -1142,14 +1205,11 @@
 
     private async Task FocusEndSentinelAsync(FocusEventArgs args)
     {
-        // Prefer the operable confirm control; otherwise land on cancel, which stays outside the
-        // CSS-hidden form on narrow layouts.
-        if (!IsSubmitDisabled)
-        {
-            await FocusSafelyAsync(_submitElement).ConfigureAwait(false);
-            return;
-        }
-
+        // Cancel is rendered outside the form and is therefore focusable at every width. The confirm
+        // control sits inside .tenants-remove-member-flow__form, which the narrow rule sets to
+        // display:none -- focusing it there is a silent no-op that lets focus escape an aria-modal
+        // dialog. Width is not observable server-side, so the trap always lands on the control that is
+        // guaranteed to exist.
         await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
     }
 

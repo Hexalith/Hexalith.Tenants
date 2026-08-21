@@ -9,6 +9,14 @@ using Hexalith.Tenants.UI.State.UserTenants;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
+    public Task<TenantDetailSnapshot> GetUpdateMetadataProjectionProofAsync(
+        UpdateTenant request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant metadata projection proof is unavailable."));
+    }
+
     public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default) {

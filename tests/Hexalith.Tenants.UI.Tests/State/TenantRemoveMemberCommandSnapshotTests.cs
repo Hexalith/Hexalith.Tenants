@@ -384,6 +384,90 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             started).ShouldBe(match);
     }
 
+    [Fact]
+    public void Confirmed_removal_survives_a_later_status_poll_without_losing_audit_available()
+    {
+        var intent = new RemoveUserFromTenant("tenant.alpha", "reader-user");
+        TenantRemoveMemberCommandSnapshot confirmed = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
+                "tenant.alpha",
+                [new TenantMember("reader-user", TenantRole.TenantReader)]))
+            .RequestSent(baselineProjectionVersion: "v1")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(
+                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+                currentProjectionVersion: "v2")
+            .ApplyRemovalProofMatch(matched: true, hasCurrentLifecycleBackedEvidence: true, hasReadyReceipt: true);
+
+        confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+
+        // The Refresh rendered on the WP-2A receipt re-polls status. A Completed status must not drag a
+        // confirmed removal back to ProjectionPending nor reset proof to AuditPending: confirmed access
+        // and audit proof are distinct states and the confirmed outcome survives audit flaps.
+        TenantRemoveMemberCommandSnapshot afterRefresh = confirmed
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        afterRefresh.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        afterRefresh.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+
+        TenantRemoveMemberCommandSnapshot afterUnknownStatus = confirmed
+            .ApplyStatus(TenantCommandStatusResult.Unknown("status unavailable"));
+
+        afterUnknownStatus.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        afterUnknownStatus.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+    }
+
+    [Fact]
+    public void Already_applied_removal_is_not_regressed_by_a_later_status_poll()
+    {
+        var intent = new RemoveUserFromTenant("tenant.alpha", "reader-user");
+        TenantRemoveMemberCommandSnapshot alreadyApplied = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
+                "tenant.alpha",
+                [new TenantMember("reader-user", TenantRole.TenantReader)]))
+            .RequestSent(baselineProjectionVersion: "v1", baselinePostconditionMet: true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(
+                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+                currentProjectionVersion: "v2");
+
+        alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+
+        alreadyApplied
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+    }
+
+    [Fact]
+    public void Enumerate_matching_removal_proofs_orders_newest_first_and_backs_the_single_result_helper()
+    {
+        DateTimeOffset started = DateTimeOffset.Parse("2026-08-08T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+        TenantAuditRow older = RemovalRow("tenant.alpha", "literal-user", started.AddMinutes(-1));
+        TenantAuditRow equalBound = RemovalRow("tenant.alpha", "literal-user", started);
+        TenantAuditRow newest = RemovalRow("tenant.alpha", "literal-user", started.AddMinutes(1));
+        TenantAuditRow wrongTarget = RemovalRow("tenant.alpha", "other-user", started.AddMinutes(2));
+
+        // The flow walks this sequence so it can continue past a weak match to a later current,
+        // projection-backed receipt. Pinning the ordering here keeps it from drifting away from
+        // FindMatchingRemovalProof, which now delegates to the same helper.
+        TenantRemoveMemberCommandSnapshot.EnumerateMatchingRemovalProofs(
+            [older, wrongTarget, equalBound, newest],
+            "tenant.alpha",
+            "literal-user",
+            started).ShouldBe([newest, equalBound]);
+
+        TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
+            [older, wrongTarget, equalBound, newest],
+            "tenant.alpha",
+            "literal-user",
+            started).ShouldBe(newest);
+    }
+
     private static TenantAuditRow RemovalRow(string tenantId, string target, DateTimeOffset timestamp)
         => new(
             EventReference: $"evt-{target}-{timestamp.UtcTicks}",

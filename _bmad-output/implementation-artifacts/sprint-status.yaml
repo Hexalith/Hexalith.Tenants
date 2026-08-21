@@ -85,12 +85,15 @@ development_status:
   2-3-change-tenant-member-role: done
   # 2026-08-08: 2.4a + 2.4b implemented (eligibility/preview/dialog + WP-2A proof /
   # audit_available, MissingAuditProof fail-closed, provenance refine). Awaiting review gate.
-  2-4-remove-tenant-member-with-complete-preview-and-proof: review
+  # 2026-08-21: code-review loop 3 (chunk A) applied 12 patches; 4 decision items and review
+  # chunks B (surfaces/resources) and C (tests/docs) remain.
+  2-4-remove-tenant-member-with-complete-preview-and-proof: in-progress
   epic-2-retrospective: done
 
   # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---
   epic-3: done
-  3-1-create-tenant-with-projection-confirmation: review
+  # 2026-08-21: code review loop 1 -- 5 decisions resolved, 23 patches applied, 5 deferred.
+  3-1-create-tenant-with-projection-confirmation: done
   3-2-edit-tenant-metadata-with-recorded-updates: review
   3-3-lifecycle-and-configuration-availability-guardrail: backlog
   3-4-disable-or-enable-tenant-with-complete-preview: backlog

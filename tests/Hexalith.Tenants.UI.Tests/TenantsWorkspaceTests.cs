@@ -6,12 +6,14 @@ using Bunit;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Tenants;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -598,7 +600,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
-            .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+            .TextContent.ShouldContain("cannot prove an empty first-tenant state");
     }
 
     [Fact]
@@ -624,7 +626,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
-            .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+            .TextContent.ShouldContain("cannot prove an empty first-tenant state");
     }
 
     [Fact]
@@ -645,7 +647,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         // A definite Stale classification must still gate the create command behind a Refresh.
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
-            .TextContent.ShouldContain("Refresh tenant data before submitting a command.");
+            .TextContent.ShouldContain("cannot prove an empty first-tenant state");
     }
 
     [Fact]
@@ -666,6 +668,105 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
             .TextContent.ShouldContain("Tenant command support is unavailable.");
+    }
+
+    [Fact]
+    public void Workspace_hands_the_create_flow_its_list_projection_baseline_and_absence_proof()
+    {
+        // Pins the composition seam that carries the whole provenance guarantee. Dropping the
+        // BaselineProjectionVersion binding, or returning a null version from the evidence provider,
+        // leaves every component-level create test green while confirmation silently loses its baseline.
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current) with
+            {
+                ProjectionVersion = "tenant-index-7",
+            }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        CreateTenantFlow flow = cut.FindComponent<CreateTenantFlow>().Instance;
+        flow.BaselineProjectionVersion.ShouldBe("tenant-index-7");
+        flow.BaselineTenantAbsent.ShouldBeTrue();
+        flow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        flow.IsFresh.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Workspace_does_not_treat_a_page_past_the_end_as_an_authoritative_first_tenant_list()
+    {
+        // A cursor page with no rows also reports Empty. Granting it the first-tenant exception would
+        // both open create on an Unknown-freshness list and hand the flow a false absence proof.
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown) with
+            {
+                ProjectionVersion = "tenant-index-7",
+                RequestCursor = "cursor-page-2",
+            }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        CreateTenantFlow flow = cut.FindComponent<CreateTenantFlow>().Instance;
+        flow.BaselineTenantAbsent.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Workspace_blocks_create_when_the_projection_lifecycle_is_ambiguous()
+    {
+        // Unknown freshness is only the "no first write yet" case when the projection itself is not
+        // rebuilding, degraded, or unavailable.
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown) with
+            {
+                Lifecycle = ProjectionLifecycleState.Rebuilding,
+            }));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']")
+            .TextContent.ShouldContain("cannot prove an empty first-tenant state");
+    }
+
+    [Fact]
+    public void Workspace_names_the_first_tenant_bootstrap_exception_when_create_stays_available()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-availability-note']")
+            .TextContent.ShouldContain("awaiting its first projection write");
     }
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)
@@ -804,6 +905,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.Create.Validation.NameRequired"] = "Name is required.",
             ["Tenants.Create.Unavailable.Authorization"] = "You are not authorized to create tenants.",
             ["Tenants.Create.Unavailable.Freshness"] = "Refresh tenant data before submitting a command.",
+            ["Tenants.Create.Availability.FirstTenantUnknown"] = "Creation is available because the authorized tenant list is empty and awaiting its first projection write.",
+            ["Tenants.Create.Availability.Stale"] = "Tenant creation is unavailable because the authorized tenant list is stale or cannot prove an empty first-tenant state.",
             ["Tenants.Create.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.Create.Unavailable.InFlight"] = "A tenant command is already in progress.",
             ["Tenants.Create.State.Idle"] = "No command submitted.",

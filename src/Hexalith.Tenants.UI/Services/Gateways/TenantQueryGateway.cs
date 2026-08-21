@@ -282,6 +282,16 @@ internal sealed class TenantQueryGateway(
         }
     }
 
+    public Task<TenantDetailSnapshot> GetUpdateMetadataProjectionProofAsync(
+        UpdateTenant request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // previous is null on purpose: the conditional-GET path must not short-circuit to the cached
+        // snapshot, or confirmation would read its own pre-submit state back as proof.
+        return GetTenantAsync(new TenantDetailRequest(request.TenantId), null, cancellationToken);
+    }
+
     public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default) {
