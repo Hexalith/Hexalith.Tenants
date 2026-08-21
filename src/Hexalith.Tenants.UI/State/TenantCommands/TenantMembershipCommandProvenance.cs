@@ -5,6 +5,8 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// </summary>
 internal static class TenantMembershipCommandProvenance
 {
+    private const string TenantSequencePrefix = "tenant-sequence:";
+
     /// <summary>
     /// Returns whether two opaque projection versions differ.
     /// This legacy overload remains for non-membership command snapshots whose contracts only expose an
@@ -34,8 +36,47 @@ internal static class TenantMembershipCommandProvenance
         string? currentProjectionVersion,
         bool hasCommandEventEvidence)
     {
-        return hasCommandEventEvidence
-            && HasOrderedProjectionVersionAdvancement(baselineProjectionVersion, currentProjectionVersion);
+        if (!hasCommandEventEvidence
+            || string.IsNullOrWhiteSpace(baselineProjectionVersion)
+            || string.IsNullOrWhiteSpace(currentProjectionVersion))
+        {
+            return false;
+        }
+
+        bool baselineIsTenantSequence = TryParseTenantSequence(baselineProjectionVersion, out ulong baselineSequence);
+        bool currentIsTenantSequence = TryParseTenantSequence(currentProjectionVersion, out ulong currentSequence);
+        if (currentIsTenantSequence)
+        {
+            if (baselineIsTenantSequence)
+            {
+                return currentSequence > baselineSequence;
+            }
+
+            // A persisted legacy model exposes its state-store ETag until the first post-upgrade event.
+            // Exact command-event evidence makes the one-way migration to the aggregate sequence token
+            // causal; a token that merely resembles a malformed aggregate sequence still fails closed.
+            return !baselineProjectionVersion.StartsWith(TenantSequencePrefix, StringComparison.Ordinal);
+        }
+
+        // Once the aggregate sequence contract is observed it cannot move back to an opaque/legacy token.
+        if (baselineIsTenantSequence
+            || currentProjectionVersion.StartsWith(TenantSequencePrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return HasOrderedProjectionVersionAdvancement(baselineProjectionVersion, currentProjectionVersion);
+    }
+
+    private static bool TryParseTenantSequence(string value, out ulong sequence)
+    {
+        sequence = 0;
+        return value.StartsWith(TenantSequencePrefix, StringComparison.Ordinal)
+            && ulong.TryParse(
+                value.AsSpan(TenantSequencePrefix.Length),
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out sequence);
     }
 
     private static bool HasOrderedProjectionVersionAdvancement(

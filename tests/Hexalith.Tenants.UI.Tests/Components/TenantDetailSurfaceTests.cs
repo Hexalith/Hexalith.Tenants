@@ -3373,6 +3373,139 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             freshness: ReadModelFreshnessState.Current) with
         {
             Lifecycle = ProjectionLifecycleState.Current,
+    [Fact]
+    public void Member_access_review_retargeting_creates_fresh_change_and_remove_flow_instances()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.Members, MemberSnapshot(detail)));
+
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        ChangeTenantMemberRoleFlow firstChange = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+        firstChange.Member.UserId.ShouldBe("owner-user");
+        cut.FindAll("[data-testid='tenants-change-role-open']")[1].Click();
+        ChangeTenantMemberRoleFlow secondChange = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+        secondChange.Member.UserId.ShouldBe("reader-user");
+        secondChange.ShouldNotBeSameAs(firstChange);
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[0].Click();
+        RemoveTenantMemberFlow firstRemove = cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        firstRemove.Member.UserId.ShouldBe("owner-user");
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
+        RemoveTenantMemberFlow secondRemove = cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        secondRemove.Member.UserId.ShouldBe("reader-user");
+        secondRemove.ShouldNotBeSameAs(firstRemove);
+    }
+
+    [Fact]
+    public async Task Member_access_review_reserves_child_lease_before_delayed_parent_and_rejects_queued_switches()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        var parentEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var parentCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int parentAcquisitions = 0;
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.Members, MemberSnapshot(detail))
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                if (!active)
+                {
+                    return Task.FromResult(true);
+                }
+
+                Interlocked.Increment(ref parentAcquisitions);
+                parentEntered.TrySetResult();
+                return parentCompletion.Task;
+            }));
+
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        ChangeTenantMemberRoleFlow changeFlow = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+        Task<bool> firstAcquisition = changeFlow.CommandActivityLease!(true);
+        await parentEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        bool siblingAcquired = await cut.FindComponent<AddTenantMemberFlow>().Instance.CommandActivityLease!(true);
+        siblingAcquired.ShouldBeFalse();
+        parentAcquisitions.ShouldBe(1);
+
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
+        cut.FindAll("[data-testid='tenants-change-role-open']")[1].Click();
+        cut.FindAll("[data-testid='tenants-remove-member-flow']").ShouldBeEmpty();
+        cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.ShouldBeSameAs(changeFlow);
+        changeFlow.Member.UserId.ShouldBe("owner-user");
+
+        parentCompletion.SetResult(true);
+        (await firstAcquisition).ShouldBeTrue();
+        (await changeFlow.CommandActivityLease(false)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Member_access_review_rolls_back_local_reservation_after_parent_refusal_or_exception()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        int acquisitionAttempt = 0;
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.Members, MemberSnapshot(detail))
+            .Add(p => p.CommandActivityLease, active => !active
+                ? Task.FromResult(true)
+                : Interlocked.Increment(ref acquisitionAttempt) switch
+                {
+                    1 => Task.FromResult(false),
+                    2 => Task.FromException<bool>(new InvalidOperationException("Parent lease failed.")),
+                    _ => Task.FromResult(true),
+                }));
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        AddTenantMemberFlow addFlow = cut.FindComponent<AddTenantMemberFlow>().Instance;
+        ChangeTenantMemberRoleFlow changeFlow = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+
+        (await addFlow.CommandActivityLease!(true)).ShouldBeFalse();
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => changeFlow.CommandActivityLease!(true));
+        (await addFlow.CommandActivityLease(true)).ShouldBeTrue();
+        (await addFlow.CommandActivityLease(false)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Member_access_review_fails_closed_when_command_surface_is_unavailable_without_a_reason()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.Members, MemberSnapshot(detail))
+            .Add(p => p.IsCommandSurfaceAvailable, false)
+            .Add(p => p.CommandSurfaceUnavailableReason, string.Empty));
+
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-member-unavailable-reason']")
+            .ShouldAllBe(static reason => reason.TextContent.Contains("command", StringComparison.OrdinalIgnoreCase));
+    }
+
             IsCompleteEvidence = false,
         };
 

@@ -240,6 +240,7 @@
     {
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
             <ChangeTenantMemberRoleFlow @ref="_changeRoleFlow"
+                                        @key="_activeChangeRoleUserId"
                                         Detail="@Detail"
                                         Member="@ActiveChangeRoleMember"
                                         SurfaceKind="@EffectiveSurfaceKind"
@@ -260,6 +261,7 @@
     {
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
             <RemoveTenantMemberFlow @ref="_removeMemberFlow"
+                                    @key="_activeRemoveMemberUserId"
                                     Detail="@Detail"
                                     Member="@ActiveRemoveMember"
                                     SurfaceKind="@EffectiveSurfaceKind"
@@ -655,7 +657,7 @@
         // Contention is reported only once the prerequisites that would block the action anyway have been
         // cleared. Reporting it first masked missing permission, stale evidence and disabled lifecycle
         // behind "another command is already in progress" for as long as any command held the aggregate.
-        if (!string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
+        if (!IsCommandSurfaceAvailable || !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
         {
             return [UnavailableReason.AggregateLocked];
         }
@@ -753,31 +755,60 @@
 
     private async Task<bool> HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner owner, bool isActive)
     {
-        if (isActive && _childCommandLeaseOwner is not null)
+        if (isActive)
         {
-            return false;
+            if (_childCommandLeaseOwner is not null)
+            {
+                return false;
+            }
+
+            // Reserve before awaiting the parent. Otherwise two child submissions can both observe the
+            // owner as null while the first parent acquisition is suspended, and both enter the aggregate.
+            _childCommandLeaseOwner = owner;
+
+            try
+            {
+                bool acquired = CommandActivityLease is null
+                    || await CommandActivityLease(true).ConfigureAwait(false);
+                if (!acquired)
+                {
+                    _childCommandLeaseOwner = null;
+                    return false;
+                }
+
+                if (CommandActivityLease is null)
+                {
+                    await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
+                }
+
+                return true;
+            }
+            catch
+            {
+                if (_childCommandLeaseOwner == owner)
+                {
+                    _childCommandLeaseOwner = null;
+                }
+
+                throw;
+            }
         }
 
-        if (!isActive && _childCommandLeaseOwner != owner)
+        if (_childCommandLeaseOwner != owner)
         {
             return true;
         }
 
-        bool accepted = CommandActivityLease is not null
-            ? await CommandActivityLease(isActive).ConfigureAwait(false)
+        bool released = CommandActivityLease is not null
+            ? await CommandActivityLease(false).ConfigureAwait(false)
             : true;
-        if (isActive && !accepted)
-        {
-            return false;
-        }
-
-        _childCommandLeaseOwner = isActive ? owner : null;
+        _childCommandLeaseOwner = null;
         if (CommandActivityLease is null)
         {
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
         }
 
-        return true;
+        return released;
     }
 
     /// <summary>
@@ -842,6 +873,11 @@
 
     private void OpenChangeRole(TenantMember member)
     {
+        if (_childCommandLeaseOwner is not null)
+        {
+            return;
+        }
+
         _activeRemoveMemberUserId = null;
         _activeRemoveMemberCapture = null;
         _activeChangeRoleUserId = member.UserId;
@@ -850,6 +886,11 @@
 
     private void OpenRemoveMember(TenantMember member)
     {
+        if (_childCommandLeaseOwner is not null)
+        {
+            return;
+        }
+
         _activeChangeRoleUserId = null;
         _activeChangeRoleCapture = null;
         _activeRemoveMemberUserId = member.UserId;

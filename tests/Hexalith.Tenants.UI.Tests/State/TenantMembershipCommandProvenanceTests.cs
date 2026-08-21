@@ -9,12 +9,10 @@ namespace Hexalith.Tenants.UI.Tests.State;
 /// </summary>
 /// <remarks>
 /// Confirmation requires an ordered advancement of the value the query path publishes as
-/// <c>ProjectionVersion</c>, which in production is the normalized Dapr state-store ETag
-/// (<c>TenantQueryResult</c> falls back to it, and the read model never assigns its own).
-/// The configured <c>state.redis</c> component issues per-key numeric versions, so the ordered
-/// comparison holds. A store whose ETag is a hash or GUID does not satisfy it, and these tests
-/// state that boundary explicitly so the requirement fails loudly rather than silently parking
-/// every membership command in <c>ProjectionPending</c>.
+/// <c>ProjectionVersion</c>. The tenant projection publishes the aggregate-local EventStore sequence
+/// as <c>tenant-sequence:&lt;n&gt;</c>; <c>TenantQueryResult</c> falls back to the state-store ETag only for
+/// legacy read models that do not yet carry that value. A legacy store whose ETag is a hash, GUID, or
+/// other token without a stable prefix and trailing number does not satisfy the ordered contract.
 /// </remarks>
 public sealed class TenantMembershipCommandProvenanceTests
 {
@@ -23,6 +21,7 @@ public sealed class TenantMembershipCommandProvenanceTests
     [InlineData("41", "42")]
     [InlineData("tenant-etag-1", "tenant-etag-2")]
     [InlineData("projection-v9", "projection-v10")]
+    [InlineData("projection-v0009", "projection-v0010")]
     public void Ordered_state_store_versions_are_a_qualified_advancement(string baseline, string current)
         => TenantMembershipCommandProvenance
             .HasProjectionVersionAdvancement(baseline, current, hasCommandEventEvidence: true)
@@ -33,6 +32,30 @@ public sealed class TenantMembershipCommandProvenanceTests
     [InlineData("tenant-etag-2", "tenant-etag-1")]
     [InlineData("2", "2")]
     public void Regressed_or_unchanged_versions_are_not_an_advancement(string baseline, string current)
+        => TenantMembershipCommandProvenance
+            .HasProjectionVersionAdvancement(baseline, current, hasCommandEventEvidence: true)
+            .ShouldBeFalse();
+
+    [Theory]
+    [InlineData("opaque-etag", "tenant-sequence:42")]
+    [InlineData("\"a3f9c2\"", "tenant-sequence:1")]
+    [InlineData("legacy-etag-41", "tenant-sequence:42")]
+    public void Exact_command_event_evidence_allows_one_way_migration_to_tenant_sequence(
+        string baseline,
+        string current)
+        => TenantMembershipCommandProvenance
+            .HasProjectionVersionAdvancement(baseline, current, hasCommandEventEvidence: true)
+            .ShouldBeTrue();
+
+    [Theory]
+    [InlineData("tenant-sequence:42", "tenant-sequence:42")]
+    [InlineData("tenant-sequence:42", "tenant-sequence:41")]
+    [InlineData("tenant-sequence:42", "legacy-etag-43")]
+    [InlineData("tenant-sequence:not-a-number", "tenant-sequence:43")]
+    [InlineData("legacy-etag-42", "tenant-sequence:not-a-number")]
+    public void Tenant_sequence_regression_reverse_migration_and_malformed_tokens_fail_closed(
+        string baseline,
+        string current)
         => TenantMembershipCommandProvenance
             .HasProjectionVersionAdvancement(baseline, current, hasCommandEventEvidence: true)
             .ShouldBeFalse();
@@ -55,6 +78,12 @@ public sealed class TenantMembershipCommandProvenanceTests
     public void Advancement_requires_event_evidence_from_the_tracked_command()
         => TenantMembershipCommandProvenance
             .HasProjectionVersionAdvancement("1", "2", hasCommandEventEvidence: false)
+            .ShouldBeFalse();
+
+    [Fact]
+    public void Legacy_to_tenant_sequence_migration_requires_event_evidence_from_the_tracked_command()
+        => TenantMembershipCommandProvenance
+            .HasProjectionVersionAdvancement("opaque-etag", "tenant-sequence:42", hasCommandEventEvidence: false)
             .ShouldBeFalse();
 
     [Theory]

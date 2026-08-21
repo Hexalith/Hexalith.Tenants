@@ -89,7 +89,7 @@ development_status:
   # closed 20 patch findings (17 applied, 3 no-change-needed), deferring 19. Remaining: the 4 chunk-A
   # decision items and review chunk C (tests/docs). Blocked for CI until the references/Hexalith.Builds
   # xunit.v3 4.0.0 pointer is made coherent (NU1107 on test restore).
-  2-4-remove-tenant-member-with-complete-preview-and-proof: in-progress
+  2-4-remove-tenant-member-with-complete-preview-and-proof: review
   epic-2-retrospective: done
 
   # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---

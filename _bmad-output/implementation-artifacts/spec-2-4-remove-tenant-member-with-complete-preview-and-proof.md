@@ -2,7 +2,7 @@
 title: 'Remove Tenant Member with Complete Preview and Proof'
 type: 'feature'
 created: '2026-08-08'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '29c4aec965e9cba4165a8844a86edc67ba7d756b'
 review_loop_iteration: 3
 context:
@@ -92,10 +92,10 @@ context:
 
 #### Loop 3 (2026-08-21) — chunk A: removal-proof lifecycle & command state
 
-- [ ] [Review][Decision] Ordered projection-version confirmation silently depends on the state-store ETag format — `TenantReadModel.ProjectionVersion` is never assigned (`src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs:16`), so `TenantQueryResult.cs:53` falls back to the raw state-store ETag. `TrySplitOrderedVersion` then requires a stable prefix plus a monotone trailing digit run: zero-padded ETags break deterministically at every power-of-ten boundary (`…0009` → prefix `…000` vs `…0010` → prefix `…001`), and GUID/hash ETags never confirm at all. Fails closed, so no false success — but combined with the non-dismissible dialog below the operator is stranded. Choose: assign a real ordered `ProjectionVersion` in the projection handler, document a store ETag contract, or give remove the audit-provenance confirm arm 2.4b actually specified. [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:41]
-- [ ] [Review][Decision] WP-2A proof cannot be tied to this specific command — the match predicate is (EventType, TenantId, Target, Timestamp >= attemptStart) with no upper bound, and `TenantAuditRow` carries no message/correlation id, so another operator's removal of the same user in the same window qualifies and is then stamped with this attempt's `MessageId` as the support reference. The 2.4b Always clause only demands "tenant + target + causal lower bound", so the code matches the spec letter; the question is whether that bar is sufficient for a support artifact. Choose: add an upper time bound, extend the audit row contract with a command reference, or weaken the receipt's claim. [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1044]
-- [ ] [Review][Decision] 2.4b's audit-provenance confirm arm landed on metadata instead of remove, and the metadata parameter is dead — `TenantUpdateMetadataCommandSnapshot.ConfirmProjection` gained `hasQualifyingAuditProvenance` but its only caller (`EditTenantMetadataFlow.razor:410,573`) never supplies it, while `TenantRemoveMemberCommandSnapshot.ConfirmProjection` has no such arm at all. 2.4b "Ask First" explicitly covers extending audit-provenance confirmation beyond remove-member. Choose: drop the metadata parameter, wire it, or move the arm to remove. [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1205]
-- [ ] [Review][Decision] Story commit `d3f74f58` moved `references/Hexalith.EventStore` undeclared, and this spec's existing deferred gitlink entry misattributes all seven pointer moves to "post-story dependency bumps" — `python3 scripts/validate-story-gitlinks.py` exits 1 for both 2.4 specs. At least one bump is this story's own commit, not external drift. Choose: DECLARE the EventStore pointer as a File List entry with a reason, or REVERT it and land it separately as `build(deps)`. [_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md:1]
+- [x] [Review][Decision] **RESOLVED (2026-08-21): ASSIGN AN ORDERED READ-MODEL VERSION.** `TenantProjectionHandler` now persists `tenant-sequence:<n>` from the aggregate-local EventStore `SequenceNumber`, preserving a later stored version during older replay. `TenantQueryResult` therefore uses store ETags only for legacy read models. Verification also disproved the zero-padding sub-premise: the current parser consumes the complete trailing digit run, so `0009` → `0010` already compares correctly; GUID/hash ETags were the remaining portability defect. [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:88]
+- [x] [Review][Decision] **RESOLVED (2026-08-21): WEAKEN THE RECEIPT CLAIM.** A time-window match still supplies authorized current removal evidence, but the receipt no longer stamps the current attempt's `MessageId` onto a row whose command causation is absent from the audit contract. Inspect-audit navigation retains the attempt reference as search context without presenting it as proof ownership. [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:1038]
+- [x] [Review][Decision] **RESOLVED (2026-08-21): WIRE METADATA IN ITS OWNING STORY.** Story 3.2 now supplies `AuditEvidenceProvider` for same-value metadata attempts and passes the returned row into `TenantUpdateMetadataCommandSnapshot.ConfirmProjection`; no remove-member confirmation arm was added from the weaker time-window proof. [src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:755]
+- [x] [Review][Decision] **RESOLVED (2026-08-21): DECLARE THE EVENTSTORE POINTER.** The File List now declares the `references/Hexalith.EventStore` pointer moved by story commit `d3f74f58`; later unrelated root-submodule drift remains called out separately and is not attributed to this story. [_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md:1]
 
 - [x] [Review][Patch] Refresh rendered on the WP-2A receipt regresses a confirmed removal to projection-pending and drops audit_available [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:200]
 - [x] [Review][Patch] Receipt Close destroys the confirmed outcome, the proof, and the tracking identifiers [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:1101]
@@ -163,6 +163,20 @@ context:
 - [x] [Review][Defer] TenantsWorkspace resolves ITenantsBffComposition per render with the untyped overload and duplicates its own absence predicate [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:418] — deferred, pre-existing
 - [x] [Review][Defer] An eighth undeclared references/ pointer move (Hexalith.EventStore c890235 -> f8b514f) appeared in the working tree during this review, extending the open chunk-A gitlink decision [_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md:1] — deferred, pre-existing
 
+#### Loop 3 (2026-08-21) — final adversarial verification
+
+- [x] [Review][Patch] Reject persisted older/equal tenant-sequence replay before tenant state or `ProjectedAt` mutation, while preserving every event within one accepted incoming batch and its optimistic-concurrency retry [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:81]
+- [x] [Review][Patch] Accept the one-way legacy ETag to valid `tenant-sequence:<n>` upgrade only with exact command-event evidence; keep malformed, missing, regressing, and sequence-to-opaque transitions fail-closed [src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:34]
+- [x] [Review][Patch] Render both wired Ready-receipt actions so Inspect audit no longer makes dismissal unreachable [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:189]
+- [x] [Review][Patch] Reserve the membership child lease before awaiting parent admission and roll it back on refusal or exception [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:755]
+- [x] [Review][Patch] Key change-role/removal flows by target identity and reject queued sibling switches while a child owns or is acquiring the lease [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:240]
+- [x] [Review][Patch] Make Continue read-only release activity and close the removal dialog rather than immediately reconstructing the preview [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:1147]
+- [x] [Review][Patch] Initialize pre-command removal audit evidence as NotStarted instead of falsely reporting MissingSupport [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:834]
+- [x] [Review][Patch] Put initial dialog focus on visible Cancel and bind the narrow-layout source check to the Razor form class as well as its CSS rule [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:535]
+- [x] [Review][Patch] Parse and assert every audit-inspection restoration query field independently [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:691]
+- [x] [Review][Patch] Disable member row launchers when the command surface is unavailable even when its optional reason string is blank [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:657]
+- [x] [Review][Defer] The reviewed TEA hook assets have no executable in-repository scanner/CLI-mode verification [.agent/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs:575] — deferred, cross-cutting tooling
+
 **Acceptance Criteria:**
 - Given remove eligibility is calculated, when freshness, auth, preview completeness, or layout safety is indeterminate, then the action fails closed with localized reason and named recovery.
 - Given an eligible removal opens, when the preview renders, then all ten required items plus last-owner/target-GA risk appear in a focus-trapped destructive dialog; cancel/Escape never dispatch and focus returns to the launcher.
@@ -170,7 +184,9 @@ context:
 - Given EN/FR resources and focused tests run, when verification completes, then elevated-risk, fail-closed, dialog, lock, and dispatch scenarios pass without asserting WP-2A/`audit_available` complete.
 
 
-## File List — declared scope expansion (2026-08-21, loop 3 chunk B decision)
+## File List
+
+_Declared scope expansion (2026-08-21, loop 3 chunk B decision)._
 
 Files this story's committed range changed that are **outside** the Code Map above. Declared here rather
 than split out, because splitting would require reopening `1-6-read-only-tenant-configuration` and
@@ -204,12 +220,20 @@ actively rewriting `CreateTenantFlow.razor`. Each entry states why the change be
   `src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs`,
   `src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj` — supporting changes for the audit-availability and
   aggregate-lease work in this range.
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs` — persists the aggregate-local ordered
+  projection version required by membership confirmation instead of depending on a store-specific ETag.
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`,
+  `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryFreshnessTests.cs`,
+  `tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipCommandProvenanceTests.cs` — pin sequence stamping,
+  replay non-regression, query metadata precedence, legacy ETag boundaries, and the 9-to-10 transition.
+- `references/Hexalith.EventStore`
+  — story commit `d3f74f58` advanced this root dependency pointer while landing the membership
+  command-provenance and lifecycle hardening. The pointer change is declared as committed story-range
+  ownership; this follow-up does not edit EventStore submodule content.
 
-**Not declared here:** the `references/` gitlink moves remain an open chunk-A decision. Eight pointers now
-differ from the baseline (`AI.Tools`, `Builds`, `Commons`, `EventStore`, `FrontComposer`, `Memories`,
-`PolymorphicSerializations`, and a second `EventStore` move that appeared during the loop-3 chunk B review);
-`Builds` also moved to a dependabot xunit.v3 4.0.0 merge that leaves `xunit.v3.assert` and
-`xunit.v3.extensibility.core` at 3.2.2 and therefore breaks test restore with NU1107.
+**Still not declared here:** six later `references/` pointer moves differ from the baseline (`AI.Tools`,
+`Builds`, `Commons`, `FrontComposer`, `Memories`, and `PolymorphicSerializations`). They are post-story
+dependency drift and remain outside this story rather than being falsely attributed to it.
 
 ## Spec Change Log
 
@@ -219,6 +243,8 @@ differ from the baseline (`AI.Tools`, `Builds`, `Commons`, `EventStore`, `FrontC
 - 2026-08-21: Review loop 3 (chunk A) — 12 patches applied: confirmed-outcome retention across status polls, non-destructive receipt dismissal, real preview completeness, identity-preserving lease refusal, fail-closed proof capability, announced in-flight dismissal, no target-absent alert on success, localized gateway tracking failure, focus trap kept out of the hidden narrow form, bounded proof re-walk, whitespace tenant-id guards, shared proof ordering. Dispose lease release attempted and reverted (governance invariant). 4 decisions open.
 - 2026-08-21: Review loop 3 (chunk B, surfaces/resources/shared services) — 3 decisions resolved by the owner (restore both principal-resolver guards per the 2026-08-01 decision; derive audit recovery copy from rendered verbs AND bind continue-read-only where it exists; declare the scope expansion in a File List) and 20 patch findings closed: 17 applied, 3 recorded NO CHANGE NEEDED after their premise failed verification. Headline fixes: scoped-CSS regression that voided the configuration card's overflow/focus/responsive rules, a refused aggregate lease that still dispatched for four command surfaces, and a configuration landmark sharing one lease token across two flows (AD-12). 19 items deferred. UI tests 2128/2128.
 - 2026-08-20: Review follow-up implemented — authoritative live audit capability, fail-closed bounded/cancellable GA and proof walks, retained-evidence degradation, lossless refresh coalescing, delegate-accurate recovery actions/copy, and route-generation regressions.
+- 2026-08-21: Review loop 3 (chunk A decisions) — all four resolved: persisted aggregate-sequence projection versions, removal receipts no longer overclaim command causation, Story 3.2 owns and wires its metadata audit arm, and the story-owned EventStore pointer is declared while later dependency drift stays external.
+- 2026-08-21: Review loop 3 final adversarial verification — 10 product patches applied with focused regressions; broad server verification then exposed and closed a same-sequence batch replay regression missed by the narrow filter. One unrelated TEA-hook verification gap was appended to deferred work. Final suites: server 746/746, UI 2188/2188; Release solution build clean.
 
 ## Design Notes
 
@@ -239,53 +265,71 @@ Platform-standing is preview item #9; known GA also raises an elevated sibling r
 - `dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Release` (loop 3 chunk B) -- passed with 0 warnings and 0 errors
 - Mutation-verified the three new behavioural tests: removing `MemberAccessReview.DisposeAsync`'s release, bypassing the change-role refresh coalescing, and restoring the escalate-only recovery-copy rule each turn the corresponding test red. The change-role test was strengthened after its first form let the mutant survive -- coalescing and non-coalescing issue the same number of status lookups, so the assertion had to move from call count to maximum observed concurrency.
 - BLOCKER (external, not caused by these patches): `dotnet test` cannot restore at the working-tree `references/Hexalith.Builds` pointer `744b282` ("build: merge origin/dependabot/nuget/Props/xunit.v3-4.0.0"), which sets `xunit.v3` to 4.0.0 while leaving `xunit.v3.assert` and `xunit.v3.extensibility.core` at 3.2.2 -- `error NU1107: Version conflict detected for xunit.v3.common`. The suite above was run with the submodule temporarily checked out at the HEAD-committed `eadddc7`, where the pins are coherent at 3.2.2; the submodule was then restored to `744b282` exactly. Either advance the sibling xunit pins in Builds or revert that gitlink before CI can pass.
-- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` -- FAILS; see the open chunk-A gitlink decision and the File List note. Eight pointers now differ from the baseline.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` (loop 3 before chunk-A decision resolution) -- failed with the story-owned EventStore pointer undeclared plus later dependency drift.
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore --filter "FullyQualifiedName~TenantProjectionHandlerTests|FullyQualifiedName~TenantQueryFreshnessTests"` (chunk A decisions) -- 41 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore` (chunk A decisions) -- 742 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --filter "FullyQualifiedName~RemoveTenantMemberFlowTests|FullyQualifiedName~TenantMembershipCommandProvenanceTests"` (chunk A decisions) -- 56 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --filter "FullyQualifiedName~RemoveTenantMember|FullyQualifiedName~TenantRemoveMember|FullyQualifiedName~TenantDetailSurfaceTests"` (chunk A decisions / matrix audit) -- 249 passed, 0 failed, 0 skipped
+- `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore` and `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore` (chunk A decisions) -- both passed with 0 warnings and 0 errors
+- `dotnet build src/Hexalith.Tenants/Hexalith.Tenants.csproj --configuration Release --no-restore` and `dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj --configuration Release --no-restore` (chunk A decisions) -- both passed with 0 warnings and 0 errors
+- BROAD UI BLOCKER (unrelated to Story 2.4 files): `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` -- 2167 passed, 1 failed; `GlobalAdministratorsPageTests.Grant_requery_does_not_confirm_from_a_superseded_snapshot` confirms from a superseded snapshot and fails identically in isolation.
+- SOLUTION BLOCKER (pre-existing submodule): `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore` -- fails in `references/Hexalith.Memories` with three CS0618 errors and one SER301 error, followed by solution-level MSB4181; owned Tenants projects build successfully.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` (chunk A decisions) -- EventStore is now declared; still fails for six post-story pointers (`AI.Tools`, `Builds`, `Commons`, `FrontComposer`, `Memories`, `PolymorphicSerializations`) intentionally not attributed to this story.
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore --filter "FullyQualifiedName~TenantProjectionHandlerTests|FullyQualifiedName~TenantQueryFreshnessTests|FullyQualifiedName~ProjectionWriteConformanceTests"` (final adversarial verification) -- 57 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --filter "FullyQualifiedName~RemoveTenantMemberFlowTests|FullyQualifiedName~TenantRemoveMemberCommandSnapshotTests|FullyQualifiedName~TenantMembershipCommandProvenanceTests|FullyQualifiedName~AuditEvidenceReceiptTests|FullyQualifiedName~TenantDetailSurfaceTests"` (final adversarial verification) -- 300 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore` (final adversarial verification) -- 746 passed, 0 failed, 0 skipped
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore` (final adversarial verification) -- 2188 passed, 0 failed, 0 skipped
+- Release builds for `src/Hexalith.Tenants`, `src/Hexalith.Tenants.UI`, both owned test projects, and `Hexalith.Tenants.slnx`, all with `--no-restore` (final adversarial verification) -- passed with 0 warnings and 0 errors. The solution-level Memories blocker recorded above was removed by a concurrent, unrelated solution-filter edit and is not attributed to Story 2.4.
+- `git diff --check` (final adversarial verification) -- passed
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` (final adversarial verification) -- expected fail remains limited to the six undeclared post-story pointers listed above; EventStore remains declared
 
 ## Suggested Review Order
 
-**Removal proof lifecycle**
+**Removal command and proof lifecycle**
 
-- Entry: coalesce status work without losing authoritative projection-refresh intent.
-  [`RemoveTenantMemberFlow.razor:786`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L786)
+- Entry: retain command identity, acquire admission, then reconcile authoritative proof.
+  [`RemoveTenantMemberFlow.razor:670`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L670)
 
-- Bound and cancel audit paging while continuing from weak to strong evidence.
-  [`RemoveTenantMemberFlow.razor:896`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L896)
+- Preserve non-collapse lifecycle while requiring causal projection advancement.
+  [`TenantCreateCommandModels.cs:979`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L979)
 
-- Preserve retry causality and require current, receipt-ready proof before promotion.
-  [`TenantCreateCommandModels.cs:988`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L988)
+- Bound audit paging and promote only current projection-backed removal evidence.
+  [`RemoveTenantMemberFlow.razor:941`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L941)
 
-- Route receipt inspection with support-safe command context.
-  [`RemoveTenantMemberFlow.razor:1098`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L1098)
+**Projection causality**
 
-**Authoritative eligibility evidence**
+- Skip persisted replay without discarding accepted same-sequence batch events.
+  [`TenantProjectionHandler.cs:81`](../../src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs#L81)
 
-- Launch supplementary GA and audit reads without blocking primary tenant detail.
-  [`TenantDetailPage.razor:453`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L453)
+- Permit one-way legacy upgrades only alongside exact command-event evidence.
+  [`TenantMembershipCommandProvenance.cs:34`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs#L34)
 
-- Aggregate GA pages with cancellation, bounds, and projection-version consistency.
+**Admission and dialog safety**
+
+- Reserve child ownership before awaiting the aggregate admission boundary.
+  [`MemberAccessReview.razor:756`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L756)
+
+- Key destructive flows by target so retargeting cannot retain stale intent.
+  [`MemberAccessReview.razor:243`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L243)
+
+- Focus visible recovery first and close after continuing read-only.
+  [`RemoveTenantMemberFlow.razor:1148`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L1148)
+
+**Eligibility and recovery evidence**
+
+- Resolve complete GA and audit evidence without blocking primary detail.
   [`TenantDetailPage.razor:1406`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L1406)
 
-- Prove tenant-scoped audit capability only from current authoritative responses.
-  [`TenantDetailPage.razor:1529`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L1529)
-
-- Feed proven capability into fail-closed member action slots.
-  [`MemberAccessReview.razor:611`](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor#L611)
-
-**Honest recovery actions**
-
-- Render only recovery verbs backed by real delegates.
-  [`AuditAvailabilityState.razor:108`](../../src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor#L108)
-
-- Forward inspection distinctly and hide inoperative receipt actions.
+- Render every wired Ready-receipt action without inventing unavailable recovery.
   [`AuditEvidenceReceipt.razor:189`](../../src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor#L189)
-
-- Localize no-escalation recovery variants in English and French.
-  [`TenantsResources.resx:3138`](../../src/Hexalith.Tenants.UI/Resources/TenantsResources.resx#L3138)
 
 **Verification**
 
-- Exercise bounded proof walks, cancellation, coalescing, and callback semantics.
-  [`RemoveTenantMemberFlowTests.cs:784`](../../tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs#L784)
+- Pin same-sequence batches and older/equal persisted replay behavior.
+  [`TenantProjectionHandlerTests.cs:226`](../../tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs#L226)
 
-- Exercise incomplete GA evidence, page caps, refresh faults, and route races.
-  [`TenantDetailSurfaceTests.cs:295`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L295)
+- Verify receipt navigation, responsive markup, and read-only exit behavior.
+  [`RemoveTenantMemberFlowTests.cs:170`](../../tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs#L170)
+
+- Exercise retargeting, delayed admission, and blank-reason fail-closed launchers.
+  [`TenantDetailSurfaceTests.cs:3377`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L3377)

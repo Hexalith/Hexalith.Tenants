@@ -30,7 +30,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         snapshot.MessageId.ShouldBeNull();
         snapshot.CorrelationId.ShouldBeNull();
         snapshot.LastConfirmedMemberProjection.ShouldBe(detail);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
     [Fact]

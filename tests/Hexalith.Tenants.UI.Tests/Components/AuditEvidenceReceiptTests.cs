@@ -94,9 +94,12 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         ready.FindAll(".audit-evidence-receipt__action")
             .Single(button => button.TextContent.Contains("Inspect audit", StringComparison.Ordinal))
             .Click();
+        ready.FindAll(".audit-evidence-receipt__action")
+            .Single(button => button.TextContent.Contains("Continue read-only", StringComparison.Ordinal))
+            .Click();
 
         inspectCount.ShouldBe(1);
-        closeCount.ShouldBe(0);
+        closeCount.ShouldBe(1);
     }
 
     [Fact]

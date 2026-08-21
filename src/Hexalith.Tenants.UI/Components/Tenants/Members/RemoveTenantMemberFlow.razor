@@ -535,7 +535,7 @@
                 OwnerCount,
                 TargetGlobalAdministratorFriction,
                 Detail);
-            _focusConfirmationPending = true;
+            _focusCancelPending = true;
         }
     }
 
@@ -1037,7 +1037,11 @@
                         && match.Provenance is QueryResponseProvenance.ProjectionBacked;
                     TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(
                         match,
-                        supportSafeCommandReference: _snapshot.MessageId,
+                        // This authorized audit row proves that a matching removal occurred after the
+                        // attempt began, but the audit contract does not carry command causation. Do not
+                        // stamp the current attempt's tracking id onto evidence that may belong to a
+                        // concurrent operator; command context remains available through Inspect audit.
+                        supportSafeCommandReference: null,
                         surfaceKind: TenantAuditSurfaceKind.Ready,
                         auditState: TenantCommandAuditState.AuditAvailable);
                     bool receiptReady = receipt.State is TenantAuditReceiptState.Ready;
@@ -1147,6 +1151,8 @@
         _receiptDismissed = false;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        _dismissed = true;
+        await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
     /// <summary>

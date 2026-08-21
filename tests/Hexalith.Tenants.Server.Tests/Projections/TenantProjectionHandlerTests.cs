@@ -123,8 +123,8 @@ public class TenantProjectionHandlerTests {
             "tenants",
             "tenant-1",
             [
-                CreateEvent(new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner), "evt-added", timestamp),
-                CreateEvent(new TenantConfigurationSet("tenant-1", "feature", "enabled"), "evt-config", timestamp.AddMinutes(1)),
+                CreateEvent(new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner), "evt-added", timestamp, sequenceNumber: 1),
+                CreateEvent(new TenantConfigurationSet("tenant-1", "feature", "enabled"), "evt-config", timestamp.AddMinutes(1), sequenceNumber: 2),
             ]);
 
         _ = await CreateHandler(stateStore).ProjectAsync(request);
@@ -185,6 +185,165 @@ public class TenantProjectionHandlerTests {
             .ProjectedAt.ShouldBe(ProjectionTime);
         ((TenantIndexReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantIndexKey).Value)
             .ProjectedAt.ShouldBe(ProjectionTime);
+    }
+
+    [Fact]
+    public async Task ProjectAsync_StampsTenantReadModelWithHighestAggregateSequenceAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [
+                CreateEvent(
+                    new TenantCreated("tenant-1", "Acme", null, timestamp),
+                    "evt-created",
+                    timestamp,
+                    sequenceNumber: 9),
+                CreateEvent(
+                    new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantReader),
+                    "evt-added",
+                    timestamp.AddMinutes(1),
+                    sequenceNumber: 10),
+            ]);
+
+        ProjectionResponse response = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
+            .Single(attempt => attempt.Key == TenantProjectionKey)
+            .Value;
+        saved.ProjectionVersion.ShouldBe("tenant-sequence:10");
+        response.State.Deserialize<TenantReadModel>()!.ProjectionVersion.ShouldBe("tenant-sequence:10");
+    }
+
+    [Fact]
+    public async Task ProjectAsync_AppliesAllEventsThatShareAnIncomingSequenceAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [
+                CreateEvent(
+                    new TenantCreated("tenant-1", "Acme", null, timestamp),
+                    "evt-created",
+                    timestamp,
+                    sequenceNumber: 1),
+                CreateEvent(
+                    new TenantUpdated("tenant-1", "Acme Renamed", null, timestamp.AddMinutes(1)),
+                    "evt-updated",
+                    timestamp.AddMinutes(1),
+                    sequenceNumber: 1),
+                CreateEvent(
+                    new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner),
+                    "evt-added",
+                    timestamp.AddMinutes(2),
+                    sequenceNumber: 1),
+            ]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
+            .Single(attempt => attempt.Key == TenantProjectionKey)
+            .Value;
+        saved.Name.ShouldBe("Acme Renamed");
+        saved.Members["user-1"].ShouldBe(TenantRole.TenantOwner);
+        saved.ProjectionVersion.ShouldBe("tenant-sequence:1");
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(11)]
+    public async Task ProjectAsync_OlderOrEqualReplayDoesNotRegressTenantStateAsync(long replaySequence) {
+        DateTimeOffset persistedProjectedAt = ProjectionTime.AddMinutes(-5);
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(
+            TenantProjectionKey,
+            new TenantReadModel {
+                TenantId = "tenant-1",
+                Name = "Persisted Name",
+                ProjectedAt = persistedProjectedAt,
+                ProjectionVersion = "tenant-sequence:11",
+            },
+            "tenant-etag-1");
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [CreateEvent(
+                new TenantCreated("tenant-1", "Replayed Name", null, timestamp),
+                "evt-created",
+                timestamp,
+                sequenceNumber: replaySequence)]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
+            .Single(attempt => attempt.Key == TenantProjectionKey)
+            .Value;
+        saved.ProjectionVersion.ShouldBe("tenant-sequence:11");
+        saved.TenantId.ShouldBe("tenant-1");
+        saved.Name.ShouldBe("Persisted Name");
+        saved.ProjectedAt.ShouldBe(persistedProjectedAt);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("legacy-etag-opaque")]
+    public async Task ProjectAsync_AppliesEventOverLegacyOrMissingAggregateVersionAsync(string? persistedVersion) {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(
+            TenantProjectionKey,
+            new TenantReadModel {
+                TenantId = "tenant-1",
+                Name = "Before",
+                ProjectionVersion = persistedVersion,
+            },
+            "tenant-etag-1");
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [CreateEvent(
+                new TenantUpdated("tenant-1", "After", null, timestamp),
+                "evt-updated",
+                timestamp,
+                sequenceNumber: 12)]);
+
+        _ = await new TenantProjectionHandler(
+                stateStore,
+                NullLogger<TenantProjectionHandler>.Instance,
+                new FixedTimeProvider(ProjectionTime))
+            .ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
+            .Single(attempt => attempt.Key == TenantProjectionKey)
+            .Value;
+        saved.Name.ShouldBe("After");
+        saved.ProjectionVersion.ShouldBe("tenant-sequence:12");
+        saved.ProjectedAt.ShouldBe(ProjectionTime);
     }
 
     [Fact]
@@ -668,12 +827,13 @@ public class TenantProjectionHandlerTests {
         IEventPayload payload,
         string? messageId,
         DateTimeOffset timestamp,
-        string? userId = "actor-1") =>
+        string? userId = "actor-1",
+        long sequenceNumber = 1) =>
         new(
             payload.GetType().FullName!,
             JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType()),
             "json",
-            1,
+            sequenceNumber,
             timestamp,
             "corr-1",
             messageId,

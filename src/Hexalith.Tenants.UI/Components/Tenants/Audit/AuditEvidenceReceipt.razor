@@ -189,14 +189,12 @@
     private IReadOnlyList<string> ActionResourceKeys
         => Receipt?.State switch
         {
-            TenantAuditReceiptState.Ready when OnInspectAudit.HasDelegate
-                => ["Tenants.Audit.Receipt.Action.InspectAudit"],
-
             // A Ready receipt must never fall through to the trailing Refresh arm. Offering "retry status
             // lookup" on evidence the receipt has just reported as ready contradicts the state itself; when
             // no inspect delegate is wired there is simply nothing to offer, and Close still dismisses.
             TenantAuditReceiptState.Ready
                 => AvailableReceiptActions(
+                    (OnInspectAudit.HasDelegate, "Tenants.Audit.Receipt.Action.InspectAudit"),
                     (OnClose.HasDelegate, "Tenants.Audit.Receipt.Action.ContinueReadOnly")),
             TenantAuditReceiptState.InvalidReference
                 => AvailableReceiptActions(

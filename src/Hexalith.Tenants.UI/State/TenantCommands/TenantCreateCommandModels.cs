@@ -834,7 +834,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,
-            AuditState = TenantCommandAuditState.MissingSupport,
+            AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Submit,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };

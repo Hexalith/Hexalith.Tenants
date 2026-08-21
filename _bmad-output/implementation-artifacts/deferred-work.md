@@ -1350,6 +1350,12 @@ Review loop 3, chunk B (surfaces, resources & shared services; 22 files, +1469/-
   summary: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge.
   evidence: Both membership flows return from an in-flight refresh without recording that the later caller requested projection reload, so the user-requested refresh can be dropped and confirmation delayed indefinitely.
 
+
+## Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof — loop 3 final verification (2026-08-21)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+  summary: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range.
+  evidence: The mirrored `tea-enforce.cjs` assets advertise focused-test and registry-completeness enforcement, but no repository test imports the scanner or executes its pre/post/stop modes, so a disabled rule or an always-successful entry point would remain green.
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
   summary: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog.
   evidence: `sprint-status.yaml` currently reports `epic-3: done` and `epic-3-retrospective: done` alongside unfinished Epic 3 story entries, so aggregate status is internally contradictory.

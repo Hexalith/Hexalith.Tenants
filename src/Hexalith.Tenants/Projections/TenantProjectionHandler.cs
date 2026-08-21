@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
@@ -28,6 +29,7 @@ public sealed class TenantProjectionHandler {
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     private const string TenantProjectionKeyCategory = "tenant read-model";
     private const string TenantProjectionKeyPrefix = "projection:tenants:";
+    private const string TenantProjectionVersionPrefix = "tenant-sequence:";
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
@@ -76,17 +78,41 @@ public sealed class TenantProjectionHandler {
         cancellationToken.ThrowIfCancellationRequested();
 
         TenantReadModel state = await ReadModelWritePolicy
-            .ApplyEventsAsync<TenantReadModel>(
+            .UpdateAsync<TenantReadModel>(
                 _store,
                 StateStoreName,
                 TenantProjectionKeyPrefix + request.AggregateId,
-                events,
-                static () => new TenantReadModel(),
-                (model, evt) => {
-                    ApplyEvent(model, evt);
-                    StampProjection(model, projectedAt);
+                current => {
+                    TenantReadModel model = current ?? new TenantReadModel();
+                    long? persistedSequence = TryParseAggregateProjectionVersion(
+                        model.ProjectionVersion,
+                        out long parsedPersistedSequence)
+                            ? parsedPersistedSequence
+                            : null;
+                    long? batchHighWatermark = null;
+
+                    foreach (ProjectionEventDto? evt in events) {
+                        if (evt is null
+                            || HasAlreadyAppliedAggregateSequence(
+                                persistedSequence,
+                                batchHighWatermark,
+                                evt.SequenceNumber)) {
+                            continue;
+                        }
+
+                        ApplyEvent(model, evt);
+                        StampProjection(model, projectedAt);
+                        StampAggregateProjectionVersion(model, evt.SequenceNumber);
+                        if (evt.SequenceNumber >= 0
+                            && (batchHighWatermark is null || evt.SequenceNumber > batchHighWatermark.Value)) {
+                            batchHighWatermark = evt.SequenceNumber;
+                        }
+                    }
+
+                    return model;
                 },
-                new ReadModelWriteContext(TenantProjectionKeyCategory, nameof(TenantReadModel)),
+                new ReadModelWriteContext(TenantProjectionKeyCategory, nameof(TenantReadModel))
+                    .WithEventDiagnostics(events),
                 _logger,
                 cancellationToken: cancellationToken)
             .ConfigureAwait(false);
@@ -187,6 +213,38 @@ public sealed class TenantProjectionHandler {
         return incoming is null || existing.Value >= incoming.Value
             ? existing
             : incoming;
+    }
+
+    private static void StampAggregateProjectionVersion(TenantReadModel model, long sequenceNumber) {
+        if (sequenceNumber < 0) {
+            return;
+        }
+
+        if (TryParseAggregateProjectionVersion(model.ProjectionVersion, out long currentSequence)
+            && currentSequence >= sequenceNumber) {
+            return;
+        }
+
+        model.ProjectionVersion = TenantProjectionVersionPrefix
+            + sequenceNumber.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static bool HasAlreadyAppliedAggregateSequence(
+        long? persistedSequence,
+        long? batchHighWatermark,
+        long sequenceNumber)
+        => sequenceNumber >= 0
+        && (persistedSequence >= sequenceNumber || batchHighWatermark > sequenceNumber);
+
+    private static bool TryParseAggregateProjectionVersion(string? value, out long sequenceNumber) {
+        sequenceNumber = 0;
+        return value is not null
+            && value.StartsWith(TenantProjectionVersionPrefix, StringComparison.Ordinal)
+            && long.TryParse(
+                value.AsSpan(TenantProjectionVersionPrefix.Length),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequenceNumber);
     }
 
     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {

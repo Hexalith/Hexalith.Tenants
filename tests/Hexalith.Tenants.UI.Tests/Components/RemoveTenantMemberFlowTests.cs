@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 using Bunit;
@@ -8,6 +9,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Components.Tenants.Audit;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -167,6 +169,14 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     [Fact]
     public void Css_contains_focus_trap_and_narrow_layout_hooks()
     {
+        string markup = File.ReadAllText(Path.Combine(
+            RepoRoot(),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Members",
+            "RemoveTenantMemberFlow.razor"));
         string styles = File.ReadAllText(Path.Combine(
             RepoRoot(),
             "src",
@@ -178,6 +188,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         styles.ShouldContain("tenants-remove-member-flow__focus-sentinel");
         styles.ShouldContain("tenants-remove-member-flow__narrow");
+        markup.ShouldContain("class=\"tenants-remove-member-flow__form\"");
         int narrowMedia = styles.IndexOf("@media (max-width: 767px)", StringComparison.Ordinal);
         narrowMedia.ShouldBeGreaterThanOrEqualTo(0, "Expected a max-width: 767px media query for narrow fail-closed layout.");
         int nextMedia = styles.IndexOf("@media", narrowMedia + 1, StringComparison.Ordinal);
@@ -187,6 +198,33 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                 @"\.tenants-remove-member-flow__form\s*\{\s*display:\s*none\s*;",
                 RegexOptions.CultureInvariant)
             .ShouldBeTrue("Narrow media query must hide .tenants-remove-member-flow__form with display: none.");
+    }
+
+    [Fact]
+    public void Initial_focus_targets_visible_cancel_instead_of_the_narrow_hidden_confirmation_form()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        string cancelReferenceId = ((ElementReference)(cut.Instance.GetType()
+            .GetField("_cancelElement", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(cut.Instance)
+            ?? throw new InvalidOperationException("Remove flow cancel focus reference is unavailable."))).Id;
+        string focusedReferenceId = JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Last()
+            .Id;
+
+        focusedReferenceId.ShouldBe(cancelReferenceId);
     }
 
     [Fact]
@@ -487,6 +525,40 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.StatusCallCount.ShouldBe(statusCalls + 1);
     }
 
+    [Fact]
+    public void Continue_read_only_releases_activity_and_closes_the_remove_flow()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.TimedOut),
+        };
+        RegisterServices(gateway);
+        List<bool> activity = [];
+        int closeCount = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                activity.Add(active);
+                return Task.FromResult(true);
+            })
+            .Add(p => p.OnCloseRequested, () => closeCount++));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+
+        cut.Find("[data-testid='tenants-remove-member-continue-read-only']").Click();
+
+        activity.ShouldBe([true, false]);
+        closeCount.ShouldBe(1);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+    }
+
     [Theory]
     [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "Refresh current tenant detail")]
     [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "Refresh current tenant detail")]
@@ -684,11 +756,25 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
         });
         cut.Find("[data-testid='tenants-audit-receipt']");
+        cut.FindComponent<AuditEvidenceReceipt>().Instance.Receipt!.CommandReference.ShouldBeNull();
         cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("available");
 
         cut.Find("[data-testid='tenants-audit-receipt'] .audit-evidence-receipt__action").Click();
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldContain(
-            "/tenants/tenant.alpha/audit?targetUserId=reader-user&supportSafeCommandReference=message-1");
+        Uri auditUri = new(Services.GetRequiredService<NavigationManager>().Uri);
+        Dictionary<string, string> query = auditUri.Query
+            .TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .ToDictionary(
+                pair => Uri.UnescapeDataString(pair[0]),
+                pair => Uri.UnescapeDataString(pair.Length == 2 ? pair[1] : string.Empty),
+                StringComparer.Ordinal);
+        auditUri.AbsolutePath.ShouldBe("/tenants/tenant.alpha/audit");
+        query["targetUserId"].ShouldBe("reader-user");
+        query["supportSafeCommandReference"].ShouldBe("message-1");
+        query["source"].ShouldBe("command-result");
+        query["returnUrl"].ShouldBe("/tenants/tenant.alpha");
+        query["returnFocus"].ShouldBe("tenants-remove-member-lifecycle");
     }
 
     [Fact]

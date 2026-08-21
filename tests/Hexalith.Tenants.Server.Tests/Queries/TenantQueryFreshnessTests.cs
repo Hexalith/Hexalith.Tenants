@@ -84,6 +84,27 @@ public sealed class TenantQueryFreshnessTests {
         result.Metadata.ProjectionVersion.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Get_tenant_prefers_persisted_projection_version_over_etagAsync() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenant(
+            store,
+            "opaque-store-etag",
+            Now - TimeSpan.FromMinutes(5),
+            projectionVersion: "tenant-sequence:10");
+        SetupGlobalAdministrators(store, "admin-user");
+
+        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            CreateEnvelope(GetTenantQuery.QueryType),
+            freshnessOptions: Thresholds,
+            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
+
+        result.Metadata.ShouldNotBeNull().ETag.ShouldBe("opaque-store-etag");
+        result.Metadata.ProjectionVersion.ShouldBe("tenant-sequence:10");
+    }
+
     [Theory]
     [InlineData("list-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
     [InlineData("get-user-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
@@ -232,13 +253,18 @@ public sealed class TenantQueryFreshnessTests {
             .Returns(Task.FromResult(new ReadModelEntry<TenantIndexReadModel>(model, "index-etag-1")));
     }
 
-    private static void SetupTenant(IReadModelStore store, string eTag, DateTimeOffset? projectedAt) {
+    private static void SetupTenant(
+        IReadModelStore store,
+        string eTag,
+        DateTimeOffset? projectedAt,
+        string? projectionVersion = null) {
         var model = new TenantReadModel {
             TenantId = "tenant.alpha",
             Name = "Tenant Alpha",
             Status = TenantStatus.Active,
             CreatedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             ProjectedAt = projectedAt,
+            ProjectionVersion = projectionVersion,
             Members = {
                 ["test-user"] = TenantRole.TenantReader,
             },
