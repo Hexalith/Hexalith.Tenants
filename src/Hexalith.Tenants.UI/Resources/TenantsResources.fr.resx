@@ -3870,4 +3870,42 @@
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly" xml:space="preserve">
     <value>Le support de preuve d'audit manque ; relancez la consultation du statut.</value>
   </data>
+  <data name="Tenants.HighImpact.Action.EnableTenant" xml:space="preserve"><value>Activer le locataire</value></data>
+  <data name="Tenants.HighImpact.Action.DisableTenant" xml:space="preserve"><value>Desactiver le locataire</value></data>
+  <data name="Tenants.HighImpact.Action.SetConfiguration" xml:space="preserve"><value>Definir la configuration</value></data>
+  <data name="Tenants.HighImpact.Action.RemoveConfiguration" xml:space="preserve"><value>Supprimer la configuration</value></data>
+  <data name="Tenants.HighImpact.Fact.Identity" xml:space="preserve"><value>Identite du locataire</value></data>
+  <data name="Tenants.HighImpact.Fact.Status" xml:space="preserve"><value>Statut confirme en dernier</value></data>
+  <data name="Tenants.HighImpact.Fact.Freshness" xml:space="preserve"><value>Fraicheur</value></data>
+  <data name="Tenants.HighImpact.Fact.Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Tenants.HighImpact.Fact.Reason" xml:space="preserve"><value>Motif de disponibilite</value></data>
+  <data name="Tenants.HighImpact.Fact.Recovery" xml:space="preserve"><value>Recuperation</value></data>
+  <data name="Tenants.HighImpact.Freshness.Unknown" xml:space="preserve"><value>Inconnue</value></data>
+  <data name="Tenants.HighImpact.Freshness.Current" xml:space="preserve"><value>Actuelle</value></data>
+  <data name="Tenants.HighImpact.Freshness.Refreshing" xml:space="preserve"><value>Actualisation avec une base actuelle</value></data>
+  <data name="Tenants.HighImpact.Freshness.Aging" xml:space="preserve"><value>Vieillissante</value></data>
+  <data name="Tenants.HighImpact.Freshness.Stale" xml:space="preserve"><value>Obsolete</value></data>
+  <data name="Tenants.HighImpact.Available" xml:space="preserve"><value>Cette action est disponible.</value></data>
+  <data name="Tenants.HighImpact.AvailableWithFriction" xml:space="preserve"><value>Cette action est disponible, mais la projection vieillit ou est en cours d'actualisation. Examinez attentivement les faits confirmes en dernier.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingPermission" xml:space="preserve"><value>Cette action est indisponible car l'autorite ou la portee d'espace de noms requise n'est pas confirmee.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.StaleData" xml:space="preserve"><value>Cette action est indisponible car les donnees faisant autorite ne sont pas actuelles.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingLifecycleSupport" xml:space="preserve"><value>Cette action est indisponible car le support de cycle de vie de sa commande n'est pas pret.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingConsequencePreview" xml:space="preserve"><value>Cette action est indisponible tant que son apercu complet des consequences n'est pas pret.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingAuditProof" xml:space="preserve"><value>Cette action est indisponible car sa preuve requise n'est pas prete.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.HighImpactFlowNotReady" xml:space="preserve"><value>Cette action a fort impact reste en lecture seule tant que la fenetre mesuree et l'admission agregee ne sont pas sures.</value></data>
+  <data name="Tenants.HighImpact.Recovery.None" xml:space="preserve"><value>Aucune recuperation n'est necessaire.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Demandez a un administrateur de verifier votre role et l'autorisation exacte de l'espace de noms.</value></data>
+  <data name="Tenants.HighImpact.Recovery.StaleData" xml:space="preserve"><value>Actualisez les donnees du locataire faisant autorite et examinez les faits confirmes en dernier.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingLifecycleSupport" xml:space="preserve"><value>Retablissez le support du cycle de vie de la commande, puis reessayez.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Completez les faits surs de l'apercu et les champs de confirmation requis.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingAuditProof" xml:space="preserve"><value>Retablissez la source de preuve declaree par cette action, puis reessayez.</value></data>
+  <data name="Tenants.HighImpact.Recovery.HighImpactFlowNotReady" xml:space="preserve"><value>Utilisez une fenetre mesuree plus large ou attendez la fin de la commande actuelle du locataire.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.LifecycleStateAlreadySet" xml:space="preserve"><value>Le locataire possede deja l'etat de cycle de vie demande.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.TenantDisabled" xml:space="preserve"><value>La configuration ne peut pas etre modifiee lorsque le locataire est desactive.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.ConfigurationAlreadyApplied" xml:space="preserve"><value>La valeur de configuration autorisee est deja appliquee.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.ConfigurationKeyNotFound" xml:space="preserve"><value>La cle de configuration autorisee n'est pas presente dans les dernieres donnees confirmees.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.LifecycleStateAlreadySet" xml:space="preserve"><value>Examinez l'etat de cycle de vie confirme en dernier ; aucune commande n'a ete soumise.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.TenantDisabled" xml:space="preserve"><value>Activez le locataire avec son apercu de cycle de vie dedie avant de modifier la configuration.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.ConfigurationAlreadyApplied" xml:space="preserve"><value>Examinez la valeur confirmee en dernier ; aucune commande n'a ete soumise.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.ConfigurationKeyNotFound" xml:space="preserve"><value>Actualisez la liste de configuration autorisee ou selectionnez une cle presente.</value></data>
 </root>

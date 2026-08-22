@@ -122,6 +122,102 @@ public sealed class TenantsBffCompositionTests
         authorized.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task Bff_composes_TenantOwner_role_and_namespace_scope_as_separate_evidence()
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy);
+        TenantConfigurationComposition detail = await composition.ComposeTenantDetailAsync(Detail());
+
+        detail.ManagementContext.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.TenantOwner);
+        detail.ManagementContext.IsKeyAuthorized("billing.mode").ShouldBeTrue();
+        TenantHighImpactBffEvidence evidence = ((ITenantsBffComposition)composition).ComposeTenantHighImpactEvidence(
+            detail.SanitizedDetail,
+            detail.ManagementContext,
+            TenantLifecycleAuthorizationReflectionState.MissingPermission);
+
+        evidence.ConfigurationAuthority.ShouldBe(TenantHighImpactAuthorityEvidence.Authorized);
+        evidence.ConfigurationScope.ShouldBe(TenantHighImpactNamespaceScopeEvidence.Authorized);
+        evidence.LifecycleAuthority.ShouldBe(TenantHighImpactAuthorityEvidence.MissingPermission);
+        evidence.ConfigurationPreview.ShouldBe(TenantHighImpactPreviewEvidence.Ready);
+    }
+
+    [Fact]
+    public async Task Prefix_scope_without_TenantOwner_role_does_not_authorize_configuration_mutation()
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy);
+        TenantDetail nonOwner = Detail(
+            [new TenantMember("operator.alpha", TenantRole.TenantReader)]);
+
+        TenantConfigurationComposition detail = await composition.ComposeTenantDetailAsync(nonOwner);
+        TenantHighImpactBffEvidence evidence = ((ITenantsBffComposition)composition).ComposeTenantHighImpactEvidence(
+            detail.SanitizedDetail,
+            detail.ManagementContext,
+            TenantLifecycleAuthorizationReflectionState.Authorized);
+
+        detail.ManagementContext.IsKeyAuthorized("billing.mode").ShouldBeTrue();
+        detail.ManagementContext.HasMutationAuthority.ShouldBeFalse();
+        evidence.ConfigurationScope.ShouldBe(TenantHighImpactNamespaceScopeEvidence.Authorized);
+        evidence.ConfigurationAuthority.ShouldBe(TenantHighImpactAuthorityEvidence.MissingPermission);
+    }
+
+    [Fact]
+    public async Task Submit_time_reauthorization_reproves_TenantOwner_from_current_sanitized_members()
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy);
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+        TenantDetail currentWithoutOwner = Detail(
+            [new TenantMember("operator.alpha", TenantRole.TenantReader)]);
+
+        TenantConfigurationManagementContext context = await composition
+            .ReauthorizeConfigurationManagementAsync(currentWithoutOwner, safeModel);
+
+        context.IsKeyAuthorized("billing.mode").ShouldBeTrue();
+        context.HasMutationAuthority.ShouldBeFalse();
+        context.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.MissingPermission);
+    }
+
+    [Fact]
+    public async Task Submit_time_reauthorization_preserves_matching_TenantOwner_authority()
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy);
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+
+        TenantConfigurationManagementContext context = await composition
+            .ReauthorizeConfigurationManagementAsync(Detail(), safeModel);
+
+        context.IsKeyAuthorized("billing.mode").ShouldBeTrue();
+        context.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.TenantOwner);
+        context.HasMutationAuthority.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Runtime_null_member_is_ignored_and_authority_fails_closed_without_throwing()
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy);
+        TenantConfigurationSafeModel safeModel = SafeModel(GrantedPolicy);
+
+        TenantConfigurationManagementContext context = await composition
+            .ReauthorizeConfigurationManagementAsync(Detail([null!]), safeModel);
+
+        context.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.MissingPermission);
+        context.HasMutationAuthority.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Global_administrator_authority_is_reflected_without_TenantOwner_membership()
+    {
+        TenantsBffComposition composition = Composition(
+            RevokedPolicy,
+            TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition detail = await composition.ComposeTenantDetailAsync(
+            Detail([new TenantMember("someone.else", TenantRole.TenantReader)]));
+
+        detail.ManagementContext.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.GlobalAdministrator);
+        detail.ManagementContext.HasMutationAuthority.ShouldBeTrue();
+        detail.ManagementContext.IsKeyAuthorized("unlisted.literal.key").ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(0, TenantLifecycleAuthorizationReflectionState.Authorized)]
     [InlineData(1, TenantLifecycleAuthorizationReflectionState.MissingPermission)]
@@ -263,13 +359,13 @@ public sealed class TenantsBffCompositionTests
             .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
             .Build();
 
-    private static TenantDetail Detail()
+    private static TenantDetail Detail(IReadOnlyList<TenantMember>? members = null)
         => new(
             "tenant.alpha",
             "Alpha",
             "Description",
             TenantStatus.Active,
-            [new TenantMember("operator.alpha", TenantRole.TenantOwner)],
+            members ?? [new TenantMember("operator.alpha", TenantRole.TenantOwner)],
             new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = "trial" },
             DateTimeOffset.UtcNow);
 

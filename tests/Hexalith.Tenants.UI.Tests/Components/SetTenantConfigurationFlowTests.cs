@@ -124,6 +124,57 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Evidence_aware_set_with_complete_input_and_current_reauthorization_dispatches_exactly_once()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
+        };
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext context = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.Evidence, Evidence(TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(context)));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+        gateway.LastSetConfigurationRequest.ShouldNotBeNull();
+        gateway.LastSetConfigurationRequest.Key.ShouldBe("billing.mode");
+    }
+
+    [Fact]
+    public void Evidence_aware_already_applied_set_preserves_safe_snapshot_without_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext context = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.Evidence, Evidence(TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(context)));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("trial");
+        cut.Find("form").Submit();
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot.SafeMessage!.ShouldContain("already applied", Case.Insensitive);
+    }
+
+    [Fact]
     public void Exact_prefix_key_is_accepted_literally_without_appending_or_normalizing_segments()
     {
         RegisterServices(new StubTenantCommandGateway());
@@ -987,6 +1038,26 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         string tenantId,
         TenantConfigurationProjectionProofKind kind)
         => TenantConfigurationProjectionProof.Create(tenantId, kind);
+
+    private static TenantHighImpactActionEvidence Evidence(TenantHighImpactAction action)
+        => new(
+            "tenant.alpha",
+            action,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            TenantStatus.Active,
+            TenantHighImpactFreshnessState.Current,
+            HasCurrentBaseline: true,
+            TenantDetailSurfaceKind.Ready,
+            ProjectionLifecycleState.Current,
+            TenantHighImpactAuthorityEvidence.Authorized,
+            TenantHighImpactNamespaceScopeEvidence.Authorized,
+            TenantHighImpactSupportEvidence.Ready,
+            TenantHighImpactAdmissionEvidence.Available,
+            TenantHighImpactPreviewEvidence.Ready,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Safe,
+            IsInputComplete: false,
+            TenantHighImpactTargetState.Unknown);
 
     private static string ProjectRoot()
     {

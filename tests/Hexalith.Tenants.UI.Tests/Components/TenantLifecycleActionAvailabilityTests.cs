@@ -136,8 +136,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Unresolved));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("high-impact flow not ready");
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("platform gate");
+        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("read-only", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("aggregate admission", Case.Insensitive);
     }
 
     [Fact]
@@ -159,16 +159,15 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Disabled");
         cut.Find("[data-testid='tenants-lifecycle-enable']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("#tenants-lifecycle-enable-reason").TextContent.ShouldContain("high-impact flow not ready");
-        cut.Find("#tenants-lifecycle-enable-reason").TextContent.ShouldContain("platform gate");
-        cut.Find("#tenants-lifecycle-disable-reason").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
-        cut.Find("#tenants-lifecycle-disable-reason").TextContent.ShouldContain("current projection already shows Disabled");
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldNotContain("current projection already shows Active");
+        cut.Find("#tenants-lifecycle-enable-reason").TextContent.ShouldContain("read-only", Case.Insensitive);
+        cut.Find("#tenants-lifecycle-enable-reason").TextContent.ShouldContain("aggregate admission", Case.Insensitive);
+        cut.Find("#tenants-lifecycle-disable-reason").TextContent.ShouldContain("already has the requested lifecycle state", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldNotContain("already has the requested lifecycle state Active");
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
     }
 
     [Fact]
-    public void Same_state_action_names_TenantLifecycleStateAlreadySet_as_safe_domain_outcome()
+    public void Same_state_action_names_the_safe_expected_domain_outcome()
     {
         RegisterServices();
 
@@ -183,8 +182,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
 
         cut.Find("[data-testid='tenants-lifecycle-enable']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("current projection already shows Active");
+        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent
+            .ShouldContain("already has the requested lifecycle state", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-live-region']").GetAttribute("aria-live").ShouldBe("polite");
     }
 
@@ -205,7 +204,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsNarrowSafetyContext, true));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("viewport cannot preserve");
+        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent.ShouldContain("measured viewport");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-lifecycle-freshness']").TextContent.ShouldContain("Current");
     }
@@ -270,6 +269,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(request.TenantId, TenantStatus.Disabled))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldBeNull();
@@ -360,7 +360,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Lifecycle, ProjectionLifecycleState.Stale));
 
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
-            .ShouldContain("projection lifecycle", Case.Insensitive);
+            .ShouldContain("current authoritative data", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-confirm']").GetAttribute("disabled").ShouldNotBeNull();
         gateway.DisableSubmissions.ShouldBe(0);
     }
@@ -415,6 +415,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(request.TenantId, projectionStatus))));
 
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -489,6 +490,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(request.TenantId, TenantStatus.Disabled))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
@@ -509,6 +511,259 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
+
+    [Fact]
+    public void Shared_evidence_renders_associated_facts_and_unknown_viewport_creates_no_flow_or_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        TenantHighImpactActionEvidence enable = HighImpactEvidence(TenantHighImpactAction.EnableTenant);
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            Viewport = TenantHighImpactViewportState.Unknown,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.EnableEvidence, enable)
+            .Add(component => component.DisableEvidence, disable));
+
+        cut.Find("[data-testid='tenants-lifecycle-enable-availability']");
+        cut.Find("[data-testid='tenants-lifecycle-disable-availability']");
+        cut.Find("[data-testid='tenants-lifecycle-disable-identity']").TextContent.ShouldContain("tenant.alpha");
+        cut.Find("[data-testid='tenants-lifecycle-disable-status']").TextContent.ShouldContain("Active");
+        cut.Find("[data-testid='tenants-lifecycle-disable-freshness']").TextContent.ShouldContain("Current");
+        cut.Find("[data-testid='tenants-lifecycle-disable-action']").TextContent.ShouldContain("Disable");
+        cut.Find("[data-testid='tenants-lifecycle-disable-reason']").TextContent.ShouldContain("viewport", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-disable-recovery']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+        gateway.DisableSubmissions.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Eligible_typed_lifecycle_evidence_opens_the_complete_preview_before_confirmation_input()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        TenantHighImpactActionEvidence enable = HighImpactEvidence(TenantHighImpactAction.EnableTenant);
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            IsInputComplete = false,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.EnableEvidence, enable)
+            .Add(component => component.DisableEvidence, disable));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+
+        cut.Find("[data-testid='tenants-lifecycle-preview']");
+        cut.FindAll("[data-testid='tenants-lifecycle-preview-item']").Count.ShouldBe(10);
+        cut.Find("[data-testid='tenants-lifecycle-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData(TenantHighImpactFreshnessState.Aging, "Aging")]
+    [InlineData(TenantHighImpactFreshnessState.Refreshing, "Refreshing")]
+    public void Aging_and_refreshing_typed_lifecycle_evidence_remain_eligible_with_visible_friction(
+        TenantHighImpactFreshnessState freshness,
+        string expectedText)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            Freshness = freshness,
+            HasCurrentBaseline = true,
+            IsInputComplete = false,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+            .Add(component => component.DisableEvidence, disable));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldBeNull();
+        cut.Find("[data-testid='tenants-lifecycle-disable-freshness']").TextContent.ShouldContain(expectedText);
+        cut.Find("[data-testid='tenants-lifecycle-disable-reason']").TextContent
+            .ShouldContain("aging or refreshing", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-preview']");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Mismatched_tenant_or_action_evidence_fails_closed_without_rendering_foreign_facts(bool tenantMismatch)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        TenantHighImpactActionEvidence supplied = HighImpactEvidence(
+            tenantMismatch ? TenantHighImpactAction.DisableTenant : TenantHighImpactAction.EnableTenant) with
+        {
+            TenantId = tenantMismatch ? "tenant.beta" : "tenant.alpha",
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.DisableEvidence, supplied));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-lifecycle-disable-identity']").TextContent.ShouldBe("tenant.alpha");
+        cut.Markup.ShouldNotContain("tenant.beta", Case.Sensitive);
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Undefined_typed_evidence_fails_closed_without_throwing_or_leaking_a_resource_key()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            Freshness = (TenantHighImpactFreshnessState)999,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+            .Add(component => component.DisableEvidence, disable));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-lifecycle-disable-freshness']").TextContent.ShouldBe("Unknown");
+        cut.Markup.ShouldNotContain("999", Case.Sensitive);
+    }
+
+    [Theory]
+    [InlineData(true, TenantHighImpactUnavailableReason.MissingConsequencePreview, "consequence preview")]
+    [InlineData(false, TenantHighImpactUnavailableReason.MissingAuditProof, "required proof")]
+    public void Lifecycle_ui_preserves_canonical_preview_and_proof_reasons(
+        bool missingPreview,
+        TenantHighImpactUnavailableReason expectedReason,
+        string expectedText)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            Preview = missingPreview
+                ? TenantHighImpactPreviewEvidence.Missing
+                : TenantHighImpactPreviewEvidence.Ready,
+            Proof = missingPreview
+                ? TenantHighImpactProofEvidence.NotRequired
+                : (TenantHighImpactProofEvidence)999,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+            .Add(component => component.DisableEvidence, disable));
+
+        cut.Find("#tenants-lifecycle-disable-reason").GetAttribute("data-reason-category")
+            .ShouldBe(expectedReason.ToString());
+        cut.Find("[data-testid='tenants-lifecycle-disable-reason']").TextContent
+            .ShouldContain(expectedText, Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.MissingPermission)]
+    [InlineData((TenantLifecycleAuthorizationReflectionState)999)]
+    public void Submit_time_lifecycle_authority_revocation_or_undefined_evidence_blocks_before_activity_or_gateway(
+        TenantLifecycleAuthorizationReflectionState currentAuthorization)
+    {
+        StubTenantCommandGateway gateway = new();
+        List<bool> activity = [];
+        RegisterServices(gateway);
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+            .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(currentAuthorization)));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        gateway.DisableSubmissions.ShouldBe(0);
+        activity.ShouldBeEmpty();
+        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
+            .ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+    }
+
+    [Theory]
+    [InlineData("en", "Active", "Aging", "Disable tenant", "aging or refreshing", "No recovery")]
+    [InlineData("fr", "Actif", "Vieillissante", "Desactiver le locataire", "vieillit ou est en cours", "Aucune recuperation")]
+    public void English_and_french_lifecycle_facts_keep_whole_associated_strings(
+        string cultureName,
+        string expectedStatus,
+        string expectedFreshness,
+        string expectedAction,
+        string expectedReason,
+        string expectedRecovery)
+    {
+        CultureInfo priorCulture = CultureInfo.CurrentCulture;
+        CultureInfo priorUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+            Services.AddLocalization();
+            Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+            TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+            {
+                Freshness = TenantHighImpactFreshnessState.Aging,
+                IsInputComplete = false,
+            };
+
+            IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+                .Add(component => component.TenantId, "tenant.alpha")
+                .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+                .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+                .Add(component => component.DisableEvidence, disable));
+
+            cut.Find("[data-testid='tenants-lifecycle-disable-identity']").TextContent.ShouldBe("tenant.alpha");
+            cut.Find("[data-testid='tenants-lifecycle-disable-status']").TextContent.ShouldContain(expectedStatus);
+            cut.Find("[data-testid='tenants-lifecycle-disable-freshness']").TextContent.ShouldContain(expectedFreshness);
+            cut.Find("[data-testid='tenants-lifecycle-disable-action']").TextContent.ShouldContain(expectedAction);
+            cut.Find("[data-testid='tenants-lifecycle-disable-reason']").TextContent.ShouldContain(expectedReason);
+            cut.Find("[data-testid='tenants-lifecycle-disable-recovery']").TextContent.ShouldContain(expectedRecovery);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = priorCulture;
+            CultureInfo.CurrentUICulture = priorUiCulture;
+        }
+    }
+
+    private static TenantHighImpactActionEvidence HighImpactEvidence(TenantHighImpactAction action)
+        => new(
+            "tenant.alpha",
+            action,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            TenantStatus.Active,
+            TenantHighImpactFreshnessState.Current,
+            HasCurrentBaseline: true,
+            TenantDetailSurfaceKind.Ready,
+            ProjectionLifecycleState.Current,
+            TenantHighImpactAuthorityEvidence.Authorized,
+            TenantHighImpactNamespaceScopeEvidence.NotRequired,
+            TenantHighImpactSupportEvidence.Ready,
+            TenantHighImpactAdmissionEvidence.Available,
+            TenantHighImpactPreviewEvidence.Ready,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Safe,
+            IsInputComplete: true,
+            TenantHighImpactTargetState.NotApplicable);
 
     private void RegisterServices(ITenantCommandGateway? gateway = null)
     {
@@ -717,6 +972,29 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.UnavailableReason.None"] = "available",
             ["Tenants.Lifecycle.UnavailableReason.StaleData"] = "stale data",
             ["Tenants.Lifecycle.Validation.ConfirmationRequired"] = "Type tenant id {0} exactly before submitting this lifecycle command.",
+            ["Tenants.HighImpact.Action.EnableTenant"] = "Enable tenant",
+            ["Tenants.HighImpact.Action.DisableTenant"] = "Disable tenant",
+            ["Tenants.HighImpact.Available"] = "This action is available.",
+            ["Tenants.HighImpact.AvailableWithFriction"] = "This action is available, but the projection is aging or refreshing. Review the last-confirmed facts carefully.",
+            ["Tenants.HighImpact.Unavailable.MissingPermission"] = "This action is unavailable because the required authority or namespace scope is not reflected.",
+            ["Tenants.HighImpact.Unavailable.StaleData"] = "This action is unavailable because current authoritative data is not available.",
+            ["Tenants.HighImpact.Unavailable.MissingLifecycleSupport"] = "This action is unavailable because its command lifecycle support is not ready.",
+            ["Tenants.HighImpact.Unavailable.MissingConsequencePreview"] = "This action is unavailable until its complete consequence preview is ready.",
+            ["Tenants.HighImpact.Unavailable.MissingAuditProof"] = "This action is unavailable because its required proof is not ready.",
+            ["Tenants.HighImpact.Unavailable.HighImpactFlowNotReady"] = "This high-impact action is read-only until the measured viewport and aggregate admission are safe.",
+            ["Tenants.HighImpact.Recovery.None"] = "No recovery is required.",
+            ["Tenants.HighImpact.Recovery.MissingPermission"] = "Ask an administrator to verify your role and the exact namespace grant.",
+            ["Tenants.HighImpact.Recovery.StaleData"] = "Refresh the authoritative tenant data and review the last-confirmed facts.",
+            ["Tenants.HighImpact.Recovery.MissingLifecycleSupport"] = "Restore the action's command lifecycle support, then retry.",
+            ["Tenants.HighImpact.Recovery.MissingConsequencePreview"] = "Complete the safe preview facts and required confirmation inputs.",
+            ["Tenants.HighImpact.Recovery.MissingAuditProof"] = "Restore the proof source declared by this action, then retry.",
+            ["Tenants.HighImpact.Recovery.HighImpactFlowNotReady"] = "Use a wider measured viewport or wait for the tenant's current command to finish.",
+            ["Tenants.HighImpact.DomainOutcome.LifecycleStateAlreadySet"] = "The tenant already has the requested lifecycle state.",
+            ["Tenants.HighImpact.Freshness.Unknown"] = "Unknown",
+            ["Tenants.HighImpact.Freshness.Current"] = "Current",
+            ["Tenants.HighImpact.Freshness.Refreshing"] = "Refreshing with a current baseline",
+            ["Tenants.HighImpact.Freshness.Aging"] = "Aging",
+            ["Tenants.HighImpact.Freshness.Stale"] = "Stale",
         };
     }
 }

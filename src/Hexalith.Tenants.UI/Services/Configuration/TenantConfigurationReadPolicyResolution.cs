@@ -10,11 +10,15 @@ internal sealed class TenantConfigurationReadPolicyResolution
     private TenantConfigurationReadPolicyResolution(
         bool isAvailable,
         bool isGlobalAdministrator,
+        TenantConfigurationPrincipalEvidenceState principalState,
+        string? subject,
         IEnumerable<string> authorizedPrefixes,
         IEnumerable<string> displaySafeKeys)
     {
         IsAvailable = isAvailable;
         IsGlobalAdministrator = isGlobalAdministrator;
+        PrincipalState = principalState;
+        Subject = subject;
         AuthorizedPrefixes = new ReadOnlyCollection<string>(authorizedPrefixes.ToArray());
         DisplaySafeKeys = new ReadOnlySet<string>(displaySafeKeys.ToHashSet(StringComparer.Ordinal));
     }
@@ -25,6 +29,12 @@ internal sealed class TenantConfigurationReadPolicyResolution
     /// <summary>Gets whether the only namespace wildcard is proven.</summary>
     public bool IsGlobalAdministrator { get; }
 
+    /// <summary>Gets the current fail-closed principal evidence state.</summary>
+    public TenantConfigurationPrincipalEvidenceState PrincipalState { get; }
+
+    /// <summary>Gets the literal current subject for server-side membership comparison.</summary>
+    public string? Subject { get; }
+
     /// <summary>Gets ordinary literal prefixes, or the sole wildcard for a proven administrator.</summary>
     public IReadOnlyList<string> AuthorizedPrefixes { get; }
 
@@ -34,7 +44,7 @@ internal sealed class TenantConfigurationReadPolicyResolution
     /// <summary>Creates an unavailable resolution.</summary>
     /// <returns>Unavailable policy.</returns>
     public static TenantConfigurationReadPolicyResolution Unavailable()
-        => new(false, false, [], []);
+        => new(false, false, TenantConfigurationPrincipalEvidenceState.Indeterminate, null, [], []);
 
     /// <summary>Creates a validated resolution.</summary>
     /// <param name="isGlobalAdministrator">Whether administrator scope is proven.</param>
@@ -44,10 +54,19 @@ internal sealed class TenantConfigurationReadPolicyResolution
     public static TenantConfigurationReadPolicyResolution Available(
         bool isGlobalAdministrator,
         IEnumerable<string> authorizedPrefixes,
-        IEnumerable<string> displaySafeKeys)
+        IEnumerable<string> displaySafeKeys,
+        TenantConfigurationPrincipalEvidenceState principalState,
+        string subject)
     {
         ArgumentNullException.ThrowIfNull(authorizedPrefixes);
         ArgumentNullException.ThrowIfNull(displaySafeKeys);
-        return new(true, isGlobalAdministrator, authorizedPrefixes, displaySafeKeys);
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+        return new(
+            true,
+            isGlobalAdministrator,
+            principalState,
+            subject,
+            authorizedPrefixes,
+            displaySafeKeys);
     }
 }

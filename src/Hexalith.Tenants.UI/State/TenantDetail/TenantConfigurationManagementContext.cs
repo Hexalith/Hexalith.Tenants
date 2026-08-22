@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.UI.Services.Configuration;
 
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -16,6 +17,7 @@ public sealed class TenantConfigurationManagementContext
         TenantStatus tenantStatus,
         bool isAvailable,
         bool isGlobalAdministrator,
+        TenantConfigurationAuthorityState authorityState,
         IEnumerable<string> authorizedPrefixes,
         IEnumerable<TenantConfigurationSafeRow> removableRows)
     {
@@ -26,6 +28,7 @@ public sealed class TenantConfigurationManagementContext
         TenantStatus = tenantStatus;
         IsAvailable = isAvailable;
         IsGlobalAdministrator = isGlobalAdministrator;
+        AuthorityState = authorityState;
         AuthorizedPrefixes = new ReadOnlyCollection<string>(authorizedPrefixes.ToArray());
         RemovableRows = new ReadOnlyCollection<TenantConfigurationSafeRow>(removableRows.ToArray());
         _removableByKey = new ReadOnlyDictionary<string, TenantConfigurationSafeRow>(
@@ -43,6 +46,14 @@ public sealed class TenantConfigurationManagementContext
 
     /// <summary>Gets whether global-administrator wildcard scope is proven.</summary>
     public bool IsGlobalAdministrator { get; }
+
+    /// <summary>Gets server-reflected TenantOwner or global-administrator authority.</summary>
+    public TenantConfigurationAuthorityState AuthorityState { get; }
+
+    /// <summary>Gets whether the required mutation role is authoritatively reflected.</summary>
+    public bool HasMutationAuthority
+        => AuthorityState is TenantConfigurationAuthorityState.TenantOwner
+            or TenantConfigurationAuthorityState.GlobalAdministrator;
 
     /// <summary>Gets literal prefixes, or the sole administrator wildcard.</summary>
     public IReadOnlyList<string> AuthorizedPrefixes { get; }
@@ -76,19 +87,30 @@ public sealed class TenantConfigurationManagementContext
         TenantStatus tenantStatus,
         bool isGlobalAdministrator,
         IEnumerable<string> authorizedPrefixes,
-        IEnumerable<TenantConfigurationSafeRow> removableRows)
+        IEnumerable<TenantConfigurationSafeRow> removableRows,
+        TenantConfigurationAuthorityState? authorityState = null)
         => new(
             tenantId,
             tenantStatus,
             true,
             isGlobalAdministrator,
+            authorityState ?? (isGlobalAdministrator
+                ? TenantConfigurationAuthorityState.GlobalAdministrator
+                : TenantConfigurationAuthorityState.TenantOwner),
             authorizedPrefixes,
             removableRows);
 
     internal static TenantConfigurationManagementContext Unavailable(
         string tenantId,
         TenantStatus tenantStatus = TenantStatus.Unknown)
-        => new(tenantId, tenantStatus, false, false, [], []);
+        => new(
+            tenantId,
+            tenantStatus,
+            false,
+            false,
+            TenantConfigurationAuthorityState.Indeterminate,
+            [],
+            []);
 
     internal static bool IsPrefixMatch(string prefix, string key)
         => string.Equals(prefix, key, StringComparison.Ordinal)

@@ -17,6 +17,35 @@
         <p>@Localizer["Tenants.Configuration.Management.Description"]</p>
     </header>
 
+    <section class="tenant-config-management__availability" role="list" data-testid="tenants-config-management-availability">
+        <section role="listitem"
+                 data-testid="tenants-config-set-availability"
+                 data-action="@SetAvailability.Action">
+            <h3>@Localizer["Tenants.HighImpact.Action.SetConfiguration"]</h3>
+            <dl>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Identity"]</dt><dd data-testid="tenants-config-set-identity">@ResolvedSetEvidence.TenantId</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Status"]</dt><dd data-testid="tenants-config-set-status">@StatusText(ResolvedSetEvidence.TenantStatus)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Freshness"]</dt><dd data-testid="tenants-config-set-freshness">@FreshnessText(ResolvedSetEvidence.Freshness)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Action"]</dt><dd data-testid="tenants-config-set-action">@ActionText(ResolvedSetEvidence.Action)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Reason"]</dt><dd id="tenants-config-set-reason" data-testid="tenants-config-set-reason">@Localizer[SetAvailability.SafeMessageKey]</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Recovery"]</dt><dd id="tenants-config-set-recovery" data-testid="tenants-config-set-recovery">@Localizer[SetAvailability.RecoveryKey]</dd>
+            </dl>
+        </section>
+        <section role="listitem"
+                 data-testid="tenants-config-remove-availability"
+                 data-action="@RemoveAvailability.Action">
+            <h3>@Localizer["Tenants.HighImpact.Action.RemoveConfiguration"]</h3>
+            <dl>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Identity"]</dt><dd data-testid="tenants-config-remove-identity">@ResolvedRemoveEvidence.TenantId</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Status"]</dt><dd data-testid="tenants-config-remove-status">@StatusText(ResolvedRemoveEvidence.TenantStatus)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Freshness"]</dt><dd data-testid="tenants-config-remove-freshness">@FreshnessText(ResolvedRemoveEvidence.Freshness)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Action"]</dt><dd data-testid="tenants-config-remove-action">@ActionText(ResolvedRemoveEvidence.Action)</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Reason"]</dt><dd id="tenants-config-remove-reason" data-testid="tenants-config-remove-reason">@Localizer[RemoveAvailability.SafeMessageKey]</dd>
+                <dt>@Localizer["Tenants.HighImpact.Fact.Recovery"]</dt><dd id="tenants-config-remove-recovery" data-testid="tenants-config-remove-recovery">@Localizer[RemoveAvailability.RecoveryKey]</dd>
+            </dl>
+        </section>
+    </section>
+
     @if (!HasPolicyScope)
     {
         <p id="tenants-config-management-unavailable"
@@ -38,7 +67,9 @@
     else
     {
 
-        <SetTenantConfigurationFlow Context="@Context"
+        <SetTenantConfigurationFlow Context="@EffectiveContext"
+                                    Evidence="@ResolvedSetEvidence"
+                                    LauncherDescribedBy="tenants-config-set-reason tenants-config-set-recovery"
                                     SurfaceKind="@SurfaceKind"
                                     Freshness="@Freshness"
                                     Lifecycle="@Lifecycle"
@@ -48,7 +79,7 @@
                                     ProjectionEvidenceProvider="@SetProjectionEvidenceProvider"
                                     ReauthorizeProvider="@ReauthorizeProvider" />
 
-        @if (Context.RemovableRows.Count == 0)
+        @if (EffectiveContext.RemovableRows.Count == 0)
         {
             <p data-testid="tenants-config-management-empty">
                 @Localizer["Tenants.Configuration.Management.Empty"]
@@ -61,7 +92,7 @@
                  tabindex="0"
                  aria-label="@Localizer["Tenants.Configuration.Management.TargetsAccessibleLabel"]"
                  data-testid="tenants-config-management-targets">
-                <FluentDataGrid Items="@Context.RemovableRows.AsQueryable()"
+                <FluentDataGrid Items="@EffectiveContext.RemovableRows.AsQueryable()"
                                 ItemKey="@(row => row.Key)"
                                 ResizableColumns="true"
                                 ReorderableColumns="false"
@@ -82,6 +113,9 @@
                         <span tabindex="-1" @ref="_removeLaunchElements[context.Key]">
                             <FluentButton Appearance="ButtonAppearance.Outline"
                                           data-testid="tenants-config-management-remove-open"
+                                          Disabled="@(!RemoveAvailability.IsEligible)"
+                                          aria-disabled="@((!RemoveAvailability.IsEligible).ToString().ToLowerInvariant())"
+                                          aria-describedby="tenants-config-remove-reason tenants-config-remove-recovery"
                                           aria-label="@Localizer["Tenants.Configuration.Remove.OpenAccessible", context.Key]"
                                           OnClick="() => OpenRemoveFlow(context.Key)">
                                 @Localizer["Tenants.Configuration.Remove.Open"]
@@ -94,7 +128,8 @@
 
         @if (!string.IsNullOrWhiteSpace(_removeKey))
         {
-            <RemoveTenantConfigurationFlow Context="@Context"
+            <RemoveTenantConfigurationFlow Context="@EffectiveContext"
+                                           Evidence="@ResolvedRemoveEvidence"
                                            TargetKey="@_removeKey"
                                            SurfaceKind="@SurfaceKind"
                                            Freshness="@Freshness"
@@ -135,7 +170,7 @@
     private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight;
 
     [Parameter]
-    public TenantConfigurationManagementContext Context { get; set; } = default!;
+    public TenantConfigurationManagementContext? Context { get; set; }
 
     [Parameter]
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
@@ -148,6 +183,12 @@
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public TenantHighImpactActionEvidence? SetEvidence { get; set; }
+
+    [Parameter]
+    public TenantHighImpactActionEvidence? RemoveEvidence { get; set; }
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -181,28 +222,76 @@
     private bool IsManagementUnavailable
         => !HasPolicyScope || !string.IsNullOrWhiteSpace(UnavailableReason);
 
+    private TenantConfigurationManagementContext EffectiveContext
+        => Context ?? TenantConfigurationManagementContext.Unavailable(string.Empty);
+
+    private TenantHighImpactActionEvidence ResolvedSetEvidence
+        => ResolveEvidence(TenantHighImpactAction.SetConfiguration, SetEvidence);
+
+    private TenantHighImpactActionEvidence ResolvedRemoveEvidence
+        => ResolveEvidence(TenantHighImpactAction.RemoveConfiguration, RemoveEvidence);
+
+    private TenantHighImpactActionAvailability SetAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(ResolvedSetEvidence);
+
+    private TenantHighImpactActionAvailability RemoveAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(ResolvedRemoveEvidence);
+
+    private TenantHighImpactActionEvidence BuildFallbackEvidence(TenantHighImpactAction action)
+        => new(
+            EffectiveContext.TenantId,
+            action,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            EffectiveContext.TenantStatus,
+            TenantHighImpactActionEvidence.FromReadModelFreshness(Freshness),
+            Freshness is ReadModelFreshnessState.Current,
+            SurfaceKind,
+            Lifecycle,
+            TenantHighImpactAuthorityEvidence.Indeterminate,
+            TenantHighImpactNamespaceScopeEvidence.Indeterminate,
+            TenantHighImpactSupportEvidence.Unknown,
+            TenantHighImpactAdmissionEvidence.Unknown,
+            TenantHighImpactPreviewEvidence.Missing,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Unknown,
+            IsInputComplete: false,
+            TenantHighImpactTargetState.Unknown);
+
+    private TenantHighImpactActionEvidence ResolveEvidence(
+        TenantHighImpactAction expectedAction,
+        TenantHighImpactActionEvidence? evidence)
+        => evidence is not null
+            && evidence.Action == expectedAction
+            && string.Equals(evidence.TenantId, EffectiveContext.TenantId, StringComparison.Ordinal)
+                ? evidence
+                : BuildFallbackEvidence(expectedAction);
+
     private bool HasPolicyScope
-        => Context?.IsAvailable == true
-        && (Context.IsGlobalAdministrator || Context.AuthorizedPrefixes.Count > 0);
+        => EffectiveContext.IsAvailable
+        && (EffectiveContext.IsGlobalAdministrator || EffectiveContext.AuthorizedPrefixes.Count > 0);
 
     // A valid policy that grants this caller nothing is not a verification failure. Reporting it as
     // one told a proven non-administrator that policy could not be verified, contradicting the
     // sibling read landmark, which correctly showed an authorization-safe empty state.
     private string PolicyUnavailableResourceKey
-        => Context?.IsAvailable == true
+        => EffectiveContext.IsAvailable
             ? "Tenants.Configuration.Management.Unavailable.NoScope"
             : "Tenants.Configuration.Management.Unavailable.Policy";
 
     private string? UnavailableReason
         // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness clauses.
         // See SetTenantConfigurationFlow for why the order matters.
-        => SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+        => SetEvidence is not null || RemoveEvidence is not null
+            ? !IsCommandSurfaceAvailable && !ChildCommandInFlight
+                ? Localizer["Tenants.Configuration.Management.Unavailable.CommandSurface"].Value
+                : null
+            : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
             ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionState"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Management.Unavailable.Freshness"].Value
             : Lifecycle is not ProjectionLifecycleState.Current
                 ? Localizer["Tenants.Configuration.Management.Unavailable.ProjectionLifecycle"].Value
-                : Context.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
+                : EffectiveContext.TenantStatus is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Management.Unavailable.TenantLifecycle"].Value
                     // The command surface goes unavailable *because* a child flow raised activity: the flow
                     // reports the submit, the detail page sets _commandInFlight, and IsCommandSurfaceAvailable
@@ -222,15 +311,15 @@
     private bool TargetsAreRendered
         => HasPolicyScope
         && string.IsNullOrWhiteSpace(UnavailableReason)
-        && Context?.RemovableRows.Count > 0;
+        && EffectiveContext.RemovableRows.Count > 0;
 
     protected override void OnParametersSet()
     {
         // A tenant switch invalidates every open interaction, including one whose command is still settling:
         // the snapshot it would confirm against belongs to a different aggregate.
-        if (!string.Equals(_removeTenantId, Context?.TenantId, StringComparison.Ordinal))
+        if (!string.Equals(_removeTenantId, EffectiveContext.TenantId, StringComparison.Ordinal))
         {
-            _removeTenantId = Context?.TenantId;
+            _removeTenantId = EffectiveContext.TenantId;
             _removeKey = null;
             _removeCommandStarted = false;
             _setCommandInFlight = false;
@@ -245,7 +334,7 @@
         // the removal, so the operator never saw Confirmed, the audit entry point, or recovery text.
         if (_removeKey is not null
             && !_removeCommandStarted
-            && Context?.FindRemovableRow(_removeKey) is null)
+            && EffectiveContext.FindRemovableRow(_removeKey) is null)
         {
             _removeKey = null;
             _focusHeadingPending = true;
@@ -259,7 +348,7 @@
             }
             else
             {
-                HashSet<string> live = Context!.RemovableRows
+                HashSet<string> live = EffectiveContext.RemovableRows
                     .Select(static row => row.Key)
                     .ToHashSet(StringComparer.Ordinal);
                 foreach (string stale in _removeLaunchElements.Keys.Where(key => !live.Contains(key)).ToArray())
@@ -386,6 +475,11 @@
 
     private void OpenRemoveFlow(string key)
     {
+        if (!RemoveAvailability.IsEligible)
+        {
+            return;
+        }
+
         _removeKey = key;
         _removeCommandStarted = false;
     }
@@ -419,4 +513,13 @@
         _removeCommandInFlight = false;
         await Task.CompletedTask.ConfigureAwait(false);
     }
+
+    private string StatusText(TenantStatus status)
+        => Localizer[$"Tenants.Lifecycle.Status.{(Enum.IsDefined(status) ? status : TenantStatus.Unknown)}"];
+
+    private string FreshnessText(TenantHighImpactFreshnessState freshness)
+        => Localizer[$"Tenants.HighImpact.Freshness.{(Enum.IsDefined(freshness) ? freshness : TenantHighImpactFreshnessState.Unknown)}"];
+
+    private string ActionText(TenantHighImpactAction action)
+        => Localizer[$"Tenants.HighImpact.Action.{(Enum.IsDefined(action) ? action : TenantHighImpactAction.SetConfiguration)}"];
 }

@@ -3870,4 +3870,42 @@
   <data name="Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly" xml:space="preserve">
     <value>Audit evidence support is missing; retry status lookup.</value>
   </data>
+  <data name="Tenants.HighImpact.Action.EnableTenant" xml:space="preserve"><value>Enable tenant</value></data>
+  <data name="Tenants.HighImpact.Action.DisableTenant" xml:space="preserve"><value>Disable tenant</value></data>
+  <data name="Tenants.HighImpact.Action.SetConfiguration" xml:space="preserve"><value>Set configuration</value></data>
+  <data name="Tenants.HighImpact.Action.RemoveConfiguration" xml:space="preserve"><value>Remove configuration</value></data>
+  <data name="Tenants.HighImpact.Fact.Identity" xml:space="preserve"><value>Tenant identity</value></data>
+  <data name="Tenants.HighImpact.Fact.Status" xml:space="preserve"><value>Last-confirmed status</value></data>
+  <data name="Tenants.HighImpact.Fact.Freshness" xml:space="preserve"><value>Freshness</value></data>
+  <data name="Tenants.HighImpact.Fact.Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Tenants.HighImpact.Fact.Reason" xml:space="preserve"><value>Availability reason</value></data>
+  <data name="Tenants.HighImpact.Fact.Recovery" xml:space="preserve"><value>Recovery</value></data>
+  <data name="Tenants.HighImpact.Freshness.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Tenants.HighImpact.Freshness.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Tenants.HighImpact.Freshness.Refreshing" xml:space="preserve"><value>Refreshing with a current baseline</value></data>
+  <data name="Tenants.HighImpact.Freshness.Aging" xml:space="preserve"><value>Aging</value></data>
+  <data name="Tenants.HighImpact.Freshness.Stale" xml:space="preserve"><value>Stale</value></data>
+  <data name="Tenants.HighImpact.Available" xml:space="preserve"><value>This action is available.</value></data>
+  <data name="Tenants.HighImpact.AvailableWithFriction" xml:space="preserve"><value>This action is available, but the projection is aging or refreshing. Review the last-confirmed facts carefully.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingPermission" xml:space="preserve"><value>This action is unavailable because the required authority or namespace scope is not reflected.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.StaleData" xml:space="preserve"><value>This action is unavailable because current authoritative data is not available.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingLifecycleSupport" xml:space="preserve"><value>This action is unavailable because its command lifecycle support is not ready.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingConsequencePreview" xml:space="preserve"><value>This action is unavailable until its complete consequence preview is ready.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.MissingAuditProof" xml:space="preserve"><value>This action is unavailable because its required proof is not ready.</value></data>
+  <data name="Tenants.HighImpact.Unavailable.HighImpactFlowNotReady" xml:space="preserve"><value>This high-impact action is read-only until the measured viewport and aggregate admission are safe.</value></data>
+  <data name="Tenants.HighImpact.Recovery.None" xml:space="preserve"><value>No recovery is required.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Ask an administrator to verify your role and the exact namespace grant.</value></data>
+  <data name="Tenants.HighImpact.Recovery.StaleData" xml:space="preserve"><value>Refresh the authoritative tenant data and review the last-confirmed facts.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingLifecycleSupport" xml:space="preserve"><value>Restore the action's command lifecycle support, then retry.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Complete the safe preview facts and required confirmation inputs.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingAuditProof" xml:space="preserve"><value>Restore the proof source declared by this action, then retry.</value></data>
+  <data name="Tenants.HighImpact.Recovery.HighImpactFlowNotReady" xml:space="preserve"><value>Use a wider measured viewport or wait for the tenant's current command to finish.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.LifecycleStateAlreadySet" xml:space="preserve"><value>The tenant already has the requested lifecycle state.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.TenantDisabled" xml:space="preserve"><value>Configuration cannot be changed while the tenant is disabled.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.ConfigurationAlreadyApplied" xml:space="preserve"><value>The authorized configuration value is already applied.</value></data>
+  <data name="Tenants.HighImpact.DomainOutcome.ConfigurationKeyNotFound" xml:space="preserve"><value>The authorized configuration key is not present in the last-confirmed data.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.LifecycleStateAlreadySet" xml:space="preserve"><value>Review the last-confirmed lifecycle state; no command was submitted.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.TenantDisabled" xml:space="preserve"><value>Enable the tenant through its dedicated lifecycle preview before changing configuration.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.ConfigurationAlreadyApplied" xml:space="preserve"><value>Review the last-confirmed value; no command was submitted.</value></data>
+  <data name="Tenants.HighImpact.DomainRecovery.ConfigurationKeyNotFound" xml:space="preserve"><value>Refresh the authorized configuration list or select a present key.</value></data>
 </root>

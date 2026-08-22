@@ -44,7 +44,8 @@ internal static class TenantConfigurationSafeComposer
                 detail.Status,
                 policy.IsGlobalAdministrator,
                 policy.AuthorizedPrefixes,
-                rows));
+                rows,
+                ResolveAuthority(sanitized, policy)));
     }
 
     /// <summary>
@@ -90,7 +91,60 @@ internal static class TenantConfigurationSafeComposer
                 tenantStatus,
                 policy.IsGlobalAdministrator,
                 policy.AuthorizedPrefixes,
-                rows));
+                rows,
+                ResolveAuthority(safeModel.TenantId, tenantStatus, safeModel, policy)));
+    }
+
+    /// <summary>
+    /// Reauthorizes a prior safe model with current principal policy and sanitized membership evidence.
+    /// </summary>
+    /// <param name="sanitizedDetail">Current same-tenant sanitized authoritative detail.</param>
+    /// <param name="safeModel">Prior same-tenant safe configuration model.</param>
+    /// <param name="policy">Current validated principal policy.</param>
+    /// <param name="degraded">Whether retained rows must be labeled degraded.</param>
+    /// <returns>Reauthorized safe model and management context.</returns>
+    public static (TenantConfigurationSafeModel SafeModel, TenantConfigurationManagementContext ManagementContext) Reauthorize(
+        TenantDetail sanitizedDetail,
+        TenantConfigurationSafeModel safeModel,
+        TenantConfigurationReadPolicyResolution policy,
+        bool degraded)
+    {
+        ArgumentNullException.ThrowIfNull(sanitizedDetail);
+        ArgumentNullException.ThrowIfNull(safeModel);
+        ArgumentNullException.ThrowIfNull(policy);
+
+        if (!string.Equals(sanitizedDetail.TenantId, safeModel.TenantId, StringComparison.Ordinal)
+            || !policy.IsAvailable
+            || !safeModel.IsAvailable)
+        {
+            return (
+                TenantConfigurationSafeModel.Unavailable(sanitizedDetail.TenantId),
+                TenantConfigurationManagementContext.Unavailable(
+                    sanitizedDetail.TenantId,
+                    sanitizedDetail.Status));
+        }
+
+        TenantConfigurationSafeRow[] rows = safeModel.Rows
+            .Where(row => policy.DisplaySafeKeys.Contains(row.Key)
+                && TryResolveNamespace(row.Key, policy, out _))
+            .Select(row =>
+            {
+                _ = TryResolveNamespace(row.Key, policy, out string? matchedNamespace);
+                return new TenantConfigurationSafeRow(matchedNamespace!, row.Key, row.Value);
+            })
+            .OrderBy(static row => row.Namespace, StringComparer.Ordinal)
+            .ThenBy(static row => row.Key, StringComparer.Ordinal)
+            .ToArray();
+
+        return (
+            TenantConfigurationSafeModel.Available(safeModel.TenantId, rows, degraded),
+            TenantConfigurationManagementContext.Available(
+                safeModel.TenantId,
+                sanitizedDetail.Status,
+                policy.IsGlobalAdministrator,
+                policy.AuthorizedPrefixes,
+                rows,
+                ResolveAuthority(sanitizedDetail, policy)));
     }
 
     internal static TenantDetail SanitizeDetail(TenantDetail detail)
@@ -154,5 +208,61 @@ internal static class TenantConfigurationSafeComposer
     {
         int separator = key.IndexOf('.', StringComparison.Ordinal);
         return separator > 0 ? key[..separator] : key;
+    }
+
+    private static TenantConfigurationAuthorityState ResolveAuthority(
+        TenantDetail detail,
+        TenantConfigurationReadPolicyResolution policy)
+    {
+        ArgumentNullException.ThrowIfNull(detail);
+        return ResolveAuthority(detail.TenantId, detail.Status, detail.Members, policy);
+    }
+
+    private static TenantConfigurationAuthorityState ResolveAuthority(
+        string tenantId,
+        TenantStatus tenantStatus,
+        TenantConfigurationSafeModel safeModel,
+        TenantConfigurationReadPolicyResolution policy)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
+        ArgumentNullException.ThrowIfNull(safeModel);
+
+        // A safe configuration model deliberately carries no membership rows. Reauthorization that only
+        // receives that model therefore cannot re-prove TenantOwner authority; it may preserve global
+        // administrator evidence, but ordinary principals fail closed until sanitized detail is supplied.
+        _ = tenantStatus;
+        return policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator
+            ? TenantConfigurationAuthorityState.GlobalAdministrator
+            : policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.Indeterminate
+                ? TenantConfigurationAuthorityState.Indeterminate
+                : TenantConfigurationAuthorityState.MissingPermission;
+    }
+
+    private static TenantConfigurationAuthorityState ResolveAuthority(
+        string tenantId,
+        TenantStatus tenantStatus,
+        IReadOnlyList<TenantMember> members,
+        TenantConfigurationReadPolicyResolution policy)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
+        ArgumentNullException.ThrowIfNull(members);
+        _ = tenantStatus;
+
+        if (policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator)
+        {
+            return TenantConfigurationAuthorityState.GlobalAdministrator;
+        }
+
+        if (policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.Indeterminate
+            || string.IsNullOrWhiteSpace(policy.Subject))
+        {
+            return TenantConfigurationAuthorityState.Indeterminate;
+        }
+
+        return members.Any(member => member is not null
+                && string.Equals(member.UserId, policy.Subject, StringComparison.Ordinal)
+                && member.Role is TenantRole.TenantOwner)
+            ? TenantConfigurationAuthorityState.TenantOwner
+            : TenantConfigurationAuthorityState.MissingPermission;
     }
 }

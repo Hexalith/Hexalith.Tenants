@@ -24,6 +24,7 @@
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               data-testid="tenants-config-set-open"
                               aria-controls="tenants-config-set-editor"
+                              aria-describedby="@LauncherDescribedBy"
                               OnClick="OpenEditorAsync">
                     @Localizer["Tenants.Configuration.Set.Open"]
                 </FluentButton>
@@ -205,6 +206,13 @@
     public TenantConfigurationManagementContext Context { get; set; } = default!;
 
     [Parameter]
+    public TenantHighImpactActionEvidence? Evidence { get; set; }
+
+    /// <summary>Gets or sets the stable reason and recovery element IDs associated with the launcher.</summary>
+    [Parameter]
+    public string? LauncherDescribedBy { get; set; }
+
+    [Parameter]
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
 
     [Parameter]
@@ -246,7 +254,19 @@
             .ToHashSet(StringComparer.Ordinal);
 
     private string? UnavailableReason
-        => SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+        => Evidence is not null
+            ? !EntryAvailability.IsEligible
+                ? Localizer[EntryAvailability.SafeMessageKey].Value
+                : !string.Equals(Evidence.TenantId, Context.TenantId, StringComparison.Ordinal)
+                    || Evidence.Action is not TenantHighImpactAction.SetConfiguration
+                    || Context?.IsAvailable != true
+                    ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
+                        ? Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.Configuration.Set.Unavailable.InFlight"].Value
+                            : null
+            : SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
@@ -281,7 +301,48 @@
     private bool IsSubmitDisabled
         => IsOwnedCommandInFlight
         || !IsPreviewComplete
-        || !string.IsNullOrWhiteSpace(UnavailableReason);
+        || !string.IsNullOrWhiteSpace(UnavailableReason)
+        || Evidence is not null && !ConfirmationAvailability(Context, includeDomainOutcome: false).IsEligible;
+
+    private TenantHighImpactActionAvailability EntryAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(Evidence!);
+
+    private TenantHighImpactActionAvailability ConfirmationAvailability(
+        TenantConfigurationManagementContext currentContext,
+        bool includeDomainOutcome)
+    {
+        bool keyPresent = !string.IsNullOrWhiteSpace(_key);
+        bool valuePresent = _value is not null;
+        bool sameTenant = string.Equals(currentContext.TenantId, Context.TenantId, StringComparison.Ordinal)
+            && string.Equals(currentContext.TenantId, Evidence!.TenantId, StringComparison.Ordinal);
+        bool hasAuthority = sameTenant && currentContext.HasMutationAuthority;
+        bool authorized = hasAuthority && keyPresent && currentContext.IsKeyAuthorized(_key);
+        TenantConfigurationSafeRow? current = authorized ? currentContext.FindRemovableRow(_key) : null;
+        TenantHighImpactActionEvidence confirmation = Evidence! with
+        {
+            Stage = TenantHighImpactEvaluationStage.Confirmation,
+            Authority = hasAuthority
+                ? TenantHighImpactAuthorityEvidence.Authorized
+                : sameTenant && currentContext.IsAvailable
+                    ? TenantHighImpactAuthorityEvidence.MissingPermission
+                    : TenantHighImpactAuthorityEvidence.Indeterminate,
+            NamespaceScope = keyPresent
+                ? authorized
+                    ? TenantHighImpactNamespaceScopeEvidence.Authorized
+                    : TenantHighImpactNamespaceScopeEvidence.Missing
+                : Evidence!.NamespaceScope,
+            Preview = keyPresent && valuePresent
+                ? TenantHighImpactPreviewEvidence.Ready
+                : TenantHighImpactPreviewEvidence.Missing,
+            IsInputComplete = keyPresent && valuePresent && authorized,
+            TargetState = includeDomainOutcome
+                && current is not null
+                && string.Equals(current.Value, _value, StringComparison.Ordinal)
+                    ? TenantHighImpactTargetState.AlreadyApplied
+                    : TenantHighImpactTargetState.Unknown,
+        };
+        return TenantHighImpactActionAvailabilityEvaluator.Evaluate(confirmation);
+    }
 
     // See the remove flow: the re-entrancy guard must also disable the control, or the suppressed click is
     // indistinguishable from a dead button.
@@ -322,7 +383,9 @@
                 (Localizer["Tenants.Configuration.Set.Preview.Key"], request.Key, "tenants-config-set-preview-key"),
                 (Localizer["Tenants.Configuration.Set.Preview.CurrentState"], currentState, "tenants-config-set-preview-current-state"),
                 (Localizer["Tenants.Configuration.Set.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Set.Preview.IntendedEffect.Value"], "tenants-config-set-preview-effect"),
-                (Localizer["Tenants.Configuration.Set.Preview.Freshness"], Localizer[$"Tenants.Configuration.Set.Freshness.{Freshness}"], "tenants-config-set-preview-freshness"),
+                (Localizer["Tenants.Configuration.Set.Preview.Freshness"], Evidence is null
+                    ? Localizer[$"Tenants.Configuration.Set.Freshness.{Freshness}"]
+                    : Localizer[$"Tenants.HighImpact.Freshness.{(Enum.IsDefined(Evidence.Freshness) ? Evidence.Freshness : TenantHighImpactFreshnessState.Unknown)}"], "tenants-config-set-preview-freshness"),
                 (Localizer["Tenants.Configuration.Set.Preview.Authorization"], Localizer["Tenants.Configuration.Set.Preview.Authorization.Value"], "tenants-config-set-preview-authorization"),
                 (Localizer["Tenants.Configuration.Set.Preview.KnownConsequences"], Localizer["Tenants.Configuration.Set.Preview.KnownConsequences.Value"], "tenants-config-set-preview-consequences"),
                 (Localizer["Tenants.Configuration.Set.Preview.KnownUnknowns"], Localizer["Tenants.Configuration.Set.Preview.KnownUnknowns.Value"], "tenants-config-set-preview-unknowns"),
@@ -601,6 +664,15 @@
             return;
         }
 
+        if (Evidence is not null
+            && ConfirmationAvailability(Context, includeDomainOutcome: false) is { IsEligible: false } confirmationBlock)
+        {
+            SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                Localizer[confirmationBlock.SafeMessageKey].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
+
         _snapshot = _snapshot.Previewed(request);
 
         // Re-authorization runs before the already-applied short-circuit. Deciding "already applied"
@@ -620,6 +692,28 @@
         catch (Exception)
         {
             currentContext = TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus);
+        }
+
+        if (Evidence is not null)
+        {
+            TenantHighImpactActionAvailability reauthorizationResult = ConfirmationAvailability(
+                currentContext,
+                includeDomainOutcome: true);
+            if (reauthorizationResult.DomainOutcome is TenantHighImpactDomainOutcome.ConfigurationAlreadyApplied)
+            {
+                SetSnapshot(_snapshot.AlreadyApplied(
+                    request,
+                    Localizer["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"].Value));
+                return;
+            }
+
+            if (!reauthorizationResult.IsEligible)
+            {
+                SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                    Localizer[reauthorizationResult.SafeMessageKey].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
         }
 
         if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)

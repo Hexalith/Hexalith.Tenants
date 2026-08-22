@@ -75,7 +75,7 @@ internal sealed class TenantsBffComposition(
         TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(sanitizedDetail.TenantId, cancellationToken)
             .ConfigureAwait(false);
         (TenantConfigurationSafeModel safe, TenantConfigurationManagementContext management) =
-            TenantConfigurationSafeComposer.Reauthorize(safeModel, sanitizedDetail.Status, policy, degraded);
+            TenantConfigurationSafeComposer.Reauthorize(sanitizedDetail, safeModel, policy, degraded);
         return new(TenantConfigurationSafeComposer.SanitizeDetail(sanitizedDetail), safe, management);
     }
 
@@ -93,6 +93,31 @@ internal sealed class TenantsBffComposition(
         TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(tenantId, cancellationToken)
             .ConfigureAwait(false);
         return TenantConfigurationSafeComposer.Reauthorize(safeModel, tenantStatus, policy, safeModel.IsDegraded).ManagementContext;
+    }
+
+    public async ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
+        TenantDetail sanitizedDetail,
+        TenantConfigurationSafeModel safeModel,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sanitizedDetail);
+        ArgumentNullException.ThrowIfNull(safeModel);
+        if (!string.Equals(sanitizedDetail.TenantId, safeModel.TenantId, StringComparison.Ordinal))
+        {
+            return TenantConfigurationManagementContext.Unavailable(
+                sanitizedDetail.TenantId,
+                sanitizedDetail.Status);
+        }
+
+        TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(
+                sanitizedDetail.TenantId,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return TenantConfigurationSafeComposer.Reauthorize(
+            sanitizedDetail,
+            safeModel,
+            policy,
+            safeModel.IsDegraded).ManagementContext;
     }
 
     public async ValueTask<bool> IsConfigurationKeyAuthorizedAsync(

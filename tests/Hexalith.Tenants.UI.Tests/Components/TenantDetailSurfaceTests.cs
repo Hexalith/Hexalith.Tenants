@@ -9,9 +9,12 @@ using AngleSharp.Dom;
 
 using Bunit;
 
+using Fluxor;
+
 using Hexalith.FrontComposer.Contracts.Communication;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Components.Layout;
+using Hexalith.FrontComposer.Shell.State.Navigation;
 
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -39,6 +42,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -55,6 +59,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     {
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(new TenantHighImpactViewportObservation(TenantHighImpactViewportState.Safe));
     }
 
     [Fact]
@@ -97,7 +102,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-lifecycle-actions']");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
-        cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
+        cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
+            .ShouldContain("already has the requested lifecycle state", Case.Insensitive);
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
         // snapshot with the default Current lifecycle and no projection version, so the evidence is not
@@ -117,6 +123,44 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-surface-testid='tenants-member-copy-reference']").Click();
         cut.WaitForAssertion(() => memberWrite.Invocations.Count.ShouldBe(1));
         memberWrite.Invocations.Single().Arguments[0].ShouldBe(memberId);
+    }
+
+    [Fact]
+    public async Task Fluxor_viewport_dispatch_drives_the_scoped_detail_page_action_eligibility()
+    {
+        Services.RemoveAll<TenantHighImpactViewportObservation>();
+        Services.AddScoped<TenantHighImpactViewportObservation>();
+        Services.AddFluxor(options => options.ScanAssemblies(typeof(TenantHighImpactViewportEffects).Assembly));
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))),
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        IStore store = Services.GetRequiredService<IStore>();
+        await store.InitializeAsync();
+        IDispatcher dispatcher = Services.GetRequiredService<IDispatcher>();
+        TenantHighImpactViewportObservation observation = Services.GetRequiredService<TenantHighImpactViewportObservation>();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-lifecycle-disable']")
+            .GetAttribute("disabled").ShouldNotBeNull();
+
+        dispatcher.Dispatch(new ViewportTierChangedAction(ViewportTier.Tablet));
+        cut.WaitForAssertion(() =>
+        {
+            observation.State.ShouldBe(TenantHighImpactViewportState.Safe);
+            cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldBeNull();
+        });
+        TenantHighImpactActionEvidence removeEntryEvidence = (TenantHighImpactActionEvidence)typeof(TenantDetailPage)
+            .GetMethod("HighImpactEvidence", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, [TenantHighImpactAction.RemoveConfiguration])!;
+        removeEntryEvidence.TargetState.ShouldBe(TenantHighImpactTargetState.Unknown);
+
+        dispatcher.Dispatch(new ViewportTierChangedAction((ViewportTier)255));
+        cut.WaitForAssertion(() =>
+        {
+            observation.State.ShouldBe(TenantHighImpactViewportState.Unknown);
+            cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
+        });
     }
 
     [Fact]
@@ -2034,7 +2078,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, withRow)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.SetEvidence, ManagementEvidence(withRow, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(withRow, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         cut.Find("[data-testid='tenants-config-remove-flow']");
@@ -2073,7 +2119,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.IsCommandSurfaceAvailable, true));
+            .Add(p => p.IsCommandSurfaceAvailable, true)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
@@ -2119,7 +2167,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.IsCommandSurfaceAvailable, true));
+            .Add(p => p.IsCommandSurfaceAvailable, true)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         IRenderedComponent<SetTenantConfigurationFlow> setFlow = cut.FindComponent<SetTenantConfigurationFlow>();
         await cut.InvokeAsync(() => setFlow.Instance.CommandActivityLease!(true));
@@ -2199,13 +2249,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         JSInterop.Mode = JSRuntimeMode.Loose;
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]))
+            .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
@@ -2935,12 +2988,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // so a flow pointing at a row that no longer exists is just stale.
         RegisterComponentServices();
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]))
+            .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         cut.Find("[data-testid='tenants-config-remove-flow']");
@@ -2959,13 +3015,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     public async Task Management_switching_tenants_drops_every_open_interaction_even_mid_command()
     {
         RegisterComponentServices();
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+            .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         IRenderedComponent<RemoveTenantConfigurationFlow> flow = cut.FindComponent<RemoveTenantConfigurationFlow>();
@@ -2998,7 +3057,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-section']");
         cut.Find("[data-testid='tenants-config-set-flow']");
@@ -3032,7 +3093,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         int focusCallsBeforeClose = FocusedElementIds().Count;
@@ -3065,7 +3128,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.Context, context)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
 
@@ -5459,6 +5524,32 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         => TenantConfigurationSafeModel.Available(
             "tenant.alpha",
             rows.Select(static row => new TenantConfigurationSafeRow(row.Namespace, row.Key, row.Value)));
+
+    private static TenantHighImpactActionEvidence ManagementEvidence(
+        TenantConfigurationManagementContext context,
+        TenantHighImpactAction action)
+        => new(
+            context.TenantId,
+            action,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            context.TenantStatus,
+            TenantHighImpactFreshnessState.Current,
+            HasCurrentBaseline: true,
+            TenantDetailSurfaceKind.Ready,
+            ProjectionLifecycleState.Current,
+            context.HasMutationAuthority
+                ? TenantHighImpactAuthorityEvidence.Authorized
+                : TenantHighImpactAuthorityEvidence.MissingPermission,
+            context.IsGlobalAdministrator || context.AuthorizedPrefixes.Count > 0
+                ? TenantHighImpactNamespaceScopeEvidence.Authorized
+                : TenantHighImpactNamespaceScopeEvidence.Missing,
+            TenantHighImpactSupportEvidence.Ready,
+            TenantHighImpactAdmissionEvidence.Available,
+            TenantHighImpactPreviewEvidence.Ready,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Safe,
+            IsInputComplete: false,
+            TenantHighImpactTargetState.Unknown);
 
     private static TenantDetailSnapshot ReadyWithSafeConfiguration(
         TenantDetail detail,

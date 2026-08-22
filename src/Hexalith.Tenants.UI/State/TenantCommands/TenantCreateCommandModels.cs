@@ -1671,6 +1671,27 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
+    /// <summary>
+    /// Records a safely proven, authorized missing-key outcome without representing a command dispatch.
+    /// </summary>
+    /// <param name="intent">The exact reviewed removal intent.</param>
+    /// <param name="safeMessage">Support-safe expected-outcome text.</param>
+    /// <returns>A terminal no-dispatch snapshot that retains the reviewed intent.</returns>
+    public TenantRemoveConfigurationCommandSnapshot ExpectedMissing(
+        RemoveTenantConfiguration intent,
+        string safeMessage)
+        => this with {
+            State = TenantCommandLifecycleState.AlreadyApplied,
+            Intent = intent,
+            LastConfigurationProof = null,
+            IsPreviewComplete = true,
+            SafeMessage = safeMessage,
+            RejectionCode = "ConfigurationKeyNotFound",
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+
     public TenantRemoveConfigurationCommandSnapshot DuplicatePrevented(string safeMessage)
         => this with {
             State = TenantCommandLifecycleState.DuplicatePrevented,

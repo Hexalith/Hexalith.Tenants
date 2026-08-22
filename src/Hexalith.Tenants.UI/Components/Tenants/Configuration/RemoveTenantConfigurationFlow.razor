@@ -201,6 +201,9 @@
     public TenantConfigurationManagementContext Context { get; set; } = default!;
 
     [Parameter]
+    public TenantHighImpactActionEvidence? Evidence { get; set; }
+
+    [Parameter]
     public string TargetKey { get; set; } = string.Empty;
 
     [Parameter]
@@ -240,7 +243,23 @@
     internal TenantRemoveConfigurationCommandSnapshot Snapshot => _snapshot;
 
     private string? UnavailableReason
-        => SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+        => Evidence is not null
+            ? !EntryAvailability.IsEligible
+                ? Localizer[EntryAvailability.SafeMessageKey].Value
+                : !string.Equals(Evidence.TenantId, Context.TenantId, StringComparison.Ordinal)
+                    || Evidence.Action is not TenantHighImpactAction.RemoveConfiguration
+                    || Context?.IsAvailable != true
+                    ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
+                        ? Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.Configuration.Remove.Unavailable.InFlight"].Value
+                            : string.IsNullOrWhiteSpace(TargetKey) || Context.FindRemovableRow(TargetKey) is null
+                                ? Localizer["Tenants.Configuration.Remove.Unavailable.Target"].Value
+                                : ResolveAuthorizedNamespace(TargetKey) is null
+                                    ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
+                                    : null
+            : SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.Configuration.Remove.Unavailable.Authorization"].Value
             : Context?.IsAvailable != true
                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
@@ -274,7 +293,44 @@
         => IsOwnedCommandInFlight
         || !IsPreviewComplete
         || !string.IsNullOrWhiteSpace(UnavailableReason)
-        || !string.Equals(_confirmationText, TargetKey, StringComparison.Ordinal);
+        || !string.Equals(_confirmationText, TargetKey, StringComparison.Ordinal)
+        || Evidence is not null && !ConfirmationAvailability(Context).IsEligible;
+
+    private TenantHighImpactActionAvailability EntryAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(Evidence!);
+
+    private TenantHighImpactActionAvailability ConfirmationAvailability(
+        TenantConfigurationManagementContext currentContext)
+    {
+        bool sameTenant = string.Equals(currentContext.TenantId, Context.TenantId, StringComparison.Ordinal)
+            && string.Equals(currentContext.TenantId, Evidence!.TenantId, StringComparison.Ordinal);
+        bool hasAuthority = sameTenant && currentContext.HasMutationAuthority;
+        bool authorized = hasAuthority && currentContext.IsKeyAuthorized(TargetKey);
+        bool targetPresent = authorized && currentContext.FindRemovableRow(TargetKey) is not null;
+        bool targetMissing = authorized && !targetPresent;
+        TenantHighImpactActionEvidence confirmation = Evidence! with
+        {
+            Stage = TenantHighImpactEvaluationStage.Confirmation,
+            Authority = hasAuthority
+                ? TenantHighImpactAuthorityEvidence.Authorized
+                : sameTenant && currentContext.IsAvailable
+                    ? TenantHighImpactAuthorityEvidence.MissingPermission
+                    : TenantHighImpactAuthorityEvidence.Indeterminate,
+            NamespaceScope = authorized
+                ? TenantHighImpactNamespaceScopeEvidence.Authorized
+                : TenantHighImpactNamespaceScopeEvidence.Missing,
+            Preview = targetPresent || targetMissing
+                ? TenantHighImpactPreviewEvidence.Ready
+                : TenantHighImpactPreviewEvidence.Missing,
+            IsInputComplete = string.Equals(_confirmationText, TargetKey, StringComparison.Ordinal),
+            TargetState = targetPresent
+                ? TenantHighImpactTargetState.Present
+                : targetMissing
+                    ? TenantHighImpactTargetState.Missing
+                    : TenantHighImpactTargetState.Unknown,
+        };
+        return TenantHighImpactActionAvailabilityEvaluator.Evaluate(confirmation);
+    }
 
     // _isRefreshing belongs in the enabled test, not only in the method. The re-entrancy guard returns
     // before the status read, before ConfirmProjection and before the activity update, so with the button
@@ -312,7 +368,9 @@
                 (Localizer["Tenants.Configuration.Remove.Preview.Key"], request.Key, "tenants-config-remove-preview-key"),
                 (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], Context.FindRemovableRow(request.Key)!.Value, "tenants-config-remove-preview-current-state"),
                 (Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"], "tenants-config-remove-preview-effect"),
-                (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Localizer[$"Tenants.Configuration.Remove.Freshness.{Freshness}"], "tenants-config-remove-preview-freshness"),
+                (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Evidence is null
+                    ? Localizer[$"Tenants.Configuration.Remove.Freshness.{Freshness}"]
+                    : Localizer[$"Tenants.HighImpact.Freshness.{(Enum.IsDefined(Evidence.Freshness) ? Evidence.Freshness : TenantHighImpactFreshnessState.Unknown)}"], "tenants-config-remove-preview-freshness"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Authorization"], Localizer["Tenants.Configuration.Remove.Preview.Authorization.Value"], "tenants-config-remove-preview-authorization"),
                 (Localizer["Tenants.Configuration.Remove.Preview.KnownConsequences"], Localizer["Tenants.Configuration.Remove.Preview.KnownConsequences.Value"], "tenants-config-remove-preview-consequences"),
                 (Localizer["Tenants.Configuration.Remove.Preview.KnownUnknowns"], Localizer["Tenants.Configuration.Remove.Preview.KnownUnknowns.Value"], "tenants-config-remove-preview-unknowns"),
@@ -539,6 +597,15 @@
             return;
         }
 
+        if (Evidence is not null
+            && ConfirmationAvailability(Context) is { IsEligible: false } confirmationBlock)
+        {
+            SetSnapshot(TenantRemoveConfigurationCommandSnapshot.Blocked(
+                Localizer[confirmationBlock.SafeMessageKey].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
+
         // A re-authorization that throws must fail closed rather than escape this event handler and
         // tear down the circuit.
         TenantConfigurationManagementContext currentContext;
@@ -555,6 +622,26 @@
         catch (Exception)
         {
             currentContext = TenantConfigurationManagementContext.Unavailable(Context.TenantId, Context.TenantStatus);
+        }
+
+        if (Evidence is not null)
+        {
+            TenantHighImpactActionAvailability reauthorizationResult = ConfirmationAvailability(currentContext);
+            if (reauthorizationResult.DomainOutcome is TenantHighImpactDomainOutcome.ConfigurationKeyNotFound)
+            {
+                SetSnapshot(_snapshot.ExpectedMissing(
+                    request,
+                    Localizer[reauthorizationResult.SafeMessageKey].Value));
+                return;
+            }
+
+            if (!reauthorizationResult.IsEligible)
+            {
+                SetSnapshot(TenantRemoveConfigurationCommandSnapshot.Blocked(
+                    Localizer[reauthorizationResult.SafeMessageKey].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
         }
 
         if (!string.Equals(currentContext.TenantId, request.TenantId, StringComparison.Ordinal)

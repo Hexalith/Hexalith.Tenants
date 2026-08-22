@@ -71,7 +71,12 @@ internal sealed partial class TenantConfigurationReadPolicyProvider
 
         if (principal.State is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator)
         {
-            return TenantConfigurationReadPolicyResolution.Available(true, ["*"], policy.DisplaySafeKeys);
+            return TenantConfigurationReadPolicyResolution.Available(
+                true,
+                ["*"],
+                policy.DisplaySafeKeys,
+                principal.State,
+                principal.Subject);
         }
 
         string[] prefixes = policy.Grants
@@ -80,7 +85,12 @@ internal sealed partial class TenantConfigurationReadPolicyProvider
             .Select(static grant => grant.Prefix!)
             .OrderBy(static prefix => prefix, StringComparer.Ordinal)
             .ToArray();
-        return TenantConfigurationReadPolicyResolution.Available(false, prefixes, policy.DisplaySafeKeys);
+        return TenantConfigurationReadPolicyResolution.Available(
+            false,
+            prefixes,
+            policy.DisplaySafeKeys,
+            principal.State,
+            principal.Subject);
     }
 
     private static bool HasScalarCollection(IConfigurationSection section, string childName)

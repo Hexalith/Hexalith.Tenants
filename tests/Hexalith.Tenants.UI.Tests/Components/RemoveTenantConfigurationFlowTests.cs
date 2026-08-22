@@ -141,6 +141,62 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
     }
 
+    [Fact]
+    public void Evidence_aware_remove_with_exact_confirmation_and_current_reauthorization_dispatches_exactly_once()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"),
+        };
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext context = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.Evidence, Evidence())
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(context)));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+        gateway.LastRemoveConfigurationRequest.ShouldNotBeNull();
+        gateway.LastRemoveConfigurationRequest.Key.ShouldBe("billing.mode");
+    }
+
+    [Fact]
+    public void Evidence_aware_authorized_missing_remove_records_expected_outcome_without_dispatch()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext initial = Context(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" });
+        TenantConfigurationManagementContext current = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            isGlobalAdministrator: false,
+            ["billing"],
+            []);
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, initial)
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.Evidence, Evidence())
+            .Add(p => p.ReauthorizeProvider, () => Task.FromResult(current)));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        gateway.RemoveConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot.RejectionCode.ShouldBe("ConfigurationKeyNotFound");
+        cut.Instance.Snapshot.SafeMessage!.ShouldContain("ConfigurationKeyNotFound");
+    }
+
     [Theory]
     [InlineData(ProjectionLifecycleState.Unknown)]
     [InlineData(ProjectionLifecycleState.Stale)]
@@ -790,6 +846,26 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         string tenantId,
         TenantConfigurationProjectionProofKind kind)
         => TenantConfigurationProjectionProof.Create(tenantId, kind);
+
+    private static TenantHighImpactActionEvidence Evidence()
+        => new(
+            "tenant.alpha",
+            TenantHighImpactAction.RemoveConfiguration,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            TenantStatus.Active,
+            TenantHighImpactFreshnessState.Current,
+            HasCurrentBaseline: true,
+            TenantDetailSurfaceKind.Ready,
+            ProjectionLifecycleState.Current,
+            TenantHighImpactAuthorityEvidence.Authorized,
+            TenantHighImpactNamespaceScopeEvidence.Authorized,
+            TenantHighImpactSupportEvidence.Ready,
+            TenantHighImpactAdmissionEvidence.Available,
+            TenantHighImpactPreviewEvidence.Ready,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Safe,
+            IsInputComplete: false,
+            TenantHighImpactTargetState.Unknown);
 
     private static string ProjectRoot()
     {

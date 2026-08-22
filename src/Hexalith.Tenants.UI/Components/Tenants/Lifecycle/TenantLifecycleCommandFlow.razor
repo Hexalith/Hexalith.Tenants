@@ -186,6 +186,10 @@
     [Parameter]
     public Func<TenantLifecycleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
+    /// <summary>Gets or sets the submit-time server-reflected lifecycle authority provider.</summary>
+    [Parameter]
+    public Func<Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
+
     internal TenantLifecycleCommandSnapshot Snapshot => _snapshot;
 
     private TenantLifecycleCommandRequest Intent
@@ -200,19 +204,29 @@
         => Localizer[$"Tenants.Lifecycle.Operation.{Availability.Operation}"];
 
     private bool IsPreviewComplete
-        => Availability is { IsUnavailable: false }
-        && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
-        && !string.IsNullOrWhiteSpace(Detail.TenantId)
-        && !string.IsNullOrWhiteSpace(Detail.Name)
-        && Availability.Freshness is ReadModelFreshnessState.Current
-        && Availability.GovernanceReadiness is TenantLifecycleGovernanceReadiness.Ready
-        && Availability.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
-        && Detail.Status == Availability.CurrentStatus
-        && Detail.Status != IntendedStatus;
+        => Availability.Evidence is not null
+            ? EntryAvailability.IsEligible
+                && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
+                && !string.IsNullOrWhiteSpace(Detail.TenantId)
+                && !string.IsNullOrWhiteSpace(Detail.Name)
+                && string.Equals(Detail.TenantId, Availability.Evidence.TenantId, StringComparison.Ordinal)
+                && Detail.Status == Availability.Evidence.TenantStatus
+                && Detail.Status != IntendedStatus
+            : Availability is { IsUnavailable: false }
+                && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
+                && !string.IsNullOrWhiteSpace(Detail.TenantId)
+                && !string.IsNullOrWhiteSpace(Detail.Name)
+                && Availability.Freshness is ReadModelFreshnessState.Current
+                && Availability.GovernanceReadiness is TenantLifecycleGovernanceReadiness.Ready
+                && Availability.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+                && Detail.Status == Availability.CurrentStatus
+                && Detail.Status != IntendedStatus;
 
     private string? UnavailableReason
-        => Availability.IsUnavailable
-            ? Localizer[Availability.SafeMessageKey, Detail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
+        => Availability.Evidence is not null && !EntryAvailability.IsEligible
+            ? Localizer[EntryAvailability.SafeMessageKey].Value
+            : Availability.Evidence is null && Availability.IsUnavailable
+                ? Localizer[Availability.SafeMessageKey, Detail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
             : CommandGateway is null
                 ? Localizer["Tenants.Lifecycle.Unavailable.CommandSurface", Detail.TenantId, OperationLabel, string.Empty].Value
                 : !IsCommandSurfaceAvailable && !IsOwnedCommandInFlight
@@ -229,7 +243,18 @@
         => !IsPreviewComplete
         || !string.IsNullOrWhiteSpace(UnavailableReason)
         || _isSubmitting
-        || IsOwnedCommandInFlight;
+        || IsOwnedCommandInFlight
+        || Availability.Evidence is not null && !ConfirmationAvailability.IsEligible;
+
+    private TenantHighImpactActionAvailability EntryAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(Availability.Evidence!);
+
+    private TenantHighImpactActionAvailability ConfirmationAvailability
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(Availability.Evidence! with
+        {
+            Stage = TenantHighImpactEvaluationStage.Confirmation,
+            IsInputComplete = string.Equals(_confirmationText, Detail.TenantId, StringComparison.Ordinal),
+        });
 
     private bool IsOwnedCommandInFlight
         => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
@@ -406,6 +431,38 @@
             _validationMessage = Localizer["Tenants.Lifecycle.Validation.ConfirmationRequired", Detail.TenantId];
             _focusConfirmationPending = true;
             return;
+        }
+
+        if (Availability.Evidence is not null)
+        {
+            TenantLifecycleAuthorizationReflectionState currentAuthorization;
+            try
+            {
+                currentAuthorization = AuthorizationReflectionProvider is null
+                    ? TenantLifecycleAuthorizationReflectionState.Indeterminate
+                    : await AuthorizationReflectionProvider().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                currentAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            }
+
+            TenantLifecycleAvailability currentConfirmation = Availability.ForConfirmation(
+                isInputComplete: true,
+                currentAuthorization);
+            TenantHighImpactActionAvailability currentResult = TenantHighImpactActionAvailabilityEvaluator.Evaluate(
+                currentConfirmation.Evidence!);
+            if (!currentResult.IsEligible)
+            {
+                SetSnapshot(TenantLifecycleCommandSnapshot.Blocked(
+                    Localizer[currentResult.SafeMessageKey].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
         }
 
         _snapshot = _snapshot.RequestSent();

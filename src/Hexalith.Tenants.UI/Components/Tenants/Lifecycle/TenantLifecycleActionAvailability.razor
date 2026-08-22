@@ -39,7 +39,7 @@
          aria-live="@LiveRegion"
          aria-atomic="true"
          data-testid="tenants-lifecycle-live-region">
-        @Localizer[PrimaryAvailability.SafeMessageKey, TenantId, Localizer[$"Tenants.Lifecycle.Operation.{PrimaryAvailability.Operation}"], PrimaryAvailability.ExpectedDomainOutcomeKey ?? string.Empty]
+        @HighImpactReason(PrimaryAvailability, HighImpactAvailability(PrimaryAvailability))
     </div>
 
     <div class="tenant-lifecycle__actions" role="list">
@@ -49,8 +49,14 @@
                 ? "tenants-lifecycle-enable"
                 : "tenants-lifecycle-disable";
             string reasonId = $"{actionId}-reason";
+            string recoveryId = $"{actionId}-recovery";
+            TenantHighImpactActionAvailability highImpact = HighImpactAvailability(availability);
+            TenantHighImpactActionEvidence evidence = availability.Evidence!;
 
-            <div class="tenant-lifecycle__action" role="listitem">
+            <div class="tenant-lifecycle__action"
+                 role="listitem"
+                 data-testid="@(actionId + "-availability")"
+                 data-action="@highImpact.Action">
                 @if (availability.Operation is TenantLifecycleOperation.EnableTenant)
                 {
                     <span class="tenant-lifecycle__button-focus" tabindex="-1" @ref="_enableElement">
@@ -60,7 +66,7 @@
                                       data-testid="@actionId"
                                       Disabled="@IsActionDisabled(availability)"
                                       aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                                      aria-describedby="@reasonId"
+                                      aria-describedby="@($"{reasonId} {recoveryId}")"
                                       OnClick="() => OpenFlowAsync(availability)">
                             @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
                         </FluentButton>
@@ -75,7 +81,7 @@
                                       data-testid="@actionId"
                                       Disabled="@IsActionDisabled(availability)"
                                       aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                                      aria-describedby="@reasonId"
+                                      aria-describedby="@($"{reasonId} {recoveryId}")"
                                       OnClick="() => OpenFlowAsync(availability)">
                             @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
                         </FluentButton>
@@ -85,10 +91,25 @@
                    class="tenant-lifecycle__reason"
                    tabindex="0"
                    data-testid="tenants-lifecycle-unavailable-reason"
-                   data-reason-category="@ReasonCategory(ReasonCategoryFor(availability))">
-                    <span>@Localizer[$"Tenants.Lifecycle.UnavailableReason.{ReasonCategoryFor(availability)}"]</span>
-                    <span>@ReasonText(availability)</span>
+                   data-reason-category="@highImpact.UnavailableReason">
+                    <span data-testid="@(actionId + "-reason")">@HighImpactReason(availability, highImpact)</span>
+                    @if (highImpact.DomainOutcome is not TenantHighImpactDomainOutcome.None)
+                    {
+                        <small data-testid="@(actionId + "-domain-outcome")">@Localizer[$"Tenants.HighImpact.DomainOutcome.{highImpact.DomainOutcome}"]</small>
+                    }
                 </p>
+                <p id="@recoveryId"
+                   class="tenant-lifecycle__reason"
+                   data-testid="@(actionId + "-recovery")">
+                    @Localizer[highImpact.RecoveryKey]
+                </p>
+                <dl class="tenant-lifecycle__facts"
+                    data-testid="@(actionId + "-facts")">
+                    <dt>@Localizer["Tenants.HighImpact.Fact.Identity"]</dt><dd data-testid="@(actionId + "-identity")">@evidence.TenantId</dd>
+                    <dt>@Localizer["Tenants.HighImpact.Fact.Status"]</dt><dd data-testid="@(actionId + "-status")">@StatusText(evidence.TenantStatus)</dd>
+                    <dt>@Localizer["Tenants.HighImpact.Fact.Freshness"]</dt><dd data-testid="@(actionId + "-freshness")">@FreshnessText(evidence.Freshness)</dd>
+                    <dt>@Localizer["Tenants.HighImpact.Fact.Action"]</dt><dd data-testid="@(actionId + "-action")">@Localizer[$"Tenants.HighImpact.Action.{highImpact.Action}"]</dd>
+                </dl>
             </div>
         }
     </div>
@@ -102,7 +123,8 @@
                                     OnCloseRequested="@CloseFlowAsync"
                                     OnCommandActivityChanged="@OnCommandActivityChanged"
                                     CommandActivityLease="@CommandActivityLease"
-                                    ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
+                                    ProjectionEvidenceProvider="@ProjectionEvidenceProvider"
+                                    AuthorizationReflectionProvider="@AuthorizationReflectionProvider" />
     }
 </section>
 
@@ -144,6 +166,12 @@
     public bool IsNarrowSafetyContext { get; set; }
 
     [Parameter]
+    public TenantHighImpactActionEvidence? EnableEvidence { get; set; }
+
+    [Parameter]
+    public TenantHighImpactActionEvidence? DisableEvidence { get; set; }
+
+    [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
@@ -162,6 +190,10 @@
     [Parameter]
     public Func<TenantLifecycleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
+    /// <summary>Gets or sets the submit-time server-reflected lifecycle authority provider.</summary>
+    [Parameter]
+    public Func<Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
+
     private TenantLifecycleAvailabilityInput Input
         => new(
             TenantId,
@@ -177,9 +209,14 @@
     private IReadOnlyList<TenantLifecycleAvailability> Availabilities
         =>
         [
-            Input.Evaluate(TenantLifecycleOperation.EnableTenant),
-            Input.Evaluate(TenantLifecycleOperation.DisableTenant),
+            ResolveAvailability(TenantLifecycleOperation.EnableTenant, EnableEvidence),
+            ResolveAvailability(TenantLifecycleOperation.DisableTenant, DisableEvidence),
         ];
+
+    private static TenantHighImpactActionAvailability HighImpactAvailability(TenantLifecycleAvailability availability)
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(
+            availability.Evidence
+                ?? throw new InvalidOperationException("Lifecycle availability must retain its high-impact evidence."));
 
     private TenantLifecycleAvailability PrimaryAvailability
         => Availabilities.FirstOrDefault(static availability => availability.IsUnavailable)
@@ -192,24 +229,20 @@
             : "polite";
 
     private bool IsActionDisabled(TenantLifecycleAvailability availability)
-        => availability.IsUnavailable || !IsCommandSurfaceAvailable;
+        => !HighImpactAvailability(availability).IsEligible || !IsCommandSurfaceAvailable;
 
-    private TenantLifecycleUnavailableReasonCategory ReasonCategoryFor(TenantLifecycleAvailability availability)
-        => !IsCommandSurfaceAvailable && !availability.IsUnavailable
-            ? TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport
-            : availability.UnavailableReasonCategory;
-
-    private string ReasonText(TenantLifecycleAvailability availability)
-        => !IsCommandSurfaceAvailable && !availability.IsUnavailable
+    private string HighImpactReason(
+        TenantLifecycleAvailability availability,
+        TenantHighImpactActionAvailability highImpact)
+        => !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
-            : Localizer[
-                availability.SafeMessageKey,
-                TenantId,
-                Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"],
-                availability.ExpectedDomainOutcomeKey ?? string.Empty].Value;
+            : Localizer[highImpact.SafeMessageKey].Value;
 
-    private static string ReasonCategory(TenantLifecycleUnavailableReasonCategory category)
-        => category.ToString();
+    private string StatusText(TenantStatus status)
+        => Localizer[$"Tenants.Lifecycle.Status.{(Enum.IsDefined(status) ? status : TenantStatus.Unknown)}"];
+
+    private string FreshnessText(TenantHighImpactFreshnessState freshness)
+        => Localizer[$"Tenants.HighImpact.Freshness.{(Enum.IsDefined(freshness) ? freshness : TenantHighImpactFreshnessState.Unknown)}"];
 
     protected override void OnParametersSet()
     {
@@ -228,7 +261,9 @@
             return;
         }
 
-        _activeAvailability = Input.Evaluate(_activeAvailability.Operation);
+        _activeAvailability = _activeAvailability.Operation is TenantLifecycleOperation.EnableTenant
+            ? ResolveAvailability(TenantLifecycleOperation.EnableTenant, EnableEvidence)
+            : ResolveAvailability(TenantLifecycleOperation.DisableTenant, DisableEvidence);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -259,6 +294,46 @@
         _activeAvailability = availability;
         _activeFlowTenantId = TenantId;
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private TenantLifecycleAvailability ResolveAvailability(
+        TenantLifecycleOperation operation,
+        TenantHighImpactActionEvidence? suppliedEvidence)
+    {
+        TenantHighImpactAction expectedAction = operation is TenantLifecycleOperation.EnableTenant
+            ? TenantHighImpactAction.EnableTenant
+            : TenantHighImpactAction.DisableTenant;
+        if (suppliedEvidence is null)
+        {
+            return Input.Evaluate(operation);
+        }
+
+        if (string.Equals(suppliedEvidence.TenantId, TenantId, StringComparison.Ordinal)
+            && suppliedEvidence.Action == expectedAction)
+        {
+            return TenantLifecycleAvailability.FromEvidence(suppliedEvidence);
+        }
+
+        // Never render or evaluate another tenant/action slot's facts. Preserve only the parameters for the
+        // current rendered tenant and fail every authority/readiness gate closed.
+        return TenantLifecycleAvailability.FromEvidence(new(
+            TenantId,
+            expectedAction,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            Enum.IsDefined(CurrentStatus) ? CurrentStatus : TenantStatus.Unknown,
+            TenantHighImpactActionEvidence.FromReadModelFreshness(Freshness),
+            Freshness is ReadModelFreshnessState.Current,
+            Enum.IsDefined(SurfaceKind) ? SurfaceKind : TenantDetailSurfaceKind.Unknown,
+            Enum.IsDefined(Lifecycle) ? Lifecycle : ProjectionLifecycleState.Unknown,
+            TenantHighImpactAuthorityEvidence.Indeterminate,
+            TenantHighImpactNamespaceScopeEvidence.NotRequired,
+            TenantHighImpactSupportEvidence.Unknown,
+            TenantHighImpactAdmissionEvidence.Unknown,
+            TenantHighImpactPreviewEvidence.Missing,
+            TenantHighImpactProofEvidence.NotRequired,
+            TenantHighImpactViewportState.Unknown,
+            IsInputComplete: false,
+            TenantHighImpactTargetState.NotApplicable));
     }
 
     private async Task CloseFlowAsync()

@@ -170,11 +170,13 @@
                                                         Lifecycle="@_snapshot.Lifecycle"
                                                         IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
                                                         AuthorizationReflection="@_lifecycleAuthorizationReflection"
-                                                        GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
+                                                        EnableEvidence="@HighImpactEvidence(TenantHighImpactAction.EnableTenant)"
+                                                        DisableEvidence="@HighImpactEvidence(TenantHighImpactAction.DisableTenant)"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                                         CommandActivityLease="@LifecycleCommandActivityLease"
-                                                        ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
+                                                        ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync"
+                                                        AuthorizationReflectionProvider="@ReauthorizeLifecycleAsync" />
                 </FluentAccordionItem>
 
                 <FluentAccordionItem Header="@Localizer["Tenants.Detail.Members.Title"]"
@@ -227,6 +229,8 @@
                                                        SurfaceKind="@_snapshot.Kind"
                                                        Freshness="@_snapshot.Freshness"
                                                        Lifecycle="@_snapshot.Lifecycle"
+                                                       SetEvidence="@HighImpactEvidence(TenantHighImpactAction.SetConfiguration)"
+                                                       RemoveEvidence="@HighImpactEvidence(TenantHighImpactAction.RemoveConfiguration)"
                                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                                        OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                                        SetCommandActivityLease="@SetConfigurationCommandActivityLease"
@@ -302,6 +306,10 @@
     private string? _activeAggregateLockKey;
     private MemberAccessReview? _memberAccessReview;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
+    private TenantHighImpactViewportObservation? _highImpactViewportObservation;
+    private bool _detailRefreshInFlight;
+    private bool _refreshingBaselineWasCurrent;
+    private int _highImpactRefreshGeneration;
     private readonly object _commandLockOwner = new();
 
     // The page is a single owner to the circuit-scoped gate, but four command surfaces share it. Each gets a
@@ -342,6 +350,55 @@
         && !IsCurrentAggregateLocked
         && AggregateAdmissionGate is not null
         && BffComposition.IsCommandSurfaceConnected;
+
+    private TenantHighImpactAdmissionEvidence HighImpactAdmission
+        => AggregateAdmissionGate is null
+            ? TenantHighImpactAdmissionEvidence.Unknown
+            : _commandInFlight || IsCurrentAggregateLocked
+                ? TenantHighImpactAdmissionEvidence.Busy
+                : TenantHighImpactAdmissionEvidence.Available;
+
+    private TenantHighImpactActionEvidence HighImpactEvidence(TenantHighImpactAction action)
+    {
+        TenantHighImpactBffEvidence bffEvidence = BffComposition.ComposeTenantHighImpactEvidence(
+            Detail,
+            _snapshot.ConfigurationManagement,
+            _lifecycleAuthorizationReflection);
+        bool configurationAction = action is TenantHighImpactAction.SetConfiguration
+            or TenantHighImpactAction.RemoveConfiguration;
+        TenantHighImpactTargetState targetState = action is TenantHighImpactAction.RemoveConfiguration
+            ? TenantHighImpactTargetState.Unknown
+            : action is TenantHighImpactAction.SetConfiguration
+                ? TenantHighImpactTargetState.Unknown
+                : TenantHighImpactTargetState.NotApplicable;
+
+        return new(
+            Detail.TenantId,
+            action,
+            TenantHighImpactEvaluationStage.PreviewEntry,
+            Detail.Status,
+            _detailRefreshInFlight
+                ? TenantHighImpactFreshnessState.Refreshing
+                : TenantHighImpactActionEvidence.FromReadModelFreshness(_snapshot.Freshness),
+            _detailRefreshInFlight
+                ? _refreshingBaselineWasCurrent
+                : _snapshot.Freshness is ReadModelFreshnessState.Current,
+            _snapshot.Kind,
+            _snapshot.Lifecycle,
+            configurationAction ? bffEvidence.ConfigurationAuthority : bffEvidence.LifecycleAuthority,
+            configurationAction
+                ? bffEvidence.ConfigurationScope
+                : TenantHighImpactNamespaceScopeEvidence.NotRequired,
+            BffComposition.IsCommandSurfaceConnected
+                ? TenantHighImpactSupportEvidence.Ready
+                : TenantHighImpactSupportEvidence.Missing,
+            HighImpactAdmission,
+            configurationAction ? bffEvidence.ConfigurationPreview : bffEvidence.LifecyclePreview,
+            TenantHighImpactProofEvidence.NotRequired,
+            _highImpactViewportObservation?.State ?? TenantHighImpactViewportState.Unknown,
+            IsInputComplete: false,
+            targetState);
+    }
 
     private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
         => _aggregateAdmissionGate ??= Services.GetService<TenantAggregateCommandAdmissionGate>();
@@ -446,12 +503,21 @@
 
     protected override void OnInitialized()
     {
+        _highImpactViewportObservation = Services.GetService<TenantHighImpactViewportObservation>();
+        if (_highImpactViewportObservation is not null)
+        {
+            _highImpactViewportObservation.StateChanged += OnHighImpactViewportStateChanged;
+        }
+
         _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         }
     }
+
+    private void OnHighImpactViewportStateChanged(object? sender, EventArgs args)
+        => _ = RenderIfAliveAsync();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -466,6 +532,9 @@
         // incoming tenant's completed detail, never from the outgoing tenant's intent or confirmed snapshot.
         ResetMetadataProofScope(tenantId);
         _snapshot = TenantDetailSnapshot.Loading();
+        _ = Interlocked.Increment(ref _highImpactRefreshGeneration);
+        _detailRefreshInFlight = false;
+        _refreshingBaselineWasCurrent = false;
         _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
         _globalAdministratorsSnapshot = null;
         _auditProofCapabilityAvailable = false;
@@ -814,9 +883,11 @@
         }
 
         using PendingOperation operation = BeginLoad();
+        using IDisposable highImpactRefresh = BeginHighImpactRefresh();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
         TenantDetailSnapshot previous = _snapshot;
+        await RenderIfAliveAsync().ConfigureAwait(false);
         TenantDetailSnapshot snapshot;
         try
         {
@@ -861,6 +932,7 @@
         }
 
         using PendingOperation operation = BeginLoad();
+        using IDisposable highImpactRefresh = BeginHighImpactRefresh();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
         TenantDetailSnapshot retainedDetail = _snapshot;
@@ -1909,8 +1981,7 @@
         => _snapshot.Detail is null
             ? Task.FromResult(TenantConfigurationManagementContext.Unavailable(TenantId, TenantStatus.Unknown))
             : BffComposition.ReauthorizeConfigurationManagementAsync(
-                _snapshot.Detail.TenantId,
-                _snapshot.Detail.Status,
+                _snapshot.Detail,
                 _snapshot.Configuration,
                 CancellationToken.None).AsTask();
 
@@ -1919,6 +1990,45 @@
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
+
+    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeLifecycleAsync()
+    {
+        try
+        {
+            return await BffComposition.ResolveLifecycleAuthorizationAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+    }
+
+    private IDisposable BeginHighImpactRefresh()
+    {
+        int generation = Interlocked.Increment(ref _highImpactRefreshGeneration);
+        _refreshingBaselineWasCurrent = _snapshot.Kind is TenantDetailSurfaceKind.Ready
+            && _snapshot.Freshness is ReadModelFreshnessState.Current
+            && _snapshot.Lifecycle is ProjectionLifecycleState.Current;
+        _detailRefreshInFlight = true;
+        return new HighImpactRefreshObservation(this, generation);
+    }
+
+    private void EndHighImpactRefresh(int generation)
+    {
+        if (generation != Volatile.Read(ref _highImpactRefreshGeneration))
+        {
+            return;
+        }
+
+        _detailRefreshInFlight = false;
+        _refreshingBaselineWasCurrent = false;
+        _ = RenderIfAliveAsync();
+    }
 
     private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)
     {
@@ -2037,6 +2147,12 @@
             _authenticationStateProvider = null;
         }
 
+        if (_highImpactViewportObservation is not null)
+        {
+            _highImpactViewportObservation.StateChanged -= OnHighImpactViewportStateChanged;
+            _highImpactViewportObservation = null;
+        }
+
         CancelLifecycleAuthorizationCancellation();
         CancelActiveCancellation();
         CancelSupplementaryReads();
@@ -2078,5 +2194,15 @@
 
         public void Dispose()
             => Interlocked.Exchange(ref _complete, null)?.Invoke();
+    }
+
+    private sealed class HighImpactRefreshObservation(
+        TenantDetailPage owner,
+        int generation) : IDisposable
+    {
+        private TenantDetailPage? _owner = owner;
+
+        public void Dispose()
+            => Interlocked.Exchange(ref _owner, null)?.EndHighImpactRefresh(generation);
     }
 }

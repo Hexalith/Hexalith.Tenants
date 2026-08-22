@@ -120,11 +120,6 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .tenants-config-set__open-focus,
-    .tenants-config-set__form {
-        display: none;
-    }
-
     .tenants-config-set__narrow {
         display: block;
     }

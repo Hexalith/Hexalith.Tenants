@@ -73,6 +73,79 @@ public interface ITenantsBffComposition {
     }
 
     /// <summary>
+    /// Reauthorizes configuration management from current circuit principal and sanitized detail evidence.
+    /// </summary>
+    /// <param name="sanitizedDetail">Current sanitized authoritative detail.</param>
+    /// <param name="safeModel">Current safe configuration model.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Current role and namespace management context.</returns>
+    ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
+        TenantDetail sanitizedDetail,
+        TenantConfigurationSafeModel safeModel,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sanitizedDetail);
+        ArgumentNullException.ThrowIfNull(safeModel);
+        return ReauthorizeConfigurationManagementAsync(
+            sanitizedDetail.TenantId,
+            sanitizedDetail.Status,
+            safeModel,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Composes safe per-action role, namespace, and preview evidence without reading claims in the component.
+    /// </summary>
+    /// <param name="sanitizedDetail">Current sanitized authoritative detail.</param>
+    /// <param name="managementContext">Current configuration management evidence.</param>
+    /// <param name="lifecycleAuthorization">Current circuit-derived lifecycle authorization.</param>
+    /// <returns>Safe BFF evidence for the shared high-impact kernel.</returns>
+    TenantHighImpactBffEvidence ComposeTenantHighImpactEvidence(
+        TenantDetail sanitizedDetail,
+        TenantConfigurationManagementContext managementContext,
+        TenantLifecycleAuthorizationReflectionState lifecycleAuthorization)
+    {
+        ArgumentNullException.ThrowIfNull(sanitizedDetail);
+        ArgumentNullException.ThrowIfNull(managementContext);
+
+        bool sameTenant = string.Equals(
+            sanitizedDetail.TenantId,
+            managementContext.TenantId,
+            StringComparison.Ordinal);
+        bool previewReady = sameTenant
+            && !string.IsNullOrWhiteSpace(sanitizedDetail.TenantId)
+            && sanitizedDetail.Status is not TenantStatus.Unknown;
+        TenantHighImpactAuthorityEvidence configurationAuthority = managementContext.AuthorityState switch
+        {
+            TenantConfigurationAuthorityState.TenantOwner
+                or TenantConfigurationAuthorityState.GlobalAdministrator
+                => TenantHighImpactAuthorityEvidence.Authorized,
+            TenantConfigurationAuthorityState.MissingPermission
+                => TenantHighImpactAuthorityEvidence.MissingPermission,
+            _ => TenantHighImpactAuthorityEvidence.Indeterminate,
+        };
+        TenantHighImpactNamespaceScopeEvidence scope = !sameTenant || !managementContext.IsAvailable
+            ? TenantHighImpactNamespaceScopeEvidence.Indeterminate
+            : managementContext.IsGlobalAdministrator || managementContext.AuthorizedPrefixes.Count > 0
+                ? TenantHighImpactNamespaceScopeEvidence.Authorized
+                : TenantHighImpactNamespaceScopeEvidence.Missing;
+
+        return new(
+            lifecycleAuthorization switch
+            {
+                TenantLifecycleAuthorizationReflectionState.Authorized
+                    => TenantHighImpactAuthorityEvidence.Authorized,
+                TenantLifecycleAuthorizationReflectionState.MissingPermission
+                    => TenantHighImpactAuthorityEvidence.MissingPermission,
+                _ => TenantHighImpactAuthorityEvidence.Indeterminate,
+            },
+            configurationAuthority,
+            scope,
+            previewReady ? TenantHighImpactPreviewEvidence.Ready : TenantHighImpactPreviewEvidence.Missing,
+            previewReady ? TenantHighImpactPreviewEvidence.Ready : TenantHighImpactPreviewEvidence.Missing);
+    }
+
+    /// <summary>
     /// Determines whether the current principal holds namespace authorization for a literal key.
     /// </summary>
     /// <remarks>

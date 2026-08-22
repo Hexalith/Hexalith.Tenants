@@ -1,154 +1,27 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.EventStore.Client.Projections;
-using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
-public enum TenantLifecycleOperation {
-    EnableTenant,
-    DisableTenant,
-}
-
-public enum TenantLifecycleAuthorizationReflectionState {
-    Indeterminate,
-    Authorized,
-    MissingPermission,
-}
-
-public enum TenantLifecycleGovernanceReadiness {
-    Unresolved,
-    Ready,
-    Blocked,
-}
-
-public enum TenantLifecycleUnavailableReasonCategory {
-    None,
-    MissingPermission,
-    StaleData,
-    MissingLifecycleSupport,
-    HighImpactFlowNotReady,
-}
-
-public sealed record TenantLifecycleAvailabilityInput(
-    string TenantId,
-    TenantStatus CurrentStatus,
-    ReadModelFreshnessState Freshness,
-    TenantDetailSurfaceKind SurfaceKind,
-    bool IsCommandSurfaceConnected,
-    TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
-    TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
-    bool IsNarrowSafetyContext = false,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown) {
-    public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
-        // Clause order is part of the contract, not incidental. The strict lifecycle gate stays -- decision
-        // D-F (2026-07-31) upheld it and reversed D6, so `IsStale: false` with no lifecycle header is no
-        // longer sufficient evidence to enable a mutation -- but it runs AFTER the freshness and surface
-        // clauses. Every non-Current surface state (Unavailable, Degraded, Stale, Unknown) also carries a
-        // non-Current lifecycle, so with the lifecycle test first it answered for all of them, and an
-        // operator whose read had simply failed was told to refresh the projection lifecycle while
-        // Tenants.Lifecycle.Unavailable.StaleFreshness became unreachable. Each clause must report the
-        // condition the operator can actually act on.
-        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale or ReadModelFreshnessState.Unknown) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
-        }
-
-        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingPermission, "Tenants.Lifecycle.Unavailable.MissingPermission", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
-        }
-
-        if (Lifecycle is not ProjectionLifecycleState.Current) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.ProjectionLifecycle", TenantCommandFocusTarget.Refresh);
-        }
-
-        if (CurrentStatus is TenantStatus.Unknown) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport, "Tenants.Lifecycle.Unavailable.UnknownStatus", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        if (operation is TenantLifecycleOperation.EnableTenant && CurrentStatus is TenantStatus.Active) {
-            return ExpectedSameStateRejection(operation, "Tenants.Lifecycle.Unavailable.AlreadyActive");
-        }
-
-        if (operation is TenantLifecycleOperation.DisableTenant && CurrentStatus is TenantStatus.Disabled) {
-            return ExpectedSameStateRejection(operation, "Tenants.Lifecycle.Unavailable.AlreadyDisabled");
-        }
-
-        if (IsNarrowSafetyContext) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady, "Tenants.Lifecycle.Unavailable.Mobile", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        if (AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingPermission, "Tenants.Lifecycle.Unavailable.MissingPermission", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        if (!IsCommandSurfaceConnected) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport, "Tenants.Lifecycle.Unavailable.CommandSurface", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        if (GovernanceReadiness is not TenantLifecycleGovernanceReadiness.Ready) {
-            return Blocked(operation, TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady, "Tenants.Lifecycle.Unavailable.Governance", TenantCommandFocusTarget.Lifecycle);
-        }
-
-        return new(
-            TenantId,
-            CurrentStatus,
-            operation,
-            Freshness,
-            SurfaceKind,
-            IsCommandSurfaceConnected,
-            GovernanceReadiness,
-            AuthorizationReflection,
-            IsUnavailable: false,
-            TenantLifecycleUnavailableReasonCategory.None,
-            "Tenants.Lifecycle.Available",
-            ExpectedDomainOutcomeKey: null,
-            TenantCommandFocusTarget.Submit,
-            TenantCommandLiveRegionPoliteness.Polite);
-    }
-
-    private TenantLifecycleAvailability Blocked(
-        TenantLifecycleOperation operation,
-        TenantLifecycleUnavailableReasonCategory category,
-        string messageKey,
-        TenantCommandFocusTarget focusTarget)
-        => new(
-            TenantId,
-            CurrentStatus,
-            operation,
-            Freshness,
-            SurfaceKind,
-            IsCommandSurfaceConnected,
-            GovernanceReadiness,
-            AuthorizationReflection,
-            IsUnavailable: true,
-            category,
-            messageKey,
-            ExpectedDomainOutcomeKey: null,
-            focusTarget,
-            TenantCommandLiveRegionPoliteness.Assertive);
-
-    private TenantLifecycleAvailability ExpectedSameStateRejection(TenantLifecycleOperation operation, string messageKey)
-        => new(
-            TenantId,
-            CurrentStatus,
-            operation,
-            Freshness,
-            SurfaceKind,
-            IsCommandSurfaceConnected,
-            GovernanceReadiness,
-            AuthorizationReflection,
-            IsUnavailable: true,
-            TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport,
-            messageKey,
-            ExpectedDomainOutcomeKey: "TenantLifecycleStateAlreadySet",
-            TenantCommandFocusTarget.Lifecycle,
-            TenantCommandLiveRegionPoliteness.Polite);
-}
-
+/// <summary>
+/// Carries the lifecycle compatibility result together with the exact shared-kernel evidence that produced it.
+/// </summary>
+/// <param name="TenantId">Literal tenant identifier.</param>
+/// <param name="CurrentStatus">Last-confirmed lifecycle status.</param>
+/// <param name="Operation">Lifecycle operation.</param>
+/// <param name="Freshness">Compatibility projection freshness.</param>
+/// <param name="SurfaceKind">Detail surface state.</param>
+/// <param name="IsCommandSurfaceConnected">Whether action-specific command support is connected.</param>
+/// <param name="GovernanceReadiness">Compatibility admission readiness.</param>
+/// <param name="AuthorizationReflection">Compatibility server-reflected authority.</param>
+/// <param name="IsUnavailable">Whether the requested stage is unavailable.</param>
+/// <param name="UnavailableReasonCategory">Compatibility reason category.</param>
+/// <param name="SafeMessageKey">Whole-string localized result key.</param>
+/// <param name="ExpectedDomainOutcomeKey">Optional safe expected-domain-outcome key.</param>
+/// <param name="FocusTarget">Focus destination for the result.</param>
+/// <param name="LiveRegionPoliteness">Live-region politeness for the result.</param>
+/// <param name="Evidence">Exact shared-kernel evidence retained for authoritative decisions and rendering.</param>
 public sealed record TenantLifecycleAvailability(
     string TenantId,
     TenantStatus CurrentStatus,
@@ -163,4 +36,181 @@ public sealed record TenantLifecycleAvailability(
     string SafeMessageKey,
     string? ExpectedDomainOutcomeKey,
     TenantCommandFocusTarget FocusTarget,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness);
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness,
+    TenantHighImpactActionEvidence? Evidence = null)
+{
+    /// <summary>
+    /// Evaluates shared lifecycle evidence and derives the legacy compatibility fields when they are not supplied.
+    /// </summary>
+    /// <param name="evidence">Exact typed evidence.</param>
+    /// <param name="governanceReadiness">Optional legacy admission override.</param>
+    /// <param name="authorizationReflection">Optional legacy authority override.</param>
+    /// <param name="preferDomainOutcome">Whether the legacy adapter should retain its same-state presentation.</param>
+    /// <returns>The typed and compatibility lifecycle availability result.</returns>
+    public static TenantLifecycleAvailability FromEvidence(
+        TenantHighImpactActionEvidence evidence,
+        TenantLifecycleGovernanceReadiness? governanceReadiness = null,
+        TenantLifecycleAuthorizationReflectionState? authorizationReflection = null,
+        bool preferDomainOutcome = false)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        if (evidence.Action is not TenantHighImpactAction.EnableTenant
+            and not TenantHighImpactAction.DisableTenant)
+        {
+            throw new ArgumentOutOfRangeException(nameof(evidence), evidence.Action, "Lifecycle availability requires a lifecycle action.");
+        }
+
+        TenantHighImpactActionAvailability result = TenantHighImpactActionAvailabilityEvaluator.Evaluate(evidence);
+        TenantLifecycleOperation operation = evidence.Action is TenantHighImpactAction.EnableTenant
+            ? TenantLifecycleOperation.EnableTenant
+            : TenantLifecycleOperation.DisableTenant;
+        TenantLifecycleGovernanceReadiness resolvedGovernance = governanceReadiness
+            ?? evidence.Admission switch
+            {
+                TenantHighImpactAdmissionEvidence.Available => TenantLifecycleGovernanceReadiness.Ready,
+                TenantHighImpactAdmissionEvidence.Busy => TenantLifecycleGovernanceReadiness.Blocked,
+                _ => TenantLifecycleGovernanceReadiness.Unresolved,
+            };
+        TenantLifecycleAuthorizationReflectionState resolvedAuthorization = authorizationReflection
+            ?? evidence.Authority switch
+            {
+                TenantHighImpactAuthorityEvidence.Authorized
+                    => TenantLifecycleAuthorizationReflectionState.Authorized,
+                TenantHighImpactAuthorityEvidence.MissingPermission
+                    => TenantLifecycleAuthorizationReflectionState.MissingPermission,
+                _ => TenantLifecycleAuthorizationReflectionState.Indeterminate,
+            };
+        bool legacyDomainOutcome = preferDomainOutcome
+            && result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
+            && evidence.SurfaceKind is TenantDetailSurfaceKind.Ready
+            && evidence.Freshness is TenantHighImpactFreshnessState.Current
+                or TenantHighImpactFreshnessState.Aging
+            && evidence.ProjectionLifecycle is Hexalith.EventStore.Contracts.Queries.ProjectionLifecycleState.Current;
+        TenantLifecycleUnavailableReasonCategory category = legacyDomainOutcome
+            ? TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport
+            : result.UnavailableReason switch
+        {
+            TenantHighImpactUnavailableReason.MissingPermission => TenantLifecycleUnavailableReasonCategory.MissingPermission,
+            TenantHighImpactUnavailableReason.StaleData => TenantLifecycleUnavailableReasonCategory.StaleData,
+            TenantHighImpactUnavailableReason.MissingLifecycleSupport => TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport,
+            TenantHighImpactUnavailableReason.HighImpactFlowNotReady
+                or TenantHighImpactUnavailableReason.MissingConsequencePreview
+                or TenantHighImpactUnavailableReason.MissingAuditProof
+                => TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady,
+            _ when result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
+                => TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport,
+            _ => TenantLifecycleUnavailableReasonCategory.None,
+        };
+
+        return new(
+            evidence.TenantId,
+            evidence.TenantStatus,
+            operation,
+            ToReadModelFreshness(evidence),
+            evidence.SurfaceKind,
+            evidence.Support is TenantHighImpactSupportEvidence.Ready,
+            resolvedGovernance,
+            resolvedAuthorization,
+            IsUnavailable: legacyDomainOutcome || !result.IsEligible,
+            category,
+            legacyDomainOutcome
+                ? operation is TenantLifecycleOperation.EnableTenant
+                    ? "Tenants.Lifecycle.Unavailable.AlreadyActive"
+                    : "Tenants.Lifecycle.Unavailable.AlreadyDisabled"
+                : ResolveSafeMessageKey(evidence, result, operation),
+            result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
+                ? "TenantLifecycleStateAlreadySet"
+                : null,
+            legacyDomainOutcome
+                ? TenantCommandFocusTarget.Lifecycle
+                : result.UnavailableReason is TenantHighImpactUnavailableReason.StaleData
+                ? TenantCommandFocusTarget.Refresh
+                : result.IsEligible
+                    ? TenantCommandFocusTarget.Submit
+                    : TenantCommandFocusTarget.Lifecycle,
+            result.DomainOutcome is not TenantHighImpactDomainOutcome.None || result.IsEligible
+                ? TenantCommandLiveRegionPoliteness.Polite
+                : TenantCommandLiveRegionPoliteness.Assertive,
+            evidence);
+    }
+
+    /// <summary>
+    /// Re-evaluates the retained evidence for confirmation using the operator's exact input completeness.
+    /// </summary>
+    /// <param name="isInputComplete">Whether the literal tenant identifier has been entered exactly.</param>
+    /// <param name="authorizationReflection">Optional freshly resolved server-reflected authority.</param>
+    /// <returns>The current confirmation-stage availability.</returns>
+    public TenantLifecycleAvailability ForConfirmation(
+        bool isInputComplete,
+        TenantLifecycleAuthorizationReflectionState? authorizationReflection = null)
+        => Evidence is null
+            ? this
+            : FromEvidence(
+                Evidence with
+                {
+                    Stage = TenantHighImpactEvaluationStage.Confirmation,
+                    IsInputComplete = isInputComplete,
+                    Authority = authorizationReflection.HasValue
+                        ? authorizationReflection.Value switch
+                        {
+                            TenantLifecycleAuthorizationReflectionState.Authorized
+                                => TenantHighImpactAuthorityEvidence.Authorized,
+                            TenantLifecycleAuthorizationReflectionState.MissingPermission
+                                => TenantHighImpactAuthorityEvidence.MissingPermission,
+                            _ => TenantHighImpactAuthorityEvidence.Indeterminate,
+                        }
+                        : Evidence.Authority,
+                },
+                authorizationReflection: authorizationReflection);
+
+    private static string ResolveSafeMessageKey(
+        TenantHighImpactActionEvidence evidence,
+        TenantHighImpactActionAvailability result,
+        TenantLifecycleOperation operation)
+    {
+        if (result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
+            && result.UnavailableReason is TenantHighImpactUnavailableReason.None)
+        {
+            return operation is TenantLifecycleOperation.EnableTenant
+                ? "Tenants.Lifecycle.Unavailable.AlreadyActive"
+                : "Tenants.Lifecycle.Unavailable.AlreadyDisabled";
+        }
+
+        return result.UnavailableReason switch
+        {
+            TenantHighImpactUnavailableReason.StaleData
+                when evidence.SurfaceKind is not TenantDetailSurfaceKind.Ready
+                    and not TenantDetailSurfaceKind.Unauthorized
+                    || evidence.Freshness is TenantHighImpactFreshnessState.Stale
+                        or TenantHighImpactFreshnessState.Unknown
+                    || evidence.Freshness is TenantHighImpactFreshnessState.Refreshing
+                        && !evidence.HasCurrentBaseline
+                => "Tenants.Lifecycle.Unavailable.StaleFreshness",
+            TenantHighImpactUnavailableReason.StaleData => "Tenants.Lifecycle.Unavailable.ProjectionLifecycle",
+            TenantHighImpactUnavailableReason.MissingPermission => "Tenants.Lifecycle.Unavailable.MissingPermission",
+            TenantHighImpactUnavailableReason.MissingLifecycleSupport
+                when evidence.TenantStatus is TenantStatus.Unknown
+                => "Tenants.Lifecycle.Unavailable.UnknownStatus",
+            TenantHighImpactUnavailableReason.MissingLifecycleSupport => "Tenants.Lifecycle.Unavailable.CommandSurface",
+            TenantHighImpactUnavailableReason.HighImpactFlowNotReady
+                when evidence.Viewport is not TenantHighImpactViewportState.Safe
+                => "Tenants.Lifecycle.Unavailable.Mobile",
+            TenantHighImpactUnavailableReason.HighImpactFlowNotReady
+                or TenantHighImpactUnavailableReason.MissingConsequencePreview
+                or TenantHighImpactUnavailableReason.MissingAuditProof
+                => "Tenants.Lifecycle.Unavailable.Governance",
+            _ => "Tenants.Lifecycle.Available",
+        };
+    }
+
+    private static ReadModelFreshnessState ToReadModelFreshness(TenantHighImpactActionEvidence evidence)
+        => evidence.Freshness switch
+        {
+            TenantHighImpactFreshnessState.Current => ReadModelFreshnessState.Current,
+            TenantHighImpactFreshnessState.Aging => ReadModelFreshnessState.Aging,
+            TenantHighImpactFreshnessState.Stale => ReadModelFreshnessState.Stale,
+            TenantHighImpactFreshnessState.Refreshing when evidence.HasCurrentBaseline
+                => ReadModelFreshnessState.Current,
+            _ => ReadModelFreshnessState.Unknown,
+        };
+}
