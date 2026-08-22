@@ -100,7 +100,7 @@ development_status:
   3-1-create-tenant-with-projection-confirmation: done
   3-2-edit-tenant-metadata-with-recorded-updates: done
   3-3-lifecycle-and-configuration-availability-guardrail: done
-  3-4-disable-or-enable-tenant-with-complete-preview: in-progress
+  3-4-disable-or-enable-tenant-with-complete-preview: review
   3-5-set-namespaced-configuration-with-complete-preview: backlog
   3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done

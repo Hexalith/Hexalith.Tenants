@@ -188,8 +188,11 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
 
         cut.Find("[data-testid='tenants-lifecycle-enable']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-lifecycle-actions']").TextContent
-            .ShouldContain("already has the requested lifecycle state", Case.Insensitive);
+        string reasonText = cut.Find("#tenants-lifecycle-enable-reason").TextContent;
+        reasonText.ShouldContain("already has the requested lifecycle state", Case.Insensitive);
+        reasonText.Split(
+            "already has the requested lifecycle state",
+            StringSplitOptions.None).Length.ShouldBe(2);
         cut.Find("[data-testid='tenants-lifecycle-live-region']").GetAttribute("aria-live").ShouldBe("polite");
     }
 
@@ -381,8 +384,11 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         remounted.WaitForAssertion(() => remounted.FindComponent<TenantLifecycleCommandFlow>()
             .Instance.Snapshot.MessageId.ShouldBe(stableMessageId));
         gateway.DisableSubmissions.ShouldBe(1);
+        gateway.StatusCalls.ShouldBe(2);
         remountActivity.ShouldBe([true]);
         remounted.Find("[data-testid='tenants-lifecycle-enable']").GetAttribute("disabled").ShouldNotBeNull();
+        remounted.Find("#tenants-lifecycle-disable-reason").GetAttribute("data-reason-category")
+            .ShouldBe("RetainedAttempt");
     }
 
     [Fact]
@@ -409,6 +415,28 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Fact]
+    public void Accepted_tracking_mismatch_fails_closed_without_status_poll_and_releases_activity()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored-by-stub", string.Empty),
+        };
+        List<bool> activity = [];
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = RenderLifecycleAvailability(activity);
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
+            .Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
+        gateway.DisableSubmissions.ShouldBe(1);
+        gateway.StatusCalls.ShouldBe(0);
+        activity.ShouldBe([true, false]);
+    }
+
+    [Fact]
     public void Status_transport_failure_is_unable_to_verify_and_releases_activity()
     {
         var gateway = new StubTenantCommandGateway
@@ -430,6 +458,31 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         activity.ShouldBe([true, false]);
         cut.VisibleText().ShouldNotContain("raw status", Case.Insensitive);
         cut.VisibleText().ShouldNotContain("token", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Pending_status_propagation_retains_attempt_and_activity_without_redispatch()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored-by-stub", "correlation-life"),
+            Status = TenantCommandStatusResult.Pending("Status is not available yet."),
+        };
+        List<bool> activity = [];
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = RenderLifecycleAvailability(activity);
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
+            .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        gateway.DisableSubmissions.ShouldBe(1);
+        gateway.StatusCalls.ShouldBe(1);
+        activity.ShouldBe([true]);
+        cut.Find("[data-testid='tenants-lifecycle-safe-message']").TextContent
+            .ShouldContain("not available yet", Case.Insensitive);
     }
 
     [Fact]
@@ -602,7 +655,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         TenantLifecycleCommandSnapshot tracked = TenantLifecycleCommandSnapshot
             .Idle(detail)
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), detail)
+            .Previewed(
+                new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+                detail,
+                "tenant-sequence:41")
             .RequestSent(
                 new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
                 detail,
@@ -723,6 +779,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-preview']");
         cut.FindAll("[data-testid='tenants-lifecycle-preview-item']").Count.ShouldBe(10);
         cut.Find("[data-testid='tenants-lifecycle-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.VisibleText().ShouldNotContain("tenant-sequence:41", Case.Sensitive);
     }
 
     [Theory]
@@ -846,7 +903,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(currentAuthorization)));
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(currentAuthorization))
+            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+                Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -856,6 +915,115 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         activity.ShouldBeEmpty();
         cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
             .ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Find("[data-testid='tenants-lifecycle-safe-message']").TextContent
+            .ShouldContain("authority", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("version")]
+    [InlineData("tenant")]
+    [InlineData("name")]
+    [InlineData("description")]
+    [InlineData("status")]
+    [InlineData("freshness")]
+    [InlineData("lifecycle")]
+    [InlineData("surface")]
+    public void Changed_authoritative_preview_fact_blocks_before_activity_or_gateway(string mismatch)
+    {
+        StubTenantCommandGateway gateway = new();
+        List<bool> activity = [];
+        RegisterServices(gateway);
+        TenantDetail baseline = Detail("tenant.alpha", TenantStatus.Active);
+        TenantDetailSnapshot proof = mismatch switch
+        {
+            "version" => Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:42"),
+            "tenant" => Proof("Tenant.Alpha", TenantStatus.Active, "tenant-sequence:41"),
+            "name" => TenantDetailSnapshot.Ready(
+                baseline with { Name = "Renamed" },
+                eTag: null,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41"),
+            "description" => TenantDetailSnapshot.Ready(
+                baseline with { Description = "Changed description" },
+                eTag: null,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41"),
+            "status" => Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:41"),
+            "freshness" => Proof(
+                "tenant.alpha",
+                TenantStatus.Active,
+                "tenant-sequence:41",
+                ReadModelFreshnessState.Stale),
+            "lifecycle" => Proof(
+                "tenant.alpha",
+                TenantStatus.Active,
+                "tenant-sequence:41",
+                lifecycle: ProjectionLifecycleState.Stale),
+            "surface" => TenantDetailSnapshot.Stale(
+                baseline,
+                eTag: null,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41"),
+            _ => throw new ArgumentOutOfRangeException(nameof(mismatch)),
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, baseline)
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
+            .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(proof)));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        gateway.DisableSubmissions.ShouldBe(0);
+        activity.ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-lifecycle-safe-message']").TextContent
+            .ShouldContain("changed", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Enable_flow_dispatches_only_enable_with_the_stable_message_id()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Safe terminal failure."),
+        };
+        RegisterServices(gateway);
+        TenantHighImpactActionEvidence enable = HighImpactEvidence(TenantHighImpactAction.EnableTenant) with
+        {
+            TenantStatus = TenantStatus.Disabled,
+        };
+        TenantHighImpactActionEvidence disable = HighImpactEvidence(TenantHighImpactAction.DisableTenant) with
+        {
+            TenantStatus = TenantStatus.Disabled,
+        };
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Disabled))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.EnableEvidence, enable)
+            .Add(component => component.DisableEvidence, disable)
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+                Proof(request.TenantId, TenantStatus.Disabled, "tenant-sequence:41"))));
+
+        cut.Find("[data-testid='tenants-lifecycle-enable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        gateway.EnableSubmissions.ShouldBe(1);
+        gateway.DisableSubmissions.ShouldBe(0);
+        gateway.LastEnableRequest.ShouldNotBeNull().Operation.ShouldBe(TenantLifecycleOperation.EnableTenant);
+        NUlid.Ulid.TryParse(gateway.LastEnableMessageId, out _).ShouldBeTrue();
     }
 
     [Theory]
@@ -1015,6 +1183,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         public string? LastDisableMessageId { get; private set; }
 
+        public TenantLifecycleCommandRequest? LastEnableRequest { get; private set; }
+
+        public string? LastEnableMessageId { get; private set; }
+
+        public int EnableSubmissions { get; private set; }
+
         public int DisableSubmissions { get; private set; }
 
         public int StatusCalls { get; private set; }
@@ -1041,7 +1215,17 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             TenantLifecycleCommandRequest request,
             string? messageId = null,
             CancellationToken cancellationToken = default)
-            => Task.FromResult(Submission with { MessageId = messageId });
+        {
+            LastEnableRequest = request;
+            LastEnableMessageId = messageId;
+            EnableSubmissions++;
+            if (SubmissionException is not null)
+            {
+                return Task.FromException<TenantCommandSubmissionResult>(SubmissionException);
+            }
+
+            return Task.FromResult(Submission with { MessageId = messageId });
+        }
 
         public Task<TenantCommandSubmissionResult> DisableTenantAsync(
             TenantLifecycleCommandRequest request,
@@ -1063,7 +1247,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         {
             StatusCalls++;
             return StatusException is null
-                ? Task.FromResult(Status)
+                ? Task.FromResult(Status.Status is null
+                    ? Status
+                    : Status with { HasVerifiedCommandIdentity = true })
                 : Task.FromException<TenantCommandStatusResult>(StatusException);
         }
     }
@@ -1160,7 +1346,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Preview.KnownUnknowns.Value"] = "Downstream consumers may observe tenant availability asynchronously; audit proof may arrive after projection confirmation.",
             ["Tenants.Lifecycle.Preview.ListTitle"] = "Lifecycle consequence preview",
             ["Tenants.Lifecycle.Preview.ProjectionEvidence"] = "Freshness and projection evidence",
-            ["Tenants.Lifecycle.Preview.ProjectionEvidence.Value"] = "The last confirmed tenant projection shows {0}, freshness {1}, projection version {2}. Confirmation requires exact-command event evidence and a strictly newer version from an authoritative re-query.",
+            ["Tenants.Lifecycle.Preview.ProjectionEvidence.Value"] = "The last confirmed tenant projection shows {0} with {1} freshness. Confirmation requires exact-command event evidence and a strictly newer internal projection marker from an authoritative re-query.",
             ["Tenants.Lifecycle.ProjectionVersion.Unknown"] = "unknown",
             ["Tenants.Lifecycle.Unavailable.ProofRead"] = "Fresh authoritative lifecycle proof could not be read. Refresh tenant detail before submitting.",
             ["Tenants.Lifecycle.Unavailable.PreviewChanged"] = "Tenant identity, lifecycle, freshness, or projection evidence changed while the preview was open. Refresh and review a new complete preview before submitting.",
@@ -1168,9 +1354,19 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Retained.Resume"] = "This lifecycle attempt is still pending. Open it to resume authoritative reconciliation without submitting again.",
             ["Tenants.Lifecycle.Dismissal.Pending"] = "This lifecycle attempt is still pending and cannot be dismissed. Refresh status until it reaches a terminal, support-safe outcome.",
             ["Tenants.Lifecycle.UnableToVerify.Status"] = "The lifecycle command status could not be verified.",
+            ["Tenants.Lifecycle.Status.Pending"] = "The lifecycle command is accepted, but status evidence is not available yet. Keep this attempt open and refresh.",
+            ["Tenants.Lifecycle.UnableToVerify.MissingEventEvidence"] = "The lifecycle command completed without exact event evidence, so the requested outcome cannot be confirmed.",
             ["Tenants.Lifecycle.UnableToVerify.MissingBaseline"] = "The lifecycle outcome cannot be verified because its pre-submit projection baseline is unavailable.",
             ["Tenants.Lifecycle.UnableToVerify.TrackingMismatch"] = "The lifecycle gateway returned tracking evidence for a different logical attempt. No lifecycle success is asserted.",
             ["Tenants.Lifecycle.UnableToVerify.ProofRead"] = "Authoritative lifecycle proof could not be read. No lifecycle success is asserted.",
+            ["Tenants.Lifecycle.Message.Rejected"] = "The lifecycle command was rejected. Refresh tenant detail before taking another action.",
+            ["Tenants.Lifecycle.Message.Rejected.InsufficientPermissions"] = "You are not authorized to submit tenant lifecycle commands.",
+            ["Tenants.Lifecycle.Message.Rejected.TenantDisabled"] = "This tenant is disabled, so this lifecycle command cannot be completed.",
+            ["Tenants.Lifecycle.Message.Rejected.TenantNotFound"] = "The tenant was not found. Refresh tenant detail before taking another action.",
+            ["Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet"] = "The tenant lifecycle already matches the requested state. Refresh tenant detail before taking another action.",
+            ["Tenants.Lifecycle.Message.Failed"] = "The lifecycle command failed before its outcome could be verified.",
+            ["Tenants.Lifecycle.Message.Degraded"] = "The lifecycle command was accepted, but publication could not be verified.",
+            ["Tenants.Lifecycle.Message.UnableToVerify"] = "The lifecycle command outcome could not be verified. Refresh before taking another action.",
             ["Tenants.Lifecycle.Preview.RecoveryPath"] = "Recovery path",
             ["Tenants.Lifecycle.Preview.RecoveryPath.Value"] = "Submit the opposite lifecycle command after refreshed projection evidence shows the current state.",
             ["Tenants.Lifecycle.Preview.TenantIdentity"] = "Tenant identity",

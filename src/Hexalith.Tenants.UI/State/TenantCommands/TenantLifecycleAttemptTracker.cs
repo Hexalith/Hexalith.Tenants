@@ -51,6 +51,13 @@ public sealed class TenantLifecycleAttemptTracker
 
         lock (_sync)
         {
+            if (_snapshotByTenantId.TryGetValue(intent.TenantId, out TenantLifecycleCommandSnapshot? retained)
+                && !string.IsNullOrWhiteSpace(retained.MessageId)
+                && !string.Equals(retained.MessageId, snapshot.MessageId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             _snapshotByTenantId[intent.TenantId] = snapshot;
         }
     }

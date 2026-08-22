@@ -40,6 +40,17 @@ public sealed class TenantLifecycleAttemptTrackerTests
         tracker.Find("tenant.alpha").ShouldBeNull();
     }
 
+    [Fact]
+    public void Late_snapshot_cannot_overwrite_a_newer_retained_attempt()
+    {
+        TenantLifecycleAttemptTracker tracker = new();
+        tracker.Remember(Pending("tenant.alpha", "message-new"));
+
+        tracker.Remember(Pending("tenant.alpha", "message-old"));
+
+        tracker.Find("tenant.alpha").ShouldNotBeNull().MessageId.ShouldBe("message-new");
+    }
+
     private static TenantLifecycleCommandSnapshot Pending(string tenantId, string messageId)
     {
         TenantDetail detail = new(
@@ -53,9 +64,11 @@ public sealed class TenantLifecycleAttemptTrackerTests
         var intent = new TenantLifecycleCommandRequest(tenantId, TenantLifecycleOperation.DisableTenant);
         return TenantLifecycleCommandSnapshot
             .Idle(detail)
-            .Previewed(intent, detail)
+            .Previewed(intent, detail, "tenant-sequence:41")
             .RequestSent(intent, detail, "tenant-sequence:41", messageId)
             .Accepted(TenantCommandSubmissionResult.Accepted(messageId, "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.EventsStored));
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
     }
 }

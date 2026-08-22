@@ -26,7 +26,8 @@ public sealed record TenantLifecycleCommandRequest(
 
 public sealed record TenantCommandTrackingHandle(
     string MessageId,
-    string CorrelationId);
+    string CorrelationId,
+    string? AggregateId = null);
 
 public enum TenantCommandLifecycleState {
     Idle,
@@ -106,9 +107,19 @@ public sealed record TenantCommandStatusResult(
     CommandStatus? Status,
     string? SafeMessage = null,
     string? RejectionCode = null,
-    int? EventCount = null) {
+    int? EventCount = null,
+    bool IsPending = false,
+    bool HasVerifiedCommandIdentity = false) {
     public static TenantCommandStatusResult Unknown(string safeMessage)
         => new(null, safeMessage);
+
+    /// <summary>
+    /// Represents normal status-store propagation lag without terminating the tracked command attempt.
+    /// </summary>
+    /// <param name="safeMessage">Support-safe pending status text.</param>
+    /// <returns>A pending status lookup result.</returns>
+    public static TenantCommandStatusResult Pending(string safeMessage)
+        => new(null, safeMessage, IsPending: true);
 }
 
 public sealed record TenantCreateCommandSnapshot(
@@ -1832,6 +1843,7 @@ public sealed record TenantLifecycleCommandSnapshot(
     bool IsPreviewComplete = false,
     string? MessageId = null,
     string? CorrelationId = null,
+    string? PreviewProjectionVersion = null,
     string? BaselineProjectionVersion = null,
     bool HasCommandEventEvidence = false,
     string? SafeMessage = null,
@@ -1871,10 +1883,12 @@ public sealed record TenantLifecycleCommandSnapshot(
 
     public TenantLifecycleCommandSnapshot Previewed(
         TenantLifecycleCommandRequest intent,
-        TenantDetailProjection lastConfirmedProjection)
+        TenantDetailProjection lastConfirmedProjection,
+        string previewProjectionVersion)
     {
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(lastConfirmedProjection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(previewProjectionVersion);
 
         return this with
         {
@@ -1882,6 +1896,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             Intent = intent,
             LastConfirmedStatus = lastConfirmedProjection.Status,
             LastConfirmedProjection = lastConfirmedProjection,
+            PreviewProjectionVersion = previewProjectionVersion,
             IsPreviewComplete = true,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -1930,6 +1945,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             LastConfirmedProjection = lastConfirmedProjection,
             MessageId = messageId,
             CorrelationId = null,
+            PreviewProjectionVersion = baselineProjectionVersion,
             BaselineProjectionVersion = baselineProjectionVersion,
             HasCommandEventEvidence = false,
             SafeMessage = null,
@@ -1963,17 +1979,39 @@ public sealed record TenantLifecycleCommandSnapshot(
     {
         ArgumentNullException.ThrowIfNull(status);
 
+        if (HasTerminalOwnership
+            || State is TenantCommandLifecycleState.AlreadyApplied)
+        {
+            return this;
+        }
+
+        if (status.IsPending)
+        {
+            return this with
+            {
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Lifecycle.Status.Pending",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
         if (status.Status is null)
         {
             return this with
             {
                 State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Lifecycle.UnableToVerify.Status",
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
+        }
+
+        if (!status.HasVerifiedCommandIdentity)
+        {
+            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
         }
 
         return status.Status.Value switch
@@ -1997,6 +2035,9 @@ public sealed record TenantLifecycleCommandSnapshot(
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                 },
             CommandStatus.Completed
+                when status.EventCount is not > 0
+                => UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingEventEvidence"),
+            CommandStatus.Completed
                 => this with
                 {
                     State = TenantCommandLifecycleState.ProjectionPending,
@@ -2010,8 +2051,15 @@ public sealed record TenantLifecycleCommandSnapshot(
                 => this with
                 {
                     State = TenantCommandLifecycleState.Rejected,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = null,
+                    SafeMessageKey = status.RejectionCode switch
+                    {
+                        "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
+                        "TenantDisabled" => "Tenants.Lifecycle.Message.Rejected.TenantDisabled",
+                        "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
+                        "TenantLifecycleStateAlreadySet" => "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet",
+                        _ => "Tenants.Lifecycle.Message.Rejected",
+                    },
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -2021,8 +2069,8 @@ public sealed record TenantLifecycleCommandSnapshot(
                 => this with
                 {
                     State = TenantCommandLifecycleState.Degraded,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.Lifecycle.Message.Degraded",
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -2031,8 +2079,8 @@ public sealed record TenantLifecycleCommandSnapshot(
                 => this with
                 {
                     State = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.Lifecycle.Message.UnableToVerify",
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -2044,9 +2092,6 @@ public sealed record TenantLifecycleCommandSnapshot(
     public TenantLifecycleCommandSnapshot SignalRNudge()
         => this with
         {
-            State = State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.RequestSent
-                ? TenantCommandLifecycleState.ProjectionPending
-                : State,
             FocusTarget = TenantCommandFocusTarget.Refresh,
         };
 
@@ -2060,6 +2105,11 @@ public sealed record TenantLifecycleCommandSnapshot(
         if (Intent is null)
         {
             return this;
+        }
+
+        if (!Enum.IsDefined(Intent.Operation))
+        {
+            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
         }
 
         TenantDetailProjection? detailEvidence = proof?.Detail;

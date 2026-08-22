@@ -850,7 +850,7 @@
     <value>Fraîcheur et preuve de projection</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.ProjectionEvidence.Value" xml:space="preserve">
-    <value>La dernière projection confirmée indique {0}, fraîcheur {1}, version de projection {2}. La confirmation exige la preuve d'événement de la commande exacte et une version strictement plus récente issue d'une nouvelle requête faisant autorité.</value>
+    <value>La dernière projection locataire confirmée indique {0} avec une fraîcheur {1}. La confirmation exige la preuve d'événement de la commande exacte et un marqueur de projection interne strictement plus récent issu d'une nouvelle requête faisant autorité.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance" xml:space="preserve">
     <value>Faits d'autorisation et de gouvernance</value>
@@ -924,6 +924,12 @@
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>L'état de la commande de cycle de vie n'a pas pu être vérifié.</value>
   </data>
+  <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
+    <value>La commande de cycle de vie est acceptée, mais la preuve d'état n'est pas encore disponible. Gardez cette tentative ouverte et actualisez.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.MissingEventEvidence" xml:space="preserve">
+    <value>La commande de cycle de vie s'est terminée sans preuve d'événement exacte ; le résultat demandé ne peut donc pas être confirmé.</value>
+  </data>
   <data name="Tenants.Lifecycle.UnableToVerify.MissingBaseline" xml:space="preserve">
     <value>Le résultat de cycle de vie ne peut pas être vérifié car sa projection de référence avant soumission est indisponible.</value>
   </data>
@@ -932,6 +938,30 @@
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.ProofRead" xml:space="preserve">
     <value>La preuve de cycle de vie faisant autorité n'a pas pu être lue. Aucun succès de cycle de vie n'est affirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected" xml:space="preserve">
+    <value>La commande de cycle de vie a été rejetée. Actualisez les détails du locataire avant toute autre action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.InsufficientPermissions" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à soumettre des commandes de cycle de vie du locataire.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; cette commande de cycle de vie ne peut donc pas être exécutée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantNotFound" xml:space="preserve">
+    <value>Le locataire est introuvable. Actualisez les détails du locataire avant toute autre action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet" xml:space="preserve">
+    <value>Le cycle de vie du locataire correspond déjà à l'état demandé. Actualisez les détails avant toute autre action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Failed" xml:space="preserve">
+    <value>La commande de cycle de vie a échoué avant que son résultat puisse être vérifié.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Degraded" xml:space="preserve">
+    <value>La commande de cycle de vie a été acceptée, mais sa publication n'a pas pu être vérifiée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.UnableToVerify" xml:space="preserve">
+    <value>Le résultat de la commande de cycle de vie n'a pas pu être vérifié. Actualisez avant toute autre action.</value>
   </data>
   <data name="Tenants.Lifecycle.State.Idle" xml:space="preserve">
     <value>Aucune commande de cycle de vie n'a été soumise.</value>

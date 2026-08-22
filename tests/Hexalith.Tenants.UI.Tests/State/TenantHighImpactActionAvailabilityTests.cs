@@ -63,6 +63,27 @@ public sealed class TenantHighImpactActionAvailabilityTests
     }
 
     [Theory]
+    [InlineData(TenantHighImpactAction.EnableTenant, TenantStatus.Active, TenantHighImpactTargetState.NotApplicable)]
+    [InlineData(TenantHighImpactAction.SetConfiguration, TenantStatus.Disabled, TenantHighImpactTargetState.Unknown)]
+    [InlineData(TenantHighImpactAction.SetConfiguration, TenantStatus.Active, TenantHighImpactTargetState.AlreadyApplied)]
+    [InlineData(TenantHighImpactAction.RemoveConfiguration, TenantStatus.Active, TenantHighImpactTargetState.Missing)]
+    public void Stale_evidence_never_exposes_an_otherwise_derivable_domain_outcome(
+        TenantHighImpactAction action,
+        TenantStatus status,
+        TenantHighImpactTargetState targetState)
+    {
+        TenantHighImpactActionAvailability result = Evaluate(Qualifying(action) with
+        {
+            TenantStatus = status,
+            TargetState = targetState,
+            Freshness = TenantHighImpactFreshnessState.Stale,
+        });
+
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.StaleData);
+        result.DomainOutcome.ShouldBe(TenantHighImpactDomainOutcome.None);
+    }
+
+    [Theory]
     [InlineData(TenantHighImpactUnavailableReason.MissingPermission)]
     [InlineData(TenantHighImpactUnavailableReason.MissingLifecycleSupport)]
     [InlineData(TenantHighImpactUnavailableReason.MissingConsequencePreview)]
@@ -277,6 +298,24 @@ public sealed class TenantHighImpactActionAvailabilityTests
         }).UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.MissingAuditProof);
         Evaluate(evidence with { Viewport = (TenantHighImpactViewportState)999 }).IsEligible.ShouldBeFalse();
         Evaluate(evidence with { TargetState = (TenantHighImpactTargetState)999 }).IsEligible.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(TenantHighImpactAction.DisableTenant, TenantHighImpactTargetState.Present)]
+    [InlineData(TenantHighImpactAction.SetConfiguration, TenantHighImpactTargetState.Missing)]
+    [InlineData(TenantHighImpactAction.RemoveConfiguration, TenantHighImpactTargetState.AlreadyApplied)]
+    public void Invalid_action_target_combination_reports_stale_data_and_refresh_recovery(
+        TenantHighImpactAction action,
+        TenantHighImpactTargetState targetState)
+    {
+        TenantHighImpactActionAvailability result = Evaluate(Qualifying(action) with
+        {
+            TargetState = targetState,
+        });
+
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.StaleData);
+        result.SafeMessageKey.ShouldBe("Tenants.HighImpact.Unavailable.StaleData");
+        result.RecoveryKey.ShouldBe("Tenants.HighImpact.Recovery.StaleData");
     }
 
     [Fact]

@@ -1586,7 +1586,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
-    public async Task Status_lookup_maps_not_found_to_unable_to_verify_without_raw_details()
+    public async Task Status_lookup_maps_not_found_to_pending_without_raw_details()
     {
         StatusHandler handler = new("{}", HttpStatusCode.NotFound);
         TenantCommandGateway gateway = new(
@@ -1599,9 +1599,75 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.Status.ShouldBeNull();
+        result.IsPending.ShouldBeTrue();
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldBe("Command status is not available yet.");
         safeMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Lifecycle_status_lookup_verifies_message_and_aggregate_identity()
+    {
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-123",
+              "status": "Completed",
+              "statusCode": 4,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 1,
+              "rejectionEventType": null,
+              "failureReason": null,
+              "timeoutDuration": null,
+              "messageId": "message-123"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-123")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-123", "correlation-123", "tenant.alpha"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Completed);
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("message-other", "tenant.alpha")]
+    [InlineData("message-123", "Tenant.Alpha")]
+    public async Task Lifecycle_status_lookup_rejects_mismatched_command_identity(
+        string messageId,
+        string aggregateId)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-123",
+              "status": "Completed",
+              "statusCode": 4,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "{{aggregateId}}",
+              "eventCount": 1,
+              "rejectionEventType": null,
+              "failureReason": null,
+              "timeoutDuration": null,
+              "messageId": "{{messageId}}"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-123")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-123", "correlation-123", "tenant.alpha"),
+            CancellationToken.None);
+
+        result.Status.ShouldBeNull();
+        result.HasVerifiedCommandIdentity.ShouldBeFalse();
+        result.SafeMessage.ShouldBe("Command status response did not match the tracked lifecycle command.");
     }
 
     [Fact]

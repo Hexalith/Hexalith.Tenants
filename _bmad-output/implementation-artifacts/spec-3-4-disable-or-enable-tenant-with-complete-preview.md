@@ -2,7 +2,7 @@
 title: 'Disable or Enable Tenant with Complete Preview'
 type: 'feature'
 created: '2026-08-22'
-status: 'in-review'
+status: 'done'
 baseline_commit: '536e5c33230f2c2b04b80fb07ed0be631db9b5db'
 review_loop_iteration: 0
 context:
@@ -47,6 +47,14 @@ context:
 - `src/Hexalith.Tenants.UI/Resources/TenantsResources*.resx` and lifecycle CSS -- whole-string EN/FR availability-control, proof, dismissal, focus, and forced-colors behavior.
 - `src/Hexalith.Tenants.Contracts/**` and `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` -- read-only; commands, rejections, authorization, and events already exist.
 
+## File List
+
+- `references/Hexalith.FrontComposer`
+
+## Completion Notes List
+
+- The reviewed baseline-to-head range already includes the user-authored `references/Hexalith.FrontComposer` pointer movement. This review preserves that root-submodule pointer and does not modify submodule content.
+
 ## Tasks & Acceptance
 
 **Execution:**
@@ -72,3 +80,49 @@ Lifecycle proof is conjunctive: exact tracked-command event evidence AND intende
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false` -- expected: zero warnings and errors.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` -- expected: all UI tests pass.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md` -- expected: no undeclared gitlink movement.
+
+## Suggested Review Order
+
+**Submit boundary and preview integrity**
+
+- Revalidates captured authoritative facts and serializes dispatch before any command leaves the UI.
+  [`TenantLifecycleCommandFlow.razor:489`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L489)
+
+- Rejects every preview/proof mismatch against the immutable preview snapshot.
+  [`TenantLifecycleCommandFlow.razor:710`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L710)
+
+**Causal reconciliation and retained ownership**
+
+- Keeps status monotonic and requires verified identity plus event evidence.
+  [`TenantCreateCommandModels.cs:1978`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L1978)
+
+- Confirms only intended authoritative state after a strictly newer comparable projection.
+  [`TenantCreateCommandModels.cs:2103`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L2103)
+
+- Prevents stale renders from replacing a newer retained logical attempt.
+  [`TenantLifecycleAttemptTracker.cs:45`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs#L45)
+
+**Proof and command identity boundaries**
+
+- Fetches lifecycle proof independently from mutable page state.
+  [`TenantQueryGateway.cs:296`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs#L296)
+
+- Cancels route-stale proof reads before returning evidence to the flow.
+  [`TenantDetailPage.razor:2075`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L2075)
+
+- Verifies returned message and aggregate identity for lifecycle status.
+  [`TenantCommandGateway.cs:432`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L432)
+
+**Regression evidence and localized states**
+
+- Exercises remount adoption without redispatch or dismissing retained ownership.
+  [`TenantLifecycleActionAvailabilityTests.cs:354`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L354)
+
+- Proves every changed preview fact blocks before activity and dispatch.
+  [`TenantLifecycleActionAvailabilityTests.cs:931`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L931)
+
+- Covers conjunctive proof, pending propagation, and terminal monotonicity.
+  [`TenantLifecycleCommandSnapshotTests.cs:18`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleCommandSnapshotTests.cs#L18)
+
+- Keeps EN/FR pending and rejection outcomes whole-string and support-safe.
+  [`TenantsResources.resx:927`](../../src/Hexalith.Tenants.UI/Resources/TenantsResources.resx#L927)

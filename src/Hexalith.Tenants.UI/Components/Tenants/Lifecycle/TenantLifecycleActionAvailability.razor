@@ -93,7 +93,7 @@
                    class="tenant-lifecycle__reason"
                    tabindex="0"
                    data-testid="tenants-lifecycle-unavailable-reason"
-                   data-reason-category="@ReasonCategory(highImpact)">
+                   data-reason-category="@ReasonCategory(availability, highImpact)">
                     <span data-testid="@(actionId + "-reason")">@HighImpactReason(availability, highImpact)</span>
                 </p>
                 <p id="@recoveryId"
@@ -248,8 +248,12 @@
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
             : Localizer[highImpact.SafeMessageKey].Value;
 
-    private string ReasonCategory(TenantHighImpactActionAvailability highImpact)
-        => !IsCommandSurfaceAvailable && highImpact.IsEligible
+    private string ReasonCategory(
+        TenantLifecycleAvailability availability,
+        TenantHighImpactActionAvailability highImpact)
+        => CanResumeRetained(availability)
+            ? "RetainedAttempt"
+            : !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? "InFlightOrCommandSurface"
             : highImpact.UnavailableReason.ToString();
 

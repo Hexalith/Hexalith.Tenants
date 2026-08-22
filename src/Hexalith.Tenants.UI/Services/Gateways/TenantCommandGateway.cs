@@ -409,7 +409,7 @@ internal sealed class TenantCommandGateway(
                 .ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound) {
-                return TenantCommandStatusResult.Unknown("Command status is not available yet.");
+                return TenantCommandStatusResult.Pending("Command status is not available yet.");
             }
 
             if (!response.IsSuccessStatusCode) {
@@ -427,11 +427,20 @@ internal sealed class TenantCommandGateway(
                 return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
             }
 
+            bool hasVerifiedCommandIdentity = !string.IsNullOrWhiteSpace(status.MessageId)
+                && string.Equals(status.MessageId, handle.MessageId, StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(handle.AggregateId)
+                    || string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(handle.AggregateId) && !hasVerifiedCommandIdentity) {
+                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked lifecycle command.");
+            }
+
             return new TenantCommandStatusResult(
                 parsedStatus,
                 SafeMessageForStatus(parsedStatus, status.RejectionEventType, status.FailureReason),
                 SafeRejectionCode(status.RejectionEventType),
-                status.EventCount);
+                status.EventCount,
+                HasVerifiedCommandIdentity: hasVerifiedCommandIdentity);
         }
         catch (JsonException) {
             return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
@@ -989,5 +998,6 @@ internal sealed class TenantCommandGateway(
         int? EventCount,
         string? RejectionEventType,
         string? FailureReason,
-        string? TimeoutDuration);
+        string? TimeoutDuration,
+        string? MessageId = null);
 }

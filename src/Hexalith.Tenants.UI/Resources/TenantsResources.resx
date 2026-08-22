@@ -850,7 +850,7 @@
     <value>Freshness and projection evidence</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.ProjectionEvidence.Value" xml:space="preserve">
-    <value>The last confirmed tenant projection shows {0}, freshness {1}, projection version {2}. Confirmation requires exact-command event evidence and a strictly newer version from an authoritative re-query.</value>
+    <value>The last confirmed tenant projection shows {0} with {1} freshness. Confirmation requires exact-command event evidence and a strictly newer internal projection marker from an authoritative re-query.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance" xml:space="preserve">
     <value>Authorization and governance facts</value>
@@ -924,6 +924,12 @@
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>The lifecycle command status could not be verified.</value>
   </data>
+  <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
+    <value>The lifecycle command is accepted, but status evidence is not available yet. Keep this attempt open and refresh.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.MissingEventEvidence" xml:space="preserve">
+    <value>The lifecycle command completed without exact event evidence, so the requested outcome cannot be confirmed.</value>
+  </data>
   <data name="Tenants.Lifecycle.UnableToVerify.MissingBaseline" xml:space="preserve">
     <value>The lifecycle outcome cannot be verified because its pre-submit projection baseline is unavailable.</value>
   </data>
@@ -932,6 +938,30 @@
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.ProofRead" xml:space="preserve">
     <value>Authoritative lifecycle proof could not be read. No lifecycle success is asserted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected" xml:space="preserve">
+    <value>The lifecycle command was rejected. Refresh tenant detail before taking another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.InsufficientPermissions" xml:space="preserve">
+    <value>You are not authorized to submit tenant lifecycle commands.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so this lifecycle command cannot be completed.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantNotFound" xml:space="preserve">
+    <value>The tenant was not found. Refresh tenant detail before taking another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet" xml:space="preserve">
+    <value>The tenant lifecycle already matches the requested state. Refresh tenant detail before taking another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Failed" xml:space="preserve">
+    <value>The lifecycle command failed before its outcome could be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.Degraded" xml:space="preserve">
+    <value>The lifecycle command was accepted, but publication could not be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Message.UnableToVerify" xml:space="preserve">
+    <value>The lifecycle command outcome could not be verified. Refresh before taking another action.</value>
   </data>
   <data name="Tenants.Lifecycle.State.Idle" xml:space="preserve">
     <value>No lifecycle command has been submitted.</value>
