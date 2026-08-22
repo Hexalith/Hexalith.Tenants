@@ -246,6 +246,9 @@ internal static class TenantConfigurationSafeComposer
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(members);
+
+        // Lifecycle status never gates mutation authority itself -- a disabled tenant blocks
+        // configuration through the separate TenantDisabled domain outcome, not by revoking role.
         _ = tenantStatus;
 
         if (policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator)

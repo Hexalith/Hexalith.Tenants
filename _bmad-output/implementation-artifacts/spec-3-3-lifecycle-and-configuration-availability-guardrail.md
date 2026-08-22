@@ -48,6 +48,12 @@ context:
 - `src/Hexalith.Tenants.UI/Resources/TenantsResources*.resx` -- whole-string resources with named-placeholder parity.
 - `tests/Hexalith.Tenants.UI.Tests/{State,Components,Services}` -- gate matrix, authority/scope, viewport, accessibility, localization, support-safety, and zero-dispatch coverage.
 
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+
 ## Tasks & Acceptance
 
 **Execution:**
@@ -63,7 +69,24 @@ context:
 - Given all entry/confirmation inputs qualify, when an action is used, then only its existing complete-preview flow opens and the guardrail creates no attempt state or gateway call.
 - Given mobile/indeterminate viewport and EN/FR assistive use, when slots render, then mutation stays read-only and identity, status, freshness, action, reason, and recovery remain associated through stable selectors and whole strings.
 
+### Review Findings
+
+- [x] [Review][Decision] 3 undeclared submodule gitlink bumps in review range — resolved: DECLARED. `references/Hexalith.Builds`, `references/Hexalith.EventStore`, `references/Hexalith.FrontComposer` added to the File List above; `scripts/validate-story-gitlinks.py` now PASSes.
+- [x] [Review][Patch] Domain outcome leaks into infrastructure-failure block reasons [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:21] — fixed: `DomainOutcome` now requires confirmed `Authority` (+ `NamespaceScope` for `TenantDisabled`) itself, and is computed only after the read-trustworthiness gates (surface/freshness/projection-lifecycle/tenant status), so it never accompanies `StaleData` or `MissingPermission`, but can still legitimately accompany a later command-readiness block (viewport/admission/preview/proof) once the fact itself is confirmed.
+- [x] [Review][Patch] Domain-outcome text renders twice in the lifecycle reason block [src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor:96] — fixed: removed the redundant `<small>` element; `HighImpactReason`'s `SafeMessageKey` already carries the domain-outcome sentence in the only case it's legitimately shown.
+- [x] [Review][Patch] `data-reason-category` can disagree with the rendered reason text [src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor:94] — fixed: added a `ReasonCategory` helper mirroring `HighImpactReason`'s command-surface special case.
+- [x] [Review][Patch] `HighImpactFlowNotReady` conflates invalid target state with unsafe-viewport/busy-admission, giving misleading recovery copy [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:105] — fixed: split into its own `StaleData`-reported gate, consistent with how other malformed-evidence checks in this evaluator are reported.
+- [x] [Review][Patch] New French resx strings are missing required diacritics [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx] — fixed: corrected ~30 new strings across both resx and their bUnit test expectations.
+- [x] [Review][Patch] Dead `tenantStatus` parameter discarded in both `ResolveAuthority` overloads [src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:1673] — documented: added a comment on the members-based overload (matching the existing one on the safe-model overload) explaining lifecycle status never gates mutation authority itself.
+- [x] [Review][Patch] Narrow-viewport `display:none` rules deleted without restoring the accessibility guard they existed for [src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css, src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css] — fixed: restored both deleted rules.
+- [x] [Review][Patch] Duplicated ternary branch in target-state computation [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:361] — fixed: simplified using the existing `configurationAction` flag.
+- [x] [Review][Patch] `ITenantsBffComposition` default reauthorization overload discards `Members`, and the only test double relies on that default, masking a regression the story exists to prevent [src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs:82, tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:5721] — fixed: `StubTenantsBffComposition` now overrides the `TenantDetail`-based overload directly, capturing the sanitized detail; the page-integration test asserts `Members` were threaded through.
+- [x] [Review][Patch] `TenantConfigurationManagementContext.Available(...)` defaults `authorityState` to `TenantOwner` when omitted; only test call sites omit it [src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85] — documented: added a remark clarifying production always passes an explicit value and the default is a test-compilation convenience only.
+- [x] [Review][Patch] `TenantHighImpactSupportEvidence` doc comment claims action-specific support, but production derives it from one shared connectivity flag for all four actions [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactSupportEvidence.cs] — fixed: corrected the doc comment to describe current composition accurately.
+
 ## Spec Change Log
+
+- 2026-08-22: Declared `references/Hexalith.Builds`, `references/Hexalith.EventStore`, and `references/Hexalith.FrontComposer` in the File List above. These 3 submodule pointer bumps (from commit `536e5c33`, layered on top of this story's `d81b9b3a`) were flagged UNDECLARED by `scripts/validate-story-gitlinks.py` during code review; declared per the code-review decision rather than reverted, since they carry dependency updates this story's implementation and test run built and verified against.
 
 ## Design Notes
 

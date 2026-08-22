@@ -3453,11 +3453,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> EnableTenantAsync(
             TenantLifecycleCommandRequest request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> DisableTenantAsync(
             TenantLifecycleCommandRequest request,
+            string? messageId = null,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

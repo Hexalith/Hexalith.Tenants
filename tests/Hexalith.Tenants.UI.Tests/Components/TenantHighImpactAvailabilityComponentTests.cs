@@ -179,7 +179,7 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
 
     [Theory]
     [InlineData("en", "Active", "Aging", "Set configuration", "aging or refreshing", "No recovery")]
-    [InlineData("fr", "Actif", "Vieillissante", "Definir la configuration", "vieillit ou est en cours", "Aucune recuperation")]
+    [InlineData("fr", "Actif", "Vieillissante", "Définir la configuration", "vieillit ou est en cours", "Aucune récupération")]
     public void English_and_french_configuration_facts_keep_whole_associated_strings(
         string cultureName,
         string expectedStatus,

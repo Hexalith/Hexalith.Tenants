@@ -1,4 +1,6 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -10,179 +12,189 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantLifecycleCommandSnapshotTests
 {
-    [Fact]
-    public void Disable_tenant_confirms_only_when_projection_shows_disabled()
+    [Theory]
+    [InlineData(TenantLifecycleOperation.DisableTenant, TenantStatus.Active, TenantStatus.Disabled)]
+    [InlineData(TenantLifecycleOperation.EnableTenant, TenantStatus.Disabled, TenantStatus.Active)]
+    public void Lifecycle_confirms_only_from_command_events_intended_status_and_newer_authoritative_version(
+        TenantLifecycleOperation operation,
+        TenantStatus baselineStatus,
+        TenantStatus intendedStatus)
     {
-        var intent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant);
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(intent, Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        TenantLifecycleCommandSnapshot snapshot = Pending(operation, baselineStatus, hasEventEvidence: true);
 
-        TenantLifecycleCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Active));
-
-        withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        withoutEvidence.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
-
-        TenantLifecycleCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Disabled));
+        TenantLifecycleCommandSnapshot confirmed = snapshot.ConfirmProjection(
+            Proof("tenant.alpha", intendedStatus, "tenant-sequence:42"));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        confirmed.LastConfirmedStatus.ShouldBe(TenantStatus.Disabled);
+        confirmed.LastConfirmedStatus.ShouldBe(intendedStatus);
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
-    [Fact]
-    public void Enable_tenant_confirms_only_when_projection_shows_active()
+    [Theory]
+    [InlineData(false, TenantStatus.Disabled, "tenant-sequence:42")]
+    [InlineData(true, TenantStatus.Active, "tenant-sequence:42")]
+    [InlineData(true, TenantStatus.Disabled, "tenant-sequence:41")]
+    [InlineData(true, TenantStatus.Disabled, "tenant-sequence:40")]
+    [InlineData(true, TenantStatus.Disabled, "opaque-version")]
+    public void Disable_withholds_confirmation_when_any_causal_proof_conjunct_is_missing(
+        bool hasEventEvidence,
+        TenantStatus projectedStatus,
+        string projectedVersion)
     {
-        var intent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant);
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Disabled))
-            .Previewed(intent, Detail("tenant.alpha", TenantStatus.Disabled))
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        TenantLifecycleCommandSnapshot snapshot = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence);
 
-        TenantLifecycleCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Disabled));
+        TenantLifecycleCommandSnapshot result = snapshot.ConfirmProjection(
+            Proof("tenant.alpha", projectedStatus, projectedVersion));
 
-        withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        withoutEvidence.LastConfirmedStatus.ShouldBe(TenantStatus.Disabled);
-
-        TenantLifecycleCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Active));
-
-        confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        confirmed.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
-    public void Signalr_nudge_never_confirms_lifecycle_without_projection_evidence()
+    public void Signalr_is_only_a_refresh_nudge_and_cannot_supply_command_event_evidence()
     {
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
+        TenantLifecycleCommandSnapshot snapshot = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
         TenantLifecycleCommandSnapshot nudged = snapshot.SignalRNudge();
+        TenantLifecycleCommandSnapshot result = nudged.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"));
 
         nudged.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        nudged.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
-        nudged.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        nudged.HasCommandEventEvidence.ShouldBeFalse();
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
     }
 
     [Theory]
-    [InlineData(CommandStatus.Received, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Processing, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsStored, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsPublished, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Completed, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
-    public void Lifecycle_status_results_remain_distinct_before_projection_confirmation(
-        CommandStatus status,
-        TenantCommandLifecycleState expectedState,
-        TenantCommandAuditState expectedAudit,
-        TenantCommandLiveRegionPoliteness expectedPoliteness)
+    [InlineData("Tenant.Alpha", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, TenantDetailSurfaceKind.Ready)]
+    [InlineData("tenant.alpha", ReadModelFreshnessState.Stale, ProjectionLifecycleState.Current, TenantDetailSurfaceKind.Ready)]
+    [InlineData("tenant.alpha", ReadModelFreshnessState.Current, ProjectionLifecycleState.Stale, TenantDetailSurfaceKind.Ready)]
+    [InlineData("tenant.alpha", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, TenantDetailSurfaceKind.Stale)]
+    public void Wrong_scope_or_non_authoritative_projection_never_confirms(
+        string tenantId,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        TenantDetailSurfaceKind kind)
     {
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe lifecycle status message.", "TenantDisabled"));
+        TenantLifecycleCommandSnapshot snapshot = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true);
+        TenantDetailSnapshot proof = kind is TenantDetailSurfaceKind.Ready
+            ? Proof(tenantId, TenantStatus.Disabled, "tenant-sequence:42", freshness, lifecycle)
+            : TenantDetailSnapshot.Stale(
+                Detail(tenantId, TenantStatus.Disabled),
+                eTag: null,
+                lifecycle,
+                "tenant-sequence:42");
 
-        snapshot.State.ShouldBe(expectedState);
-        snapshot.AuditState.ShouldBe(expectedAudit);
-        snapshot.LiveRegionPoliteness.ShouldBe(expectedPoliteness);
-        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-        snapshot.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
-    }
+        TenantLifecycleCommandSnapshot result = snapshot.ConfirmProjection(proof);
 
-    [Fact]
-    public void Missing_command_status_is_unable_to_verify_with_unavailable_audit()
-    {
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(TenantCommandStatusResult.Unknown("Lifecycle command status is unavailable."));
-
-        snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        snapshot.SafeMessage.ShouldBe("Lifecycle command status is unavailable.");
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
-        snapshot.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-        snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
-        snapshot.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
-    }
-
-    [Fact]
-    public void Blocked_and_duplicate_lifecycle_states_are_assertive_non_success_states()
-    {
-        TenantLifecycleCommandSnapshot blocked = TenantLifecycleCommandSnapshot.Blocked(
-            "Lifecycle command support is unavailable.",
-            TenantCommandFocusTarget.Submit);
-        TenantLifecycleCommandSnapshot duplicate = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .DuplicatePrevented("A lifecycle command is already in progress.");
-
-        blocked.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        blocked.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
-        blocked.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
-        blocked.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-
-        duplicate.State.ShouldBe(TenantCommandLifecycleState.DuplicatePrevented);
-        duplicate.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
-        duplicate.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
-        duplicate.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
-        duplicate.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
     }
 
     [Theory]
+    [InlineData(CommandStatus.Received, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending)]
+    [InlineData(CommandStatus.Processing, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending)]
+    [InlineData(CommandStatus.EventsStored, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending)]
+    [InlineData(CommandStatus.EventsPublished, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending)]
+    [InlineData(CommandStatus.Completed, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending)]
     [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable)]
     [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed)]
     [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed)]
-    public void Projection_evidence_cannot_convert_terminal_lifecycle_non_success_states_to_confirmed(
+    public void Command_status_results_remain_distinct_before_projection_confirmation(
         CommandStatus status,
         TenantCommandLifecycleState expectedState,
         TenantCommandAuditState expectedAudit)
     {
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
+        TenantLifecycleCommandSnapshot snapshot = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success lifecycle message.", "TenantDisabled"));
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe lifecycle status.", "TenantDisabled", EventCount: 1));
 
-        TenantLifecycleCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Disabled));
+        snapshot.State.ShouldBe(expectedState);
+        snapshot.AuditState.ShouldBe(expectedAudit);
+        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
 
-        withProjectionEvidence.State.ShouldBe(expectedState);
-        withProjectionEvidence.AuditState.ShouldBe(expectedAudit);
-        withProjectionEvidence.LastConfirmedStatus.ShouldBe(TenantStatus.Disabled);
-        withProjectionEvidence.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    [Theory]
+    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected)]
+    [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded)]
+    [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify)]
+    public void Matching_projection_cannot_convert_terminal_non_success_to_confirmed(
+        CommandStatus status,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantLifecycleCommandSnapshot terminal = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success.", EventCount: 1));
+
+        TenantLifecycleCommandSnapshot result = terminal.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"));
+
+        result.State.ShouldBe(expectedState);
+        result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
-    public void Rejected_lifecycle_state_remains_non_success_even_when_projection_matches()
+    public void Unknown_status_is_terminal_unable_to_verify_and_retains_support_safe_message()
     {
-        TenantLifecycleCommandSnapshot snapshot = TenantLifecycleCommandSnapshot
-            .Idle(Detail("tenant.alpha", TenantStatus.Active))
-            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), Detail("tenant.alpha", TenantStatus.Active))
-            .RequestSent()
-            .ApplyStatus(new TenantCommandStatusResult(
-                CommandStatus.Rejected,
-                "The lifecycle already matches the requested state.",
-                "TenantLifecycleStateAlreadySet"));
+        TenantLifecycleCommandSnapshot result = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(TenantCommandStatusResult.Unknown("Lifecycle status is unavailable."));
 
-        TenantLifecycleCommandSnapshot afterProjection = snapshot.ConfirmProjection(Detail("tenant.alpha", TenantStatus.Disabled));
-
-        afterProjection.State.ShouldBe(TenantCommandLifecycleState.Rejected);
-        afterProjection.LastConfirmedStatus.ShouldBe(TenantStatus.Disabled);
-        afterProjection.SafeMessage.ShouldNotBeNull().ShouldContain("already matches");
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.SafeMessage.ShouldBe("Lifecycle status is unavailable.");
+        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
     }
+
+    private static TenantLifecycleCommandSnapshot Pending(
+        TenantLifecycleOperation operation,
+        TenantStatus baselineStatus,
+        bool hasEventEvidence)
+    {
+        TenantLifecycleCommandSnapshot snapshot = Started(operation, baselineStatus)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        return hasEventEvidence
+            ? snapshot.ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            : snapshot.ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0));
+    }
+
+    private static TenantLifecycleCommandSnapshot Started(
+        TenantLifecycleOperation operation,
+        TenantStatus baselineStatus)
+    {
+        TenantDetail detail = Detail("tenant.alpha", baselineStatus);
+        var intent = new TenantLifecycleCommandRequest("tenant.alpha", operation);
+        return TenantLifecycleCommandSnapshot
+            .Idle(detail)
+            .Previewed(intent, detail)
+            .RequestSent(intent, detail, "tenant-sequence:41", "message-1");
+    }
+
+    private static TenantDetailSnapshot Proof(
+        string tenantId,
+        TenantStatus status,
+        string projectionVersion,
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
+        => TenantDetailSnapshot.Ready(
+            Detail(tenantId, status),
+            eTag: null,
+            freshness,
+            lifecycle,
+            projectionVersion);
 
     private static TenantDetail Detail(string tenantId, TenantStatus status)
         => new(

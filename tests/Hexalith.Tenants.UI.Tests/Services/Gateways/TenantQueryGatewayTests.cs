@@ -1039,6 +1039,36 @@ public sealed class TenantQueryGatewayTests
         proof.ProjectionVersion.ShouldBe("projection-v9");
     }
 
+    [Fact]
+    public async Task Lifecycle_projection_proof_reads_current_same_tenant_detail_without_a_validator()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(
+                Detail("Tenant.Mixed-01") with { Status = TenantStatus.Disabled },
+                eTag: "proof-etag",
+                projectionVersion: "tenant-sequence:42"));
+        TenantQueryGateway gateway = CreateGateway(client);
+        var request = new TenantLifecycleCommandRequest(
+            "Tenant.Mixed-01",
+            TenantLifecycleOperation.DisableTenant);
+
+        TenantDetailSnapshot proof = await gateway.GetLifecycleProjectionProofAsync(
+            request,
+            CancellationToken.None);
+
+        _ = client.Received(1).GetTenantAsync(
+            Arg.Is<GetTenantQuery>(query => query != null && query.TenantId == "Tenant.Mixed-01"),
+            null,
+            Arg.Any<CancellationToken>());
+        proof.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
+        proof.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        proof.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        proof.Detail.ShouldNotBeNull().TenantId.ShouldBe("Tenant.Mixed-01");
+        proof.Detail!.Status.ShouldBe(TenantStatus.Disabled);
+        proof.ProjectionVersion.ShouldBe("tenant-sequence:42");
+    }
+
     [Theory]
     [InlineData(QueryResponseProvenance.Unknown, false)]
     [InlineData(QueryResponseProvenance.Unknown, true)]

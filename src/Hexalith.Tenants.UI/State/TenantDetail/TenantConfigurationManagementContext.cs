@@ -82,6 +82,14 @@ public sealed class TenantConfigurationManagementContext
             ? row
             : null;
 
+    /// <remarks>
+    /// Every production call site (<c>TenantConfigurationSafeComposer</c>) always passes an explicit
+    /// <paramref name="authorityState"/> resolved from current policy. The <see langword="null"/> default
+    /// below (falling back to <c>TenantOwner</c> for a non-global-administrator) exists only so tests that
+    /// predate the authority-state distinction keep compiling with the 5-argument form; it grants an
+    /// implicit <c>TenantOwner</c> role that a new test should not rely on -- pass the argument explicitly
+    /// when the authority distinction matters to what is being tested.
+    /// </remarks>
     internal static TenantConfigurationManagementContext Available(
         string tenantId,
         TenantStatus tenantStatus,

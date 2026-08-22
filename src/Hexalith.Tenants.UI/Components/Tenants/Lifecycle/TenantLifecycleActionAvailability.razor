@@ -1,7 +1,9 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
+@using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
 
 <section class="tenant-lifecycle"
          aria-labelledby="tenants-lifecycle-heading"
@@ -91,12 +93,8 @@
                    class="tenant-lifecycle__reason"
                    tabindex="0"
                    data-testid="tenants-lifecycle-unavailable-reason"
-                   data-reason-category="@highImpact.UnavailableReason">
+                   data-reason-category="@ReasonCategory(highImpact)">
                     <span data-testid="@(actionId + "-reason")">@HighImpactReason(availability, highImpact)</span>
-                    @if (highImpact.DomainOutcome is not TenantHighImpactDomainOutcome.None)
-                    {
-                        <small data-testid="@(actionId + "-domain-outcome")">@Localizer[$"Tenants.HighImpact.DomainOutcome.{highImpact.DomainOutcome}"]</small>
-                    }
                 </p>
                 <p id="@recoveryId"
                    class="tenant-lifecycle__reason"
@@ -116,9 +114,11 @@
 
     @if (_activeAvailability is not null && Detail is not null)
     {
-        <TenantLifecycleCommandFlow Detail="@Detail"
+        <TenantLifecycleCommandFlow @ref="_activeFlow"
+                                    Detail="@Detail"
                                     Availability="@_activeAvailability"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    ProjectionVersion="@ProjectionVersion"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseFlowAsync"
                                     OnCommandActivityChanged="@OnCommandActivityChanged"
@@ -134,6 +134,7 @@
     private ElementReference _disableElement;
     private TenantLifecycleOperation? _returnFocusOperation;
     private string? _activeFlowTenantId;
+    private TenantLifecycleCommandFlow? _activeFlow;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -175,6 +176,9 @@
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
+    public string? ProjectionVersion { get; set; }
+
+    [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
     [Parameter]
@@ -188,7 +192,7 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<TenantLifecycleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<TenantLifecycleCommandRequest, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     /// <summary>Gets or sets the submit-time server-reflected lifecycle authority provider.</summary>
     [Parameter]
@@ -205,6 +209,9 @@
             AuthorizationReflection,
             IsNarrowSafetyContext,
             Lifecycle);
+
+    private TenantLifecycleAttemptTracker? AttemptTracker
+        => Services.GetService<TenantLifecycleAttemptTracker>();
 
     private IReadOnlyList<TenantLifecycleAvailability> Availabilities
         =>
@@ -229,14 +236,22 @@
             : "polite";
 
     private bool IsActionDisabled(TenantLifecycleAvailability availability)
-        => !HighImpactAvailability(availability).IsEligible || !IsCommandSurfaceAvailable;
+        => !CanResumeRetained(availability)
+        && (!HighImpactAvailability(availability).IsEligible || !IsCommandSurfaceAvailable);
 
     private string HighImpactReason(
         TenantLifecycleAvailability availability,
         TenantHighImpactActionAvailability highImpact)
-        => !IsCommandSurfaceAvailable && highImpact.IsEligible
+        => CanResumeRetained(availability)
+            ? Localizer["Tenants.Lifecycle.Retained.Resume"].Value
+            : !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
             : Localizer[highImpact.SafeMessageKey].Value;
+
+    private string ReasonCategory(TenantHighImpactActionAvailability highImpact)
+        => !IsCommandSurfaceAvailable && highImpact.IsEligible
+            ? "InFlightOrCommandSurface"
+            : highImpact.UnavailableReason.ToString();
 
     private string StatusText(TenantStatus status)
         => Localizer[$"Tenants.Lifecycle.Status.{(Enum.IsDefined(status) ? status : TenantStatus.Unknown)}"];
@@ -248,6 +263,16 @@
     {
         if (_activeAvailability is null)
         {
+            TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(TenantId);
+            if (retained is { RetainsAttempt: true, Intent: not null }
+                && string.Equals(retained.Intent.TenantId, TenantId, StringComparison.Ordinal))
+            {
+                _activeAvailability = retained.Intent.Operation is TenantLifecycleOperation.EnableTenant
+                    ? ResolveAvailability(TenantLifecycleOperation.EnableTenant, EnableEvidence)
+                    : ResolveAvailability(TenantLifecycleOperation.DisableTenant, DisableEvidence);
+                _activeFlowTenantId = TenantId;
+            }
+
             return;
         }
 
@@ -284,6 +309,11 @@
         await _disableElement.FocusAsync().ConfigureAwait(false);
     }
 
+    internal Task ApplySignalRNudgeAsync()
+        => _activeFlow is null
+            ? Task.CompletedTask
+            : _activeFlow.HandleAuthoritativeRefreshNudgeAsync();
+
     private async Task OpenFlowAsync(TenantLifecycleAvailability availability)
     {
         if (IsActionDisabled(availability))
@@ -294,6 +324,14 @@
         _activeAvailability = availability;
         _activeFlowTenantId = TenantId;
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private bool CanResumeRetained(TenantLifecycleAvailability availability)
+    {
+        TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(TenantId);
+        return retained is { RetainsAttempt: true, Intent: not null }
+            && retained.Intent.Operation == availability.Operation
+            && string.Equals(retained.Intent.TenantId, TenantId, StringComparison.Ordinal);
     }
 
     private TenantLifecycleAvailability ResolveAvailability(

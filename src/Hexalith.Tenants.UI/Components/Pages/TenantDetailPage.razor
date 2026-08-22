@@ -162,7 +162,8 @@
 
                 <FluentAccordionItem Header="@Localizer["Tenants.Lifecycle.Title"]"
                                      Expanded="true">
-                    <TenantLifecycleActionAvailability TenantId="@Detail.TenantId"
+                    <TenantLifecycleActionAvailability @ref="_lifecycleActionAvailability"
+                                                        TenantId="@Detail.TenantId"
                                                         Detail="@Detail"
                                                         CurrentStatus="@Detail.Status"
                                                         SurfaceKind="@_snapshot.Kind"
@@ -173,6 +174,7 @@
                                                         EnableEvidence="@HighImpactEvidence(TenantHighImpactAction.EnableTenant)"
                                                         DisableEvidence="@HighImpactEvidence(TenantHighImpactAction.DisableTenant)"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                                        ProjectionVersion="@_snapshot.ProjectionVersion"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                                         CommandActivityLease="@LifecycleCommandActivityLease"
                                                         ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync"
@@ -294,6 +296,10 @@
     private readonly HashSet<CancellationTokenSource> _metadataProofCancellations = [];
     private string? _metadataProofTenantId;
     private long _metadataProofGeneration;
+    private readonly Lock _lifecycleProofLock = new();
+    private readonly HashSet<CancellationTokenSource> _lifecycleProofCancellations = [];
+    private string? _lifecycleProofTenantId;
+    private long _lifecycleProofGeneration;
     private bool _disposed;
 
     /// <summary>Upper bound on optional notification-setup attempts for one route.</summary>
@@ -304,8 +310,11 @@
     private bool _memberPageLoadInFlight;
     private bool _commandInFlight;
     private string? _activeAggregateLockKey;
+    private string? _activeAggregateTenantId;
     private MemberAccessReview? _memberAccessReview;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
+    private TenantLifecycleAttemptTracker? _lifecycleAttemptTracker;
+    private TenantLifecycleActionAvailability? _lifecycleActionAvailability;
     private TenantHighImpactViewportObservation? _highImpactViewportObservation;
     private bool _detailRefreshInFlight;
     private bool _refreshingBaselineWasCurrent;
@@ -366,11 +375,9 @@
             _lifecycleAuthorizationReflection);
         bool configurationAction = action is TenantHighImpactAction.SetConfiguration
             or TenantHighImpactAction.RemoveConfiguration;
-        TenantHighImpactTargetState targetState = action is TenantHighImpactAction.RemoveConfiguration
+        TenantHighImpactTargetState targetState = configurationAction
             ? TenantHighImpactTargetState.Unknown
-            : action is TenantHighImpactAction.SetConfiguration
-                ? TenantHighImpactTargetState.Unknown
-                : TenantHighImpactTargetState.NotApplicable;
+            : TenantHighImpactTargetState.NotApplicable;
 
         return new(
             Detail.TenantId,
@@ -402,6 +409,9 @@
 
     private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
         => _aggregateAdmissionGate ??= Services.GetService<TenantAggregateCommandAdmissionGate>();
+
+    private TenantLifecycleAttemptTracker? LifecycleAttemptTracker
+        => _lifecycleAttemptTracker ??= Services.GetService<TenantLifecycleAttemptTracker>();
 
     private Func<bool, Task<bool>> MembershipCommandActivityLease
         => CommandActivityLeaseFor(_membershipLeaseOwner);
@@ -531,6 +541,7 @@
         // metadata flow) under the new route parameter. The keyed flow is then constructed only from the
         // incoming tenant's completed detail, never from the outgoing tenant's intent or confirmed snapshot.
         ResetMetadataProofScope(tenantId);
+        ResetLifecycleProofScope(tenantId);
         _snapshot = TenantDetailSnapshot.Loading();
         _ = Interlocked.Increment(ref _highImpactRefreshGeneration);
         _detailRefreshInFlight = false;
@@ -549,8 +560,20 @@
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
         {
-            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
+            bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
+            bool retainedLifecycleLease = lifecycleSurface
+                && _activeAggregateTenantId is not null
+                && LifecycleAttemptTracker?.Find(_activeAggregateTenantId) is { RetainsAttempt: true };
+            if (!retainedLifecycleLease)
+            {
+                object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
+                    ? LifecycleAttemptTracker.LeaseOwner
+                    : _commandLockOwner;
+                AggregateAdmissionGate?.Release(_activeAggregateLockKey, admissionOwner);
+            }
+
             _activeAggregateLockKey = null;
+            _activeAggregateTenantId = null;
             _aggregateLeaseHolder = null;
             _commandInFlight = false;
         }
@@ -1095,6 +1118,11 @@
             if ((_commandInFlight || IsCurrentAggregateLocked) && _memberAccessReview is not null)
             {
                 await _memberAccessReview.ApplySignalRNudgeAsync();
+            }
+
+            if ((_commandInFlight || IsCurrentAggregateLocked) && _lifecycleActionAvailability is not null)
+            {
+                await _lifecycleActionAvailability.ApplySignalRNudgeAsync();
             }
 
             StateHasChanged();
@@ -1812,6 +1840,65 @@
         source.Dispose();
     }
 
+    private void ResetLifecycleProofScope(string? tenantId)
+    {
+        lock (_lifecycleProofLock)
+        {
+            if (string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _lifecycleProofTenantId = tenantId;
+            _ = Interlocked.Increment(ref _lifecycleProofGeneration);
+            foreach (CancellationTokenSource source in _lifecycleProofCancellations)
+            {
+                RetireCancellationCore(source);
+            }
+
+            _lifecycleProofCancellations.Clear();
+        }
+    }
+
+    private PendingOperation? BeginLifecycleProof(string tenantId)
+    {
+        lock (_lifecycleProofLock)
+        {
+            if (_disposed
+                || !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
+                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var source = new CancellationTokenSource();
+            _ = _lifecycleProofCancellations.Add(source);
+            long generation = Volatile.Read(ref _lifecycleProofGeneration);
+            return new PendingOperation(generation, source, () => CompleteLifecycleProof(source));
+        }
+    }
+
+    private bool CanApplyLifecycleProof(long generation, string tenantId)
+    {
+        lock (_lifecycleProofLock)
+        {
+            return !_disposed
+                && generation == Volatile.Read(ref _lifecycleProofGeneration)
+                && string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
+        }
+    }
+
+    private void CompleteLifecycleProof(CancellationTokenSource source)
+    {
+        lock (_lifecycleProofLock)
+        {
+            _ = _lifecycleProofCancellations.Remove(source);
+        }
+
+        source.Dispose();
+    }
+
     private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
@@ -1985,11 +2072,30 @@
                 _snapshot.Configuration,
                 CancellationToken.None).AsTask();
 
-    private Task<TenantDetail?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
-        => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private async Task<TenantDetailSnapshot?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
+    {
+        using PendingOperation? operation = BeginLifecycleProof(request.TenantId);
+        if (operation is null)
+        {
+            return null;
+        }
+
+        TenantDetailSnapshot proof;
+        try
+        {
+            proof = await QueryGateway
+                .GetLifecycleProjectionProofAsync(request, operation.CancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        return CanApplyLifecycleProof(operation.Generation, request.TenantId)
+            ? proof
+            : null;
+    }
 
     private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeLifecycleAsync()
     {
@@ -2033,6 +2139,10 @@
     private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)
     {
         ArgumentNullException.ThrowIfNull(surfaceOwner);
+        bool lifecycleSurface = ReferenceEquals(surfaceOwner, _lifecycleLeaseOwner);
+        object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
+            ? LifecycleAttemptTracker.LeaseOwner
+            : _commandLockOwner;
         if (isActive)
         {
             TenantAggregateCommandAdmissionGate? gate = AggregateAdmissionGate;
@@ -2060,13 +2170,15 @@
                 return true;
             }
 
-            if (!gate.TryAcquire(aggregateLockKey, _commandLockOwner))
+            if (!gate.TryAcquire(aggregateLockKey, admissionOwner)
+                && !gate.IsOwnedBy(aggregateLockKey, admissionOwner))
             {
                 _commandInFlight = false;
                 return false;
             }
 
             _activeAggregateLockKey = aggregateLockKey;
+            _activeAggregateTenantId = leaseTenantId;
             _aggregateLeaseHolder = surfaceOwner;
             _commandInFlight = true;
         }
@@ -2079,9 +2191,10 @@
                 && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
                 && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner))
             {
-                AggregateAdmissionGate?.Release(aggregateLockKey, _commandLockOwner);
+                AggregateAdmissionGate?.Release(aggregateLockKey, admissionOwner);
                 _commandInFlight = false;
                 _activeAggregateLockKey = null;
+                _activeAggregateTenantId = null;
                 _aggregateLeaseHolder = null;
             }
         }
@@ -2141,6 +2254,7 @@
         _ = Interlocked.Increment(ref _loadGeneration);
         _ = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
         ResetMetadataProofScope(tenantId: null);
+        ResetLifecycleProofScope(tenantId: null);
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
@@ -2159,8 +2273,20 @@
 
         if (_activeAggregateLockKey is not null)
         {
-            AggregateAdmissionGate?.Release(_activeAggregateLockKey, _commandLockOwner);
+            bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
+            bool retainLifecycleLease = lifecycleSurface
+                && _activeAggregateTenantId is not null
+                && LifecycleAttemptTracker?.Find(_activeAggregateTenantId) is { RetainsAttempt: true };
+            if (!retainLifecycleLease)
+            {
+                object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
+                    ? LifecycleAttemptTracker.LeaseOwner
+                    : _commandLockOwner;
+                AggregateAdmissionGate?.Release(_activeAggregateLockKey, admissionOwner);
+            }
+
             _activeAggregateLockKey = null;
+            _activeAggregateTenantId = null;
             _aggregateLeaseHolder = null;
             _commandInFlight = false;
         }

@@ -1,6 +1,7 @@
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantUsers;
@@ -36,6 +37,20 @@ public interface ITenantQueryGateway {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant metadata projection proof is unavailable."));
+    }
+
+    /// <summary>
+    /// Reads one unconditional, authorization-scoped tenant detail snapshot for lifecycle submission or
+    /// reconciliation proof. Detail, freshness, lifecycle, and projection version come from the same read.
+    /// </summary>
+    /// <param name="request">Lifecycle intent whose literal tenant id should be read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An authoritative tenant detail snapshot, or an unavailable snapshot.</returns>
+    Task<TenantDetailSnapshot> GetLifecycleProjectionProofAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant lifecycle projection proof is unavailable."));
     }
 
     Task<TenantDetailSnapshot> GetTenantAsync(

@@ -102,8 +102,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-lifecycle-actions']");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
+        // Lifecycle authorization is Indeterminate by default in this fixture (StubTenantsBffComposition's
+        // default), so the reason must be the honest MissingPermission block -- not the same-state domain
+        // claim, which only applies once authority is actually confirmed.
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
-            .ShouldContain("already has the requested lifecycle state", Case.Insensitive);
+            .ShouldContain("authority or namespace scope", Case.Insensitive);
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
         // snapshot with the default Current lifecycle and no projection version, so the evidence is not
@@ -1766,6 +1769,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         composition.ReauthorizeConfigurationManagementCallCount.ShouldBeGreaterThan(0);
         gateway.SetConfigurationCallCount.ShouldBe(0);
+        // Must reach the member-bearing overload, not only tenantId/status: that is the whole point of
+        // reproving TenantOwner authority from current membership at submit time.
+        composition.LastReauthorizeSanitizedDetail.ShouldNotBeNull();
+        composition.LastReauthorizeSanitizedDetail!.Members.ShouldNotBeEmpty();
     }
 
     [Fact]
@@ -5735,6 +5742,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Func<string, TenantStatus, TenantConfigurationSafeModel, TenantConfigurationManagementContext>?
             ReauthorizeConfigurationManagement { get; set; }
 
+        /// <summary>Gets the last member-bearing detail passed to reauthorization, or <see langword="null"/>
+        /// if the caller only ever reached the tenantId/status overload.</summary>
+        public TenantDetail? LastReauthorizeSanitizedDetail { get; private set; }
+
         /// <summary>Arms a one-shot suspension of the next lifecycle authorization resolve.</summary>
         public TaskCompletionSource? ResolutionGate { get; set; }
 
@@ -5779,6 +5790,21 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             }
 
             return ValueTask.FromResult(TenantConfigurationManagementContext.Unavailable(tenantId, tenantStatus));
+        }
+
+        // Overrides the interface's Members-discarding default so a caller that reauthorizes from live,
+        // member-bearing detail (rather than only tenantId/status) is distinguishable in assertions.
+        public ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
+            TenantDetail sanitizedDetail,
+            TenantConfigurationSafeModel safeModel,
+            CancellationToken cancellationToken = default)
+        {
+            LastReauthorizeSanitizedDetail = sanitizedDetail;
+            return ReauthorizeConfigurationManagementAsync(
+                sanitizedDetail.TenantId,
+                sanitizedDetail.Status,
+                safeModel,
+                cancellationToken);
         }
     }
 

@@ -14,6 +14,7 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantUsers;
@@ -289,6 +290,16 @@ internal sealed class TenantQueryGateway(
 
         // previous is null on purpose: the conditional-GET path must not short-circuit to the cached
         // snapshot, or confirmation would read its own pre-submit state back as proof.
+        return GetTenantAsync(new TenantDetailRequest(request.TenantId), null, cancellationToken);
+    }
+
+    public Task<TenantDetailSnapshot> GetLifecycleProjectionProofAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Lifecycle proof must never reuse the page ETag or retained snapshot. The unconditional read keeps
+        // the sanitized detail, freshness, projection lifecycle, and ordered version in one response.
         return GetTenantAsync(new TenantDetailRequest(request.TenantId), null, cancellationToken);
     }
 

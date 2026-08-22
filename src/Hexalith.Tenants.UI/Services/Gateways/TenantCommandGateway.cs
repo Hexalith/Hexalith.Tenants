@@ -330,6 +330,7 @@ internal sealed class TenantCommandGateway(
 
     public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
+        string? messageId = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -337,10 +338,13 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
-        string messageId = ulidFactory.NewUlid();
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        }
+
         var command = new EnableTenant(request.TenantId);
         var submit = new SubmitCommandRequest(
-            messageId,
+            resolvedMessageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
@@ -352,15 +356,16 @@ internal sealed class TenantCommandGateway(
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
-            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+            return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapLifecycleGatewayException(ex);
+            return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 
     public async Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
+        string? messageId = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -368,10 +373,13 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
-        string messageId = ulidFactory.NewUlid();
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        }
+
         var command = new DisableTenant(request.TenantId);
         var submit = new SubmitCommandRequest(
-            messageId,
+            resolvedMessageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
@@ -383,10 +391,10 @@ internal sealed class TenantCommandGateway(
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
-            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+            return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapLifecycleGatewayException(ex);
+            return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
     }
 

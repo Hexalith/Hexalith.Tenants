@@ -94,6 +94,24 @@ public sealed class TenantAggregateCommandAdmissionGate
     }
 
     /// <summary>
+    /// Returns whether an aggregate lock is retained by the supplied stable owner.
+    /// </summary>
+    /// <param name="aggregateLockKey">AggregateIdentity-shaped lock key to inspect.</param>
+    /// <param name="owner">Stable owner token expected to hold the lock.</param>
+    /// <returns><see langword="true"/> when the owner still retains the lock.</returns>
+    internal bool IsOwnedBy(string aggregateLockKey, object owner)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
+        ArgumentNullException.ThrowIfNull(owner);
+
+        lock (_sync)
+        {
+            return _ownerByKey.TryGetValue(aggregateLockKey, out object? currentOwner)
+                && ReferenceEquals(currentOwner, owner);
+        }
+    }
+
+    /// <summary>
     /// Returns whether any aggregate is locked on this circuit.
     /// </summary>
     public bool HasActiveLock

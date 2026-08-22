@@ -121,6 +121,10 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
+    .tenants-config-remove__form {
+        display: none;
+    }
+
     .tenants-config-remove__narrow {
         display: block;
     }

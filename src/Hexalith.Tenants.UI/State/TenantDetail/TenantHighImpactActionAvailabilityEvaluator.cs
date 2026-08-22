@@ -18,7 +18,6 @@ public static class TenantHighImpactActionAvailabilityEvaluator
     {
         ArgumentNullException.ThrowIfNull(evidence);
 
-        TenantHighImpactDomainOutcome domainOutcome = DomainOutcome(evidence);
         bool friction = evidence.Freshness is TenantHighImpactFreshnessState.Aging
             or TenantHighImpactFreshnessState.Refreshing;
 
@@ -32,23 +31,23 @@ public static class TenantHighImpactActionAvailabilityEvaluator
             || (evidence.Freshness is TenantHighImpactFreshnessState.Refreshing
                 && !evidence.HasCurrentBaseline))
         {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, domainOutcome, friction);
+            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
         }
 
         if (evidence.SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
         {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingPermission, domainOutcome, friction);
+            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingPermission, TenantHighImpactDomainOutcome.None, friction);
         }
 
         if (evidence.SurfaceKind is not TenantDetailSurfaceKind.Ready)
         {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, domainOutcome, friction);
+            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
         }
 
         if (!Enum.IsDefined(evidence.ProjectionLifecycle)
             || evidence.ProjectionLifecycle is not ProjectionLifecycleState.Current)
         {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, domainOutcome, friction);
+            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
         }
 
         if (string.IsNullOrWhiteSpace(evidence.TenantId)
@@ -56,8 +55,16 @@ public static class TenantHighImpactActionAvailabilityEvaluator
             || !Enum.IsDefined(evidence.TenantStatus)
             || evidence.TenantStatus is TenantStatus.Unknown)
         {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingLifecycleSupport, domainOutcome, friction);
+            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingLifecycleSupport, TenantHighImpactDomainOutcome.None, friction);
         }
+
+        // The read evidence above (surface, freshness, projection lifecycle, tenant identity/status) is now
+        // confirmed current, so a domain outcome derived from it -- itself independently gated on authority
+        // and namespace scope inside DomainOutcome -- may accompany any later, unrelated blocker below
+        // without asserting a fact the evidence disputes. Domain outcomes stay orthogonal to that
+        // precedence: a command-readiness gate (viewport, admission, preview, proof) failing does not make
+        // an already-confirmed domain fact untrue.
+        TenantHighImpactDomainOutcome domainOutcome = DomainOutcome(evidence);
 
         if (!Enum.IsDefined(evidence.Stage)
             || !Enum.IsDefined(evidence.Viewport)
@@ -103,8 +110,12 @@ public static class TenantHighImpactActionAvailabilityEvaluator
         }
 
         if (!Enum.IsDefined(evidence.TargetState)
-            || !IsTargetStateValid(evidence.Action, evidence.TargetState)
-            || !Enum.IsDefined(evidence.Admission)
+            || !IsTargetStateValid(evidence.Action, evidence.TargetState))
+        {
+            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, domainOutcome, friction);
+        }
+
+        if (!Enum.IsDefined(evidence.Admission)
             || evidence.Admission is not TenantHighImpactAdmissionEvidence.Available)
         {
             return Blocked(evidence, TenantHighImpactUnavailableReason.HighImpactFlowNotReady, domainOutcome, friction);
@@ -154,22 +165,28 @@ public static class TenantHighImpactActionAvailabilityEvaluator
 
     private static TenantHighImpactDomainOutcome DomainOutcome(TenantHighImpactActionEvidence evidence)
     {
-        if (evidence.Action is TenantHighImpactAction.EnableTenant
-            && evidence.TenantStatus is TenantStatus.Active
-            || evidence.Action is TenantHighImpactAction.DisableTenant
-            && evidence.TenantStatus is TenantStatus.Disabled)
+        // Every branch requires confirmed authority first: none of these facts may be asserted from an
+        // unauthorized or indeterminate caller's evidence, matching "never infer authority from client
+        // claims/visibility."
+        bool authorityConfirmed = evidence.Authority is TenantHighImpactAuthorityEvidence.Authorized;
+
+        if (authorityConfirmed
+            && (evidence.Action is TenantHighImpactAction.EnableTenant && evidence.TenantStatus is TenantStatus.Active
+                || evidence.Action is TenantHighImpactAction.DisableTenant && evidence.TenantStatus is TenantStatus.Disabled))
         {
             return TenantHighImpactDomainOutcome.LifecycleStateAlreadySet;
         }
 
-        if (RequiresNamespaceScope(evidence.Action)
+        if (authorityConfirmed
+            && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
+            && RequiresNamespaceScope(evidence.Action)
             && evidence.TenantStatus is TenantStatus.Disabled)
         {
             return TenantHighImpactDomainOutcome.TenantDisabled;
         }
 
         if (evidence.Action is TenantHighImpactAction.SetConfiguration
-            && evidence.Authority is TenantHighImpactAuthorityEvidence.Authorized
+            && authorityConfirmed
             && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
             && evidence.TargetState is TenantHighImpactTargetState.AlreadyApplied)
         {
@@ -177,7 +194,7 @@ public static class TenantHighImpactActionAvailabilityEvaluator
         }
 
         return evidence.Action is TenantHighImpactAction.RemoveConfiguration
-            && evidence.Authority is TenantHighImpactAuthorityEvidence.Authorized
+            && authorityConfirmed
             && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
             && evidence.TargetState is TenantHighImpactTargetState.Missing
                 ? TenantHighImpactDomainOutcome.ConfigurationKeyNotFound

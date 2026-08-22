@@ -823,10 +823,10 @@
     <value>Known consequences</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.KnownConsequences.EnableTenant" xml:space="preserve">
-    <value>Tenant availability is restored only after command status and tenant projection evidence confirm Active.</value>
+    <value>Tenant availability is restored only after exact-command event evidence and a newer tenant projection confirm Active.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.KnownConsequences.DisableTenant" xml:space="preserve">
-    <value>Tenant availability is suspended as a reversible soft-delete control only after command status and tenant projection evidence confirm Disabled.</value>
+    <value>Tenant availability is suspended as reversible availability control only after exact-command event evidence and a newer tenant projection confirm Disabled. Tenant data is not deleted or purged.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.KnownUnknowns" xml:space="preserve">
     <value>Known unknowns</value>
@@ -850,13 +850,13 @@
     <value>Freshness and projection evidence</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.ProjectionEvidence.Value" xml:space="preserve">
-    <value>The last confirmed tenant projection currently shows {0}; the UI will not replace it with the intended state before re-query proof.</value>
+    <value>The last confirmed tenant projection shows {0}, freshness {1}, projection version {2}. Confirmation requires exact-command event evidence and a strictly newer version from an authoritative re-query.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance" xml:space="preserve">
     <value>Authorization and governance facts</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance.Value" xml:space="preserve">
-    <value>Server-reflected global-administrator authority and the approved FR15 reversible soft-delete governance path are present.</value>
+    <value>Server-reflected global-administrator authority and the approved reversible availability-control governance path are present.</value>
   </data>
   <data name="Tenants.Lifecycle.Preview.CommandSurface" xml:space="preserve">
     <value>Command-surface readiness</value>
@@ -902,6 +902,36 @@
   </data>
   <data name="Tenants.Lifecycle.DuplicatePrevented.Message" xml:space="preserve">
     <value>A lifecycle command is already being submitted. Wait for the current result before trying another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionVersion.Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.ProofRead" xml:space="preserve">
+    <value>Fresh authoritative lifecycle proof could not be read. Refresh tenant detail before submitting.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.PreviewChanged" xml:space="preserve">
+    <value>Tenant identity, lifecycle, freshness, or projection evidence changed while the preview was open. Refresh and review a new complete preview before submitting.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.RetainedDifferentIntent" xml:space="preserve">
+    <value>A different lifecycle intent is already pending for this tenant. Reconcile that retained attempt before choosing another lifecycle action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Retained.Resume" xml:space="preserve">
+    <value>This lifecycle attempt is still pending. Open it to resume authoritative reconciliation without submitting again.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
+    <value>This lifecycle attempt is still pending and cannot be dismissed. Refresh status until it reaches a terminal, support-safe outcome.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
+    <value>The lifecycle command status could not be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.MissingBaseline" xml:space="preserve">
+    <value>The lifecycle outcome cannot be verified because its pre-submit projection baseline is unavailable.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.TrackingMismatch" xml:space="preserve">
+    <value>The lifecycle gateway returned tracking evidence for a different logical attempt. No lifecycle success is asserted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.ProofRead" xml:space="preserve">
+    <value>Authoritative lifecycle proof could not be read. No lifecycle success is asserted.</value>
   </data>
   <data name="Tenants.Lifecycle.State.Idle" xml:space="preserve">
     <value>No lifecycle command has been submitted.</value>

@@ -294,20 +294,21 @@ public sealed class TenantCommandGatewayTests
             BaseAddress = new Uri("https://eventstore.example/"),
         });
         var request = new TenantLifecycleCommandRequest("Tenant.Mixed-01", operation);
+        const string stableMessageId = "01ARZ3NDEKTSV4RRFFQ69G5FB0";
 
         TenantCommandSubmissionResult result = operation is TenantLifecycleOperation.EnableTenant
-            ? await gateway.EnableTenantAsync(request, CancellationToken.None)
-            : await gateway.DisableTenantAsync(request, CancellationToken.None);
+            ? await gateway.EnableTenantAsync(request, stableMessageId, CancellationToken.None)
+            : await gateway.DisableTenantAsync(request, stableMessageId, CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.MessageId.ShouldBe(stableMessageId);
         submitted.Tenant.ShouldBe("system");
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(expectedCommandType);
         submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
         result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
-        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.MessageId.ShouldBe(stableMessageId);
         result.CorrelationId.ShouldBe(correlationId);
     }
 
@@ -332,7 +333,7 @@ public sealed class TenantCommandGatewayTests
 
         TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
             new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
