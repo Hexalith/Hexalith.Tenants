@@ -657,7 +657,10 @@
         // Contention is reported only once the prerequisites that would block the action anyway have been
         // cleared. Reporting it first masked missing permission, stale evidence and disabled lifecycle
         // behind "another command is already in progress" for as long as any command held the aggregate.
-        if (!IsCommandSurfaceAvailable || !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
+        // A sibling row's change-role/remove-member flow holding the reserved child lease is the same kind
+        // of contention -- OpenChangeRole/OpenRemoveMember already refuse to open while it is held, so every
+        // row's launcher must say so instead of silently no-opping the click.
+        if (_childCommandLeaseOwner is not null || !IsCommandSurfaceAvailable || !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
         {
             return [UnavailableReason.AggregateLocked];
         }
@@ -799,10 +802,20 @@
             return true;
         }
 
-        bool released = CommandActivityLease is not null
-            ? await CommandActivityLease(false).ConfigureAwait(false)
-            : true;
-        _childCommandLeaseOwner = null;
+        bool released;
+        try
+        {
+            released = CommandActivityLease is not null
+                ? await CommandActivityLease(false).ConfigureAwait(false)
+                : true;
+        }
+        finally
+        {
+            // Always clear the owner, even if the release delegate throws -- otherwise this tenant's
+            // OpenChangeRole/OpenRemoveMember stay permanently blocked with no way to recover the lease.
+            _childCommandLeaseOwner = null;
+        }
+
         if (CommandActivityLease is null)
         {
             await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);

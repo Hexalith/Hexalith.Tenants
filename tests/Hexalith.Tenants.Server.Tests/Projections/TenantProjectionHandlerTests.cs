@@ -5,6 +5,7 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Server.Projections;
@@ -79,6 +80,31 @@ public class TenantProjectionHandlerTests {
         response.ProjectionType.ShouldBe("tenants");
         stateStore.ReadCalls.ShouldBeEmpty();
         stateStore.TrySaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_MixedNullAndRealEventBatchSkipsNullAndAppliesRealEventAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [
+                null!,
+                CreateEvent(new TenantCreated("tenant-1", "Acme", null, timestamp), "evt-1", timestamp),
+                null!,
+            ]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey).Value;
+        saved.Name.ShouldBe("Acme");
     }
 
     [Fact]
@@ -218,8 +244,8 @@ public class TenantProjectionHandlerTests {
         TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
             .Single(attempt => attempt.Key == TenantProjectionKey)
             .Value;
-        saved.ProjectionVersion.ShouldBe("tenant-sequence:10");
-        response.State.Deserialize<TenantReadModel>()!.ProjectionVersion.ShouldBe("tenant-sequence:10");
+        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
+        response.State.Deserialize<TenantReadModel>()!.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
     }
 
     [Fact]
@@ -260,7 +286,7 @@ public class TenantProjectionHandlerTests {
             .Value;
         saved.Name.ShouldBe("Acme Renamed");
         saved.Members["user-1"].ShouldBe(TenantRole.TenantOwner);
-        saved.ProjectionVersion.ShouldBe("tenant-sequence:1");
+        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "1");
     }
 
     [Theory]
@@ -275,7 +301,7 @@ public class TenantProjectionHandlerTests {
                 TenantId = "tenant-1",
                 Name = "Persisted Name",
                 ProjectedAt = persistedProjectedAt,
-                ProjectionVersion = "tenant-sequence:11",
+                ProjectionVersion = TenantProjectionVersionFormat.SequencePrefix + "11",
             },
             "tenant-etag-1");
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
@@ -298,7 +324,7 @@ public class TenantProjectionHandlerTests {
         TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
             .Single(attempt => attempt.Key == TenantProjectionKey)
             .Value;
-        saved.ProjectionVersion.ShouldBe("tenant-sequence:11");
+        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "11");
         saved.TenantId.ShouldBe("tenant-1");
         saved.Name.ShouldBe("Persisted Name");
         saved.ProjectedAt.ShouldBe(persistedProjectedAt);
@@ -342,7 +368,7 @@ public class TenantProjectionHandlerTests {
             .Single(attempt => attempt.Key == TenantProjectionKey)
             .Value;
         saved.Name.ShouldBe("After");
-        saved.ProjectionVersion.ShouldBe("tenant-sequence:12");
+        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "12");
         saved.ProjectedAt.ShouldBe(ProjectionTime);
     }
 

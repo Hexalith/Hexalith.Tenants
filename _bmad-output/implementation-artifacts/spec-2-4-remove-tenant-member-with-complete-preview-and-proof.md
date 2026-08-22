@@ -250,6 +250,10 @@ dependency drift and remain outside this story rather than being falsely attribu
 
 Platform-standing is preview item #9; known GA also raises an elevated sibling risk banner. Incomplete GA evidence stays Unknown (never invents NotReflected). Destructive confirmation uses the existing Tenants `role="dialog"` + focus-sentinel pattern; Cancel/Refresh/Continue-read-only stay outside the CSS-hidden narrow form. Honest audit handoff (no WP-2A / `audit_available`) until 2.4b.
 
+Projection confirmation now depends on an ordered aggregate-sequence marker rather than the state-store ETag: `TenantProjectionHandler` stamps `TenantReadModel.ProjectionVersion` as `tenant-sequence:<n>`, where `<n>` is the aggregate-local, monotonically increasing EventStore `SequenceNumber` (shared format constant: `TenantProjectionVersionFormat.SequencePrefix` in `Hexalith.Tenants.Contracts`). A persisted sequence rejects an older-or-equal replay before any state or `ProjectedAt` mutation, while every event within one accepted incoming batch (including same-sequence retries) still applies. `TenantMembershipCommandProvenance` treats a missing or non-`tenant-sequence:` marker as a legacy/opaque token and falls back to plain inequality; it accepts a one-way legacy-to-sequence upgrade only alongside exact command-event evidence, and fails closed on malformed, regressing, or sequence-to-opaque transitions.
+
+The metadata audit-proof read (`TenantDetailPage.GetUpdateMetadataAuditEvidenceAsync`) walks paginated `GetTenantAuditAsync` results up to `MetadataAuditProofMaximumPageCount` (50) instead of reading a single page. It tracks the `ProjectionVersion` seen on the first page and requires every later page to report the same value, failing closed on drift; more than one qualifying row across the full walk (not just one page) is treated as an ambiguous match and also fails closed. Exhausting all 50 pages without a single, version-consistent match fails closed rather than confirming.
+
 ## Verification
 
 **Commands:**

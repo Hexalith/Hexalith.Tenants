@@ -2713,6 +2713,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [InlineData("unauthorized")]
     [InlineData("incomplete")]
     [InlineData("absent")]
+    [InlineData("ambiguous-cross-page")]
+    [InlineData("version-drift-cross-page")]
+    [InlineData("page-exhaustion")]
     public void Detail_page_does_not_confirm_identical_metadata_from_non_authoritative_audit_evidence(
         string evidenceKind)
         => AssertMetadataAuditProofDoesNotConfirm(evidenceKind);
@@ -2792,6 +2795,23 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     row with { Freshness = ReadModelFreshnessState.Stale }),
                 "unauthorized" => TenantAuditSnapshot.Unauthorized(request),
                 "incomplete" => MetadataAuditSnapshot(request, row, hasMore: true),
+                "ambiguous-cross-page" => string.IsNullOrWhiteSpace(request.Cursor)
+                    ? MetadataAuditSnapshot(request, row, hasMore: true)
+                    : MetadataAuditSnapshot(request, row with { Timestamp = attemptStartedAtUtc.AddSeconds(1) }),
+                "version-drift-cross-page" => string.IsNullOrWhiteSpace(request.Cursor)
+                    ? MetadataAuditSnapshot(
+                        request,
+                        row with { EventReference = "message-from-another-update" },
+                        hasMore: true,
+                        projectionVersion: "audit-proof-v2")
+                    : MetadataAuditSnapshot(
+                        request,
+                        row,
+                        projectionVersion: "audit-proof-v3"),
+                "page-exhaustion" => MetadataAuditSnapshot(
+                    request,
+                    row with { EventReference = "message-from-another-update" },
+                    hasMore: true),
                 "absent" => TenantAuditSnapshot.Empty(
                     isAuthorizationScoped: true,
                     ReadModelFreshnessState.Current,
@@ -2832,6 +2852,28 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+
+        if (evidenceKind is "ambiguous-cross-page" or "version-drift-cross-page")
+        {
+            // Both pages must actually be walked -- otherwise the guard under test never runs.
+            _ = gateway.Received(1).GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(r => r.Category == AuditEventCategory.Administrative && string.IsNullOrWhiteSpace(r.Cursor)),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>());
+            _ = gateway.Received(1).GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(r => r.Category == AuditEventCategory.Administrative && r.Cursor == "opaque-next-page"),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>());
+        }
+        else if (evidenceKind is "page-exhaustion")
+        {
+            // Bounded by MetadataAuditProofMaximumPageCount (50): the walk must stop there, not hang forever
+            // on a source that always reports HasMore.
+            _ = gateway.Received(50).GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(r => r.Category == AuditEventCategory.Administrative),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>());
+        }
     }
 
     private void AssertMetadataProjectionProofDoesNotConfirm(
@@ -3434,6 +3476,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
         ChangeTenantMemberRoleFlow changeFlow = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+        // CommandActivityLease reserves _childCommandLeaseOwner and calls the CommandActivityLease delegate
+        // above synchronously, before it ever awaits the still-pending parentCompletion.Task -- so
+        // parentEntered is already signalled by the time this line runs. The WaitAsync here is a deadlock
+        // backstop against a future regression re-introducing a real yield point, not the primary
+        // synchronization for this test.
         Task<bool> firstAcquisition = changeFlow.CommandActivityLease!(true);
         await parentEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -3441,8 +3488,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         siblingAcquired.ShouldBeFalse();
         parentAcquisitions.ShouldBe(1);
 
-        cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
-        cut.FindAll("[data-testid='tenants-change-role-open']")[1].Click();
+        // While the lease is held, every row's change-role/remove-member launcher renders as unavailable
+        // (fail-closed at the rendering layer) rather than staying clickable-but-silently-refused, so there
+        // is no button left to click that could queue a switch to a different member.
+        cut.Render();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-remove-member-flow']").ShouldBeEmpty();
         cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.ShouldBeSameAs(changeFlow);
         changeFlow.Member.UserId.ShouldBe("owner-user");
@@ -3482,6 +3533,34 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         _ = await Should.ThrowAsync<InvalidOperationException>(() => changeFlow.CommandActivityLease!(true));
         (await addFlow.CommandActivityLease(true)).ShouldBeTrue();
         (await addFlow.CommandActivityLease(false)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Member_access_review_clears_child_lease_owner_when_release_delegate_throws()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.Members, MemberSnapshot(detail))
+            .Add(p => p.CommandActivityLease, active => active
+                ? Task.FromResult(true)
+                : Task.FromException<bool>(new InvalidOperationException("Release failed."))));
+        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        AddTenantMemberFlow addFlow = cut.FindComponent<AddTenantMemberFlow>().Instance;
+        ChangeTenantMemberRoleFlow changeFlow = cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+
+        (await changeFlow.CommandActivityLease!(true)).ShouldBeTrue();
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => changeFlow.CommandActivityLease!(false));
+
+        // The release delegate throwing still clears the owner (via the finally in
+        // HandleCommandActivityLeaseAsync), so a different row's flow can acquire the lease afterward.
+        (await addFlow.CommandActivityLease!(true)).ShouldBeTrue();
     }
 
     [Fact]
@@ -5152,9 +5231,17 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     private static TenantAuditSnapshot MetadataAuditSnapshot(
         TenantAuditRequest request,
         TenantAuditRow row,
-        bool hasMore = false)
+        bool hasMore = false,
+        string projectionVersion = "audit-proof-v2")
+        => MetadataAuditSnapshot(request, [row], hasMore, projectionVersion);
+
+    private static TenantAuditSnapshot MetadataAuditSnapshot(
+        TenantAuditRequest request,
+        IReadOnlyList<TenantAuditRow> rows,
+        bool hasMore = false,
+        string projectionVersion = "audit-proof-v2")
         => TenantAuditSnapshot.Ready(
-            [row],
+            rows,
             hasMore ? "opaque-next-page" : null,
             hasMore,
             "audit-proof-etag",
@@ -5162,7 +5249,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             request) with
         {
             Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = "audit-proof-v2",
+            ProjectionVersion = projectionVersion,
         };
 
     private static TenantAuditRow MetadataAuditRow(

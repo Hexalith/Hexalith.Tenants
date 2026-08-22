@@ -6,6 +6,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Queries.Handlers;
@@ -91,7 +92,7 @@ public sealed class TenantQueryFreshnessTests {
             store,
             "opaque-store-etag",
             Now - TimeSpan.FromMinutes(5),
-            projectionVersion: "tenant-sequence:10");
+            projectionVersion: TenantProjectionVersionFormat.SequencePrefix + "10");
         SetupGlobalAdministrators(store, "admin-user");
 
         TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
@@ -102,7 +103,7 @@ public sealed class TenantQueryFreshnessTests {
             timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
         result.Metadata.ShouldNotBeNull().ETag.ShouldBe("opaque-store-etag");
-        result.Metadata.ProjectionVersion.ShouldBe("tenant-sequence:10");
+        result.Metadata.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
     }
 
     [Theory]

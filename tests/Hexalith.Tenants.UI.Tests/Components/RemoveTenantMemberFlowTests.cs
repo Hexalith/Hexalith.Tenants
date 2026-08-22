@@ -169,14 +169,6 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     [Fact]
     public void Css_contains_focus_trap_and_narrow_layout_hooks()
     {
-        string markup = File.ReadAllText(Path.Combine(
-            RepoRoot(),
-            "src",
-            "Hexalith.Tenants.UI",
-            "Components",
-            "Tenants",
-            "Members",
-            "RemoveTenantMemberFlow.razor"));
         string styles = File.ReadAllText(Path.Combine(
             RepoRoot(),
             "src",
@@ -188,7 +180,6 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         styles.ShouldContain("tenants-remove-member-flow__focus-sentinel");
         styles.ShouldContain("tenants-remove-member-flow__narrow");
-        markup.ShouldContain("class=\"tenants-remove-member-flow__form\"");
         int narrowMedia = styles.IndexOf("@media (max-width: 767px)", StringComparison.Ordinal);
         narrowMedia.ShouldBeGreaterThanOrEqualTo(0, "Expected a max-width: 767px media query for narrow fail-closed layout.");
         int nextMedia = styles.IndexOf("@media", narrowMedia + 1, StringComparison.Ordinal);
@@ -198,6 +189,22 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                 @"\.tenants-remove-member-flow__form\s*\{\s*display:\s*none\s*;",
                 RegexOptions.CultureInvariant)
             .ShouldBeTrue("Narrow media query must hide .tenants-remove-member-flow__form with display: none.");
+    }
+
+    [Fact]
+    public void Rendered_form_carries_the_narrow_layout_hide_class()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("form").ClassList.ShouldContain("tenants-remove-member-flow__form");
     }
 
     [Fact]
@@ -556,6 +563,58 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         activity.ShouldBe([true, false]);
         closeCount.ShouldBe(1);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+    }
+
+    [Fact]
+    public async Task Continue_read_only_does_not_reconstruct_the_preview_from_a_parameter_rerender_mid_dismissAsync()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.TimedOut),
+        };
+        RegisterServices(gateway);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantMember member = new("reader-user", TenantRole.TenantReader);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.Member, member)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active => active
+                ? Task.FromResult(true)
+                : release.Task));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+
+        // Continue-read-only sets _dismissed and moves the snapshot to Idle before awaiting the (here,
+        // still-pending) lease release -- reproducing the yield window the parent-render race regression
+        // needs. Drive the click on a background task so this thread can interleave a parameter re-render
+        // while that await is suspended.
+        Task clickTask = Task.Run(() => cut.Find("[data-testid='tenants-remove-member-continue-read-only']").Click());
+        cut.WaitForState(() => cut.Instance.Snapshot.State is TenantCommandLifecycleState.Idle);
+
+        // Same parameters (Member/Detail unchanged, preview inputs still complete) -- the kind of re-render
+        // that would fire mid-await from a parent StateHasChanged during lease release/acquisition.
+        cut.Render(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.Member, member)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active => active
+                ? Task.FromResult(true)
+                : release.Task));
+
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+
+        release.SetResult(true);
+        await clickTask;
+
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
     }
 

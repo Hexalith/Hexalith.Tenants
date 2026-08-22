@@ -1356,3 +1356,27 @@ Review loop 3, chunk B (surfaces, resources & shared services; 22 files, +1469/-
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
   summary: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range.
   evidence: The mirrored `tea-enforce.cjs` assets advertise focused-test and registry-completeness enforcement, but no repository test imports the scanner or executes its pre/post/stop modes, so a disabled rule or an always-successful entry point would remain green.
+
+## Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available (2026-08-22)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: Blank `CommandSurfaceUnavailableReason` maps to `UnavailableReason.AggregateLocked`'s copy, which asserts a specific ("another command is already in progress") cause that may not be true.
+  evidence: `ResolveFailClosedReasons` (`MemberAccessReview.razor:660`) returns `AggregateLocked` whenever `!IsCommandSurfaceAvailable`, even with an empty reason string (e.g. a missing admission-gate registration with no actual contention); there is no generic "support unavailable" `UnavailableReason` value. Fail-closed behavior is correct; only the specific wording is inaccurate. Needs a dedicated wording/UX pass (new enum value + EN/FR copy) rather than a fold-in fix.
+
+## Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available (2026-08-22, pass 2)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: Self-lock reason text — a row whose own flow currently holds `_childCommandLeaseOwner` also renders its own launcher buttons as `AggregateLocked` ("another command is already in progress"), which is imprecise for its own open flow.
+  evidence: `ResolveFailClosedReasons` (`MemberAccessReview.razor:663`) checks `_childCommandLeaseOwner is not null` unconditionally for every row, including the row whose own flow holds the lease; not newly introduced by this diff (the row was already gated unavailable via `IsCommandSurfaceAvailable` once any child flow raises the parent lease) — same class of issue as the item above; fold into that dedicated wording/UX pass rather than treating separately.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: New `EventId(2001, "TenantProjectionNullEventSkipped")` is an unregistered magic literal with no cross-project collision check.
+  evidence: `TenantProjectionHandler.cs:32` defines the EventId inline; no EventId registry exists in this codebase to conform to, so establishing one is out of scope for this fix.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: New `TenantProjectionVersionFormat` type deliberately sits outside the namespaces `EventContractReferenceDocumentationTests` sweeps, setting a precedent for future non-contract public types to bypass the assembly's only doc-completeness governance check.
+  evidence: `src/Hexalith.Tenants.Contracts/Projections/TenantProjectionVersionFormat.cs`'s own XML remarks document the intentional namespace choice; `EventContractReferenceDocumentationTests.PublicContractTypes()` only sweeps namespaces ending in `.Commands`/`.Events`/`.Events.Rejections`/`.Queries`/`.Enums`. Worth a broader governance-scope discussion, not a defect in this diff.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: The Release-build `.slnx` topology revert is validated only in review-findings prose, not captured as a reproducible command in the spec's formal Verification section.
+  evidence: `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore` (0 Warning(s), 0 Error(s)) is recorded only inside a Review Findings bullet; `## Verification` at `spec-2-4b-wp-2a-removal-proof-and-audit-available.md:123` lists only a filtered `dotnet test` command, so a reader relying on Verification alone would miss the full-solution Release build check.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
+  summary: The "blank `CommandSurfaceUnavailableReason` → `AggregateLocked` copy" deferred decision is now recorded independently, with drifting prose, in both `deferred-work.md` and the spec's own Review Findings section.
+  evidence: Compare this file's entry above (2026-08-22) against `spec-2-4b-wp-2a-removal-proof-and-audit-available.md`'s Review Findings "DEFERRED (2026-08-22): ACCEPT CURRENT COPY FOR THIS PASS" bullet — same decision, different prose framing. Two sources of truth for one decision invite silent divergence on the next edit.

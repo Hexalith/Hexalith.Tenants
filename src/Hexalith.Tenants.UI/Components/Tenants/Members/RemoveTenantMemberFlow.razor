@@ -527,7 +527,7 @@
 
     protected override void OnParametersSet()
     {
-        if (_snapshot.State is TenantCommandLifecycleState.Idle && IsPreviewComplete)
+        if (!_dismissed && _snapshot.State is TenantCommandLifecycleState.Idle && IsPreviewComplete)
         {
             _snapshot = _snapshot.Previewed(
                 new RemoveUserFromTenant(Detail.TenantId, Member.UserId),
@@ -1149,9 +1149,9 @@
     {
         _removalProof = null;
         _receiptDismissed = false;
+        _dismissed = true;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
-        _dismissed = true;
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 

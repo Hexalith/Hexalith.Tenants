@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Shouldly;
@@ -37,9 +38,9 @@ public sealed class TenantMembershipCommandProvenanceTests
             .ShouldBeFalse();
 
     [Theory]
-    [InlineData("opaque-etag", "tenant-sequence:42")]
-    [InlineData("\"a3f9c2\"", "tenant-sequence:1")]
-    [InlineData("legacy-etag-41", "tenant-sequence:42")]
+    [InlineData("opaque-etag", TenantProjectionVersionFormat.SequencePrefix + "42")]
+    [InlineData("\"a3f9c2\"", TenantProjectionVersionFormat.SequencePrefix + "1")]
+    [InlineData("legacy-etag-41", TenantProjectionVersionFormat.SequencePrefix + "42")]
     public void Exact_command_event_evidence_allows_one_way_migration_to_tenant_sequence(
         string baseline,
         string current)
@@ -48,11 +49,11 @@ public sealed class TenantMembershipCommandProvenanceTests
             .ShouldBeTrue();
 
     [Theory]
-    [InlineData("tenant-sequence:42", "tenant-sequence:42")]
-    [InlineData("tenant-sequence:42", "tenant-sequence:41")]
-    [InlineData("tenant-sequence:42", "legacy-etag-43")]
-    [InlineData("tenant-sequence:not-a-number", "tenant-sequence:43")]
-    [InlineData("legacy-etag-42", "tenant-sequence:not-a-number")]
+    [InlineData(TenantProjectionVersionFormat.SequencePrefix + "42", TenantProjectionVersionFormat.SequencePrefix + "42")]
+    [InlineData(TenantProjectionVersionFormat.SequencePrefix + "42", TenantProjectionVersionFormat.SequencePrefix + "41")]
+    [InlineData(TenantProjectionVersionFormat.SequencePrefix + "42", "legacy-etag-43")]
+    [InlineData(TenantProjectionVersionFormat.SequencePrefix + "not-a-number", TenantProjectionVersionFormat.SequencePrefix + "43")]
+    [InlineData("legacy-etag-42", TenantProjectionVersionFormat.SequencePrefix + "not-a-number")]
     public void Tenant_sequence_regression_reverse_migration_and_malformed_tokens_fail_closed(
         string baseline,
         string current)
@@ -83,7 +84,7 @@ public sealed class TenantMembershipCommandProvenanceTests
     [Fact]
     public void Legacy_to_tenant_sequence_migration_requires_event_evidence_from_the_tracked_command()
         => TenantMembershipCommandProvenance
-            .HasProjectionVersionAdvancement("opaque-etag", "tenant-sequence:42", hasCommandEventEvidence: false)
+            .HasProjectionVersionAdvancement("opaque-etag", TenantProjectionVersionFormat.SequencePrefix + "42", hasCommandEventEvidence: false)
             .ShouldBeFalse();
 
     [Theory]

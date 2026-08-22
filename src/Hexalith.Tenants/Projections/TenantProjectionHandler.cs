@@ -4,6 +4,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 
@@ -29,7 +30,9 @@ public sealed class TenantProjectionHandler {
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     private const string TenantProjectionKeyCategory = "tenant read-model";
     private const string TenantProjectionKeyPrefix = "projection:tenants:";
-    private const string TenantProjectionVersionPrefix = "tenant-sequence:";
+    private const string TenantProjectionVersionPrefix = TenantProjectionVersionFormat.SequencePrefix;
+
+    private static readonly EventId NullProjectionEventSkippedEvent = new(2001, "TenantProjectionNullEventSkipped");
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
@@ -77,6 +80,18 @@ public sealed class TenantProjectionHandler {
         incomingAuditModel.ProjectedAt = projectedAt;
         cancellationToken.ThrowIfCancellationRequested();
 
+        // Logged once here, outside the ReadModelWritePolicy.UpdateAsync transform below: that transform
+        // is retried (and MUST be idempotent) on optimistic-concurrency conflict, so logging from inside it
+        // would emit this warning once per retry attempt for a single real occurrence.
+        foreach (ProjectionEventDto? evt in events) {
+            if (evt is null) {
+                _logger.LogWarning(
+                    NullProjectionEventSkippedEvent,
+                    "Skipped a null projection event while projecting tenant aggregate. AggregateId={TenantAggregateId}",
+                    request.AggregateId);
+            }
+        }
+
         TenantReadModel state = await ReadModelWritePolicy
             .UpdateAsync<TenantReadModel>(
                 _store,
@@ -92,8 +107,11 @@ public sealed class TenantProjectionHandler {
                     long? batchHighWatermark = null;
 
                     foreach (ProjectionEventDto? evt in events) {
-                        if (evt is null
-                            || HasAlreadyAppliedAggregateSequence(
+                        if (evt is null) {
+                            continue;
+                        }
+
+                        if (HasAlreadyAppliedAggregateSequence(
                                 persistedSequence,
                                 batchHighWatermark,
                                 evt.SequenceNumber)) {

@@ -1,3 +1,5 @@
+using Hexalith.Tenants.Contracts.Projections;
+
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// </summary>
 internal static class TenantMembershipCommandProvenance
 {
-    private const string TenantSequencePrefix = "tenant-sequence:";
+    private const string TenantSequencePrefix = TenantProjectionVersionFormat.SequencePrefix;
 
     /// <summary>
     /// Returns whether two opaque projection versions differ.
