@@ -108,6 +108,7 @@
                 @if (hasSupplementalDomainOutcome)
                 {
                     <small id="@domainOutcomeId"
+                           class="tenant-lifecycle__domain-outcome"
                            data-testid="@(actionId + "-domain-outcome")">
                         @Localizer[$"Tenants.HighImpact.DomainOutcome.{highImpact.DomainOutcome}"]
                     </small>

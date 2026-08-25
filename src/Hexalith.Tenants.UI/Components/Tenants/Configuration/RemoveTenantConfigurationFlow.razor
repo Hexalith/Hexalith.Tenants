@@ -101,12 +101,6 @@
                     @Localizer["Tenants.Configuration.Remove.Submit"]
                 </FluentButton>
             </span>
-            <FluentButton Appearance="ButtonAppearance.Outline"
-                          data-testid="tenants-config-remove-refresh"
-                          Disabled="@(!CanRefresh)"
-                          OnClick="RefreshStatusAsync">
-                @Localizer["Tenants.Configuration.Remove.Refresh"]
-            </FluentButton>
         </FluentStack>
     </EditForm>
 
@@ -115,6 +109,15 @@
        768px, that combination produced an aria-modal dialog with no pointer-reachable dismissal — Escape
        only, and only when focus was already inside. *@
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-remove__dismiss">
+        @* Refresh joins Cancel outside the form for the same reason: inside `.tenants-config-remove__form` it
+           was hidden below 768px, so a pending attempt could be dismissed but never advanced to a terminal
+           outcome from a narrow viewport. *@
+        <FluentButton Appearance="ButtonAppearance.Outline"
+                      data-testid="tenants-config-remove-refresh"
+                      Disabled="@(!CanRefresh)"
+                      OnClick="RefreshStatusAsync">
+            @Localizer["Tenants.Configuration.Remove.Refresh"]
+        </FluentButton>
         <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_cancelElement">
             @* Disabled only for the bounded submit call. Disabling it for Accepted/ProjectionPending made
                the dialog undismissable for the whole projection-lag window, and permanently when the proof

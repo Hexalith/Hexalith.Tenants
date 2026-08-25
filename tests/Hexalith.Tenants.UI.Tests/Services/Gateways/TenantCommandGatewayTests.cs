@@ -1728,6 +1728,9 @@ public sealed class TenantCommandGatewayTests
     [Theory]
     [InlineData("message-other", "tenant.alpha")]
     [InlineData("message-123", "Tenant.Alpha")]
+    // CommandStatusRecord.MessageId is contractually null for a legacy record. Identity must stay unproven
+    // rather than fall back to the correlation id, which is matched earlier and is not command-exact.
+    [InlineData("", "tenant.alpha")]
     public async Task Lifecycle_status_lookup_rejects_mismatched_command_identity(
         string messageId,
         string aggregateId)

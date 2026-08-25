@@ -566,6 +566,27 @@
         {
             AggregateAdmissionGate.Release(incomingAggregateLockKey, lifecycleTracker.LeaseOwner);
         }
+
+        // Companion to the reclamation above, for the case where this page's own lifecycle surface still holds
+        // the key. A retained attempt can expire on the clock with no state transition to release its lease:
+        // the tracker prunes its own maps but holds no reference to the admission gate, so nothing reclaims the
+        // key and every sibling command surface on this tenant stays disabled for the rest of the circuit.
+        // Same tenant only, tracker-owned only, and only once the tracker reports no pending ownership -- a
+        // dispatch records its identity before transport, so an in-flight submit still reports pending here.
+        if (incomingAggregateLockKey is not null
+            && LifecycleAttemptTracker is { } expiredLifecycleTracker
+            && !expiredLifecycleTracker.HasPendingOwnership(tenantId)
+            && ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
+            && string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal)
+            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, expiredLifecycleTracker.LeaseOwner) is true)
+        {
+            AggregateAdmissionGate.Release(incomingAggregateLockKey, expiredLifecycleTracker.LeaseOwner);
+            _activeAggregateLockKey = null;
+            _activeAggregateTenantId = null;
+            _aggregateLeaseHolder = null;
+            _commandInFlight = false;
+        }
+
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
         {

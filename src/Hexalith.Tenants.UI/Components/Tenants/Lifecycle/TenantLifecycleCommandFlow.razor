@@ -182,8 +182,12 @@
     private ITenantCommandGateway? _commandGateway;
     private TenantLifecycleAttemptTracker? _attemptTracker;
 
-    internal TimeSpan ExternalOperationTimeout { get; set; }
-        = TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+    // Per-operation deadline for a single external call (authority reflection, dispatch, status, proof).
+    // It was MaximumRetainedAttemptDuration, which made it inert: AwaitWithinAttemptAsync takes
+    // MinDeadline(attemptStart + 5min, now + timeout), and attemptStart <= now, so the attempt budget always
+    // won and one hung call could hold the dialog, _isSubmitting, and the aggregate lease for five minutes.
+    // 30s bounds any single call while staying generous for a dispatch round trip under load.
+    internal TimeSpan ExternalOperationTimeout { get; set; } = TimeSpan.FromSeconds(30);
     private FluentTextInput _confirmationElement = default!;
     private ElementReference _cancelElement;
     private ElementReference _lifecycleElement;
@@ -341,9 +345,13 @@
     private TenantLifecycleAttemptTracker? AttemptTracker
         => _attemptTracker ??= Services.GetService<TenantLifecycleAttemptTracker>();
 
+    // Whole-string keys in this family are parameterized on tenant id, operation label, and an optional
+    // domain-outcome key (see UnavailableReason). Resolving a snapshot key without arguments rendered the
+    // literal "{1} is unavailable for tenant {0}" to the operator. Arguments are supplied unconditionally:
+    // string.Format ignores extra arguments, so non-parameterized keys in the same family are unaffected.
     private string? DisplaySafeMessage
         => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-            ? Localizer[_snapshot.SafeMessageKey].Value
+            ? Localizer[_snapshot.SafeMessageKey, PreviewTenantId, OperationLabel, string.Empty].Value
             : _snapshot.SafeMessage;
 
     private IReadOnlyList<(string Label, string Value, string TestId)> PreviewItems
@@ -658,9 +666,7 @@
         }
     }
 
-    private void SetSnapshot(
-        TenantLifecycleCommandSnapshot snapshot,
-        bool preserveDispatchIdentity = false)
+    private void SetSnapshot(TenantLifecycleCommandSnapshot snapshot)
     {
         if (_disposed)
         {
@@ -700,15 +706,11 @@
                 }
             }
         }
-        else if (_snapshot.HasTerminalOwnership && _snapshot.Intent is not null)
+        else if (_snapshot.HasTerminalOwnership
+            && _snapshot.Intent is not null
+            && !string.IsNullOrWhiteSpace(_snapshot.MessageId))
         {
-            if (!preserveDispatchIdentity)
-            {
-                if (!string.IsNullOrWhiteSpace(_snapshot.MessageId))
-                {
-                    AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
-                }
-            }
+            AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
         }
 
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
@@ -841,22 +843,6 @@
             SetSnapshot(_snapshot.BlockedWithTracking(
                 "Tenants.Lifecycle.Unavailable.PreviewIncomplete",
                 "Tenants.HighImpact.Recovery.MissingConsequencePreview"));
-            return;
-        }
-
-        if (_isSubmitting)
-        {
-            if (_snapshot.RetainsAttempt)
-            {
-                SetSnapshot(_snapshot.BlockedWithTracking(
-                    "Tenants.Lifecycle.DuplicatePrevented.Message",
-                    "Tenants.Lifecycle.Recovery.DuplicatePrevented"));
-            }
-            else
-            {
-                SetSnapshot(_snapshot.DuplicatePrevented(Localizer["Tenants.Lifecycle.DuplicatePrevented.Message"].Value));
-            }
-
             return;
         }
 
@@ -1404,7 +1390,8 @@
         {
             if (gateway is null)
             {
-                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Lifecycle.Unavailable.CommandSurface"].Value)));
+                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(
+                    Localizer["Tenants.Lifecycle.Unavailable.CommandSurface", PreviewTenantId, OperationLabel, string.Empty].Value)));
                 // Release the parent command-activity lock before returning: the status is now terminal
                 // (UnableToVerify), so the sibling command surfaces must not stay locked (matches siblings).
                 await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);

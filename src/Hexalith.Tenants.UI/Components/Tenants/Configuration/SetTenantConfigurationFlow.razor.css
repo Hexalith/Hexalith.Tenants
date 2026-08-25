@@ -120,6 +120,9 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
+    /* fc-css-exception: narrow-viewport safety gate for a high-impact editor; mirrors the
+       FrontComposer ViewportTier.Phone boundary (< 768px). Dismissal and refresh controls are
+       deliberately rendered outside this form so hiding it never removes the only exit. */
     .tenants-config-set__form {
         display: none;
     }

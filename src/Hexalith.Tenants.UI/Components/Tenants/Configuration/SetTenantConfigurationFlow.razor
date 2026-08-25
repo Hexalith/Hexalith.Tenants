@@ -122,19 +122,26 @@
                               Disabled="@IsSubmitDisabled">
                     @Localizer["Tenants.Configuration.Set.Submit"]
                 </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              data-testid="tenants-config-set-refresh"
-                              Disabled="@(!CanRefresh)"
-                              OnClick="RefreshStatusAsync">
-                    @Localizer["Tenants.Configuration.Set.Refresh"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline"
-                              data-testid="tenants-config-set-cancel"
-                              OnClick="CloseEditorAsync">
-                    @Localizer["Tenants.Configuration.Set.Cancel"]
-                </FluentButton>
             </FluentStack>
         </EditForm>
+
+        @* Refresh and Cancel live outside the form on purpose, matching RemoveTenantConfigurationFlow. The
+           narrow-width rule hides `.tenants-config-set__form` entirely, and OnParametersSet does not close an
+           already-open editor when the viewport degrades, so keeping these inside the form left a resized or
+           zoomed viewport with no reachable way to dismiss the editor or advance a pending attempt. *@
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-set__dismiss">
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-config-set-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
+                @Localizer["Tenants.Configuration.Set.Refresh"]
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-config-set-cancel"
+                          OnClick="CloseEditorAsync">
+                @Localizer["Tenants.Configuration.Set.Cancel"]
+            </FluentButton>
+        </FluentStack>
     }
 
     <section class="tenants-config-set__lifecycle"

@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using Hexalith.Tenants.Contracts.Projections;
+
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>
@@ -7,6 +9,8 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// </summary>
 internal static class TenantLifecycleProjectionVersion
 {
+    private const string TenantSequencePrefix = TenantProjectionVersionFormat.SequencePrefix;
+
     /// <summary>Classifies ordered advancement from a baseline to a current projection version.</summary>
     /// <param name="baseline">Pre-submit projection version.</param>
     /// <param name="current">Current authoritative projection version.</param>
@@ -24,6 +28,15 @@ internal static class TenantLifecycleProjectionVersion
             return TenantLifecycleProjectionVersionComparison.PrefixMismatch;
         }
 
+        // A shared prefix is not by itself an ordering contract. Only the aggregate sequence token carries
+        // one; a store-specific opaque marker (TenantQueryResult falls back to the state-store ETag) can
+        // share a textual prefix and end in increasing digits without those digits meaning anything. Such a
+        // pair used to compare as Advanced, which let non-causal churn satisfy the ordered-proof gate.
+        if (!string.Equals(baselinePrefix, TenantSequencePrefix, StringComparison.Ordinal))
+        {
+            return TenantLifecycleProjectionVersionComparison.PrefixMismatch;
+        }
+
         return currentSequence > baselineSequence
             ? TenantLifecycleProjectionVersionComparison.Advanced
             : TenantLifecycleProjectionVersionComparison.NotAdvanced;
@@ -37,7 +50,8 @@ internal static class TenantLifecycleProjectionVersion
     {
         if (!TrySplit(incoming, out string incomingPrefix, out ulong incomingSequence)
             || !TrySplit(retained, out string retainedPrefix, out ulong retainedSequence)
-            || !string.Equals(incomingPrefix, retainedPrefix, StringComparison.Ordinal))
+            || !string.Equals(incomingPrefix, retainedPrefix, StringComparison.Ordinal)
+            || !string.Equals(incomingPrefix, TenantSequencePrefix, StringComparison.Ordinal))
         {
             return 0;
         }

@@ -134,35 +134,6 @@ public sealed record TenantLifecycleAvailability(
             evidence);
     }
 
-    /// <summary>
-    /// Re-evaluates the retained evidence for confirmation using the operator's exact input completeness.
-    /// </summary>
-    /// <param name="isInputComplete">Whether the literal tenant identifier has been entered exactly.</param>
-    /// <param name="authorizationReflection">Optional freshly resolved server-reflected authority.</param>
-    /// <returns>The current confirmation-stage availability.</returns>
-    public TenantLifecycleAvailability ForConfirmation(
-        bool isInputComplete,
-        TenantLifecycleAuthorizationReflectionState? authorizationReflection = null)
-        => Evidence is null
-            ? this
-            : FromEvidence(
-                Evidence with
-                {
-                    Stage = TenantHighImpactEvaluationStage.Confirmation,
-                    IsInputComplete = isInputComplete,
-                    Authority = authorizationReflection.HasValue
-                        ? authorizationReflection.Value switch
-                        {
-                            TenantLifecycleAuthorizationReflectionState.Authorized
-                                => TenantHighImpactAuthorityEvidence.Authorized,
-                            TenantLifecycleAuthorizationReflectionState.MissingPermission
-                                => TenantHighImpactAuthorityEvidence.MissingPermission,
-                            _ => TenantHighImpactAuthorityEvidence.Indeterminate,
-                        }
-                        : Evidence.Authority,
-                },
-                authorizationReflection: authorizationReflection);
-
     private static string ResolveSafeMessageKey(
         TenantHighImpactActionEvidence evidence,
         TenantHighImpactActionAvailability result,

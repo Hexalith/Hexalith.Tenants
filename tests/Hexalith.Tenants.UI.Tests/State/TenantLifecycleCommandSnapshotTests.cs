@@ -327,6 +327,24 @@ public sealed class TenantLifecycleCommandSnapshotTests
     }
 
     [Fact]
+    public void Opaque_tokens_sharing_a_prefix_and_ending_in_increasing_digits_do_not_confirm()
+    {
+        // TenantQueryResult falls back to the state-store ETag when no read model carries a projection
+        // version. Two such markers can share a textual prefix and end in increasing digits without those
+        // digits expressing causal order, so only the aggregate sequence token may satisfy the ordered gate.
+        TenantLifecycleCommandSnapshot pending = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true) with { BaselineProjectionVersion = "etag-v1" };
+
+        TenantLifecycleCommandSnapshot result = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "etag-v2"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.ProjectionEvidence.PrefixMismatch");
+    }
+
+    [Fact]
     public void Parseable_projection_versions_with_different_prefixes_remain_pending()
     {
         TenantLifecycleCommandSnapshot pending = Pending(

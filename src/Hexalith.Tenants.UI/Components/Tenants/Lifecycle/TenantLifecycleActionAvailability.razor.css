@@ -71,7 +71,8 @@
 }
 
 .tenant-lifecycle__reason,
-.tenant-lifecycle__announcer {
+.tenant-lifecycle__announcer,
+.tenant-lifecycle__domain-outcome {
     overflow-wrap: anywhere;
 }
 
@@ -106,7 +107,8 @@
 @media (forced-colors: active) {
     .tenant-lifecycle,
     .tenant-lifecycle__facts div,
-    .tenant-lifecycle__action {
+    .tenant-lifecycle__action,
+    .tenant-lifecycle__domain-outcome {
         border-color: CanvasText;
         color: CanvasText;
     }

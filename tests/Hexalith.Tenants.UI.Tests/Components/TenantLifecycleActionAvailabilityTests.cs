@@ -753,6 +753,43 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         gateway.EnableSubmissions.ShouldBe(0);
     }
 
+    [Fact]
+    public void Submit_refused_activity_lease_dispatches_nothing_and_names_the_aggregate_as_in_flight()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"),
+        };
+        TenantLifecycleAttemptTracker tracker = new();
+        RegisterServices(gateway, tracker);
+        List<bool> leaseRequests = [];
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.Availability, AvailableLifecycle(
+                TenantStatus.Active,
+                TenantLifecycleOperation.DisableTenant))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.CommandActivityLease, active =>
+            {
+                leaseRequests.Add(active);
+                return Task.FromResult(!active);
+            })
+            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(
+                TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+                Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessageKey
+            .ShouldBe("Tenants.Commands.Unavailable.AggregateInFlight"));
+        leaseRequests.ShouldBe([true]);
+        gateway.DisableSubmissions.ShouldBe(0);
+        gateway.EnableSubmissions.ShouldBe(0);
+        tracker.FindDispatchIntent("tenant.alpha").ShouldBeNull();
+    }
+
     [Theory]
     [InlineData("dispatch", 0, 1)]
     [InlineData("status", 1, 1)]
@@ -1040,7 +1077,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         MethodInfo setSnapshot = typeof(TenantLifecycleCommandFlow)
             .GetMethod("SetSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
-        Should.NotThrow(() => setSnapshot.Invoke(cut.Instance, [malformed, false]));
+        Should.NotThrow(() => setSnapshot.Invoke(cut.Instance, [malformed]));
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
