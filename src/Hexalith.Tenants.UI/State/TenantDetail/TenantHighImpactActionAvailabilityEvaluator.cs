@@ -21,8 +21,16 @@ public static class TenantHighImpactActionAvailabilityEvaluator
         bool friction = evidence.Freshness is TenantHighImpactFreshnessState.Aging
             or TenantHighImpactFreshnessState.Refreshing;
 
-        // Precedence is a user-facing contract. Read failures remain actionable as read failures; an
-        // unauthorized surface remains a permission result; dependency and confirmation gates follow.
+        // Reflected authority is evaluated before projection, freshness, and viewport facts. Returning a
+        // lower-level reason to an unauthorized caller would disclose tenant state the caller may not inspect.
+        if (!Enum.IsDefined(evidence.Authority)
+            || evidence.Authority is not TenantHighImpactAuthorityEvidence.Authorized
+            || evidence.SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
+        {
+            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingPermission, TenantHighImpactDomainOutcome.None, friction);
+        }
+
+        // Remaining precedence is a user-facing contract for an authority-confirmed caller.
         if (!Enum.IsDefined(evidence.SurfaceKind)
             || !Enum.IsDefined(evidence.Freshness)
             || evidence.SurfaceKind is TenantDetailSurfaceKind.Stale
@@ -32,11 +40,6 @@ public static class TenantHighImpactActionAvailabilityEvaluator
                 && !evidence.HasCurrentBaseline))
         {
             return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
-        }
-
-        if (evidence.SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
-        {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingPermission, TenantHighImpactDomainOutcome.None, friction);
         }
 
         if (evidence.SurfaceKind is not TenantDetailSurfaceKind.Ready)
@@ -77,12 +80,6 @@ public static class TenantHighImpactActionAvailabilityEvaluator
             || evidence.Viewport is not TenantHighImpactViewportState.Safe)
         {
             return Blocked(evidence, TenantHighImpactUnavailableReason.HighImpactFlowNotReady, domainOutcome, friction);
-        }
-
-        if (!Enum.IsDefined(evidence.Authority)
-            || evidence.Authority is not TenantHighImpactAuthorityEvidence.Authorized)
-        {
-            return Blocked(evidence, TenantHighImpactUnavailableReason.MissingPermission, domainOutcome, friction);
         }
 
         if (!Enum.IsDefined(evidence.NamespaceScope)

@@ -366,6 +366,16 @@ internal sealed class TenantCommandGateway(
         catch (EventStoreGatewayException ex) {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
+        catch (HttpRequestException) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
     }
 
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
@@ -406,6 +416,16 @@ internal sealed class TenantCommandGateway(
         catch (EventStoreGatewayException ex) {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
+        catch (HttpRequestException) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
     }
 
     public async Task<TenantCommandStatusResult> GetStatusAsync(
@@ -423,17 +443,29 @@ internal sealed class TenantCommandGateway(
             }
 
             if (!response.IsSuccessStatusCode) {
-                return TenantCommandStatusResult.Unknown("Command status could not be verified.");
+                return IsRetryableStatusCode(response.StatusCode)
+                    ? TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.")
+                    : TenantCommandStatusResult.Unknown("Command status request was rejected.");
             }
 
             TenantCommandStatusResponse? status = await response.Content
                 .ReadFromJsonAsync<TenantCommandStatusResponse>(WebJsonOptions, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (status is null
-                || string.IsNullOrWhiteSpace(status.CorrelationId)
-                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal)
-                || !Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
+            if (status is null) {
+                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+            }
+
+            if (string.IsNullOrWhiteSpace(status.CorrelationId)
+                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal)) {
+                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.");
+            }
+
+            if (!Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
+                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+            }
+
+            if (!Enum.IsDefined(parsedStatus)) {
                 return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
             }
 
@@ -453,12 +485,20 @@ internal sealed class TenantCommandGateway(
                 HasVerifiedCommandIdentity: hasVerifiedCommandIdentity);
         }
         catch (JsonException) {
-            return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
+            return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
         }
         catch (HttpRequestException) {
-            return TenantCommandStatusResult.Unknown("Command status could not be verified.");
+            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
         }
     }
+
+    private static bool IsRetryableStatusCode(HttpStatusCode statusCode)
+        => statusCode is HttpStatusCode.RequestTimeout
+            or HttpStatusCode.TooManyRequests
+        || (int)statusCode >= 500;
 
     private static TenantCommandSubmissionResult MapGatewayException(EventStoreGatewayException exception) {
         if (IsTenantAlreadyExists(exception)) {
@@ -591,9 +631,15 @@ internal sealed class TenantCommandGateway(
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to submit tenant lifecycle commands.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
                 => TenantCommandSubmissionResult.Failed("The lifecycle request was not accepted. Check the visible tenant evidence and try again."),
-            (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
-            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+            (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
+                => TenantCommandSubmissionResult.Ambiguous(
+                    string.Empty,
+                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"),
+            >= 500
+                => TenantCommandSubmissionResult.Ambiguous(
+                    string.Empty,
+                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"),
+            _ => TenantCommandSubmissionResult.Failed("The lifecycle command submission was rejected before dispatch could be verified."),
         };
     }
 

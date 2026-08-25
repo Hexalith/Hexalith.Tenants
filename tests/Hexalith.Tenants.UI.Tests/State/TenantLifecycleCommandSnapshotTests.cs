@@ -100,19 +100,25 @@ public sealed class TenantLifecycleCommandSnapshotTests
     }
 
     [Theory]
-    [InlineData(CommandStatus.Received, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Processing, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsStored, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsPublished, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Completed, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
+    [InlineData(CommandStatus.Received, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.Processing, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.EventsStored, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.EventsPublished, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.Completed, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.Rejected, "InsufficientPermissions", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions")]
+    [InlineData(CommandStatus.Rejected, "TenantDisabled", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantDisabled")]
+    [InlineData(CommandStatus.Rejected, "TenantNotFound", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantNotFound")]
+    [InlineData(CommandStatus.Rejected, "TenantLifecycleStateAlreadySet", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet")]
+    [InlineData(CommandStatus.Rejected, "UnexpectedCode", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected")]
+    [InlineData(CommandStatus.PublishFailed, null, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Degraded")]
+    [InlineData(CommandStatus.TimedOut, null, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.UnableToVerify")]
     public void Command_status_results_remain_distinct_before_projection_confirmation(
         CommandStatus status,
+        string? rejectionCode,
         TenantCommandLifecycleState expectedState,
         TenantCommandAuditState expectedAudit,
-        TenantCommandLiveRegionPoliteness expectedPoliteness)
+        TenantCommandLiveRegionPoliteness expectedPoliteness,
+        string? expectedSafeMessageKey)
     {
         TenantLifecycleCommandSnapshot snapshot = Started(
             TenantLifecycleOperation.DisableTenant,
@@ -121,13 +127,14 @@ public sealed class TenantLifecycleCommandSnapshotTests
             .ApplyStatus(new TenantCommandStatusResult(
                 status,
                 "Safe lifecycle status.",
-                "TenantDisabled",
+                rejectionCode,
                 EventCount: 1,
                 HasVerifiedCommandIdentity: true));
 
         snapshot.State.ShouldBe(expectedState);
         snapshot.AuditState.ShouldBe(expectedAudit);
         snapshot.LiveRegionPoliteness.ShouldBe(expectedPoliteness);
+        snapshot.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
@@ -187,40 +194,137 @@ public sealed class TenantLifecycleCommandSnapshotTests
         result.RetainsAttempt.ShouldBeTrue();
         result.MessageId.ShouldBe("message-1");
         result.CorrelationId.ShouldBe("correlation-1");
-        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Status.Pending");
+        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.StatusEvidence.Pending");
         result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
         result.PendingStatusPollCount.ShouldBe(1);
     }
 
     [Fact]
-    public void Pending_status_store_propagation_is_bounded_and_becomes_terminal()
+    public void Pending_status_store_propagation_is_bounded_by_elapsed_time_and_becomes_terminal()
     {
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-08-25T12:00:00Z");
         TenantLifecycleCommandSnapshot snapshot = Started(
+                TenantLifecycleOperation.DisableTenant,
+                TenantStatus.Active) with { AttemptStartedAtUtc = attemptStart };
+        snapshot = snapshot
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        snapshot = snapshot.ApplyStatus(
+            TenantCommandStatusResult.Pending("Status is not available yet."),
+            attemptStart.AddMinutes(4));
+        TenantLifecycleCommandSnapshot terminal = snapshot.ApplyStatus(
+            TenantCommandStatusResult.Pending("Status is not available yet."),
+            attemptStart + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration);
+
+        terminal.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        terminal.RetainsAttempt.ShouldBeFalse();
+        terminal.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
+        terminal.PendingStatusPollCount.ShouldBe(2);
+        terminal.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    [Theory]
+    [InlineData(CommandStatus.Received)]
+    [InlineData(CommandStatus.Processing)]
+    [InlineData(CommandStatus.EventsStored)]
+    [InlineData(CommandStatus.EventsPublished)]
+    [InlineData(CommandStatus.Completed)]
+    public void Non_terminal_and_completed_event_statuses_release_ownership_at_the_attempt_deadline(
+        CommandStatus status)
+    {
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-08-25T12:00:00Z");
+        TenantLifecycleCommandSnapshot accepted = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active) with { AttemptStartedAtUtc = attemptStart };
+        accepted = accepted.Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        TenantLifecycleCommandSnapshot result = accepted.ApplyStatus(
+            new TenantCommandStatusResult(
+                status,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true),
+            attemptStart + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.RetainsAttempt.ShouldBeFalse();
+        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
+    }
+
+    [Fact]
+    public void Retryable_status_failure_retains_until_the_same_wall_clock_deadline()
+    {
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-08-25T12:00:00Z");
+        TenantLifecycleCommandSnapshot accepted = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active) with { AttemptStartedAtUtc = attemptStart };
+        accepted = accepted.Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        TenantLifecycleCommandSnapshot retryable = accepted.ApplyStatus(
+            TenantCommandStatusResult.RetryableFailure("Temporary transport fault."),
+            attemptStart.AddMinutes(1));
+        TenantLifecycleCommandSnapshot terminal = retryable.ApplyStatus(
+            TenantCommandStatusResult.RetryableFailure("Temporary transport fault."),
+            attemptStart + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration);
+
+        retryable.RetainsAttempt.ShouldBeTrue();
+        retryable.SafeMessageKey.ShouldBe("Tenants.Lifecycle.StatusEvidence.RetryableFailure");
+        terminal.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        terminal.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
+    }
+
+    [Fact]
+    public void Explicit_abandon_terminalizes_a_retained_attempt()
+    {
+        TenantLifecycleCommandSnapshot retained = Started(
                 TenantLifecycleOperation.DisableTenant,
                 TenantStatus.Active)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
-        snapshot = snapshot.ApplyStatus(TenantCommandStatusResult.Pending("Status is not available yet."));
-        snapshot = snapshot.ApplyStatus(TenantCommandStatusResult.Pending("Status is not available yet."));
-        TenantLifecycleCommandSnapshot terminal = snapshot.ApplyStatus(
-            TenantCommandStatusResult.Pending("Status is not available yet."));
+        TenantLifecycleCommandSnapshot result = retained.Abandon();
 
-        terminal.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        terminal.RetainsAttempt.ShouldBeFalse();
-        terminal.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusPollLimit");
-        terminal.PendingStatusPollCount.ShouldBe(3);
-        terminal.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.RetainsAttempt.ShouldBeFalse();
+        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.Abandoned");
     }
 
     [Fact]
-    public void Request_sent_is_not_retained_before_the_gateway_accepts_the_attempt()
+    public void Non_comparable_baseline_and_current_version_tokens_do_not_confirm_lifecycle_success()
+    {
+        TenantLifecycleCommandSnapshot pending = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true) with { BaselineProjectionVersion = "legacy-etag" };
+
+        TenantLifecycleCommandSnapshot result = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+    }
+
+    [Fact]
+    public void Parseable_projection_versions_with_different_prefixes_remain_pending()
+    {
+        TenantLifecycleCommandSnapshot pending = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true) with { BaselineProjectionVersion = "tenant-sequence:41" };
+
+        TenantLifecycleCommandSnapshot result = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "other-sequence:42"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.LastObservedProjectionVersion.ShouldBe("other-sequence:42");
+    }
+
+    [Fact]
+    public void Request_sent_is_retained_when_dispatch_delivery_is_ambiguous()
     {
         TenantLifecycleCommandSnapshot requestSent = Started(
             TenantLifecycleOperation.DisableTenant,
             TenantStatus.Active);
 
         requestSent.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
-        requestSent.RetainsAttempt.ShouldBeFalse();
+        requestSent.RetainsAttempt.ShouldBeTrue();
         requestSent.AttemptStartedAtUtc.ShouldNotBeNull();
     }
 

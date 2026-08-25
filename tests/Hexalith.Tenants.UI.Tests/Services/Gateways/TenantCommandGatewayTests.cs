@@ -344,6 +344,73 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("correlation-life", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.RequestTimeout)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    public async Task Lifecycle_submission_maps_ambiguous_http_failures_to_same_identity_retry(
+        HttpStatusCode statusCode)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        TenantCommandGateway gateway = CreateLifecycleGateway(
+            new EventStoreGatewayException((int)statusCode, "raw transport token"));
+
+        TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            messageId,
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, TenantCommandLifecycleState.Failed)]
+    [InlineData(HttpStatusCode.Unauthorized, TenantCommandLifecycleState.Rejected)]
+    [InlineData(HttpStatusCode.Forbidden, TenantCommandLifecycleState.Rejected)]
+    public async Task Lifecycle_submission_keeps_permanent_http_rejections_terminal(
+        HttpStatusCode statusCode,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantCommandGateway gateway = CreateLifecycleGateway(
+            new EventStoreGatewayException((int)statusCode, "raw rejection token"));
+
+        TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            CancellationToken.None);
+
+        result.State.ShouldBe(expectedState);
+        result.IsAmbiguousFailure.ShouldBeFalse();
+    }
+
+    [Theory]
+    [MemberData(nameof(AmbiguousTransportExceptions))]
+    public async Task Lifecycle_submission_maps_transport_and_timeout_exceptions_to_same_identity_retry(
+        Exception exception)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        TenantCommandGateway gateway = CreateLifecycleGateway(exception);
+
+        TenantCommandSubmissionResult result = await gateway.EnableTenantAsync(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant),
+            messageId,
+            CancellationToken.None);
+
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+    }
+
+    public static TheoryData<Exception> AmbiguousTransportExceptions
+        => new()
+        {
+            new HttpRequestException("transport unavailable"),
+            new TaskCanceledException("gateway timeout"),
+        };
+
     [Fact]
     public async Task Update_tenant_submits_literal_command_with_payload_and_captures_correlation_id()
     {
@@ -1671,7 +1738,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
-    public async Task Status_lookup_maps_malformed_payload_to_unable_to_verify()
+    public async Task Status_lookup_maps_malformed_payload_to_retryable_failure()
     {
         StatusHandler handler = new("{ not-json");
         TenantCommandGateway gateway = new(
@@ -1684,7 +1751,50 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.Status.ShouldBeNull();
+        result.IsRetryableFailure.ShouldBeTrue();
         result.SafeMessage.ShouldBe("Command status response was unavailable.");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.ServiceUnavailable, true)]
+    [InlineData(HttpStatusCode.Unauthorized, false)]
+    public async Task Status_lookup_retries_only_transient_http_failures(
+        HttpStatusCode statusCode,
+        bool expectedRetryable)
+    {
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-123")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}", statusCode))
+            {
+                BaseAddress = new Uri("https://eventstore.example/"),
+            });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-123", "correlation-123"),
+            CancellationToken.None);
+
+        result.Status.ShouldBeNull();
+        result.IsRetryableFailure.ShouldBe(expectedRetryable);
+    }
+
+    [Fact]
+    public async Task Status_lookup_maps_http_transport_exception_to_retryable_failure()
+    {
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-123")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new ThrowingStatusHandler(new HttpRequestException("transport unavailable")))
+            {
+                BaseAddress = new Uri("https://eventstore.example/"),
+            });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-123", "correlation-123"),
+            CancellationToken.None);
+
+        result.Status.ShouldBeNull();
+        result.IsRetryableFailure.ShouldBeTrue();
     }
 
     [Theory]
@@ -1848,11 +1958,12 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.Status.ShouldBeNull();
-        result.SafeMessage.ShouldBe("Command status response was unavailable.");
+        result.IsRetryableFailure.ShouldBeFalse();
+        result.SafeMessage.ShouldBe("Command status response did not match the tracked command.");
     }
 
     [Fact]
-    public async Task Stable_lifecycle_overload_delegates_safely_to_a_legacy_style_gateway_without_one_argument_ambiguity()
+    public async Task Stable_lifecycle_overload_fails_closed_for_a_legacy_style_gateway()
     {
         var legacy = new LegacyLifecycleGateway();
         ITenantCommandGateway gateway = legacy;
@@ -1861,17 +1972,23 @@ public sealed class TenantCommandGatewayTests
         using var cancellation = new CancellationTokenSource();
 
         TenantCommandSubmissionResult legacyResult = await gateway.DisableTenantAsync(disable);
+        TenantCommandSubmissionResult stableDisableResult = await gateway.DisableTenantAsync(
+            disable,
+            "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
+            cancellation.Token);
         TenantCommandSubmissionResult stableResult = await gateway.EnableTenantAsync(
             enable,
             "01ARZ3NDEKTSV4RRFFQ69G5FB0",
             cancellation.Token);
 
         legacy.DisableCalls.ShouldBe(1);
-        legacy.EnableCalls.ShouldBe(1);
-        legacy.LastEnableRequest.ShouldBe(enable);
-        legacy.LastEnableCancellation.ShouldBe(cancellation.Token);
+        legacy.EnableCalls.ShouldBe(0);
+        legacy.LastEnableRequest.ShouldBeNull();
         legacyResult.MessageId.ShouldBe("legacy-disable-message");
-        stableResult.MessageId.ShouldBe("legacy-enable-message");
+        stableResult.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        stableResult.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
+        stableDisableResult.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        stableDisableResult.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
     }
 
     private sealed class LegacyLifecycleGateway : ITenantCommandGateway
@@ -1947,6 +2064,15 @@ public sealed class TenantCommandGatewayTests
             => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
     }
 
+    private static TenantCommandGateway CreateLifecycleGateway(object response)
+        => new(
+            new CapturingGatewayClient(response),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}"))
+            {
+                BaseAddress = new Uri("https://eventstore.example/"),
+            });
+
     private sealed class CapturingGatewayClient(object response) : IEventStoreGatewayClient
     {
         public List<SubmitCommandRequest> SubmittedCommands { get; } = [];
@@ -1995,5 +2121,13 @@ public sealed class TenantCommandGatewayTests
                 Content = new StringContent(body),
             });
         }
+    }
+
+    private sealed class ThrowingStatusHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromException<HttpResponseMessage>(exception);
     }
 }

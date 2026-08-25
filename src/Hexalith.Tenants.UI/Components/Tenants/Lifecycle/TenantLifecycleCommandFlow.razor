@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <section class="tenant-lifecycle-flow"
          role="dialog"
@@ -19,7 +20,7 @@
 
     <header>
         <h3 id="tenants-lifecycle-preview-heading">@Localizer["Tenants.Lifecycle.Preview.Title", OperationLabel]</h3>
-        <p>@Localizer["Tenants.Lifecycle.Preview.Description", Detail.TenantId]</p>
+        <p>@Localizer["Tenants.Lifecycle.Preview.Description", PreviewTenantId]</p>
     </header>
 
     @if (!string.IsNullOrWhiteSpace(UnavailableReason))
@@ -61,7 +62,7 @@
                              ValueChanged="OnConfirmationInput"
                              data-testid="tenants-lifecycle-confirmation"
                              aria-describedby="@ConfirmationDescribedBy" />
-            <span id="tenants-lifecycle-confirmation-help">@Localizer["Tenants.Lifecycle.Confirmation.Help", Detail.TenantId]</span>
+            <span id="tenants-lifecycle-confirmation-help">@Localizer["Tenants.Lifecycle.Confirmation.Help", PreviewTenantId]</span>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
@@ -86,6 +87,14 @@
                           OnClick="RefreshStatusFromUiAsync">
                 @Localizer["Tenants.Lifecycle.Refresh"]
             </FluentButton>
+            @if (_snapshot.RetainsAttempt)
+            {
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-lifecycle-abandon"
+                              OnClick="AbandonAsync">
+                    @Localizer["Tenants.Lifecycle.Abandon"]
+                </FluentButton>
+            }
             <span class="tenant-lifecycle-flow__button-focus" tabindex="-1" @ref="_cancelElement">
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-lifecycle-cancel"
@@ -111,11 +120,11 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         OnRefresh="RefreshStatusFromUiAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                        <AuditEvidenceEntryPoint TenantId="@PreviewTenantId"
                                                  SourceKind="command-result"
                                                  SourceTestId="tenants-command-audit-entrypoint"
                                                  Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, PreviewTenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-lifecycle-lifecycle"
                                                  AvailabilityText="@AuditText"
@@ -152,7 +161,9 @@
     private string? _validationMessage;
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
-    private bool _hasAdoptedRetainedAttempt;
+    private string? _adoptedRetainedTenantId;
+    private string? _parameterTenantId;
+    private LifecyclePreviewSnapshot? _preview;
     private bool _reacquireRetainedLeasePending;
     private bool _refreshRetainedAttemptPending;
     private int _submitGate;
@@ -161,11 +172,18 @@
     private int _pendingProjectionRefreshRequested;
     private bool _focusConfirmationPending;
     private bool _focusLifecyclePending;
+    private bool _disposed;
     private ITenantCommandGateway? _commandGateway;
     private TenantLifecycleAttemptTracker? _attemptTracker;
     private FluentTextInput _confirmationElement = default!;
     private ElementReference _cancelElement;
     private ElementReference _lifecycleElement;
+
+    private sealed record LifecyclePreviewSnapshot(
+        TenantDetail Detail,
+        string ProjectionVersion,
+        TenantLifecycleAvailability Availability,
+        bool IsCommandSurfaceAvailable);
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -205,50 +223,41 @@
     internal TenantLifecycleCommandSnapshot Snapshot => _snapshot;
 
     private TenantLifecycleCommandRequest Intent
-        => new(Detail.TenantId, Availability.Operation);
+        => new(PreviewTenantId, PreviewOperation);
 
     private TenantDetail PreviewDetail
-        => _snapshot.LastConfirmedProjection ?? Detail;
+        => _preview?.Detail ?? _snapshot.LastConfirmedProjection ?? Detail;
+
+    private string PreviewTenantId
+        => _preview?.Detail.TenantId ?? _snapshot.Intent?.TenantId ?? Detail.TenantId;
+
+    private TenantLifecycleOperation PreviewOperation
+        => _preview?.Availability.Operation ?? _snapshot.Intent?.Operation ?? Availability.Operation;
 
     private TenantStatus IntendedStatus
-        => Availability.Operation is TenantLifecycleOperation.EnableTenant
-            ? TenantStatus.Active
-            : TenantStatus.Disabled;
+        => PreviewOperation switch
+        {
+            TenantLifecycleOperation.EnableTenant => TenantStatus.Active,
+            TenantLifecycleOperation.DisableTenant => TenantStatus.Disabled,
+            _ => TenantStatus.Unknown,
+        };
 
     private string OperationLabel
-        => Localizer[$"Tenants.Lifecycle.Operation.{Availability.Operation}"];
+        => Localizer[$"Tenants.Lifecycle.Operation.{PreviewOperation}"];
 
     private bool IsPreviewComplete
-        => ResolvedEvidence is not null
-            ? EntryAvailability.IsEligible
-                && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
-                && !string.IsNullOrWhiteSpace(Detail.TenantId)
-                && !string.IsNullOrWhiteSpace(Detail.Name)
-                && !string.IsNullOrWhiteSpace(ProjectionVersion)
-                && string.Equals(Detail.TenantId, ResolvedEvidence!.TenantId, StringComparison.Ordinal)
-                && Detail.Status == ResolvedEvidence.TenantStatus
-                && Detail.Status != IntendedStatus
-            : Availability is { IsUnavailable: false }
-                && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
-                && !string.IsNullOrWhiteSpace(Detail.TenantId)
-                && !string.IsNullOrWhiteSpace(Detail.Name)
-                && !string.IsNullOrWhiteSpace(ProjectionVersion)
-                && Availability.Freshness is ReadModelFreshnessState.Current
-                && Availability.GovernanceReadiness is TenantLifecycleGovernanceReadiness.Ready
-                && Availability.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
-                && Detail.Status == Availability.CurrentStatus
-                && Detail.Status != IntendedStatus;
+        => _preview is { } preview && IsCompletePreview(preview, IsOwnedCommandInFlight);
 
     private string? UnavailableReason
-        => Availability.Evidence is not null && !EntryAvailability.IsEligible
+        => ResolvedEvidence is not null && !EntryAvailability.IsEligible
             ? Localizer[EntryAvailability.SafeMessageKey].Value
             : Availability.Evidence is null && Availability.IsUnavailable
                 ? Localizer[Availability.SafeMessageKey, Detail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
             : CommandGateway is null
                 ? Localizer["Tenants.Lifecycle.Unavailable.CommandSurface", Detail.TenantId, OperationLabel, string.Empty].Value
-                : !IsCommandSurfaceAvailable && !IsOwnedCommandInFlight
+                : _preview is { IsCommandSurfaceAvailable: false } && !IsOwnedCommandInFlight
                     ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
-                : string.IsNullOrWhiteSpace(Detail.TenantId) || string.IsNullOrWhiteSpace(Detail.Name)
+                : string.IsNullOrWhiteSpace(PreviewDetail.TenantId) || string.IsNullOrWhiteSpace(PreviewDetail.Name)
                     ? Localizer["Tenants.Lifecycle.Unavailable.Identity"].Value
                     : Detail.Status == IntendedStatus
                         ? Localizer["Tenants.Lifecycle.Unavailable.SameState", StatusLabel(Detail.Status)].Value
@@ -270,10 +279,13 @@
         => TenantHighImpactActionAvailabilityEvaluator.Evaluate(ResolvedEvidence! with
         {
             Stage = TenantHighImpactEvaluationStage.Confirmation,
-            IsInputComplete = string.Equals(_confirmationText, Detail.TenantId, StringComparison.Ordinal),
+            IsInputComplete = string.Equals(_confirmationText, PreviewTenantId, StringComparison.Ordinal),
         });
 
     private TenantHighImpactActionEvidence? ResolvedEvidence
+        => _preview?.Availability.Evidence;
+
+    private TenantHighImpactActionEvidence? CurrentResolvedEvidence
         => Availability.Evidence is null
             ? null
             : Availability.Evidence with
@@ -312,11 +324,11 @@
             (Localizer["Tenants.Lifecycle.Preview.TenantIdentity"], $"{PreviewDetail.Name} ({PreviewDetail.TenantId})", "tenants-lifecycle-preview-identity"),
             (Localizer["Tenants.Lifecycle.Preview.CurrentLifecycle"], StatusLabel(PreviewDetail.Status), "tenants-lifecycle-preview-current"),
             (Localizer["Tenants.Lifecycle.Preview.IntendedLifecycle"], StatusLabel(IntendedStatus), "tenants-lifecycle-preview-intended"),
-            (Localizer["Tenants.Lifecycle.Preview.KnownConsequences"], Localizer[$"Tenants.Lifecycle.Preview.KnownConsequences.{Availability.Operation}"], "tenants-lifecycle-preview-consequences"),
+            (Localizer["Tenants.Lifecycle.Preview.KnownConsequences"], Localizer[$"Tenants.Lifecycle.Preview.KnownConsequences.{PreviewOperation}"], "tenants-lifecycle-preview-consequences"),
             (Localizer["Tenants.Lifecycle.Preview.KnownUnknowns"], Localizer["Tenants.Lifecycle.Preview.KnownUnknowns.Value"], "tenants-lifecycle-preview-known-unknowns"),
             (Localizer["Tenants.Lifecycle.Preview.AuditExpectation"], Localizer["Tenants.Lifecycle.Preview.AuditExpectation.Value"], "tenants-lifecycle-preview-audit-expectation"),
             (Localizer["Tenants.Lifecycle.Preview.RecoveryPath"], Localizer["Tenants.Lifecycle.Preview.RecoveryPath.Value"], "tenants-lifecycle-preview-recovery-path"),
-            (Localizer["Tenants.Lifecycle.Preview.ProjectionEvidence"], Localizer["Tenants.Lifecycle.Preview.ProjectionEvidence.Value", StatusLabel(PreviewDetail.Status), Localizer[$"Tenants.Lifecycle.Freshness.{Availability.Freshness}"]], "tenants-lifecycle-preview-projection-evidence"),
+            (Localizer["Tenants.Lifecycle.Preview.ProjectionEvidence"], Localizer["Tenants.Lifecycle.Preview.ProjectionEvidence.Value", StatusLabel(PreviewDetail.Status), Localizer[$"Tenants.Lifecycle.Freshness.{_preview?.Availability.Freshness ?? ReadModelFreshnessState.Unknown}"]], "tenants-lifecycle-preview-projection-evidence"),
             (Localizer["Tenants.Lifecycle.Preview.AuthorizationGovernance"], Localizer["Tenants.Lifecycle.Preview.AuthorizationGovernance.Value"], "tenants-lifecycle-preview-authorization-governance"),
             (Localizer["Tenants.Lifecycle.Preview.CommandSurface"], Localizer["Tenants.Lifecycle.Preview.CommandSurface.Value"], "tenants-lifecycle-preview-command-surface"),
         ];
@@ -343,10 +355,23 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => $"/tenants/{Uri.EscapeDataString(PreviewTenantId)}";
 
     private string RecoveryText
-        => Localizer[$"Tenants.Lifecycle.Recovery.{_snapshot.State}"];
+        => Localizer[_snapshot.RecoveryKey ?? $"Tenants.Lifecycle.Recovery.{_snapshot.State}"];
+
+    private string UnavailableRecoveryKey
+        => ResolvedEvidence is not null && !EntryAvailability.IsEligible
+            ? EntryAvailability.RecoveryKey
+            : CommandGateway is null
+                ? "Tenants.HighImpact.Recovery.MissingLifecycleSupport"
+                : !IsCommandSurfaceAvailable && !IsOwnedCommandInFlight
+                    ? "Tenants.HighImpact.Recovery.HighImpactFlowNotReady"
+                    : string.IsNullOrWhiteSpace(Detail.TenantId)
+                        || string.IsNullOrWhiteSpace(Detail.Name)
+                        || !IsPreviewComplete
+                        ? "Tenants.HighImpact.Recovery.MissingConsequencePreview"
+                        : "Tenants.HighImpact.Recovery.None";
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
@@ -372,46 +397,205 @@
 
     protected override void OnParametersSet()
     {
-        if (!_hasAdoptedRetainedAttempt)
+        if (_disposed)
         {
-            _hasAdoptedRetainedAttempt = true;
-            TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(Detail.TenantId);
-            if (retained is { RetainsAttempt: true }
-                && retained.Intent is not null
-                && retained.Intent.Operation == Availability.Operation
-                && string.Equals(retained.Intent.TenantId, Detail.TenantId, StringComparison.Ordinal))
-            {
-                _snapshot = retained;
-                _hasRaisedCommandActivity = false;
-                _focusLifecyclePending = true;
-                _reacquireRetainedLeasePending = true;
-                _refreshRetainedAttemptPending = true;
-                return;
-            }
+            return;
         }
 
-        if (_snapshot.State is TenantCommandLifecycleState.Idle && IsPreviewComplete)
+        string tenantId = Detail.TenantId;
+        if (!string.Equals(_parameterTenantId, tenantId, StringComparison.Ordinal))
         {
-            _snapshot = _snapshot.Previewed(Intent, Detail, ProjectionVersion!);
+            _parameterTenantId = tenantId;
+            _adoptedRetainedTenantId = null;
+            _preview = null;
+            _snapshot = TenantLifecycleCommandSnapshot.Idle();
+            _confirmationText = null;
+            _validationMessage = null;
+            _hasRaisedCommandActivity = false;
+            _reacquireRetainedLeasePending = false;
+            _refreshRetainedAttemptPending = false;
+        }
+
+        TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(tenantId);
+        if (!string.Equals(_adoptedRetainedTenantId, tenantId, StringComparison.Ordinal)
+            && retained is { RetainsAttempt: true }
+            && retained.Intent is not null
+            && retained.Intent.Operation == Availability.Operation
+            && string.Equals(retained.Intent.TenantId, tenantId, StringComparison.Ordinal))
+        {
+            _snapshot = retained;
+            _preview = CreatePreviewSnapshot(
+                retained.LastConfirmedProjection ?? Detail,
+                retained.LastObservedProjectionVersion
+                    ?? retained.PreviewProjectionVersion
+                    ?? ProjectionVersion
+                    ?? string.Empty,
+                Availability,
+                IsCommandSurfaceAvailable);
+            _adoptedRetainedTenantId = tenantId;
+            _hasRaisedCommandActivity = false;
+            _focusLifecyclePending = true;
+            _reacquireRetainedLeasePending = true;
+            _refreshRetainedAttemptPending = true;
+            return;
+        }
+
+        if (_snapshot.State is TenantCommandLifecycleState.Idle
+            && TryCaptureParameterPreview(out LifecyclePreviewSnapshot? preview))
+        {
+            LifecyclePreviewSnapshot capturedPreview = preview!;
+            _preview = capturedPreview;
+            _snapshot = _snapshot.Previewed(
+                new TenantLifecycleCommandRequest(
+                    capturedPreview.Detail.TenantId,
+                    capturedPreview.Availability.Operation),
+                capturedPreview.Detail,
+                capturedPreview.ProjectionVersion);
             _focusConfirmationPending = true;
         }
     }
 
+    private bool TryCaptureParameterPreview(out LifecyclePreviewSnapshot? preview)
+    {
+        preview = null;
+        if (string.IsNullOrWhiteSpace(ProjectionVersion)
+            || !Enum.IsDefined(Availability.Operation))
+        {
+            return false;
+        }
+
+        TenantLifecycleAvailability capturedAvailability = Availability.Evidence is null
+            ? Availability
+            : Availability with { Evidence = CurrentResolvedEvidence };
+        var candidate = new LifecyclePreviewSnapshot(
+            Detail,
+            ProjectionVersion,
+            capturedAvailability,
+            IsCommandSurfaceAvailable);
+        if (!IsCompletePreview(candidate, ownedCommandInFlight: false))
+        {
+            return false;
+        }
+
+        preview = candidate;
+        return true;
+    }
+
+    private static bool IsCompletePreview(
+        LifecyclePreviewSnapshot preview,
+        bool ownedCommandInFlight)
+    {
+        if (!Enum.IsDefined(preview.Availability.Operation)
+            || !preview.IsCommandSurfaceAvailable && !ownedCommandInFlight
+            || string.IsNullOrWhiteSpace(preview.Detail.TenantId)
+            || string.IsNullOrWhiteSpace(preview.Detail.Name)
+            || string.IsNullOrWhiteSpace(preview.ProjectionVersion))
+        {
+            return false;
+        }
+
+        TenantStatus intendedStatus = preview.Availability.Operation is TenantLifecycleOperation.EnableTenant
+            ? TenantStatus.Active
+            : TenantStatus.Disabled;
+        if (preview.Detail.Status == intendedStatus)
+        {
+            return false;
+        }
+
+        return preview.Availability.Evidence is not null
+            ? TenantHighImpactActionAvailabilityEvaluator.Evaluate(preview.Availability.Evidence).IsEligible
+                && string.Equals(
+                    preview.Detail.TenantId,
+                    preview.Availability.Evidence.TenantId,
+                    StringComparison.Ordinal)
+                && preview.Detail.Status == preview.Availability.Evidence.TenantStatus
+            : !preview.Availability.IsUnavailable
+                && preview.Availability.Freshness is ReadModelFreshnessState.Current
+                && preview.Availability.GovernanceReadiness is TenantLifecycleGovernanceReadiness.Ready
+                && preview.Availability.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+                && preview.Detail.Status == preview.Availability.CurrentStatus;
+    }
+
+    private static LifecyclePreviewSnapshot CreatePreviewSnapshot(
+        TenantDetail detail,
+        string projectionVersion,
+        TenantLifecycleAvailability availability,
+        bool isCommandSurfaceAvailable)
+    {
+        TenantHighImpactActionEvidence? sourceEvidence = availability.Evidence;
+        TenantHighImpactActionEvidence? capturedEvidence = sourceEvidence is null
+            ? null
+            : sourceEvidence with
+            {
+                TenantId = detail.TenantId,
+                TenantStatus = detail.Status,
+                ProjectionVersion = projectionVersion,
+            };
+        return new(
+            detail,
+            projectionVersion,
+            availability with
+            {
+                TenantId = detail.TenantId,
+                CurrentStatus = detail.Status,
+                Evidence = capturedEvidence,
+            },
+            isCommandSurfaceAvailable);
+    }
+
+    private static LifecyclePreviewSnapshot CreatePreviewSnapshot(
+        TenantDetailSnapshot proof,
+        TenantLifecycleAvailability availability,
+        bool isCommandSurfaceAvailable)
+    {
+        TenantDetail detail = proof.Detail!;
+        TenantHighImpactActionEvidence? sourceEvidence = availability.Evidence;
+        TenantHighImpactActionEvidence? capturedEvidence = sourceEvidence is null
+            ? null
+            : sourceEvidence with
+            {
+                TenantId = detail.TenantId,
+                TenantStatus = detail.Status,
+                SurfaceKind = proof.Kind,
+                Freshness = TenantHighImpactActionEvidence.FromReadModelFreshness(proof.Freshness),
+                HasCurrentBaseline = proof.Freshness is ReadModelFreshnessState.Current,
+                ProjectionLifecycle = proof.Lifecycle,
+                ProjectionVersion = proof.ProjectionVersion,
+            };
+        return new(
+            detail,
+            proof.ProjectionVersion!,
+            availability with
+            {
+                TenantId = detail.TenantId,
+                CurrentStatus = detail.Status,
+                Freshness = proof.Freshness,
+                SurfaceKind = proof.Kind,
+                Evidence = capturedEvidence,
+            },
+            isCommandSurfaceAvailable);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_focusConfirmationPending)
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_focusConfirmationPending && !_disposed)
         {
             _focusConfirmationPending = false;
             await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
-        if (_focusLifecyclePending)
+        if (_focusLifecyclePending && !_disposed)
         {
             _focusLifecyclePending = false;
             await _lifecycleElement.FocusAsync().ConfigureAwait(false);
         }
 
-        if (_refreshRetainedAttemptPending)
+        if (_refreshRetainedAttemptPending && !_disposed)
         {
             _refreshRetainedAttemptPending = false;
             if (_reacquireRetainedLeasePending)
@@ -429,20 +613,45 @@
         }
     }
 
-    private void SetSnapshot(TenantLifecycleCommandSnapshot snapshot)
+    private void SetSnapshot(
+        TenantLifecycleCommandSnapshot snapshot,
+        bool preserveDispatchIdentity = false)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _snapshot = snapshot;
         if (_snapshot.RetainsAttempt)
         {
             TenantLifecycleAttemptTracker? tracker = AttemptTracker;
-            if (tracker is null || !tracker.Remember(_snapshot))
+            bool remembered;
+            try
             {
+                remembered = tracker is not null && tracker.Remember(_snapshot);
+            }
+            catch (ArgumentException)
+            {
+                remembered = false;
+            }
+
+            if (!remembered)
+            {
+                TenantLifecycleCommandSnapshot invalid = _snapshot;
                 _snapshot = _snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+                if (invalid.Intent is not null)
+                {
+                    tracker?.Forget(invalid.Intent.TenantId, invalid.MessageId);
+                }
             }
         }
         else if (_snapshot.HasTerminalOwnership && _snapshot.Intent is not null)
         {
-            AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
+            if (!preserveDispatchIdentity)
+            {
+                AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
+            }
         }
 
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
@@ -454,6 +663,11 @@
 
     private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
+        if (_disposed)
+        {
+            return !isActive;
+        }
+
         if (_hasRaisedCommandActivity == isActive)
         {
             return true;
@@ -463,6 +677,11 @@
         // acquisition used to leave this flow free to dispatch against an aggregate another surface held.
         if (CommandActivityLease is not null)
         {
+            if (_disposed)
+            {
+                return !isActive;
+            }
+
             bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
             if (isActive && !accepted)
             {
@@ -473,6 +692,11 @@
         _hasRaisedCommandActivity = isActive;
         if (CommandActivityLease is null)
         {
+            if (_disposed)
+            {
+                return !isActive;
+            }
+
             await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
         }
 
@@ -483,19 +707,26 @@
         => _ = await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     internal void ApplySignalRNudge()
-        => SetSnapshot(_snapshot.SignalRNudge());
+    {
+        if (!_disposed)
+        {
+            SetSnapshot(_snapshot.SignalRNudge());
+        }
+    }
 
     internal async Task HandleAuthoritativeRefreshNudgeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         ApplySignalRNudge();
         if (_snapshot.RetainsAttempt)
         {
             await RefreshStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
         }
     }
-
-    internal void ApplyProjectionEvidence(TenantDetailSnapshot? proof)
-        => SetSnapshot(_snapshot.ConfirmProjection(proof));
 
     private string StatusLabel(TenantStatus status)
         => Localizer[$"Tenants.Lifecycle.Status.{status}"];
@@ -505,8 +736,16 @@
 
     private async Task SubmitAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (Interlocked.Exchange(ref _submitGate, 1) != 0)
         {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.DuplicatePrevented.Message",
+                "Tenants.Lifecycle.Recovery.DuplicatePrevented"));
             return;
         }
 
@@ -522,13 +761,28 @@
 
     private async Task SubmitCoreAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _validationMessage = null;
+
+        if (!Enum.IsDefined(PreviewOperation))
+        {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.PreviewIncomplete",
+                "Tenants.HighImpact.Recovery.MissingConsequencePreview"));
+            return;
+        }
 
         if (_isSubmitting)
         {
             if (_snapshot.RetainsAttempt)
             {
-                SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.DuplicatePrevented.Message"));
+                SetSnapshot(_snapshot.BlockedWithTracking(
+                    "Tenants.Lifecycle.DuplicatePrevented.Message",
+                    "Tenants.Lifecycle.Recovery.DuplicatePrevented"));
             }
             else
             {
@@ -538,12 +792,12 @@
             return;
         }
 
-        TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(Detail.TenantId);
+        TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(PreviewTenantId);
         if (retained is { RetainsAttempt: true })
         {
             if (retained.Intent is not null
-                && retained.Intent.Operation == Availability.Operation
-                && string.Equals(retained.Intent.TenantId, Detail.TenantId, StringComparison.Ordinal))
+                && retained.Intent.Operation == PreviewOperation
+                && string.Equals(retained.Intent.TenantId, PreviewTenantId, StringComparison.Ordinal))
             {
                 _snapshot = retained;
                 if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
@@ -556,7 +810,9 @@
             }
             else
             {
-                SetSnapshot(retained.BlockedWithTracking("Tenants.Lifecycle.Unavailable.RetainedDifferentIntent"));
+                SetSnapshot(retained.BlockedWithTracking(
+                    "Tenants.Lifecycle.Unavailable.RetainedDifferentIntent",
+                    "Tenants.Lifecycle.Retained.Recovery"));
             }
 
             return;
@@ -564,29 +820,42 @@
 
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
-            SetSnapshot(_snapshot.BlockedWithTrackingMessage(UnavailableReason));
+            SetSnapshot(_snapshot.BlockedWithTrackingMessage(
+                UnavailableReason,
+                UnavailableRecoveryKey));
             return;
         }
 
-        if (!string.Equals(_confirmationText, Detail.TenantId, StringComparison.Ordinal))
+        if (!string.Equals(_confirmationText, PreviewTenantId, StringComparison.Ordinal))
         {
-            _validationMessage = Localizer["Tenants.Lifecycle.Validation.ConfirmationRequired", Detail.TenantId];
+            _validationMessage = Localizer["Tenants.Lifecycle.Validation.ConfirmationRequired", PreviewTenantId];
             _focusConfirmationPending = true;
             return;
         }
 
         if (ResolvedEvidence is null)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Unavailable.PreviewIncomplete"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.PreviewIncomplete",
+                "Tenants.HighImpact.Recovery.MissingConsequencePreview"));
             return;
         }
 
         TenantLifecycleAuthorizationReflectionState currentAuthorization;
         try
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             currentAuthorization = AuthorizationReflectionProvider is null
                 ? TenantLifecycleAuthorizationReflectionState.Indeterminate
                 : await AuthorizationReflectionProvider().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception)
         {
@@ -596,39 +865,80 @@
         TenantDetailSnapshot? submitProof;
         try
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             submitProof = ProjectionEvidenceProvider is null
                 ? null
                 : await ProjectionEvidenceProvider(Intent).ConfigureAwait(false);
         }
         catch (Exception)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Unavailable.ProofRead"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.ProofRead",
+                "Tenants.HighImpact.Recovery.StaleData"));
             return;
         }
 
         if (submitProof is null)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Unavailable.ProofRead"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.ProofRead",
+                "Tenants.HighImpact.Recovery.StaleData"));
+            return;
+        }
+
+        if (submitProof.Kind is TenantDetailSurfaceKind.Unavailable)
+        {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.ProofRead",
+                "Tenants.HighImpact.Recovery.StaleData"));
             return;
         }
 
         if (!IsMatchingPreviewProof(submitProof))
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Unavailable.PreviewChanged"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.PreviewChanged",
+                "Tenants.HighImpact.Recovery.StaleData"));
             return;
         }
 
         TenantHighImpactActionAvailability currentResult = EvaluateSubmitProof(submitProof, currentAuthorization);
         if (!currentResult.IsEligible)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking(currentResult.SafeMessageKey));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                currentResult.SafeMessageKey,
+                currentResult.RecoveryKey));
             return;
         }
 
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Unavailable.CommandSurface"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.CommandSurface",
+                "Tenants.HighImpact.Recovery.MissingLifecycleSupport"));
+            return;
+        }
+
+        TenantLifecycleAttemptTracker? tracker = AttemptTracker;
+        if (tracker is null)
+        {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.CommandSurface",
+                "Tenants.HighImpact.Recovery.MissingLifecycleSupport"));
+            return;
+        }
+
+        TenantLifecycleCommandRequest? dispatchIntent = tracker.FindDispatchIntent(PreviewTenantId);
+        if (dispatchIntent is not null && !Equals(dispatchIntent, Intent))
+        {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.RetainedDifferentIntent",
+                "Tenants.Lifecycle.Retained.Recovery"));
             return;
         }
 
@@ -636,92 +946,148 @@
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
         {
             _isSubmitting = false;
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Commands.Unavailable.AggregateInFlight"));
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Commands.Unavailable.AggregateInFlight",
+                "Tenants.HighImpact.Recovery.HighImpactFlowNotReady"));
             return;
         }
 
-        string messageId = NUlid.Ulid.NewUlid().ToString();
+        if (_disposed)
+        {
+            _isSubmitting = false;
+            return;
+        }
+
+        (string messageId, DateTimeOffset attemptStartedAtUtc, string dispatchBaselineProjectionVersion) dispatchIdentity;
+        try
+        {
+            dispatchIdentity = tracker.BeginDispatch(
+                Intent,
+                submitProof.ProjectionVersion!,
+                DateTimeOffset.UtcNow);
+        }
+        catch (InvalidOperationException)
+        {
+            _isSubmitting = false;
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Unavailable.RetainedDifferentIntent",
+                "Tenants.Lifecycle.Retained.Recovery"));
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            return;
+        }
+
+        (string messageId, DateTimeOffset attemptStartedAtUtc, string dispatchBaselineProjectionVersion) = dispatchIdentity;
         SetSnapshot(_snapshot.RequestSent(
             Intent,
             submitProof.Detail!,
-            submitProof.ProjectionVersion!,
-            messageId));
+            dispatchBaselineProjectionVersion,
+            messageId,
+            attemptStartedAtUtc));
 
         try
         {
-            TenantCommandSubmissionResult result;
-            try
-            {
-                result = Availability.Operation is TenantLifecycleOperation.EnableTenant
-                    ? await gateway.EnableTenantAsync(Intent, messageId, CancellationToken.None).ConfigureAwait(false)
-                    : await gateway.DisableTenantAsync(Intent, messageId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                SetSnapshot(_snapshot with
-                {
-                    State = TenantCommandLifecycleState.Failed,
-                    SafeMessage = null,
-                    SafeMessageKey = "Tenants.Lifecycle.Message.Failed",
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                });
-                return;
-            }
-
-            if (result.State is TenantCommandLifecycleState.Accepted
-                && string.Equals(result.MessageId, messageId, StringComparison.Ordinal)
-                && !string.IsNullOrWhiteSpace(result.CorrelationId))
-            {
-                SetSnapshot(_snapshot.Accepted(result));
-                try
-                {
-                    await RefreshStatusAsync().ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.UnableToVerify.ProofRead"));
-                }
-            }
-            else if (result.State is TenantCommandLifecycleState.Accepted)
-            {
-                SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
-            }
-            else if (result.State is TenantCommandLifecycleState.Rejected
-                or TenantCommandLifecycleState.Failed)
-            {
-                SetSnapshot(_snapshot with
-                {
-                    State = result.State,
-                    SafeMessage = null,
-                    SafeMessageKey = result.SafeMessageKey ?? result.State switch
-                    {
-                        TenantCommandLifecycleState.Rejected => result.RejectionCode switch
-                        {
-                            "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
-                            "TenantDisabled" => "Tenants.Lifecycle.Message.Rejected.TenantDisabled",
-                            "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
-                            "TenantLifecycleStateAlreadySet" => "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet",
-                            _ => "Tenants.Lifecycle.Message.Rejected",
-                        },
-                        _ => "Tenants.Lifecycle.Message.Failed",
-                    },
-                    RejectionCode = result.RejectionCode,
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                });
-            }
-            else
-            {
-                SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
-            }
+            await DispatchTrackedAttemptAsync(gateway, messageId).ConfigureAwait(false);
         }
         finally
         {
             _isSubmitting = false;
             await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task DispatchTrackedAttemptAsync(ITenantCommandGateway gateway, string messageId)
+    {
+        TenantCommandSubmissionResult result;
+        try
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            result = PreviewOperation is TenantLifecycleOperation.EnableTenant
+                ? await gateway.EnableTenantAsync(Intent, messageId, CancellationToken.None).ConfigureAwait(false)
+                : await gateway.DisableTenantAsync(Intent, messageId, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_disposed)
+            {
+                SetSnapshot(_snapshot.AmbiguousSubmission(
+                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
+            }
+
+            return;
+        }
+        catch (Exception)
+        {
+            SetSnapshot(_snapshot.AmbiguousSubmission(
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (result.IsAmbiguousFailure
+            && string.Equals(result.MessageId, messageId, StringComparison.Ordinal))
+        {
+            SetSnapshot(_snapshot.AmbiguousSubmission(
+                result.SafeMessageKey ?? "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
+        }
+        else if (result.State is TenantCommandLifecycleState.Accepted
+            && string.Equals(result.MessageId, messageId, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(result.CorrelationId))
+        {
+            SetSnapshot(_snapshot.Accepted(result));
+            try
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                SetSnapshot(_snapshot.BlockedWithTracking(
+                    "Tenants.Lifecycle.UnableToVerify.ProofRead",
+                    "Tenants.Lifecycle.Retained.Recovery"));
+            }
+        }
+        else if (result.State is TenantCommandLifecycleState.Accepted
+            || result.IsAmbiguousFailure)
+        {
+            SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
+        }
+        else if (result.State is TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.Failed)
+        {
+            SetSnapshot(_snapshot with
+            {
+                State = result.State,
+                SafeMessage = null,
+                SafeMessageKey = result.SafeMessageKey ?? result.State switch
+                {
+                    TenantCommandLifecycleState.Rejected => result.RejectionCode switch
+                    {
+                        "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
+                        "TenantDisabled" => "Tenants.Lifecycle.Message.Rejected.TenantDisabled",
+                        "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
+                        "TenantLifecycleStateAlreadySet" => "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet",
+                        _ => "Tenants.Lifecycle.Message.Rejected",
+                    },
+                    _ => "Tenants.Lifecycle.Message.Failed",
+                },
+                RecoveryKey = null,
+                RejectionCode = result.RejectionCode,
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                EvidenceRevision = _snapshot.EvidenceRevision + 1,
+            });
+        }
+        else
+        {
+            SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
         }
     }
 
@@ -735,23 +1101,26 @@
             ProjectionVersion: not null,
         }
         && !string.IsNullOrWhiteSpace(proof.ProjectionVersion)
-        && !string.IsNullOrWhiteSpace(_snapshot.PreviewProjectionVersion)
-        && _snapshot.LastConfirmedProjection is not null
-        && string.Equals(proof.ProjectionVersion, _snapshot.PreviewProjectionVersion, StringComparison.Ordinal)
-        && string.Equals(proof.Detail.TenantId, _snapshot.LastConfirmedProjection.TenantId, StringComparison.Ordinal)
-        && string.Equals(proof.Detail.Name, _snapshot.LastConfirmedProjection.Name, StringComparison.Ordinal)
-        && string.Equals(proof.Detail.Description, _snapshot.LastConfirmedProjection.Description, StringComparison.Ordinal)
-        && proof.Detail.Status == _snapshot.LastConfirmedProjection.Status
+        && _preview is not null
+        && string.Equals(proof.ProjectionVersion, _preview.ProjectionVersion, StringComparison.Ordinal)
+        && string.Equals(proof.Detail.TenantId, _preview.Detail.TenantId, StringComparison.Ordinal)
+        && string.Equals(proof.Detail.Name, _preview.Detail.Name, StringComparison.Ordinal)
+        && string.Equals(proof.Detail.Description, _preview.Detail.Description, StringComparison.Ordinal)
+        && proof.Detail.Status == _preview.Detail.Status
         && proof.Detail.Status != IntendedStatus;
 
     private TenantHighImpactActionAvailability EvaluateSubmitProof(
         TenantDetailSnapshot proof,
         TenantLifecycleAuthorizationReflectionState authorization)
     {
-        TenantHighImpactActionEvidence evidence = ResolvedEvidence! with
+        TenantHighImpactActionEvidence evidence = (CurrentResolvedEvidence ?? ResolvedEvidence)! with
         {
             Stage = TenantHighImpactEvaluationStage.Confirmation,
+            TenantId = proof.Detail!.TenantId,
             TenantStatus = proof.Detail!.Status,
+            Action = PreviewOperation is TenantLifecycleOperation.EnableTenant
+                ? TenantHighImpactAction.EnableTenant
+                : TenantHighImpactAction.DisableTenant,
             Freshness = TenantHighImpactActionEvidence.FromReadModelFreshness(proof.Freshness),
             HasCurrentBaseline = proof.Freshness is ReadModelFreshnessState.Current,
             SurfaceKind = proof.Kind,
@@ -772,47 +1141,51 @@
 
     private async Task RefreshStatusAsync(bool requestProjectionRefresh = true)
     {
-        if (Interlocked.Exchange(ref _refreshGate, 1) != 0)
+        if (_disposed)
         {
-            Volatile.Write(ref _refreshReplayRequested, 1);
-            if (requestProjectionRefresh)
-            {
-                Volatile.Write(ref _pendingProjectionRefreshRequested, 1);
-            }
-
             return;
         }
 
-        try
+        if (requestProjectionRefresh)
         {
-            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-            bool shouldRequestProjectionRefresh = requestProjectionRefresh;
-            do
-            {
-                Volatile.Write(ref _refreshReplayRequested, 0);
-                shouldRequestProjectionRefresh = shouldRequestProjectionRefresh
-                    || Interlocked.Exchange(ref _pendingProjectionRefreshRequested, 0) != 0;
-                await RefreshStatusCoreAsync(shouldRequestProjectionRefresh).ConfigureAwait(false);
-                shouldRequestProjectionRefresh = false;
-            }
-            while (Interlocked.Exchange(ref _refreshReplayRequested, 0) != 0);
-        }
-        finally
-        {
-            Volatile.Write(ref _refreshGate, 0);
-            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            Volatile.Write(ref _pendingProjectionRefreshRequested, 1);
         }
 
-        if (Interlocked.Exchange(ref _refreshReplayRequested, 0) != 0)
+        Volatile.Write(ref _refreshReplayRequested, 1);
+
+        while (!_disposed)
         {
-            bool replayProjectionRefresh = Interlocked.Exchange(ref _pendingProjectionRefreshRequested, 0) != 0;
-            await RefreshStatusAsync(replayProjectionRefresh).ConfigureAwait(false);
+            if (Interlocked.Exchange(ref _refreshGate, 1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await RenderIfAliveAsync().ConfigureAwait(false);
+                while (!_disposed && Interlocked.Exchange(ref _refreshReplayRequested, 0) != 0)
+                {
+                    bool shouldRequestProjectionRefresh
+                        = Interlocked.Exchange(ref _pendingProjectionRefreshRequested, 0) != 0;
+                    await RefreshStatusCoreAsync(shouldRequestProjectionRefresh).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                Volatile.Write(ref _refreshGate, 0);
+                await RenderIfAliveAsync().ConfigureAwait(false);
+            }
+
+            if (Volatile.Read(ref _refreshReplayRequested) == 0)
+            {
+                return;
+            }
         }
     }
 
     private async Task RefreshStatusCoreAsync(bool requestProjectionRefresh)
     {
-        if (_snapshot.Intent is null)
+        if (_disposed || _snapshot.Intent is null)
         {
             return;
         }
@@ -823,6 +1196,11 @@
             {
                 try
                 {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+
                     await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
                 }
                 catch (Exception)
@@ -835,7 +1213,46 @@
             return;
         }
 
+        if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
+        {
+            SetSnapshot(_snapshot.UnableToVerify(
+                "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            return;
+        }
+
         ITenantCommandGateway? gateway = CommandGateway;
+        if (_snapshot.State is TenantCommandLifecycleState.RequestSent)
+        {
+            if (gateway is null)
+            {
+                SetSnapshot(_snapshot.AmbiguousSubmission(
+                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_snapshot.MessageId))
+            {
+                SetSnapshot(_snapshot.UnableToVerify(
+                    "Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                return;
+            }
+
+            _isSubmitting = true;
+            try
+            {
+                await DispatchTrackedAttemptAsync(gateway, _snapshot.MessageId).ConfigureAwait(false);
+            }
+            finally
+            {
+                _isSubmitting = false;
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
+
+            return;
+        }
+
         if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
         {
             if (gateway is null)
@@ -850,6 +1267,11 @@
             TenantCommandStatusResult status;
             try
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 status = await gateway
                     .GetStatusAsync(
                         new TenantCommandTrackingHandle(
@@ -859,10 +1281,18 @@
                         CancellationToken.None)
                     .ConfigureAwait(false);
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception)
             {
-                SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.Status"));
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                status = TenantCommandStatusResult.RetryableFailure(
+                    Localizer["Tenants.Lifecycle.StatusEvidence.RetryableFailure"].Value);
+            }
+
+            if (_disposed)
+            {
                 return;
             }
 
@@ -878,6 +1308,11 @@
         {
             try
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
             }
             catch (Exception)
@@ -898,26 +1333,50 @@
         {
             try
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 TenantDetailSnapshot? proof = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+                if (_disposed)
+                {
+                    return;
+                }
+
                 if (proof is null)
                 {
                     SetSnapshot(_snapshot.BlockedWithTracking(
                         _snapshot.RetainsAttempt
                             ? "Tenants.Lifecycle.UnableToVerify.ProofRead"
-                            : "Tenants.Lifecycle.Unavailable.ProofRead"));
+                            : "Tenants.Lifecycle.Unavailable.ProofRead",
+                        _snapshot.RetainsAttempt
+                            ? "Tenants.Lifecycle.Retained.Recovery"
+                            : "Tenants.HighImpact.Recovery.StaleData"));
                 }
-                else if (_snapshot.State is TenantCommandLifecycleState.Previewed
-                    && proof is
-                    {
-                        Kind: TenantDetailSurfaceKind.Ready,
-                        Freshness: ReadModelFreshnessState.Current,
-                        Lifecycle: ProjectionLifecycleState.Current,
-                        Detail: not null,
-                    }
-                    && !string.IsNullOrWhiteSpace(proof.ProjectionVersion)
-                    && string.Equals(proof.Detail.TenantId, _snapshot.Intent.TenantId, StringComparison.Ordinal))
+                else if (!IsAuthoritativeProjectionProof(proof, _snapshot.Intent))
                 {
-                    SetSnapshot(_snapshot.Previewed(_snapshot.Intent, proof.Detail, proof.ProjectionVersion!));
+                    SetSnapshot(_snapshot.BlockedWithTracking(
+                        _snapshot.RetainsAttempt
+                            ? "Tenants.Lifecycle.UnableToVerify.ProofRead"
+                            : "Tenants.Lifecycle.Unavailable.ProofRead",
+                        _snapshot.RetainsAttempt
+                            ? "Tenants.Lifecycle.Retained.Recovery"
+                            : "Tenants.HighImpact.Recovery.StaleData"));
+                }
+                else if (_snapshot.State is TenantCommandLifecycleState.Previewed)
+                {
+                    LifecyclePreviewSnapshot rebasedPreview = CreatePreviewSnapshot(
+                        proof,
+                        Availability,
+                        IsCommandSurfaceAvailable);
+                    _preview = rebasedPreview;
+                    SetSnapshot(_snapshot.Previewed(
+                        new TenantLifecycleCommandRequest(
+                            rebasedPreview.Detail.TenantId,
+                            rebasedPreview.Availability.Operation),
+                        rebasedPreview.Detail,
+                        rebasedPreview.ProjectionVersion));
                 }
                 else
                 {
@@ -929,7 +1388,10 @@
                 SetSnapshot(_snapshot.BlockedWithTracking(
                     _snapshot.RetainsAttempt
                         ? "Tenants.Lifecycle.UnableToVerify.ProofRead"
-                        : "Tenants.Lifecycle.Unavailable.ProofRead"));
+                        : "Tenants.Lifecycle.Unavailable.ProofRead",
+                    _snapshot.RetainsAttempt
+                        ? "Tenants.Lifecycle.Retained.Recovery"
+                        : "Tenants.HighImpact.Recovery.StaleData"));
             }
         }
 
@@ -955,12 +1417,69 @@
 
     private async Task CloseAsync()
     {
-        if (_snapshot.RetainsAttempt)
+        if (_disposed)
         {
-            SetSnapshot(_snapshot.BlockedWithTracking("Tenants.Lifecycle.Dismissal.Pending"));
+            return;
+        }
+
+        if (_isSubmitting
+            || _snapshot.State is TenantCommandLifecycleState.RequestSent
+            || _snapshot.RetainsAttempt)
+        {
+            SetSnapshot(_snapshot.BlockedWithTracking(
+                "Tenants.Lifecycle.Dismissal.Pending",
+                "Tenants.Lifecycle.Retained.Recovery"));
             return;
         }
 
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
+    }
+
+    private async Task AbandonAsync()
+    {
+        if (_disposed || !_snapshot.RetainsAttempt)
+        {
+            return;
+        }
+
+        SetSnapshot(_snapshot.Abandon());
+        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+    }
+
+    private static bool IsAuthoritativeProjectionProof(
+        TenantDetailSnapshot proof,
+        TenantLifecycleCommandRequest intent)
+        => proof is
+        {
+            Kind: TenantDetailSurfaceKind.Ready,
+            Freshness: ReadModelFreshnessState.Current,
+            Lifecycle: ProjectionLifecycleState.Current,
+            Detail: not null,
+            ProjectionVersion: not null,
+        }
+        && !string.IsNullOrWhiteSpace(proof.ProjectionVersion)
+        && string.Equals(proof.Detail.TenantId, intent.TenantId, StringComparison.Ordinal);
+
+    private async Task RenderIfAliveAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            // Disposal won the race after the guard and before the renderer accepted the work.
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        return ValueTask.CompletedTask;
     }
 }

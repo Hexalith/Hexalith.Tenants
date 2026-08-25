@@ -131,7 +131,7 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
         cut.Find("[data-testid='tenants-config-management-remove-open']")
             .GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-config-set-reason']").TextContent
-            .ShouldContain("read-only", Case.Insensitive);
+            .ShouldContain("authority", Case.Insensitive);
     }
 
     [Fact]

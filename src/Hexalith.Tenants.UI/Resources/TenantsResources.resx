@@ -921,17 +921,32 @@
   <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
     <value>Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.</value>
   </data>
+  <data name="Tenants.Lifecycle.Dispatch.Recovery" xml:space="preserve">
+    <value>Refresh to safely retry the same command identity. The unresolved dispatch expires after five minutes; you may stop tracking if you accept that its outcome remains unknown.</value>
+  </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>This lifecycle attempt is still pending and cannot be dismissed. Refresh status until it reaches a terminal, support-safe outcome.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Abandon" xml:space="preserve">
+    <value>Stop tracking</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.Abandoned" xml:space="preserve">
+    <value>Tracking was stopped explicitly. The command outcome remains unverified; refresh tenant detail before starting another action.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>The lifecycle command status could not be verified.</value>
   </data>
-  <data name="Tenants.Lifecycle.UnableToVerify.StatusPollLimit" xml:space="preserve">
-    <value>Lifecycle status remained unavailable after the bounded verification attempts. Refresh tenant detail before starting another action.</value>
+  <data name="Tenants.Lifecycle.UnableToVerify.StatusTimeout" xml:space="preserve">
+    <value>The lifecycle attempt exceeded its verification time limit. Its outcome remains unverified; refresh tenant detail before starting another action.</value>
   </data>
-  <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
+  <data name="Tenants.Lifecycle.StatusEvidence.Pending" xml:space="preserve">
     <value>The lifecycle command is accepted, but status evidence is not available yet. Keep this attempt open and refresh.</value>
+  </data>
+  <data name="Tenants.Lifecycle.StatusEvidence.RetryableFailure" xml:space="preserve">
+    <value>Lifecycle status could not be read yet because of a temporary connection or response problem. Keep this attempt open and refresh.</value>
+  </data>
+  <data name="Tenants.Lifecycle.SubmissionEvidence.Ambiguous" xml:space="preserve">
+    <value>The lifecycle command may have been delivered, but no acceptance response was received. Keep this attempt open and refresh to retry safely with the same command identity.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.MissingEventEvidence" xml:space="preserve">
     <value>The lifecycle command completed without exact event evidence, so the requested outcome cannot be confirmed.</value>

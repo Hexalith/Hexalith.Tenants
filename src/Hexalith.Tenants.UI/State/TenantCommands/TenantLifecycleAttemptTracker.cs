@@ -1,3 +1,7 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>
@@ -11,14 +15,88 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 public sealed class TenantLifecycleAttemptTracker
 {
     private readonly object _sync = new();
+    private readonly Func<DateTimeOffset> _utcNow;
     private readonly Dictionary<string, TenantLifecycleCommandSnapshot> _snapshotByTenantId = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _terminalMessageByTenantId = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, DateTimeOffset?> _terminalAttemptStartedAtByTenantId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (TenantLifecycleCommandRequest Intent, string BaselineProjectionVersion, DateTimeOffset AttemptStartedAtUtc, string MessageId)> _dispatchIdentityByTenantId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (string MessageId, DateTimeOffset? AttemptStartedAtUtc, DateTimeOffset TerminalObservedAtUtc)> _terminalByTenantId = new(StringComparer.Ordinal);
+
+    /// <summary>Initializes a circuit-local tracker that observes the system UTC clock.</summary>
+    public TenantLifecycleAttemptTracker()
+        : this(static () => DateTimeOffset.UtcNow)
+    {
+    }
+
+    internal TenantLifecycleAttemptTracker(Func<DateTimeOffset> utcNow)
+    {
+        ArgumentNullException.ThrowIfNull(utcNow);
+        _utcNow = utcNow;
+    }
 
     /// <summary>
     /// Gets the stable circuit-local admission owner used while a retained lifecycle attempt is pending.
     /// </summary>
     internal object LeaseOwner { get; } = new();
+
+    /// <summary>
+    /// Starts or resumes the dispatch window for one logical lifecycle attempt.
+    /// </summary>
+    /// <param name="intent">Literal tenant and lifecycle operation.</param>
+    /// <param name="baselineProjectionVersion">Projection version captured immediately before dispatch.</param>
+    /// <param name="attemptStartedAtUtc">UTC instant at which the logical attempt started.</param>
+    /// <returns>The deterministic message id and stable attempt start for dispatch or redispatch.</returns>
+    internal (string MessageId, DateTimeOffset AttemptStartedAtUtc, string BaselineProjectionVersion) BeginDispatch(
+        TenantLifecycleCommandRequest intent,
+        string baselineProjectionVersion,
+        DateTimeOffset attemptStartedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        ArgumentException.ThrowIfNullOrWhiteSpace(intent.TenantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baselineProjectionVersion);
+        if (!Enum.IsDefined(intent.Operation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(intent), intent.Operation, null);
+        }
+
+        lock (_sync)
+        {
+            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            if (_dispatchIdentityByTenantId.TryGetValue(intent.TenantId, out var existing)
+                && Equals(existing.Intent, intent))
+            {
+                return (existing.MessageId, existing.AttemptStartedAtUtc, existing.BaselineProjectionVersion);
+            }
+
+            if (_dispatchIdentityByTenantId.ContainsKey(intent.TenantId))
+            {
+                throw new InvalidOperationException(
+                    "A different lifecycle intent already owns the tenant dispatch window.");
+            }
+
+            DateTimeOffset normalizedAttemptStart = attemptStartedAtUtc.ToUniversalTime();
+            string messageId = CreateDeterministicMessageId(intent, baselineProjectionVersion, normalizedAttemptStart);
+            _dispatchIdentityByTenantId[intent.TenantId] = (
+                intent,
+                baselineProjectionVersion,
+                normalizedAttemptStart,
+                messageId);
+            return (messageId, normalizedAttemptStart, baselineProjectionVersion);
+        }
+    }
+
+    /// <summary>Returns the unresolved dispatch-window intent for one literal tenant id.</summary>
+    /// <param name="tenantId">Literal tenant id.</param>
+    /// <returns>The dispatch intent, or <see langword="null"/> when no dispatch window is open.</returns>
+    internal TenantLifecycleCommandRequest? FindDispatchIntent(string tenantId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
+        lock (_sync)
+        {
+            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            return _dispatchIdentityByTenantId.TryGetValue(tenantId, out var existing)
+                ? existing.Intent
+                : null;
+        }
+    }
 
     /// <summary>
     /// Returns the retained non-terminal lifecycle attempt for <paramref name="tenantId"/>.
@@ -34,6 +112,7 @@ public sealed class TenantLifecycleAttemptTracker
 
         lock (_sync)
         {
+            PruneExpiredLocked(_utcNow().ToUniversalTime());
             return _snapshotByTenantId.TryGetValue(tenantId, out TenantLifecycleCommandSnapshot? snapshot)
                 ? snapshot
                 : null;
@@ -47,31 +126,45 @@ public sealed class TenantLifecycleAttemptTracker
     /// <returns><see langword="true"/> when the snapshot is retained; otherwise <see langword="false"/>.</returns>
     public bool Remember(TenantLifecycleCommandSnapshot snapshot)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        if (!snapshot.RetainsAttempt)
+        if (snapshot is null
+            || !snapshot.RetainsAttempt
+            || snapshot.Intent is not { } intent
+            || string.IsNullOrWhiteSpace(intent.TenantId)
+            || !Enum.IsDefined(intent.Operation)
+            || string.IsNullOrWhiteSpace(snapshot.MessageId)
+            || snapshot.AttemptStartedAtUtc is null
+            || snapshot.State is not TenantCommandLifecycleState.RequestSent
+                && string.IsNullOrWhiteSpace(snapshot.CorrelationId))
         {
-            throw new ArgumentException("Only accepted or projection-pending lifecycle attempts can be retained.", nameof(snapshot));
+            return false;
         }
-
-        TenantLifecycleCommandRequest intent = snapshot.Intent
-            ?? throw new ArgumentException("A retained lifecycle attempt must carry its intent.", nameof(snapshot));
-        ArgumentException.ThrowIfNullOrWhiteSpace(intent.TenantId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(snapshot.MessageId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(snapshot.CorrelationId);
 
         lock (_sync)
         {
-            if (_terminalMessageByTenantId.TryGetValue(intent.TenantId, out string? terminalMessageId))
+            DateTimeOffset observedAtUtc = _utcNow().ToUniversalTime();
+            PruneExpiredLocked(observedAtUtc);
+            if (snapshot.IsRetentionExpired(observedAtUtc))
             {
-                if (string.Equals(terminalMessageId, snapshot.MessageId, StringComparison.Ordinal))
+                RememberTerminalLocked(
+                    intent.TenantId,
+                    snapshot.MessageId!,
+                    snapshot.AttemptStartedAtUtc,
+                    observedAtUtc);
+                return false;
+            }
+
+            if (_terminalByTenantId.TryGetValue(intent.TenantId, out var terminal))
+            {
+                if (string.Equals(terminal.MessageId, snapshot.MessageId, StringComparison.Ordinal))
                 {
                     return false;
                 }
 
-                DateTimeOffset? terminalStartedAt = _terminalAttemptStartedAtByTenantId[intent.TenantId];
-                if (snapshot.AttemptStartedAtUtc is null
-                    || terminalStartedAt is null
-                    || snapshot.AttemptStartedAtUtc <= terminalStartedAt)
+                if (CompareAttemptIdentity(
+                    snapshot.AttemptStartedAtUtc.Value,
+                    snapshot.MessageId!,
+                    terminal.AttemptStartedAtUtc,
+                    terminal.MessageId) <= 0)
                 {
                     return false;
                 }
@@ -82,7 +175,11 @@ public sealed class TenantLifecycleAttemptTracker
                 if (string.Equals(retained.MessageId, snapshot.MessageId, StringComparison.Ordinal))
                 {
                     if (!Equals(retained.Intent, snapshot.Intent)
-                        || !string.Equals(retained.CorrelationId, snapshot.CorrelationId, StringComparison.Ordinal))
+                        || retained.CorrelationId is not null
+                            && !string.Equals(
+                                retained.CorrelationId,
+                                snapshot.CorrelationId,
+                                StringComparison.Ordinal))
                     {
                         return false;
                     }
@@ -91,15 +188,22 @@ public sealed class TenantLifecycleAttemptTracker
                     return true;
                 }
 
-                if (snapshot.AttemptStartedAtUtc is null
-                    || retained.AttemptStartedAtUtc is null
-                    || snapshot.AttemptStartedAtUtc <= retained.AttemptStartedAtUtc)
+                if (CompareAttemptIdentity(
+                    snapshot.AttemptStartedAtUtc.Value,
+                    snapshot.MessageId!,
+                    retained.AttemptStartedAtUtc,
+                    retained.MessageId!) <= 0)
                 {
                     return false;
                 }
             }
 
             _snapshotByTenantId[intent.TenantId] = snapshot;
+            if (snapshot.State is not TenantCommandLifecycleState.RequestSent)
+            {
+                _ = _dispatchIdentityByTenantId.Remove(intent.TenantId);
+            }
+
             return true;
         }
     }
@@ -121,6 +225,20 @@ public sealed class TenantLifecycleAttemptTracker
 
         lock (_sync)
         {
+            DateTimeOffset observedAtUtc = _utcNow().ToUniversalTime();
+            PruneExpiredLocked(observedAtUtc);
+            if (_dispatchIdentityByTenantId.TryGetValue(tenantId, out var dispatchIdentity)
+                && (string.IsNullOrWhiteSpace(messageId)
+                    || string.Equals(dispatchIdentity.MessageId, messageId, StringComparison.Ordinal)))
+            {
+                RememberTerminalLocked(
+                    tenantId,
+                    dispatchIdentity.MessageId,
+                    dispatchIdentity.AttemptStartedAtUtc,
+                    observedAtUtc);
+                _ = _dispatchIdentityByTenantId.Remove(tenantId);
+            }
+
             if (!_snapshotByTenantId.TryGetValue(tenantId, out TenantLifecycleCommandSnapshot? retained)
                 || !string.IsNullOrWhiteSpace(messageId)
                     && !string.Equals(retained.MessageId, messageId, StringComparison.Ordinal))
@@ -128,9 +246,42 @@ public sealed class TenantLifecycleAttemptTracker
                 return;
             }
 
-            _terminalMessageByTenantId[tenantId] = retained.MessageId!;
-            _terminalAttemptStartedAtByTenantId[tenantId] = retained.AttemptStartedAtUtc;
+            RememberTerminalLocked(
+                tenantId,
+                retained.MessageId!,
+                retained.AttemptStartedAtUtc,
+                observedAtUtc);
             _ = _snapshotByTenantId.Remove(tenantId);
+        }
+    }
+
+    /// <summary>Gets whether retained or unresolved dispatch ownership is still live.</summary>
+    /// <param name="tenantId">Literal tenant id.</param>
+    /// <returns><see langword="true"/> until the bounded window expires or the attempt terminalizes.</returns>
+    internal bool HasPendingOwnership(string tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            return false;
+        }
+
+        lock (_sync)
+        {
+            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            return _snapshotByTenantId.ContainsKey(tenantId)
+                || _dispatchIdentityByTenantId.ContainsKey(tenantId);
+        }
+    }
+
+    internal int TerminalTombstoneCount
+    {
+        get
+        {
+            lock (_sync)
+            {
+                PruneExpiredLocked(_utcNow().ToUniversalTime());
+                return _terminalByTenantId.Count;
+            }
         }
     }
 
@@ -140,11 +291,22 @@ public sealed class TenantLifecycleAttemptTracker
     {
         int retainedRank = ProgressRank(retained.State);
         int incomingRank = ProgressRank(incoming.State);
-        TenantLifecycleCommandSnapshot preferred = incomingRank > retainedRank
-            || incomingRank == retainedRank
-                && incoming.PendingStatusPollCount > retained.PendingStatusPollCount
-            ? incoming
-            : retained;
+        int projectionComparison = CompareOrderedVersions(
+            incoming.LastObservedProjectionVersion,
+            retained.LastObservedProjectionVersion);
+        TenantLifecycleCommandSnapshot preferred = incomingRank != retainedRank
+            ? incomingRank > retainedRank ? incoming : retained
+            : incoming.PendingStatusPollCount != retained.PendingStatusPollCount
+                ? incoming.PendingStatusPollCount > retained.PendingStatusPollCount ? incoming : retained
+                : incoming.EvidenceRevision != retained.EvidenceRevision
+                    ? incoming.EvidenceRevision > retained.EvidenceRevision ? incoming : retained
+                    : projectionComparison > 0 ? incoming : retained;
+        TenantLifecycleCommandSnapshot projectionEvidence = projectionComparison switch
+        {
+            > 0 => incoming,
+            < 0 => retained,
+            _ => preferred,
+        };
 
         return preferred with
         {
@@ -152,14 +314,151 @@ public sealed class TenantLifecycleAttemptTracker
             HasCommandEventEvidence = retained.HasCommandEventEvidence || incoming.HasCommandEventEvidence,
             PendingStatusPollCount = Math.Max(retained.PendingStatusPollCount, incoming.PendingStatusPollCount),
             AttemptStartedAtUtc = retained.AttemptStartedAtUtc ?? incoming.AttemptStartedAtUtc,
+            LastConfirmedStatus = projectionEvidence.LastConfirmedStatus,
+            LastConfirmedProjection = projectionEvidence.LastConfirmedProjection,
+            LastObservedProjectionVersion = projectionEvidence.LastObservedProjectionVersion,
+            EvidenceRevision = Math.Max(retained.EvidenceRevision, incoming.EvidenceRevision),
         };
+    }
+
+    private static int CompareAttemptIdentity(
+        DateTimeOffset incomingStartedAtUtc,
+        string incomingMessageId,
+        DateTimeOffset? retainedStartedAtUtc,
+        string retainedMessageId)
+    {
+        if (retainedStartedAtUtc is null)
+        {
+            return 1;
+        }
+
+        int startedAtComparison = incomingStartedAtUtc.ToUniversalTime()
+            .CompareTo(retainedStartedAtUtc.Value.ToUniversalTime());
+        return startedAtComparison != 0
+            ? startedAtComparison
+            : string.CompareOrdinal(incomingMessageId, retainedMessageId);
+    }
+
+    private static int CompareOrderedVersions(string? incoming, string? retained)
+    {
+        if (!TrySplitOrderedVersion(incoming, out string incomingPrefix, out ulong incomingSequence)
+            || !TrySplitOrderedVersion(retained, out string retainedPrefix, out ulong retainedSequence)
+            || !string.Equals(incomingPrefix, retainedPrefix, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        return incomingSequence.CompareTo(retainedSequence);
+    }
+
+    private static bool TrySplitOrderedVersion(string? value, out string prefix, out ulong sequence)
+    {
+        prefix = string.Empty;
+        sequence = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> span = value.AsSpan();
+        int sequenceStart = span.Length;
+        while (sequenceStart > 0 && char.IsAsciiDigit(span[sequenceStart - 1]))
+        {
+            sequenceStart--;
+        }
+
+        if (sequenceStart == span.Length
+            || !ulong.TryParse(
+                span[sequenceStart..],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence))
+        {
+            return false;
+        }
+
+        prefix = value[..sequenceStart];
+        return true;
+    }
+
+    private void PruneExpiredLocked(DateTimeOffset observedAtUtc)
+    {
+        foreach (string tenantId in _terminalByTenantId
+            .Where(item => observedAtUtc - item.Value.TerminalObservedAtUtc
+                >= TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
+            .Select(static item => item.Key)
+            .ToArray())
+        {
+            _ = _terminalByTenantId.Remove(tenantId);
+        }
+
+        foreach ((string tenantId, TenantLifecycleCommandSnapshot snapshot) in _snapshotByTenantId.ToArray())
+        {
+            if (!snapshot.IsRetentionExpired(observedAtUtc))
+            {
+                continue;
+            }
+
+            RememberTerminalLocked(
+                tenantId,
+                snapshot.MessageId!,
+                snapshot.AttemptStartedAtUtc,
+                observedAtUtc);
+            _ = _snapshotByTenantId.Remove(tenantId);
+            _ = _dispatchIdentityByTenantId.Remove(tenantId);
+        }
+
+        foreach ((string tenantId, var dispatch) in _dispatchIdentityByTenantId.ToArray())
+        {
+            if (observedAtUtc - dispatch.AttemptStartedAtUtc
+                < TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
+            {
+                continue;
+            }
+
+            RememberTerminalLocked(
+                tenantId,
+                dispatch.MessageId,
+                dispatch.AttemptStartedAtUtc,
+                observedAtUtc);
+            _ = _dispatchIdentityByTenantId.Remove(tenantId);
+        }
+    }
+
+    private void RememberTerminalLocked(
+        string tenantId,
+        string messageId,
+        DateTimeOffset? attemptStartedAtUtc,
+        DateTimeOffset observedAtUtc)
+        => _terminalByTenantId[tenantId] = (messageId, attemptStartedAtUtc, observedAtUtc);
+
+    private static string CreateDeterministicMessageId(
+        TenantLifecycleCommandRequest intent,
+        string baselineProjectionVersion,
+        DateTimeOffset attemptStartedAtUtc)
+    {
+        string material = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{intent.TenantId.Length}:{intent.TenantId}|{(int)intent.Operation}|{baselineProjectionVersion.Length}:{baselineProjectionVersion}|{attemptStartedAtUtc.UtcDateTime.Ticks}");
+        byte[] digest = SHA256.HashData(Encoding.UTF8.GetBytes(material));
+        Span<byte> deterministicUlid = stackalloc byte[16];
+        ulong unixTimeMilliseconds = checked((ulong)attemptStartedAtUtc.ToUnixTimeMilliseconds());
+        for (int index = 5; index >= 0; index--)
+        {
+            deterministicUlid[index] = (byte)unixTimeMilliseconds;
+            unixTimeMilliseconds >>= 8;
+        }
+
+        digest.AsSpan(0, 10).CopyTo(deterministicUlid[6..]);
+        return new NUlid.Ulid(deterministicUlid).ToString();
     }
 
     private static int ProgressRank(TenantCommandLifecycleState state)
         => state switch
         {
-            TenantCommandLifecycleState.Accepted => 0,
-            TenantCommandLifecycleState.ProjectionPending => 1,
+            TenantCommandLifecycleState.RequestSent => 0,
+            TenantCommandLifecycleState.Accepted => 1,
+            TenantCommandLifecycleState.ProjectionPending => 2,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
         };
 }

@@ -564,7 +564,7 @@
             bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
             bool retainedLifecycleLease = lifecycleSurface
                 && _activeAggregateTenantId is not null
-                && LifecycleAttemptTracker?.Find(_activeAggregateTenantId) is { RetainsAttempt: true };
+                && LifecycleAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
             if (!retainedLifecycleLease)
             {
                 object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
@@ -1124,10 +1124,14 @@
             TenantLifecycleActionAvailability? lifecycleActionAvailability = _lifecycleActionAvailability;
             if (CanApply(generation, tenantId)
                 && (_commandInFlight || IsCurrentAggregateLocked)
-                && lifecycleActionAvailability is not null
-                && ReferenceEquals(_lifecycleActionAvailability, lifecycleActionAvailability))
+                && lifecycleActionAvailability is not null)
             {
                 await lifecycleActionAvailability.ApplySignalRNudgeAsync();
+                if (!CanApply(generation, tenantId)
+                    || !ReferenceEquals(_lifecycleActionAvailability, lifecycleActionAvailability))
+                {
+                    return;
+                }
             }
 
             if (CanApply(generation, tenantId))
@@ -2153,6 +2157,11 @@
             : _commandLockOwner;
         if (isActive)
         {
+            if (_disposed)
+            {
+                return false;
+            }
+
             TenantAggregateCommandAdmissionGate? gate = AggregateAdmissionGate;
             if (string.IsNullOrWhiteSpace(leaseTenantId)
                 || !string.Equals(leaseTenantId, TenantId, StringComparison.Ordinal)
@@ -2197,7 +2206,9 @@
                 : TenantCommandAggregateLock.ForTenant(leaseTenantId);
             if (aggregateLockKey is not null
                 && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
-                && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner))
+                && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner)
+                && (!lifecycleSurface
+                    || LifecycleAttemptTracker?.HasPendingOwnership(leaseTenantId) is not true))
             {
                 AggregateAdmissionGate?.Release(aggregateLockKey, admissionOwner);
                 _commandInFlight = false;
@@ -2208,7 +2219,7 @@
             else if (aggregateLockKey is not null
                 && lifecycleSurface
                 && LifecycleAttemptTracker is not null
-                && LifecycleAttemptTracker.Find(leaseTenantId) is not { RetainsAttempt: true })
+                && !LifecycleAttemptTracker.HasPendingOwnership(leaseTenantId))
             {
                 // Route change and page disposal deliberately clear page-local bookkeeping while a retained
                 // lifecycle attempt keeps the tracker-owned gate lease. A late terminal callback must still
@@ -2295,7 +2306,7 @@
             bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
             bool retainLifecycleLease = lifecycleSurface
                 && _activeAggregateTenantId is not null
-                && LifecycleAttemptTracker?.Find(_activeAggregateTenantId) is { RetainsAttempt: true };
+                && LifecycleAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
             if (!retainLifecycleLease)
             {
                 object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null

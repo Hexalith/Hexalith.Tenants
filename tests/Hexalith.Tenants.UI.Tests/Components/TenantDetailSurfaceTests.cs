@@ -103,10 +103,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-lifecycle-actions']");
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
-        // This fixture intentionally has no projection version, so lifecycle actions fail closed at the
-        // authoritative-read gate before later authority or same-state claims are considered.
+        // This fixture has neither reflected authority nor a projection version. Permission-safe precedence
+        // must withhold the lower-level projection detail from the unauthorized/indeterminate caller.
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
-            .ShouldContain("current authoritative data", Case.Insensitive);
+            .ShouldContain("authority", Case.Insensitive);
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
         // snapshot with the default Current lifecycle and no projection version, so the evidence is not
@@ -880,15 +880,78 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.beta"));
         gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
 
-        oldFlow.ApplyProjectionEvidence(ReadyWithSafeConfiguration(
-            Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Disabled, Detail("tenant.alpha").Members),
-            ProjectionLifecycleState.Current,
-            "tenant-sequence:42"));
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
         tracker.Find("tenant.alpha").ShouldBeNull();
         await cut.InvokeAsync(() => oldFlow.CommandActivityLease.ShouldNotBeNull()(false));
 
         gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeFalse();
         commandGateway.DisableCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Route_change_retains_dispatch_only_ownership_until_access_observes_deadline_expiry()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail(call.ArgAt<TenantDetailRequest>(0).TenantId),
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(
+                Detail(call.ArgAt<TenantUsersRequest>(0).TenantId)) with
+            {
+                ProjectionVersion = "tenant-sequence:41",
+            }));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var tracker = new TenantLifecycleAttemptTracker(() => now);
+        var gate = new TenantAggregateCommandAdmissionGate();
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(gate);
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingLifecycleCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.alpha"));
+        object lifecycleOwner = typeof(TenantDetailPage)
+            .GetField("_lifecycleLeaseOwner", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!;
+        MethodInfo leaseMethod = typeof(TenantDetailPage)
+            .GetMethod("SetCommandActivityLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        _ = await cut.InvokeAsync(() => (Task<bool>)leaseMethod.Invoke(
+            cut.Instance,
+            ["tenant.alpha", true, lifecycleOwner])!);
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        tracker.BeginDispatch(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            "tenant-sequence:41",
+            now);
+
+        cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.beta"));
+        cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.beta"));
+        gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
+
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        _ = await cut.InvokeAsync(() => (Task<bool>)leaseMethod.Invoke(
+            cut.Instance,
+            ["tenant.alpha", false, lifecycleOwner])!);
+
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeFalse();
     }
 
     [Fact]
@@ -946,10 +1009,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
 
         await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
-        oldFlow.ApplyProjectionEvidence(ReadyWithSafeConfiguration(
-            Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Disabled, active.Members),
-            ProjectionLifecycleState.Current,
-            "tenant-sequence:42"));
+        (await oldFlow.CommandActivityLease.ShouldNotBeNull()(true)).ShouldBeFalse();
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
         tracker.Find("tenant.alpha").ShouldBeNull();
 
         var newerIntent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant);

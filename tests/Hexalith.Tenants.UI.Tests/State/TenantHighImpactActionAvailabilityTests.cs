@@ -47,7 +47,7 @@ public sealed class TenantHighImpactActionAvailabilityTests
     }
 
     [Fact]
-    public void Deterministic_precedence_reports_stale_data_before_other_failed_evidence()
+    public void Reflected_authority_precedes_projection_and_viewport_reasons_without_disclosing_state()
     {
         TenantHighImpactActionEvidence evidence = Qualifying(TenantHighImpactAction.SetConfiguration) with
         {
@@ -59,7 +59,11 @@ public sealed class TenantHighImpactActionAvailabilityTests
             Viewport = TenantHighImpactViewportState.Unsafe,
         };
 
-        Evaluate(evidence).UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.StaleData);
+        TenantHighImpactActionAvailability result = Evaluate(evidence);
+
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.MissingPermission);
+        result.SafeMessageKey.ShouldBe("Tenants.HighImpact.Unavailable.MissingPermission");
+        result.DomainOutcome.ShouldBe(TenantHighImpactDomainOutcome.None);
     }
 
     [Theory]

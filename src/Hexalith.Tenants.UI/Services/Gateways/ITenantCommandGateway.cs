@@ -57,7 +57,8 @@ public interface ITenantCommandGateway {
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)
-        => EnableTenantAsync(request, cancellationToken);
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
     Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
@@ -68,7 +69,8 @@ public interface ITenantCommandGateway {
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)
-        => DisableTenantAsync(request, cancellationToken);
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,

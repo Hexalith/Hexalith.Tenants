@@ -921,17 +921,32 @@
   <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
     <value>Ouvrez la tentative conservée et actualisez son état jusqu'à ce que la réconciliation faisant autorité atteigne un résultat terminal.</value>
   </data>
+  <data name="Tenants.Lifecycle.Dispatch.Recovery" xml:space="preserve">
+    <value>Actualisez pour réessayer en toute sécurité avec la même identité de commande. L'envoi non résolu expire après cinq minutes ; vous pouvez arrêter le suivi si vous acceptez que son résultat reste inconnu.</value>
+  </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>Cette tentative de cycle de vie est toujours en attente et ne peut pas être fermée. Actualisez l'état jusqu'à un résultat terminal et sûr pour le support.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Abandon" xml:space="preserve">
+    <value>Arrêter le suivi</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.Abandoned" xml:space="preserve">
+    <value>Le suivi a été arrêté explicitement. Le résultat de la commande reste non vérifié ; actualisez les détails du locataire avant une autre action.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>L'état de la commande de cycle de vie n'a pas pu être vérifié.</value>
   </data>
-  <data name="Tenants.Lifecycle.UnableToVerify.StatusPollLimit" xml:space="preserve">
-    <value>L'état du cycle de vie est resté indisponible après les tentatives de vérification limitées. Actualisez les détails du locataire avant une autre action.</value>
+  <data name="Tenants.Lifecycle.UnableToVerify.StatusTimeout" xml:space="preserve">
+    <value>La tentative de cycle de vie a dépassé sa limite de temps de vérification. Son résultat reste non vérifié ; actualisez les détails du locataire avant une autre action.</value>
   </data>
-  <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
+  <data name="Tenants.Lifecycle.StatusEvidence.Pending" xml:space="preserve">
     <value>La commande de cycle de vie est acceptée, mais la preuve d'état n'est pas encore disponible. Gardez cette tentative ouverte et actualisez.</value>
+  </data>
+  <data name="Tenants.Lifecycle.StatusEvidence.RetryableFailure" xml:space="preserve">
+    <value>L'état du cycle de vie n'a pas encore pu être lu en raison d'un problème temporaire de connexion ou de réponse. Gardez cette tentative ouverte et actualisez.</value>
+  </data>
+  <data name="Tenants.Lifecycle.SubmissionEvidence.Ambiguous" xml:space="preserve">
+    <value>La commande de cycle de vie a peut-être été remise, mais aucune réponse d'acceptation n'a été reçue. Gardez cette tentative ouverte et actualisez pour réessayer en toute sécurité avec la même identité de commande.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.MissingEventEvidence" xml:space="preserve">
     <value>La commande de cycle de vie s'est terminée sans preuve d'événement exacte ; le résultat demandé ne peut donc pas être confirmé.</value>
