@@ -327,6 +327,93 @@ public sealed class TenantLifecycleAttemptTrackerTests
         tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
     }
 
+    [Fact]
+    public void Same_attempt_rejects_different_correlations_in_both_arrival_orders()
+    {
+        foreach (TenantLifecycleCommandSnapshot[] order in new[]
+        {
+            new[] { Accepted("tenant.alpha", "message-1") with { CorrelationId = "correlation-a" }, Accepted("tenant.alpha", "message-1") with { CorrelationId = "correlation-b" } },
+            new[] { Accepted("tenant.alpha", "message-1") with { CorrelationId = "correlation-b" }, Accepted("tenant.alpha", "message-1") with { CorrelationId = "correlation-a" } },
+        })
+        {
+            TenantLifecycleAttemptTracker tracker = CreateTracker();
+            tracker.Remember(order[0]).ShouldBeTrue();
+            tracker.Remember(order[1]).ShouldBeFalse();
+            tracker.Find("tenant.alpha").ShouldNotBeNull().CorrelationId.ShouldBe(order[0].CorrelationId);
+        }
+    }
+
+    [Fact]
+    public void Older_expired_attempt_cannot_replace_newer_terminal_tombstone()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-06-01T12:04:00Z");
+        var tracker = new TenantLifecycleAttemptTracker(() => now);
+        TenantLifecycleCommandSnapshot newer = Accepted(
+            "tenant.alpha",
+            "message-newer",
+            DateTimeOffset.Parse("2026-06-01T12:03:00Z"));
+        tracker.Remember(newer).ShouldBeTrue();
+        tracker.Forget("tenant.alpha", "message-newer");
+
+        tracker.Remember(Accepted(
+            "tenant.alpha",
+            "message-expired",
+            DateTimeOffset.Parse("2026-06-01T11:59:00Z"))).ShouldBeFalse();
+
+        tracker.Remember(Accepted(
+            "tenant.alpha",
+            "message-between",
+            DateTimeOffset.Parse("2026-06-01T12:02:00Z"))).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Same_attempt_rejects_changed_immutable_baselines_or_start()
+    {
+        TenantLifecycleCommandSnapshot original = Accepted("tenant.alpha", "message-1");
+        foreach (TenantLifecycleCommandSnapshot inconsistent in new[]
+        {
+            original with { PreviewProjectionVersion = "tenant-sequence:40" },
+            original with { BaselineProjectionVersion = "tenant-sequence:40" },
+            original with { AttemptStartedAtUtc = original.AttemptStartedAtUtc!.Value.AddSeconds(1) },
+        })
+        {
+            TenantLifecycleAttemptTracker tracker = CreateTracker();
+            tracker.Remember(original).ShouldBeTrue();
+            tracker.Remember(inconsistent).ShouldBeFalse();
+            tracker.Find("tenant.alpha").ShouldBe(original);
+        }
+    }
+
+    [Fact]
+    public void Projection_version_alone_decides_same_attempt_merge_in_both_arrival_orders()
+    {
+        TenantLifecycleCommandSnapshot lower = Pending("tenant.alpha", "message-1") with
+        {
+            LastObservedProjectionVersion = "tenant-sequence:42",
+            EvidenceRevision = 7,
+            PendingStatusPollCount = 3,
+            SafeMessageKey = "lower",
+        };
+        TenantLifecycleCommandSnapshot higher = lower with
+        {
+            LastObservedProjectionVersion = "tenant-sequence:43",
+            SafeMessageKey = "higher",
+        };
+        foreach (TenantLifecycleCommandSnapshot[] order in new[]
+        {
+            new[] { lower, higher },
+            new[] { higher, lower },
+        })
+        {
+            TenantLifecycleAttemptTracker tracker = CreateTracker();
+            tracker.Remember(order[0]).ShouldBeTrue();
+            tracker.Remember(order[1]).ShouldBeTrue();
+            TenantLifecycleCommandSnapshot retained = tracker.Find("tenant.alpha").ShouldNotBeNull();
+            retained.LastObservedProjectionVersion.ShouldBe("tenant-sequence:43");
+            retained.SafeMessageKey.ShouldBe("higher");
+        }
+    }
+
     private static TenantLifecycleCommandSnapshot Pending(
         string tenantId,
         string messageId,

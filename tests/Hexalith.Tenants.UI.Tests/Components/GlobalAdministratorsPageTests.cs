@@ -3451,13 +3451,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             return RemoveSubmission ?? TenantCommandSubmissionResult.Failed("No remove command response configured.");
         }
 
-        public Task<TenantCommandSubmissionResult> EnableTenantAsync(
+        public Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
             TenantLifecycleCommandRequest request,
             string messageId,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        public Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
             TenantLifecycleCommandRequest request,
             string messageId,
             CancellationToken cancellationToken = default)

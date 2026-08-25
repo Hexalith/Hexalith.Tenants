@@ -175,11 +175,12 @@ public sealed class TenantLifecycleAttemptTracker
                 if (string.Equals(retained.MessageId, snapshot.MessageId, StringComparison.Ordinal))
                 {
                     if (!Equals(retained.Intent, snapshot.Intent)
+                        || !string.Equals(retained.PreviewProjectionVersion, snapshot.PreviewProjectionVersion, StringComparison.Ordinal)
+                        || !string.Equals(retained.BaselineProjectionVersion, snapshot.BaselineProjectionVersion, StringComparison.Ordinal)
+                        || retained.AttemptStartedAtUtc != snapshot.AttemptStartedAtUtc
                         || retained.CorrelationId is not null
-                            && !string.Equals(
-                                retained.CorrelationId,
-                                snapshot.CorrelationId,
-                                StringComparison.Ordinal))
+                            && snapshot.CorrelationId is not null
+                            && !string.Equals(retained.CorrelationId, snapshot.CorrelationId, StringComparison.Ordinal))
                     {
                         return false;
                     }
@@ -298,6 +299,11 @@ public sealed class TenantLifecycleAttemptTracker
 
         return preferred with
         {
+            Intent = retained.Intent,
+            MessageId = retained.MessageId,
+            CorrelationId = retained.CorrelationId ?? incoming.CorrelationId,
+            PreviewProjectionVersion = retained.PreviewProjectionVersion,
+            BaselineProjectionVersion = retained.BaselineProjectionVersion,
             State = incomingRank > retainedRank ? incoming.State : retained.State,
             HasCommandEventEvidence = retained.HasCommandEventEvidence || incoming.HasCommandEventEvidence,
             PendingStatusPollCount = Math.Max(retained.PendingStatusPollCount, incoming.PendingStatusPollCount),
@@ -374,7 +380,39 @@ public sealed class TenantLifecycleAttemptTracker
         string messageId,
         DateTimeOffset? attemptStartedAtUtc,
         DateTimeOffset observedAtUtc)
-        => _terminalByTenantId[tenantId] = (messageId, attemptStartedAtUtc, observedAtUtc);
+    {
+        if (_terminalByTenantId.TryGetValue(tenantId, out var retained)
+            && CompareAttemptIdentity(
+                attemptStartedAtUtc,
+                messageId,
+                retained.AttemptStartedAtUtc,
+                retained.MessageId) < 0)
+        {
+            return;
+        }
+
+        _terminalByTenantId[tenantId] = (messageId, attemptStartedAtUtc, observedAtUtc);
+    }
+
+    private static int CompareAttemptIdentity(
+        DateTimeOffset? incomingStartedAtUtc,
+        string incomingMessageId,
+        DateTimeOffset? retainedStartedAtUtc,
+        string retainedMessageId)
+    {
+        if (incomingStartedAtUtc is null)
+        {
+            return retainedStartedAtUtc is null
+                ? string.CompareOrdinal(incomingMessageId, retainedMessageId)
+                : -1;
+        }
+
+        return CompareAttemptIdentity(
+            incomingStartedAtUtc.Value,
+            incomingMessageId,
+            retainedStartedAtUtc,
+            retainedMessageId);
+    }
 
     private static string CreateDeterministicMessageId(
         TenantLifecycleCommandRequest intent,

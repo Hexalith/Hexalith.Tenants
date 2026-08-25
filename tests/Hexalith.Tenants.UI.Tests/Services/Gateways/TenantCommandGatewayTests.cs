@@ -297,8 +297,8 @@ public sealed class TenantCommandGatewayTests
         const string stableMessageId = "01ARZ3NDEKTSV4RRFFQ69G5FB0";
 
         TenantCommandSubmissionResult result = operation is TenantLifecycleOperation.EnableTenant
-            ? await gateway.EnableTenantAsync(request, stableMessageId, CancellationToken.None)
-            : await gateway.DisableTenantAsync(request, stableMessageId, CancellationToken.None);
+            ? await gateway.EnableTenantTrackedAsync(request, stableMessageId, CancellationToken.None)
+            : await gateway.DisableTenantTrackedAsync(request, stableMessageId, CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe(stableMessageId);
@@ -356,7 +356,7 @@ public sealed class TenantCommandGatewayTests
         TenantCommandGateway gateway = CreateLifecycleGateway(
             new EventStoreGatewayException((int)statusCode, "raw transport token"));
 
-        TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
+        TenantCommandSubmissionResult result = await gateway.DisableTenantTrackedAsync(
             new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
             messageId,
             CancellationToken.None);
@@ -378,7 +378,7 @@ public sealed class TenantCommandGatewayTests
         TenantCommandGateway gateway = CreateLifecycleGateway(
             new EventStoreGatewayException((int)statusCode, "raw rejection token"));
 
-        TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
+        TenantCommandSubmissionResult result = await gateway.DisableTenantTrackedAsync(
             new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
             "01ARZ3NDEKTSV4RRFFQ69G5FAV",
             CancellationToken.None);
@@ -395,7 +395,7 @@ public sealed class TenantCommandGatewayTests
         const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
         TenantCommandGateway gateway = CreateLifecycleGateway(exception);
 
-        TenantCommandSubmissionResult result = await gateway.EnableTenantAsync(
+        TenantCommandSubmissionResult result = await gateway.EnableTenantTrackedAsync(
             new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant),
             messageId,
             CancellationToken.None);
@@ -410,6 +410,29 @@ public sealed class TenantCommandGatewayTests
             new HttpRequestException("transport unavailable"),
             new TaskCanceledException("gateway timeout"),
         };
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Tracked_lifecycle_dispatch_rejects_blank_explicit_message_id_before_transport(
+        string? messageId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-life"));
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandSubmissionResult result = await gateway.DisableTenantTrackedAsync(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            messageId!,
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessageKey.ShouldBe("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
 
     [Fact]
     public async Task Update_tenant_submits_literal_command_with_payload_and_captures_correlation_id()
@@ -1972,11 +1995,11 @@ public sealed class TenantCommandGatewayTests
         using var cancellation = new CancellationTokenSource();
 
         TenantCommandSubmissionResult legacyResult = await gateway.DisableTenantAsync(disable);
-        TenantCommandSubmissionResult stableDisableResult = await gateway.DisableTenantAsync(
+        TenantCommandSubmissionResult stableDisableResult = await gateway.DisableTenantTrackedAsync(
             disable,
             "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
             cancellation.Token);
-        TenantCommandSubmissionResult stableResult = await gateway.EnableTenantAsync(
+        TenantCommandSubmissionResult stableResult = await gateway.EnableTenantTrackedAsync(
             enable,
             "01ARZ3NDEKTSV4RRFFQ69G5FB0",
             cancellation.Token);

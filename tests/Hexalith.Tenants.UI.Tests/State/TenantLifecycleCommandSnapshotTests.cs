@@ -453,8 +453,9 @@ public sealed class TenantLifecycleCommandSnapshotTests
 
         pending.ConfirmProjection(Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:41"))
             .SafeMessageKey.ShouldBe("Tenants.Lifecycle.ProjectionEvidence.NotAdvanced");
-        pending.ConfirmProjection(Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:40"))
-            .SafeMessageKey.ShouldBe("Tenants.Lifecycle.ProjectionEvidence.NotAdvanced");
+        TenantLifecycleCommandSnapshot regressed = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:40"));
+        ReferenceEquals(regressed, pending).ShouldBeTrue();
     }
 
     [Fact]
@@ -584,6 +585,102 @@ public sealed class TenantLifecycleCommandSnapshotTests
         result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.ProofRead");
         result.LastConfirmedStatus.ShouldBe(TenantStatus.Active);
         result.LastConfirmedProjection.ShouldNotBeNull().Status.ShouldBe(TenantStatus.Active);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Expired_event_evidence_preserves_projection_pending_for_last_proof(
+        bool pending,
+        bool retryable)
+    {
+        TenantLifecycleCommandSnapshot snapshot = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true) with
+        {
+            AttemptStartedAtUtc = DateTimeOffset.Parse("2026-06-01T12:00:00Z"),
+        };
+
+        TenantLifecycleCommandSnapshot result = snapshot.ApplyStatus(
+            new TenantCommandStatusResult(null, IsPending: pending, IsRetryableFailure: retryable),
+            DateTimeOffset.Parse("2026-06-01T12:05:00Z"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.HasCommandEventEvidence.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Pending_poll_count_saturates_at_max_value()
+    {
+        TenantLifecycleCommandSnapshot snapshot = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active) with { PendingStatusPollCount = int.MaxValue };
+
+        snapshot.ApplyStatus(TenantCommandStatusResult.Pending(string.Empty))
+            .PendingStatusPollCount.ShouldBe(int.MaxValue);
+    }
+
+    [Fact]
+    public void Accepted_and_status_shapes_fail_closed_when_inconsistent()
+    {
+        TenantLifecycleCommandSnapshot started = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active);
+        TenantLifecycleCommandSnapshot accepted = started.Accepted(
+            TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        accepted.Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+        accepted.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Processing,
+            IsPending: true,
+            HasVerifiedCommandIdentity: true))
+            .SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+        accepted.ApplyStatus(new TenantCommandStatusResult(null, IsPending: true, IsRetryableFailure: true))
+            .SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+    }
+
+    [Fact]
+    public void Projection_proof_never_regresses_latest_observed_sequence()
+    {
+        TenantLifecycleCommandSnapshot pending = Pending(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active,
+            hasEventEvidence: true) with
+        {
+            LastObservedProjectionVersion = "tenant-sequence:43",
+        };
+
+        TenantLifecycleCommandSnapshot regressed = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"));
+        TenantLifecycleCommandSnapshot advanced = pending.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:44"));
+
+        ReferenceEquals(regressed, pending).ShouldBeTrue();
+        regressed.LastObservedProjectionVersion.ShouldBe("tenant-sequence:43");
+        advanced.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        advanced.LastObservedProjectionVersion.ShouldBe("tenant-sequence:44");
+    }
+
+    [Fact]
+    public void Evidence_revision_saturates_for_acceptance_status_and_projection()
+    {
+        TenantLifecycleCommandSnapshot started = Started(
+            TenantLifecycleOperation.DisableTenant,
+            TenantStatus.Active) with { EvidenceRevision = long.MaxValue };
+        TenantLifecycleCommandSnapshot accepted = started.Accepted(
+            TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        TenantLifecycleCommandSnapshot status = accepted.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Completed,
+            EventCount: 1,
+            HasVerifiedCommandIdentity: true));
+        TenantLifecycleCommandSnapshot proof = status.ConfirmProjection(
+            Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"));
+
+        accepted.EvidenceRevision.ShouldBe(long.MaxValue);
+        status.EvidenceRevision.ShouldBe(long.MaxValue);
+        proof.EvidenceRevision.ShouldBe(long.MaxValue);
     }
 
     private static TenantLifecycleCommandSnapshot Pending(

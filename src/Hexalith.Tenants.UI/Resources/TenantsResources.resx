@@ -870,6 +870,9 @@
   <data name="Tenants.Lifecycle.Confirmation.Help" xml:space="preserve">
     <value>Type {0} exactly. Cancel or Escape closes without submitting.</value>
   </data>
+  <data name="Tenants.Lifecycle.Confirmation.Help.Pending" xml:space="preserve">
+    <value>The lifecycle attempt for {0} is pending. Cancel or Escape cannot close this dialog; refresh status or stop tracking explicitly.</value>
+  </data>
   <data name="Tenants.Lifecycle.Confirm" xml:space="preserve">
     <value>Confirm {0}</value>
   </data>

@@ -2449,3 +2449,18 @@ location: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManageme
 reason: The legacy ledger defers this issue: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it. Original context is preserved in legacy-detail.
 legacy-detail: - **`TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it** — `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92`. The `<remarks>` explains at length that the null default silently grants `TenantOwner`, exists only for tests predating the authority distinction, and "a new test should not rely on" it. A comment cannot stop the next test from taking the 5-argument overload. Second occurrence — also deferred in Loop 2. Deferred again because configuration authority is Story 3.5/3.6 territory, which Story 3.4's "Never" list excludes.
 status: open
+
+### DW-315: `TenantCommandGateway.BoundSafeFailureReason` returns most backend failure text verbatim
+origin: deferred from code review of spec-3-4-disable-or-enable-tenant-with-complete-preview, 2026-08-25
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:1034-1041
+source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
+reason: The existing sanitizer replaces values only when a short marker denylist matches; every other backend failure reason is returned verbatim, truncated to 160 characters. A backend detail or secret outside that marker list could therefore reach command UI. Replacing the denylist with an allow-listed support-safe mapping is shared gateway hardening beyond the focused lifecycle patch.
+status: open
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
+  summary: Preserve a visible exit and add computed-viewport coverage for configuration flows opened before the viewport narrows.
+  evidence: `SetTenantConfigurationFlow.razor.css` and `RemoveTenantConfigurationFlow.razor.css` hide mutation forms below 768px, which can also hide an in-form Cancel control; current tests assert stylesheet text rather than rendered 767px/768px behavior. This is pre-existing Stories 3.5/3.6 configuration work outside Story 3.4's lifecycle boundary.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
+  summary: Remove the implicit TenantOwner fallback from configuration-management context construction.
+  evidence: `TenantConfigurationManagementContext.Available` still permits an omitted authority state to compile and silently become `TenantOwner`; production currently passes explicit authority, but the API remains a fail-open configuration seam outside Story 3.4's lifecycle boundary.

@@ -870,6 +870,9 @@
   <data name="Tenants.Lifecycle.Confirmation.Help" xml:space="preserve">
     <value>Saisissez {0} exactement. Annuler ou Échap ferme sans soumettre.</value>
   </data>
+  <data name="Tenants.Lifecycle.Confirmation.Help.Pending" xml:space="preserve">
+    <value>La tentative de cycle de vie pour {0} est en attente. Annuler ou Échap ne peut pas fermer cette boîte de dialogue ; actualisez l'état ou arrêtez explicitement le suivi.</value>
+  </data>
   <data name="Tenants.Lifecycle.Confirm" xml:space="preserve">
     <value>Confirmer {0}</value>
   </data>
