@@ -10,22 +10,22 @@ namespace Hexalith.Tenants.UI.State.TenantDetail;
 /// <param name="Freshness">Projection freshness.</param>
 /// <param name="SurfaceKind">Detail surface state.</param>
 /// <param name="IsCommandSurfaceConnected">Whether lifecycle command support is connected.</param>
+/// <param name="ProjectionVersion">Ordered authoritative projection marker.</param>
 /// <param name="GovernanceReadiness">Compatibility admission readiness.</param>
 /// <param name="AuthorizationReflection">Server-reflected lifecycle authority.</param>
 /// <param name="IsNarrowSafetyContext">Whether the measured viewport is unsafe.</param>
 /// <param name="Lifecycle">Projection lifecycle.</param>
-/// <param name="ProjectionVersion">Ordered authoritative projection marker.</param>
 public sealed record TenantLifecycleAvailabilityInput(
     string TenantId,
     TenantStatus CurrentStatus,
     ReadModelFreshnessState Freshness,
     TenantDetailSurfaceKind SurfaceKind,
     bool IsCommandSurfaceConnected,
+    string? ProjectionVersion,
     TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
     TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
     bool IsNarrowSafetyContext = false,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    string? ProjectionVersion = null)
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown)
 {
     /// <summary>Evaluates one legacy operation through the shared kernel.</summary>
     /// <param name="operation">Lifecycle operation.</param>

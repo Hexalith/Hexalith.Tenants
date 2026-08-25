@@ -105,7 +105,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
         // This fixture has neither reflected authority nor a projection version. Permission-safe precedence
         // must withhold the lower-level projection detail from the unauthorized/indeterminate caller.
-        cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent
+        cut.Find("[data-testid='tenants-lifecycle-disable-unavailable-reason']").TextContent
             .ShouldContain("authority", Case.Insensitive);
         // Asserted past the shared prefix: both summary variants begin "{0} members visible on this page",
         // so the previous ShouldContain("2 members") passed on either branch. This fixture builds the detail
@@ -820,6 +820,54 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Page_remount_releases_an_expired_tracker_owned_lifecycle_gate()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetail detail = Detail("tenant.alpha");
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail) with { ProjectionVersion = "tenant-sequence:41" }));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        DateTimeOffset now = DateTimeOffset.Parse("2026-06-01T12:00:00Z");
+        var tracker = new TenantLifecycleAttemptTracker(() => now);
+        tracker.BeginDispatch(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            "tenant-sequence:41",
+            now);
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.TryAcquire(lockKey, tracker.LeaseOwner).ShouldBeTrue();
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(gate);
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingLifecycleCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.alpha"));
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Route_change_then_old_flow_terminalization_releases_the_tracker_owned_lifecycle_gate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -880,7 +928,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.beta"));
         gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
 
-        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId.ShouldNotBeNull());
         tracker.Find("tenant.alpha").ShouldBeNull();
         await cut.InvokeAsync(() => oldFlow.CommandActivityLease.ShouldNotBeNull()(false));
 
@@ -1010,7 +1058,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
         (await oldFlow.CommandActivityLease.ShouldNotBeNull()(true)).ShouldBeFalse();
-        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId.ShouldNotBeNull());
         tracker.Find("tenant.alpha").ShouldBeNull();
 
         var newerIntent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant);
@@ -1027,7 +1075,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 "message-newer")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-newer", "correlation-newer")) with
         {
-            AttemptStartedAtUtc = DateTimeOffset.UtcNow.AddMinutes(1),
+            AttemptStartedAtUtc = DateTimeOffset.UtcNow,
         };
         tracker.Remember(newer).ShouldBeTrue();
         await oldFlow.CommandActivityLease.ShouldNotBeNull()(false);
@@ -6078,7 +6126,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantHighImpactProofEvidence.NotRequired,
             TenantHighImpactViewportState.Safe,
             IsInputComplete: false,
-            TenantHighImpactTargetState.Unknown);
+            TenantHighImpactTargetState.Unknown,
+            ProjectionVersion: null);
 
     private static TenantDetailSnapshot ReadyWithSafeConfiguration(
         TenantDetail detail,
@@ -6205,6 +6254,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private sealed class TrackingLifecycleCommandGateway : ITenantCommandGateway
     {
+        public bool SupportsTrackedLifecycleDispatch => true;
+
         public TenantCommandStatusResult Status { get; set; } = new(
             CommandStatus.Completed,
             EventCount: 1,
@@ -6236,7 +6287,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        public Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
             TenantLifecycleCommandRequest request,
             string messageId,
             CancellationToken cancellationToken = default)

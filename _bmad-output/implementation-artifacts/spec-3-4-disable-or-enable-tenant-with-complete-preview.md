@@ -2,7 +2,7 @@
 title: 'Disable or Enable Tenant with Complete Preview'
 type: 'feature'
 created: '2026-08-22'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '536e5c33230f2c2b04b80fb07ed0be631db9b5db'
 review_loop_iteration: 3
 context:
@@ -49,6 +49,8 @@ context:
 
 ## File List
 
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `docs/tenants-ui-truth-state-and-action-availability-spec.md`
 - `references/Hexalith.Builds`
 - `references/Hexalith.EventStore`
@@ -57,6 +59,7 @@ context:
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor`
 - `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs`
@@ -71,6 +74,8 @@ context:
 - `src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs`
 - `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs`
 - `src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs`
+- `src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleProjectionVersion.cs`
+- `src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleProjectionVersionComparison.cs`
 - `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs`
 - `src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs`
 - `src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionEvidence.cs`
@@ -78,10 +83,14 @@ context:
 - `src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactSupportEvidence.cs`
 - `src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailabilityInput.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantHighImpactAvailabilityComponentTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantHighImpactActionAvailabilityTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleAttemptTrackerTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleAvailabilityTests.cs`
@@ -111,6 +120,10 @@ context:
 
 ## Spec Change Log
 
+- 2026-08-25: Closed the Loop 4 acceptance audit: preflight now makes Cancel/Escape/edit/duplicate paths inert, revalidates context after asynchronous lease acquisition, and uses a production-five-minute/internal-test deadline seam; dispatch, status, and proof deadline expiry terminalize and release ownership unless exact command-event evidence permits the final authoritative projection proof; initial reconciliation replays a concurrent SignalR nudge; direct rejection uses the centralized saturating evidence revision; unsupported stable dispatch is visible and blocked before confirmation or preflight. Rendered regressions cover both never-completing preflight providers, all three retained I/O deadlines, the event-evidenced hung-status last chance, stale-evidence submit blocking, unsupported gateway capability, and focus-state preservation. The exact package-backed Release warnings-as-errors build passes with zero warnings/errors, all 2429 Release UI tests pass with zero skips, `git diff --check` is clean, and the story gitlink guard passes with all four pointer changes declared.
+- 2026-08-25: Closed all ten Loop 4 consolidated patches: immutable deadline-bounded submit preflight, expiry-before-dispatch, monotonic projection evidence, serialized reconciliation, explicit tracked-gateway capability and method names, whitespace-safe ambiguity, abandonment rebaseline, saturating evidence revisions, operation-specific reason selectors, and JS-safe focus. Package-backed Debug builds pass with warnings as errors; 516 focused lifecycle/gateway tests and all 2420 UI tests pass. The source-reference build remains blocked by the existing mixed `Hexalith.Memories.*` 1.0.0/2.21.3 assembly assets.
+- 2026-08-25: Closed the consolidated follow-up review: last-chance event proof survives pending/processing observations, tracker tombstones and immutable attempt evidence merge monotonically, submission/refresh/abandon races fail closed, gateway waits are deadline-bounded, gateway copy is localized, stale tracker-owned gates release on remount, and focus restoration is circuit-safe. Debug source-reference build, 361 focused lifecycle tests, all 2404 UI tests, diff check, and story gitlink guard pass.
+- 2026-08-25: Closed all 26 Loop 3 chunk-A patch findings: last-chance proof precedes ownership expiry, caller-safe status messages and terminal ownership stay truthful, projection-version comparison is centralized with distinct failure states, tracker merge/identity/clock paths are hardened, and evidence contracts now require an explicit nullable projection marker. Debug source-reference build passes with warnings as errors; 359 focused lifecycle tests, the final 72-test lifecycle component class, and the full 2395-test UI executable pass. The package-backed Release build remains blocked by stale EventStore dependency assets in the existing no-restore workspace.
 - 2026-08-25: Applied all patch findings from the completed review passes, including deterministic dispatch-window recovery, wall-clock expiry, explicit abandon, transient status retry, async disposal/race guards, and focused plus page-level regression evidence; the warnings-as-errors build, full UI suite, and gitlink validation pass.
 - 2026-08-25: Closed the consolidated formal-review patch set within the lifecycle-only boundary: ambiguous submission recovery reuses the original message id, retained ownership expires without a background timer, tracker merges and attempt ordering are deterministic, authority reasons precede projection disclosure, and preview confirmation uses one captured snapshot. Release build, all 2381 UI tests, focused lifecycle/gateway/authority/route regressions, and gitlink validation pass; the reviewed configuration CSS finding remains intentionally deferred outside Story 3.4.
 
@@ -250,80 +263,120 @@ Lifecycle proof is conjunctive: exact tracked-command event evidence AND intende
 
 <!-- bmad-code-review 2026-08-25 — layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor (all completed). Chunk A of 4; B=Components+Gateways+Resources, C=Tests, D=docs/gitlinks pending. Gitlink guard: PASS (4 pointers moved, all declared). -->
 
-- [ ] [Review][Patch] **[Decision resolved 2026-08-25: last-chance reconciliation]** Five-minute wall-clock expiry pre-empts an available conjunctive proof, irreversibly. The expiry is enforced twice: `TenantLifecycleCommandFlow.razor:1215-1222` returns before the status poll (`:1253`) and proof read (`:1341`), and `TenantCreateCommandModels.cs:2102-2110` terminalizes again inside `ApplyStatus`. Because `UnableToVerify` satisfies `HasTerminalOwnership`, `ApplyStatus` (`:2048-2052`) and `ConfirmProjection` (`:2270-2279`, which requires `ProjectionPending`) both become no-ops, so the attempt can never recover. An attempt at `ProjectionPending` with `HasCommandEventEvidence == true` whose projection lands at T+5:01 is reported "unable to verify" although all three conjuncts are satisfiable on that very refresh. Root cause: the deadline is doing two jobs -- bounding *ownership* (legitimate) and bounding *evidence* (not legitimate; wall-clock age says nothing about proof quality, which `ConfirmProjection` already gates independently). **Fix:** narrow the expired-status list at `:2102-2110` from `Received, Processing, EventsStored, EventsPublished, Completed` to `Received, Processing` only -- those two carry no event evidence so they can never confirm anyway, while the other three are exactly the statuses that set `HasCommandEventEvidence` and promote to `ProjectionPending`. Then move the flow gate from `:1215` to the end of `RefreshStatusCoreAsync`, guarded by `RetainsAttempt`, so ownership still terminalizes within the same refresh. Known limit accepted: `PruneExpiredLocked` uses the same `MaximumRetainedAttemptDuration`, so this rescues the live component, not a remount past T+5:00. Tests: expired + `Completed` + advanced projection -> `Confirmed`; expired + `Processing` -> `StatusTimeout`; expired + no advancement -> `StatusTimeout`. Severity: medium.
-- [ ] [Review][Patch] **[Decision resolved 2026-08-25: fix the recovery copy only; severity revised down]** A faulted authority reflection is indistinguishable from a proven denial, and the recovery line misdirects. `TenantDetailPage.razor:722-727` swallows a faulted `ResolveLifecycleAuthorizationAsync` and commits `Indeterminate`; the evaluator (`TenantHighImpactActionAvailabilityEvaluator.cs:24-31`) maps that to `MissingPermission`. Review correction: the *reason* line is accurate -- `Tenants.Lifecycle.Unavailable.MissingPermission` says authority is "not proven", which covers both an unresolved read and a real denial. The original finding (and the first review write-up) overstated this as telling an authorized admin they lack permission. What is genuinely wrong is the *recovery* line: `Tenants.HighImpact.Recovery.MissingPermission` ("Ask an administrator to verify your role and the exact namespace grant", rendered via `TenantLifecycleActionAvailability.razor:286`) names one cause for a two-cause state, so a BFF outage sends the operator to request a role they already hold, and it persists until reload. Rejected alternatives: mapping `Indeterminate` to `StaleData` would render "tenant freshness is stale or unknown" / "projection lifecycle is not current", both false when only the authority read failed; an eighth `AuthorityUnresolved` reason is the better model but costs ~8 files across two parallel enums (`TenantHighImpactUnavailableReason` and the legacy `TenantLifecycleUnavailableReasonCategory`), two switch arms in `TenantLifecycleAvailability.cs`, 4 EN/FR entries, and 2 test files -- disproportionate to one sentence, and still open later if reflection-fault telemetry becomes a need. **Fix:** reword `Tenants.HighImpact.Recovery.MissingPermission` and the tail of `Tenants.Lifecycle.Unavailable.MissingPermission` in EN and FR to "refresh first, request permission if it persists"; add a comment at `TenantDetailPage.razor:722` noting the swallowed fault is user-visible as "not proven". Existing EN/FR parity test covers it. Severity: low-medium.
-- [ ] [Review][Patch] `ApplyStatus` discards every caller-supplied `SafeMessage`; the command-surface-unavailable message is replaced by generic copy [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2042-2204]
-- [ ] [Review][Patch] `SignalRNudge` has no terminal-state guard and rewrites `FocusTarget` off a `Confirmed` announcement [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2206-2211]
-- [ ] [Review][Patch] `TenantLifecycleStateAlreadySet` collapses into `Rejected`, merging two states the governed doc §5.1 forbids merging [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2155-2175]
-- [ ] [Review][Patch] `AlreadyApplied`, `Previewed`, `Idle`, and `DuplicatePrevented` satisfy neither `RetainsAttempt` nor `HasTerminalOwnership`, so the aggregate lease is neither retained nor released [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1893-1905]
-- [ ] [Review][Patch] `MergeSameAttempt` ranks `PendingStatusPollCount` above `EvidenceRevision`, letting a snapshot that observed nothing outrank one that observed something [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:296-303]
-- [ ] [Review][Patch] `EvidenceRevision` is bumped on no-op paths, defeating record-equality re-render suppression and skewing the merge tiebreak [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2237-2242]
-- [ ] [Review][Patch] The exact-command-identity guard is unreachable: the gateway returns `Unknown` (`Status == null`) on mismatch, so `TrackingMismatch` copy is dead on that path [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2054-2057]
-- [ ] [Review][Patch] `IsOwnedBy`'s owner-identity conjunct is untested — dropping `ReferenceEquals` keeps the whole suite green while breaking AD-12 aggregate exclusivity [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:102-110]
-- [ ] [Review][Patch] The new `NamespaceScope is Authorized` conjunct guarding the `TenantDisabled` outcome is untested — deleting it keeps all 20 evaluator tests green while disclosing tenant state to an unscoped caller [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:183-189]
-- [ ] [Review][Patch] Prefix change, unparseable version, and genuine non-advancement all collapse to one silent `false` with no distinct reason until expiry [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2386-2400]
-- [ ] [Review][Patch] `TrySplitOrderedVersion` is duplicated verbatim in two files and has already drifted stylistically [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2402-2429]
-- [ ] [Review][Patch] `ProjectionVersion` is a trailing optional on both evidence records, making the new lifecycle gate opt-out with no compiler help [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionEvidence.cs:46]
-- [ ] [Review][Patch] `ToTrackingHandle()` has zero call sites and never populates the new `AggregateId`, so a future caller would silently bypass the gateway's aggregate-identity check [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:115-118]
-- [ ] [Review][Patch] `authorityConfirmed` conjuncts inside `DomainOutcome` are unreachable-false dead code — `Evaluate` already returned [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:174]
-- [ ] [Review][Patch] `ForUnavailableReason` lacks the `Enum.IsDefined` guard every other new gate in this diff carries; an undefined value would ship "99" as a data-testid [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactReasonCategoryNames.cs:19-21]
-- [ ] [Review][Patch] `Forget(tenantId, messageId = null)` makes its own documented safety guarantee opt-in; the unsafe call is the default one [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:219]
-- [ ] [Review][Patch] `ProgressRank` throws `ArgumentOutOfRangeException` from inside `_sync` for any state added to `RetainsAttempt` later; return a sentinel rank [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:456-463]
-- [ ] [Review][Patch] `CreateDeterministicMessageId` uses `checked` on the injectable clock, so a pre-1970 test clock throws inside `BeginDispatch`; `PruneExpiredLocked` likewise never prunes if the clock regresses [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:435-454]
-- [ ] [Review][Patch] Completion Note overstates the equal-timestamp guarantee: `CompareAttemptIdentity` breaks ties by ordinal comparison of SHA-derived ids, which is deterministic but not "newer wins" [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:324-336]
-- [ ] [Review][Patch] `TerminalTombstoneCount` is an undocumented test-only accessor whose property getter mutates tracker state by running a prune sweep [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:276-286]
-- [ ] [Review][Patch] `ApplyStatus`'s guard is a terminal blocklist rather than a `RetainsAttempt` allow-list, so `Idle`/`Previewed` can be driven into `Accepted` with a fabricated `AttemptStartedAtUtc` [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2048-2052]
-- [ ] [Review][Patch] `Remember`'s six-line rejection predicate mixes `||` and `&&` unparenthesized; correct today, fragile under edit [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:130-138]
-- [ ] [Review][Patch] `Accepted()` overwrites `MessageId` with the gateway echo unchecked, so a divergent echo would desynchronize `Forget(tenantId, messageId)` from the dispatch identity [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1993-2001]
-- [ ] [Review][Patch] In `RefreshStatusCoreAsync` the `gateway is null` branch precedes the blank-`MessageId` check, so `AmbiguousSubmission` can retain a `RequestSent` snapshot the tracker will reject [src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor:1226-1238]
+- [x] [Review][Patch] **[Decision resolved 2026-08-25: last-chance reconciliation]** Five-minute wall-clock expiry pre-empts an available conjunctive proof, irreversibly. The expiry is enforced twice: `TenantLifecycleCommandFlow.razor:1215-1222` returns before the status poll (`:1253`) and proof read (`:1341`), and `TenantCreateCommandModels.cs:2102-2110` terminalizes again inside `ApplyStatus`. Because `UnableToVerify` satisfies `HasTerminalOwnership`, `ApplyStatus` (`:2048-2052`) and `ConfirmProjection` (`:2270-2279`, which requires `ProjectionPending`) both become no-ops, so the attempt can never recover. An attempt at `ProjectionPending` with `HasCommandEventEvidence == true` whose projection lands at T+5:01 is reported "unable to verify" although all three conjuncts are satisfiable on that very refresh. Root cause: the deadline is doing two jobs -- bounding *ownership* (legitimate) and bounding *evidence* (not legitimate; wall-clock age says nothing about proof quality, which `ConfirmProjection` already gates independently). **Fix:** narrow the expired-status list at `:2102-2110` from `Received, Processing, EventsStored, EventsPublished, Completed` to `Received, Processing` only -- those two carry no event evidence so they can never confirm anyway, while the other three are exactly the statuses that set `HasCommandEventEvidence` and promote to `ProjectionPending`. Then move the flow gate from `:1215` to the end of `RefreshStatusCoreAsync`, guarded by `RetainsAttempt`, so ownership still terminalizes within the same refresh. Known limit accepted: `PruneExpiredLocked` uses the same `MaximumRetainedAttemptDuration`, so this rescues the live component, not a remount past T+5:00. Tests: expired + `Completed` + advanced projection -> `Confirmed`; expired + `Processing` -> `StatusTimeout`; expired + no advancement -> `StatusTimeout`. Severity: medium.
+- [x] [Review][Patch] **[Decision resolved 2026-08-25: fix the recovery copy only; severity revised down]** A faulted authority reflection is indistinguishable from a proven denial, and the recovery line misdirects. `TenantDetailPage.razor:722-727` swallows a faulted `ResolveLifecycleAuthorizationAsync` and commits `Indeterminate`; the evaluator (`TenantHighImpactActionAvailabilityEvaluator.cs:24-31`) maps that to `MissingPermission`. Review correction: the *reason* line is accurate -- `Tenants.Lifecycle.Unavailable.MissingPermission` says authority is "not proven", which covers both an unresolved read and a real denial. The original finding (and the first review write-up) overstated this as telling an authorized admin they lack permission. What is genuinely wrong is the *recovery* line: `Tenants.HighImpact.Recovery.MissingPermission` ("Ask an administrator to verify your role and the exact namespace grant", rendered via `TenantLifecycleActionAvailability.razor:286`) names one cause for a two-cause state, so a BFF outage sends the operator to request a role they already hold, and it persists until reload. Rejected alternatives: mapping `Indeterminate` to `StaleData` would render "tenant freshness is stale or unknown" / "projection lifecycle is not current", both false when only the authority read failed; an eighth `AuthorityUnresolved` reason is the better model but costs ~8 files across two parallel enums (`TenantHighImpactUnavailableReason` and the legacy `TenantLifecycleUnavailableReasonCategory`), two switch arms in `TenantLifecycleAvailability.cs`, 4 EN/FR entries, and 2 test files -- disproportionate to one sentence, and still open later if reflection-fault telemetry becomes a need. **Fix:** reword `Tenants.HighImpact.Recovery.MissingPermission` and the tail of `Tenants.Lifecycle.Unavailable.MissingPermission` in EN and FR to "refresh first, request permission if it persists"; add a comment at `TenantDetailPage.razor:722` noting the swallowed fault is user-visible as "not proven". Existing EN/FR parity test covers it. Severity: low-medium.
+- [x] [Review][Patch] `ApplyStatus` discards every caller-supplied `SafeMessage`; the command-surface-unavailable message is replaced by generic copy [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2042-2204]
+- [x] [Review][Patch] `SignalRNudge` has no terminal-state guard and rewrites `FocusTarget` off a `Confirmed` announcement [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2206-2211]
+- [x] [Review][Patch] `TenantLifecycleStateAlreadySet` collapses into `Rejected`, merging two states the governed doc §5.1 forbids merging [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2155-2175]
+- [x] [Review][Patch] `AlreadyApplied`, `Previewed`, `Idle`, and `DuplicatePrevented` satisfy neither `RetainsAttempt` nor `HasTerminalOwnership`, so the aggregate lease is neither retained nor released [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1893-1905]
+- [x] [Review][Patch] `MergeSameAttempt` ranks `PendingStatusPollCount` above `EvidenceRevision`, letting a snapshot that observed nothing outrank one that observed something [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:296-303]
+- [x] [Review][Patch] `EvidenceRevision` is bumped on no-op paths, defeating record-equality re-render suppression and skewing the merge tiebreak [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2237-2242]
+- [x] [Review][Patch] The exact-command-identity guard is unreachable: the gateway returns `Unknown` (`Status == null`) on mismatch, so `TrackingMismatch` copy is dead on that path [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2054-2057]
+- [x] [Review][Patch] `IsOwnedBy`'s owner-identity conjunct is untested — dropping `ReferenceEquals` keeps the whole suite green while breaking AD-12 aggregate exclusivity [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:102-110]
+- [x] [Review][Patch] The new `NamespaceScope is Authorized` conjunct guarding the `TenantDisabled` outcome is untested — deleting it keeps all 20 evaluator tests green while disclosing tenant state to an unscoped caller [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:183-189]
+- [x] [Review][Patch] Prefix change, unparseable version, and genuine non-advancement all collapse to one silent `false` with no distinct reason until expiry [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2386-2400]
+- [x] [Review][Patch] `TrySplitOrderedVersion` is duplicated verbatim in two files and has already drifted stylistically [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2402-2429]
+- [x] [Review][Patch] `ProjectionVersion` is a trailing optional on both evidence records, making the new lifecycle gate opt-out with no compiler help [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionEvidence.cs:46]
+- [x] [Review][Patch] `ToTrackingHandle()` has zero call sites and never populates the new `AggregateId`, so a future caller would silently bypass the gateway's aggregate-identity check [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:115-118]
+- [x] [Review][Patch] `authorityConfirmed` conjuncts inside `DomainOutcome` are unreachable-false dead code — `Evaluate` already returned [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs:174]
+- [x] [Review][Patch] `ForUnavailableReason` lacks the `Enum.IsDefined` guard every other new gate in this diff carries; an undefined value would ship "99" as a data-testid [src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactReasonCategoryNames.cs:19-21]
+- [x] [Review][Patch] `Forget(tenantId, messageId = null)` makes its own documented safety guarantee opt-in; the unsafe call is the default one [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:219]
+- [x] [Review][Patch] `ProgressRank` throws `ArgumentOutOfRangeException` from inside `_sync` for any state added to `RetainsAttempt` later; return a sentinel rank [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:456-463]
+- [x] [Review][Patch] `CreateDeterministicMessageId` uses `checked` on the injectable clock, so a pre-1970 test clock throws inside `BeginDispatch`; `PruneExpiredLocked` likewise never prunes if the clock regresses [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:435-454]
+- [x] [Review][Patch] Completion Note overstates the equal-timestamp guarantee: `CompareAttemptIdentity` breaks ties by ordinal comparison of SHA-derived ids, which is deterministic but not "newer wins" [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:324-336]
+- [x] [Review][Patch] `TerminalTombstoneCount` is an undocumented test-only accessor whose property getter mutates tracker state by running a prune sweep [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:276-286]
+- [x] [Review][Patch] `ApplyStatus`'s guard is a terminal blocklist rather than a `RetainsAttempt` allow-list, so `Idle`/`Previewed` can be driven into `Accepted` with a fabricated `AttemptStartedAtUtc` [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:2048-2052]
+- [x] [Review][Patch] `Remember`'s six-line rejection predicate mixes `||` and `&&` unparenthesized; correct today, fragile under edit [src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs:130-138]
+- [x] [Review][Patch] `Accepted()` overwrites `MessageId` with the gateway echo unchecked, so a divergent echo would desynchronize `Forget(tenantId, messageId)` from the dispatch identity [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:1993-2001]
+- [x] [Review][Patch] In `RefreshStatusCoreAsync` the `gateway is null` branch precedes the blank-`MessageId` check, so `AmbiguousSubmission` can retain a `RequestSent` snapshot the tracker will reject [src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor:1226-1238]
 - [x] [Review][Defer] `TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker`; the older one keeps the late-completion race the new one fixes [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs:24-70] — deferred, pre-existing. Both are registered side by side (`TenantsUiServiceCollectionExtensions.cs:98`). The create flow is Story 3.1 territory; sharing a generic base is a cross-story refactor.
 - [x] [Review][Defer] `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it [src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92] — deferred, second occurrence (also deferred in Loop 2). Configuration authority is Story 3.5/3.6 territory, which Story 3.4's "Never" list excludes.
 
+### Loop 4 — consolidated Story 3.4 review patches, 2026-08-25
+
+- [x] [Review][Patch] Capture an immutable submit context and generation before preflight awaits; disable conflicting paths, deadline-bound authority/proof providers, and reject every disposal, timeout, or context-generation change before admission or dispatch. Cover tenant, operation, and evidence changes during both awaits plus never-completing providers.
+- [x] [Review][Patch] Do not invoke tracked lifecycle dispatch for an already-expired attempt or redispatch. Terminalize and release ownership while preserving last-chance status/projection reads; cover expired no-gateway-call and hung dispatch/status/proof deadline release.
+- [x] [Review][Patch] `ConfirmProjection` must reject projection evidence that regresses below the latest comparable `LastObservedProjectionVersion`, preserve newer evidence, and pass both-direction sequence tests.
+- [x] [Review][Patch] Route initial post-acceptance reconciliation through the serialized refresh replay/gate path. Deadline-bound retained parent refresh callbacks while preserving the unconditional proof attempt when a nudge faults or times out; cover concurrent accepted submit and SignalR refresh.
+- [x] [Review][Patch] Make stable-ID lifecycle dispatch unambiguous and fail closed: reject blank explicit ids before transport, rename tracked methods, and expose stable-dispatch capability before preview. Update gateway implementations, consumers, fakes, and tests.
+- [x] [Review][Patch] Treat whitespace ambiguous-result resource keys as missing and use the localized fallback without throwing.
+- [x] [Review][Patch] Explicit abandon must invalidate exact confirmation/preview until authoritative rebaseline. Pending help must truthfully say Cancel/Escape cannot close, using whole-string EN/FR copy; cover immediate resubmit blocking and pending help.
+- [x] [Review][Patch] Centralize a saturating lifecycle evidence-revision increment and cover `long.MaxValue` acceptance, status, and proof transitions.
+- [x] [Review][Patch] Give launcher unavailable reasons operation-specific stable ids while keeping the child-flow reason distinct. Repair the projection-lifecycle rerender test to enter confirmation, scope the child reason, prove confirm disables, and prove no provider/gateway call.
+- [x] [Review][Patch] Exercise both lifecycle focus-safety helpers when JS throws `JSDisconnectedException` and `JSException`; exceptions must not escape and state/dispatch counts must remain unchanged.
+
 ## Suggested Review Order
 
-**Coherent preview and submit boundary**
+**Coherent preview, dispatch, and reconciliation**
 
-- Captures one authoritative preview snapshot, revalidates it at submit, and atomically re-baselines it only on explicit refresh.
-  [`TenantLifecycleCommandFlow.razor:519`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L519)
+- Captures immutable intent and evidence before bounded preflight awaits.
+  [`TenantLifecycleCommandFlow.razor:912`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L912)
 
-- Rejects invalid lifecycle operation values before aggregate admission and dispatch.
-  [`TenantLifecycleCommandFlow.razor:762`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L762)
+- Revalidates context after asynchronous admission before dispatching.
+  [`TenantLifecycleCommandFlow.razor:1079`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L1079)
 
-**Stable ambiguous dispatch and bounded ownership**
+- Rejects expired dispatch before invoking the tracked gateway.
+  [`TenantLifecycleCommandFlow.razor:1137`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L1137)
 
-- Preserves the caller's stable message id for retryable HTTP, timeout, and transport submission outcomes while leaving permanent rejections terminal.
-  [`TenantCommandGateway.cs:336`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L336)
+- Serializes initial reconciliation and concurrent SignalR replay.
+  [`TenantLifecycleCommandFlow.razor:1297`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L1297)
 
-- Re-dispatches an unresolved request with the same identity and keeps cancellation/transport outcomes recoverable until the deadline.
-  [`TenantLifecycleCommandFlow.razor:998`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L998)
+- Preserves event-evidenced last-chance proof after status timeout.
+  [`TenantLifecycleCommandFlow.razor:1436`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L1436)
 
-- Prunes unresolved dispatches, retained attempts, and terminal tombstones through ordinary tracker access after the five-minute window.
-  [`TenantLifecycleAttemptTracker.cs:384`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs#L384)
+- Bounds retained I/O to ownership and configured deadlines.
+  [`TenantLifecycleCommandFlow.razor:1661`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor#L1661)
 
-- Treats unresolved dispatch identity as route-change ownership until tracker access observes expiry.
-  [`TenantDetailPage.razor:567`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L567)
+**Monotonic proof and retained ownership**
 
-**Monotonic evidence and permission-safe evaluation**
+- Preserves event evidence through last-chance pending observations without false success.
+  [`TenantCreateCommandModels.cs:2057`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L2057)
 
-- Merges equal-rank snapshots monotonically and deterministically orders genuinely newer equal-timestamp attempts.
-  [`TenantLifecycleAttemptTracker.cs:288`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs#L288)
+- Requires intended status, exact-command events, and newer comparable projection evidence.
+  [`TenantCreateCommandModels.cs:2266`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L2266)
 
-- Confirms only exact-command event evidence plus intended status and strictly newer comparable projection evidence.
-  [`TenantCreateCommandModels.cs:2218`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs#L2218)
+- Merges same-attempt progress while freezing immutable dispatch evidence.
+  [`TenantLifecycleAttemptTracker.cs:277`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs#L277)
 
-- Evaluates reflected authority before projection or viewport reasons to avoid unauthorized state disclosure.
-  [`TenantHighImpactActionAvailabilityEvaluator.cs:24`](../../src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs#L24)
+- Orders terminal tombstones so expired late attempts cannot overwrite newer ownership.
+  [`TenantLifecycleAttemptTracker.cs:378`](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs#L378)
+
+- Releases tracker-owned gates after remount observes bounded ownership expiry.
+  [`TenantDetailPage.razor:558`](../../src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor#L558)
+
+**Support safety and accessibility**
+
+- Exposes tracked capability before confirmation and uses unambiguous stable-id methods.
+  [`ITenantCommandGateway.cs:7`](../../src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs#L7)
+
+- Rejects blank tracked identifiers before transport.
+  [`TenantCommandGateway.cs:338`](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L338)
+
+- Restores lifecycle launcher focus safely across disconnected browser circuits.
+  [`TenantLifecycleActionAvailability.razor:362`](../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor#L362)
 
 **Regression evidence**
 
-- Covers ambiguous redispatch, adoption retry, tenant changes, coherent preview refresh, expiry, invalid snapshots, and invalid operations.
-  [`TenantLifecycleActionAvailabilityTests.cs:482`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L482)
+- Covers never-completing authority and projection preflight providers.
+  [`TenantLifecycleActionAvailabilityTests.cs:75`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L75)
 
-- Exercises reverse-order merge, equal timestamps, dispatch expiry, and tombstone pruning.
-  [`TenantLifecycleAttemptTrackerTests.cs:197`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleAttemptTrackerTests.cs#L197)
+- Covers dispatch, status, and proof deadline lease release.
+  [`TenantLifecycleActionAvailabilityTests.cs:760`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L760)
 
-- Parameterizes causal-prefix and deadline proof across every retained status phase.
-  [`TenantLifecycleCommandSnapshotTests.cs:232`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleCommandSnapshotTests.cs#L232)
+- Proves submit reconciliation replays concurrent SignalR safely.
+  [`TenantLifecycleActionAvailabilityTests.cs:1604`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L1604)
 
-- Verifies dispatch-only route ownership survives route change and releases after observed expiry.
-  [`TenantDetailSurfaceTests.cs:892`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L892)
+- Blocks unsupported tracked gateways before confirmation or provider calls.
+  [`TenantLifecycleActionAvailabilityTests.cs:1740`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L1740)
+
+- Preserves last-chance proof when an event-evidenced status read hangs.
+  [`TenantLifecycleActionAvailabilityTests.cs:2035`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L2035)
+
+- Covers tombstone ordering, immutable evidence, and version-only merge precedence.
+  [`TenantLifecycleAttemptTrackerTests.cs:347`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleAttemptTrackerTests.cs#L347)
+
+- Covers monotonic proof and saturating evidence revisions.
+  [`TenantLifecycleCommandSnapshotTests.cs:645`](../../tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleCommandSnapshotTests.cs#L645)
+
+- Proves remount releases an expired tracker-owned aggregate gate.
+  [`TenantDetailSurfaceTests.cs:823`](../../tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs#L823)

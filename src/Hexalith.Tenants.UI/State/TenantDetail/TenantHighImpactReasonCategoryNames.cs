@@ -18,5 +18,12 @@ public static class TenantHighImpactReasonCategoryNames
     /// <param name="reason">Canonical unavailable reason.</param>
     /// <returns>The stable reason-category name.</returns>
     public static string ForUnavailableReason(TenantHighImpactUnavailableReason reason)
-        => reason.ToString();
+    {
+        if (!Enum.IsDefined(reason))
+        {
+            throw new ArgumentOutOfRangeException(nameof(reason), reason, null);
+        }
+
+        return reason.ToString();
+    }
 }

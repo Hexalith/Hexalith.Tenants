@@ -256,6 +256,7 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
             IsInputComplete: false,
             action is TenantHighImpactAction.RemoveConfiguration
                 ? TenantHighImpactTargetState.Present
-                : TenantHighImpactTargetState.Unknown);
+                : TenantHighImpactTargetState.Unknown,
+            ProjectionVersion: null);
 
 }

@@ -112,10 +112,6 @@ public sealed record TenantCommandSubmissionResult(
             SafeMessageKey: safeMessageKey,
             IsAmbiguousFailure: true);
 
-    public TenantCommandTrackingHandle ToTrackingHandle()
-        => new(
-            MessageId ?? throw new InvalidOperationException("Accepted command is missing a message id."),
-            CorrelationId ?? throw new InvalidOperationException("Accepted command is missing a correlation id."));
 }
 
 public sealed record TenantCommandStatusResult(
@@ -1900,6 +1896,8 @@ public sealed record TenantLifecycleCommandSnapshot(
     public bool HasTerminalOwnership
         => State is TenantCommandLifecycleState.Confirmed
             or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied
+            or TenantCommandLifecycleState.DuplicatePrevented
             or TenantCommandLifecycleState.Failed
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
@@ -1929,7 +1927,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Submit,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -1942,7 +1940,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
 
     /// <summary>
@@ -1986,7 +1984,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             AttemptStartedAtUtc = (attemptStartedAtUtc ?? DateTimeOffset.UtcNow).ToUniversalTime(),
             PendingStatusPollCount = 0,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -1994,10 +1992,19 @@ public sealed record TenantLifecycleCommandSnapshot(
     {
         ArgumentNullException.ThrowIfNull(result);
 
+        if (State is not TenantCommandLifecycleState.RequestSent
+            || result.State is not TenantCommandLifecycleState.Accepted
+            || result.IsAmbiguousFailure
+            || string.IsNullOrWhiteSpace(MessageId)
+            || !string.Equals(result.MessageId, MessageId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(result.CorrelationId))
+        {
+            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+        }
+
         return this with
         {
             State = TenantCommandLifecycleState.Accepted,
-            MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -2008,7 +2015,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             AttemptStartedAtUtc = AttemptStartedAtUtc ?? DateTimeOffset.UtcNow,
             PendingStatusPollCount = 0,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2016,9 +2023,17 @@ public sealed record TenantLifecycleCommandSnapshot(
     /// <param name="observedAtUtc">UTC observation time.</param>
     /// <returns><see langword="true"/> when ownership must be released.</returns>
     internal bool IsRetentionExpired(DateTimeOffset observedAtUtc)
-        => AttemptStartedAtUtc is null
-            || observedAtUtc.ToUniversalTime() - AttemptStartedAtUtc.Value.ToUniversalTime()
-                >= MaximumRetainedAttemptDuration;
+    {
+        if (AttemptStartedAtUtc is null)
+        {
+            return true;
+        }
+
+        DateTimeOffset normalizedObserved = observedAtUtc.ToUniversalTime();
+        DateTimeOffset normalizedStart = AttemptStartedAtUtc.Value.ToUniversalTime();
+        return normalizedObserved < normalizedStart
+            || normalizedObserved - normalizedStart >= MaximumRetainedAttemptDuration;
+    }
 
     /// <summary>Retains an ambiguous submission for same-message redispatch.</summary>
     /// <param name="safeMessageKey">Localized support-safe ambiguity explanation.</param>
@@ -2035,7 +2050,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2045,13 +2060,14 @@ public sealed record TenantLifecycleCommandSnapshot(
     {
         ArgumentNullException.ThrowIfNull(status);
 
-        if (HasTerminalOwnership
-            || State is TenantCommandLifecycleState.AlreadyApplied)
+        if (!RetainsAttempt)
         {
             return this;
         }
 
-        if (status.Status is not null && !status.HasVerifiedCommandIdentity)
+        if ((status.IsPending && status.IsRetryableFailure)
+            || (status.Status is not null && (status.IsPending || status.IsRetryableFailure))
+            || (status.Status is not null && !status.HasVerifiedCommandIdentity))
         {
             return UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
         }
@@ -2061,8 +2077,11 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         if (status.IsPending || status.IsRetryableFailure)
         {
-            int nextPendingPollCount = PendingStatusPollCount + 1;
-            if (attemptExpired)
+            int nextPendingPollCount = PendingStatusPollCount == int.MaxValue
+                ? int.MaxValue
+                : PendingStatusPollCount + 1;
+            if (attemptExpired
+                && !(State is TenantCommandLifecycleState.ProjectionPending && HasCommandEventEvidence))
             {
                 return UnableToVerify("Tenants.Lifecycle.UnableToVerify.StatusTimeout") with
                 {
@@ -2072,15 +2091,17 @@ public sealed record TenantLifecycleCommandSnapshot(
 
             return this with
             {
-                SafeMessage = null,
-                SafeMessageKey = status.IsPending
-                    ? "Tenants.Lifecycle.StatusEvidence.Pending"
-                    : "Tenants.Lifecycle.StatusEvidence.RetryableFailure",
+                SafeMessage = status.SafeMessage,
+                SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    ? status.IsPending
+                        ? "Tenants.Lifecycle.StatusEvidence.Pending"
+                        : "Tenants.Lifecycle.StatusEvidence.RetryableFailure"
+                    : null,
                 RecoveryKey = "Tenants.Lifecycle.Retained.Recovery",
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                 PendingStatusPollCount = nextPendingPollCount,
-                EvidenceRevision = EvidenceRevision + 1,
+                EvidenceRevision = NextEvidenceRevision(),
             };
         }
 
@@ -2089,22 +2110,22 @@ public sealed record TenantLifecycleCommandSnapshot(
             return this with
             {
                 State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = null,
-                SafeMessageKey = "Tenants.Lifecycle.UnableToVerify.Status",
+                SafeMessage = status.SafeMessage,
+                SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    ? "Tenants.Lifecycle.UnableToVerify.Status"
+                    : null,
                 RecoveryKey = null,
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                EvidenceRevision = EvidenceRevision + 1,
+                EvidenceRevision = NextEvidenceRevision(),
             };
         }
 
         if (attemptExpired
+            && !(State is TenantCommandLifecycleState.ProjectionPending && HasCommandEventEvidence)
             && status.Status.Value is CommandStatus.Received
-                or CommandStatus.Processing
-                or CommandStatus.EventsStored
-                or CommandStatus.EventsPublished
-                or CommandStatus.Completed)
+                or CommandStatus.Processing)
         {
             return UnableToVerify("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
         }
@@ -2117,24 +2138,24 @@ public sealed record TenantLifecycleCommandSnapshot(
                     State = State is TenantCommandLifecycleState.ProjectionPending
                         ? TenantCommandLifecycleState.ProjectionPending
                         : TenantCommandLifecycleState.Accepted,
-                    SafeMessage = null,
+                    SafeMessage = status.SafeMessage,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.EventsStored or CommandStatus.EventsPublished
                 => this with
                 {
                     State = TenantCommandLifecycleState.ProjectionPending,
                     HasCommandEventEvidence = true,
-                    SafeMessage = null,
+                    SafeMessage = status.SafeMessage,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditState.AuditPending,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     PendingStatusPollCount = 0,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.Completed
                 when status.EventCount is not > 0 && !HasCommandEventEvidence
@@ -2144,71 +2165,98 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.ProjectionPending,
                     HasCommandEventEvidence = HasCommandEventEvidence || status.EventCount is > 0,
-                    SafeMessage = null,
+                    SafeMessage = status.SafeMessage,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditState.AuditPending,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     PendingStatusPollCount = 0,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.Rejected
+                when string.Equals(
+                    status.RejectionCode,
+                    "TenantLifecycleStateAlreadySet",
+                    StringComparison.Ordinal)
                 => this with
                 {
-                    State = TenantCommandLifecycleState.Rejected,
-                    SafeMessage = null,
-                    SafeMessageKey = status.RejectionCode switch
-                    {
-                        "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
-                        "TenantDisabled" => "Tenants.Lifecycle.Message.Rejected.TenantDisabled",
-                        "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
-                        "TenantLifecycleStateAlreadySet" => "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet",
-                        _ => "Tenants.Lifecycle.Message.Rejected",
-                    },
+                    State = TenantCommandLifecycleState.AlreadyApplied,
+                    SafeMessage = status.SafeMessage,
+                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                        ? "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet"
+                        : null,
                     RecoveryKey = null,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     PendingStatusPollCount = 0,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
+                },
+            CommandStatus.Rejected
+                => this with
+                {
+                    State = TenantCommandLifecycleState.Rejected,
+                    SafeMessage = status.SafeMessage,
+                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                        ? status.RejectionCode switch
+                        {
+                            "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
+                            "TenantDisabled" => "Tenants.Lifecycle.Message.Rejected.TenantDisabled",
+                            "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
+                            _ => "Tenants.Lifecycle.Message.Rejected",
+                        }
+                        : null,
+                    RecoveryKey = null,
+                    RejectionCode = status.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    PendingStatusPollCount = 0,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.PublishFailed
                 => this with
                 {
                     State = TenantCommandLifecycleState.Degraded,
-                    SafeMessage = null,
-                    SafeMessageKey = "Tenants.Lifecycle.Message.Degraded",
+                    SafeMessage = status.SafeMessage,
+                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                        ? "Tenants.Lifecycle.Message.Degraded"
+                        : null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     PendingStatusPollCount = 0,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.TimedOut
                 => this with
                 {
                     State = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = null,
-                    SafeMessageKey = "Tenants.Lifecycle.Message.UnableToVerify",
+                    SafeMessage = status.SafeMessage,
+                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                        ? "Tenants.Lifecycle.Message.UnableToVerify"
+                        : null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     PendingStatusPollCount = 0,
-                    EvidenceRevision = EvidenceRevision + 1,
+                    EvidenceRevision = NextEvidenceRevision(),
                 },
             _ => UnableToVerify("Tenants.Lifecycle.UnableToVerify.Status"),
         };
     }
 
     public TenantLifecycleCommandSnapshot SignalRNudge()
-        => this with
-        {
-            FocusTarget = TenantCommandFocusTarget.Refresh,
-            EvidenceRevision = EvidenceRevision + 1,
-        };
+        => !RetainsAttempt || FocusTarget is TenantCommandFocusTarget.Refresh
+            ? this
+            : this with
+            {
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                EvidenceRevision = NextEvidenceRevision(),
+            };
 
     /// <summary>
     /// Reconciles the tracked attempt from one authoritative tenant-detail proof read.
@@ -2236,14 +2284,17 @@ public sealed record TenantLifecycleCommandSnapshot(
             && !string.IsNullOrWhiteSpace(proof.ProjectionVersion);
         if (!authoritative)
         {
-            return this with
-            {
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                EvidenceRevision = EvidenceRevision + 1,
-            };
+            return this;
         }
 
         string currentProjectionVersion = proof!.ProjectionVersion!;
+
+        if (TenantLifecycleProjectionVersion.CompareSequences(
+                currentProjectionVersion,
+                LastObservedProjectionVersion) < 0)
+        {
+            return this;
+        }
 
         if (!Enum.IsDefined(detailEvidence!.Status)
             || detailEvidence.Status is TenantStatus.Unknown)
@@ -2257,25 +2308,12 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         if (detailEvidence.Status != intendedStatus)
         {
-            return this with
-            {
-                LastConfirmedStatus = detailEvidence.Status,
-                LastConfirmedProjection = detailEvidence,
-                LastObservedProjectionVersion = currentProjectionVersion,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                EvidenceRevision = EvidenceRevision + 1,
-            };
+            return ObserveProjectionEvidence(detailEvidence, currentProjectionVersion);
         }
 
         if (State is not TenantCommandLifecycleState.ProjectionPending)
         {
-            return this with
-            {
-                LastConfirmedStatus = detailEvidence.Status,
-                LastConfirmedProjection = detailEvidence,
-                LastObservedProjectionVersion = currentProjectionVersion,
-                EvidenceRevision = EvidenceRevision + 1,
-            };
+            return ObserveProjectionEvidence(detailEvidence, currentProjectionVersion, moveFocus: false);
         }
 
         if (string.IsNullOrWhiteSpace(BaselineProjectionVersion))
@@ -2283,19 +2321,27 @@ public sealed record TenantLifecycleCommandSnapshot(
             return UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingBaseline");
         }
 
-        if (!HasLifecycleProjectionVersionAdvancement(
-            BaselineProjectionVersion,
-            currentProjectionVersion,
-            HasCommandEventEvidence))
+        if (!HasCommandEventEvidence)
         {
-            return this with
+            return ObserveProjectionEvidence(
+                detailEvidence,
+                currentProjectionVersion,
+                "Tenants.Lifecycle.ProjectionEvidence.MissingEventEvidence");
+        }
+
+        TenantLifecycleProjectionVersionComparison versionComparison
+            = TenantLifecycleProjectionVersion.Compare(BaselineProjectionVersion, currentProjectionVersion);
+        if (versionComparison is not TenantLifecycleProjectionVersionComparison.Advanced)
+        {
+            string safeMessageKey = versionComparison switch
             {
-                LastConfirmedStatus = detailEvidence.Status,
-                LastConfirmedProjection = detailEvidence,
-                LastObservedProjectionVersion = currentProjectionVersion,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                EvidenceRevision = EvidenceRevision + 1,
+                TenantLifecycleProjectionVersionComparison.Invalid
+                    => "Tenants.Lifecycle.ProjectionEvidence.InvalidVersion",
+                TenantLifecycleProjectionVersionComparison.PrefixMismatch
+                    => "Tenants.Lifecycle.ProjectionEvidence.PrefixMismatch",
+                _ => "Tenants.Lifecycle.ProjectionEvidence.NotAdvanced",
             };
+            return ObserveProjectionEvidence(detailEvidence, currentProjectionVersion, safeMessageKey);
         }
 
         return this with
@@ -2311,7 +2357,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2332,7 +2378,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.AuditUnavailable,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2353,7 +2399,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             RecoveryKey = recoveryKey,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2374,7 +2420,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             RecoveryKey = recoveryKey,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = EvidenceRevision + 1,
+            EvidenceRevision = NextEvidenceRevision(),
         };
     }
 
@@ -2383,49 +2429,43 @@ public sealed record TenantLifecycleCommandSnapshot(
     public TenantLifecycleCommandSnapshot Abandon()
         => UnableToVerify("Tenants.Lifecycle.UnableToVerify.Abandoned");
 
-    private static bool HasLifecycleProjectionVersionAdvancement(
-        string? baselineProjectionVersion,
-        string? currentProjectionVersion,
-        bool hasCommandEventEvidence)
+    private TenantLifecycleCommandSnapshot ObserveProjectionEvidence(
+        TenantDetailProjection detailEvidence,
+        string projectionVersion,
+        string? safeMessageKey = null,
+        bool moveFocus = true)
     {
-        if (!hasCommandEventEvidence
-            || !TrySplitOrderedVersion(baselineProjectionVersion, out string baselinePrefix, out ulong baselineSequence)
-            || !TrySplitOrderedVersion(currentProjectionVersion, out string currentPrefix, out ulong currentSequence))
+        TenantCommandFocusTarget focusTarget = moveFocus
+            ? TenantCommandFocusTarget.Refresh
+            : FocusTarget;
+        string? safeMessage = safeMessageKey is null ? SafeMessage : null;
+        string? effectiveSafeMessageKey = safeMessageKey ?? SafeMessageKey;
+        string? recoveryKey = safeMessageKey is null
+            ? RecoveryKey
+            : "Tenants.Lifecycle.Retained.Recovery";
+        if (LastConfirmedStatus == detailEvidence.Status
+            && Equals(LastConfirmedProjection, detailEvidence)
+            && string.Equals(LastObservedProjectionVersion, projectionVersion, StringComparison.Ordinal)
+            && string.Equals(SafeMessageKey, effectiveSafeMessageKey, StringComparison.Ordinal)
+            && string.Equals(RecoveryKey, recoveryKey, StringComparison.Ordinal)
+            && FocusTarget == focusTarget)
         {
-            return false;
+            return this;
         }
 
-        return string.Equals(baselinePrefix, currentPrefix, StringComparison.Ordinal)
-            && currentSequence > baselineSequence;
+        return this with
+        {
+            LastConfirmedStatus = detailEvidence.Status,
+            LastConfirmedProjection = detailEvidence,
+            LastObservedProjectionVersion = projectionVersion,
+            SafeMessage = safeMessage,
+            SafeMessageKey = effectiveSafeMessageKey,
+            RecoveryKey = recoveryKey,
+            FocusTarget = focusTarget,
+            EvidenceRevision = NextEvidenceRevision(),
+        };
     }
 
-    private static bool TrySplitOrderedVersion(string? value, out string prefix, out ulong sequence)
-    {
-        prefix = string.Empty;
-        sequence = 0;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        ReadOnlySpan<char> span = value.AsSpan();
-        int sequenceStart = span.Length;
-        while (sequenceStart > 0 && char.IsAsciiDigit(span[sequenceStart - 1]))
-        {
-            sequenceStart--;
-        }
-
-        if (sequenceStart == span.Length
-            || !ulong.TryParse(
-                span[sequenceStart..],
-                System.Globalization.NumberStyles.None,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out sequence))
-        {
-            return false;
-        }
-
-        prefix = value[..sequenceStart];
-        return true;
-    }
+    internal long NextEvidenceRevision()
+        => EvidenceRevision == long.MaxValue ? long.MaxValue : EvidenceRevision + 1;
 }

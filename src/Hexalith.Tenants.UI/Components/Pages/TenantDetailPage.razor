@@ -558,6 +558,14 @@
         string? incomingAggregateLockKey = string.IsNullOrWhiteSpace(tenantId)
             ? null
             : TenantCommandAggregateLock.ForTenant(tenantId);
+        if (incomingAggregateLockKey is not null
+            && LifecycleAttemptTracker is { } lifecycleTracker
+            && !lifecycleTracker.HasPendingOwnership(tenantId)
+            && !ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
+            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, lifecycleTracker.LeaseOwner) is true)
+        {
+            AggregateAdmissionGate.Release(incomingAggregateLockKey, lifecycleTracker.LeaseOwner);
+        }
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
         {
@@ -719,7 +727,8 @@
         }
         catch
         {
-            // Authorization faults fail closed without exposing provider details in the UI.
+            // Authorization faults fail closed without exposing provider details. Indeterminate is rendered
+            // to the operator as authority "not proven", with refresh-first recovery guidance.
         }
         finally
         {

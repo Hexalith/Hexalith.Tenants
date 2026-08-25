@@ -133,8 +133,8 @@ public sealed class TenantLifecycleAttemptTracker
             || !Enum.IsDefined(intent.Operation)
             || string.IsNullOrWhiteSpace(snapshot.MessageId)
             || snapshot.AttemptStartedAtUtc is null
-            || snapshot.State is not TenantCommandLifecycleState.RequestSent
-                && string.IsNullOrWhiteSpace(snapshot.CorrelationId))
+            || (snapshot.State is not TenantCommandLifecycleState.RequestSent
+                && string.IsNullOrWhiteSpace(snapshot.CorrelationId)))
         {
             return false;
         }
@@ -175,11 +175,12 @@ public sealed class TenantLifecycleAttemptTracker
                 if (string.Equals(retained.MessageId, snapshot.MessageId, StringComparison.Ordinal))
                 {
                     if (!Equals(retained.Intent, snapshot.Intent)
+                        || !string.Equals(retained.PreviewProjectionVersion, snapshot.PreviewProjectionVersion, StringComparison.Ordinal)
+                        || !string.Equals(retained.BaselineProjectionVersion, snapshot.BaselineProjectionVersion, StringComparison.Ordinal)
+                        || retained.AttemptStartedAtUtc != snapshot.AttemptStartedAtUtc
                         || retained.CorrelationId is not null
-                            && !string.Equals(
-                                retained.CorrelationId,
-                                snapshot.CorrelationId,
-                                StringComparison.Ordinal))
+                            && snapshot.CorrelationId is not null
+                            && !string.Equals(retained.CorrelationId, snapshot.CorrelationId, StringComparison.Ordinal))
                     {
                         return false;
                     }
@@ -213,23 +214,24 @@ public sealed class TenantLifecycleAttemptTracker
     /// </summary>
     /// <param name="tenantId">Literal caller-supplied tenant id.</param>
     /// <param name="messageId">
-    /// Optional stable message id that must still identify the retained attempt. This prevents a late
-    /// terminal completion from removing a newer attempt for the same tenant.
+    /// Stable message id that must still identify the retained attempt. This prevents a late terminal
+    /// completion from removing a newer attempt for the same tenant.
     /// </param>
-    public void Forget(string tenantId, string? messageId = null)
+    public void Forget(string tenantId, string messageId)
     {
         if (string.IsNullOrWhiteSpace(tenantId))
         {
             return;
         }
 
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageId);
+
         lock (_sync)
         {
             DateTimeOffset observedAtUtc = _utcNow().ToUniversalTime();
             PruneExpiredLocked(observedAtUtc);
             if (_dispatchIdentityByTenantId.TryGetValue(tenantId, out var dispatchIdentity)
-                && (string.IsNullOrWhiteSpace(messageId)
-                    || string.Equals(dispatchIdentity.MessageId, messageId, StringComparison.Ordinal)))
+                && string.Equals(dispatchIdentity.MessageId, messageId, StringComparison.Ordinal))
             {
                 RememberTerminalLocked(
                     tenantId,
@@ -240,8 +242,7 @@ public sealed class TenantLifecycleAttemptTracker
             }
 
             if (!_snapshotByTenantId.TryGetValue(tenantId, out TenantLifecycleCommandSnapshot? retained)
-                || !string.IsNullOrWhiteSpace(messageId)
-                    && !string.Equals(retained.MessageId, messageId, StringComparison.Ordinal))
+                || !string.Equals(retained.MessageId, messageId, StringComparison.Ordinal))
             {
                 return;
             }
@@ -273,33 +274,21 @@ public sealed class TenantLifecycleAttemptTracker
         }
     }
 
-    internal int TerminalTombstoneCount
-    {
-        get
-        {
-            lock (_sync)
-            {
-                PruneExpiredLocked(_utcNow().ToUniversalTime());
-                return _terminalByTenantId.Count;
-            }
-        }
-    }
-
     private static TenantLifecycleCommandSnapshot MergeSameAttempt(
         TenantLifecycleCommandSnapshot retained,
         TenantLifecycleCommandSnapshot incoming)
     {
         int retainedRank = ProgressRank(retained.State);
         int incomingRank = ProgressRank(incoming.State);
-        int projectionComparison = CompareOrderedVersions(
+        int projectionComparison = TenantLifecycleProjectionVersion.CompareSequences(
             incoming.LastObservedProjectionVersion,
             retained.LastObservedProjectionVersion);
         TenantLifecycleCommandSnapshot preferred = incomingRank != retainedRank
             ? incomingRank > retainedRank ? incoming : retained
-            : incoming.PendingStatusPollCount != retained.PendingStatusPollCount
-                ? incoming.PendingStatusPollCount > retained.PendingStatusPollCount ? incoming : retained
-                : incoming.EvidenceRevision != retained.EvidenceRevision
-                    ? incoming.EvidenceRevision > retained.EvidenceRevision ? incoming : retained
+            : incoming.EvidenceRevision != retained.EvidenceRevision
+                ? incoming.EvidenceRevision > retained.EvidenceRevision ? incoming : retained
+                : incoming.PendingStatusPollCount != retained.PendingStatusPollCount
+                    ? incoming.PendingStatusPollCount > retained.PendingStatusPollCount ? incoming : retained
                     : projectionComparison > 0 ? incoming : retained;
         TenantLifecycleCommandSnapshot projectionEvidence = projectionComparison switch
         {
@@ -310,6 +299,11 @@ public sealed class TenantLifecycleAttemptTracker
 
         return preferred with
         {
+            Intent = retained.Intent,
+            MessageId = retained.MessageId,
+            CorrelationId = retained.CorrelationId ?? incoming.CorrelationId,
+            PreviewProjectionVersion = retained.PreviewProjectionVersion,
+            BaselineProjectionVersion = retained.BaselineProjectionVersion,
             State = incomingRank > retainedRank ? incoming.State : retained.State,
             HasCommandEventEvidence = retained.HasCommandEventEvidence || incoming.HasCommandEventEvidence,
             PendingStatusPollCount = Math.Max(retained.PendingStatusPollCount, incoming.PendingStatusPollCount),
@@ -339,53 +333,10 @@ public sealed class TenantLifecycleAttemptTracker
             : string.CompareOrdinal(incomingMessageId, retainedMessageId);
     }
 
-    private static int CompareOrderedVersions(string? incoming, string? retained)
-    {
-        if (!TrySplitOrderedVersion(incoming, out string incomingPrefix, out ulong incomingSequence)
-            || !TrySplitOrderedVersion(retained, out string retainedPrefix, out ulong retainedSequence)
-            || !string.Equals(incomingPrefix, retainedPrefix, StringComparison.Ordinal))
-        {
-            return 0;
-        }
-
-        return incomingSequence.CompareTo(retainedSequence);
-    }
-
-    private static bool TrySplitOrderedVersion(string? value, out string prefix, out ulong sequence)
-    {
-        prefix = string.Empty;
-        sequence = 0;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        ReadOnlySpan<char> span = value.AsSpan();
-        int sequenceStart = span.Length;
-        while (sequenceStart > 0 && char.IsAsciiDigit(span[sequenceStart - 1]))
-        {
-            sequenceStart--;
-        }
-
-        if (sequenceStart == span.Length
-            || !ulong.TryParse(
-                span[sequenceStart..],
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out sequence))
-        {
-            return false;
-        }
-
-        prefix = value[..sequenceStart];
-        return true;
-    }
-
     private void PruneExpiredLocked(DateTimeOffset observedAtUtc)
     {
         foreach (string tenantId in _terminalByTenantId
-            .Where(item => observedAtUtc - item.Value.TerminalObservedAtUtc
-                >= TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
+            .Where(item => IsExpired(item.Value.TerminalObservedAtUtc, observedAtUtc))
             .Select(static item => item.Key)
             .ToArray())
         {
@@ -410,8 +361,7 @@ public sealed class TenantLifecycleAttemptTracker
 
         foreach ((string tenantId, var dispatch) in _dispatchIdentityByTenantId.ToArray())
         {
-            if (observedAtUtc - dispatch.AttemptStartedAtUtc
-                < TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
+            if (!IsExpired(dispatch.AttemptStartedAtUtc, observedAtUtc))
             {
                 continue;
             }
@@ -430,7 +380,39 @@ public sealed class TenantLifecycleAttemptTracker
         string messageId,
         DateTimeOffset? attemptStartedAtUtc,
         DateTimeOffset observedAtUtc)
-        => _terminalByTenantId[tenantId] = (messageId, attemptStartedAtUtc, observedAtUtc);
+    {
+        if (_terminalByTenantId.TryGetValue(tenantId, out var retained)
+            && CompareAttemptIdentity(
+                attemptStartedAtUtc,
+                messageId,
+                retained.AttemptStartedAtUtc,
+                retained.MessageId) < 0)
+        {
+            return;
+        }
+
+        _terminalByTenantId[tenantId] = (messageId, attemptStartedAtUtc, observedAtUtc);
+    }
+
+    private static int CompareAttemptIdentity(
+        DateTimeOffset? incomingStartedAtUtc,
+        string incomingMessageId,
+        DateTimeOffset? retainedStartedAtUtc,
+        string retainedMessageId)
+    {
+        if (incomingStartedAtUtc is null)
+        {
+            return retainedStartedAtUtc is null
+                ? string.CompareOrdinal(incomingMessageId, retainedMessageId)
+                : -1;
+        }
+
+        return CompareAttemptIdentity(
+            incomingStartedAtUtc.Value,
+            incomingMessageId,
+            retainedStartedAtUtc,
+            retainedMessageId);
+    }
 
     private static string CreateDeterministicMessageId(
         TenantLifecycleCommandRequest intent,
@@ -442,7 +424,7 @@ public sealed class TenantLifecycleAttemptTracker
             $"{intent.TenantId.Length}:{intent.TenantId}|{(int)intent.Operation}|{baselineProjectionVersion.Length}:{baselineProjectionVersion}|{attemptStartedAtUtc.UtcDateTime.Ticks}");
         byte[] digest = SHA256.HashData(Encoding.UTF8.GetBytes(material));
         Span<byte> deterministicUlid = stackalloc byte[16];
-        ulong unixTimeMilliseconds = checked((ulong)attemptStartedAtUtc.ToUnixTimeMilliseconds());
+        ulong unixTimeMilliseconds = (ulong)Math.Max(0, attemptStartedAtUtc.ToUnixTimeMilliseconds());
         for (int index = 5; index >= 0; index--)
         {
             deterministicUlid[index] = (byte)unixTimeMilliseconds;
@@ -459,6 +441,15 @@ public sealed class TenantLifecycleAttemptTracker
             TenantCommandLifecycleState.RequestSent => 0,
             TenantCommandLifecycleState.Accepted => 1,
             TenantCommandLifecycleState.ProjectionPending => 2,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
+            _ => int.MinValue,
         };
+
+    private static bool IsExpired(DateTimeOffset startedAtUtc, DateTimeOffset observedAtUtc)
+    {
+        DateTimeOffset normalizedStart = startedAtUtc.ToUniversalTime();
+        DateTimeOffset normalizedObserved = observedAtUtc.ToUniversalTime();
+        return normalizedObserved < normalizedStart
+            || normalizedObserved - normalizedStart
+                >= TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+    }
 }

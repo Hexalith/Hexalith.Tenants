@@ -4,6 +4,8 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantCommandGateway {
+    bool SupportsTrackedLifecycleDispatch => false;
+
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
         string? messageId = null,
@@ -53,7 +55,7 @@ public interface ITenantCommandGateway {
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
 
-    Task<TenantCommandSubmissionResult> EnableTenantAsync(
+    Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)
@@ -65,7 +67,7 @@ public interface ITenantCommandGateway {
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
 
-    Task<TenantCommandSubmissionResult> DisableTenantAsync(
+    Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)

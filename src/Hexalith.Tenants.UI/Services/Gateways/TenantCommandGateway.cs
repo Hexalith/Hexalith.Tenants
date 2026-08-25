@@ -23,6 +23,8 @@ internal sealed class TenantCommandGateway(
 
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
+    public bool SupportsTrackedLifecycleDispatch => true;
+
     // Markers for support-unsafe content (AC9 / Story 1.8 discipline) that must never be echoed
     // from a backend failure reason into the visible command lifecycle copy.
     private static readonly string[] UnsafeSupportMarkers =
@@ -331,9 +333,9 @@ internal sealed class TenantCommandGateway(
     public Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => EnableTenantAsync(request, ulidFactory.NewUlid(), cancellationToken);
+        => EnableTenantTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
 
-    public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
+    public async Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default) {
@@ -343,7 +345,8 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
-        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+        if (string.IsNullOrWhiteSpace(messageId)
+            || !TryResolveMessageId(messageId, out string resolvedMessageId)) {
             return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
 
@@ -381,9 +384,9 @@ internal sealed class TenantCommandGateway(
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => DisableTenantAsync(request, ulidFactory.NewUlid(), cancellationToken);
+        => DisableTenantTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
 
-    public async Task<TenantCommandSubmissionResult> DisableTenantAsync(
+    public async Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default) {
@@ -393,7 +396,8 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
-        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+        if (string.IsNullOrWhiteSpace(messageId)
+            || !TryResolveMessageId(messageId, out string resolvedMessageId)) {
             return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
 
@@ -474,7 +478,11 @@ internal sealed class TenantCommandGateway(
                 && (string.IsNullOrWhiteSpace(handle.AggregateId)
                     || string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal));
             if (!string.IsNullOrWhiteSpace(handle.AggregateId) && !hasVerifiedCommandIdentity) {
-                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked lifecycle command.");
+                return new TenantCommandStatusResult(
+                    parsedStatus,
+                    "Command status response did not match the tracked lifecycle command.",
+                    EventCount: status.EventCount,
+                    HasVerifiedCommandIdentity: false);
             }
 
             return new TenantCommandStatusResult(

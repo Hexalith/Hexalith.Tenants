@@ -67,9 +67,9 @@ public static class TenantHighImpactActionAvailabilityEvaluator
             return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
         }
 
-        // The read evidence above (surface, freshness, projection lifecycle, tenant identity/status) is now
-        // confirmed current, so a domain outcome derived from it -- itself independently gated on authority
-        // and namespace scope inside DomainOutcome -- may accompany any later, unrelated blocker below
+        // The read evidence above (surface, freshness, projection lifecycle, tenant identity/status, and
+        // authority) is now confirmed current, so a domain outcome derived from it -- itself independently
+        // gated on namespace scope inside DomainOutcome -- may accompany any later, unrelated blocker below
         // without asserting a fact the evidence disputes. Domain outcomes stay orthogonal to that
         // precedence: a command-readiness gate (viewport, admission, preview, proof) failing does not make
         // an already-confirmed domain fact untrue.
@@ -168,20 +168,15 @@ public static class TenantHighImpactActionAvailabilityEvaluator
 
     private static TenantHighImpactDomainOutcome DomainOutcome(TenantHighImpactActionEvidence evidence)
     {
-        // Every branch requires confirmed authority first: none of these facts may be asserted from an
-        // unauthorized or indeterminate caller's evidence, matching "never infer authority from client
-        // claims/visibility."
-        bool authorityConfirmed = evidence.Authority is TenantHighImpactAuthorityEvidence.Authorized;
-
-        if (authorityConfirmed
-            && (evidence.Action is TenantHighImpactAction.EnableTenant && evidence.TenantStatus is TenantStatus.Active
-                || evidence.Action is TenantHighImpactAction.DisableTenant && evidence.TenantStatus is TenantStatus.Disabled))
+        // Evaluate returns before reaching this method unless authority is confirmed. Namespace-scoped
+        // outcomes retain their separate scope guard so configuration facts are not disclosed broadly.
+        if ((evidence.Action is TenantHighImpactAction.EnableTenant && evidence.TenantStatus is TenantStatus.Active)
+            || (evidence.Action is TenantHighImpactAction.DisableTenant && evidence.TenantStatus is TenantStatus.Disabled))
         {
             return TenantHighImpactDomainOutcome.LifecycleStateAlreadySet;
         }
 
-        if (authorityConfirmed
-            && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
+        if (evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
             && RequiresNamespaceScope(evidence.Action)
             && evidence.TenantStatus is TenantStatus.Disabled)
         {
@@ -189,7 +184,6 @@ public static class TenantHighImpactActionAvailabilityEvaluator
         }
 
         if (evidence.Action is TenantHighImpactAction.SetConfiguration
-            && authorityConfirmed
             && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
             && evidence.TargetState is TenantHighImpactTargetState.AlreadyApplied)
         {
@@ -197,7 +191,6 @@ public static class TenantHighImpactActionAvailabilityEvaluator
         }
 
         return evidence.Action is TenantHighImpactAction.RemoveConfiguration
-            && authorityConfirmed
             && evidence.NamespaceScope is TenantHighImpactNamespaceScopeEvidence.Authorized
             && evidence.TargetState is TenantHighImpactTargetState.Missing
                 ? TenantHighImpactDomainOutcome.ConfigurationKeyNotFound
