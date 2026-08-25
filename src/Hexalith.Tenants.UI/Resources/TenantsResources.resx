@@ -891,6 +891,9 @@
   <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface" xml:space="preserve">
     <value>A tenant command is already in flight or the lifecycle command surface is not connected.</value>
   </data>
+  <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery" xml:space="preserve">
+    <value>Wait for the current tenant command to finish, or restore the lifecycle command connection before continuing.</value>
+  </data>
   <data name="Tenants.Lifecycle.Unavailable.Identity" xml:space="preserve">
     <value>Tenant identity is incomplete, so lifecycle submission is blocked.</value>
   </data>
@@ -898,13 +901,10 @@
     <value>The current projection already shows {0}; lifecycle submission is blocked.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.PreviewIncomplete" xml:space="preserve">
-    <value>The consequence preview is incomplete, so lifecycle submission is blocked.</value>
+    <value>The consequence preview is incomplete, so lifecycle submission is blocked. Refresh tenant detail and review a new complete preview.</value>
   </data>
   <data name="Tenants.Lifecycle.DuplicatePrevented.Message" xml:space="preserve">
     <value>A lifecycle command is already being submitted. Wait for the current result before trying another action.</value>
-  </data>
-  <data name="Tenants.Lifecycle.ProjectionVersion.Unknown" xml:space="preserve">
-    <value>unknown</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.ProofRead" xml:space="preserve">
     <value>Fresh authoritative lifecycle proof could not be read. Refresh tenant detail before submitting.</value>
@@ -918,11 +918,17 @@
   <data name="Tenants.Lifecycle.Retained.Resume" xml:space="preserve">
     <value>This lifecycle attempt is still pending. Open it to resume authoritative reconciliation without submitting again.</value>
   </data>
+  <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
+    <value>Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.</value>
+  </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>This lifecycle attempt is still pending and cannot be dismissed. Refresh status until it reaches a terminal, support-safe outcome.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>The lifecycle command status could not be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.StatusPollLimit" xml:space="preserve">
+    <value>Lifecycle status remained unavailable after the bounded verification attempts. Refresh tenant detail before starting another action.</value>
   </data>
   <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
     <value>The lifecycle command is accepted, but status evidence is not available yet. Keep this attempt open and refresh.</value>

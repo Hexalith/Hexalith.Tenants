@@ -24,6 +24,7 @@ namespace Hexalith.Tenants.UI.State.TenantDetail;
 /// <param name="Viewport">Measured FrontComposer viewport evidence.</param>
 /// <param name="IsInputComplete">Whether confirmation inputs are complete.</param>
 /// <param name="TargetState">Safe action-specific target state.</param>
+/// <param name="ProjectionVersion">Ordered authoritative projection marker required by lifecycle actions.</param>
 public sealed record TenantHighImpactActionEvidence(
     string TenantId,
     TenantHighImpactAction Action,
@@ -41,7 +42,8 @@ public sealed record TenantHighImpactActionEvidence(
     TenantHighImpactProofEvidence Proof,
     TenantHighImpactViewportState Viewport,
     bool IsInputComplete,
-    TenantHighImpactTargetState TargetState)
+    TenantHighImpactTargetState TargetState,
+    string? ProjectionVersion = null)
 {
     /// <summary>
     /// Maps persisted read-model freshness to the shared high-impact vocabulary.

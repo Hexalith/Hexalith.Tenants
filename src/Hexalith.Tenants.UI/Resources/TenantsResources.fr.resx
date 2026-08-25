@@ -891,6 +891,9 @@
   <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface" xml:space="preserve">
     <value>Une commande locataire est déjà en cours ou la surface de commande de cycle de vie n'est pas connectée.</value>
   </data>
+  <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery" xml:space="preserve">
+    <value>Attendez la fin de la commande locataire actuelle ou rétablissez la connexion de commande de cycle de vie avant de continuer.</value>
+  </data>
   <data name="Tenants.Lifecycle.Unavailable.Identity" xml:space="preserve">
     <value>L'identité du locataire est incomplète ; la soumission de cycle de vie est bloquée.</value>
   </data>
@@ -898,13 +901,10 @@
     <value>La projection actuelle indique déjà {0} ; la soumission de cycle de vie est bloquée.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.PreviewIncomplete" xml:space="preserve">
-    <value>L'aperçu des conséquences est incomplet ; la soumission de cycle de vie est bloquée.</value>
+    <value>L'aperçu des conséquences est incomplet ; la soumission de cycle de vie est bloquée. Actualisez les détails du locataire et examinez un nouvel aperçu complet.</value>
   </data>
   <data name="Tenants.Lifecycle.DuplicatePrevented.Message" xml:space="preserve">
     <value>Une commande de cycle de vie est déjà en cours de soumission. Attendez le résultat actuel avant une autre action.</value>
-  </data>
-  <data name="Tenants.Lifecycle.ProjectionVersion.Unknown" xml:space="preserve">
-    <value>inconnue</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.ProofRead" xml:space="preserve">
     <value>La preuve de cycle de vie actuelle faisant autorité n'a pas pu être lue. Actualisez les détails du locataire avant de soumettre.</value>
@@ -918,11 +918,17 @@
   <data name="Tenants.Lifecycle.Retained.Resume" xml:space="preserve">
     <value>Cette tentative de cycle de vie est toujours en attente. Ouvrez-la pour reprendre la réconciliation faisant autorité sans nouvelle soumission.</value>
   </data>
+  <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
+    <value>Ouvrez la tentative conservée et actualisez son état jusqu'à ce que la réconciliation faisant autorité atteigne un résultat terminal.</value>
+  </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>Cette tentative de cycle de vie est toujours en attente et ne peut pas être fermée. Actualisez l'état jusqu'à un résultat terminal et sûr pour le support.</value>
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.Status" xml:space="preserve">
     <value>L'état de la commande de cycle de vie n'a pas pu être vérifié.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.StatusPollLimit" xml:space="preserve">
+    <value>L'état du cycle de vie est resté indisponible après les tentatives de vérification limitées. Actualisez les détails du locataire avant une autre action.</value>
   </data>
   <data name="Tenants.Lifecycle.Status.Pending" xml:space="preserve">
     <value>La commande de cycle de vie est acceptée, mais la preuve d'état n'est pas encore disponible. Gardez cette tentative ouverte et actualisez.</value>

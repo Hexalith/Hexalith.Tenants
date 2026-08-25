@@ -328,9 +328,14 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public Task<TenantCommandSubmissionResult> EnableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => EnableTenantAsync(request, ulidFactory.NewUlid(), cancellationToken);
+
     public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
-        string? messageId = null,
+        string messageId,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -363,9 +368,14 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => DisableTenantAsync(request, ulidFactory.NewUlid(), cancellationToken);
+
     public async Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
-        string? messageId = null,
+        string messageId,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 

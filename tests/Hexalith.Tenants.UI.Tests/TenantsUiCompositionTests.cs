@@ -164,6 +164,32 @@ public sealed class TenantsUiCompositionTests
         second.ShouldNotBeSameAs(first);
     }
 
+    [Fact]
+    public void Lifecycle_attempt_tracker_is_scoped_to_a_circuit()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor descriptor = services.Single(static candidate =>
+            candidate.ServiceType == typeof(TenantLifecycleAttemptTracker));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantLifecycleAttemptTracker first = firstScope.ServiceProvider
+            .GetRequiredService<TenantLifecycleAttemptTracker>();
+        TenantLifecycleAttemptTracker firstAgain = firstScope.ServiceProvider
+            .GetRequiredService<TenantLifecycleAttemptTracker>();
+        TenantLifecycleAttemptTracker second = secondScope.ServiceProvider
+            .GetRequiredService<TenantLifecycleAttemptTracker>();
+
+        firstAgain.ShouldBeSameAs(first);
+        second.ShouldNotBeSameAs(first);
+    }
+
     /// <summary>
     /// Resolves the composed graph rather than inspecting descriptors, so a container cycle is caught.
     /// </summary>
