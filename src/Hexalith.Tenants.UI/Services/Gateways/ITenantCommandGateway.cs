@@ -50,15 +50,25 @@ public interface ITenantCommandGateway {
 
     Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
-        string? messageId = null,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+
+    Task<TenantCommandSubmissionResult> EnableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => EnableTenantAsync(request, cancellationToken);
+
+    Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
 
     Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
-        string? messageId = null,
+        string messageId,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+        => DisableTenantAsync(request, cancellationToken);
 
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,

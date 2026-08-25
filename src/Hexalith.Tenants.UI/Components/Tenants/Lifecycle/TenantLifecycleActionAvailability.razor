@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
+@implements IAsyncDisposable
 
 <section class="tenant-lifecycle"
          aria-labelledby="tenants-lifecycle-heading"
@@ -52,8 +53,15 @@
                 : "tenants-lifecycle-disable";
             string reasonId = $"{actionId}-reason";
             string recoveryId = $"{actionId}-recovery";
+            string domainOutcomeId = $"{actionId}-domain-outcome";
             TenantHighImpactActionAvailability highImpact = HighImpactAvailability(availability);
             TenantHighImpactActionEvidence evidence = availability.Evidence!;
+            bool isActionDisabled = IsActionDisabled(availability);
+            bool hasSupplementalDomainOutcome = highImpact.DomainOutcome is not TenantHighImpactDomainOutcome.None
+                && highImpact.UnavailableReason is not TenantHighImpactUnavailableReason.None;
+            string describedBy = hasSupplementalDomainOutcome
+                ? $"{reasonId} {recoveryId} {domainOutcomeId}"
+                : $"{reasonId} {recoveryId}";
 
             <div class="tenant-lifecycle__action"
                  role="listitem"
@@ -66,9 +74,9 @@
                                       Appearance="ButtonAppearance.Primary"
                                       Class="tenant-lifecycle__button"
                                       data-testid="@actionId"
-                                      Disabled="@IsActionDisabled(availability)"
-                                      aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                                      aria-describedby="@($"{reasonId} {recoveryId}")"
+                                      Disabled="@isActionDisabled"
+                                      aria-disabled="@isActionDisabled.ToString().ToLowerInvariant()"
+                                      aria-describedby="@describedBy"
                                       OnClick="() => OpenFlowAsync(availability)">
                             @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
                         </FluentButton>
@@ -81,9 +89,9 @@
                                       Appearance="ButtonAppearance.Primary"
                                       Class="tenant-lifecycle__button"
                                       data-testid="@actionId"
-                                      Disabled="@IsActionDisabled(availability)"
-                                      aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                                      aria-describedby="@($"{reasonId} {recoveryId}")"
+                                      Disabled="@isActionDisabled"
+                                      aria-disabled="@isActionDisabled.ToString().ToLowerInvariant()"
+                                      aria-describedby="@describedBy"
                                       OnClick="() => OpenFlowAsync(availability)">
                             @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
                         </FluentButton>
@@ -96,10 +104,17 @@
                    data-reason-category="@ReasonCategory(availability, highImpact)">
                     <span data-testid="@(actionId + "-reason")">@HighImpactReason(availability, highImpact)</span>
                 </p>
+                @if (hasSupplementalDomainOutcome)
+                {
+                    <small id="@domainOutcomeId"
+                           data-testid="@(actionId + "-domain-outcome")">
+                        @Localizer[$"Tenants.HighImpact.DomainOutcome.{highImpact.DomainOutcome}"]
+                    </small>
+                }
                 <p id="@recoveryId"
                    class="tenant-lifecycle__reason"
                    data-testid="@(actionId + "-recovery")">
-                    @Localizer[highImpact.RecoveryKey]
+                    @HighImpactRecovery(availability, highImpact)
                 </p>
                 <dl class="tenant-lifecycle__facts"
                     data-testid="@(actionId + "-facts")">
@@ -135,6 +150,9 @@
     private TenantLifecycleOperation? _returnFocusOperation;
     private string? _activeFlowTenantId;
     private TenantLifecycleCommandFlow? _activeFlow;
+    private TenantLifecycleAttemptTracker? _attemptTracker;
+    private TenantLifecycleCommandSnapshot? _retainedAttempt;
+    private bool _disposed;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -208,10 +226,11 @@
             GovernanceReadiness,
             AuthorizationReflection,
             IsNarrowSafetyContext,
-            Lifecycle);
+            Lifecycle,
+            ProjectionVersion);
 
     private TenantLifecycleAttemptTracker? AttemptTracker
-        => Services.GetService<TenantLifecycleAttemptTracker>();
+        => _attemptTracker ??= Services.GetService<TenantLifecycleAttemptTracker>();
 
     private IReadOnlyList<TenantLifecycleAvailability> Availabilities
         =>
@@ -236,26 +255,47 @@
             : "polite";
 
     private bool IsActionDisabled(TenantLifecycleAvailability availability)
-        => !CanResumeRetained(availability)
-        && (!HighImpactAvailability(availability).IsEligible || !IsCommandSurfaceAvailable);
+        => HasMatchingRetainedAttempt(availability)
+            ? !CanResumeRetained(availability)
+            : !HighImpactAvailability(availability).IsEligible || !IsCommandSurfaceAvailable;
 
     private string HighImpactReason(
         TenantLifecycleAvailability availability,
         TenantHighImpactActionAvailability highImpact)
-        => CanResumeRetained(availability)
-            ? Localizer["Tenants.Lifecycle.Retained.Resume"].Value
+        => HasMatchingRetainedAttempt(availability)
+            ? AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized
+                ? Localizer["Tenants.HighImpact.Unavailable.MissingPermission"].Value
+                : !IsCommandSurfaceConnected
+                    ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
+                    : Localizer["Tenants.Lifecycle.Retained.Resume"].Value
             : !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
             : Localizer[highImpact.SafeMessageKey].Value;
 
+    private string HighImpactRecovery(
+        TenantLifecycleAvailability availability,
+        TenantHighImpactActionAvailability highImpact)
+        => HasMatchingRetainedAttempt(availability)
+            ? AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized
+                ? Localizer["Tenants.HighImpact.Recovery.MissingPermission"].Value
+                : !IsCommandSurfaceConnected
+                    ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery"].Value
+                    : Localizer["Tenants.Lifecycle.Retained.Recovery"].Value
+            : !IsCommandSurfaceAvailable && highImpact.IsEligible
+                ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery"].Value
+                : Localizer[highImpact.RecoveryKey].Value;
+
     private string ReasonCategory(
         TenantLifecycleAvailability availability,
         TenantHighImpactActionAvailability highImpact)
-        => CanResumeRetained(availability)
-            ? "RetainedAttempt"
+        => HasMatchingRetainedAttempt(availability)
+            ? TenantHighImpactReasonCategoryNames.RetainedAttempt
             : !IsCommandSurfaceAvailable && highImpact.IsEligible
-            ? "InFlightOrCommandSurface"
-            : highImpact.UnavailableReason.ToString();
+            ? TenantHighImpactReasonCategoryNames.InFlightOrCommandSurface
+            : highImpact.UnavailableReason is TenantHighImpactUnavailableReason.None
+                && highImpact.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
+                ? TenantHighImpactReasonCategoryNames.LifecycleStateAlreadySet
+            : TenantHighImpactReasonCategoryNames.ForUnavailableReason(highImpact.UnavailableReason);
 
     private string StatusText(TenantStatus status)
         => Localizer[$"Tenants.Lifecycle.Status.{(Enum.IsDefined(status) ? status : TenantStatus.Unknown)}"];
@@ -265,16 +305,21 @@
 
     protected override void OnParametersSet()
     {
+        _retainedAttempt = AttemptTracker?.Find(TenantId);
         if (_activeAvailability is null)
         {
-            TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(TenantId);
+            TenantLifecycleCommandSnapshot? retained = _retainedAttempt;
             if (retained is { RetainsAttempt: true, Intent: not null }
                 && string.Equals(retained.Intent.TenantId, TenantId, StringComparison.Ordinal))
             {
-                _activeAvailability = retained.Intent.Operation is TenantLifecycleOperation.EnableTenant
+                TenantLifecycleAvailability retainedAvailability = retained.Intent.Operation is TenantLifecycleOperation.EnableTenant
                     ? ResolveAvailability(TenantLifecycleOperation.EnableTenant, EnableEvidence)
                     : ResolveAvailability(TenantLifecycleOperation.DisableTenant, DisableEvidence);
-                _activeFlowTenantId = TenantId;
+                if (CanResumeRetained(retainedAvailability))
+                {
+                    _activeAvailability = retainedAvailability;
+                    _activeFlowTenantId = TenantId;
+                }
             }
 
             return;
@@ -314,7 +359,7 @@
     }
 
     internal Task ApplySignalRNudgeAsync()
-        => _activeFlow is null
+        => _disposed || _activeFlow is null
             ? Task.CompletedTask
             : _activeFlow.HandleAuthoritativeRefreshNudgeAsync();
 
@@ -331,8 +376,13 @@
     }
 
     private bool CanResumeRetained(TenantLifecycleAvailability availability)
+        => HasMatchingRetainedAttempt(availability)
+            && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+            && IsCommandSurfaceConnected;
+
+    private bool HasMatchingRetainedAttempt(TenantLifecycleAvailability availability)
     {
-        TenantLifecycleCommandSnapshot? retained = AttemptTracker?.Find(TenantId);
+        TenantLifecycleCommandSnapshot? retained = _retainedAttempt;
         return retained is { RetainsAttempt: true, Intent: not null }
             && retained.Intent.Operation == availability.Operation
             && string.Equals(retained.Intent.TenantId, TenantId, StringComparison.Ordinal);
@@ -353,7 +403,10 @@
         if (string.Equals(suppliedEvidence.TenantId, TenantId, StringComparison.Ordinal)
             && suppliedEvidence.Action == expectedAction)
         {
-            return TenantLifecycleAvailability.FromEvidence(suppliedEvidence);
+            return TenantLifecycleAvailability.FromEvidence(suppliedEvidence with
+            {
+                ProjectionVersion = ProjectionVersion ?? suppliedEvidence.ProjectionVersion,
+            });
         }
 
         // Never render or evaluate another tenant/action slot's facts. Preserve only the parameters for the
@@ -375,7 +428,8 @@
             TenantHighImpactProofEvidence.NotRequired,
             TenantHighImpactViewportState.Unknown,
             IsInputComplete: false,
-            TenantHighImpactTargetState.NotApplicable));
+            TenantHighImpactTargetState.NotApplicable,
+            ProjectionVersion));
     }
 
     private async Task CloseFlowAsync()
@@ -384,5 +438,14 @@
         _activeAvailability = null;
         _activeFlowTenantId = null;
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        _activeFlow = null;
+        _activeAvailability = null;
+        _activeFlowTenantId = null;
+        return ValueTask.CompletedTask;
     }
 }

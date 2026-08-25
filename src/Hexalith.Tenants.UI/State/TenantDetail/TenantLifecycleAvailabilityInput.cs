@@ -14,6 +14,7 @@ namespace Hexalith.Tenants.UI.State.TenantDetail;
 /// <param name="AuthorizationReflection">Server-reflected lifecycle authority.</param>
 /// <param name="IsNarrowSafetyContext">Whether the measured viewport is unsafe.</param>
 /// <param name="Lifecycle">Projection lifecycle.</param>
+/// <param name="ProjectionVersion">Ordered authoritative projection marker.</param>
 public sealed record TenantLifecycleAvailabilityInput(
     string TenantId,
     TenantStatus CurrentStatus,
@@ -23,7 +24,8 @@ public sealed record TenantLifecycleAvailabilityInput(
     TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
     TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
     bool IsNarrowSafetyContext = false,
-    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown)
+    ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
+    string? ProjectionVersion = null)
 {
     /// <summary>Evaluates one legacy operation through the shared kernel.</summary>
     /// <param name="operation">Lifecycle operation.</param>
@@ -60,7 +62,8 @@ public sealed record TenantLifecycleAvailabilityInput(
                     ? TenantHighImpactViewportState.Unsafe
                     : TenantHighImpactViewportState.Safe,
                 IsInputComplete: true,
-                TenantHighImpactTargetState.NotApplicable),
+                TenantHighImpactTargetState.NotApplicable,
+                ProjectionVersion),
             GovernanceReadiness,
             AuthorizationReflection,
             preferDomainOutcome: true);

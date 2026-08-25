@@ -131,6 +131,24 @@ public sealed class TenantHighImpactActionAvailabilityTests
     }
 
     [Theory]
+    [InlineData(TenantHighImpactAuthorityEvidence.MissingPermission)]
+    [InlineData(TenantHighImpactAuthorityEvidence.Indeterminate)]
+    public void Same_state_lifecycle_does_not_expose_a_domain_outcome_without_authority(
+        TenantHighImpactAuthorityEvidence authority)
+    {
+        TenantHighImpactActionAvailability result = Evaluate(
+            Qualifying(TenantHighImpactAction.EnableTenant) with
+            {
+                TenantStatus = TenantStatus.Active,
+                Authority = authority,
+            });
+
+        result.IsEligible.ShouldBeFalse();
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.MissingPermission);
+        result.DomainOutcome.ShouldBe(TenantHighImpactDomainOutcome.None);
+    }
+
+    [Theory]
     [InlineData(TenantHighImpactAction.SetConfiguration)]
     [InlineData(TenantHighImpactAction.RemoveConfiguration)]
     public void Disabled_configuration_is_a_domain_outcome(TenantHighImpactAction action)
@@ -231,6 +249,22 @@ public sealed class TenantHighImpactActionAvailabilityTests
         });
 
         result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.StaleData);
+    }
+
+    [Theory]
+    [InlineData(TenantHighImpactAction.EnableTenant)]
+    [InlineData(TenantHighImpactAction.DisableTenant)]
+    public void Lifecycle_action_without_an_authoritative_projection_version_fails_closed(
+        TenantHighImpactAction action)
+    {
+        TenantHighImpactActionAvailability result = Evaluate(Qualifying(action) with
+        {
+            ProjectionVersion = null,
+        });
+
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.StaleData);
+        result.SafeMessageKey.ShouldBe("Tenants.HighImpact.Unavailable.StaleData");
+        result.RecoveryKey.ShouldBe("Tenants.HighImpact.Recovery.StaleData");
     }
 
     [Theory]
@@ -376,5 +410,8 @@ public sealed class TenantHighImpactActionAvailabilityTests
                 ? TenantHighImpactTargetState.Present
                 : action is TenantHighImpactAction.SetConfiguration
                     ? TenantHighImpactTargetState.Unknown
-                    : TenantHighImpactTargetState.NotApplicable);
+                    : TenantHighImpactTargetState.NotApplicable,
+            action is TenantHighImpactAction.EnableTenant or TenantHighImpactAction.DisableTenant
+                ? "tenant-sequence:41"
+                : null);
 }

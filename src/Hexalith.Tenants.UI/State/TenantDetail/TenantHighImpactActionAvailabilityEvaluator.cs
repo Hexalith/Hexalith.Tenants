@@ -58,6 +58,12 @@ public static class TenantHighImpactActionAvailabilityEvaluator
             return Blocked(evidence, TenantHighImpactUnavailableReason.MissingLifecycleSupport, TenantHighImpactDomainOutcome.None, friction);
         }
 
+        if (evidence.Action is TenantHighImpactAction.EnableTenant or TenantHighImpactAction.DisableTenant
+            && string.IsNullOrWhiteSpace(evidence.ProjectionVersion))
+        {
+            return Blocked(evidence, TenantHighImpactUnavailableReason.StaleData, TenantHighImpactDomainOutcome.None, friction);
+        }
+
         // The read evidence above (surface, freshness, projection lifecycle, tenant identity/status) is now
         // confirmed current, so a domain outcome derived from it -- itself independently gated on authority
         // and namespace scope inside DomainOutcome -- may accompany any later, unrelated blocker below

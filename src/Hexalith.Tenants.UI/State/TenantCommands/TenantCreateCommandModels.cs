@@ -1851,26 +1851,21 @@ public sealed record TenantLifecycleCommandSnapshot(
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite)
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+    DateTimeOffset? AttemptStartedAtUtc = null,
+    int PendingStatusPollCount = 0)
 {
+    private const int MaximumPendingStatusPollCount = 3;
+
     public static TenantLifecycleCommandSnapshot Idle(TenantDetailProjection? lastConfirmedProjection = null)
         => new(
             TenantCommandLifecycleState.Idle,
             LastConfirmedStatus: lastConfirmedProjection?.Status ?? TenantStatus.Unknown,
             LastConfirmedProjection: lastConfirmedProjection);
 
-    public static TenantLifecycleCommandSnapshot Blocked(string safeMessage, TenantCommandFocusTarget focusTarget)
-        => new(
-            TenantCommandLifecycleState.UnableToVerify,
-            SafeMessage: safeMessage,
-            AuditState: TenantCommandAuditState.MissingSupport,
-            FocusTarget: focusTarget,
-            LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
-
     /// <summary>Gets whether this logical attempt must survive component dismissal or remount.</summary>
     public bool RetainsAttempt
-        => State is TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
+        => State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending;
 
     /// <summary>Gets whether aggregate ownership may be released for this attempt.</summary>
@@ -1954,6 +1949,8 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            AttemptStartedAtUtc = DateTimeOffset.UtcNow,
+            PendingStatusPollCount = 0,
         };
     }
 
@@ -1972,6 +1969,8 @@ public sealed record TenantLifecycleCommandSnapshot(
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            AttemptStartedAtUtc = AttemptStartedAtUtc ?? DateTimeOffset.UtcNow,
+            PendingStatusPollCount = 0,
         };
     }
 
@@ -1987,12 +1986,22 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         if (status.IsPending)
         {
+            int nextPendingPollCount = PendingStatusPollCount + 1;
+            if (nextPendingPollCount >= MaximumPendingStatusPollCount)
+            {
+                return UnableToVerify("Tenants.Lifecycle.UnableToVerify.StatusPollLimit") with
+                {
+                    PendingStatusPollCount = nextPendingPollCount,
+                };
+            }
+
             return this with
             {
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Lifecycle.Status.Pending",
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                PendingStatusPollCount = nextPendingPollCount,
             };
         }
 
@@ -2019,10 +2028,13 @@ public sealed record TenantLifecycleCommandSnapshot(
             CommandStatus.Received or CommandStatus.Processing
                 => this with
                 {
-                    State = TenantCommandLifecycleState.Accepted,
+                    State = State is TenantCommandLifecycleState.ProjectionPending
+                        ? TenantCommandLifecycleState.ProjectionPending
+                        : TenantCommandLifecycleState.Accepted,
                     SafeMessage = null,
                     SafeMessageKey = null,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                    PendingStatusPollCount = 0,
                 },
             CommandStatus.EventsStored or CommandStatus.EventsPublished
                 => this with
@@ -2033,9 +2045,10 @@ public sealed record TenantLifecycleCommandSnapshot(
                     SafeMessageKey = null,
                     AuditState = TenantCommandAuditState.AuditPending,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                    PendingStatusPollCount = 0,
                 },
             CommandStatus.Completed
-                when status.EventCount is not > 0
+                when status.EventCount is not > 0 && !HasCommandEventEvidence
                 => UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingEventEvidence"),
             CommandStatus.Completed
                 => this with
@@ -2046,6 +2059,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     SafeMessageKey = null,
                     AuditState = TenantCommandAuditState.AuditPending,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                    PendingStatusPollCount = 0,
                 },
             CommandStatus.Rejected
                 => this with
@@ -2064,6 +2078,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    PendingStatusPollCount = 0,
                 },
             CommandStatus.PublishFailed
                 => this with
@@ -2074,6 +2089,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    PendingStatusPollCount = 0,
                 },
             CommandStatus.TimedOut
                 => this with
@@ -2084,6 +2100,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    PendingStatusPollCount = 0,
                 },
             _ => UnableToVerify("Tenants.Lifecycle.UnableToVerify.Status"),
         };
@@ -2126,11 +2143,17 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         string currentProjectionVersion = proof!.ProjectionVersion!;
 
+        if (!Enum.IsDefined(detailEvidence!.Status)
+            || detailEvidence.Status is TenantStatus.Unknown)
+        {
+            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.ProofRead");
+        }
+
         TenantStatus intendedStatus = Intent.Operation is TenantLifecycleOperation.EnableTenant
             ? TenantStatus.Active
             : TenantStatus.Disabled;
 
-        if (detailEvidence!.Status != intendedStatus)
+        if (detailEvidence.Status != intendedStatus)
         {
             return this with
             {
@@ -2212,6 +2235,23 @@ public sealed record TenantLifecycleCommandSnapshot(
         {
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+    }
+
+    /// <summary>
+    /// Surfaces already-localized blocking copy while preserving the tracked attempt and recovery handle.
+    /// </summary>
+    /// <param name="safeMessage">Localized support-safe blocking copy.</param>
+    /// <returns>The same tracked attempt with support-safe copy.</returns>
+    public TenantLifecycleCommandSnapshot BlockedWithTrackingMessage(string safeMessage)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(safeMessage);
+        return this with
+        {
+            SafeMessage = safeMessage,
+            SafeMessageKey = null,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };

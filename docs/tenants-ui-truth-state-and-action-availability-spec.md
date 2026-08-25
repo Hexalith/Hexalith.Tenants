@@ -119,6 +119,14 @@ The Unavailable Action Reason pattern makes disabled or blocked high-impact acti
 
 The reason categories are exactly these six: **missing permission, stale data, missing lifecycle support, missing consequence preview, missing audit proof, high-impact flow not ready.** [Source: `#Unavailable Action Reason`]
 
+Three stable automation categories supplement that unavailable taxonomy without redefining it:
+**retained attempt** identifies an already-dispatched lifecycle attempt that can be reopened for authoritative
+reconciliation, and **in-flight or command surface** identifies temporary aggregate activity or disconnected command
+support. **Lifecycle state already set** identifies a pure, authorized same-state lifecycle domain outcome without
+mislabeling it as the canonical `None` category. They carry their own matching reason/recovery copy and never imply
+that a new high-impact command is eligible. When an independently proven domain outcome supplements a different
+blocker, its companion text has a stable id included in the launcher's `aria-describedby` relationship.
+
 ### 4.2 Inline-visible reason; tooltip supplements only
 
 For a high-impact action that is disabled or blocked, the UI exposes a **visible inline reason**. A tooltip may supplement the inline reason but **cannot be the only explanation**. [Source: `#Unavailable Action Reason`; AC3]

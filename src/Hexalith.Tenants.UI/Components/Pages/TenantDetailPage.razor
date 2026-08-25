@@ -404,7 +404,8 @@
             TenantHighImpactProofEvidence.NotRequired,
             _highImpactViewportObservation?.State ?? TenantHighImpactViewportState.Unknown,
             IsInputComplete: false,
-            targetState);
+            targetState,
+            _snapshot.ProjectionVersion);
     }
 
     private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
@@ -1120,12 +1121,19 @@
                 await _memberAccessReview.ApplySignalRNudgeAsync();
             }
 
-            if ((_commandInFlight || IsCurrentAggregateLocked) && _lifecycleActionAvailability is not null)
+            TenantLifecycleActionAvailability? lifecycleActionAvailability = _lifecycleActionAvailability;
+            if (CanApply(generation, tenantId)
+                && (_commandInFlight || IsCurrentAggregateLocked)
+                && lifecycleActionAvailability is not null
+                && ReferenceEquals(_lifecycleActionAvailability, lifecycleActionAvailability))
             {
-                await _lifecycleActionAvailability.ApplySignalRNudgeAsync();
+                await lifecycleActionAvailability.ApplySignalRNudgeAsync();
             }
 
-            StateHasChanged();
+            if (CanApply(generation, tenantId))
+            {
+                StateHasChanged();
+            }
         }).ConfigureAwait(false);
     }
 
@@ -2196,6 +2204,17 @@
                 _activeAggregateLockKey = null;
                 _activeAggregateTenantId = null;
                 _aggregateLeaseHolder = null;
+            }
+            else if (aggregateLockKey is not null
+                && lifecycleSurface
+                && LifecycleAttemptTracker is not null
+                && LifecycleAttemptTracker.Find(leaseTenantId) is not { RetainsAttempt: true })
+            {
+                // Route change and page disposal deliberately clear page-local bookkeeping while a retained
+                // lifecycle attempt keeps the tracker-owned gate lease. A late terminal callback must still
+                // release that old key, but only after proving the tracker does not contain a newer retained
+                // attempt for the same literal tenant id.
+                AggregateAdmissionGate?.Release(aggregateLockKey, admissionOwner);
             }
         }
 

@@ -1851,6 +1851,102 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessage.ShouldBe("Command status response was unavailable.");
     }
 
+    [Fact]
+    public async Task Stable_lifecycle_overload_delegates_safely_to_a_legacy_style_gateway_without_one_argument_ambiguity()
+    {
+        var legacy = new LegacyLifecycleGateway();
+        ITenantCommandGateway gateway = legacy;
+        var disable = new TenantLifecycleCommandRequest("Tenant.Mixed-01", TenantLifecycleOperation.DisableTenant);
+        var enable = new TenantLifecycleCommandRequest("Tenant.Mixed-01", TenantLifecycleOperation.EnableTenant);
+        using var cancellation = new CancellationTokenSource();
+
+        TenantCommandSubmissionResult legacyResult = await gateway.DisableTenantAsync(disable);
+        TenantCommandSubmissionResult stableResult = await gateway.EnableTenantAsync(
+            enable,
+            "01ARZ3NDEKTSV4RRFFQ69G5FB0",
+            cancellation.Token);
+
+        legacy.DisableCalls.ShouldBe(1);
+        legacy.EnableCalls.ShouldBe(1);
+        legacy.LastEnableRequest.ShouldBe(enable);
+        legacy.LastEnableCancellation.ShouldBe(cancellation.Token);
+        legacyResult.MessageId.ShouldBe("legacy-disable-message");
+        stableResult.MessageId.ShouldBe("legacy-enable-message");
+    }
+
+    private sealed class LegacyLifecycleGateway : ITenantCommandGateway
+    {
+        public int EnableCalls { get; private set; }
+
+        public int DisableCalls { get; private set; }
+
+        public TenantLifecycleCommandRequest? LastEnableRequest { get; private set; }
+
+        public CancellationToken LastEnableCancellation { get; private set; }
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
+            CreateTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
+            AddUserToTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
+            ChangeUserRole request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
+            RemoveUserFromTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
+            UpdateTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+            SetTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> EnableTenantAsync(
+            TenantLifecycleCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            EnableCalls++;
+            LastEnableRequest = request;
+            LastEnableCancellation = cancellationToken;
+            return Task.FromResult(TenantCommandSubmissionResult.Accepted(
+                "legacy-enable-message",
+                "legacy-enable-correlation"));
+        }
+
+        public Task<TenantCommandSubmissionResult> DisableTenantAsync(
+            TenantLifecycleCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            DisableCalls++;
+            return Task.FromResult(TenantCommandSubmissionResult.Accepted(
+                "legacy-disable-message",
+                "legacy-disable-correlation"));
+        }
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(
+            TenantCommandTrackingHandle handle,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
+    }
+
     private sealed class CapturingGatewayClient(object response) : IEventStoreGatewayClient
     {
         public List<SubmitCommandRequest> SubmittedCommands { get; } = [];

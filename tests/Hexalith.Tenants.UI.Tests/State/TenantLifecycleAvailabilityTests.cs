@@ -230,7 +230,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Indeterminate,
-                Lifecycle: ProjectionLifecycleState.Current)
+                Lifecycle: ProjectionLifecycleState.Current,
+                ProjectionVersion: "tenant-sequence:41")
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -248,7 +249,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 IsCommandSurfaceConnected: false,
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized,
-                Lifecycle: ProjectionLifecycleState.Current)
+                Lifecycle: ProjectionLifecycleState.Current,
+                ProjectionVersion: "tenant-sequence:41")
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -268,7 +270,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized,
                 IsNarrowSafetyContext: true,
-                Lifecycle: ProjectionLifecycleState.Current)
+                Lifecycle: ProjectionLifecycleState.Current,
+                ProjectionVersion: "tenant-sequence:41")
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
@@ -295,7 +298,8 @@ public sealed class TenantLifecycleAvailabilityTests
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized,
-                Lifecycle: ProjectionLifecycleState.Current)
+                Lifecycle: ProjectionLifecycleState.Current,
+                ProjectionVersion: "tenant-sequence:41")
             .Evaluate(operation);
 
         availability.IsUnavailable.ShouldBeFalse();
@@ -319,5 +323,6 @@ public sealed class TenantLifecycleAvailabilityTests
             IsCommandSurfaceConnected: true,
             governanceReadiness,
             TenantLifecycleAuthorizationReflectionState.Authorized,
-            Lifecycle: ProjectionLifecycleState.Current);
+            Lifecycle: ProjectionLifecycleState.Current,
+            ProjectionVersion: "tenant-sequence:41");
 }
