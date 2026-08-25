@@ -719,7 +719,8 @@
         }
         catch
         {
-            // Authorization faults fail closed without exposing provider details in the UI.
+            // Authorization faults fail closed without exposing provider details. Indeterminate is rendered
+            // to the operator as authority "not proven", with refresh-first recovery guidance.
         }
         finally
         {

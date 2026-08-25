@@ -19,105 +19,120 @@ origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Wor
 location: FcContentLabel
 reason: The legacy ledger defers this issue: FrontComposer `FcContentLabel` single-writer dispose-clobber + server first-paint — DOCUMENTED. Original context is preserved in legacy-detail.
 legacy-detail: - **FrontComposer `FcContentLabel` single-writer dispose-clobber + server first-paint — DOCUMENTED.** XML `<remarks>` on `FcContentLabel` (plus a matching sentence on `FcContentLabelCoordinator`) now record the last-writer-wins dispose-clobber and the `OnAfterRender`-only first-paint limitation, naming the shell-parameter path (`ContentLabel`/`ContentLabelledBy`) as the first-paint-correct alternative. Doc-only.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabel.razor.cs:20-33 documents the single-writer dispose-clobber and InteractiveServer first-paint limitation.
 
 ### DW-4: FrontComposer `FcPageHeader.FocusHeadingAsync` no-op→throw — DOCUMENTED
 origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Work (pagination fail-closed + submodule doc handoffs)"), 2026-08-25
 location: FcPageHeader.FocusHeadingAsync
 reason: The legacy ledger defers this issue: FrontComposer `FcPageHeader.FocusHeadingAsync` no-op→throw — DOCUMENTED. Original context is preserved in legacy-detail.
 legacy-detail: - **FrontComposer `FcPageHeader.FocusHeadingAsync` no-op→throw — DOCUMENTED.** An adopter-facing behavior-change note was added to the method `<remarks>` (there is no FrontComposer CHANGELOG), incl. the caveat that the `FcAggregateListPage` wrapper's `?? ValueTask.CompletedTask` guards only the null-`@ref` window, not the throw.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs:94-126 documents and enforces the no-op-to-throw behavior.
 
 ### DW-5: EventStore `StorageTreemap` SVG `<g tabindex>` cross-browser — DOCUMENTED
 origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Work (pagination fail-closed + submodule doc handoffs)"), 2026-08-25
 location: StorageTreemap
 reason: The legacy ledger defers this issue: EventStore `StorageTreemap` SVG `<g tabindex>` cross-browser — DOCUMENTED. Original context is preserved in legacy-detail.
 legacy-detail: - **EventStore `StorageTreemap` SVG `<g tabindex>` cross-browser — DOCUMENTED.** A Razor comment above the focusable cell records the Chromium/Edge/Firefox-vs-Safari/WebKit tab-order caveat and the `<a>`/`<foreignObject>` remedy if WebKit support is required.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/StorageTreemap.razor:65-76 documents the WebKit caveat and alternatives.
 
 ### DW-6: JSDisconnectedException guard on panel focus
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: CorrectionStartPanel
 reason: The legacy ledger defers this issue: JSDisconnectedException guard on panel focus. Original context is preserved in legacy-detail.
 legacy-detail: - **JSDisconnectedException guard on panel focus** — both `CorrectionStartPanel` and `GlobalAdministratorCorrectionPanel` `OnAfterRenderAsync` now wrap `_lifecycleElement.FocusAsync()` in `try/catch (JSDisconnectedException)` (parity with the existing `TenantAuditPage` guards).
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:322-334 and GlobalAdministratorCorrectionPanel.razor:279-291 catch JSDisconnectedException around focus.
 
 ### DW-7: Page-load global-admin query unguarded
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: TenantAuditPage.LoadAsync
 reason: The legacy ledger defers this issue: Page-load global-admin query unguarded. Original context is preserved in legacy-detail.
 legacy-detail: - **Page-load global-admin query unguarded** — `TenantAuditPage.LoadAsync` now wraps the supplementary global-administrator enrichment in `catch (… EventStoreGatewayException or HttpRequestException or JsonException)`; the confirm-time path (`OpenCorrectionAsync` / panel `ProjectionRefreshProvider`) keeps propagating. Regression test: `Tenant_audit_page_survives_global_administrator_projection_fault_during_load`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:499-513 guards supplementary global-administrator loading; TenantAuditPageTests.cs:801 covers the regression.
 
 ### DW-8: Tenant panel terminal-state focus parity
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: CorrectionStartPanel.SetSnapshot
 reason: The legacy ledger defers this issue: Tenant panel terminal-state focus parity. Original context is preserved in legacy-detail.
 legacy-detail: - **Tenant panel terminal-state focus parity** — `CorrectionStartPanel.SetSnapshot` now focuses on all six terminal states (Confirmed/Failed/Rejected/Degraded/UnableToVerify/AlreadyApplied), matching the GA panel. Test: `Panel_rejected_terminal_state_moves_focus_to_lifecycle`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:361-373 covers all terminal states; CorrectionStartPanelTests.cs:420 covers rejected-state focus.
 
 ### DW-9: Tenant confirm fail-closed on stale/degraded
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: TenantAuditPage.RefreshTenantProjectionAsync
 reason: The legacy ledger defers this issue: Tenant confirm fail-closed on stale/degraded. Original context is preserved in legacy-detail.
 legacy-detail: - **Tenant confirm fail-closed on stale/degraded** — `TenantAuditPage.RefreshTenantProjectionAsync` (the tenant confirm-time provider) returns the projection only when `Freshness is Current`, else `null`, so the existing `ConfirmProjection(null)` fails closed (parity with the GA `Freshness=Current` gate). Test: `Panel_does_not_confirm_when_projection_refresh_provider_returns_no_fresh_projection`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1042-1062 returns confirmation evidence only for Current freshness; CorrectionStartPanelTests.cs:451 covers fail-closed behavior.
 
 ### DW-10: Tenant corrective-proof time tie-back + invariant culture
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: CorrectionStartPanel.QueryCorrectiveProofAsync
 reason: The legacy ledger defers this issue: Tenant corrective-proof time tie-back + invariant culture. Original context is preserved in legacy-detail.
 legacy-detail: - **Tenant corrective-proof time tie-back + invariant culture** — `CorrectionStartPanel.QueryCorrectiveProofAsync` now parses `originalTimestamp` with `InvariantCulture`+`RoundtripKind`, lower-bounds the audit query with `From: originalTimestamp`, filters `row.Timestamp > originalTimestamp`, newest-first; `ProofTimestampLabel` and `TenantCorrectionPreviewSnapshot.WithCorrectiveProof` parse with `InvariantCulture` (mirrors the GA fix). Test: `Panel_proof_lookup_ignores_audit_row_not_newer_than_the_original_event`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:531-575 uses invariant parsing and strictly newer proof rows; CorrectionStartPanelTests.cs:478 rejects historical rows.
 
 ### DW-11: Concurrent correction opens out of order
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: OpenCorrectionAsync
 reason: The legacy ledger defers this issue: Concurrent correction opens out of order. Original context is preserved in legacy-detail.
 legacy-detail: - **Concurrent correction opens out of order** — `OpenCorrectionAsync` captures a `_correctionOpenGeneration` synchronously at entry and applies the active intent only if still latest. (No dedicated bUnit test — timing-deterministic two-open harness was judged more flake-prone than valuable; verified by construction + unchanged single-open tests.)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:893-925 uses _correctionOpenGeneration so only the newest concurrent open applies.
 
 ### DW-12: No story-specific 5.7 gateway-routing test
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: TenantCommandGatewayTests
 reason: The legacy ledger defers this issue: No story-specific 5.7 gateway-routing test. Original context is preserved in legacy-detail.
 legacy-detail: - **No story-specific 5.7 gateway-routing test** — CLOSED as already-covered: `TenantCommandGatewayTests` already pins the full `system / global-administrators / global-administrators` triple + CommandType + literal payload for both Set and Remove; the item was conditional on the gateway being touched (it wasn't).
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:31-67 pins the fixed aggregate and both command types.
 
 ### DW-13: Create-tenant freshness gate narrowed `Current or Unknown → Current`
 origin: migrated from legacy ledger ("2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented"), 2026-08-25
 location: TenantsWorkspace.razor
 reason: The legacy ledger defers this issue: Create-tenant freshness gate narrowed `Current or Unknown → Current`. Original context is preserved in legacy-detail.
 legacy-detail: - **Create-tenant freshness gate narrowed `Current or Unknown → Current`** — CLOSED as resolved: the gate is back to `Current or Unknown` (`TenantsWorkspace.razor` `CreateTenantFlow IsFresh`), matching the documented first-tenant bootstrap exception. The "restore" path was taken.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:416-425 restores Current or the documented authoritative first-tenant Unknown bootstrap case.
 
 ### DW-14: FrontComposer owner handoff
 origin: migrated from legacy ledger ("2026-06-21 Correct Course — Deferred + Pending Work Implemented"), 2026-08-25
 location: Hexalith.FrontComposer
 reason: The legacy ledger defers this issue: FrontComposer owner handoff. Original context is preserved in legacy-detail.
 legacy-detail: - **FrontComposer owner handoff** `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening` — **IMPLEMENTED** in `Hexalith.FrontComposer`. `FcPageHeader` no longer emits a competing `banner` (header root is `role="presentation"`); `FrontComposerShell` exposes `ContentLabel`/`ContentLabelledBy` + a new `FcContentLabel` marker so a page can name the shell `main` landmark without an orphaned page-level `aria-labelledby`; blank `Heading` now fail-safes (no dangling `<h1>`, replacing the prior throw); `FocusHeadingAsync()` fails diagnostically when the heading is not focusable. Backward-compatible (new params default to null). FrontComposer Shell suite 1962/0 failed.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FrontComposerShell.razor:141-148 owns the named main landmark; FcPageHeader.razor:7-44 implements presentation and blank-heading outcomes.
 
 ### DW-15: EventStore owner handoff
 origin: migrated from legacy ledger ("2026-06-21 Correct Course — Deferred + Pending Work Implemented"), 2026-08-25
 location: Index.razor; Commands.razor
 reason: The legacy ledger defers this issue: EventStore owner handoff. Original context is preserved in legacy-detail.
 legacy-detail: - **EventStore owner handoff** `eventstore-2026-06-19-admin-ui-and-query-record-followup` — **IMPLEMENTED** (Admin.UI a11y portion) in `Hexalith.EventStore`: `Index.razor` stat cards, `ActivityChart` (`role="group"` + real `<button>` bars), `StorageTreemap` (focusable `role="button"` cells), `RelatedTypeList`, `TypeDetailPanel`, `DaprHealthHistory`, and non-functional `cursor:pointer` spans on `Commands.razor`/`Events.razor` all remediated; conformance carve-out comment updated. The retired actor-routing sub-item was already verified stale/resolved (see below). Admin.UI.Tests green except 6 pre-existing unrelated `Dw5GovernanceAtddTests` (missing DW5 evidence artifact, not introduced here).
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Pages/Index.razor:25-51, Components/ActivityChart.razor:28-46, and Components/StorageTreemap.razor:65-76 contain the fixes.
 
 ### DW-16: EventStore owner handoff
 origin: migrated from legacy ledger ("2026-06-21 Correct Course — Deferred + Pending Work Implemented"), 2026-08-25
 location: IReadModelFreshness
 reason: The legacy ledger defers this issue: EventStore owner handoff. Original context is preserved in legacy-detail.
 legacy-detail: - **EventStore owner handoff** `eventstore-2026-06-19-read-model-freshness-metadata` — **IMPLEMENTED** in `Hexalith.EventStore.Client.Projections`: `IReadModelFreshness` (`ProjectedAt`/`ProjectionVersion`), `ReadModelFreshnessState`, `ReadModelFreshnessThresholds`, pure `ReadModelFreshness.Classify/Age`, plus `IReadModelStore.GetWithFreshnessAsync<T>()` and `ToQueryResponseMetadata()` bridges. This is the generic, persisted-timestamp replacement for the Tenants hand-rolled `TenantFreshnessState`; Tenants-side adoption is implemented by `cc-2026-06-25-tenant-read-model-freshness-adoption`. Client.Tests 462/462.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Client/ReadModels/IReadModelFreshness.cs:22-34, ReadModelFreshness.cs:30-48, and ReadModelFreshnessExtensions.cs:23-85 implement the shared freshness contract.
 
 ### DW-17: Epic 11 — Production Authorization Readiness (persisted DataProtection key ring)
 origin: migrated from legacy ledger ("2026-06-21 Correct Course — Deferred + Pending Work Implemented"), 2026-08-25
 location: src/Hexalith.Tenants/Program.cs; statestore.yaml
 reason: The legacy ledger defers this issue: Epic 11 — Production Authorization Readiness (persisted DataProtection key ring). Original context is preserved in legacy-detail.
 legacy-detail: - **Epic 11 — Production Authorization Readiness (persisted DataProtection key ring)** — **IMPLEMENTED**. A Dapr-state-store-backed `IXmlRepository` (`DaprXmlRepository`) + `AddEventStoreDataProtection(...)` live in the `Hexalith.EventStore.DomainService` host-SDK layer; backend is chosen by `statestore.yaml` (Redis in prod) so the Tenants domain package gains NO infra SDK. `src/Hexalith.Tenants/Program.cs` swaps to `AddEventStoreDataProtection(config, "Hexalith.Tenants")`; production persists to the `statestore` under the application-specific key `hexalith-tenants-dataprotection-keys`, Development stays explicitly ephemeral. DomainService.Tests 36/36 (incl. cross-replica reload + ETag concurrency).
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Program.cs:79-87 and EventStoreDataProtectionServiceCollectionExtensions.cs:57-93 configure Dapr-backed or explicit ephemeral DataProtection; deploy/dapr/statestore.yaml:3-8 documents the key.
 
 ### DW-18: Pending (newly discovered) — Memories-integration doc/test drift
 origin: migrated from legacy ledger ("2026-06-21 Correct Course — Deferred + Pending Work Implemented"), 2026-08-25
@@ -132,49 +147,56 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag
 location: ServedAt
 reason: The legacy ledger defers this issue: Freshness is no longer derived from response `ServedAt`. Original context is preserved in legacy-detail.
 legacy-detail: - Freshness is no longer derived from response `ServedAt`. The implemented direct-read rule treats a real read-model ETag/projection version as `current`; absent markers resolve to `unknown`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Queries/TenantQueryResult.cs:38-60 consumes IReadModelFreshness; TenantQueryFreshnessTests.cs:35-85 proves ProjectedAt classification and ServedAt response timing.
 
 ### DW-20: Generic projection age/version metadata is not available from the current `IReadModelStore` contract. Do not add Tenants-owned generic persistence scaffolding; the remaining threshold-based age metadata need is routed to the EventStore owner handoff below
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: IReadModelStore
 reason: The legacy ledger defers this issue: Generic projection age/version metadata is not available from the current `IReadModelStore` contract. Original context is preserved in legacy-detail.
 legacy-detail: - Generic projection age/version metadata is not available from the current `IReadModelStore` contract. Do not add Tenants-owned generic persistence scaffolding; the remaining threshold-based age metadata need is routed to the EventStore owner handoff below.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Client/ReadModels/IReadModelFreshness.cs:22-34, ReadModelFreshness.cs:30-48, and ReadModelFreshnessExtensions.cs:23-85 implement the shared freshness contract.
 
 ### DW-21: Null/empty read-model ETag behavior is explicit and tested: successful REST reads return 200 with no ETag, no projection-version header, no served-at header, and no 304 support
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Null/empty read-model ETag behavior is explicit and tested: successful REST reads return 200 with no ETag, no projection-version header, no served-at header, and no 304 support. Original context is preserved in legacy-detail.
 legacy-detail: - Null/empty read-model ETag behavior is explicit and tested: successful REST reads return 200 with no ETag, no projection-version header, no served-at header, and no 304 support.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Queries/TenantQueryResult.cs:18-35 emits no metadata when the legacy ETag-only path has no usable ETag; TenantQueryFreshnessTests.cs:70-85 covers persisted freshness.
 
 ### DW-22: ETag handling is hardened and tested for weak tags, `*`, escaped strong tags, and unsupported multi-tag input
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: ETag handling is hardened and tested for weak tags, `*`, escaped strong tags, and unsupported multi-tag input. Original context is preserved in legacy-detail.
 legacy-detail: - ETag handling is hardened and tested for weak tags, `*`, escaped strong tags, and unsupported multi-tag input.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:610-650 parses EntityTagHeaderValue and rejects weak, wildcard, empty, duplicate, quoted, and control-bearing validators; TenantsRestQueryClientTests.cs:1165-1469 covers them.
 
 ### DW-23: REST/handler read-model reconstruction coverage now proves a recreated controller factory can serve the persisted read model from the shared store and honor 304 through the production REST/handler path
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: REST/handler read-model reconstruction coverage now proves a recreated controller factory can serve the persisted read model from the shared store and honor 304 through the production REST/handler path. Original context is preserved in legacy-detail.
 legacy-detail: - REST/handler read-model reconstruction coverage now proves a recreated controller factory can serve the persisted read model from the shared store and honor 304 through the production REST/handler path.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs:793-833 exercises the production conditional path and complete 304 metadata contract.
 
 ### DW-24: Live populated-correlation gateway error coverage now asserts that `correlationId`, `reasonCode`, raw payload text, stack traces, tokens, cursors, and ETags do not reach user-facing copy
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: correlationId
 reason: The legacy ledger defers this issue: Live populated-correlation gateway error coverage now asserts that `correlationId`, `reasonCode`, raw payload text, stack traces, tokens, cursors, and ETags do not reach user-facing copy. Original context is preserved in legacy-detail.
 legacy-detail: - Live populated-correlation gateway error coverage now asserts that `correlationId`, `reasonCode`, raw payload text, stack traces, tokens, cursors, and ETags do not reach user-facing copy.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:206-237 proves raw payload, token, secret user, and correlation data never reach SafeMessage.
 
 ### DW-25: Current full-suite evidence (corrected 2026-06-21): the earlier `Server.Tests` blocker — 3 DAPR component expectation tests asserting removed `enableDeadLetter` / `deadLetterTopic` metadata — was resolved on 2026-06-20 by `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`; full `Server.Tests` now passes 700/700. `IntegrationTests` passes with DAPR/Aspire/performance skips. The old health-readiness blocker wording is no longer current evidence
 origin: migrated from legacy ledger ("`cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`"), 2026-08-25
 location: Server.Tests
 reason: The legacy ledger defers this issue: Current full-suite evidence (corrected 2026-06-21): the earlier `Server.Tests` blocker — 3 DAPR component expectation tests asserting removed `enableDeadLetter` / `deadLetterTopic` metadata — was resolved on 2026-06-20 by `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`; full `Server.Tests` now passes 700/700. Original context is preserved in legacy-detail.
 legacy-detail: - Current full-suite evidence (corrected 2026-06-21): the earlier `Server.Tests` blocker — 3 DAPR component expectation tests asserting removed `enableDeadLetter` / `deadLetterTopic` metadata — was resolved on 2026-06-20 by `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`; full `Server.Tests` now passes 700/700. `IntegrationTests` passes with DAPR/Aspire/performance skips. The old health-readiness blocker wording is no longer current evidence.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs:114-172 guards removal of inert Dapr dead-letter metadata and the exact component-scope contract.
 
 ### DW-26: Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
@@ -195,56 +217,64 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-ac
 location: n/a
 reason: The legacy ledger defers this issue: Compact non-zero spacing (e.g. Original context is preserved in legacy-detail.
 legacy-detail: - Compact non-zero spacing (e.g. `margin:0.5rem`/`padding:0.5rem`) is now flagged by the styling-ownership guard. The `(?!0)` zero-skip was replaced with a zero-token matcher that still skips genuine resets (`0`, `0 0 0 0`, `0px`, `0 !important`). No real component CSS regressed.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:102-109 and 632-661 pin compact nonzero versus true-zero behavior.
 
 ### DW-29: The inline-style guard was widened beyond flex/grid/gap to also cover spacing (margin/padding), sizing (width/inline-size), and alignment (justify-content/align-items), and now scans both quote styles. No `.razor` carries inline `style=`
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: razor
 reason: The legacy ledger defers this issue: The inline-style guard was widened beyond flex/grid/gap to also cover spacing (margin/padding), sizing (width/inline-size), and alignment (justify-content/align-items), and now scans both quote styles. Original context is preserved in legacy-detail.
 legacy-detail: - The inline-style guard was widened beyond flex/grid/gap to also cover spacing (margin/padding), sizing (width/inline-size), and alignment (justify-content/align-items), and now scans both quote styles. No `.razor` carries inline `style=`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:85-97,492-511,665-679 enforce widened inline-layout spacing, sizing, and alignment cases.
 
 ### DW-30: The `<div>`/`<span>` budget now excludes Razor (`@* *@`) and HTML (`<!-- -->`) comments before counting
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: The `<div>`/`<span>` budget now excludes Razor (`@* *@`) and HTML (`<!-- -->`) comments before counting. Original context is preserved in legacy-detail.
 legacy-detail: - The `<div>`/`<span>` budget now excludes Razor (`@* *@`) and HTML (`<!-- -->`) comments before counting.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:692-700,844-847 strips comments before wrapper counting.
 
 ### DW-31: `fc-css-exception` scoping decision: kept RULE-level with documented rationale; a unit test proves a marker exempts only its own rule and does not leak to the next rule
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: `fc-css-exception` scoping decision: kept RULE-level with documented rationale; a unit test proves a marker exempts only its own rule and does not leak to the next rule. Original context is preserved in legacy-detail.
 legacy-detail: - `fc-css-exception` scoping decision: kept RULE-level with documented rationale; a unit test proves a marker exempts only its own rule and does not leak to the next rule.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:561-564,705-718 scopes exceptions so markers cannot leak.
 
 ### DW-32: `:focus-visible` exemption decision: NARROWED. The blanket exemption was removed; focus-ring affordances (outline/outline-offset/outline-color) are untracked so genuine focus rules still pass, but a `:focus-visible` rule that owns layout/spacing/typography is now flagged unless documented
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: `:focus-visible` exemption decision: NARROWED. Original context is preserved in legacy-detail.
 legacy-detail: - `:focus-visible` exemption decision: NARROWED. The blanket exemption was removed; focus-ring affordances (outline/outline-offset/outline-color) are untracked so genuine focus rules still pass, but a `:focus-visible` rule that owns layout/spacing/typography is now flagged unless documented.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:565-568,723-735 permits focus-visible affordances while catching layout ownership.
 
 ### DW-33: `RemoveForcedColorsMediaBlocks` now skips braces inside CSS comments and quoted strings so a stray brace cannot leak the block tail back into the scan
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: RemoveForcedColorsMediaBlocks
 reason: The legacy ledger defers this issue: `RemoveForcedColorsMediaBlocks` now skips braces inside CSS comments and quoted strings so a stray brace cannot leak the block tail back into the scan. Original context is preserved in legacy-detail.
 legacy-detail: - `RemoveForcedColorsMediaBlocks` now skips braces inside CSS comments and quoted strings so a stray brace cannot leak the block tail back into the scan.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:740-753,771-841 implements and tests brace-aware parsing.
 
 ### DW-34: `MemberAccessReview` gained bUnit coverage proving the change-role and remove-member `aria-controls` resolve to a rendered active-region `id` after the FluentStack migration
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: MemberAccessReview
 reason: The legacy ledger defers this issue: `MemberAccessReview` gained bUnit coverage proving the change-role and remove-member `aria-controls` resolve to a rendered active-region `id` after the FluentStack migration. Original context is preserved in legacy-detail.
 legacy-detail: - `MemberAccessReview` gained bUnit coverage proving the change-role and remove-member `aria-controls` resolve to a rendered active-region `id` after the FluentStack migration.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:182-195,241,262 names controlled regions; TenantDetailSurfaceTests.cs:3979-4009 verifies resolution.
 
 ### DW-35: `TenantAuditPage` renders a localized fallback (`Tenants.Audit.UnknownTenant`) for a blank/whitespace `TenantId` instead of a dangling heading
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: TenantAuditPage
 reason: The legacy ledger defers this issue: `TenantAuditPage` renders a localized fallback (`Tenants.Audit.UnknownTenant`) for a blank/whitespace `TenantId` instead of a dangling heading. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantAuditPage` renders a localized fallback (`Tenants.Audit.UnknownTenant`) for a blank/whitespace `TenantId` instead of a dangling heading.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:269-272 supplies the localized fallback; TenantAuditPageTests.cs:783-797 covers blank IDs.
 
 ### DW-36: The claim that the styling scan is blind to declarations inside `@media` blocks was verified as a false positive in the structural/style story and is not open work
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
@@ -286,28 +316,32 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-de
 location: deploy/dapr/pubsub.yaml
 reason: The legacy ledger defers this issue: Production `deploy/dapr/pubsub.yaml` denies `sample` publishing with an empty topic list (`publishingScopes: "sample="`) and allows `sample` to subscribe to `tenants.events`, while leaving `eventstore` unlisted so it keeps unrestricted publish access (required for EventStore dynamic per-tenant topic provisioning, NFR20 — listing `eventstore` is the… Original context is preserved in legacy-detail.
 legacy-detail: - Production `deploy/dapr/pubsub.yaml` denies `sample` publishing with an empty topic list (`publishingScopes: "sample="`) and allows `sample` to subscribe to `tenants.events`, while leaving `eventstore` unlisted so it keeps unrestricted publish access (required for EventStore dynamic per-tenant topic provisioning, NFR20 — listing `eventstore` is the documented anti-pattern). [2026-06-20 code-review correction: an earlier explicit `eventstore=tenants.events,deadletter.tenants.events;sample=` allow-list was reverted because it violated EventStore NFR20 and would have silently denied dynamic-tenant topics.]
-status: open
+status: done 2026-08-25
+resolution: already resolved: deploy/dapr/pubsub.yaml:13-21,38-44 encodes unrestricted EventStore publishing, sample restrictions, and exact component scopes.
 
 ### DW-42: Local AppHost pub/sub intentionally omits topic-level scopes while retaining component-level `eventstore` and `sample` scopes; the difference is documented in the component YAML and timing guide
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: eventstore
 reason: The legacy ledger defers this issue: Local AppHost pub/sub intentionally omits topic-level scopes while retaining component-level `eventstore` and `sample` scopes; the difference is documented in the component YAML and timing guide. Original context is preserved in legacy-detail.
 legacy-detail: - Local AppHost pub/sub intentionally omits topic-level scopes while retaining component-level `eventstore` and `sample` scopes; the difference is documented in the component YAML and timing guide.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml:10-15,29-34 explicitly omits local topic scopes and declares consumers.
 
 ### DW-43: `docs/cross-aggregate-timing.md` distinguishes subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: docs/cross-aggregate-timing.md
 reason: The legacy ledger defers this issue: `docs/cross-aggregate-timing.md` distinguishes subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`. Original context is preserved in legacy-detail.
 legacy-detail: - `docs/cross-aggregate-timing.md` distinguishes subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: docs/cross-aggregate-timing.md:80-89,129-133 distinguishes EventStore application dead-lettering from Dapr subscriber redelivery.
 
 ### DW-44: `CrossAggregateTimingDocumentationTests` guards the production topic-scope contract, local topic-scope omission, application-level dead-letter wording, and the absence of DAPR subscriber-failure-to-dead-letter wording
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: CrossAggregateTimingDocumentationTests
 reason: The legacy ledger defers this issue: `CrossAggregateTimingDocumentationTests` guards the production topic-scope contract, local topic-scope omission, application-level dead-letter wording, and the absence of DAPR subscriber-failure-to-dead-letter wording. Original context is preserved in legacy-detail.
 legacy-detail: - `CrossAggregateTimingDocumentationTests` guards the production topic-scope contract, local topic-scope omission, application-level dead-letter wording, and the absence of DAPR subscriber-failure-to-dead-letter wording.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs:114-172 guards the YAML and documentation contract together.
 
 ### DW-45: June 18 review-record contradictions are kept as routed, stale/resolved, or future-owner handoff entries instead of open Tenants implementation work
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
@@ -321,56 +355,64 @@ origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-0
 location: FrontComposerShell
 reason: The legacy ledger defers this issue: `FrontComposerShell` exposes a shell content landmark contract that can be a native `<main>` or an equivalent role with an accessible-name parameter. Original context is preserved in legacy-detail.
 legacy-detail: - `FrontComposerShell` exposes a shell content landmark contract that can be a native `<main>` or an equivalent role with an accessible-name parameter.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FrontComposerShell.razor:141-148 renders one named main; FcContentLabel.razor.cs:5-11 provides the no-markup bridge.
 
 ### DW-47: Tenants page headings can name the shell main landmark without orphaned page-level `aria-labelledby`
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Tenants page headings can name the shell main landmark without orphaned page-level `aria-labelledby`. Original context is preserved in legacy-detail.
 legacy-detail: - Tenants page headings can name the shell main landmark without orphaned page-level `aria-labelledby`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FrontComposerShell.razor:141-148 renders one named main; FcContentLabel.razor.cs:5-11 provides the no-markup bridge.
 
 ### DW-48: `FcPageHeader` no longer creates a competing global `banner` landmark on every route page
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: FcPageHeader
 reason: The legacy ledger defers this issue: `FcPageHeader` no longer creates a competing global `banner` landmark on every route page. Original context is preserved in legacy-detail.
 legacy-detail: - `FcPageHeader` no longer creates a competing global `banner` landmark on every route page.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor:7-13 forces role=presentation.
 
 ### DW-49: `FcPageHeader` handles blank `Heading` fail-safely or documents a strict consumer contract with analyzable/tested guardrails
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: FcPageHeader
 reason: The legacy ledger defers this issue: `FcPageHeader` handles blank `Heading` fail-safely or documents a strict consumer contract with analyzable/tested guardrails. Original context is preserved in legacy-detail.
 legacy-detail: - `FcPageHeader` handles blank `Heading` fail-safely or documents a strict consumer contract with analyzable/tested guardrails.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor:34-44 suppresses blank headings.
 
 ### DW-50: `FocusHeadingAsync()` ensures the heading is focusable when used as a focus target or fails diagnostically when `HeadingTabIndex` is omitted
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: FocusHeadingAsync
 reason: The legacy ledger defers this issue: `FocusHeadingAsync()` ensures the heading is focusable when used as a focus target or fails diagnostically when `HeadingTabIndex` is omitted. Original context is preserved in legacy-detail.
 legacy-detail: - `FocusHeadingAsync()` ensures the heading is focusable when used as a focus target or fails diagnostically when `HeadingTabIndex` is omitted.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs:94-126 documents and throws for non-focusable or missing headings.
 
 ### DW-51: FrontComposer H-FC-1: rework or re-justify `FcHomeCard` against pinned `FluentCard` support
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: FcHomeCard
 reason: The legacy ledger defers this issue: FrontComposer H-FC-1: rework or re-justify `FcHomeCard` against pinned `FluentCard` support. Original context is preserved in legacy-detail.
 legacy-detail: - FrontComposer H-FC-1: rework or re-justify `FcHomeCard` against pinned `FluentCard` support.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md:130-140 documents the FcHomeCard carve-out; FluentConformanceTests.cs:120-130 pins the allowlist.
 
 ### DW-52: FrontComposer H-FC-2: consider parity guards for structural/style governance
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: FrontComposer H-FC-2: consider parity guards for structural/style governance. Original context is preserved in legacy-detail.
 legacy-detail: - FrontComposer H-FC-2: consider parity guards for structural/style governance.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Tests/Governance/FluentConformanceTests.cs:120-130 enforces raw-control parity with a narrow documented exception.
 
 ### DW-53: Continue the Admin.UI audit remediation handoffs from `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`: `Index.razor` non-semantic clickable semantics, clickable-span remediation, `ActivityChart` a11y proof, `StorageTreemap` semantics/docs, and optional parity guards
 origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-admin-ui-and-query-record-followup`"), 2026-08-25
 location: audit-frontcomposer-shell-adminui-fluent-2026-06-18.md; Index.razor
 reason: The legacy ledger defers this issue: Continue the Admin.UI audit remediation handoffs from `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`: `Index.razor` non-semantic clickable semantics, clickable-span remediation, `ActivityChart` a11y proof, `StorageTreemap` semantics/docs, and optional parity guards. Original context is preserved in legacy-detail.
 legacy-detail: - Continue the Admin.UI audit remediation handoffs from `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`: `Index.razor` non-semantic clickable semantics, clickable-span remediation, `ActivityChart` a11y proof, `StorageTreemap` semantics/docs, and optional parity guards.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Pages/Index.razor:25-51, Components/ActivityChart.razor:28-46, and Components/StorageTreemap.razor:65-76 contain the fixes.
 
 ### DW-54: If EventStore tests still encode the retired Tenants actor-routing assumption, update them under EventStore ownership
 origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-admin-ui-and-query-record-followup`"), 2026-08-25
@@ -384,28 +426,32 @@ origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-r
 location: aging
 reason: The legacy ledger defers this issue: Add or expose shared read-model metadata for persisted projection timestamp/version if D6 threshold-based `aging` and `stale` states need to be computed generically. Original context is preserved in legacy-detail.
 legacy-detail: - Add or expose shared read-model metadata for persisted projection timestamp/version if D6 threshold-based `aging` and `stale` states need to be computed generically.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Client/ReadModels/IReadModelFreshness.cs:22-34, ReadModelFreshness.cs:30-48, and ReadModelFreshnessExtensions.cs:23-85 implement the shared freshness contract.
 
 ### DW-56: Keep the capability in `Hexalith.EventStore` (`IReadModelStore` / query metadata path) rather than adding Tenants-specific persistence scaffolding
 origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-read-model-freshness-metadata`"), 2026-08-25
 location: Hexalith.EventStore
 reason: The legacy ledger defers this issue: Keep the capability in `Hexalith.EventStore` (`IReadModelStore` / query metadata path) rather than adding Tenants-specific persistence scaffolding. Original context is preserved in legacy-detail.
 legacy-detail: - Keep the capability in `Hexalith.EventStore` (`IReadModelStore` / query metadata path) rather than adding Tenants-specific persistence scaffolding.
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Client/ReadModels/IReadModelFreshness.cs:22-34, ReadModelFreshness.cs:30-48, and ReadModelFreshnessExtensions.cs:23-85 implement the shared freshness contract.
 
 ### DW-57: Once available, Tenants can map real persisted projection age/version through configurable thresholds; until then Tenants uses the direct-read ETag/version `current` rule and fails unmarked responses closed to `unknown`
 origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-read-model-freshness-metadata`"), 2026-08-25
 location: current
 reason: The legacy ledger defers this issue: Once available, Tenants can map real persisted projection age/version through configurable thresholds; until then Tenants uses the direct-read ETag/version `current` rule and fails unmarked responses closed to `unknown`. Original context is preserved in legacy-detail.
 legacy-detail: - Once available, Tenants can map real persisted projection age/version through configurable thresholds; until then Tenants uses the direct-read ETag/version `current` rule and fails unmarked responses closed to `unknown`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Queries/TenantQueryResult.cs:38-60 consumes IReadModelFreshness; TenantQueryFreshnessTests.cs:35-85 proves ProjectedAt classification and ServedAt response timing.
 
 ### DW-58: ETag special-character (quote/comma) robustness — latent, non-exploitable. `NormalizeETagToken`/`Trim('"')` unquote any value that starts and ends with `"` (asymmetric vs raw store tokens) in `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:87-107`; the client and server both reject commas with a substring check, dropping a single quoted strong tag whose content legitimately contains a comma (`src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs:25-29`); and client/server normalization disagree on quoted-whitespace/`"*"` edge inputs. These do not bite while DAPR/Redis read-model ETags remain opaque numeric strings without quotes or commas, and the emit→submit→compare round-trip is internally symmetric. Revisit if the EventStore read-model store contract ever emits special-character ETags (ties into the `eventstore-2026-06-19-read-model-freshness-metadata` handoff above)
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening (2026-06-19)"), 2026-08-25
 location: src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:87-107; src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs:25-29
 reason: The legacy ledger defers this issue: ETag special-character (quote/comma) robustness — latent, non-exploitable. Original context is preserved in legacy-detail.
 legacy-detail: - ETag special-character (quote/comma) robustness — latent, non-exploitable. `NormalizeETagToken`/`Trim('"')` unquote any value that starts and ends with `"` (asymmetric vs raw store tokens) in `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:87-107`; the client and server both reject commas with a substring check, dropping a single quoted strong tag whose content legitimately contains a comma (`src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs:25-29`); and client/server normalization disagree on quoted-whitespace/`"*"` edge inputs. These do not bite while DAPR/Redis read-model ETags remain opaque numeric strings without quotes or commas, and the emit→submit→compare round-trip is internally symmetric. Revisit if the EventStore read-model store contract ever emits special-character ETags (ties into the `eventstore-2026-06-19-read-model-freshness-metadata` handoff above).
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:610-650 parses EntityTagHeaderValue and rejects weak, wildcard, empty, duplicate, quoted, and control-bearing validators; TenantsRestQueryClientTests.cs:1165-1469 covers them.
 
 ### DW-59: CSS ownership guard logical longhand spacing — RESOLVED (2026-06-21 hardening). `DomainUiFluentConformanceTests` now tracks the logical longhands (`margin-inline-start/-end`, `padding-block-start/-end`, etc.) alongside the physical longhands and shorthand, with `[InlineData]` coverage for both flagged and zero-reset cases
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-19-domain-ui-governance-and-accessibility-hardening (2026-06-19)"), 2026-08-25
@@ -428,7 +474,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-1
 location: n/a
 reason: The legacy ledger defers this issue: Sibling query ETag special-character robustness — quote/comma ETag edge cases surfaced again because the working-tree diff includes the completed tenant-query hardening story. Original context is preserved in legacy-detail.
 legacy-detail: - Sibling query ETag special-character robustness — quote/comma ETag edge cases surfaced again because the working-tree diff includes the completed tenant-query hardening story. Keep routed under the tenant-query review / EventStore read-model freshness handoff; it is outside the domain UI governance story.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:610-650 parses EntityTagHeaderValue and rejects weak, wildcard, empty, duplicate, quoted, and control-bearing validators; TenantsRestQueryClientTests.cs:1165-1469 covers them.
 
 ### DW-62: Application-level vs native dead-letter framing for operators — RESOLVED (2026-06-21 hardening). `deploy/dapr/README.md:53` now carries an explicit operator note scoping the "no native dead-letter" claim to the `pubsub` component shipped here and warning that an EventStore-provided component may set its own `enableDeadLetter`/`deadLetterTopic`
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup (2026-06-20)"), 2026-08-25
@@ -483,21 +530,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-2
 location: src/Hexalith.Tenants.UI/Composition/TenantsFrontComposerRegistration.cs
 reason: The legacy ledger defers this issue: Global Administrators / Audit discoverability after nav de-listing. Original context is preserved in legacy-detail.
 legacy-detail: - **Global Administrators / Audit discoverability after nav de-listing** — the approved 2026-06-27 IA (AC9) removed `/global-administrators` and audit from the Tenants left-menu; the routes, pages, and `GlobalAdministratorPolicy` are preserved, but the diff adds no module-internal/contextual entry point, so a global administrator can reach the surface only by typing the URL. The sprint-change-proposal explicitly defers this: GA/Audit "remain available through module-internal tabs or contextual entry points ... unless a future module-level IA decision adds them explicitly." Follow-up: when Product confirms the contextual entry-point IA, add a discoverable in-workspace path. (`src/Hexalith.Tenants.UI/Composition/TenantsFrontComposerRegistration.cs`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:35-41 and AuditEvidenceEntryPoint.razor:5-18 expose authorized global-administrator and contextual audit entry points; tests cover both.
 
 ### DW-69: GlobalAdministratorPolicy now registered but unconsumed
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-27-tenants-module-tabbed-workspace — Group 1 re-review (2026-06-27, chunked)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Composition/TenantsFrontComposerRegistration.cs; src/Hexalith.Tenants.UI/Program.cs:33
 reason: The legacy ledger defers this issue: GlobalAdministratorPolicy now registered but unconsumed. Original context is preserved in legacy-detail.
 legacy-detail: - **GlobalAdministratorPolicy now registered but unconsumed** — extends the GA discoverability item above: after the nav `RequiredPolicy:` was removed, `Program.cs:33` still registers `Tenants.GlobalAdministrator` but nothing requires it (the GA page authorizes via `BffComposition` reflection). Retention is intentional pending the deferred contextual-entry-point IA decision; revisit (wire or remove) when that decision lands. (`src/Hexalith.Tenants.UI/Composition/TenantsFrontComposerRegistration.cs`, `src/Hexalith.Tenants.UI/Program.cs:33`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:101-106 registers GlobalAdministratorPolicy; src/Hexalith.Tenants.UI/Program.cs:76-88 applies it.
 
 ### DW-70: Create-tenant freshness gate narrowed `Current or Unknown` → `Current` — RESOLVED 2026-06-30 (CC deferred-work, verify-only)
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-27-tenants-module-tabbed-workspace — Group 1 re-review (2026-06-27, chunked)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; TenantsWorkspace.razor
 reason: The legacy ledger defers this issue: Create-tenant freshness gate narrowed `Current or Unknown` → `Current` — RESOLVED 2026-06-30 (CC deferred-work, verify-only). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Create-tenant freshness gate narrowed `Current or Unknown` → `Current`~~ — RESOLVED 2026-06-30 (CC deferred-work, verify-only)** — the "restore" path was taken: `TenantsWorkspace.razor` `CreateTenantFlow IsFresh` is back to `Freshness is Current or Unknown`, matching the documented first-tenant bootstrap exception (Unknown list freshness remains creatable). No code change this run; verified live. (`src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:416-425 restores Current or the documented authoritative first-tenant Unknown bootstrap case.
 
 ### DW-71: Page-local tabs render empty tabpanels
 origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-27-tenants-module-tabbed-workspace — Group 1 re-review (2026-06-27, chunked)"), 2026-08-25
@@ -525,49 +575,56 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-a
 location: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs
 reason: The legacy ledger defers this issue: No story-specific gateway-routing test — CLOSED 2026-06-30 (CC deferred-work) as already-covered. Original context is preserved in legacy-detail.
 legacy-detail: - **~~No story-specific gateway-routing test~~ — CLOSED 2026-06-30 (CC deferred-work) as already-covered** — verification showed `TenantCommandGatewayTests` already pins the full `system / global-administrators / global-administrators` triple + CommandType + literal payload for both `SetGlobalAdministratorAsync` and `RemoveGlobalAdministratorAsync`. The item was explicitly conditional on the gateway being touched; it was not, so no new (near-duplicate) test was added. (`tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:31-67 pins the fixed aggregate and both command types.
 
 ### DW-75: Terminal failure states reset to a fresh submittable preview on parent re-render (HIGH) — RESOLVED 2026-06-30
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: GlobalAdministratorCorrectionPanel.razor:220; CorrectionStartPanel.razor:286
 reason: The legacy ledger defers this issue: Terminal failure states reset to a fresh submittable preview on parent re-render (HIGH) — RESOLVED 2026-06-30. Original context is preserved in legacy-detail.
 legacy-detail: - **~~Terminal failure states reset to a fresh submittable preview on parent re-render (HIGH)~~ — RESOLVED 2026-06-30** — both panels now preserve any existing snapshot when the intent is unchanged (`_snapshot is not null && !intentChanged → return`), rebuilding only on a different/first intent, so post-submission terminal states survive parent re-renders without re-arming Submit. GA panel already carried the fix + regression test; the tenant panel was fixed in the code review with a matching `Failed_correction_survives_a_parent_re_render_without_re_arming_submit` test. Full UI suite 838/838 green. (`GlobalAdministratorCorrectionPanel.razor:220`, `CorrectionStartPanel.razor:286`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:244-261 preserves unchanged terminal snapshots; CorrectionStartPanelTests.cs:387 covers parity.
 
 ### DW-76: `ConfirmProjection` confirms off a known-Stale projection — RESOLVED 2026-06-30
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: GlobalAdministratorCorrectionSnapshot.cs
 reason: The legacy ledger defers this issue: `ConfirmProjection` confirms off a known-Stale projection — RESOLVED 2026-06-30. Original context is preserved in legacy-detail.
 legacy-detail: - **~~`ConfirmProjection` confirms off a known-Stale projection~~ — RESOLVED 2026-06-30** — two parts: (1) `ConfirmProjection` itself was hardened by the 2026-06-29 review (P2) to require `Kind Ready` + `Freshness Current`; (2) the live residual — the **pre-submit** gate `ProjectionIsReadable` still accepting `Stale`/non-current, which let a platform-authority correction be SUBMITTED against stale evidence — was fixed in the 2026-06-30 code review: `ProjectionIsReadable` now requires `Kind ∈ {Ready,Empty}` **and** `Freshness=Current`, mirroring the confirm/start gates (Empty-current kept for first-admin restore). (`GlobalAdministratorCorrectionSnapshot.cs` `ProjectionIsReadable`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:286-305,365-371 requires Ready/Current evidence and !HasMore before confirmation.
 
 ### DW-77: Corrective-proof lookup may link the wrong historical audit row
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: CorrectionStartPanel.razor
 reason: The legacy ledger defers this issue: Corrective-proof lookup may link the wrong historical audit row. Original context is preserved in legacy-detail.
 legacy-detail: - **Corrective-proof lookup may link the wrong historical audit row** — **GLOBAL-ADMIN RESOLVED 2026-06-30; tenant-domain residual RESOLVED 2026-06-30 (CC deferred-work, Edit F).** The global-admin path requires parseable invariant original timestamp evidence, requests system audit rows from that timestamp, filters strictly newer corrective rows, and reports audit delayed when the timestamp is missing/malformed. The tenant-domain `CorrectionStartPanel.QueryCorrectiveProofAsync` now mirrors that pattern (invariant/roundtrip parse, `From: originalTimestamp`, `Timestamp > original`, newest-first). (`CorrectionStartPanel.razor` `QueryCorrectiveProofAsync`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:531-575 uses invariant parsing and strictly newer proof rows; CorrectionStartPanelTests.cs:478 rejects historical rows.
 
 ### DW-78: Focus call lacks `JSDisconnectedException` guard — RESOLVED 2026-06-30 (CC deferred-work, Edit A)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: GlobalAdministratorCorrectionPanel.razor; CorrectionStartPanel.razor
 reason: The legacy ledger defers this issue: Focus call lacks `JSDisconnectedException` guard — RESOLVED 2026-06-30 (CC deferred-work, Edit A). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Focus call lacks `JSDisconnectedException` guard~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit A)** — both `CorrectionStartPanel` and `GlobalAdministratorCorrectionPanel` `OnAfterRenderAsync` now wrap `_lifecycleElement.FocusAsync()` in `try/catch (JSDisconnectedException)`, matching the existing `TenantAuditPage` guards. (`GlobalAdministratorCorrectionPanel.razor`, `CorrectionStartPanel.razor`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:322-334 and GlobalAdministratorCorrectionPanel.razor:279-291 catch JSDisconnectedException around focus.
 
 ### DW-79: Global-admin projection query unguarded in the page-load critical path — RESOLVED 2026-06-30 (CC deferred-work, Edit B)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: TenantAuditPage.razor
 reason: The legacy ledger defers this issue: Global-admin projection query unguarded in the page-load critical path — RESOLVED 2026-06-30 (CC deferred-work, Edit B). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Global-admin projection query unguarded in the page-load critical path~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit B)** — `LoadAsync` now wraps the supplementary global-administrator enrichment in `catch (… EventStoreGatewayException or HttpRequestException or JsonException)`; the confirm-time path (`OpenCorrectionAsync` / panel provider) keeps propagating. Test `Tenant_audit_page_survives_global_administrator_projection_fault_during_load`. (`TenantAuditPage.razor` `LoadAsync`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:499-513 guards supplementary global-administrator loading; TenantAuditPageTests.cs:801 covers the regression.
 
 ### DW-80: Corrective-proof timestamp uses `CurrentCulture` instead of `InvariantCulture` — RESOLVED 2026-06-30
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
 location: GlobalAdministratorCorrectionSnapshot.cs; GlobalAdministratorCorrectionPanel.razor
 reason: The legacy ledger defers this issue: Corrective-proof timestamp uses `CurrentCulture` instead of `InvariantCulture` — RESOLVED 2026-06-30. Original context is preserved in legacy-detail.
 legacy-detail: - **~~Corrective-proof timestamp uses `CurrentCulture` instead of `InvariantCulture`~~ — RESOLVED 2026-06-30** — the proof *display* timestamp was fixed by the 2026-06-29 review (P9 — `ProofTimestampLabel` uses `InvariantCulture`); the live residual — the `originalTimestamp` *parse* in `WithCorrectiveProof` (and the panel's proof lookup) using ambient culture — was fixed in the 2026-06-30 code review by parsing with `CultureInfo.InvariantCulture` + `DateTimeStyles.RoundtripKind`. The same review also added a time tie-back so the corrective row must be at/after the original event time. (`GlobalAdministratorCorrectionSnapshot.cs` `WithCorrectiveProof`, `GlobalAdministratorCorrectionPanel.razor` `QueryCorrectiveProofAsync`). NB: the tenant-domain `CorrectionStartPanel` (story 5.6) was likewise fixed 2026-06-30 (CC deferred-work, Edit F): `ProofTimestampLabel` and `TenantCorrectionPreviewSnapshot.WithCorrectiveProof` now parse/format with `InvariantCulture`, and the panel has the proof time tie-back.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:438-478 uses invariant timestamp parsing and a strict newer-than proof filter.
 
 ### DW-81: EventCallback→Func drops the parent re-render after confirm refresh (intentional, benign)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)"), 2026-08-25
@@ -581,14 +638,16 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-a
 location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
 reason: The legacy ledger defers this issue: `CorrectionStartPanel` terminal-state focus parity (story 5.6) — RESOLVED 2026-06-30 (CC deferred-work, Edit C). Original context is preserved in legacy-detail.
 legacy-detail: - **~~`CorrectionStartPanel` terminal-state focus parity (story 5.6)~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit C)** — `CorrectionStartPanel.SetSnapshot` now moves keyboard focus on all six terminal states (`Confirmed`/`Failed`/`Rejected`/`Degraded`/`UnableToVerify`/`AlreadyApplied`), mirroring `GlobalAdministratorCorrectionPanel.SetSnapshot`. Test `Panel_rejected_terminal_state_moves_focus_to_lifecycle`. (`src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:361-373 covers all terminal states; CorrectionStartPanelTests.cs:420 covers rejected-state focus.
 
 ### DW-83: Already-logged (2026-06-29), re-confirmed: RESOLVED 2026-07-01 (CC deferred-work):
 origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-administrator-correction-verification — committed bundle re-review (2026-06-30)"), 2026-08-25
 location: GlobalAdministratorCorrectionSnapshot.cs
 reason: The legacy ledger defers this issue: Already-logged (2026-06-29), re-confirmed: RESOLVED 2026-07-01 (CC deferred-work):. Original context is preserved in legacy-detail.
 legacy-detail: - **~~Already-logged (2026-06-29), re-confirmed:~~ RESOLVED 2026-07-01 (CC deferred-work):** global-administrator projection pagination ignored (>20 admins) — the **confirm-time false-`Confirmed`** path (revoke of a page-2 admin reads `!present` ⇒ "proven"), whose raised severity was flagged here, is now closed: `ConfirmProjection` requires `!present && !HasMore` to prove a revoke, and the preview gate fails closed on an incomplete page. Only the full projection-paging redesign remains routed. (`GlobalAdministratorCorrectionSnapshot.cs`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:286-305,365-371 requires Ready/Current evidence and !HasMore before confirmation.
 
 ### DW-84: Already-logged (2026-06-29), re-confirmed:
 origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-administrator-correction-verification — committed bundle re-review (2026-06-30)"), 2026-08-25
@@ -609,42 +668,48 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correcti
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 reason: The legacy ledger defers this issue: Concurrent correction opens can finish projection refresh out of order — RESOLVED 2026-06-30 (CC deferred-work, Edit D). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Concurrent correction opens can finish projection refresh out of order~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit D)** — `OpenCorrectionAsync` now captures a `_correctionOpenGeneration` synchronously at entry and applies the active intent only if still the latest, so an earlier open whose refresh resolves last no longer wins. (`src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` `OpenCorrectionAsync`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:893-925 uses _correctionOpenGeneration so only the newest concurrent open applies.
 
 ### DW-87: Tenant-domain correction can still confirm from stale/degraded tenant detail — RESOLVED 2026-06-30 (CC deferred-work, Edit E)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-30)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 reason: The legacy ledger defers this issue: Tenant-domain correction can still confirm from stale/degraded tenant detail — RESOLVED 2026-06-30 (CC deferred-work, Edit E). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Tenant-domain correction can still confirm from stale/degraded tenant detail~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit E)** — `RefreshTenantProjectionAsync` (the tenant confirm-time provider) now returns the projection only when `Freshness is Current`, else `null`, so `ConfirmProjection(null)` fails closed instead of confirming off stale evidence (parity with the GA `Freshness=Current` gate). Test `Panel_does_not_confirm_when_projection_refresh_provider_returns_no_fresh_projection`. (`src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` `RefreshTenantProjectionAsync`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1042-1062 returns confirmation evidence only for Current freshness; CorrectionStartPanelTests.cs:451 covers fail-closed behavior.
 
 ### DW-88: Tenant-domain corrective proof lookup can link unrelated historical rows — RESOLVED 2026-06-30 (CC deferred-work, Edit F)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-30)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
 reason: The legacy ledger defers this issue: Tenant-domain corrective proof lookup can link unrelated historical rows — RESOLVED 2026-06-30 (CC deferred-work, Edit F). Original context is preserved in legacy-detail.
 legacy-detail: - **~~Tenant-domain corrective proof lookup can link unrelated historical rows~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit F)** — `QueryCorrectiveProofAsync` now parses `originalTimestamp` (`InvariantCulture`+`RoundtripKind`), lower-bounds the audit query with `From: originalTimestamp`, filters `row.Timestamp > originalTimestamp`, newest-first; missing/malformed timestamp ⇒ audit-delayed. Test `Panel_proof_lookup_ignores_audit_row_not_newer_than_the_original_event`. (`src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor` `QueryCorrectiveProofAsync`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:531-575 uses invariant parsing and strictly newer proof rows; CorrectionStartPanelTests.cs:478 rejects historical rows.
 
 ### DW-89: Scheduled performance workflow lacks the EventStore opt-in — the shared `domain-ci.yml` performance job invokes the `Category=Performance` lane without `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1`, while `DaprPerformanceFactAttribute` requires that variable
 origin: migrated from legacy ledger ("Deferred from: run-all-tests-and-fix-failures review (2026-07-14)"), 2026-08-25
 location: references/Hexalith.Builds/.github/workflows/domain-ci.yml; domain-ci.yml
 reason: The legacy ledger defers this issue: Scheduled performance workflow lacks the EventStore opt-in — the shared `domain-ci.yml` performance job invokes the `Category=Performance` lane without `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1`, while `DaprPerformanceFactAttribute` requires that variable. Original context is preserved in legacy-detail.
 legacy-detail: - **Scheduled performance workflow lacks the EventStore opt-in** — the shared `domain-ci.yml` performance job invokes the `Category=Performance` lane without `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1`, while `DaprPerformanceFactAttribute` requires that variable. Local verification explicitly enabled it and executed the 500,000-event benchmark, but the scheduled shared workflow can report a skip. Fix belongs in `Hexalith.Builds` and requires separate submodule approval; add the environment variable to the shared performance job and validate a scheduled-shaped run. (`references/Hexalith.Builds/.github/workflows/domain-ci.yml`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: references/Hexalith.Builds/.github/workflows/domain-ci.yml:569-577,587-595 enables performance tests for both VSTest and MTP lanes.
 
 ### DW-90: Zero test changes despite several identified Tenants-rendering gaps
 origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify-frontcomposer-shell-and-fluent-contracts (2026-07-19)"), 2026-08-25
 location: story-1-0-frontcomposer-fluent-reverification-2026-07-19.md
 reason: The legacy ledger defers this issue: Zero test changes despite several identified Tenants-rendering gaps. Original context is preserved in legacy-detail.
 legacy-detail: - **Zero test changes despite several identified Tenants-rendering gaps** — Size16 vs required Size20 icons, missing `IconLabel`, unpinned freshness safety column, missing `MessageBarLayout.Notification`/`AriaLive` usage (`story-1-0-frontcomposer-fluent-reverification-2026-07-19.md` FC-TOK/FC-TBL rows). AC5's own wording is conditional ("add tests only when they guard a confirmed Tenants boundary"), so whether any of these gaps currently qualify is a judgment call for whichever story next touches badge/grid rendering, not a clear miss by this verification-only story.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:94-108 and src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:63-75 pin Size20 icons, IconLabel, and the freshness column.
 
 ### DW-91: No tracking ticket/issue for the FrontComposer-owned gaps
 origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify-frontcomposer-shell-and-fluent-contracts (2026-07-19)"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: No tracking ticket/issue for the FrontComposer-owned gaps. Original context is preserved in legacy-detail.
 legacy-detail: - **No tracking ticket/issue for the FrontComposer-owned gaps** this story identifies (FC-CMD, FC-CNC, FC-TBL, FC-TOK) — "assign to FrontComposer" has no actual assignment mechanism in this repo's process. Matches the existing routing convention in this file's "Cross-Submodule Owner Handoffs" section, which this story's four gaps should eventually feed as new entries once an owning FrontComposer task is opened.
-status: open
+status: done 2026-08-25
+resolution: already resolved: _bmad-output/implementation-artifacts/deferred-work.md:642-647 is now the repository tracking mechanism for the FrontComposer handoff.
 
 ### DW-92: `sprint-status.yaml`'s flat per-story status can't represent "review with 2 of 5 sub-contracts blocked"
 origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify-frontcomposer-shell-and-fluent-contracts (2026-07-19)"), 2026-08-25
@@ -658,28 +723,32 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify
 location: _bmad-output/implementation-artifacts/sprint-status.yaml:52-64
 reason: The legacy ledger defers this issue: Epic 1 is marked done while most child stories remain backlog or review. Original context is preserved in legacy-detail.
 legacy-detail: - **`epic-1: done` while most of Epic 1's 12 stories remain `backlog`/`review`** (`_bmad-output/implementation-artifacts/sprint-status.yaml:52-64`) — only 3 of 12 stories under Epic 1 (1-3, 1-5, 1-7) are `done`; the rest (1-0, 1-1, 1-2, 1-4, 1-6, 1-8 through 1-11) are `backlog`/`review`, yet `epic-1` and `epic-1-retrospective` are both marked `done`, violating the file's own documented rule ("done: All stories in epic completed"). Pre-existing — the `epic-1`/`epic-1-retrospective` lines are untouched by this story's diff (only the `1-0-...` status line changed). Likely stale from the epics.md renumbering during the 2026-07-19 sprint-change-proposal rollout (see memory `prd-edit-2026-07-17-scp-0715-prd-slice`); route to a sprint-planning resync, not a fix within this story.
-status: open
+status: done 2026-08-25
+resolution: already resolved: _bmad-output/implementation-artifacts/sprint-status.yaml:52-67 marks Epic 1 and every child story done, removing the aggregate-status conflict.
 
 ### DW-94: Reusable release caller omits required publication-authority inputs
 origin: migrated from legacy ledger ("Deferred from: code review of 1-1-reverify-ui-host-bootstrap-and-canonical-workspace (2026-07-19)"), 2026-08-25
 location: github/workflows/release.yml; github/workflows/release.yml:29
 reason: The legacy ledger defers this issue: Reusable release caller omits required publication-authority inputs. Original context is preserved in legacy-detail.
 legacy-detail: - **Reusable release caller omits required publication-authority inputs** — `.github/workflows/release.yml` already enabled container publication without `builds-execution-sha`, `release-authority-url`, or `release-owner-allowlist`; the shared `domain-release.yml` rejects their empty defaults before publication. This predates Story 1.1's UI mapping and requires a separately authorized release-governance fix. (`.github/workflows/release.yml:29`; `references/Hexalith.Builds/.github/workflows/domain-release.yml:95`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 6cc9eb3a; .github/workflows/release.yml:268-296 pins the Builds caller identity and supplies required execution, source, and publication inputs.
 
 ### DW-95: Submodule pointer upgrades require their own review
 origin: migrated from legacy ledger ("Deferred from: code review of 1-1-reverify-ui-host-bootstrap-and-canonical-workspace (2026-07-19)"), 2026-08-25
 location: references/Hexalith.Builds; references/Hexalith.FrontComposer
 reason: The legacy ledger defers this issue: Submodule pointer upgrades require their own review. Original context is preserved in legacy-detail.
 legacy-detail: - **Submodule pointer upgrades require their own review** — the Builds and FrontComposer pointer changes were present before Story 1.1 implementation and alter shared build/UI inputs. Review and land those dependency changes independently rather than absorbing them into this story's patch set. (`references/Hexalith.Builds`; `references/Hexalith.FrontComposer`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits daf6c76c and 10db1cee subsequently moved Builds, EventStore, and FrontComposer pointers in dedicated build(deps) commits.
 
 ### DW-96: Epic 1 aggregate status conflicts with child stories
 origin: migrated from legacy ledger ("Deferred from: code review of 1-1-reverify-ui-host-bootstrap-and-canonical-workspace (2026-07-19)"), 2026-08-25
 location: _bmad-output/implementation-artifacts/sprint-status.yaml:52
 reason: The legacy ledger defers this issue: Epic 1 aggregate status conflicts with child stories. Original context is preserved in legacy-detail.
 legacy-detail: - **Epic 1 aggregate status conflicts with child stories** — `epic-1` remains `done` while Story 1.1 is in review and multiple children are backlog. The aggregate line predates this story and should be reconciled by sprint planning. (`_bmad-output/implementation-artifacts/sprint-status.yaml:52`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: _bmad-output/implementation-artifacts/sprint-status.yaml:52-67 marks Epic 1 and every child story done, removing the aggregate-status conflict.
 
 ### DW-97: `EXPECTED_DEPENDENCIES` is hand-duplicated between `scripts/validate-nuget-packages.py` and its test mirror in `CiQualityGateScriptTests.cs`
 origin: migrated from legacy ledger ("Deferred from: code review of run-all-tests-and-fix-failures-2 (2026-07-20)"), 2026-08-25
@@ -700,7 +769,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-l
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:484-487
 reason: The legacy ledger defers this issue: `NextPageAsync` unguarded `NextCursor==null`. Original context is preserved in legacy-detail.
 legacy-detail: - **`NextPageAsync` unguarded `NextCursor==null`** — the Next button is gated only on `!_snapshot.HasMore`; a backend contract violation (`HasMore==true` with a null `NextCursor`) would push the current cursor to history and set the cursor to null, bouncing the user to page 1 with a growing back-stack. Defensive only — the platform opaque-cursor contract guarantees a next cursor whenever `HasMore` is true. Follow-up: disable Next on `!HasMore || NextCursor is null`, or guard before consuming. (`src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:484-487`)
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:452-458,1050-1058 requires a non-null cursor in both affordance enablement and handler execution.
 
 ### DW-100: Grid cannot return to the default `TenantId` ordering except via toolbar Reset
 origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-list-triage-and-cursor-foundation (2026-07-20)"), 2026-08-25
@@ -782,7 +852,8 @@ location: LegacyConfigurationDisplaySanitizer
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: Legacy configuration display safety remains a deny-list that can miss unrecognized secret formats. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Legacy configuration display safety remains a deny-list that can miss unrecognized secret formats. evidence: `LegacyConfigurationDisplaySanitizer` preserves the pre-existing command-preview display policy by accepting every non-empty key/value pair that lacks listed fragments, so values such as unknown API-key formats may still render until Story 1.6 supplies a positive safe model.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 5a401654; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:36-48,167-186 replaced the deny-list sanitizer with explicitly display-safe keys and rows.
 
 ### DW-111: Configuration keys that fail the legacy display-safety policy remain visible even while their paired values are redacted
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -790,7 +861,8 @@ location: TenantConfigurationView.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: Configuration keys that fail the legacy display-safety policy remain visible even while their paired values are redacted. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Configuration keys that fail the legacy display-safety policy remain visible even while their paired values are redacted. evidence: `TenantConfigurationView.razor` always renders `context.Key`; `LegacyConfigurationDisplaySanitizer.IsDisplayable(key, value)` only controls value replacement, so a key containing a known sensitive literal remains exposed in the DOM and accessibility label. This display behavior predates the copy-policy change.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs:167-186 and TenantConfigurationView.razor:116-147 exclude unsafe keys from the safe model.
 
 ### DW-112: The authoritative-search status filter's visible label and accessible name can describe different scopes
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -894,7 +966,8 @@ location: TenantDataGrid.razor:76; MyTenantsDataGrid.razor:75
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The pass-2 finding "Seven new Lifecycle bindings unverified end-to-end on any real surface" was checked off after closing 1 of 13 binding sites. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The pass-2 finding "Seven new Lifecycle bindings unverified end-to-end on any real surface" was checked off after closing 1 of 13 binding sites. evidence: `grep 'Lifecycle="'` finds 13 sites — `TenantDataGrid.razor:76`, `MyTenantsDataGrid.razor:75`, `AuditDataGrid.razor:54`, `GlobalAdministratorsPage.razor:347`, `TenantDetailPage.razor:115/144/165/186`, `TenantConfigurationView.razor:15/129`, `MemberAccessReview.razor:19/116`, `TenantLifecycleActionAvailability.razor:25`. Only `TenantDataGrid` gained a rendered-lifecycle assertion (`TenantListSurfaceTests.cs:1002-1005`), and it was mutation-verified. `truth-state-badge--*` appears nowhere else outside `TruthStateBadgeTests`, which the original finding already deemed insufficient. The 12 remaining sites are other stories' surfaces (tenant detail, configuration, member review, audit, global administrators), so covering them is not story-1.9 work. status: open — the pass-2 checkbox at `spec-1-9-…-paging.md:243` should be corrected to record partial closure.
-status: open
+status: done 2026-08-25
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:55-62, GlobalAdministratorsPageTests.cs:415-422, TenantDetailSurfaceTests.cs:3803-3929, MyTenantsSurfaceTests.cs:61-65, and TenantLifecycleActionAvailabilityTests.cs:122-126 cover the formerly missing rendered lifecycle surfaces.
 
 ### DW-125: A third divergent global-administrator claim parser now coexists with the existing two, so the same signed-in user can be a proven administrator for configuration and Indeterminate for tenant lifecycle
 origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration.md (2026-07-27)"), 2026-08-25
@@ -902,7 +975,8 @@ location: _bmad-output/implementation-artifacts/1-6-read-only-tenant-configurati
 source_spec: `_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md`
 reason: The legacy ledger defers this issue: A third divergent global-administrator claim parser now coexists with the existing two, so the same signed-in user can be a proven administrator for configuration and Indeterminate for tenant lifecycle. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md` summary: A third divergent global-administrator claim parser now coexists with the existing two, so the same signed-in user can be a proven administrator for configuration and Indeterminate for tenant lifecycle. evidence: `TenantConfigurationPrincipalResolver.cs:102-194` vs `Services/Gateways/TenantsGlobalAdministratorClaims.cs`. Four divergences verified at `ec7ec8c` and still present at HEAD: malformed JSON role array yields Indeterminate in the new resolver but falls through to delimiter parsing in the old one; an unparseable `global_admin` yields Indeterminate vs `false`; `{`-prefixed role values yield Indeterminate vs split-parsed; claims are read across all identities in the old parser but only from the single authenticated identity in the new one. Consolidating into one three-state resolver that the boolean parser collapses would touch lifecycle and global-administrator surfaces owned by other stories. status: open — needs a cross-story owner; reopen trigger is any new surface that needs administrator evidence, or a reported disagreement between configuration and lifecycle authorization for the same user.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:90-95 delegates to the corroborated TenantsGlobalAdministratorClaims parser.
 
 ### DW-126: Lifecycle and global-administrator authorization reflections still read `HttpContext.User` with no circuit fallback, while the new configuration path has one
 origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration.md (2026-07-27)"), 2026-08-25
@@ -955,7 +1029,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: n/a
 reason: The legacy ledger defers this issue: The release-published tenants container image fails to start under Production defaults, failing the container smoke test and aborting every release after packages are already pushed. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: none summary: The release-published tenants container image fails to start under Production defaults, failing the container smoke test and aborting every release after packages are already pushed. evidence: Run 30340676669 evidence artifact, smoke-linux-amd64.log - OptionsValidationException requires Authentication:JwtBearer:Authority to be an absolute HTTPS URI (published appsettings.json has "") and requires SigningKey to be empty (it is not, in the container). amd64 exited 139, arm64 hit liveness-timeout. Only host-affecting change since the last successful release b3d01c53 is a7ca142, which moved Hexalith.EventStore.Gateway to a PackageReference on the non-source path, changing which appsettings.json wins in the container publish. Blocks release completion, not just this one.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 5efbbe75; .github/workflows/release.yml:281-287 pins the Builds smoke fix, whose smoke_container_platforms.py:44,213-223 uses Development hosting and explicit safe smoke authentication.
 
 ### DW-133: BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `docs` commit rather than inside a feature story (Hexalith commitlint forbids `chore`)
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-28)"), 2026-08-25
@@ -985,7 +1060,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79
 reason: The legacy ledger defers this issue: `EventStore:BaseAddress` already accepted Aspire compound schemes before Story 1.10, but neither the EventStore gateway client nor the tenant command client attaches `.AddServiceDiscovery()`. Original context is preserved in legacy-detail.
 legacy-detail: - `EventStore:BaseAddress` already accepted Aspire compound schemes before Story 1.10, but neither the EventStore gateway client nor the tenant command client attaches `.AddServiceDiscovery()`. A compound address can therefore be marked connected and fail when sent. This is real command/status transport debt, but it predates the active direct-read change and remains outside the chunk-1 patch set. **Canonical open entry** for this debt (later 2026-07-30 chunk A+B item is a duplicate reaffirmation). [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:79]
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:162-167 rejects compound service-discovery schemes and accepts only exact http/https.
 
 ### DW-137: Future feature — reversible route identifiers:
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29)"), 2026-08-25
@@ -1040,7 +1116,8 @@ location: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtension
 source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
 reason: The legacy ledger defers this issue: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` summary: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. `https+http://eventstore`) by the same `TryGetHttpBaseAddress` gate used for the read side, but no service discovery is attached to the command/status clients, so such a value can only fail at send time. evidence: The scheme gate is shared at `src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:96`, while `.AddServiceDiscovery()` is attached only to the Tenants read client at `:74`. Pre-existing: the command-side gate predates Story 1.10's read transport. status: closed-as-duplicate (2026-08-08, Story 1.11 loop 7) — reaffirmation only; keep the 2026-07-29 `EventStore:BaseAddress` / missing `.AddServiceDiscovery()` bullet as the single open entry. Resolve together with the read-side service-discovery provider decision recorded in the 2026-07-30 review findings.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:162-167 rejects compound service-discovery schemes and accepts only exact http/https.
 
 ### DW-144: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Raised by the owner during the 1.10 review: DAPR is the intended discovery mechanism for services with sidecars. Not actionable inside 1.10 — it is a topology and security-posture change, not a base-address swap
 origin: migrated from legacy ledger ("Architectural decision recorded by code review of spec-1-10 (2026-07-30) — BFF read transport vs DAPR service invocation"), 2026-08-25
@@ -1085,7 +1162,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:394-400
 reason: The legacy ledger defers this issue: Read-refresh lease retry is unverified on the tenant detail page. Original context is preserved in legacy-detail.
 legacy-detail: - **Read-refresh lease retry is unverified on the tenant detail page** — every detail-page test stubs `IProjectionSubscription.SubscribeAsync` to a successful subscription, so `lease.IsSubscribed` is always true. The `if (!lease.IsSubscribed) return;` early return and the `OnAfterRenderAsync` retry that exists to recover a superseded or failed setup are both unexecuted; recording the empty lease anyway, or deleting the `OnAfterRenderAsync` override outright, survives the suite. `TenantReadRefreshSubscriptionTests` proves a failed setup returns a non-subscribed lease rather than throwing, and `GlobalAdministratorsPageTests` is exactly the retry test the detail page lacks. Reason for deferral: the shared read-refresh lease pattern is not a Story 1.6 surface — the same gap applies to every page that binds a lease, and the sibling page already carries the canonical test to copy. Revisit if: a lease-setup failure is ever observed in a running circuit, or the read-refresh pattern is consolidated. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:394-400,441-446]
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:804-888 and TenantDetailSurfaceTests.cs:7438-7501 implement three bounded setup attempts and a fresh route budget.
 
 ### DW-150: An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh
 origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-31)"), 2026-08-25
@@ -1099,21 +1177,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: references/Hexalith.EventStore; scripts/validate-story-gitlinks.py
 reason: The legacy ledger defers this issue: Undeclared `references/Hexalith.EventStore` gitlink bump in the working tree. Original context is preserved in legacy-detail.
 legacy-detail: - **Undeclared `references/Hexalith.EventStore` gitlink bump in the working tree** — `a40ab8a` → `e4618d9` (v3.86.0), uncommitted and named in no story File List. `scripts/validate-story-gitlinks.py` also exits 1 for Story 1.6, but every UNDECLARED pointer it reports was moved by a Story 1.9 / Epic 2 commit after this story's stale baseline; no Story 1.6 commit after `ec7ec8c` moves a gitlink, and `ec7ec8c`'s EventStore bump is declared. Separately worth noting: nine of those later bumps rode along inside `feat:`/`fix:`/`test:`/ `refactor:` commits rather than dedicated `build(deps)` commits — the exact pattern the guard was created for, now recurring under other stories' names. Reason for deferral: not Story 1.6's change. Belongs to whoever is holding the working-tree bump, as either a separate `build(deps)` commit or a revert. Revisit if: the bump is committed without declaration, or the ride-along pattern recurs a fourth time. [references/Hexalith.EventStore]
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 10db1cee moved the EventStore pointer to 67c645ab02b21ffcb7bef9530e524e4510e36d27; the current lowercase submodule status is unrelated worktree dirt.
 
 ### DW-152: Composition availability-pair guard is logically asymmetric
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:60; Program.cs
 reason: The legacy ledger defers this issue: Composition availability-pair guard is logically asymmetric. Original context is preserved in legacy-detail.
 legacy-detail: - **Composition availability-pair guard is logically asymmetric** — `gatewayIsUnavailable` compares `ServiceDescriptor.ImplementationType` against `UnavailableTenantQueryGateway`, which is `internal` and is null for factory- or instance-registered services. A host declaring a truthful `IsConnected: false` alongside any other gateway is therefore rejected with the inverted message "declares IsConnected: false while the registered ITenantQueryGateway is a connected implementation", while the mismatched pairing the guard exists to catch — `UnavailableTenantQueryGateway` registered via a factory with `IsConnected: true` — passes. The check is also skipped entirely unless availability is registered as an instance. Reason for deferral: unreachable in practice. `Hexalith.Tenants.UI` ships as a container application, not a NuGet package; the only production caller is its own `Program.cs`, which pre-registers nothing; and the sole assemblies that can name the internal type are the two test projects, which use the instance form. Revisit if: `Hexalith.Tenants.UI` is ever published as a package, or a second host composes the module. [src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:60]
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:57-87 handles type, instance, and unknowable factory registrations with tri-state matching.
 
 ### DW-153: Member mutation flows are outside the projection-lifecycle policy
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:223
 reason: The legacy ledger defers this issue: Member mutation flows are outside the projection-lifecycle policy. Original context is preserved in legacy-detail.
 legacy-detail: - **Member mutation flows are outside the projection-lifecycle policy** — `ChangeTenantMemberRoleFlow`, `RemoveTenantMemberFlow`, `AddTenantMemberFlow` and `CreateTenantFlow` have no `Lifecycle` parameter and gate on freshness and surface kind only, while `33abe27` added `Lifecycle is not Current` gates to the four configuration and metadata flows. With a rebuilding projection, editing tenant metadata is blocked but removing a member — the higher-consequence, harder-to-reverse action — is not. Reason for deferral: consequence of the open lifecycle-gate decision recorded in the story's loop-8 review findings, not an independent defect. Resolving that decision determines whether these flows should be brought into the policy or the policy narrowed. Revisit if: the lifecycle-gate decision resolves toward keeping the strict gate. [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:223]
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:511-522 requires current detail/member lifecycle and freshness evidence with matching nonblank projection versions.
 
 ### DW-154: Two global-administrator teardown paths are knowingly unverified
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
@@ -1141,7 +1222,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6044
 reason: The legacy ledger defers this issue: `RestQueryClientAdapter` carries 13 lines of dead freshness computation that re-implement `TenantsRestQueryClient.ResolveFreshness`, discard the result, and omit the `IsDegraded == true` collapse both production implementations perform — so it will drift silently while reading as if it models the client. Original context is preserved in legacy-detail.
 legacy-detail: - `RestQueryClientAdapter` carries 13 lines of dead freshness computation that re-implement `TenantsRestQueryClient.ResolveFreshness`, discard the result, and omit the `IsDegraded == true` collapse both production implementations perform — so it will drift silently while reading as if it models the client. Reason for deferral: subsumed by the open decision on the gateway test harness. Whether to delete the block or delete the whole adapter depends on which option that decision takes. Revisit if: the harness decision resolves. [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6044]
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 845a15e4; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:7348-7415 confirms the dead adapter freshness ladder was removed.
 
 ### DW-158: `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
@@ -1271,7 +1353,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171
 reason: The legacy ledger defers this issue: TenantsWorkspace nests ProjectionLifecycleBadge inside polite atomic status region — deferred, pre-existing lifecycle-badge composition (not core 1.11 auth). Original context is preserved in legacy-detail.
 legacy-detail: - TenantsWorkspace nests ProjectionLifecycleBadge inside polite atomic status region — deferred, pre-existing lifecycle-badge composition (not core 1.11 auth) [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171]
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit dc2639f0; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:175-181 renders ProjectionLifecycleStatus outside the notices live region.
 
 ### DW-176: Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
@@ -1320,7 +1403,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:146
 reason: The legacy ledger defers this issue: EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page — deferred, covered by EditTenantMetadataFlowTests. Original context is preserved in legacy-detail.
 legacy-detail: - EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page — deferred, covered by EditTenantMetadataFlowTests [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:146]
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits a53cb979 and ad18d62c; TenantDetailPage.razor:149-160 binds lifecycle/proof inputs and TenantDetailSurfaceTests.cs:2942-2961 opens metadata through the page boundary.
 
 ### DW-183: Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
@@ -1371,7 +1455,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Projection-version advancement is opaque inequality only, with no causal/audit-qualified branch. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Projection-version advancement is opaque inequality only, with no causal/audit-qualified branch. evidence: Confirm uses non-equal non-empty version strings; safe audit provenance newer than baseline remains unimplemented though the Always clause allows version OR audit.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 28d32ca8; src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs:36-70 requires exact command-event evidence and ordered causal advancement.
 
 ### DW-190: AggregateAdmissionGate falls back to a page-private instance when DI resolution fails
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation.md (2026-08-08)"), 2026-08-25
@@ -1379,7 +1464,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: AggregateAdmissionGate falls back to a page-private instance when DI resolution fails. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: AggregateAdmissionGate falls back to a page-private instance when DI resolution fails. evidence: A private gate cannot enforce circuit-scoped AggregateIdentity admission shared with other consumers; only the DI-registered singleton does.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit d3f74f58; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:411-412 resolves the admission gate only from DI.
 
 ### DW-191: SignalR nudge is skipped when MemberAccessReview ref is still null
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation.md (2026-08-08)"), 2026-08-25
@@ -1395,7 +1481,8 @@ location: scripts/validate-story-gitlinks.py; python3 scripts/validate-story-git
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: The mandatory story gitlink validator fails against current HEAD because seven unrelated submodule pointer bumps landed after the isolated Story 2.1 commit. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: The mandatory story gitlink validator fails against current HEAD because seven unrelated submodule pointer bumps landed after the isolated Story 2.1 commit. evidence: `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` reports all seven `references/` pointers as undeclared between baseline `222d5ac` and HEAD `020b099`, while `222d5ac..29c4aec` changes no gitlink.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 44362aed; spec-2-1-projection-backed-tenant-list.md:147-161 declares all seven pointers and the default validator passes against current HEAD.
 
 ### DW-193: Story 2.4b — provenance reconciliation refinements, WP-2A removal-proof assembly (`audit_available`), proof-capability fail-closed gating, and proof-state recovery/tests
 origin: migrated from legacy ledger ("Deferred from: bmad-build scope split of Story 2.4 (2026-08-08)"), 2026-08-25
@@ -1403,7 +1490,8 @@ location: audit_available
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Story 2.4b — provenance reconciliation refinements, WP-2A removal-proof assembly (`audit_available`), proof-capability fail-closed gating, and proof-state recovery/tests. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Story 2.4b — provenance reconciliation refinements, WP-2A removal-proof assembly (`audit_available`), proof-capability fail-closed gating, and proof-state recovery/tests. evidence: Split from Story 2.4 so the first delivery goal (2.4a eligibility, complete preview, elevated friction, destructive dialog, dispatch, AggregateIdentity lock) stays within the 900–1600 token spec budget; Story 2.4 remains incomplete until 2.4b also passes.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit fa5ca559; spec-2-4b-wp-2a-removal-proof-and-audit-available.md:1-5 is done and RemoveTenantMemberFlow.razor:985-1080 implements proof assembly.
 
 ### DW-194: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-08)"), 2026-08-25
@@ -1427,7 +1515,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending. evidence: GetTenantAuditAsync is called once without following HasMore/NextCursor; paging loop was deferred to keep this slice within review-patch scope.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:985-1080 walks bounded audit pages and detects cursor loops.
 
 ### DW-197: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available.md (2026-08-08)"), 2026-08-25
@@ -1435,7 +1524,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: Proof-capability fail-closed detects only null/UnavailableTenantQueryGateway, not a live stale/unknown audit-capability probe before open. evidence: Per-row audit probes would add latency on every member render; Always clause capability language remains partially approximated until a shared capability signal exists.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1650-1724 performs a live current scoped projection-backed audit-capability probe.
 
 ### DW-198: Default `validate-story-gitlinks.py` execution compares the Story 2.4 baseline to the later repository `HEAD` and reports seven undeclared `references/` pointer moves made by post-story dependency commits. Exact story-range validation with `--ref fa5ca559` passes for both 2.4 specifications with no gitlink changes. Keep the later dependency bumps outside Story 2.4 review scope; make story-end range selection durable if old stories must remain independently re-reviewable after `main` advances
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-19)"), 2026-08-25
@@ -1474,7 +1564,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Create confirmation cannot correlate projection evidence to this attempt's messageId; concurrent same-id creates or unrelated list ProjectionVersion churn can still satisfy absence-then-presence + version rules. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Create confirmation cannot correlate projection evidence to this attempt's messageId; concurrent same-id creates or unrelated list ProjectionVersion churn can still satisfy absence-then-presence + version rules. evidence: ConfirmProjection uses metadata match plus opaque list/detail version advancement only; command-specific audit provenance branch remains unused (AttemptStartedAtUtc captured but not applied).
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit b2b80941; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:307-375 requires exact tracked-command evidence plus ordered projection advancement or first appearance.
 
 ### DW-203: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-08)"), 2026-08-25
@@ -1490,7 +1581,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: SignalR-elevated ProjectionPending can still confirm after unrelated projection-version advancement on metadata (and sibling create/membership) flows. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: SignalR-elevated ProjectionPending can still confirm after unrelated projection-version advancement on metadata (and sibling create/membership) flows. evidence: Story 3.2 edge-case review; SignalRNudge promotes Accepted/RequestSent to ProjectionPending without EventsStored, then ConfirmProjection may confirm on version inequality that is not command-qualified.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits b2b80941 and a53cb979; TenantCreateCommandModels.cs:299-305 treats SignalR as a nudge and :1394-1409 requires command-specific provenance.
 
 ### DW-205: Edit metadata confirmation does not pass live audit-row provenance into ConfirmProjection (version advancement only on the live path)
 origin: migrated from legacy ledger ("Deferred from: implementation of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-08)"), 2026-08-25
@@ -1498,7 +1590,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Edit metadata confirmation does not pass live audit-row provenance into ConfirmProjection (version advancement only on the live path). Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Edit metadata confirmation does not pass live audit-row provenance into ConfirmProjection (version advancement only on the live path). evidence: Story 3.2 verification-gap review; AttemptStartedAtUtc and hasQualifyingAuditProvenance exist on the snapshot API but EditTenantMetadataFlow never supplies audit qualification (unlike remove-member WP-2A).
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit a53cb979; TenantDetailPage.razor:159-160 supplies AuditEvidenceProvider and TenantCreateCommandModels.cs:1399-1408 validates matching audit proof.
 
 ### DW-206: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage
 origin: migrated from legacy ledger ("Deferred from: implementation of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-08)"), 2026-08-25
@@ -1514,7 +1607,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID. evidence: Story 3.2 edge-case review; same reuseMessageId pattern exists on AddTenantMemberFlow and was not uniquely introduced for metadata.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits a53cb979 and c910ea83; EditTenantMetadataFlow.razor:605-625 reuses an ID only for the same recoverable attempt.
 
 ### DW-208: Configuration filter comment claims Ordinal matching while FilteredRows uses OrdinalIgnoreCase
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-6-read-only-tenant-configuration.md (2026-08-09)"), 2026-08-25
@@ -1522,7 +1616,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration.md`
 reason: The legacy ledger defers this issue: Configuration filter comment claims Ordinal matching while FilteredRows uses OrdinalIgnoreCase. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration.md` summary: Configuration filter comment claims Ordinal matching while FilteredRows uses OrdinalIgnoreCase. evidence: Pre-existing comment/code mismatch in TenantConfigurationView.razor; not introduced by the FluentStack host migration reviewed in this pass.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 84ad930d; src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:177-185 documents and implements Ordinal case-sensitive matching.
 
 ### DW-209: Extend PageLayoutDeclarationTests runtime shell coverage beyond TenantsWorkspace/UserMembershipLookup to MyTenants, TenantAudit, and GlobalAdministrators full-width measure
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1570,7 +1665,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
 reason: The legacy ledger defers this issue: Align RemoveTenantMemberFlowTests StubTenantsLocalizer keys/values with shipped TenantsResources (EN/FR) so LocalizerDoubleParityTests passes. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Align RemoveTenantMemberFlowTests StubTenantsLocalizer keys/values with shipped TenantsResources (EN/FR) so LocalizerDoubleParityTests passes. evidence: Pre-existing full UI suite failure (1997/1998) unrelated to page-layout governance patches; stub audit-receipt keys drift from resx.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; LocalizerDoubleParityTests passes and removal preview/audit keys match shipped EN/FR resources.
 
 ### DW-215: Align release-tag validation with semantic-release SemVer parsing
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1642,7 +1738,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Page through bounded tenant-audit results while assembling remove-member proof. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Page through bounded tenant-audit results while assembling remove-member proof. evidence: The existing proof query reads only the first audit page and ignores HasMore and NextCursor, so a qualifying event outside the first page is never found.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; RemoveTenantMemberFlow.razor:985-1080 implements the bounded multi-page audit walk required by this duplicate.
 
 ### DW-224: Require current projection lifecycle, freshness, and projection-backed provenance before promoting removal audit evidence to available proof
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1650,7 +1747,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Require current projection lifecycle, freshness, and projection-backed provenance before promoting removal audit evidence to available proof. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Require current projection lifecycle, freshness, and projection-backed provenance before promoting removal audit evidence to available proof. evidence: A Ready audit surface can carry unknown lifecycle or provenance, yet the current proof path accepts its rows once the surface is neither stale nor degraded.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; RemoveTenantMemberFlow.razor:1017-1054 requires current row/page freshness, lifecycle, projection provenance, and a ready receipt before AuditAvailable.
 
 ### DW-225: Replace client/server wall-clock matching for removal proof with a causally stable boundary
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1666,7 +1764,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Downgrade retained global-administrator evidence when a tenant-detail supplementary refresh fails. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Downgrade retained global-administrator evidence when a tenant-detail supplementary refresh fails. evidence: The existing refresh failure path keeps the previous Current and complete snapshot unchanged, allowing a removal preview to continue asserting platform standing from silently stale evidence.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; TenantDetailPage.razor:958-980 fail-closes retained GA evidence on refresh failure and :1737-1753 downgrades unsafe evidence.
 
 ### DW-227: Focus the actual remove-member controls rather than tabindex wrappers during dialog trapping and restoration
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1682,7 +1781,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Refresh remove-member audit guidance now that the flow queries and renders audit receipts. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Refresh remove-member audit guidance now that the flow queries and renders audit receipts. evidence: Existing English and French preview copy still says audit evidence is unavailable until a future evidence source exists, contradicting the implemented receipt query.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; TenantsResources.resx and TenantsResources.fr.resx:2313-2318 explain that audit evidence may remain pending, delayed, or unavailable.
 
 ### DW-229: Verify the tenant-detail global-administrator evidence bridge at the page boundary
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1690,7 +1790,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Verify the tenant-detail global-administrator evidence bridge at the page boundary. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Verify the tenant-detail global-administrator evidence bridge at the page boundary. evidence: Existing tests inject GlobalAdministratorsSnapshot directly into MemberAccessReview, so removing the page assignment or parameter binding would not fail coverage.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit ad18d62c; TenantDetailPage.razor:201 binds GlobalAdministrators and TenantDetailSurfaceTests.cs:239-283 verifies propagation.
 
 ### DW-230: Pre-existing flaky false-success in the global-administrator grant re-query
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
@@ -1746,7 +1847,8 @@ location: HandleCommandActivityLeaseAsync
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Serialize child membership-command lease acquisition. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Serialize child membership-command lease acquisition. evidence: `HandleCommandActivityLeaseAsync` checks `_childCommandLeaseOwner` before awaiting the parent lease without a local serialization gate, so two reentrant acquisitions can both observe no owner and dispatch under the same aggregate lock.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 28d32ca8; MemberAccessReview.razor:759-797 reserves _childCommandLeaseOwner before awaiting the parent lease and clears it on refusal or fault.
 
 ### DW-237: Keep an open membership command flow keyed to its captured target
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -1754,7 +1856,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Keep an open membership command flow keyed to its captured target. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Keep an open membership command flow keyed to its captured target. evidence: Opening another row updates the active member parameters while reusing the existing change-role or remove-member component instance, whose snapshot can retain the previous intent and command identity.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 28d32ca8; MemberAccessReview.razor:239-280 keys flows by active user ID and :327-335 retains captured target records.
 
 ### DW-238: Give Continue read-only a stable dialog lifecycle
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -1762,7 +1865,8 @@ location: RemoveTenantMemberFlow.ContinueReadOnlyAsync
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Give Continue read-only a stable dialog lifecycle. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Give Continue read-only a stable dialog lifecycle. evidence: `RemoveTenantMemberFlow.ContinueReadOnlyAsync` resets the snapshot to Idle without dismissing the dialog; the next parameter/render cycle can immediately reconstruct the preview, leaving the operator in an ambiguous open-flow state.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits b2b80941 and 28d32ca8; RemoveTenantMemberFlow.razor:1148-1155 marks dismissed before reset and invokes OnCloseRequested.
 
 ### DW-239: Do not initialize a pre-command removal preview as missing audit support
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -1770,7 +1874,8 @@ location: TenantRemoveMemberCommandSnapshot.Previewed
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Do not initialize a pre-command removal preview as missing audit support. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Do not initialize a pre-command removal preview as missing audit support. evidence: `TenantRemoveMemberCommandSnapshot.Previewed` assigns `AuditState = MissingSupport` before dispatch or proof lookup, so the preview can report missing support even when the parent has already proven live audit capability.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 28d32ca8; TenantCreateCommandModels.cs:851-871 initializes Previewed audit state as NotStarted.
 
 ### DW-240: Map command-status HTTP timeouts to a support-safe unknown result
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -1778,7 +1883,8 @@ location: TenantCommandGateway.GetStatusAsync
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Map command-status HTTP timeouts to a support-safe unknown result. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Map command-status HTTP timeouts to a support-safe unknown result. evidence: `TenantCommandGateway.GetStatusAsync` catches JSON failures but not `TaskCanceledException` from an `HttpClient` timeout, while removal status refresh calls it with `CancellationToken.None`; an operational timeout can therefore escape the UI recovery path.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 43ef25eb; TenantCommandGateway.cs:491-499 maps operational cancellation and HTTP faults to a support-safe retryable unknown-status result.
 
 ### DW-241: Restore focus safely when a successful removal deletes the launcher row
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -1850,7 +1956,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: AttemptStartedAtUtc and hasQualifyingAuditProvenance are dead in production for metadata; the snapshot test pins a branch no production call site can reach. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: AttemptStartedAtUtc and hasQualifyingAuditProvenance are dead in production for metadata; the snapshot test pins a branch no production call site can reach. evidence: Both ConfirmProjection call sites (EditTenantMetadataFlow.razor:410 and :573) use the two-argument form, so the flag is permanently false; AttemptStartedAtUtc is stamped in RequestSent and never read for metadata. The frozen "version advancement OR audit provenance" rule is satisfied by the version half, so this is dead API surface rather than a violation. Already partially recorded by this story's own deferred entry.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor:775-787 queries attempt-bound audit evidence and passes it into projection confirmation.
 
 ### DW-250: source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Nothing proves the tenant-detail read model's ProjectionVersion actually advances for a same-value update, which is the premise the whole confirmation path now rests on
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
@@ -1858,7 +1965,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Nothing proves the tenant-detail read model's ProjectionVersion actually advances for a same-value update, which is the premise the whole confirmation path now rests on. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Nothing proves the tenant-detail read model's ProjectionVersion actually advances for a same-value update, which is the premise the whole confirmation path now rests on. evidence: TenantAggregateTests proves the aggregate always emits TenantUpdated for identical Name+Description, but not that the projection version moves. A projection that deduped or content-hashed would make every same-value "recorded update" fail closed to UnableToVerify. Requires a Server/Integration-tier test, outside this UI slice's test shape.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:121-127 stamps every applied event sequence; TenantProjectionHandlerTests.cs:333-372 proves TenantUpdated advances to tenant-sequence:12.
 
 ### DW-251: Hard-coded English strings remain on paths this story made localizable
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
@@ -1914,7 +2022,8 @@ location: _snapshot.ProjectionVersion
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Baseline and evidence projection versions are read from different snapshot lineages -- baseline from `_snapshot.ProjectionVersion`, evidence from `_lastConfirmedSnapshot ?? Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Baseline and evidence projection versions are read from different snapshot lineages -- baseline from `_snapshot.ProjectionVersion`, evidence from `_lastConfirmedSnapshot ?? _snapshot` -- so a failed post-create reload makes a genuinely successful create report `UnableToVerify`. evidence: Fail-closed direction (false negative, not false confirm) and entangled with the open provenance-gate decision; resolving that decision determines whether this seam changes at all.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs:359-363 captures and compares list and detail baselines like-for-like.
 
 ### DW-258: `TenantsWorkspace.IsCommandSurfaceConnected` is a render-time `Services.GetService` lookup with no subscription, duplicating an existing resolution in the same component and using the non-generic overload
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-21)"), 2026-08-25
@@ -2077,14 +2186,16 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: MemberAccessReview
 reason: The legacy ledger defers this issue: `MemberAccessReview` sets child lease ownership after the await. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `MemberAccessReview` sets child lease ownership after the await. evidence: `:754-780` — `_childCommandLeaseOwner` is assigned only after `await CommandActivityLease(isActive)` returns, so two concurrent membership callers can both pass the `is not null` pre-check and both be granted; the first release then frees an aggregate whose other command is still in flight.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 28d32ca8; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:768-770 reserves the child lease owner before awaiting admission.
 
 ### DW-281: `CreateTenantFlow` and `TenantsWorkspace` findings were raised against files a peer session rewrote mid-review
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 location: CreateTenantFlow.razor; TenantsWorkspace.razor
 reason: The legacy ledger defers this issue: `CreateTenantFlow` and `TenantsWorkspace` findings were raised against files a peer session rewrote mid-review. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `CreateTenantFlow` and `TenantsWorkspace` findings were raised against files a peer session rewrote mid-review. evidence: A concurrent session working story 3.1 changed `CreateTenantFlow.razor` by +152/-50 and `TenantsWorkspace.razor` by +17/-5 during this review, and added `TenantCreateAttemptTracker.cs`. The raised items — fail-open absence baseline at `:435-438`, empty-string tracking ids blocking submit, a transient refresh fault downgrading a confirmed create to `UnableToVerify`, a fabricated `(null, null)` evidence tuple, and `TenantsWorkspace` asserting tenant absence from a stale empty list — must be re-reviewed against the peer's version and belong to story `3-1-create-tenant-with-projection-confirmation`.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commits 753f1ead and 24c978d4 completed the current Story 3.1 re-review and fail-closed create attempt tracking.
 
 ### DW-282: `TenantsWorkspace` resolves `ITenantsBffComposition` per render and duplicates its own absence predicate
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2146,7 +2257,8 @@ location: IReadModelFreshness.ProjectionVersion
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Define causal projection-change handling for valid opaque or content-hash version tokens across command flows. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Define causal projection-change handling for valid opaque or content-hash version tokens across command flows. evidence: `IReadModelFreshness.ProjectionVersion` explicitly permits opaque content hashes, while the shared causal helper accepts only matching prefixes with increasing numeric suffixes; valid changed tokens therefore fail closed across create and membership consumers.
-status: open
+status: done 2026-08-25
+resolution: already resolved: src/Hexalith.Tenants/Projections/TenantProjectionVersionFormat.cs:15-18 defines tenant-sequence and TenantProjectionHandler.cs:121-127 stamps incoming event sequence numbers.
 
 ### DW-290: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2282,7 +2394,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: TenantLifecycleAttemptTracker
 reason: The legacy ledger defers this issue: `TenantLifecycleAttemptTracker` has no attempt expiry and never prunes `_terminalMessageByTenantId`/`_terminalAttemptStartedAtByTenantId`; both grow for the circuit's lifetime. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantLifecycleAttemptTracker` has no attempt expiry and never prunes `_terminalMessageByTenantId`/`_terminalAttemptStartedAtByTenantId`; both grow for the circuit's lifetime. Subsumed by the open decision on bounding a wedged attempt.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 43ef25eb; TenantLifecycleAttemptTracker.cs:253-272 prunes expired terminal tombstones under an injected clock and tests cover the boundary.
 
 ### DW-308: `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
@@ -2296,21 +2409,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: _hasAdoptedRetainedAttempt
 reason: The legacy ledger defers this issue: `_hasAdoptedRetainedAttempt` is latched before the tracker lookup, and a `Detail.TenantId` change on a mounted flow is never re-adopted. Original context is preserved in legacy-detail.
 legacy-detail: - `_hasAdoptedRetainedAttempt` is latched before the tracker lookup, and a `Detail.TenantId` change on a mounted flow is never re-adopted. Latent only — the parent renders the flow solely for a loaded tenant.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 43ef25eb; TenantLifecycleCommandFlow.razor:405-417 resets retained adoption and snapshots when TenantId changes.
 
 ### DW-310: `TenantLifecycleAttemptTracker.Remember` compares `AttemptStartedAtUtc` with `<=`, so two attempts within one clock tick collapse. Compare `(AttemptStartedAtUtc, MessageId)` or use a monotonic sequence
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 location: TenantLifecycleAttemptTracker.Remember
 reason: The legacy ledger defers this issue: `TenantLifecycleAttemptTracker.Remember` compares `AttemptStartedAtUtc` with `<=`, so two attempts within one clock tick collapse. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantLifecycleAttemptTracker.Remember` compares `AttemptStartedAtUtc` with `<=`, so two attempts within one clock tick collapse. Compare `(AttemptStartedAtUtc, MessageId)` or use a monotonic sequence.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 43ef25eb; TenantLifecycleAttemptTracker.cs:163-195 orders attempts by timestamp and MessageId, with tests at TenantLifecycleAttemptTrackerTests.cs:235-249.
 
 ### DW-311: `Remember` mixes contracts: `SetSnapshot` treats `false` as a tracking mismatch, but the method throws `ArgumentException` for shape violations, which escape unhandled from a UI event handler
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 location: Remember
 reason: The legacy ledger defers this issue: `Remember` mixes contracts: `SetSnapshot` treats `false` as a tracking mismatch, but the method throws `ArgumentException` for shape violations, which escape unhandled from a UI event handler. Original context is preserved in legacy-detail.
 legacy-detail: - `Remember` mixes contracts: `SetSnapshot` treats `false` as a tracking mismatch, but the method throws `ArgumentException` for shape violations, which escape unhandled from a UI event handler.
-status: open
+status: done 2026-08-25
+resolution: already resolved: commit 43ef25eb; TenantLifecycleAttemptTracker.cs:129-139 rejects malformed retained shapes without throwing.
 
 ### DW-312: Preserve a visible exit when the set-configuration flow is opened wide and the viewport is then narrowed
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25

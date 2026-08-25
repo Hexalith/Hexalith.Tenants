@@ -164,6 +164,23 @@ public sealed class TenantHighImpactActionAvailabilityTests
         result.DomainOutcome.ShouldBe(TenantHighImpactDomainOutcome.TenantDisabled);
     }
 
+    [Theory]
+    [InlineData(TenantHighImpactNamespaceScopeEvidence.Missing)]
+    [InlineData(TenantHighImpactNamespaceScopeEvidence.Indeterminate)]
+    public void Disabled_configuration_is_not_disclosed_without_authorized_namespace_scope(
+        TenantHighImpactNamespaceScopeEvidence namespaceScope)
+    {
+        TenantHighImpactActionAvailability result = Evaluate(
+            Qualifying(TenantHighImpactAction.SetConfiguration) with
+            {
+                TenantStatus = TenantStatus.Disabled,
+                NamespaceScope = namespaceScope,
+            });
+
+        result.UnavailableReason.ShouldBe(TenantHighImpactUnavailableReason.MissingPermission);
+        result.DomainOutcome.ShouldBe(TenantHighImpactDomainOutcome.None);
+    }
+
     [Fact]
     public void Already_applied_set_and_proven_missing_remove_are_distinct_domain_outcomes()
     {
@@ -385,6 +402,13 @@ public sealed class TenantHighImpactActionAvailabilityTests
         typeof(TenantHighImpactActionAvailabilityEvaluator).GetFields(
             BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Undefined_unavailable_reason_cannot_become_an_automation_category()
+    {
+        _ = Should.Throw<ArgumentOutOfRangeException>(() =>
+            TenantHighImpactReasonCategoryNames.ForUnavailableReason((TenantHighImpactUnavailableReason)999));
     }
 
     private static TenantHighImpactActionAvailability Evaluate(TenantHighImpactActionEvidence evidence)

@@ -880,7 +880,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Find(".tenant-detail__literal").TextContent.ShouldBe("tenant.beta"));
         gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
 
-        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId.ShouldNotBeNull());
         tracker.Find("tenant.alpha").ShouldBeNull();
         await cut.InvokeAsync(() => oldFlow.CommandActivityLease.ShouldNotBeNull()(false));
 
@@ -1010,7 +1010,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
         (await oldFlow.CommandActivityLease.ShouldNotBeNull()(true)).ShouldBeFalse();
-        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId);
+        tracker.Forget("tenant.alpha", oldFlow.Snapshot.MessageId.ShouldNotBeNull());
         tracker.Find("tenant.alpha").ShouldBeNull();
 
         var newerIntent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant);
@@ -1027,7 +1027,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 "message-newer")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-newer", "correlation-newer")) with
         {
-            AttemptStartedAtUtc = DateTimeOffset.UtcNow.AddMinutes(1),
+            AttemptStartedAtUtc = DateTimeOffset.UtcNow,
         };
         tracker.Remember(newer).ShouldBeTrue();
         await oldFlow.CommandActivityLease.ShouldNotBeNull()(false);
@@ -6078,7 +6078,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantHighImpactProofEvidence.NotRequired,
             TenantHighImpactViewportState.Safe,
             IsInputComplete: false,
-            TenantHighImpactTargetState.Unknown);
+            TenantHighImpactTargetState.Unknown,
+            ProjectionVersion: null);
 
     private static TenantDetailSnapshot ReadyWithSafeConfiguration(
         TenantDetail detail,

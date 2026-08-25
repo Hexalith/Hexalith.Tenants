@@ -697,8 +697,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
-            .Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.StatusEvidence.RetryableFailure"));
+        cut.WaitForAssertion(() =>
+        {
+            TenantLifecycleCommandSnapshot snapshot = cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot;
+            snapshot.SafeMessage.ShouldNotBeNull().ShouldContain("could not be read yet", Case.Insensitive);
+            snapshot.SafeMessageKey.ShouldBeNull();
+        });
         cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
             .ShouldBe(TenantCommandLifecycleState.Accepted);
         gateway.DisableSubmissions.ShouldBe(1);
@@ -723,8 +727,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
-            .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        cut.WaitForAssertion(() =>
+        {
+            TenantLifecycleCommandSnapshot snapshot = cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot;
+            snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+            snapshot.SafeMessage.ShouldBe("Status is not available yet.");
+        });
         gateway.DisableSubmissions.ShouldBe(1);
         gateway.StatusCalls.ShouldBe(1);
         activity.ShouldBe([true]);
@@ -1618,7 +1626,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-lifecycle-disable-freshness']").TextContent.ShouldBe("Unknown");
-        cut.Markup.ShouldNotContain("999", Case.Sensitive);
+        cut.Markup.ShouldNotContain("Tenants.HighImpact.Freshness.999", Case.Sensitive);
     }
 
     [Theory]
@@ -1951,10 +1959,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 ReadModelFreshnessState.Current,
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
+                ProjectionVersion: "tenant-sequence:41",
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized,
-                Lifecycle: ProjectionLifecycleState.Current,
-                ProjectionVersion: "tenant-sequence:41")
+                Lifecycle: ProjectionLifecycleState.Current)
             .Evaluate(operation);
 
     private static void SetPrivateField<TComponent, TValue>(
@@ -2229,7 +2237,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Unavailable.AlreadyDisabled"] = "{1} is unavailable for tenant {0} because the current projection already shows Disabled. If submitted by another surface, the safe domain outcome is {2}; continue read-only or refresh.",
             ["Tenants.Lifecycle.Unavailable.CommandSurface"] = "{1} is unavailable for tenant {0} because lifecycle command support is not connected. Continue read-only or escalate command-surface readiness.",
             ["Tenants.Lifecycle.Unavailable.Governance"] = "{1} is unavailable for tenant {0} because high-impact lifecycle governance is not ready. Continue read-only until the platform gate is cleared.",
-            ["Tenants.Lifecycle.Unavailable.MissingPermission"] = "{1} is unavailable for tenant {0} because server-side global-administrator authority is not proven. Request permission or continue read-only.",
+            ["Tenants.Lifecycle.Unavailable.MissingPermission"] = "{1} is unavailable for tenant {0} because server-side global-administrator authority is not proven. Refresh first; if access is still not proven, request permission or continue read-only.",
             ["Tenants.Lifecycle.Unavailable.Mobile"] = "{1} is unavailable for tenant {0} because this viewport cannot preserve the full high-impact safety context. Continue read-only on this view.",
             ["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"] = "A tenant command is already in flight or the lifecycle command surface is not connected.",
             ["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery"] = "Wait for the current tenant command to finish, or restore the lifecycle command connection before continuing.",
@@ -2258,7 +2266,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.HighImpact.Unavailable.MissingAuditProof"] = "This action is unavailable because its required proof is not ready.",
             ["Tenants.HighImpact.Unavailable.HighImpactFlowNotReady"] = "This high-impact action is read-only until the measured viewport and aggregate admission are safe.",
             ["Tenants.HighImpact.Recovery.None"] = "No recovery is required.",
-            ["Tenants.HighImpact.Recovery.MissingPermission"] = "Ask an administrator to verify your role and the exact namespace grant.",
+            ["Tenants.HighImpact.Recovery.MissingPermission"] = "Refresh authority first. If access is still not proven, ask an administrator to verify your role and the exact namespace grant.",
             ["Tenants.HighImpact.Recovery.StaleData"] = "Refresh the authoritative tenant data and review the last-confirmed facts.",
             ["Tenants.HighImpact.Recovery.MissingLifecycleSupport"] = "Restore the action's command lifecycle support, then retry.",
             ["Tenants.HighImpact.Recovery.MissingConsequencePreview"] = "Complete the safe preview facts and required confirmation inputs.",

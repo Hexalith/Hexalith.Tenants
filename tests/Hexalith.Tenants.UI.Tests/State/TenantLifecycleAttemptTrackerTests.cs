@@ -144,7 +144,7 @@ public sealed class TenantLifecycleAttemptTrackerTests
     {
         TenantLifecycleAttemptTracker tracker = CreateTracker();
         var intent = new TenantLifecycleCommandRequest("Tenant.Mixed-01", TenantLifecycleOperation.DisableTenant);
-        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-08-25T12:00:00Z");
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-06-01T12:02:00Z");
 
         (string firstMessageId, DateTimeOffset firstStart, string firstBaseline) = tracker.BeginDispatch(
             intent,
@@ -166,7 +166,7 @@ public sealed class TenantLifecycleAttemptTrackerTests
     {
         TenantLifecycleAttemptTracker tracker = CreateTracker();
         var intent = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant);
-        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-08-25T12:00:00Z");
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-06-01T12:02:00Z");
 
         string first = tracker.BeginDispatch(intent, "tenant-sequence:41", attemptStart).MessageId;
         (string rebased, _, string retainedBaseline) = tracker.BeginDispatch(
@@ -184,13 +184,14 @@ public sealed class TenantLifecycleAttemptTrackerTests
         TenantLifecycleAttemptTracker tracker = CreateTracker();
         var disable = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant);
         var enable = new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.EnableTenant);
-        tracker.BeginDispatch(disable, "tenant-sequence:41", DateTimeOffset.UtcNow);
+        DateTimeOffset attemptStart = DateTimeOffset.Parse("2026-06-01T12:02:00Z");
+        tracker.BeginDispatch(disable, "tenant-sequence:41", attemptStart);
 
         tracker.FindDispatchIntent("tenant.alpha").ShouldBe(disable);
         _ = Should.Throw<InvalidOperationException>(() => tracker.BeginDispatch(
             enable,
             "tenant-sequence:42",
-            DateTimeOffset.UtcNow));
+            attemptStart));
     }
 
     [Fact]
@@ -233,6 +234,33 @@ public sealed class TenantLifecycleAttemptTrackerTests
     }
 
     [Fact]
+    public void New_evidence_revision_outranks_a_higher_poll_count_without_losing_the_count()
+    {
+        TenantLifecycleCommandSnapshot observedNothing = Pending("tenant.alpha", "message-1") with
+        {
+            PendingStatusPollCount = 5,
+            SafeMessageKey = "poll-only",
+            EvidenceRevision = 10,
+        };
+        TenantLifecycleCommandSnapshot observedProjection = observedNothing with
+        {
+            PendingStatusPollCount = 1,
+            SafeMessageKey = "projection-observed",
+            LastObservedProjectionVersion = "tenant-sequence:42",
+            EvidenceRevision = 11,
+        };
+        TenantLifecycleAttemptTracker tracker = CreateTracker();
+
+        tracker.Remember(observedNothing).ShouldBeTrue();
+        tracker.Remember(observedProjection).ShouldBeTrue();
+
+        TenantLifecycleCommandSnapshot retained = tracker.Find("tenant.alpha").ShouldNotBeNull();
+        retained.SafeMessageKey.ShouldBe("projection-observed");
+        retained.PendingStatusPollCount.ShouldBe(5);
+        retained.LastObservedProjectionVersion.ShouldBe("tenant-sequence:42");
+    }
+
+    [Fact]
     public void Equal_timestamp_attempts_use_message_id_as_a_deterministic_tie_break()
     {
         DateTimeOffset startedAt = DateTimeOffset.Parse("2026-06-01T12:01:00Z");
@@ -261,15 +289,42 @@ public sealed class TenantLifecycleAttemptTrackerTests
         now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
 
         tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
-        tracker.TerminalTombstoneCount.ShouldBe(1);
-        tracker.BeginDispatch(
+        (string newerMessageId, DateTimeOffset newerStart, _) = tracker.BeginDispatch(
             intent with { Operation = TenantLifecycleOperation.EnableTenant },
             "tenant-sequence:42",
-            now).MessageId.ShouldNotBe(messageId);
+            now);
+        newerMessageId.ShouldNotBe(messageId);
 
-        tracker.Forget("tenant.alpha");
+        tracker.Forget("tenant.alpha", newerMessageId);
+        tracker.Remember(Accepted("tenant.alpha", newerMessageId, newerStart)).ShouldBeFalse();
         now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
-        tracker.TerminalTombstoneCount.ShouldBe(0);
+        tracker.Remember(Accepted("tenant.alpha", newerMessageId, now)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Deterministic_dispatch_identity_handles_a_pre_epoch_test_clock()
+    {
+        DateTimeOffset beforeEpoch = DateTimeOffset.Parse("1969-12-31T23:59:59Z");
+        var tracker = new TenantLifecycleAttemptTracker(() => beforeEpoch);
+
+        string messageId = tracker.BeginDispatch(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            "tenant-sequence:41",
+            beforeEpoch).MessageId;
+
+        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Regressed_clock_prunes_attempt_ownership_instead_of_retaining_forever()
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-06-01T12:00:00Z");
+        var tracker = new TenantLifecycleAttemptTracker(() => now);
+        tracker.Remember(Accepted("tenant.alpha", "message-1", now)).ShouldBeTrue();
+
+        now = now.AddMinutes(-1);
+
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
     }
 
     private static TenantLifecycleCommandSnapshot Pending(

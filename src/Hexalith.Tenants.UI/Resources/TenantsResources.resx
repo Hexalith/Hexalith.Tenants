@@ -772,7 +772,7 @@
     <value>{1} is unavailable for tenant {0} because high-impact lifecycle governance is not ready. Continue read-only until the platform gate is cleared.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.MissingPermission" xml:space="preserve">
-    <value>{1} is unavailable for tenant {0} because server-side global-administrator authority is not proven. Request permission or continue read-only.</value>
+    <value>{1} is unavailable for tenant {0} because server-side global-administrator authority is not proven. Refresh first; if access is still not proven, request permission or continue read-only.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.Mobile" xml:space="preserve">
     <value>{1} is unavailable for tenant {0} because this viewport cannot preserve the full high-impact safety context. Continue read-only on this view.</value>
@@ -959,6 +959,18 @@
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.ProofRead" xml:space="preserve">
     <value>Authoritative lifecycle proof could not be read. No lifecycle success is asserted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.MissingEventEvidence" xml:space="preserve">
+    <value>The current projection matches the intended lifecycle, but exact event evidence for this command is still pending.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.InvalidVersion" xml:space="preserve">
+    <value>The lifecycle projection versions could not be compared, so projection advancement is not proven.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.PrefixMismatch" xml:space="preserve">
+    <value>The lifecycle projection version changed ordering scopes, so advancement from the submitted baseline is not proven.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.NotAdvanced" xml:space="preserve">
+    <value>The lifecycle projection has not advanced beyond the submitted baseline, so the intended outcome remains unconfirmed.</value>
   </data>
   <data name="Tenants.Lifecycle.Message.Rejected" xml:space="preserve">
     <value>The lifecycle command was rejected. Refresh tenant detail before taking another action.</value>
@@ -3975,7 +3987,7 @@
   <data name="Tenants.HighImpact.Unavailable.MissingAuditProof" xml:space="preserve"><value>This action is unavailable because its required proof is not ready.</value></data>
   <data name="Tenants.HighImpact.Unavailable.HighImpactFlowNotReady" xml:space="preserve"><value>This high-impact action is read-only until the measured viewport and aggregate admission are safe.</value></data>
   <data name="Tenants.HighImpact.Recovery.None" xml:space="preserve"><value>No recovery is required.</value></data>
-  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Ask an administrator to verify your role and the exact namespace grant.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Refresh authority first. If access is still not proven, ask an administrator to verify your role and the exact namespace grant.</value></data>
   <data name="Tenants.HighImpact.Recovery.StaleData" xml:space="preserve"><value>Refresh the authoritative tenant data and review the last-confirmed facts.</value></data>
   <data name="Tenants.HighImpact.Recovery.MissingLifecycleSupport" xml:space="preserve"><value>Restore the action's command lifecycle support, then retry.</value></data>
   <data name="Tenants.HighImpact.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Complete the safe preview facts and required confirmation inputs.</value></data>

@@ -772,7 +772,7 @@
     <value>{1} est indisponible pour le locataire {0} car la gouvernance du cycle de vie à fort impact n'est pas prête. Continuez en lecture seule jusqu'à la levée de la barrière de plateforme.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.MissingPermission" xml:space="preserve">
-    <value>{1} est indisponible pour le locataire {0} car l'autorité administrateur globale côté serveur n'est pas prouvée. Demandez la permission ou continuez en lecture seule.</value>
+    <value>{1} est indisponible pour le locataire {0} car l'autorité administrateur globale côté serveur n'est pas prouvée. Actualisez d'abord ; si l'accès n'est toujours pas confirmé, demandez la permission ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.Lifecycle.Unavailable.Mobile" xml:space="preserve">
     <value>{1} est indisponible pour le locataire {0} car cette vue ne peut pas préserver tout le contexte de sécurité à fort impact. Continuez en lecture seule sur cette vue.</value>
@@ -959,6 +959,18 @@
   </data>
   <data name="Tenants.Lifecycle.UnableToVerify.ProofRead" xml:space="preserve">
     <value>La preuve de cycle de vie faisant autorité n'a pas pu être lue. Aucun succès de cycle de vie n'est affirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.MissingEventEvidence" xml:space="preserve">
+    <value>La projection actuelle correspond au cycle de vie prévu, mais la preuve d'événement exacte de cette commande est toujours en attente.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.InvalidVersion" xml:space="preserve">
+    <value>Les versions de projection du cycle de vie n'ont pas pu être comparées ; l'avancement de la projection n'est donc pas prouvé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.PrefixMismatch" xml:space="preserve">
+    <value>La version de projection du cycle de vie a changé de portée d'ordre ; l'avancement depuis la référence soumise n'est donc pas prouvé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.ProjectionEvidence.NotAdvanced" xml:space="preserve">
+    <value>La projection du cycle de vie n'a pas avancé au-delà de la référence soumise ; le résultat prévu reste donc non confirmé.</value>
   </data>
   <data name="Tenants.Lifecycle.Message.Rejected" xml:space="preserve">
     <value>La commande de cycle de vie a été rejetée. Actualisez les détails du locataire avant toute autre action.</value>
@@ -3975,7 +3987,7 @@
   <data name="Tenants.HighImpact.Unavailable.MissingAuditProof" xml:space="preserve"><value>Cette action est indisponible car sa preuve requise n'est pas prête.</value></data>
   <data name="Tenants.HighImpact.Unavailable.HighImpactFlowNotReady" xml:space="preserve"><value>Cette action a fort impact reste en lecture seule tant que la fenêtre mesurée et l'admission agrégée ne sont pas sûres.</value></data>
   <data name="Tenants.HighImpact.Recovery.None" xml:space="preserve"><value>Aucune récupération n'est nécessaire.</value></data>
-  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Demandez à un administrateur de vérifier votre rôle et l'autorisation exacte de l'espace de noms.</value></data>
+  <data name="Tenants.HighImpact.Recovery.MissingPermission" xml:space="preserve"><value>Actualisez d'abord l'autorité. Si l'accès n'est toujours pas confirmé, demandez à un administrateur de vérifier votre rôle et l'autorisation exacte de l'espace de noms.</value></data>
   <data name="Tenants.HighImpact.Recovery.StaleData" xml:space="preserve"><value>Actualisez les données du locataire faisant autorité et examinez les faits confirmés en dernier.</value></data>
   <data name="Tenants.HighImpact.Recovery.MissingLifecycleSupport" xml:space="preserve"><value>Rétablissez le support du cycle de vie de la commande, puis réessayez.</value></data>
   <data name="Tenants.HighImpact.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Complétez les faits sûrs de l'aperçu et les champs de confirmation requis.</value></data>

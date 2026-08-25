@@ -43,7 +43,7 @@ public sealed record TenantHighImpactActionEvidence(
     TenantHighImpactViewportState Viewport,
     bool IsInputComplete,
     TenantHighImpactTargetState TargetState,
-    string? ProjectionVersion = null)
+    string? ProjectionVersion)
 {
     /// <summary>
     /// Maps persisted read-model freshness to the shared high-impact vocabulary.

@@ -16,6 +16,8 @@ public sealed class TenantAggregateCommandAdmissionGateTests
 
         gate.TryAcquire(identity, owner).ShouldBeTrue();
         gate.IsLocked(identity).ShouldBeTrue();
+        gate.IsOwnedBy(identity, owner).ShouldBeTrue();
+        gate.IsOwnedBy(identity, contender).ShouldBeFalse();
         gate.IsLockedByAnother(identity, owner).ShouldBeFalse();
         gate.IsLockedByAnother(identity, contender).ShouldBeTrue();
 

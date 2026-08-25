@@ -1732,7 +1732,7 @@ public sealed class TenantCommandGatewayTests
             new TenantCommandTrackingHandle("message-123", "correlation-123", "tenant.alpha"),
             CancellationToken.None);
 
-        result.Status.ShouldBeNull();
+        result.Status.ShouldBe(CommandStatus.Completed);
         result.HasVerifiedCommandIdentity.ShouldBeFalse();
         result.SafeMessage.ShouldBe("Command status response did not match the tracked lifecycle command.");
     }

@@ -865,7 +865,8 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             TenantHighImpactProofEvidence.NotRequired,
             TenantHighImpactViewportState.Safe,
             IsInputComplete: false,
-            TenantHighImpactTargetState.Unknown);
+            TenantHighImpactTargetState.Unknown,
+            ProjectionVersion: null);
 
     private static string ProjectRoot()
     {

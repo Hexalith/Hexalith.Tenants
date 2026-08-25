@@ -223,11 +223,11 @@
             Freshness,
             SurfaceKind,
             IsCommandSurfaceConnected,
+            ProjectionVersion,
             GovernanceReadiness,
             AuthorizationReflection,
             IsNarrowSafetyContext,
-            Lifecycle,
-            ProjectionVersion);
+            Lifecycle);
 
     private TenantLifecycleAttemptTracker? AttemptTracker
         => _attemptTracker ??= Services.GetService<TenantLifecycleAttemptTracker>();

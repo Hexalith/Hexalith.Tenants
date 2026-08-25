@@ -474,7 +474,11 @@ internal sealed class TenantCommandGateway(
                 && (string.IsNullOrWhiteSpace(handle.AggregateId)
                     || string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal));
             if (!string.IsNullOrWhiteSpace(handle.AggregateId) && !hasVerifiedCommandIdentity) {
-                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked lifecycle command.");
+                return new TenantCommandStatusResult(
+                    parsedStatus,
+                    "Command status response did not match the tracked lifecycle command.",
+                    EventCount: status.EventCount,
+                    HasVerifiedCommandIdentity: false);
             }
 
             return new TenantCommandStatusResult(

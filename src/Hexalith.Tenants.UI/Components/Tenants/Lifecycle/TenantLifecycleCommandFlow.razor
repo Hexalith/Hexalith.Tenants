@@ -642,7 +642,10 @@
                 _snapshot = _snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
                 if (invalid.Intent is not null)
                 {
-                    tracker?.Forget(invalid.Intent.TenantId, invalid.MessageId);
+                    if (!string.IsNullOrWhiteSpace(invalid.MessageId))
+                    {
+                        tracker?.Forget(invalid.Intent.TenantId, invalid.MessageId);
+                    }
                 }
             }
         }
@@ -650,7 +653,10 @@
         {
             if (!preserveDispatchIdentity)
             {
-                AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
+                if (!string.IsNullOrWhiteSpace(_snapshot.MessageId))
+                {
+                    AttemptTracker?.Forget(_snapshot.Intent.TenantId, _snapshot.MessageId);
+                }
             }
         }
 
@@ -1213,24 +1219,9 @@
             return;
         }
 
-        if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
-        {
-            SetSnapshot(_snapshot.UnableToVerify(
-                "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
-            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
-            return;
-        }
-
         ITenantCommandGateway? gateway = CommandGateway;
         if (_snapshot.State is TenantCommandLifecycleState.RequestSent)
         {
-            if (gateway is null)
-            {
-                SetSnapshot(_snapshot.AmbiguousSubmission(
-                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
-                return;
-            }
-
             if (string.IsNullOrWhiteSpace(_snapshot.MessageId))
             {
                 SetSnapshot(_snapshot.UnableToVerify(
@@ -1239,18 +1230,24 @@
                 return;
             }
 
-            _isSubmitting = true;
-            try
+            if (gateway is null)
             {
-                await DispatchTrackedAttemptAsync(gateway, _snapshot.MessageId).ConfigureAwait(false);
+                SetSnapshot(_snapshot.AmbiguousSubmission(
+                    "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
             }
-            finally
+            else
             {
-                _isSubmitting = false;
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                _isSubmitting = true;
+                try
+                {
+                    await DispatchTrackedAttemptAsync(gateway, _snapshot.MessageId).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _isSubmitting = false;
+                    await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                }
             }
-
-            return;
         }
 
         if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
@@ -1393,6 +1390,12 @@
                         ? "Tenants.Lifecycle.Retained.Recovery"
                         : "Tenants.HighImpact.Recovery.StaleData"));
             }
+        }
+
+        if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
+        {
+            SetSnapshot(_snapshot.UnableToVerify(
+                "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
