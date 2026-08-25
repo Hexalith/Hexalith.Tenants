@@ -100,7 +100,11 @@ development_status:
   3-1-create-tenant-with-projection-confirmation: done
   3-2-edit-tenant-metadata-with-recorded-updates: done
   3-3-lifecycle-and-configuration-availability-guardrail: done
-  3-4-disable-or-enable-tenant-with-complete-preview: review
+  # 2026-08-25: code review loop 3 (chunk A = src/**/State/**, 1462 of 8827 diff lines). Both decisions
+  # resolved (wall-clock expiry -> last-chance reconciliation; Indeterminate authority -> recovery copy only).
+  # 26 patch findings left as action items in the spec; 2 deferred; 6 dismissed; 0 high severity.
+  # Chunks B (components/gateways/resx), C (tests), D (docs/gitlinks) not yet reviewed.
+  3-4-disable-or-enable-tenant-with-complete-preview: in-progress
   3-5-set-namespaced-configuration-with-complete-preview: backlog
   3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done
