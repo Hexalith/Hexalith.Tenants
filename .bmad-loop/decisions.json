@@ -70,5 +70,14 @@
     "key": "1",
     "label": "Replaceable bounded CTS",
     "resolution": ""
+  },
+  "DW-184": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.",
+    "key": "1",
+    "label": "Bound authentication wait",
+    "resolution": ""
   }
 }

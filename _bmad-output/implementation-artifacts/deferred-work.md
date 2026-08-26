@@ -1451,6 +1451,7 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603
 reason: The legacy ledger defers this issue: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes. Original context is preserved in legacy-detail.
 legacy-detail: - ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603]
 status: open
+decision: 2026-08-26 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
 decision: 2026-08-25 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
 
 ### DW-185: Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
