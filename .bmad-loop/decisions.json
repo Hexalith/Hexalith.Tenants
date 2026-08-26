@@ -34,5 +34,14 @@
     "key": "1",
     "label": "Check exact proposal",
     "resolution": ""
+  },
+  "DW-144": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add a tenants-ui sidecar and app ID, deny-by-default GET policy, resilience reconciliation, and route and ETag tests.",
+    "key": "1",
+    "label": "Use Dapr invocation",
+    "resolution": ""
   }
 }
