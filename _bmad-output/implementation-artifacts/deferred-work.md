@@ -2492,27 +2492,50 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-t
 reason: The existing sanitizer replaces values only when a short marker denylist matches; every other backend failure reason is returned verbatim, truncated to 160 characters. A backend detail or secret outside that marker list could therefore reach command UI. Replacing the denylist with an allow-listed support-safe mapping is shared gateway hardening beyond the focused lifecycle patch.
 status: open
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
-  summary: Preserve a visible exit and add computed-viewport coverage for configuration flows opened before the viewport narrows.
-  evidence: `SetTenantConfigurationFlow.razor.css` and `RemoveTenantConfigurationFlow.razor.css` hide mutation forms below 768px, which can also hide an in-form Cancel control; current tests assert stylesheet text rather than rendered 767px/768px behavior. This is pre-existing Stories 3.5/3.6 configuration work outside Story 3.4's lifecycle boundary.
+### DW-316: Localize all `UnavailableTenantCommandGateway` failure results
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview.md (2026-08-25)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
+reason: All 13 members return the raw English text "Tenant command gateway configuration is missing." instead of the localized `FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface")` default, so a French operator sees untranslated failures. Change the class in one pass to avoid split behavior.
+status: open
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
-  summary: Remove the implicit TenantOwner fallback from configuration-management context construction.
-  evidence: `TenantConfigurationManagementContext.Available` still permits an omitted authority state to compile and silently become `TenantOwner`; production currently passes explicit authority, but the API remains a fail-open configuration seam outside Story 3.4's lifecycle boundary.
+### DW-317: Repair inert `__form` scoped CSS selectors on configuration and lifecycle flows
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css:33,41; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css:33,41; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css:48-54
+reason: The selectors target a class placed on an `<EditForm>` component, which does not receive the CSS-isolation scope attribute, so these layout rules have never applied. Repair scope stamping across all three flows and visually verify every width because the change affects form layout.
+status: open
 
-## Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview.md (2026-08-25)
+### DW-318: Replace the legacy Fluent v4 token in `SetTenantConfigurationFlow`
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css:49
+reason: The stylesheet uses `var(--accent-fill-rest, LinkText)`, violating the project ban on legacy `--accent-*`, `--neutral-*`, `--type-ramp-*`, and `--palette-*` Fluent tokens. Replace it with the approved Fluent UI v5 styling contract while preserving the intended visual state.
+status: open
 
-- `UnavailableTenantCommandGateway` returns raw English failure text (`"Tenant command gateway configuration is missing."`) on all 13 members instead of the `ITenantCommandGateway` default's localized `FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface")`. A French operator on a misconfigured host sees untranslated English. Pre-existing across the whole file; the two tracked lifecycle overrides added by story 3.4 follow the same sibling pattern, so a partial fix would split the file. Fix as one pass over the class. [src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs]
-- `TenantsResources.fr.resx` is only partially accented. Story 3.4 re-accented ~30 `Tenants.HighImpact.*` entries plus two `Column.Freshness` values; roughly 175 other lines still carry unaccented text (`Identite administrateur`, `Resultat`, `Desactiver`, `Definir`, `apercu`, `donnees`). EN/FR key parity is intact (1356 each), so this is presentation quality, not a contract break. Do it as one dedicated pass rather than drive-by. [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx]
-- Nine sibling command flows (`CreateTenantFlow`, `AddTenantMemberFlow`, `ChangeTenantMemberRoleFlow`, `RemoveTenantMemberFlow`, `EditTenantMetadataFlow`, `SetTenantConfigurationFlow`, `RemoveTenantConfigurationFlow`, `GlobalAdministratorsPage`) still construct the two-argument `TenantCommandTrackingHandle` and ignore the new `IsPending`/`IsRetryableFailure` signals, so they still terminalize on transient conditions the lifecycle flow now survives. The `AggregateId` identity check is opt-in by design; adopting it per flow needs each flow's own proof story. [src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs]
+### DW-319: Retire or deprecate untracked lifecycle dispatch methods
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs (`EnableTenantAsync` and `DisableTenantAsync`)
+reason: The public, undeprecated methods have zero production callers after the tracked pair took over, but a future caller could use them to bypass `TenantLifecycleAttemptTracker`. Removal is breaking, so retire or deprecate the methods with an explicit compatibility plan.
+status: open
 
-## Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)
+### DW-320: Remove the dead lifecycle `DuplicatePrevented` state path
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
+reason: Lifecycle `SubmitAsync` uses `BlockedWithTracking`, which never produces `TenantLifecycleCommandSnapshot.DuplicatePrevented`, while `HasTerminalOwnership` and the lifecycle icon switch still carry that unreachable state path. Remove the lifecycle-only dead handling without disturbing command flows that still use `DuplicatePrevented`.
+status: open
 
-- **Pre-existing `__form` scoped rules are inert.** `SetTenantConfigurationFlow.razor.css:33`/`:41`, `RemoveTenantConfigurationFlow.razor.css:33`/`:41`, and `TenantLifecycleCommandFlow.razor.css:48-54` all target a class that sits on an `<EditForm>` component, which never receives the CSS-isolation scope attribute. These layout rules have never applied. Fixing scope-stamping will change form layout at every width, so it needs its own visually verified change.
-- **Legacy Fluent v4 token.** `SetTenantConfigurationFlow.razor.css:49` uses `var(--accent-fill-rest, LinkText)`, against the project rule banning `--accent-*`/`--neutral-*`/`--type-ramp-*`/`--palette-*`. Not touched by story 3.4.
-- **Untracked lifecycle dispatch remains publicly reachable.** `ITenantCommandGateway.EnableTenantAsync`/`DisableTenantAsync` now have zero production callers after the `…TrackedAsync` pair took over, but stay public and undeprecated, allowing a future caller to bypass `TenantLifecycleAttemptTracker`. Removal is breaking.
-- **`TenantLifecycleCommandSnapshot.DuplicatePrevented` is dead for lifecycle.** `SubmitAsync` uses `BlockedWithTracking`, which never sets that state, yet `TenantCommandLifecycleState.DuplicatePrevented` remains in `HasTerminalOwnership` and in the flow's icon switch.
-- **Lease-reclamation logic copy-pasted four times.** `TenantDetailPage.razor:560`, `:576`, `:593`, `:2336` repeat the same admission-owner/retained-lease/release block with small differences (`tenantId` vs `_activeAggregateTenantId`, `HasPendingOwnership` polarity). `FocusSafelyAsync` is also byte-identical across the two lifecycle components. Extract shared helpers.
-- **`PruneExpiredLocked` runs on every render.** `TenantLifecycleAttemptTracker.Find` prunes under lock and allocates `.ToArray()` snapshots of three dictionaries; both lifecycle components call it unconditionally from `OnParametersSet`. Prune on mutation or on a timer.
-- **`PendingStatusPollCount` is never enforced.** It is incremented, saturated and merged across attempts, but nothing reads it as a budget — only the five-minute deadline bounds polling. Wire it to a poll cap or drop it from the snapshot and from `MergeSameAttempt`.
-- **French accent restoration incomplete.** Many `Tenants.HighImpact.*` values in `TenantsResources.fr.resx` were re-accented (`Fraicheur`→`Fraîcheur`, `Desactiver`→`Désactiver`) while untouched neighbours keep stripped forms (`Identite administrateur`, `Disponibilite accorder/retirer`, `Categorie`, `Resultat`). The file now mixes conventions with no stated rule.
+### DW-321: Extract shared lifecycle lease-reclamation and focus helpers
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:560,576,593,2336; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
+reason: Four admission-owner, retained-lease, and release blocks repeat the same logic with small identity and ownership-polarity differences, while `FocusSafelyAsync` is byte-identical across the two lifecycle components. Extract shared helpers that preserve those deliberate differences.
+status: open
+
+### DW-322: Move `TenantLifecycleAttemptTracker` pruning off the render path
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; TenantLifecycleCommandFlow.OnParametersSet; TenantLifecycleActionAvailability.OnParametersSet
+reason: `Find` prunes under lock and allocates `ToArray` snapshots of three dictionaries, and both lifecycle components invoke it unconditionally during parameter rendering. Prune on mutation or on a timer so routine renders do not pay the repeated lock and allocation cost.
+status: open
+
+### DW-323: Enforce or remove `PendingStatusPollCount`
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
+location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
+reason: `PendingStatusPollCount` is incremented, saturated, and merged across attempts but never read as a budget; only the five-minute deadline bounds polling. Enforce a poll cap or remove the unused counter and its `MergeSameAttempt` plumbing.
+status: open
