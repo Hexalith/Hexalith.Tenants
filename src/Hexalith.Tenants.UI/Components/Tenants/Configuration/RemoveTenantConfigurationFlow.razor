@@ -108,7 +108,7 @@
        entirely, and while the sibling management landmark keeps its per-row Remove launcher rendered below
        768px, that combination produced an aria-modal dialog with no pointer-reachable dismissal — Escape
        only, and only when focus was already inside. *@
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-remove__dismiss">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true">
         @* Refresh joins Cancel outside the form for the same reason: inside `.tenants-config-remove__form` it
            was hidden below 768px, so a pending attempt could be dismissed but never advanced to a terminal
            outcome from a narrow viewport. *@

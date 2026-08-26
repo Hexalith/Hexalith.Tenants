@@ -129,7 +129,7 @@
            narrow-width rule hides `.tenants-config-set__form` entirely, and OnParametersSet does not close an
            already-open editor when the viewport degrades, so keeping these inside the form left a resized or
            zoomed viewport with no reachable way to dismiss the editor or advance a pending attempt. *@
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-set__dismiss">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true">
             <FluentButton Appearance="ButtonAppearance.Outline"
                           data-testid="tenants-config-set-refresh"
                           Disabled="@(!CanRefresh)"

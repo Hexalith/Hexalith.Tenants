@@ -9,17 +9,20 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-public interface ITenantQueryGateway {
+public interface ITenantQueryGateway
+{
     Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         SetTenantConfiguration request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
         return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
     }
 
     Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
         RemoveTenantConfiguration request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
         return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
     }
@@ -34,7 +37,8 @@ public interface ITenantQueryGateway {
     /// <returns>An authoritative tenant detail snapshot, or an unavailable snapshot.</returns>
     Task<TenantDetailSnapshot> GetUpdateMetadataProjectionProofAsync(
         UpdateTenant request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
         return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant metadata projection proof is unavailable."));
     }
@@ -48,7 +52,8 @@ public interface ITenantQueryGateway {
     /// <returns>An authoritative tenant detail snapshot, or an unavailable snapshot.</returns>
     Task<TenantDetailSnapshot> GetLifecycleProjectionProofAsync(
         TenantLifecycleCommandRequest request,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
         return Task.FromResult(TenantDetailSnapshot.Unavailable("Tenant lifecycle projection proof is unavailable."));
     }

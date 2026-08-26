@@ -88,10 +88,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.DisableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.AuthorizationReflectionProvider, () => provider == "authority"
+            .Add(component => component.AuthorizationReflectionProvider, _ => provider == "authority"
                 ? neverAuthority.Task
                 : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => provider == "proof"
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => provider == "proof"
                 ? neverProof.Task
                 : Task.FromResult<TenantDetailSnapshot?>(Proof(
                     "tenant.alpha",
@@ -410,8 +410,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 ++proofReads == 1
                     ? Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41")
                     : Proof(request.TenantId, TenantStatus.Disabled, "tenant-sequence:42"))));
@@ -490,6 +490,47 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         IReadOnlyList<string> focusedAfterEscape = FocusedElementIds();
         focusedAfterEscape.Count.ShouldBe(focusCallsBeforeEscape + 1);
         focusedAfterEscape[^1].ShouldBe(disableLauncherReferenceId);
+    }
+
+    [Theory]
+    [MemberData(nameof(FocusExceptions))]
+    public void Cancel_and_escape_close_lifecycle_preview_when_focus_restore_throws(Exception exception)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-life", "correlation-life"),
+        };
+        RegisterServices(gateway);
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true).SetException(exception);
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-preview']");
+        cut.Find("[data-testid='tenants-lifecycle-cancel']").Click();
+
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+        gateway.DisableSubmissions.ShouldBe(0);
+        cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldBeNull();
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-command-flow']").KeyDown("Escape");
+
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+        gateway.DisableSubmissions.ShouldBe(0);
+        cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
+        cut.Markup.ShouldNotContain("correlation-life", Case.Insensitive);
     }
 
     [Fact]
@@ -594,10 +635,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.DisableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.AuthorizationReflectionProvider, () => changeDuringAuthority
+            .Add(component => component.AuthorizationReflectionProvider, _ => changeDuringAuthority
                 ? authority.Task
                 : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ =>
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) =>
             {
                 proofCalls++;
                 return proof.Task;
@@ -680,12 +721,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnCloseRequested, () => closeCalls++)
-            .Add(component => component.AuthorizationReflectionProvider, () =>
+            .Add(component => component.AuthorizationReflectionProvider, _ =>
             {
                 authorityCalls++;
                 return authority.Task;
             })
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         TenantLifecycleCommandSnapshot beforePreflight = cut.Instance.Snapshot;
@@ -733,9 +774,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 leaseRequests.Add(active);
                 return active ? acquisition.Task : Task.FromResult(true);
             })
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(
                 TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
@@ -775,9 +816,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 leaseRequests.Add(active);
                 return Task.FromResult(!active);
             })
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(
                 TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
@@ -791,13 +832,14 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData("dispatch", 0, 1)]
-    [InlineData("status", 1, 1)]
-    [InlineData("proof", 1, 2)]
+    [InlineData("dispatch", 0, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout")]
+    [InlineData("status", 1, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout")]
+    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead")]
     public void Attempt_deadline_terminalizes_and_releases_activity_for_never_completing_io(
         string stage,
         int expectedStatusCalls,
-        int expectedProofCalls)
+        int expectedProofCalls,
+        string expectedSafeMessageKey)
     {
         var neverSubmission = new TaskCompletionSource<TenantCommandSubmissionResult>(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -805,12 +847,25 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             TaskCreationOptions.RunContinuationsAsynchronously);
         var neverProof = new TaskCompletionSource<TenantDetailSnapshot?>(
             TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observedCancellation = default;
         var gateway = new StubTenantCommandGateway
         {
             Submission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"),
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
-            SubmissionProvider = stage == "dispatch" ? (_, _, _) => neverSubmission.Task : null,
-            StatusProvider = stage == "status" ? (_, _) => neverStatus.Task : null,
+            SubmissionProvider = stage == "dispatch"
+                ? (_, _, cancellationToken) =>
+                {
+                    observedCancellation = cancellationToken;
+                    return neverSubmission.Task;
+                }
+                : null,
+            StatusProvider = stage == "status"
+                ? (_, cancellationToken) =>
+                {
+                    observedCancellation = cancellationToken;
+                    return neverStatus.Task;
+                }
+                : null,
         };
         List<bool> activity = [];
         int proofCalls = 0;
@@ -823,17 +878,21 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(
                 TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ =>
+            .Add(component => component.ProjectionEvidenceProvider, (_, cancellationToken) =>
             {
                 proofCalls++;
-                return stage == "proof" && proofCalls == 2
-                    ? neverProof.Task
-                    : Task.FromResult<TenantDetailSnapshot?>(Proof(
-                        "tenant.alpha",
-                        TenantStatus.Active,
-                        "tenant-sequence:41"));
+                if (stage == "proof" && proofCalls == 2)
+                {
+                    observedCancellation = cancellationToken;
+                    return neverProof.Task;
+                }
+
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(
+                    "tenant.alpha",
+                    TenantStatus.Active,
+                    "tenant-sequence:41"));
             }));
         cut.Instance.ExternalOperationTimeout = TimeSpan.FromMilliseconds(30);
 
@@ -842,11 +901,13 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State
             .ShouldBe(TenantCommandLifecycleState.UnableToVerify));
-        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
         activity.ShouldBe([true, false]);
         gateway.DisableSubmissions.ShouldBe(1);
         gateway.StatusCalls.ShouldBe(expectedStatusCalls);
         proofCalls.ShouldBe(expectedProofCalls);
+        observedCancellation.CanBeCanceled.ShouldBeTrue();
+        cut.WaitForAssertion(() => observedCancellation.IsCancellationRequested.ShouldBeTrue());
     }
 
     [Theory]
@@ -1001,7 +1062,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.DisableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(proof)));
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(proof)));
 
         TenantDetail mutated = Detail("tenant.alpha", TenantStatus.Active) with { Name = "Mutable page name" };
         cut.Render(parameters => parameters
@@ -1011,7 +1072,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.DisableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:42")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(proof)));
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(proof)));
 
         cut.Find("[data-testid='tenants-lifecycle-preview-identity']").TextContent
             .ShouldContain("Alpha");
@@ -1251,8 +1312,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
             .Add(component => component.OnProjectionRefreshRequested, () => parentRefreshes++)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -1353,8 +1414,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(null)));
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(null)));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -1379,8 +1440,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 TenantDetailSnapshot.Unavailable("Raw proof failure."))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
@@ -1416,8 +1477,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(proof)));
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(proof)));
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
 
         proof = Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:42");
@@ -1447,8 +1508,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.EnableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:42")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Disabled, "tenant-sequence:42"))));
 
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -1513,8 +1574,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => ++proofReads == 1
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => ++proofReads == 1
                 ? Task.FromResult<TenantDetailSnapshot?>(Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))
                 : Task.FromException<TenantDetailSnapshot?>(new OperationCanceledException("proof read canceled"))));
 
@@ -1555,8 +1616,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
             .Add(component => component.OnProjectionRefreshRequested, () => { parentRefreshes++; })
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(
                     request.TenantId,
                     projectionStatus,
@@ -1612,8 +1673,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(
                     request.TenantId,
                     gateway.StatusCalls >= 3 ? TenantStatus.Disabled : TenantStatus.Active,
@@ -1667,9 +1728,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(
                 TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request =>
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) =>
             {
                 proofRead++;
                 bool confirmed = proofRead >= 3;
@@ -1716,7 +1777,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.ProjectionEvidenceProvider, request =>
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) =>
             {
                 proofCalls++;
                 return Task.FromResult<TenantDetailSnapshot?>(Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"));
@@ -1732,6 +1793,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-lifecycle-flow-unavailable-reason']").TextContent
             .ShouldContain("current authoritative data", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent
+            .ShouldContain("Refresh the authoritative tenant data", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent
+            .ShouldNotContain("submit only after confirmation is exact", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-confirm']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("form").Submit();
         gateway.DisableSubmissions.ShouldBe(0);
@@ -1764,6 +1829,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("#tenants-lifecycle-disable-reason").TextContent.ShouldContain("A tenant command is already in flight or the lifecycle");
         cut.Find("#tenants-lifecycle-disable-reason").GetAttribute("data-reason-category")
             .ShouldBe(TenantHighImpactReasonCategoryNames.InFlightOrCommandSurface);
+        cut.Find("[data-testid='tenants-lifecycle-disable-recovery']").TextContent
+            .ShouldContain("Wait for the current tenant command to finish", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
 
         cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
@@ -1795,12 +1862,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.AuthorizationReflectionProvider, () =>
+            .Add(component => component.AuthorizationReflectionProvider, _ =>
             {
                 authorityCalls++;
                 return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
             })
-            .Add(component => component.ProjectionEvidenceProvider, request =>
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) =>
             {
                 proofCalls++;
                 return Task.FromResult<TenantDetailSnapshot?>(Proof(
@@ -2062,8 +2129,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(
                     request.TenantId,
                     projectionStatus,
@@ -2157,7 +2224,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(
                     request.TenantId,
                     proofStatus,
@@ -2214,7 +2281,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Disabled, "tenant-sequence:42"))));
         TenantLifecycleCommandSnapshot tracked = TenantLifecycleCommandSnapshot
             .Idle(detail)
@@ -2272,8 +2339,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
@@ -2474,8 +2541,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(currentAuthorization))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(currentAuthorization))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
@@ -2547,8 +2614,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.EnableEvidence, HighImpactEvidence(TenantHighImpactAction.EnableTenant))
             .Add(component => component.DisableEvidence, HighImpactEvidence(TenantHighImpactAction.DisableTenant))
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(proof)));
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(proof)));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
         cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
@@ -2583,8 +2650,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.EnableEvidence, enable)
             .Add(component => component.DisableEvidence, disable)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Disabled, "tenant-sequence:41"))));
 
         cut.Find("[data-testid='tenants-lifecycle-enable']").Click();
@@ -2710,8 +2777,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
 
     private IRenderedComponent<TenantLifecycleCommandFlow> RenderLifecycleFlow()
@@ -2722,8 +2789,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleOperation.DisableTenant))
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
 
     private IRenderedComponent<TenantLifecycleCommandFlow> RenderLifecycleFlow(List<bool> activity)
@@ -2735,8 +2802,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(component => component.AuthorizationReflectionProvider, () => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(component => component.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
                 Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41"))));
 
     private static TenantDetail Detail(string tenantId, TenantStatus status)
@@ -3058,7 +3125,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Unavailable.PreviewIncomplete"] = "The consequence preview is incomplete, so lifecycle submission is blocked. Refresh tenant detail and review a new complete preview.",
             ["Tenants.Lifecycle.Retained.AbandonUnreachable"] = "This lifecycle attempt cannot be opened for reconciliation right now. Stop tracking to release this tenant for other commands; the command outcome remains unverified.",
             ["Tenants.Lifecycle.Retained.Recovery"] = "Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.",
-            ["Tenants.Lifecycle.Dispatch.Recovery"] = "Refresh to safely retry the same command identity. The unresolved dispatch expires after five minutes; you may stop tracking if you accept that its outcome remains unknown.",
+            ["Tenants.Lifecycle.Dispatch.Recovery"] = "Refresh to safely retry the same command identity. The unresolved dispatch expires after {0} minutes; you may stop tracking if you accept that its outcome remains unknown.",
             ["Tenants.Lifecycle.Unavailable.ProjectionLifecycle"] = "{1} is unavailable for tenant {0} because the projection lifecycle is not current. Continue read-only and refresh projection evidence.",
             ["Tenants.Lifecycle.Unavailable.SameState"] = "The current projection already shows {0}; lifecycle submission is blocked.",
             ["Tenants.Lifecycle.Unavailable.StaleFreshness"] = "{1} is unavailable for tenant {0} because tenant freshness is stale or unknown. Refresh before considering lifecycle action availability.",

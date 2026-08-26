@@ -3,7 +3,8 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway {
+internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
+{
     public bool SupportsTrackedLifecycleDispatch => false;
 
     public Task<TenantCommandSubmissionResult> CreateTenantAsync(
@@ -65,7 +66,8 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway {
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
@@ -76,7 +78,8 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway {
         TenantLifecycleCommandRequest request,
         string messageId,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
     public Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,

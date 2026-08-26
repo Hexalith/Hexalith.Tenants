@@ -104,9 +104,9 @@ development_status:
   # review hardened last-chance proof, immutable tracker evidence, deadline/race handling, localization,
   # remount gate release, and disconnected focus; all 2404 UI tests and the story gitlink guard pass.
   # 2026-08-26: code review loop 5 (chunk A = production src/). Both decisions resolved and implemented
-  # (launcher-side same-route lease reclamation + launcher abandon affordance), mutation-verified, 2435 UI
-  # tests pass. 13 patch findings left as open action items in the spec; 8 deferred to deferred-work.md.
-  3-4-disable-or-enable-tenant-with-complete-preview: in-progress
+  # (launcher-side same-route lease reclamation + launcher abandon affordance), mutation-verified. Loop 5
+  # production patches closed; follow-up review patches applied in this pass. 8 deferred to deferred-work.md.
+  3-4-disable-or-enable-tenant-with-complete-preview: review
   3-5-set-namespaced-configuration-with-complete-preview: backlog
   3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done

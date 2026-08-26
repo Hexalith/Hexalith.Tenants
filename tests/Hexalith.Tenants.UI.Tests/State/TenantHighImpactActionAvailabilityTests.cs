@@ -405,10 +405,10 @@ public sealed class TenantHighImpactActionAvailabilityTests
     }
 
     [Fact]
-    public void Undefined_unavailable_reason_cannot_become_an_automation_category()
+    public void Undefined_unavailable_reason_falls_back_to_a_defined_automation_category()
     {
-        _ = Should.Throw<ArgumentOutOfRangeException>(() =>
-            TenantHighImpactReasonCategoryNames.ForUnavailableReason((TenantHighImpactUnavailableReason)999));
+        TenantHighImpactReasonCategoryNames.ForUnavailableReason((TenantHighImpactUnavailableReason)999)
+            .ShouldBe(nameof(TenantHighImpactUnavailableReason.HighImpactFlowNotReady));
     }
 
     private static TenantHighImpactActionAvailability Evaluate(TenantHighImpactActionEvidence evidence)

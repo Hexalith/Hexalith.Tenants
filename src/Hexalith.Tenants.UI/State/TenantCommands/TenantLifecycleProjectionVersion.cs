@@ -45,18 +45,27 @@ internal static class TenantLifecycleProjectionVersion
     /// <summary>Compares two versions for monotonic retained-evidence merging.</summary>
     /// <param name="incoming">Incoming projection version.</param>
     /// <param name="retained">Retained projection version.</param>
-    /// <returns>A sequence comparison, or zero when the versions are not comparable.</returns>
-    internal static int CompareSequences(string? incoming, string? retained)
+    /// <returns>
+    /// A four-way relation that never overloads equality with incomparability. Opaque markers and
+    /// prefix mismatches are <see cref="TenantLifecycleSequenceRelation.Incomparable"/>.
+    /// </returns>
+    internal static TenantLifecycleSequenceRelation CompareSequences(string? incoming, string? retained)
     {
         if (!TrySplit(incoming, out string incomingPrefix, out ulong incomingSequence)
             || !TrySplit(retained, out string retainedPrefix, out ulong retainedSequence)
             || !string.Equals(incomingPrefix, retainedPrefix, StringComparison.Ordinal)
             || !string.Equals(incomingPrefix, TenantSequencePrefix, StringComparison.Ordinal))
         {
-            return 0;
+            return TenantLifecycleSequenceRelation.Incomparable;
         }
 
-        return incomingSequence.CompareTo(retainedSequence);
+        int comparison = incomingSequence.CompareTo(retainedSequence);
+        return comparison switch
+        {
+            > 0 => TenantLifecycleSequenceRelation.IncomingNewer,
+            < 0 => TenantLifecycleSequenceRelation.IncomingOlder,
+            _ => TenantLifecycleSequenceRelation.Equal,
+        };
     }
 
     private static bool TrySplit(string? value, out string prefix, out ulong sequence)

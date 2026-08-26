@@ -338,15 +338,18 @@ internal sealed class TenantCommandGateway(
     public async Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant)
+        {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
         if (string.IsNullOrWhiteSpace(messageId)
-            || !TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            || !TryResolveMessageId(messageId, out string resolvedMessageId))
+        {
             return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
 
@@ -359,22 +362,26 @@ internal sealed class TenantCommandGateway(
             nameof(EnableTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try {
+        try
+        {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex)
+        {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
             return TenantCommandSubmissionResult.Ambiguous(
                 resolvedMessageId,
                 "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
         }
-        catch (HttpRequestException) {
+        catch (HttpRequestException)
+        {
             return TenantCommandSubmissionResult.Ambiguous(
                 resolvedMessageId,
                 "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
@@ -389,15 +396,18 @@ internal sealed class TenantCommandGateway(
     public async Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
         string messageId,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant) {
+        if (string.IsNullOrWhiteSpace(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant)
+        {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
         if (string.IsNullOrWhiteSpace(messageId)
-            || !TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            || !TryResolveMessageId(messageId, out string resolvedMessageId))
+        {
             return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
         }
 
@@ -410,22 +420,26 @@ internal sealed class TenantCommandGateway(
             nameof(DisableTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try {
+        try
+        {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex)
+        {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
         }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
             return TenantCommandSubmissionResult.Ambiguous(
                 resolvedMessageId,
                 "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
         }
-        catch (HttpRequestException) {
+        catch (HttpRequestException)
+        {
             return TenantCommandSubmissionResult.Ambiguous(
                 resolvedMessageId,
                 "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
@@ -434,19 +448,23 @@ internal sealed class TenantCommandGateway(
 
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(handle);
 
-        try {
+        try
+        {
             using HttpResponseMessage response = await statusClient
                 .GetAsync($"api/v1/commands/status/{Uri.EscapeDataString(handle.CorrelationId)}", cancellationToken)
                 .ConfigureAwait(false);
 
-            if (response.StatusCode == HttpStatusCode.NotFound) {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
                 return TenantCommandStatusResult.Pending("Command status is not available yet.");
             }
 
-            if (!response.IsSuccessStatusCode) {
+            if (!response.IsSuccessStatusCode)
+            {
                 return IsRetryableStatusCode(response.StatusCode)
                     ? TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.")
                     : TenantCommandStatusResult.Unknown("Command status request was rejected.");
@@ -456,20 +474,24 @@ internal sealed class TenantCommandGateway(
                 .ReadFromJsonAsync<TenantCommandStatusResponse>(WebJsonOptions, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (status is null) {
+            if (status is null)
+            {
                 return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
             }
 
             if (string.IsNullOrWhiteSpace(status.CorrelationId)
-                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal)) {
+                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal))
+            {
                 return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.");
             }
 
-            if (!Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
+            if (!Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus))
+            {
                 return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
             }
 
-            if (!Enum.IsDefined(parsedStatus)) {
+            if (!Enum.IsDefined(parsedStatus))
+            {
                 return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
             }
 
@@ -477,7 +499,8 @@ internal sealed class TenantCommandGateway(
                 && string.Equals(status.MessageId, handle.MessageId, StringComparison.Ordinal)
                 && (string.IsNullOrWhiteSpace(handle.AggregateId)
                     || string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal));
-            if (!string.IsNullOrWhiteSpace(handle.AggregateId) && !hasVerifiedCommandIdentity) {
+            if (!string.IsNullOrWhiteSpace(handle.AggregateId) && !hasVerifiedCommandIdentity)
+            {
                 return new TenantCommandStatusResult(
                     parsedStatus,
                     "Command status response did not match the tracked lifecycle command.",
@@ -492,13 +515,16 @@ internal sealed class TenantCommandGateway(
                 status.EventCount,
                 HasVerifiedCommandIdentity: hasVerifiedCommandIdentity);
         }
-        catch (JsonException) {
+        catch (JsonException)
+        {
             return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
         }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
             return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
         }
-        catch (HttpRequestException) {
+        catch (HttpRequestException)
+        {
             return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
         }
     }

@@ -533,6 +533,7 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
+        bool tenantRouteChanged = !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal);
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
@@ -567,10 +568,16 @@
             AggregateAdmissionGate.Release(incomingAggregateLockKey, lifecycleTracker.LeaseOwner);
         }
 
-        // Companion to the reclamation above, for the case where this page's own lifecycle surface still holds
-        // the key. See TryReclaimExpiredLifecycleLease; OnAfterRenderAsync calls the same seam so a same-route
-        // expiry is reclaimed without waiting for a route or parameter change.
-        _ = TryReclaimExpiredLifecycleLease(incomingAggregateLockKey, tenantId);
+        // Route-change scoped companion to the reclamation above, for the case where this page's own
+        // lifecycle surface still holds the key. Same-route expiry is owned by
+        // TenantLifecycleActionAvailability, which observes a retained attempt going from present to absent.
+        // This method is not called from OnAfterRenderAsync: between lease acquire and BeginDispatch the
+        // tracker reports no pending ownership, so a same-route render would release the lease under an
+        // in-flight submit.
+        if (tenantRouteChanged)
+        {
+            _ = TryReclaimExpiredLifecycleLease(incomingAggregateLockKey, tenantId);
+        }
 
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
@@ -2099,7 +2106,9 @@
                 _snapshot.Configuration,
                 CancellationToken.None).AsTask();
 
-    private async Task<TenantDetailSnapshot?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
+    private async Task<TenantDetailSnapshot?> GetLifecycleProjectionEvidenceAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken)
     {
         using PendingOperation? operation = BeginLifecycleProof(request.TenantId);
         if (operation is null)
@@ -2107,14 +2116,17 @@
             return null;
         }
 
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            operation.CancellationToken,
+            cancellationToken);
         TenantDetailSnapshot proof;
         try
         {
             proof = await QueryGateway
-                .GetLifecycleProjectionProofAsync(request, operation.CancellationToken)
+                .GetLifecycleProjectionProofAsync(request, linked.Token)
                 .ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (linked.IsCancellationRequested)
         {
             return null;
         }
@@ -2124,11 +2136,12 @@
             : null;
     }
 
-    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeLifecycleAsync()
+    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeLifecycleAsync(
+        CancellationToken cancellationToken)
     {
         try
         {
-            return await BffComposition.ResolveLifecycleAuthorizationAsync(CancellationToken.None)
+            return await BffComposition.ResolveLifecycleAuthorizationAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -2172,9 +2185,9 @@
     /// <remarks>
     /// A retained attempt can expire on the clock with no state transition to release its lease: the tracker
     /// prunes its own maps but holds no reference to the admission gate, so nothing reclaims the key and every
-    /// sibling command surface on this tenant stays disabled for the rest of the circuit. Same tenant only,
-    /// tracker-owned only, and only once the tracker reports no pending ownership -- a dispatch records its
-    /// identity before transport, so an in-flight submit still reports pending here.
+    /// sibling command surface on this tenant stays disabled for the rest of the circuit. Invoked only on
+    /// tenant or route change. Tracker-owned only, and only once the tracker reports no pending ownership.
+    /// Same-route expiry is owned by TenantLifecycleActionAvailability.
     /// </remarks>
     /// <remarks>
     /// Route-change scoped on purpose. It cannot be hoisted to OnAfterRenderAsync: between a submit acquiring

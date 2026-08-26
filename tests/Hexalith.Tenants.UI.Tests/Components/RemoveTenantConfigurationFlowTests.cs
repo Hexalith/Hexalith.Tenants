@@ -784,6 +784,24 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");
         styles.ShouldContain("tenants-config-remove__narrow");
+        styles.ShouldContain("::deep .tenants-config-remove__form");
+    }
+
+    [Fact]
+    public void Refresh_and_cancel_are_not_descendants_of_the_hidden_form()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Closest(".tenants-config-remove__form").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-remove-refresh']").Closest(".tenants-config-remove__form").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-remove-submit']").Closest(".tenants-config-remove__form").ShouldNotBeNull();
     }
 
     private void RegisterServices(ITenantCommandGateway? gateway = null)

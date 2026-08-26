@@ -356,7 +356,7 @@ public sealed class TenantLifecycleCommandSnapshotTests
             Proof("tenant.alpha", TenantStatus.Disabled, "other-sequence:42"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        result.LastObservedProjectionVersion.ShouldBe("other-sequence:42");
+        result.LastObservedProjectionVersion.ShouldBe("tenant-sequence:41");
         result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.ProjectionEvidence.PrefixMismatch");
     }
 

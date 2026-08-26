@@ -61,9 +61,14 @@
             bool isActionDisabled = IsActionDisabled(availability);
             bool hasSupplementalDomainOutcome = highImpact.DomainOutcome is not TenantHighImpactDomainOutcome.None
                 && highImpact.UnavailableReason is not TenantHighImpactUnavailableReason.None;
+            bool showAbandonAffordance = HasMatchingRetainedAttempt(availability) && !CanResumeRetained(availability);
             string describedBy = hasSupplementalDomainOutcome
                 ? $"{reasonId} {recoveryId} {domainOutcomeId}"
                 : $"{reasonId} {recoveryId}";
+            if (showAbandonAffordance)
+            {
+                describedBy = $"{describedBy} {abandonHintId}";
+            }
 
             <div class="tenant-lifecycle__action"
                  role="listitem"
@@ -119,7 +124,7 @@
                    data-testid="@(actionId + "-recovery")">
                     @HighImpactRecovery(availability, highImpact)
                 </p>
-                @if (HasMatchingRetainedAttempt(availability) && !CanResumeRetained(availability))
+                @if (showAbandonAffordance)
                 {
                     @* Abandon needs neither reflected authority nor command connectivity: it is a local tracker
                        Forget plus a lease release, with no gateway call. It lives inside the command flow,
@@ -233,11 +238,11 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<TenantLifecycleCommandRequest, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<TenantLifecycleCommandRequest, CancellationToken, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     /// <summary>Gets or sets the submit-time server-reflected lifecycle authority provider.</summary>
     [Parameter]
-    public Func<Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
+    public Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
 
     private TenantLifecycleAvailabilityInput Input
         => new(

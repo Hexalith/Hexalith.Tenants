@@ -280,7 +280,7 @@ public sealed class TenantLifecycleAttemptTracker
     {
         int retainedRank = ProgressRank(retained.State);
         int incomingRank = ProgressRank(incoming.State);
-        int projectionComparison = TenantLifecycleProjectionVersion.CompareSequences(
+        TenantLifecycleSequenceRelation projectionComparison = TenantLifecycleProjectionVersion.CompareSequences(
             incoming.LastObservedProjectionVersion,
             retained.LastObservedProjectionVersion);
         TenantLifecycleCommandSnapshot preferred = incomingRank != retainedRank
@@ -289,11 +289,11 @@ public sealed class TenantLifecycleAttemptTracker
                 ? incoming.EvidenceRevision > retained.EvidenceRevision ? incoming : retained
                 : incoming.PendingStatusPollCount != retained.PendingStatusPollCount
                     ? incoming.PendingStatusPollCount > retained.PendingStatusPollCount ? incoming : retained
-                    : projectionComparison > 0 ? incoming : retained;
+                    : projectionComparison is TenantLifecycleSequenceRelation.IncomingNewer ? incoming : retained;
         TenantLifecycleCommandSnapshot projectionEvidence = projectionComparison switch
         {
-            > 0 => incoming,
-            < 0 => retained,
+            TenantLifecycleSequenceRelation.IncomingNewer => incoming,
+            TenantLifecycleSequenceRelation.IncomingOlder => retained,
             _ => preferred,
         };
 

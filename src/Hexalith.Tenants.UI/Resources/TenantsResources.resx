@@ -928,7 +928,7 @@
     <value>Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.</value>
   </data>
   <data name="Tenants.Lifecycle.Dispatch.Recovery" xml:space="preserve">
-    <value>Refresh to safely retry the same command identity. The unresolved dispatch expires after five minutes; you may stop tracking if you accept that its outcome remains unknown.</value>
+    <value>Refresh to safely retry the same command identity. The unresolved dispatch expires after {0} minutes; you may stop tracking if you accept that its outcome remains unknown.</value>
   </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>This lifecycle attempt is still pending and cannot be dismissed. Refresh status until it reaches a terminal, support-safe outcome.</value>

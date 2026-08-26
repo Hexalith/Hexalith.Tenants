@@ -2291,7 +2291,7 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         if (TenantLifecycleProjectionVersion.CompareSequences(
                 currentProjectionVersion,
-                LastObservedProjectionVersion) < 0)
+                LastObservedProjectionVersion) is TenantLifecycleSequenceRelation.IncomingOlder)
         {
             return this;
         }
@@ -2349,7 +2349,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             State = TenantCommandLifecycleState.Confirmed,
             LastConfirmedStatus = detailEvidence.Status,
             LastConfirmedProjection = detailEvidence,
-            LastObservedProjectionVersion = currentProjectionVersion,
+            LastObservedProjectionVersion = MergeObservedProjectionVersion(currentProjectionVersion),
             SafeMessage = null,
             SafeMessageKey = null,
             RecoveryKey = null,
@@ -2438,6 +2438,7 @@ public sealed record TenantLifecycleCommandSnapshot(
         TenantCommandFocusTarget focusTarget = moveFocus
             ? TenantCommandFocusTarget.Refresh
             : FocusTarget;
+        string? observedProjectionVersion = MergeObservedProjectionVersion(projectionVersion);
         string? safeMessage = safeMessageKey is null ? SafeMessage : null;
         string? effectiveSafeMessageKey = safeMessageKey ?? SafeMessageKey;
         string? recoveryKey = safeMessageKey is null
@@ -2445,7 +2446,7 @@ public sealed record TenantLifecycleCommandSnapshot(
             : "Tenants.Lifecycle.Retained.Recovery";
         if (LastConfirmedStatus == detailEvidence.Status
             && Equals(LastConfirmedProjection, detailEvidence)
-            && string.Equals(LastObservedProjectionVersion, projectionVersion, StringComparison.Ordinal)
+            && string.Equals(LastObservedProjectionVersion, observedProjectionVersion, StringComparison.Ordinal)
             && string.Equals(SafeMessageKey, effectiveSafeMessageKey, StringComparison.Ordinal)
             && string.Equals(RecoveryKey, recoveryKey, StringComparison.Ordinal)
             && FocusTarget == focusTarget)
@@ -2457,13 +2458,24 @@ public sealed record TenantLifecycleCommandSnapshot(
         {
             LastConfirmedStatus = detailEvidence.Status,
             LastConfirmedProjection = detailEvidence,
-            LastObservedProjectionVersion = projectionVersion,
+            LastObservedProjectionVersion = observedProjectionVersion,
             SafeMessage = safeMessage,
             SafeMessageKey = effectiveSafeMessageKey,
             RecoveryKey = recoveryKey,
             FocusTarget = focusTarget,
             EvidenceRevision = NextEvidenceRevision(),
         };
+    }
+
+    private string? MergeObservedProjectionVersion(string incoming)
+    {
+        TenantLifecycleSequenceRelation relation = TenantLifecycleProjectionVersion.CompareSequences(
+            incoming,
+            LastObservedProjectionVersion);
+        return relation is TenantLifecycleSequenceRelation.IncomingNewer
+            or TenantLifecycleSequenceRelation.Equal
+            ? incoming
+            : LastObservedProjectionVersion;
     }
 
     internal long NextEvidenceRevision()

@@ -888,7 +888,25 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         styles.ShouldContain(":focus-visible");
         styles.ShouldContain("tenants-config-set__narrow");
         styles.ShouldContain("tenants-config-set__state");
+        styles.ShouldContain("::deep .tenants-config-set__form");
         styles.ShouldNotContain("tenants-config-set__state--alreadyapplied");
+    }
+
+    [Fact]
+    public void Configuration_set_refresh_and_cancel_are_not_descendants_of_the_hidden_form()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-cancel']").Closest(".tenants-config-set__form").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-set-refresh']").Closest(".tenants-config-set__form").ShouldBeNull();
+        cut.Find("[data-testid='tenants-config-set-submit']").Closest(".tenants-config-set__form").ShouldNotBeNull();
     }
 
     [Fact]

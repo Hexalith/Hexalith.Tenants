@@ -3,6 +3,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
@@ -240,11 +241,11 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<TenantLifecycleCommandRequest, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<TenantLifecycleCommandRequest, CancellationToken, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     /// <summary>Gets or sets the submit-time server-reflected lifecycle authority provider.</summary>
     [Parameter]
-    public Func<Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
+    public Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
 
     internal TenantLifecycleCommandSnapshot Snapshot => _snapshot;
 
@@ -394,7 +395,20 @@
         => $"/tenants/{Uri.EscapeDataString(PreviewTenantId)}";
 
     private string RecoveryText
-        => Localizer[_snapshot.RecoveryKey ?? $"Tenants.Lifecycle.Recovery.{_snapshot.State}"];
+    {
+        get
+        {
+            string key = !string.IsNullOrWhiteSpace(_snapshot.RecoveryKey)
+                ? _snapshot.RecoveryKey
+                : !string.IsNullOrWhiteSpace(UnavailableReason)
+                    ? UnavailableRecoveryKey
+                    : $"Tenants.Lifecycle.Recovery.{_snapshot.State}";
+            return Localizer[key, RetentionMinutes].Value;
+        }
+    }
+
+    private static int RetentionMinutes
+        => Math.Max(1, (int)Math.Round(TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration.TotalMinutes));
 
     private string UnavailableRecoveryKey
         => CurrentResolvedEvidence is not null && !CurrentEntryAvailability.IsEligible
@@ -403,10 +417,10 @@
             ? EntryAvailability.RecoveryKey
             : CommandGateway is null || !CommandGateway.SupportsTrackedLifecycleDispatch
                 ? "Tenants.HighImpact.Recovery.MissingLifecycleSupport"
-                : !IsCommandSurfaceAvailable && !IsOwnedCommandInFlight
+                : _preview is { IsCommandSurfaceAvailable: false } && !IsOwnedCommandInFlight
                     ? "Tenants.HighImpact.Recovery.HighImpactFlowNotReady"
-                    : string.IsNullOrWhiteSpace(Detail.TenantId)
-                        || string.IsNullOrWhiteSpace(Detail.Name)
+                    : string.IsNullOrWhiteSpace(PreviewDetail.TenantId)
+                        || string.IsNullOrWhiteSpace(PreviewDetail.Name)
                         || !IsPreviewComplete
                         ? "Tenants.HighImpact.Recovery.MissingConsequencePreview"
                         : "Tenants.HighImpact.Recovery.None";
@@ -682,8 +696,9 @@
             {
                 remembered = tracker is not null && tracker.Remember(_snapshot);
             }
-            catch (ArgumentException)
+            catch (ArgumentException exception)
             {
+                LogLifecycleFailure("lifecycle-tracker-remember-rejected", exception);
                 remembered = false;
             }
 
@@ -722,9 +737,9 @@
 
     private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
-        if (_disposed)
+        if (_disposed && isActive)
         {
-            return !isActive;
+            return false;
         }
 
         if (_hasRaisedCommandActivity == isActive)
@@ -736,9 +751,9 @@
         // acquisition used to leave this flow free to dispatch against an aggregate another surface held.
         if (CommandActivityLease is not null)
         {
-            if (_disposed)
+            if (_disposed && isActive)
             {
-                return !isActive;
+                return false;
             }
 
             bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
@@ -751,9 +766,9 @@
         _hasRaisedCommandActivity = isActive;
         if (CommandActivityLease is null)
         {
-            if (_disposed)
+            if (_disposed && isActive)
             {
-                return !isActive;
+                return false;
             }
 
             await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
@@ -909,26 +924,33 @@
         {
             if (_disposed)
             {
+                _isSubmitting = false;
                 return;
             }
 
             currentAuthorization = AuthorizationReflectionProvider is null
                 ? TenantLifecycleAuthorizationReflectionState.Indeterminate
                 : await AwaitWithinDeadlineAsync(
-                    AuthorizationReflectionProvider(),
+                    AuthorizationReflectionProvider,
                     preflightStartedAtUtc + ExternalOperationTimeout)
                     .ConfigureAwait(false);
         }
-        catch (TimeoutException)
+        catch (TimeoutException exception)
         {
+            LogLifecycleFailure("lifecycle-authority-preflight-timeout", exception);
             _isSubmitting = false;
             SetSnapshot(_snapshot.BlockedWithTracking(
                 "Tenants.Lifecycle.Unavailable.MissingPermission",
                 "Tenants.HighImpact.Recovery.MissingPermission"));
             return;
         }
-        catch (Exception)
+        catch (OperationCanceledException)
         {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            LogLifecycleFailure("lifecycle-authority-preflight-fault", exception);
             currentAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
 
@@ -946,18 +968,24 @@
         {
             if (_disposed)
             {
+                _isSubmitting = false;
                 return;
             }
 
             submitProof = ProjectionEvidenceProvider is null
                 ? null
                 : await AwaitWithinDeadlineAsync(
-                    ProjectionEvidenceProvider(submitContext.Intent),
+                    cancellationToken => ProjectionEvidenceProvider(submitContext.Intent, cancellationToken),
                     preflightStartedAtUtc + ExternalOperationTimeout)
                     .ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (OperationCanceledException)
         {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            LogLifecycleFailure("lifecycle-proof-preflight-fault", exception);
             _isSubmitting = false;
             SetSnapshot(_snapshot.BlockedWithTracking(
                 "Tenants.Lifecycle.Unavailable.ProofRead",
@@ -1075,6 +1103,7 @@
         if (_disposed)
         {
             _isSubmitting = false;
+            _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
             return;
         }
 
@@ -1139,12 +1168,15 @@
 
             TenantLifecycleCommandRequest trackedIntent = _snapshot.Intent!;
             Task<TenantCommandSubmissionResult> dispatch = trackedIntent.Operation is TenantLifecycleOperation.EnableTenant
-                ? gateway.EnableTenantTrackedAsync(trackedIntent, messageId, CancellationToken.None)
-                : gateway.DisableTenantTrackedAsync(trackedIntent, messageId, CancellationToken.None);
-            result = await AwaitWithinAttemptAsync(dispatch).ConfigureAwait(false);
+                ? AwaitWithinAttemptAsync(cancellationToken =>
+                    gateway.EnableTenantTrackedAsync(trackedIntent, messageId, cancellationToken))
+                : AwaitWithinAttemptAsync(cancellationToken =>
+                    gateway.DisableTenantTrackedAsync(trackedIntent, messageId, cancellationToken));
+            result = await dispatch.ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException exception)
         {
+            LogLifecycleFailure("lifecycle-dispatch-canceled", exception);
             if (!_disposed)
             {
                 SetSnapshot(_snapshot.AmbiguousSubmission(
@@ -1153,14 +1185,16 @@
 
             return;
         }
-        catch (TimeoutException)
+        catch (TimeoutException exception)
         {
+            LogLifecycleFailure("lifecycle-dispatch-timeout", exception);
             SetSnapshot(_snapshot.UnableToVerify(
                 "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
             return;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            LogLifecycleFailure("lifecycle-dispatch-fault", exception);
             SetSnapshot(_snapshot.AmbiguousSubmission(
                 "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
             return;
@@ -1282,8 +1316,19 @@
 
     private async Task RefreshStatusAsync(bool requestProjectionRefresh = true)
     {
-        if (_disposed || _isSubmitting)
+        if (_disposed)
         {
+            return;
+        }
+
+        if (_isSubmitting)
+        {
+            if (requestProjectionRefresh)
+            {
+                Volatile.Write(ref _pendingProjectionRefreshRequested, 1);
+            }
+
+            Volatile.Write(ref _refreshReplayRequested, 1);
             return;
         }
 
@@ -1343,10 +1388,11 @@
                     }
 
                     await AwaitWithinAttemptAsync(
-                        InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync())).ConfigureAwait(false);
+                        _ => InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync())).ConfigureAwait(false);
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
+                    LogLifecycleFailure("lifecycle-terminal-refresh-nudge-fault", exception);
                     // Terminal refresh is an authoritative parent re-query request only. A failed nudge
                     // cannot change the already truthful non-success command outcome.
                 }
@@ -1407,37 +1453,40 @@
                     return;
                 }
 
-                status = await AwaitWithinAttemptAsync(gateway
+                status = await AwaitWithinAttemptAsync(cancellationToken => gateway
                     .GetStatusAsync(
                         new TenantCommandTrackingHandle(
                             _snapshot.MessageId,
                             _snapshot.CorrelationId,
                             _snapshot.Intent.TenantId),
-                        CancellationToken.None)).ConfigureAwait(false);
+                        cancellationToken)).ConfigureAwait(false);
                 status = status with { SafeMessage = null };
             }
             catch (OperationCanceledException)
             {
                 throw;
             }
-            catch (TimeoutException) when (
+            catch (TimeoutException exception) when (
                 _snapshot.State is TenantCommandLifecycleState.ProjectionPending
                 && _snapshot.HasCommandEventEvidence)
             {
                 // Exact command-event evidence has already established causality. A hung status read must
                 // not consume the attempt's final authoritative projection proof; preserve the evidence and
                 // continue to the unconditional proof path below.
+                LogLifecycleFailure("lifecycle-status-timeout-last-chance", exception);
                 statusTimedOutWithExactEventEvidence = true;
             }
-            catch (TimeoutException)
+            catch (TimeoutException exception)
             {
+                LogLifecycleFailure("lifecycle-status-timeout", exception);
                 SetSnapshot(_snapshot.UnableToVerify(
                     "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
                 await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
                 return;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                LogLifecycleFailure("lifecycle-status-fault", exception);
                 status = TenantCommandStatusResult.RetryableFailure(
                     Localizer["Tenants.Lifecycle.StatusEvidence.RetryableFailure"].Value);
             }
@@ -1468,10 +1517,11 @@
                 }
 
                 await AwaitWithinAttemptAsync(
-                    InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync())).ConfigureAwait(false);
+                    _ => InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync())).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                LogLifecycleFailure("lifecycle-projection-nudge-fault", exception);
                 // The callback is only a refresh nudge. The scoped unconditional proof below remains the
                 // authoritative reconciliation path and is still attempted when a parent refresh faults.
             }
@@ -1494,7 +1544,7 @@
                 }
 
                 TenantDetailSnapshot? proof = await AwaitWithinAttemptAsync(
-                    ProjectionEvidenceProvider(_snapshot.Intent)).ConfigureAwait(false);
+                    cancellationToken => ProjectionEvidenceProvider(_snapshot.Intent, cancellationToken)).ConfigureAwait(false);
                 if (_disposed)
                 {
                     return;
@@ -1539,13 +1589,15 @@
                     SetSnapshot(_snapshot.ConfirmProjection(proof));
                 }
             }
-            catch (TimeoutException)
+            catch (TimeoutException exception)
             {
+                LogLifecycleFailure("lifecycle-proof-timeout", exception);
                 SetSnapshot(_snapshot.UnableToVerify(
-                    "Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
+                    "Tenants.Lifecycle.UnableToVerify.ProofRead"));
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                LogLifecycleFailure("lifecycle-proof-fault", exception);
                 SetSnapshot(_snapshot.BlockedWithTracking(
                     _snapshot.RetainsAttempt
                         ? "Tenants.Lifecycle.UnableToVerify.ProofRead"
@@ -1628,68 +1680,80 @@
         && Equals(context.Intent, Intent)
         && string.Equals(context.ConfirmationText, _confirmationText, StringComparison.Ordinal);
 
-    private static async Task<T> AwaitWithinDeadlineAsync<T>(Task<T> task, DateTimeOffset deadline)
+    private static async Task<T> AwaitWithinDeadlineAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        DateTimeOffset deadline)
     {
-        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(operation);
+        using var timeoutCts = new CancellationTokenSource();
         TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
+        Task<T> task = operation(timeoutCts.Token);
         if (remaining <= TimeSpan.Zero)
         {
             if (!task.IsCompleted)
             {
+                await timeoutCts.CancelAsync().ConfigureAwait(false);
                 throw new TimeoutException();
             }
 
             return await task.ConfigureAwait(false);
         }
 
-        return await task.WaitAsync(remaining).ConfigureAwait(false);
+        try
+        {
+            return await task.WaitAsync(remaining).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            await timeoutCts.CancelAsync().ConfigureAwait(false);
+            throw;
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            throw new TimeoutException();
+        }
     }
 
-    private async Task<T> AwaitWithinAttemptAsync<T>(Task<T> task)
+    private Task<T> AwaitWithinAttemptAsync<T>(Func<CancellationToken, Task<T>> operation)
     {
-        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(operation);
         DateTimeOffset now = DateTimeOffset.UtcNow;
         DateTimeOffset deadline = MinDeadline(
             (_snapshot.AttemptStartedAtUtc ?? now) + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration,
             now + ExternalOperationTimeout);
-        TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
-        if (remaining <= TimeSpan.Zero)
-        {
-            if (!task.IsCompleted)
-            {
-                throw new TimeoutException();
-            }
-
-            return await task.ConfigureAwait(false);
-        }
-
-        return await task.WaitAsync(remaining).ConfigureAwait(false);
+        return AwaitWithinDeadlineAsync(operation, deadline);
     }
 
-    private async Task AwaitWithinAttemptAsync(Task task)
+    private async Task AwaitWithinAttemptAsync(Func<CancellationToken, Task> operation)
     {
-        ArgumentNullException.ThrowIfNull(task);
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-        DateTimeOffset deadline = MinDeadline(
-            (_snapshot.AttemptStartedAtUtc ?? now) + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration,
-            now + ExternalOperationTimeout);
-        TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
-        if (remaining <= TimeSpan.Zero)
+        ArgumentNullException.ThrowIfNull(operation);
+        await AwaitWithinAttemptAsync(async cancellationToken =>
         {
-            if (!task.IsCompleted)
-            {
-                throw new TimeoutException();
-            }
-
-            await task.ConfigureAwait(false);
-            return;
-        }
-
-        await task.WaitAsync(remaining).ConfigureAwait(false);
+            await operation(cancellationToken).ConfigureAwait(false);
+            return true;
+        }).ConfigureAwait(false);
     }
 
     private static DateTimeOffset MinDeadline(DateTimeOffset first, DateTimeOffset second)
         => first <= second ? first : second;
+
+    private void LogLifecycleFailure(string reasonCode, Exception exception)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reasonCode);
+        ArgumentNullException.ThrowIfNull(exception);
+        if (Services.GetService(typeof(ILoggerFactory)) is not ILoggerFactory loggerFactory)
+        {
+            return;
+        }
+
+        loggerFactory
+            .CreateLogger(typeof(TenantLifecycleCommandFlow).FullName ?? nameof(TenantLifecycleCommandFlow))
+            .LogWarning(
+                exception,
+                "Lifecycle command path failed. ReasonCode={LifecycleReasonCode} ExceptionType={ExceptionType}",
+                reasonCode,
+                exception.GetType().Name);
+    }
 
     private static async Task FocusSafelyAsync(ElementReference element)
     {
@@ -1730,9 +1794,9 @@
         {
             await InvokeAsync(StateHasChanged).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException) when (_disposed)
+        catch (ObjectDisposedException exception) when (_disposed)
         {
-            // Disposal won the race after the guard and before the renderer accepted the work.
+            LogLifecycleFailure("lifecycle-render-disposed", exception);
         }
     }
 

@@ -122,9 +122,11 @@
     }
 
     /* fc-css-exception: narrow-viewport safety gate for a high-impact editor; mirrors the
-       FrontComposer ViewportTier.Phone boundary (< 768px). Dismissal and refresh controls are
-       deliberately rendered outside this form so hiding it never removes the only exit. */
-    .tenants-config-remove__form {
+       FrontComposer ViewportTier.Phone boundary (< 768px). EditForm does not receive the scoped
+       attribute, so ::deep is required for the hide rule to match the splatted form. Dismissal
+       and refresh controls are deliberately rendered outside this form so hiding it never removes
+       the only exit. */
+    ::deep .tenants-config-remove__form {
         display: none;
     }
 

@@ -928,7 +928,7 @@
     <value>Ouvrez la tentative conservée et actualisez son état jusqu'à ce que la réconciliation faisant autorité atteigne un résultat terminal.</value>
   </data>
   <data name="Tenants.Lifecycle.Dispatch.Recovery" xml:space="preserve">
-    <value>Actualisez pour réessayer en toute sécurité avec la même identité de commande. L'envoi non résolu expire après cinq minutes ; vous pouvez arrêter le suivi si vous acceptez que son résultat reste inconnu.</value>
+    <value>Actualisez pour réessayer en toute sécurité avec la même identité de commande. L'envoi non résolu expire après {0} minutes ; vous pouvez arrêter le suivi si vous acceptez que son résultat reste inconnu.</value>
   </data>
   <data name="Tenants.Lifecycle.Dismissal.Pending" xml:space="preserve">
     <value>Cette tentative de cycle de vie est toujours en attente et ne peut pas être fermée. Actualisez l'état jusqu'à un résultat terminal et sûr pour le support.</value>

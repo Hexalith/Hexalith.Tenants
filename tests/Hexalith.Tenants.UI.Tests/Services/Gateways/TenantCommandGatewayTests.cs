@@ -2017,6 +2017,29 @@ public sealed class TenantCommandGatewayTests
         stableDisableResult.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
     }
 
+    [Fact]
+    public async Task Unavailable_gateway_tracked_lifecycle_methods_use_localized_command_surface_key()
+    {
+        var gateway = new UnavailableTenantCommandGateway();
+        var request = new TenantLifecycleCommandRequest("Tenant.Mixed-01", TenantLifecycleOperation.DisableTenant);
+
+        TenantCommandSubmissionResult enable = await gateway.EnableTenantTrackedAsync(
+            request with { Operation = TenantLifecycleOperation.EnableTenant },
+            "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
+            CancellationToken.None);
+        TenantCommandSubmissionResult disable = await gateway.DisableTenantTrackedAsync(
+            request,
+            "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
+            CancellationToken.None);
+
+        enable.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        enable.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
+        enable.SafeMessage.ShouldBeNull();
+        disable.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        disable.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
+        disable.SafeMessage.ShouldBeNull();
+    }
+
     private sealed class LegacyLifecycleGateway : ITenantCommandGateway
     {
         public int EnableCalls { get; private set; }
