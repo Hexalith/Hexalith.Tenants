@@ -169,5 +169,14 @@
     "key": "1",
     "label": "Add compatible outcomes",
     "resolution": ""
+  },
+  "DW-300": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Design one AggregateId-aware tracking handle and migrate all nine flows with cross-route and remount tests.",
+    "key": "1",
+    "label": "Aggregate-aware handles",
+    "resolution": ""
   }
 }
