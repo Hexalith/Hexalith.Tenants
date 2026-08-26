@@ -151,5 +151,14 @@
     "key": "1",
     "label": "Bound to UnableToVerify",
     "resolution": ""
+  },
+  "DW-254": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add optional messageId to every command method and update implementations, flows, and tests consistently.",
+    "key": "1",
+    "label": "Unify optional identity",
+    "resolution": ""
   }
 }
