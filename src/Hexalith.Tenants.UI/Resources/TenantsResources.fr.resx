@@ -921,6 +921,9 @@
   <data name="Tenants.Lifecycle.Retained.Resume" xml:space="preserve">
     <value>Cette tentative de cycle de vie est toujours en attente. Ouvrez-la pour reprendre la réconciliation faisant autorité sans nouvelle soumission.</value>
   </data>
+  <data name="Tenants.Lifecycle.Retained.AbandonUnreachable" xml:space="preserve">
+    <value>Cette tentative de cycle de vie ne peut pas être ouverte pour réconciliation actuellement. Arrêtez le suivi pour libérer ce locataire pour d'autres commandes ; le résultat de la commande reste non vérifié.</value>
+  </data>
   <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
     <value>Ouvrez la tentative conservée et actualisez son état jusqu'à ce que la réconciliation faisant autorité atteigne un résultat terminal.</value>
   </data>

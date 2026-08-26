@@ -568,24 +568,9 @@
         }
 
         // Companion to the reclamation above, for the case where this page's own lifecycle surface still holds
-        // the key. A retained attempt can expire on the clock with no state transition to release its lease:
-        // the tracker prunes its own maps but holds no reference to the admission gate, so nothing reclaims the
-        // key and every sibling command surface on this tenant stays disabled for the rest of the circuit.
-        // Same tenant only, tracker-owned only, and only once the tracker reports no pending ownership -- a
-        // dispatch records its identity before transport, so an in-flight submit still reports pending here.
-        if (incomingAggregateLockKey is not null
-            && LifecycleAttemptTracker is { } expiredLifecycleTracker
-            && !expiredLifecycleTracker.HasPendingOwnership(tenantId)
-            && ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
-            && string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal)
-            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, expiredLifecycleTracker.LeaseOwner) is true)
-        {
-            AggregateAdmissionGate.Release(incomingAggregateLockKey, expiredLifecycleTracker.LeaseOwner);
-            _activeAggregateLockKey = null;
-            _activeAggregateTenantId = null;
-            _aggregateLeaseHolder = null;
-            _commandInFlight = false;
-        }
+        // the key. See TryReclaimExpiredLifecycleLease; OnAfterRenderAsync calls the same seam so a same-route
+        // expiry is reclaimed without waiting for a route or parameter change.
+        _ = TryReclaimExpiredLifecycleLease(incomingAggregateLockKey, tenantId);
 
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
@@ -2176,6 +2161,47 @@
         _detailRefreshInFlight = false;
         _refreshingBaselineWasCurrent = false;
         _ = RenderIfAliveAsync();
+    }
+
+    /// <summary>
+    /// Releases an admission key whose tracker-owned lifecycle attempt has expired on the clock.
+    /// </summary>
+    /// <param name="aggregateLockKey">Aggregate lock key for <paramref name="tenantId"/>, or null when there is no route tenant.</param>
+    /// <param name="tenantId">Literal tenant id whose retained attempt is being checked.</param>
+    /// <returns><see langword="true"/> when a stale lease was reclaimed.</returns>
+    /// <remarks>
+    /// A retained attempt can expire on the clock with no state transition to release its lease: the tracker
+    /// prunes its own maps but holds no reference to the admission gate, so nothing reclaims the key and every
+    /// sibling command surface on this tenant stays disabled for the rest of the circuit. Same tenant only,
+    /// tracker-owned only, and only once the tracker reports no pending ownership -- a dispatch records its
+    /// identity before transport, so an in-flight submit still reports pending here.
+    /// </remarks>
+    /// <remarks>
+    /// Route-change scoped on purpose. It cannot be hoisted to OnAfterRenderAsync: between a submit acquiring
+    /// the lease and BeginDispatch registering the attempt, the tracker reports no pending ownership, so a
+    /// render in that window would release the lease out from under an in-flight command. Same-route expiry is
+    /// handled by TenantLifecycleActionAvailability, which can tell the two states apart because it observes
+    /// the retained attempt going from present to absent.
+    /// </remarks>
+    private bool TryReclaimExpiredLifecycleLease(string? aggregateLockKey, string tenantId)
+    {
+        if (aggregateLockKey is null
+            || AggregateAdmissionGate is not { } gate
+            || LifecycleAttemptTracker is not { } tracker
+            || !ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
+            || !string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
+            || tracker.HasPendingOwnership(tenantId)
+            || !gate.IsOwnedBy(aggregateLockKey, tracker.LeaseOwner))
+        {
+            return false;
+        }
+
+        gate.Release(aggregateLockKey, tracker.LeaseOwner);
+        _activeAggregateLockKey = null;
+        _activeAggregateTenantId = null;
+        _aggregateLeaseHolder = null;
+        _commandInFlight = false;
+        return true;
     }
 
     private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)

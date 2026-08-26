@@ -1888,6 +1888,130 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Fact]
+    public void Retained_attempt_blocked_from_resume_offers_a_launcher_abandon_control()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        TenantLifecycleAttemptTracker tracker = new();
+        tracker.Remember(PendingLifecycleAttempt()).ShouldBeTrue();
+        RegisterServices(gateway, tracker);
+        List<bool> activity = [];
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, false)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active)));
+
+        // The flow that owns the in-dialog abandon control cannot be opened in this state, so the launcher
+        // must offer the escape or the attempt is unresumable and unabandonable at once.
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-lifecycle-disable-abandon-hint']").TextContent
+            .ShouldContain("Stop tracking", Case.Insensitive);
+        var abandon = cut.Find("[data-testid='tenants-lifecycle-disable-abandon']");
+        abandon.GetAttribute("disabled").ShouldBeNull();
+        abandon.GetAttribute("aria-describedby").ShouldBe("tenants-lifecycle-disable-abandon-hint");
+
+        abandon.Click();
+
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        activity.ShouldContain(false);
+        gateway.StatusCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Same_route_retained_attempt_expiry_lowers_the_command_activity_lease()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        // Capture the clock after the snapshot so the injected now is not earlier than the attempt start,
+        // which Remember rejects.
+        TenantLifecycleCommandSnapshot attempt = PendingLifecycleAttempt();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        TenantLifecycleAttemptTracker tracker = new(() => now);
+        tracker.Remember(attempt).ShouldBeTrue();
+        RegisterServices(gateway, tracker);
+        List<bool> activity = [];
+
+        // Disconnected so the flow never mounts: this is the case where nothing else can lower the lease,
+        // because the page reclaims a stale key only from OnParametersSetAsync and the route is not changing.
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, false)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active)));
+
+        activity.ShouldNotContain(false);
+
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
+
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        activity.ShouldContain(false);
+
+        // Latched on the present-to-absent transition only, so a later render does not lower it again.
+        int lowered = activity.Count(static active => !active);
+        cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
+        activity.Count(static active => !active).ShouldBe(lowered);
+    }
+
+    [Fact]
+    public void Absent_retained_attempt_never_lowers_the_command_activity_lease()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        TenantLifecycleAttemptTracker tracker = new();
+        RegisterServices(gateway, tracker);
+        List<bool> activity = [];
+
+        // A submit acquires the aggregate lease before BeginDispatch registers the attempt, so the tracker is
+        // legitimately empty while the lease is held. Lowering it on an absent attempt would pull the lease
+        // out from under an in-flight command; only a present-to-absent transition may release.
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, false)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active)));
+
+        cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
+        cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
+
+        activity.ShouldNotContain(false);
+        cut.FindAll("[data-testid='tenants-lifecycle-disable-abandon']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Authorized_connected_retained_attempt_bypasses_read_only_freshness_and_viewport_gates()
     {
         var gateway = new StubTenantCommandGateway
@@ -2932,6 +3056,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery"] = "Wait for the current tenant command to finish, or restore the lifecycle command connection before continuing.",
             ["Tenants.Lifecycle.Unavailable.Identity"] = "Tenant identity is incomplete, so lifecycle submission is blocked.",
             ["Tenants.Lifecycle.Unavailable.PreviewIncomplete"] = "The consequence preview is incomplete, so lifecycle submission is blocked. Refresh tenant detail and review a new complete preview.",
+            ["Tenants.Lifecycle.Retained.AbandonUnreachable"] = "This lifecycle attempt cannot be opened for reconciliation right now. Stop tracking to release this tenant for other commands; the command outcome remains unverified.",
             ["Tenants.Lifecycle.Retained.Recovery"] = "Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.",
             ["Tenants.Lifecycle.Dispatch.Recovery"] = "Refresh to safely retry the same command identity. The unresolved dispatch expires after five minutes; you may stop tracking if you accept that its outcome remains unknown.",
             ["Tenants.Lifecycle.Unavailable.ProjectionLifecycle"] = "{1} is unavailable for tenant {0} because the projection lifecycle is not current. Continue read-only and refresh projection evidence.",

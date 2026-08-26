@@ -921,6 +921,9 @@
   <data name="Tenants.Lifecycle.Retained.Resume" xml:space="preserve">
     <value>This lifecycle attempt is still pending. Open it to resume authoritative reconciliation without submitting again.</value>
   </data>
+  <data name="Tenants.Lifecycle.Retained.AbandonUnreachable" xml:space="preserve">
+    <value>This lifecycle attempt cannot be opened for reconciliation right now. Stop tracking to release this tenant for other commands; the command outcome remains unverified.</value>
+  </data>
   <data name="Tenants.Lifecycle.Retained.Recovery" xml:space="preserve">
     <value>Open the retained attempt and refresh status until authoritative reconciliation reaches a terminal outcome.</value>
   </data>

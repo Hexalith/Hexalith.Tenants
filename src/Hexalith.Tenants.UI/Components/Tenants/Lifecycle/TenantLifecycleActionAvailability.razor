@@ -55,6 +55,7 @@
             string reasonId = $"{actionId}-reason";
             string recoveryId = $"{actionId}-recovery";
             string domainOutcomeId = $"{actionId}-domain-outcome";
+            string abandonHintId = $"{actionId}-abandon-hint";
             TenantHighImpactActionAvailability highImpact = HighImpactAvailability(availability);
             TenantHighImpactActionEvidence evidence = availability.Evidence!;
             bool isActionDisabled = IsActionDisabled(availability);
@@ -118,6 +119,25 @@
                    data-testid="@(actionId + "-recovery")">
                     @HighImpactRecovery(availability, highImpact)
                 </p>
+                @if (HasMatchingRetainedAttempt(availability) && !CanResumeRetained(availability))
+                {
+                    @* Abandon needs neither reflected authority nor command connectivity: it is a local tracker
+                       Forget plus a lease release, with no gateway call. It lives inside the command flow,
+                       which this exact state cannot open, so without a launcher affordance a retained attempt
+                       is simultaneously unresumable and unabandonable and its aggregate lease blocks every
+                       other command on this tenant until the retention window expires. *@
+                    <p id="@abandonHintId"
+                       class="tenant-lifecycle__reason"
+                       data-testid="@(actionId + "-abandon-hint")">
+                        @Localizer["Tenants.Lifecycle.Retained.AbandonUnreachable"]
+                    </p>
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  data-testid="@(actionId + "-abandon")"
+                                  aria-describedby="@abandonHintId"
+                                  OnClick="AbandonRetainedAttemptAsync">
+                        @Localizer["Tenants.Lifecycle.Abandon"]
+                    </FluentButton>
+                }
                 <dl class="tenant-lifecycle__facts"
                     data-testid="@(actionId + "-facts")">
                     <dt>@Localizer["Tenants.HighImpact.Fact.Identity"]</dt><dd data-testid="@(actionId + "-identity")">@evidence.TenantId</dd>
@@ -154,6 +174,7 @@
     private TenantLifecycleCommandFlow? _activeFlow;
     private TenantLifecycleAttemptTracker? _attemptTracker;
     private TenantLifecycleCommandSnapshot? _retainedAttempt;
+    private bool _retainedAttemptLapsed;
     private bool _disposed;
 
     [Parameter]
@@ -307,7 +328,21 @@
 
     protected override void OnParametersSet()
     {
+        // Find prunes on read, so a retained attempt that expired on the clock disappears here. Nothing else
+        // notices on the same route: the page reclaims a stale tracker-owned admission key only from
+        // OnParametersSetAsync, and the flow that would lower the lease may be unmounted. This transition --
+        // an attempt this component previously observed for this tenant is now gone -- is the one signal that
+        // separates a lapsed attempt from the pre-dispatch window, where the tracker is legitimately empty
+        // while a submit already holds the lease. Releasing on the latter would pull the lease out from under
+        // an in-flight command, so the flag is set only on present-to-absent, never on absent.
+        TenantLifecycleCommandSnapshot? previouslyRetained = _retainedAttempt;
         _retainedAttempt = AttemptTracker?.Find(TenantId);
+        if (_retainedAttempt is null
+            && previouslyRetained is { Intent: not null }
+            && string.Equals(previouslyRetained.Intent.TenantId, TenantId, StringComparison.Ordinal))
+        {
+            _retainedAttemptLapsed = true;
+        }
         if (_activeAvailability is null)
         {
             TenantLifecycleCommandSnapshot? retained = _retainedAttempt;
@@ -344,6 +379,23 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_retainedAttemptLapsed)
+        {
+            _retainedAttemptLapsed = false;
+
+            // The page's lease seam re-checks ownership and pending state before it releases anything, so this
+            // is a request, not a release. Lowering it here is what frees the aggregate for every sibling
+            // command surface once a retained attempt lapses without a terminal transition.
+            if (CommandActivityLease is not null)
+            {
+                _ = await CommandActivityLease(false).ConfigureAwait(false);
+            }
+            else
+            {
+                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+            }
+        }
+
         if (_returnFocusOperation is null)
         {
             return;
@@ -389,6 +441,38 @@
         _activeAvailability = availability;
         _activeFlowTenantId = TenantId;
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stops tracking a retained attempt that cannot be opened for reconciliation, releasing its aggregate lease.
+    /// </summary>
+    /// <remarks>
+    /// Mirrors <c>TenantLifecycleCommandFlow.AbandonAsync</c>, which is unreachable while
+    /// <see cref="CanResumeRetained"/> is false because that control renders inside the flow. Forget runs
+    /// first so the page's lease seam observes no pending ownership and actually releases the key. This is
+    /// local state plus a lease release with no gateway call, so it stays available with the command surface
+    /// disconnected or authority unproven. The command outcome stays unverified, which the hint copy states.
+    /// </remarks>
+    private async Task AbandonRetainedAttemptAsync()
+    {
+        TenantLifecycleCommandSnapshot? retained = _retainedAttempt;
+        if (retained is not { RetainsAttempt: true, Intent: not null }
+            || string.IsNullOrWhiteSpace(retained.MessageId))
+        {
+            return;
+        }
+
+        AttemptTracker?.Forget(retained.Intent.TenantId, retained.MessageId);
+        _retainedAttempt = null;
+        if (CommandActivityLease is not null)
+        {
+            _ = await CommandActivityLease(false).ConfigureAwait(false);
+            return;
+        }
+
+        // Never invoke an EventCallback after ConfigureAwait(false): the parent's StateHasChanged would run
+        // off the circuit dispatcher and tear the circuit down.
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
     }
 
     private bool CanResumeRetained(TenantLifecycleAvailability availability)
