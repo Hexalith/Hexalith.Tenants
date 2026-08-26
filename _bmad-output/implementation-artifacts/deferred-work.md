@@ -950,6 +950,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-30240946791-
 reason: The legacy ledger defers this issue: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-30240946791-89897853390.md` summary: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`. evidence: `domain-release.yml` and the pre-existing publication preflight reject every source branch except `main`, while the reusable-workflow input description says only that it is an exact protected source branch; resolving that public contract is broader than the stale-release race fix.
 status: open
+decision: 2026-08-26 Main-only contract — Remove configurable-branch ambiguity and enforce and document main across the workflow and callers.
 decision: 2026-08-25 Main-only contract — Remove configurable-branch ambiguity and enforce and document main across shared workflow and callers.
 
 ### DW-122: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages

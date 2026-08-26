@@ -1,0 +1,11 @@
+{
+  "DW-121": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Remove configurable-branch ambiguity and enforce and document main across the workflow and callers.",
+    "key": "1",
+    "label": "Main-only contract",
+    "resolution": ""
+  }
+}
