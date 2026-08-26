@@ -97,5 +97,14 @@
     "key": "1",
     "label": "Runtime viewport gate",
     "resolution": ""
+  },
+  "DW-206": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add tenant-scoped contributor or global-administrator reflection and fail closed while authority is indeterminate.",
+    "key": "1",
+    "label": "Role-aware BFF reflection",
+    "resolution": ""
   }
 }

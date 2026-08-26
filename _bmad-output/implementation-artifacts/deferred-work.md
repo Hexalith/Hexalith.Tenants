@@ -1638,6 +1638,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadat
 reason: The legacy ledger defers this issue: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. evidence: Story 3.2 blind-hunter review and Ask First deferral; member flows share the same default-true pattern, so inventing metadata-only reflection was out of this slice.
 status: open
+decision: 2026-08-26 Role-aware BFF reflection — Add tenant-scoped contributor or global-administrator reflection and fail closed while authority is indeterminate.
 decision: 2026-08-25 Role-aware BFF reflection — Extend BFF composition with tenant-scoped role-aware reflection and fail closed while contributor authority is indeterminate.
 
 ### DW-207: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID
