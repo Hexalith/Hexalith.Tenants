@@ -1012,6 +1012,7 @@ location: TenantQueryGateway.cs:1013
 reason: The legacy ledger defers this issue: Search hydration conflates forbidden and missing candidates when deciding whether to end paging. Original context is preserved in legacy-detail.
 legacy-detail: - **Search hydration conflates forbidden and missing candidates when deciding whether to end paging.** `TenantQueryGateway.cs:1013` classifies both 403 and 404 as `HiddenOrAbsent`; an all-404 stale-index window can therefore collapse paging and make later authorized matches unreachable. This is pre-existing relative to Story 1.6 and should be resolved with the Story 1.9 paging contract so anti-enumeration behavior remains coherent.
 status: open
+decision: 2026-08-26 Distinct internal results — Keep external responses identical but let only forbidden candidates terminate hidden-window paging.
 decision: 2026-08-25 Distinct internal results — Keep external responses identical but let only forbidden candidates terminate hidden-window paging.
 
 ### DW-129: The release tag floor guard probes NuGet only; the container tag in registry.hexalith.com is never checked

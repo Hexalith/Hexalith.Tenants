@@ -16,5 +16,14 @@
     "key": "1",
     "label": "Upstream uniqueness",
     "resolution": ""
+  },
+  "DW-128": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Keep external responses identical but let only forbidden candidates terminate hidden-window paging.",
+    "key": "1",
+    "label": "Distinct internal results",
+    "resolution": ""
   }
 }
