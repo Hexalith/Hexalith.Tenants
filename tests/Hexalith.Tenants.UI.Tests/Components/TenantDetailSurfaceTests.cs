@@ -2293,11 +2293,18 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         component.GetProperty("Context").ShouldNotBeNull();
         component.GetProperty("Detail").ShouldBeNull();
         component.GetProperty("ProjectionEvidenceProvider").ShouldNotBeNull();
-        component.GetProperty("ReauthorizeProvider").ShouldNotBeNull();
+        if (component == typeof(SetTenantConfigurationFlow))
+        {
+            component.GetProperty("ReauthorizeProvider").ShouldBeNull();
+        }
+        else
+        {
+            component.GetProperty("ReauthorizeProvider").ShouldNotBeNull();
+        }
     }
 
     [Fact]
-    public void Detail_page_reauthorizes_configuration_management_through_the_bff_on_set_submit()
+    public void Detail_page_requires_fresh_safe_preview_evidence_on_set_submit()
     {
         // The page must call BffComposition.ReauthorizeConfigurationManagementAsync rather than returning
         // the render-time snapshot context. Returning `_snapshot.ConfigurationManagement` would fail open:
@@ -2314,11 +2321,17 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 => TenantConfigurationManagementContext.Unavailable(tenantId, status),
         };
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.SupportsSetConfigurationPreview.Returns(true);
         queryGateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
                 Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))));
         queryGateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+        queryGateway.GetSetConfigurationPreviewAsync(
+                Arg.Any<TenantSetConfigurationIntent>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantSetConfigurationPreview.Unavailable(
+                call.Arg<TenantSetConfigurationIntent>())));
         Services.AddSingleton(queryGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
@@ -2330,19 +2343,17 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-config-set-open']");
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-key']").Change("billing.mode");
+        cut.Find("[data-testid='tenants-config-set-key-suffix']").Change("mode");
         cut.Find("[data-testid='tenants-config-set-value']").Change("production");
         // Scope to the set-flow form: the detail page hosts other forms, and clicking the Submit button
         // is a no-op while IsSubmitDisabled is true (preview not yet complete in some bUnit sequences).
         // EditForm.Submit() invokes OnSubmit directly, matching the standalone flow tests.
         cut.Find("[data-testid='tenants-config-set-flow'] form").Submit();
 
-        composition.ReauthorizeConfigurationManagementCallCount.ShouldBeGreaterThan(0);
+        _ = queryGateway.Received().GetSetConfigurationPreviewAsync(
+            Arg.Any<TenantSetConfigurationIntent>(),
+            Arg.Any<CancellationToken>());
         gateway.SetConfigurationCallCount.ShouldBe(0);
-        // Must reach the member-bearing overload, not only tenantId/status: that is the whole point of
-        // reproving TenantOwner authority from current membership at submit time.
-        composition.LastReauthorizeSanitizedDetail.ShouldNotBeNull();
-        composition.LastReauthorizeSanitizedDetail!.Members.ShouldNotBeEmpty();
     }
 
     [Fact]

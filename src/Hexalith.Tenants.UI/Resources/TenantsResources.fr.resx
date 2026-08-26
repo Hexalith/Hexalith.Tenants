@@ -1233,6 +1233,40 @@
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Configuration visible</value>
   </data>
+  <data name="Tenants.Configuration.Set.Namespace.Label" xml:space="preserve"><value>Préfixe d’espace de noms</value></data>
+  <data name="Tenants.Configuration.Set.Namespace.Help" xml:space="preserve"><value>Sélectionnez le préfixe exact autorisé par le serveur. Les administrateurs globaux peuvent saisir un préfixe littéral.</value></data>
+  <data name="Tenants.Configuration.Set.KeySuffix.Label" xml:space="preserve"><value>Suffixe de clé</value></data>
+  <data name="Tenants.Configuration.Set.KeySuffix.Help" xml:space="preserve"><value>Saisissez le suffixe littéral non vide. La clé complète est composée une fois : espace de noms + point + suffixe.</value></data>
+  <data name="Tenants.Configuration.Set.Abandon" xml:space="preserve"><value>Arrêter la réconciliation locale</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.PreviewEvidence" xml:space="preserve"><value>Impossible de vérifier un aperçu récent, autorisé et complet. Actualisez puis réessayez.</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.TrackedDispatch" xml:space="preserve"><value>L’envoi suivi de configuration est indisponible.</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.PreviewCapability" xml:space="preserve"><value>L’aperçu sécurisé et la preuve de configuration sont indisponibles. Actualisez le détail du locataire avant de réessayer.</value></data>
+  <data name="Tenants.Configuration.Set.RefreshPreview" xml:space="preserve"><value>Actualiser le détail du locataire</value></data>
+  <data name="Tenants.Configuration.Set.Status.Pending" xml:space="preserve"><value>L’état de la commande n’est pas encore fiable. Actualisez-le avant toute autre action.</value></data>
+  <data name="Tenants.Configuration.Set.Status.Rejected" xml:space="preserve"><value>La commande de configuration a été rejetée.</value></data>
+  <data name="Tenants.Configuration.Set.Status.PublishFailed" xml:space="preserve"><value>La commande de configuration a été acceptée, mais sa publication n’a pas pu être vérifiée.</value></data>
+  <data name="Tenants.Configuration.Set.Submission.Rejected" xml:space="preserve"><value>La commande de configuration a été rejetée avant son acceptation.</value></data>
+  <data name="Tenants.Configuration.Set.Submission.Failed" xml:space="preserve"><value>La commande de configuration n’a pas pu être soumise en toute sécurité.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh" xml:space="preserve"><value>La preuve de projection fiable n’a pas pu être actualisée. Poursuivez la réconciliation ou arrêtez la réconciliation locale.</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Unknown" xml:space="preserve"><value>Inconnu</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Current" xml:space="preserve"><value>Actuel</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Stale" xml:space="preserve"><value>Périmé</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Rebuilding" xml:space="preserve"><value>Reconstruction</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Degraded" xml:space="preserve"><value>Dégradé</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Unavailable" xml:space="preserve"><value>Indisponible</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.LocalOnly" xml:space="preserve"><value>Local uniquement</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Unknown" xml:space="preserve"><value>Inconnu</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve"><value>La clé est absente.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Different" xml:space="preserve"><value>La clé existe avec une valeur masquée différente.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Matching" xml:space="preserve"><value>La clé possède déjà la valeur masquée prévue.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.FreshnessAndLifecycle.Value" xml:space="preserve"><value>Modèle de lecture : {0} ; cycle de projection : {1}.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.ConsequencesAndUnknowns.Value" xml:space="preserve"><value>Les consommateurs autorisés peuvent réagir après rattrapage de la projection ; l’impact aval et la réception de l’audit restent inconnus.</value></data>
+  <data name="Tenants.Configuration.Set.AlreadyApplied.NoOp" xml:space="preserve"><value>L’état de commande indique zéro événement et la preuve de projection récente confirme la valeur exacte déjà appliquée.</value></data>
+  <data name="Tenants.Configuration.Set.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La remise de la commande est incertaine. Ne la soumettez pas à nouveau ; actualisez l’état ou arrêtez la réconciliation locale.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>La preuve d’identité de commande ne correspond pas à la tentative conservée.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.Status" xml:space="preserve"><value>Impossible de vérifier l’état de la commande.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.StatusTimeout" xml:space="preserve"><value>L’état de la commande a expiré avant la confirmation de projection.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.Abandoned" xml:space="preserve"><value>La réconciliation locale est arrêtée. Actualisez le détail du locataire avant une autre action.</value></data>
   <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
     <value>Définir une configuration</value>
   </data>

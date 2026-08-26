@@ -1794,6 +1794,47 @@ public sealed class TenantQueryGatewayTests
         query.IfNoneMatch.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Safe_set_preview_and_proof_share_exact_fingerprint_and_ordered_projection_version()
+    {
+        CapturingGatewayClient client = new();
+        QueryResponseMetadata metadata = ProjectionBackedMetadata(
+            isStale: false,
+            lifecycle: ProjectionLifecycleState.Current,
+            projectionVersion: "tenant-sequence:41");
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["Billing.Mode"] = "Enterprise" }) with
+        {
+            Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
+        };
+        client.EnqueueQueryResult(
+            detail,
+            metadata: metadata);
+        client.EnqueueQueryResult(
+            detail,
+            metadata: metadata);
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(BillingGrantPolicyJson.Replace("billing", "Billing", StringComparison.Ordinal)));
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "Billing",
+            "Mode",
+            "Billing.Mode",
+            TenantSetConfigurationValueFingerprint.Create("Enterprise"));
+
+        TenantSetConfigurationPreview preview = await gateway.GetSetConfigurationPreviewAsync(intent);
+        TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(intent);
+
+        preview.IsAlreadyApplied.ShouldBeTrue();
+        preview.ProjectionVersion.ShouldBe("tenant-sequence:41");
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.SetConfirmed);
+        proof.ProjectionVersion.ShouldBe("tenant-sequence:41");
+        proof.Matches(intent).ShouldBeTrue();
+        client.SubmittedQueries.All(query => query.IfNoneMatch is null).ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(ProjectionLifecycleState.Unknown)]
     [InlineData(ProjectionLifecycleState.Rebuilding)]

@@ -46,7 +46,7 @@
 /* fc-css-exception: left-accent callout padding for the preview region; preserves the border-accent
    treatment Fluent has no primitive for. */
 .tenants-config-set__preview {
-    border-inline-start: .25rem solid var(--accent-fill-rest, LinkText);
+    border-inline-start: .25rem solid var(--colorBrandStroke1, LinkText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }

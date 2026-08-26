@@ -67,17 +67,19 @@
     else
     {
 
-        <SetTenantConfigurationFlow Context="@EffectiveContext"
+        <SetTenantConfigurationFlow @ref="_setFlow"
+                                    Context="@EffectiveContext"
                                     Evidence="@ResolvedSetEvidence"
                                     LauncherDescribedBy="tenants-config-set-reason tenants-config-set-recovery"
                                     SurfaceKind="@SurfaceKind"
                                     Freshness="@Freshness"
                                     Lifecycle="@Lifecycle"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    IsPreviewSurfaceAvailable="@IsSetConfigurationPreviewAvailable"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     CommandActivityLease="@SetFlowCommandActivityLease"
-                                    ProjectionEvidenceProvider="@SetProjectionEvidenceProvider"
-                                    ReauthorizeProvider="@ReauthorizeProvider" />
+                                    PreviewEvidenceProvider="@SetPreviewEvidenceProvider"
+                                    ProjectionEvidenceProvider="@SetProjectionEvidenceProvider" />
 
         @if (EffectiveContext.RemovableRows.Count == 0)
         {
@@ -152,6 +154,7 @@
     private string? _removeTenantId;
     private bool _removeCommandStarted;
     private bool _focusHeadingPending;
+    private SetTenantConfigurationFlow? _setFlow;
 
     // One lease per flow. A single shared field made dismissal of the remove dialog release the *set* flow's
     // lease: the row Remove buttons carry no Disabled binding, so while a Set command is settling the grid is
@@ -185,6 +188,9 @@
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
+    public bool IsSetConfigurationPreviewAvailable { get; set; } = true;
+
+    [Parameter]
     public TenantHighImpactActionEvidence? SetEvidence { get; set; }
 
     [Parameter]
@@ -211,13 +217,19 @@
     public Func<bool, Task<bool>>? RemoveCommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<SetTenantConfiguration, Task<TenantConfigurationProjectionProof>>? SetProjectionEvidenceProvider { get; set; }
+    public Func<TenantSetConfigurationIntent, Task<TenantSetConfigurationPreview>>? SetPreviewEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<TenantSetConfigurationIntent, Task<TenantConfigurationProjectionProof>>? SetProjectionEvidenceProvider { get; set; }
 
     [Parameter]
     public Func<RemoveTenantConfiguration, Task<TenantConfigurationProjectionProof>>? RemoveProjectionEvidenceProvider { get; set; }
 
     [Parameter]
     public Func<Task<TenantConfigurationManagementContext>>? ReauthorizeProvider { get; set; }
+
+    internal Task ApplySetConfigurationSignalRNudgeAsync()
+        => _setFlow?.ApplySignalRNudgeAsync() ?? Task.CompletedTask;
 
     private bool IsManagementUnavailable
         => !HasPolicyScope || !string.IsNullOrWhiteSpace(UnavailableReason);
@@ -325,6 +337,8 @@
             _removeCommandStarted = false;
             _setCommandInFlight = false;
             _removeCommandInFlight = false;
+            _setFlowCommandActivityLease = null;
+            _removeFlowCommandActivityLease = null;
             _focusRemoveLaunchKey = null;
             _focusHeadingPending = false;
             _removeLaunchElements.Clear();
@@ -408,7 +422,18 @@
     private Func<bool, Task<bool>>? _removeFlowCommandActivityLease;
 
     private Func<bool, Task<bool>> SetFlowCommandActivityLease
-        => _setFlowCommandActivityLease ??= HandleSetCommandActivityLeaseAsync;
+    {
+        get
+        {
+            if (_setFlowCommandActivityLease is null)
+            {
+                Func<bool, Task<bool>>? upstreamLease = SetCommandActivityLease;
+                _setFlowCommandActivityLease = isActive => HandleSetCommandActivityLeaseAsync(isActive, upstreamLease);
+            }
+
+            return _setFlowCommandActivityLease;
+        }
+    }
 
     private Func<bool, Task<bool>> RemoveFlowCommandActivityLease
         => _removeFlowCommandActivityLease ??= HandleRemoveCommandActivityLeaseAsync;
@@ -450,16 +475,18 @@
     // The set flow used to pass OnCommandActivityChanged straight through, so the landmark never learned it
     // owned an in-flight command and unavailability came back down as an unmount. It reports here now, into
     // its own lease -- see the field declarations for why the two cannot share one.
-    private async Task<bool> HandleSetCommandActivityLeaseAsync(bool isActive)
+    private async Task<bool> HandleSetCommandActivityLeaseAsync(
+        bool isActive,
+        Func<bool, Task<bool>>? upstreamLease)
     {
         // Raised before the lease call and rolled back on refusal -- see HandleRemoveCommandActivityLeaseAsync
         // for why the ordering matters.
         bool previousInFlight = _setCommandInFlight;
         _setCommandInFlight = isActive;
 
-        if (SetCommandActivityLease is not null)
+        if (upstreamLease is not null)
         {
-            bool accepted = await SetCommandActivityLease(isActive).ConfigureAwait(false);
+            bool accepted = await upstreamLease(isActive).ConfigureAwait(false);
             if (isActive && !accepted)
             {
                 _setCommandInFlight = previousInFlight;

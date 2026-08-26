@@ -583,6 +583,48 @@ public sealed class TenantCommandGatewayTests
         result.CorrelationId.ShouldBe("correlation-config");
     }
 
+    [Fact]
+    public async Task Tracked_set_configuration_uses_the_callers_exact_message_id()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-config"));
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationTrackedAsync(
+            new SetTenantConfiguration("tenant.alpha", "Billing.Mode", "enterprise"),
+            "01ARZ3NDEKTSV4RRFFQ69G5FAA",
+            CancellationToken.None);
+
+        gateway.SupportsTrackedSetConfigurationDispatch.ShouldBeTrue();
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAA");
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAA");
+    }
+
+    [Fact]
+    public async Task Tracked_set_configuration_retains_message_identity_when_delivery_is_ambiguous()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "temporarily-unavailable",
+            detail: "raw payload Value=super-secret"));
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationTrackedAsync(
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "super-secret"),
+            "01ARZ3NDEKTSV4RRFFQ69G5FAA",
+            CancellationToken.None);
+
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAA");
+        result.SafeMessageKey.ShouldBe("Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        result.SafeMessage.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]

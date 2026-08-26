@@ -11,6 +11,25 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantQueryGateway
 {
+    /// <summary>Gets whether this gateway provides the complete safe preview and proof capability.</summary>
+    bool SupportsSetConfigurationPreview => false;
+
+    Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewAsync(
+        TenantSetConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return Task.FromResult(TenantSetConfigurationPreview.Unavailable(intent));
+    }
+
+    Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+        TenantSetConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+    }
+
     Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default)

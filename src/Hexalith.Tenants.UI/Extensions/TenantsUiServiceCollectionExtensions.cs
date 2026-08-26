@@ -96,6 +96,7 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddScoped<TenantAggregateCommandAdmissionGate>();
         services.TryAddScoped<TenantCreateAttemptTracker>();
         services.TryAddScoped<TenantLifecycleAttemptTracker>();
+        services.TryAddScoped<TenantSetConfigurationAttemptTracker>();
         services.TryAddScoped<TenantHighImpactViewportObservation>();
 
         services.AddAuthorizationCore(options =>

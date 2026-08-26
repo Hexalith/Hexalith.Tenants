@@ -42,6 +42,11 @@ internal static class TenantLifecycleProjectionVersion
             : TenantLifecycleProjectionVersionComparison.NotAdvanced;
     }
 
+    /// <summary>Gets whether a version belongs to the aggregate's ordered tenant-sequence domain.</summary>
+    internal static bool IsOrdered(string? version)
+        => TrySplit(version, out string prefix, out _)
+            && string.Equals(prefix, TenantSequencePrefix, StringComparison.Ordinal);
+
     /// <summary>Compares two versions for monotonic retained-evidence merging.</summary>
     /// <param name="incoming">Incoming projection version.</param>
     /// <param name="retained">Retained projection version.</param>

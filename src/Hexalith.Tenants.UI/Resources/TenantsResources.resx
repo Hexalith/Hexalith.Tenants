@@ -1233,6 +1233,40 @@
   <data name="Tenants.Configuration.Title" xml:space="preserve">
     <value>Visible configuration</value>
   </data>
+  <data name="Tenants.Configuration.Set.Namespace.Label" xml:space="preserve"><value>Namespace prefix</value></data>
+  <data name="Tenants.Configuration.Set.Namespace.Help" xml:space="preserve"><value>Select the exact server-authorized prefix. Global administrators may enter a literal prefix.</value></data>
+  <data name="Tenants.Configuration.Set.KeySuffix.Label" xml:space="preserve"><value>Key suffix</value></data>
+  <data name="Tenants.Configuration.Set.KeySuffix.Help" xml:space="preserve"><value>Enter the non-empty literal suffix. The full key is composed once as namespace + dot + suffix.</value></data>
+  <data name="Tenants.Configuration.Set.Abandon" xml:space="preserve"><value>Stop local reconciliation</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.PreviewEvidence" xml:space="preserve"><value>A fresh, authorized and complete preview could not be verified. Refresh and try again.</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.TrackedDispatch" xml:space="preserve"><value>Tracked configuration dispatch is unavailable.</value></data>
+  <data name="Tenants.Configuration.Set.Unavailable.PreviewCapability" xml:space="preserve"><value>Safe configuration preview and proof support is unavailable. Refresh tenant detail before trying again.</value></data>
+  <data name="Tenants.Configuration.Set.RefreshPreview" xml:space="preserve"><value>Refresh tenant detail</value></data>
+  <data name="Tenants.Configuration.Set.Status.Pending" xml:space="preserve"><value>Command status is not authoritative yet. Refresh status before taking another action.</value></data>
+  <data name="Tenants.Configuration.Set.Status.Rejected" xml:space="preserve"><value>The configuration command was rejected.</value></data>
+  <data name="Tenants.Configuration.Set.Status.PublishFailed" xml:space="preserve"><value>The configuration command was accepted, but publication could not be verified.</value></data>
+  <data name="Tenants.Configuration.Set.Submission.Rejected" xml:space="preserve"><value>The configuration command was rejected before acceptance.</value></data>
+  <data name="Tenants.Configuration.Set.Submission.Failed" xml:space="preserve"><value>The configuration command could not be submitted safely.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh" xml:space="preserve"><value>Authoritative projection evidence could not be refreshed. Keep reconciling or stop local reconciliation.</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Stale" xml:space="preserve"><value>Stale</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Rebuilding" xml:space="preserve"><value>Rebuilding</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Degraded" xml:space="preserve"><value>Degraded</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="Tenants.Configuration.Set.Lifecycle.LocalOnly" xml:space="preserve"><value>Local only</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve"><value>The key is absent.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Different" xml:space="preserve"><value>The key exists with a different redacted value.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Matching" xml:space="preserve"><value>The key already has the intended redacted value.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.FreshnessAndLifecycle.Value" xml:space="preserve"><value>Read model: {0}; projection lifecycle: {1}.</value></data>
+  <data name="Tenants.Configuration.Set.Preview.ConsequencesAndUnknowns.Value" xml:space="preserve"><value>Authorized consumers may react after projection catch-up; downstream impact and audit receipt remain unknown.</value></data>
+  <data name="Tenants.Configuration.Set.AlreadyApplied.NoOp" xml:space="preserve"><value>Command status reported zero events and fresh projection proof shows the exact value already applied.</value></data>
+  <data name="Tenants.Configuration.Set.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>Submission delivery is uncertain. Do not submit again; refresh status or stop local reconciliation.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>Command identity evidence did not match the retained attempt.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.Status" xml:space="preserve"><value>Command status could not be verified.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.StatusTimeout" xml:space="preserve"><value>Command status timed out before projection confirmation.</value></data>
+  <data name="Tenants.Configuration.Set.UnableToVerify.Abandoned" xml:space="preserve"><value>Local reconciliation stopped. Refresh authoritative tenant detail before taking another action.</value></data>
   <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
     <value>Set configuration</value>
   </data>

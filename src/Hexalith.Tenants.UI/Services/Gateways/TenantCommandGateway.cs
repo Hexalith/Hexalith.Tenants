@@ -25,6 +25,8 @@ internal sealed class TenantCommandGateway(
 
     public bool SupportsTrackedLifecycleDispatch => true;
 
+    public bool SupportsTrackedSetConfigurationDispatch => true;
+
     // Markers for support-unsafe content (AC9 / Story 1.8 discipline) that must never be echoed
     // from a backend failure reason into the visible command lifecycle copy.
     private static readonly string[] UnsafeSupportMarkers =
@@ -208,8 +210,14 @@ internal sealed class TenantCommandGateway(
         }
     }
 
-    public async Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+    public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
+        CancellationToken cancellationToken = default)
+        => SetTenantConfigurationTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
+
+    public async Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
+        SetTenantConfiguration request,
+        string messageId,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -219,9 +227,12 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("Tenant id, configuration key, and value are required before the command can be submitted.");
         }
 
-        string messageId = ulidFactory.NewUlid();
+        if (!TryResolveMessageId(messageId, out string resolvedMessageId)) {
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        }
+
         var submit = new SubmitCommandRequest(
-            messageId,
+            resolvedMessageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
@@ -233,10 +244,27 @@ internal sealed class TenantCommandGateway(
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
-            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+            return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapSetTenantConfigurationGatewayException(ex);
+            if (ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
+                || ex.StatusCode >= 500) {
+                return TenantCommandSubmissionResult.Ambiguous(
+                    resolvedMessageId,
+                    "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+            }
+
+            return MapSetTenantConfigurationGatewayException(ex) with { MessageId = resolvedMessageId };
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        }
+        catch (HttpRequestException) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
         }
     }
 

@@ -1,6 +1,9 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -163,4 +166,18 @@ public interface ITenantsBffComposition {
         string key,
         CancellationToken cancellationToken = default)
         => ValueTask.FromResult(false);
+
+    /// <summary>Composes an authorization-scoped, redacted preview from one fresh raw detail read.</summary>
+    ValueTask<TenantSetConfigurationPreview> ComposeSetConfigurationPreviewAsync(
+        TenantDetail rawDetail,
+        TenantSetConfigurationIntent intent,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        string? projectionVersion,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawDetail);
+        ArgumentNullException.ThrowIfNull(intent);
+        return ValueTask.FromResult(TenantSetConfigurationPreview.Unavailable(intent));
+    }
 }

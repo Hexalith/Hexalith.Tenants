@@ -1,6 +1,9 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -132,6 +135,69 @@ internal sealed class TenantsBffComposition(
         return policy.IsAvailable
             && (policy.IsGlobalAdministrator
                 || policy.AuthorizedPrefixes.Any(prefix => TenantConfigurationManagementContext.IsPrefixMatch(prefix, key)));
+    }
+
+    public async ValueTask<TenantSetConfigurationPreview> ComposeSetConfigurationPreviewAsync(
+        TenantDetail rawDetail,
+        TenantSetConfigurationIntent intent,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        string? projectionVersion,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawDetail);
+        ArgumentNullException.ThrowIfNull(intent);
+
+        if (!string.Equals(rawDetail.TenantId, intent.TenantId, StringComparison.Ordinal)
+            || string.IsNullOrEmpty(intent.NamespacePrefix)
+            || string.IsNullOrEmpty(intent.KeySuffix)
+            || !string.Equals(
+                string.Concat(intent.NamespacePrefix, ".", intent.KeySuffix),
+                intent.FullKey,
+                StringComparison.Ordinal))
+        {
+            return TenantSetConfigurationPreview.Unavailable(intent);
+        }
+
+        // Resolve and validate current authority before touching the raw configuration dictionary. This
+        // ordering is the boundary that prevents the preview seam becoming a key-existence oracle.
+        TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(intent.TenantId, cancellationToken)
+            .ConfigureAwait(false);
+        bool namespaceAuthorized = policy.IsAvailable
+            && (policy.IsGlobalAdministrator
+                || policy.AuthorizedPrefixes.Contains(intent.NamespacePrefix, StringComparer.Ordinal));
+        bool hasMutationAuthority = policy.IsGlobalAdministrator
+            || !string.IsNullOrWhiteSpace(policy.Subject)
+                && ((IReadOnlyList<TenantMember>?)rawDetail.Members ?? []).Any(member => member is not null
+                    && string.Equals(member.UserId, policy.Subject, StringComparison.Ordinal)
+                    && member.Role is TenantRole.TenantOwner);
+        if (!namespaceAuthorized
+            || !hasMutationAuthority
+            || (!policy.IsGlobalAdministrator
+                && !TenantConfigurationManagementContext.IsPrefixMatch(intent.NamespacePrefix, intent.FullKey)))
+        {
+            return TenantSetConfigurationPreview.Unavailable(intent);
+        }
+
+        TenantSetConfigurationCurrentState currentState = rawDetail.Configuration.TryGetValue(
+            intent.FullKey,
+            out string? currentValue)
+            ? string.Equals(
+                TenantSetConfigurationValueFingerprint.Create(currentValue),
+                intent.ValueFingerprint,
+                StringComparison.Ordinal)
+                ? TenantSetConfigurationCurrentState.Matching
+                : TenantSetConfigurationCurrentState.Different
+            : TenantSetConfigurationCurrentState.Absent;
+
+        return TenantSetConfigurationPreview.Create(
+            intent,
+            rawDetail.Status,
+            currentState,
+            freshness,
+            lifecycle,
+            projectionVersion,
+            isAuthorized: true);
     }
 
     private async ValueTask<TenantConfigurationReadPolicyResolution> ResolvePolicyAsync(

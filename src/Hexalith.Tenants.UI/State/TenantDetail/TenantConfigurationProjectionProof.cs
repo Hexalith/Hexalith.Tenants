@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.TenantCommands;
+
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
 /// <summary>
@@ -5,11 +7,17 @@ namespace Hexalith.Tenants.UI.State.TenantDetail;
 /// </summary>
 public sealed class TenantConfigurationProjectionProof
 {
-    private TenantConfigurationProjectionProof(string tenantId, TenantConfigurationProjectionProofKind kind)
+    private TenantConfigurationProjectionProof(
+        string tenantId,
+        TenantConfigurationProjectionProofKind kind,
+        string? projectionVersion,
+        string? attemptFingerprint)
     {
         ArgumentNullException.ThrowIfNull(tenantId);
         TenantId = tenantId;
         Kind = kind;
+        ProjectionVersion = projectionVersion;
+        AttemptFingerprint = attemptFingerprint;
     }
 
     /// <summary>Gets the literal tenant identifier associated with the proof.</summary>
@@ -18,10 +26,27 @@ public sealed class TenantConfigurationProjectionProof
     /// <summary>Gets the proof outcome.</summary>
     public TenantConfigurationProjectionProofKind Kind { get; }
 
+    /// <summary>Gets the ordered projection version captured with this proof.</summary>
+    public string? ProjectionVersion { get; }
+
+    /// <summary>Gets the non-reversible fingerprint binding this proof to one exact safe intent.</summary>
+    internal string? AttemptFingerprint { get; }
+
     internal static TenantConfigurationProjectionProof Create(
         string tenantId,
-        TenantConfigurationProjectionProofKind kind)
-        => new(tenantId, kind);
+        TenantConfigurationProjectionProofKind kind,
+        string? projectionVersion = null,
+        string? attemptFingerprint = null)
+        => new(tenantId, kind, projectionVersion, attemptFingerprint);
+
+    /// <summary>Checks that proof tenant and fingerprint match one exact safe intent.</summary>
+    internal bool Matches(TenantSetConfigurationIntent intent)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return string.Equals(TenantId, intent.TenantId, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(AttemptFingerprint)
+            && string.Equals(AttemptFingerprint, intent.AttemptFingerprint, StringComparison.Ordinal);
+    }
 
     /// <summary>
     /// Returns a support-safe description that omits the tenant identifier and every configuration key or
@@ -36,5 +61,5 @@ public sealed class TenantConfigurationProjectionProof
     /// <param name="tenantId">Literal requested tenant identifier.</param>
     /// <returns>Unavailable proof.</returns>
     public static TenantConfigurationProjectionProof Unavailable(string tenantId)
-        => new(tenantId, TenantConfigurationProjectionProofKind.Unavailable);
+        => new(tenantId, TenantConfigurationProjectionProofKind.Unavailable, projectionVersion: null, attemptFingerprint: null);
 }

@@ -1,9 +1,12 @@
 using System.Text;
 
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.Extensions.Configuration;
@@ -338,6 +341,53 @@ public sealed class TenantsBffCompositionTests
             .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 
+    [Fact]
+    public async Task Set_preview_classifies_exact_value_without_exposing_raw_projection_value()
+    {
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "billing",
+            "mode",
+            "billing.mode",
+            TenantSetConfigurationValueFingerprint.Create("enterprise"));
+
+        TenantSetConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeSetConfigurationPreviewAsync(
+                Detail(),
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsComplete.ShouldBeTrue();
+        preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Different);
+        preview.GetType().GetProperties()
+            .ShouldNotContain(property => property.Name.Contains("Value", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Set_preview_resolves_authority_before_configuration_lookup()
+    {
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "security",
+            "mode",
+            "security.mode",
+            TenantSetConfigurationValueFingerprint.Create("enabled"));
+        TenantDetail detail = Detail() with { Configuration = new ThrowingConfiguration() };
+
+        TenantSetConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeSetConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeFalse();
+        preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Unknown);
+    }
+
     private static TenantsBffComposition Composition(
         string json,
         TenantConfigurationPrincipalEvidence? evidence = null)
@@ -390,5 +440,19 @@ public sealed class TenantsBffCompositionTests
         public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult(evidence);
+    }
+
+    private sealed class ThrowingConfiguration : IReadOnlyDictionary<string, string>
+    {
+        public IEnumerable<string> Keys => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public IEnumerable<string> Values => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public int Count => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public string this[string key] => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public bool ContainsKey(string key) => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
+            => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        public bool TryGetValue(string key, out string value)
+            => throw new InvalidOperationException("Raw configuration was inspected before authority.");
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

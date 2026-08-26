@@ -18,6 +18,8 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -37,6 +39,84 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class TenantConfigurationEndToEndTests : BunitContext
 {
+    [Fact]
+    public async Task Redacted_preview_status_and_post_baseline_proof_form_one_causal_set_flow()
+    {
+        const string policyJson = """
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [
+                    { "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "Billing" }
+                  ],
+                  "DisplaySafe": []
+                }
+              }
+            }
+            """;
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(policyJson)))
+            .Build();
+        ITenantConfigurationPrincipalResolver principal = new StubPrincipalResolver(
+            TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user"));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: principal,
+            policyProvider: new TenantConfigurationReadPolicyProvider(configuration));
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "Billing",
+            "Mode",
+            "Billing.Mode",
+            TenantSetConfigurationValueFingerprint.Create("Enterprise"));
+        TenantDetail before = new(
+            "tenant.alpha",
+            "Alpha",
+            null,
+            TenantStatus.Active,
+            [new TenantMember("operator-user", TenantRole.TenantOwner)],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = "Trial" },
+            DateTimeOffset.UtcNow);
+        TenantSetConfigurationPreview preview = await composition.ComposeSetConfigurationPreviewAsync(
+            before,
+            intent,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:41");
+        TenantSetConfigurationCommandSnapshot pending = TenantSetConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, "01ARZ3NDEKTSV4RRFFQ69G5FAA", DateTimeOffset.UtcNow)
+            .Accepted(TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAA",
+                "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true));
+        TenantDetail after = before with
+        {
+            Configuration = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Billing.Mode"] = "Enterprise",
+            },
+        };
+        TenantSetConfigurationPreview proofPreview = await composition.ComposeSetConfigurationPreviewAsync(
+            after,
+            intent,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:42");
+        TenantConfigurationProjectionProof proof = TenantConfigurationProjectionProof.Create(
+            intent.TenantId,
+            TenantConfigurationProjectionProofKind.SetConfirmed,
+            proofPreview.ProjectionVersion,
+            intent.AttemptFingerprint);
+
+        preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Different);
+        proofPreview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Matching);
+        pending.ConfirmProjection(proof).State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -181,6 +261,14 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
             => Task.FromResult(new AuthenticationState(principal));
+    }
+
+    private sealed class StubPrincipalResolver(TenantConfigurationPrincipalEvidence evidence)
+        : ITenantConfigurationPrincipalResolver
+    {
+        public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(evidence);
     }
 
     private sealed class PassthroughLocalizer : IStringLocalizer<TenantsResources>

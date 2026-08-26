@@ -1,5 +1,8 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -10,138 +13,187 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantSetConfigurationCommandSnapshotTests
 {
     [Fact]
-    public void Configuration_set_confirms_only_from_matching_tenant_proof()
+    public void Matching_value_requires_command_event_evidence_and_ordered_advancement()
     {
-        TenantSetConfigurationCommandSnapshot snapshot = Pending(eventCount: 1);
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationCommandSnapshot pending = Pending(intent, eventCount: 1);
 
-        TenantSetConfigurationCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(
-            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.SetNotConfirmed));
-        TenantSetConfigurationCommandSnapshot wrongTenant = snapshot.ConfirmProjection(
-            Proof("tenant.beta", TenantConfigurationProjectionProofKind.SetConfirmed));
-        TenantSetConfigurationCommandSnapshot confirmed = snapshot.ConfirmProjection(
-            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.SetConfirmed));
-
-        withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        withoutEvidence.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-        withoutEvidence.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.SetNotConfirmed);
-        wrongTenant.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        wrongTenant.LastConfigurationProof.ShouldBeNull();
-        confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        confirmed.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
-        confirmed.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.SetConfirmed);
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        pending.ConfirmProjection(Proof(intent, "tenant-sequence:40")).State
+            .ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        pending.ConfirmProjection(Proof(intent, "tenant-sequence:41")).State
+            .ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        pending.ConfirmProjection(Proof(intent, "tenant-sequence:42")).State
+            .ShouldBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
-    public void Completed_without_events_is_already_applied_only_after_proof_confirms_value()
+    public void Proof_for_another_exact_intent_cannot_confirm()
     {
-        TenantSetConfigurationCommandSnapshot snapshot = Pending(eventCount: 0);
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationIntent other = new(
+            intent.TenantId,
+            intent.NamespacePrefix,
+            intent.KeySuffix,
+            intent.FullKey,
+            "different-fingerprint");
 
-        TenantSetConfigurationCommandSnapshot withoutProof = snapshot.ConfirmProjection(
-            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.SetNotConfirmed));
-        TenantSetConfigurationCommandSnapshot alreadyApplied = snapshot.ConfirmProjection(
-            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.SetConfirmed));
+        TenantSetConfigurationCommandSnapshot result = Pending(intent, eventCount: 1)
+            .ConfirmProjection(Proof(other, "tenant-sequence:42"));
 
-        withoutProof.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
-        alreadyApplied.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
-        alreadyApplied.SafeMessage.ShouldNotBeNull().ShouldContain("already applied", Case.Insensitive);
-    }
-
-    [Fact]
-    public void Signalr_nudge_never_changes_configuration_truth_without_projection_proof()
-    {
-        TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
-            .Idle()
-            .Previewed(Intent())
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
-
-        TenantSetConfigurationCommandSnapshot nudged = snapshot.SignalRNudge();
-
-        nudged.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        nudged.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-        nudged.LastConfigurationProof.ShouldBeNull();
-    }
-
-    [Fact]
-    public void Blocked_configuration_flow_sets_assertive_recovery_without_raw_state()
-    {
-        TenantSetConfigurationCommandSnapshot blocked = TenantSetConfigurationCommandSnapshot.Blocked(
-            "Configuration scope evidence is unavailable.",
-            TenantCommandFocusTarget.Namespace);
-
-        blocked.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        blocked.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
-        blocked.Intent.ShouldBeNull();
-        blocked.LastConfigurationProof.ShouldBeNull();
-        blocked.IsPreviewComplete.ShouldBeFalse();
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
     }
 
     [Theory]
-    [InlineData(CommandStatus.Received, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Processing, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsStored, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.EventsPublished, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Completed, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite)]
-    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
-    [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive)]
-    public void Configuration_status_results_remain_distinct_before_projection_confirmation(
-        CommandStatus status,
-        TenantCommandLifecycleState expectedState,
-        TenantCommandAuditState expectedAudit,
-        TenantCommandLiveRegionPoliteness expectedPoliteness)
+    [InlineData("tenant-sequence:40", TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData("tenant-sequence:41", TenantCommandLifecycleState.AlreadyApplied)]
+    [InlineData("tenant-sequence:42", TenantCommandLifecycleState.AlreadyApplied)]
+    [InlineData("opaque:42", TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(null, TenantCommandLifecycleState.ProjectionPending)]
+    public void Zero_event_noop_requires_exact_proof_at_least_at_the_ordered_baseline(
+        string? proofVersion,
+        TenantCommandLifecycleState expectedState)
     {
-        TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
-            .Idle()
-            .Previewed(Intent())
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe status.", "ConfigurationLimitExceeded"));
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationCommandSnapshot result = Pending(intent, eventCount: 0)
+            .ConfirmProjection(Proof(intent, proofVersion));
 
-        snapshot.State.ShouldBe(expectedState);
-        snapshot.AuditState.ShouldBe(expectedAudit);
-        snapshot.LiveRegionPoliteness.ShouldBe(expectedPoliteness);
-        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        result.State.ShouldBe(expectedState);
+        if (expectedState is TenantCommandLifecycleState.AlreadyApplied)
+        {
+            result.SafeMessageKey.ShouldBe("Tenants.Configuration.Set.AlreadyApplied.NoOp");
+            result.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        }
     }
 
     [Theory]
     [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected)]
     [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded)]
     [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify)]
-    public void Projection_proof_cannot_convert_terminal_non_success_to_confirmed(
+    public void Exact_projection_proof_never_erases_authoritative_terminal_status(
         CommandStatus status,
         TenantCommandLifecycleState expectedState)
     {
-        TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
-            .Idle()
-            .Previewed(Intent())
-            .RequestSent()
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationCommandSnapshot terminal = RequestSent(intent)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success.", "ConfigurationLimitExceeded"));
+            .ApplyStatus(new TenantCommandStatusResult(
+                status,
+                EventCount: status is CommandStatus.PublishFailed ? 1 : 0,
+                HasVerifiedCommandIdentity: true));
 
-        TenantSetConfigurationCommandSnapshot withProof = snapshot.ConfirmProjection(
-            Proof("tenant.alpha", TenantConfigurationProjectionProofKind.SetConfirmed));
-
-        withProof.State.ShouldBe(expectedState);
-        withProof.LastConfigurationProof.ShouldNotBeNull().Kind.ShouldBe(TenantConfigurationProjectionProofKind.SetConfirmed);
-        withProof.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        terminal.ConfirmProjection(Proof(intent, "tenant-sequence:42")).State.ShouldBe(expectedState);
     }
 
-    private static TenantSetConfigurationCommandSnapshot Pending(int eventCount)
-        => TenantSetConfigurationCommandSnapshot
-            .Idle()
-            .Previewed(Intent())
-            .RequestSent()
+    [Fact]
+    public void Tracking_mismatch_cannot_be_erased_by_projection_proof()
+    {
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationCommandSnapshot mismatch = RequestSent(intent)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: eventCount));
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: false));
 
-    private static SetTenantConfiguration Intent()
-        => new("tenant.alpha", "billing.mode", "enterprise");
+        mismatch.ConfirmProjection(Proof(intent, "tenant-sequence:42")).State
+            .ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+    }
+
+    [Fact]
+    public void Status_without_verified_aggregate_identity_fails_closed()
+    {
+        TenantSetConfigurationIntent intent = Intent();
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: false));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.Configuration.Set.UnableToVerify.TrackingMismatch");
+    }
+
+    [Fact]
+    public void Signalr_is_only_a_nudge()
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        TenantSetConfigurationCommandSnapshot nudged = snapshot.SignalRNudge();
+
+        nudged.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        nudged.LastConfigurationProof.ShouldBeNull();
+        nudged.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+    }
+
+    [Fact]
+    public void Retained_snapshot_contains_only_safe_intent_and_preview_types()
+    {
+        const string rawValue = "very-secret-value";
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "billing",
+            "mode",
+            "billing.mode",
+            TenantSetConfigurationValueFingerprint.Create(rawValue));
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(intent);
+
+        snapshot.Intent.ShouldBe(intent);
+        snapshot.Preview!.Intent.ShouldBe(intent);
+        typeof(TenantSetConfigurationCommandSnapshot).GetProperties()
+            .ShouldNotContain(property => property.PropertyType == typeof(SetTenantConfiguration));
+    }
+
+    [Fact]
+    public void Snapshot_string_is_support_safe_and_omits_tracking_and_projection_metadata()
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        string text = snapshot.ToString();
+
+        text.ShouldNotContain("message-1", Case.Sensitive);
+        text.ShouldNotContain("correlation-1", Case.Sensitive);
+        text.ShouldNotContain("tenant-sequence", Case.Sensitive);
+        text.ShouldNotContain("tenant.alpha", Case.Sensitive);
+        text.ShouldContain("HasTracking = True");
+    }
+
+    private static TenantSetConfigurationCommandSnapshot Pending(
+        TenantSetConfigurationIntent intent,
+        int eventCount)
+        => RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: eventCount,
+                HasVerifiedCommandIdentity: true));
+
+    private static TenantSetConfigurationCommandSnapshot RequestSent(TenantSetConfigurationIntent intent)
+        => TenantSetConfigurationCommandSnapshot.Idle()
+            .Previewed(Preview(intent))
+            .RequestSent(Preview(intent), "message-1", DateTimeOffset.UtcNow);
+
+    private static TenantSetConfigurationIntent Intent()
+        => new("tenant.alpha", "billing", "mode", "billing.mode", "value-fingerprint");
+
+    private static TenantSetConfigurationPreview Preview(TenantSetConfigurationIntent intent)
+        => TenantSetConfigurationPreview.Create(
+            intent,
+            TenantStatus.Active,
+            TenantSetConfigurationCurrentState.Different,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:41",
+            isAuthorized: true);
 
     private static TenantConfigurationProjectionProof Proof(
-        string tenantId,
-        TenantConfigurationProjectionProofKind kind)
-        => TenantConfigurationProjectionProof.Create(tenantId, kind);
+        TenantSetConfigurationIntent intent,
+        string? projectionVersion)
+        => TenantConfigurationProjectionProof.Create(
+            intent.TenantId,
+            TenantConfigurationProjectionProofKind.SetConfirmed,
+            projectionVersion,
+            intent.AttemptFingerprint);
 }

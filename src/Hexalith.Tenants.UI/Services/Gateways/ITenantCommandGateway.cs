@@ -6,6 +6,8 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 public interface ITenantCommandGateway {
     bool SupportsTrackedLifecycleDispatch => false;
 
+    bool SupportsTrackedSetConfigurationDispatch => false;
+
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
         string? messageId = null,
@@ -34,6 +36,13 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default);
+
+    Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
+        SetTenantConfiguration request,
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Configuration.Set.Unavailable.TrackedDispatch"));
 
     Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
