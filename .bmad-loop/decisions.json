@@ -43,5 +43,14 @@
     "key": "1",
     "label": "Use Dapr invocation",
     "resolution": ""
+  },
+  "DW-166": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Apply a bounded timeout and count each timeout against the three-attempt recovery budget.",
+    "key": "1",
+    "label": "Timeout charges budget",
+    "resolution": ""
   }
 }

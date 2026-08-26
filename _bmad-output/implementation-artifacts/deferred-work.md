@@ -1313,6 +1313,7 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 reason: The legacy ledger defers this issue: `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout. Original context is preserved in legacy-detail.
 legacy-detail: - `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout. If the subscription backend never answers, `_readRefreshSubscriptionInFlight` stays true and every later render, refresh-budget reset and re-authorization retry is rejected for the rest of the circuit. The bounded-budget design assumes attempts terminate; nothing enforces that. Reason for deferral: needs a timeout policy decision (value, and whether a timed-out attempt charges the budget) rather than a mechanical fix. Revisit if: notification setup is reworked, or a hung-subscribe incident is observed. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1120]
 status: open
+decision: 2026-08-26 Timeout charges budget — Apply a bounded timeout and count each timeout against the three-attempt recovery budget.
 decision: 2026-08-25 Timeout charges budget — Apply a bounded timeout and count each timeout against the three-attempt recovery budget.
 
 ### DW-167: The grant and remove submit buttons are never disabled while a mutation is in flight
