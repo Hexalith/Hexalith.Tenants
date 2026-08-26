@@ -61,5 +61,14 @@
     "key": "1",
     "label": "Configured shared bound",
     "resolution": ""
+  },
+  "DW-176": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Use a replaceable cancellation source plus the shared configured authorization bound.",
+    "key": "1",
+    "label": "Replaceable bounded CTS",
+    "resolution": ""
   }
 }

@@ -1392,6 +1392,7 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565
 reason: The legacy ledger defers this issue: Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply. Original context is preserved in legacy-detail.
 legacy-detail: - Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565]
 status: open
+decision: 2026-08-26 Replaceable bounded CTS — Use a replaceable cancellation source plus the shared configured authorization bound.
 decision: 2026-08-25 Bounded workspace policy — Use a replaceable cancellation source plus the shared configured authorization bound.
 
 ### DW-177: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
