@@ -79,5 +79,14 @@
     "key": "1",
     "label": "Bound authentication wait",
     "resolution": ""
+  },
+  "DW-194": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Adopt or create a Fluent or FrontComposer modal with document-level trapping, inert backdrop, and browser tests.",
+    "key": "1",
+    "label": "Adopt shared modal",
+    "resolution": ""
   }
 }
