@@ -25,5 +25,14 @@
     "key": "1",
     "label": "Distinct internal results",
     "resolution": ""
+  },
+  "DW-131": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Calculate semantic-release's exact proposal before approval and collision-check that version.",
+    "key": "1",
+    "label": "Check exact proposal",
+    "resolution": ""
   }
 }

@@ -1041,6 +1041,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-d
 reason: The legacy ledger defers this issue: The guard fails on any published version above the floor, even when the version semantic-release would actually propose is free, with no override. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: The guard fails on any published version above the floor, even when the version semantic-release would actually propose is free, with no override. evidence: floor v3.2.18 with a published 3.3.0-3.15.1 band and a breaking change in range proposes 4.0.0, which is free, yet the guard exits 1. There is no workflow_dispatch acknowledgement input, so the only escape is mutating tags.
 status: open
+decision: 2026-08-26 Check exact proposal — Calculate semantic-release's exact proposal before approval and collision-check that version.
 decision: 2026-08-25 Check proposed version — Calculate semantic-release's exact proposal before approval and collision-check that version.
 
 ### DW-132: The release-published tenants container image fails to start under Production defaults, failing the container smoke test and aborting every release after packages are already pushed
