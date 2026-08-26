@@ -719,7 +719,9 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify
 location: _bmad-output/implementation-artifacts/sprint-status.yaml:53; sprint-status.yaml
 reason: The legacy ledger defers this issue: `sprint-status.yaml`'s flat per-story status can't represent "review with 2 of 5 sub-contracts blocked". Original context is preserved in legacy-detail.
 legacy-detail: - **`sprint-status.yaml`'s flat per-story status can't represent "review with 2 of 5 sub-contracts blocked"** (`_bmad-output/implementation-artifacts/sprint-status.yaml:53`) — schema limitation of a shared tracking file used across the whole project; not something this story's diff introduced or can fix alone.
-status: open
+status: done 2026-08-26
+resolution: closed by human decision: Keep sub-contract detail in story evidence and deferred work.
+decision: 2026-08-26 Retain flat status — Keep sub-contract detail in story evidence and deferred work.
 
 ### DW-93: Epic 1 is marked done while most child stories remain backlog or review
 origin: migrated from legacy ledger ("Deferred from: code review of 1-0-reverify-frontcomposer-shell-and-fluent-contracts (2026-07-19)"), 2026-08-25
