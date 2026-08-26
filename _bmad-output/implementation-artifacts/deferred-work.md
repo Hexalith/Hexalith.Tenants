@@ -2544,6 +2544,7 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs (`EnableTenantAsync` and `DisableTenantAsync`)
 reason: The public, undeprecated methods have zero production callers after the tracked pair took over, but a future caller could use them to bypass `TenantLifecycleAttemptTracker`. Removal is breaking, so retire or deprecate the methods with an explicit compatibility plan.
 status: open
+decision: 2026-08-26 Deprecate with guidance — Mark methods obsolete, document tracked replacements, and add compatibility tests before later removal.
 
 ### DW-320: Remove the dead lifecycle `DuplicatePrevented` state path
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26

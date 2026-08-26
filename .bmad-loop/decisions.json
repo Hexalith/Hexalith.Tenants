@@ -178,5 +178,14 @@
     "key": "1",
     "label": "Aggregate-aware handles",
     "resolution": ""
+  },
+  "DW-319": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Mark methods obsolete, document tracked replacements, and add compatibility tests before later removal.",
+    "key": "1",
+    "label": "Deprecate with guidance",
+    "resolution": ""
   }
 }
