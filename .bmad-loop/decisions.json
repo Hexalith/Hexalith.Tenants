@@ -133,5 +133,14 @@
     "key": "1",
     "label": "Use causation identity",
     "resolution": ""
+  },
+  "DW-235": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add tenant-scoped owner or global-administrator reflection, bind all flags, and show denial or indeterminate reasons.",
+    "key": "1",
+    "label": "Bind role reflection",
+    "resolution": ""
   }
 }

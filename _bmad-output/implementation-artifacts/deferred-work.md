@@ -1884,6 +1884,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-membe
 reason: The legacy ledger defers this issue: Fail membership action availability closed against live authorization reflection. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Fail membership action availability closed against live authorization reflection. evidence: `MemberAccessReview` defaults add/change/remove authorization parameters to true, `TenantDetailPage` does not bind membership authorization evidence, and `BuildActionSlots` ignores the change-role and remove-member authorization values when deciding whether to render launch buttons; denial is enforced only after a flow is opened.
 status: open
+decision: 2026-08-26 Bind role reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and show denial or indeterminate reasons.
 decision: 2026-08-25 Role-aware BFF reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and include denial or indeterminate reasons.
 
 ### DW-236: Serialize child membership-command lease acquisition
