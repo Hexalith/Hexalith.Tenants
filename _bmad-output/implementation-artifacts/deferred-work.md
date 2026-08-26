@@ -1987,6 +1987,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection
 reason: The legacy ledger defers this issue: No-advancement ProjectionPending has no in-place terminal escape. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: No-advancement ProjectionPending has no in-place terminal escape. evidence: When the postcondition matches and the command produced events but ordered provenance cannot bind the observed version to the attempt, all three membership snapshots stay ProjectionPending; TenantCommandFlowGuard.RetainsCommandActivity holds the lease and CanContinueReadOnly excludes that state, so no continue-read-only affordance renders. A fix mapping this to UnableToVerify was drafted and reverted during review: the I/O matrix permits "stay pending or unable to verify", and six tests deliberately pin ProjectionPending, making this a product decision. Recoverable today via route change or page disposal, both of which release the lease.
 status: open
+decision: 2026-08-26 Bound to UnableToVerify — After a configured retry or time bound, transition to UnableToVerify with status recovery and support-safe guidance.
 decision: 2026-08-25 Bound to UnableToVerify — After a configured retry or time bound, transition the retained attempt to UnableToVerify with status-recovery and support-safe guidance.
 
 ### DW-248: Refresh-coalescing re-enters recursively instead of iterating

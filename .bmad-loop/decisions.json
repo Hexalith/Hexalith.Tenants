@@ -142,5 +142,14 @@
     "key": "1",
     "label": "Bind role reflection",
     "resolution": ""
+  },
+  "DW-247": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "After a configured retry or time bound, transition to UnableToVerify with status recovery and support-safe guidance.",
+    "key": "1",
+    "label": "Bound to UnableToVerify",
+    "resolution": ""
   }
 }
