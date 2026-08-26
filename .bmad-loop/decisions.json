@@ -115,5 +115,14 @@
     "key": "1",
     "label": "Add shape metadata",
     "resolution": ""
+  },
+  "DW-222": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Extend audit projection and API contracts with causation IDs and filter receipts to the exact submitted command.",
+    "key": "1",
+    "label": "Add causation identity",
+    "resolution": ""
   }
 }

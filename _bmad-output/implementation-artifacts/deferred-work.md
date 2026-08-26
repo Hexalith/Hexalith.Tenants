@@ -1773,6 +1773,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection
 reason: The legacy ledger defers this issue: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. evidence: TenantAuditRow exposes event, tenant, target, actor, and time but no message or correlation identifier, so a concurrent same-target removal can currently be rendered as this attempt's receipt.
 status: open
+decision: 2026-08-26 Add causation identity — Extend audit projection and API contracts with causation IDs and filter receipts to the exact submitted command.
 
 ### DW-223: Page through bounded tenant-audit results while assembling remove-member proof
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
