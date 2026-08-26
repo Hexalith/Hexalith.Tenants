@@ -124,5 +124,14 @@
     "key": "1",
     "label": "Add causation identity",
     "resolution": ""
+  },
+  "DW-225": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Bind proof to command and event causation identity in coordination with DW-222.",
+    "key": "1",
+    "label": "Use causation identity",
+    "resolution": ""
   }
 }

@@ -1800,6 +1800,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection
 reason: The legacy ledger defers this issue: Replace client/server wall-clock matching for removal proof with a causally stable boundary. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Replace client/server wall-clock matching for removal proof with a causally stable boundary. evidence: AttemptStartedAtUtc is captured on the UI clock and compared directly with server event timestamps, so ordinary clock skew can hide a legitimate event or admit an equal-time event despite strict-advancement wording.
 status: open
+decision: 2026-08-26 Use causation identity — Bind proof to command and event causation identity in coordination with DW-222.
 
 ### DW-226: Downgrade retained global-administrator evidence when a tenant-detail supplementary refresh fails
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
