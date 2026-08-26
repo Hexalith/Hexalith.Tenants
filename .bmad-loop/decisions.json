@@ -106,5 +106,14 @@
     "key": "1",
     "label": "Role-aware BFF reflection",
     "resolution": ""
+  },
+  "DW-221": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add backward-compatible raw-shape or discriminator metadata alongside existing configuration keys.",
+    "key": "1",
+    "label": "Add shape metadata",
+    "resolution": ""
   }
 }

@@ -1763,6 +1763,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-co
 reason: The legacy ledger defers this issue: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` summary: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. evidence: Standard IConfiguration flattening makes JSON [] and scalar "" observationally identical, so the current provider safely withholds all approval but cannot render the scalar form as policy-unavailable without also rejecting the repository's valid-empty default.
 status: open
+decision: 2026-08-26 Add shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing configuration keys.
 decision: 2026-08-25 Shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing IConfiguration keys.
 
 ### DW-222: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof
