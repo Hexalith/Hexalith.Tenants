@@ -2174,6 +2174,7 @@ location: TenantDetailPage.razor:1689-1703
 reason: The legacy ledger defers this issue: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload. evidence: `:26-46` — same-owner `TryAcquire` now returns `false`, forcing every caller to keep its own bookkeeping (which `TenantDetailPage.razor:1689-1703` reimplements); `Release` at `:55-70` silently no-ops on owner mismatch with no return value, so a leaked lock is undetectable. The `<returns>` doc never mentions the same-owner case.
 status: open
+decision: 2026-08-26 Add compatible outcomes — Add explicit owner-aware result APIs while retaining current signatures as compatibility wrappers.
 
 ### DW-272: The audit-capability probe has no reconnect subscription, and every read refresh briefly blocks removal
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25

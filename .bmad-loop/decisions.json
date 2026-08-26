@@ -160,5 +160,14 @@
     "key": "1",
     "label": "Unify optional identity",
     "resolution": ""
+  },
+  "DW-271": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add explicit owner-aware result APIs while retaining current signatures as compatibility wrappers.",
+    "key": "1",
+    "label": "Add compatible outcomes",
+    "resolution": ""
   }
 }
