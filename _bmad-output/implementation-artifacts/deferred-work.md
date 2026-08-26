@@ -1544,6 +1544,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-membe
 reason: The legacy ledger defers this issue: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. evidence: Matches established RemoveTenantConfigurationFlow CSS-only narrow gate; changing to a runtime viewport gate needs an explicit Ask First decision.
 status: open
+decision: 2026-08-26 Runtime viewport gate — Reuse viewport observation and refuse submit whenever measured safety is unknown or narrow.
 decision: 2026-08-25 Runtime viewport gate — Reuse the high-impact viewport observation pattern and refuse submit whenever measured safety is unknown or narrow.
 
 ### DW-196: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending

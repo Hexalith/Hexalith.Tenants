@@ -88,5 +88,14 @@
     "key": "1",
     "label": "Adopt shared modal",
     "resolution": ""
+  },
+  "DW-195": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Reuse viewport observation and refuse submit whenever measured safety is unknown or narrow.",
+    "key": "1",
+    "label": "Runtime viewport gate",
+    "resolution": ""
   }
 }
