@@ -419,7 +419,8 @@ origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-a
 location: n/a
 reason: The legacy ledger defers this issue: If EventStore tests still encode the retired Tenants actor-routing assumption, update them under EventStore ownership. Original context is preserved in legacy-detail.
 legacy-detail: - If EventStore tests still encode the retired Tenants actor-routing assumption, update them under EventStore ownership.
-status: open
+status: done 2026-08-26
+resolution: already resolved: references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs:195-215 uses the generic query endpoint without the retired Tenants projection-actor routing contract.
 
 ### DW-55: Add or expose shared read-model metadata for persisted projection timestamp/version if D6 threshold-based `aging` and `stale` states need to be computed generically
 origin: migrated from legacy ledger ("EventStore owner: `eventstore-2026-06-19-read-model-freshness-metadata`"), 2026-08-25
@@ -1015,7 +1016,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: The release tag floor guard probes NuGet only; the container tag in registry.hexalith.com is never checked. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: The release tag floor guard probes NuGet only; the container tag in registry.hexalith.com is never checked. evidence: publication_preflight.py fails with the same version-collision on the container repository (validate_container_absence), so a partial prior release that left a container tag can still fail the protected job after approval. The unprotected verify-source job has no registry credentials, so covering it needs a design decision.
-status: open
+status: done 2026-08-26
+resolution: already resolved: references/Hexalith.Builds/.github/workflows/domain-release.yml:496 and scripts/publication_preflight.py:930-956,1155-1185 perform protected exact container-tag collision checks; implemented by Builds commits f271c8aa and 2a8b63d2.
 decision: 2026-08-25 Protected prewrite check — Use production read credentials immediately after approval but before any package or container write.
 
 ### DW-130: The tag floor is proved in verify-source but never re-proved after the production approval gate
@@ -1024,7 +1026,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: The tag floor is proved in verify-source but never re-proved after the production approval gate. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: The tag floor is proved in verify-source but never re-proved after the production approval gate. evidence: environment-name production can hold for hours; a tag deleted or added during that window reproduces the original incident with a green guard behind it. Re-asserting inside the release job, or pinning the resolved floor as a job output, would close it.
-status: open
+status: done 2026-08-26
+resolution: already resolved: references/Hexalith.Builds/.github/workflows/domain-release.yml:811-842,889-907 re-proves live source and resolves a fresh release candidate after approval; implemented by Builds commits bd94f7fe, f271c8aa, and bf9af9cb.
 
 ### DW-131: The guard fails on any published version above the floor, even when the version semantic-release would actually propose is free, with no override
 origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-28)"), 2026-08-25
@@ -2173,7 +2176,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantQueryGateway
 reason: The legacy ledger defers this issue: `TenantQueryGateway` dereferences `Detail!` inside the catch that exists to fail safe. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `TenantQueryGateway` dereferences `Detail!` inside the catch that exists to fail safe. evidence: `:2131-2152` — if reauthorization throws in the retention helper, the null-forgiving `SanitizeDetail(previous!.Detail!)` can throw from within the safety path.
-status: open
+status: done 2026-08-26
+resolution: already resolved: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2134-2135,2178-2182 proves the retained detail is non-null and tenant-bound before the guarded catch can access it.
 
 ### DW-275: `HasSameTenantDetail` newly compares `ConfigurationManagement.TenantId`
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2407,7 +2411,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: Detail
 reason: The legacy ledger defers this issue: The ten-item preview renders from `_snapshot.LastConfirmedProjection ?? Original context is preserved in legacy-detail.
 legacy-detail: - The ten-item preview renders from `_snapshot.LastConfirmedProjection ?? Detail` while the eligibility gate validates `Detail`/`ResolvedEvidence`; after an in-flow Refresh the user can be shown facts no gate validated. Fails closed at submit, so consistency rather than correctness. Fix is ambiguous (which source wins).
-status: open
+status: done 2026-08-26
+resolution: already resolved: commit 43ef25eb; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor:255-256,586-643 now renders and gates from the same retained confirmed preview evidence.
 decision: 2026-08-25 Retained confirmed source — Use one revalidated retained-last-confirmed snapshot for both preview and gate, failing closed when its lifecycle or tenant binding is unsafe.
 
 ### DW-305: `tenants-lifecycle-unavailable-reason` is emitted by both the launcher (per action) and the open flow; with the flow open, up to three elements share the testid with different semantics
@@ -2415,7 +2420,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: n/a
 reason: The legacy ledger defers this issue: `tenants-lifecycle-unavailable-reason` is emitted by both the launcher (per action) and the open flow; with the flow open, up to three elements share the testid with different semantics. Original context is preserved in legacy-detail.
 legacy-detail: - `tenants-lifecycle-unavailable-reason` is emitted by both the launcher (per action) and the open flow; with the flow open, up to three elements share the testid with different semantics.
-status: open
+status: done 2026-08-26
+resolution: already resolved: commit 94d496cf; TenantLifecycleCommandFlow.razor:32 and TenantLifecycleActionAvailability.razor:110 now emit distinct flow and action-specific test IDs.
 
 ### DW-306: The French accent repair is partial: ~30 entries fixed, but `Tenants.GlobalAdministrators.Column.Identity`/`.Availability` and `Tenants.Audit.Column.Category`/`.Outcome` remain unaccented. Key parity is clean (1346/1346). Finish in a dedicated pass
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
@@ -2469,7 +2475,8 @@ location: SetTenantConfigurationFlow.razor.css
 source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
 reason: The legacy ledger defers this issue: Preserve a visible exit when the set-configuration flow is opened wide and the viewport is then narrowed. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md` summary: Preserve a visible exit when the set-configuration flow is opened wide and the viewport is then narrowed. evidence: `SetTenantConfigurationFlow.razor.css` hides the entire form at 767px, including its only Cancel control, and the rule lacks the neighboring FrontComposer CSS exception comment. This belongs to Stories 3.5/3.6; lifecycle-only scope was explicitly retained for this run.
-status: open
+status: done 2026-08-26
+resolution: already resolved: commit 424d7624; SetTenantConfigurationFlow.razor:128-144 keeps Refresh and Cancel outside the form hidden by SetTenantConfigurationFlow.razor.css:123-130.
 
 ### DW-313: `TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25)"), 2026-08-25
