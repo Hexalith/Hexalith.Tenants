@@ -7,5 +7,14 @@
     "key": "1",
     "label": "Main-only contract",
     "resolution": ""
+  },
+  "DW-122": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Make Memories guarantee stable unique tenant candidates and add an owning contract test.",
+    "key": "1",
+    "label": "Upstream uniqueness",
+    "resolution": ""
   }
 }
