@@ -388,6 +388,58 @@ public sealed class TenantsBffCompositionTests
         preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Unknown);
     }
 
+    [Theory]
+    [InlineData(TenantRole.TenantReader)]
+    [InlineData(TenantRole.TenantContributor)]
+    [InlineData(TenantRole.Unknown)]
+    public async Task Set_preview_requires_owner_membership_before_configuration_lookup(TenantRole role)
+    {
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "billing",
+            "mode",
+            "billing.mode",
+            TenantSetConfigurationValueFingerprint.Create("enabled"));
+        TenantDetail detail = Detail([new TenantMember("operator.alpha", role)]) with
+        {
+            Configuration = new ThrowingConfiguration(),
+        };
+
+        TenantSetConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeSetConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeFalse();
+        preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Unknown);
+    }
+
+    [Fact]
+    public async Task Set_preview_requires_the_current_subject_to_be_present_before_configuration_lookup()
+    {
+        TenantSetConfigurationIntent intent = new(
+            "tenant.alpha",
+            "billing",
+            "mode",
+            "billing.mode",
+            TenantSetConfigurationValueFingerprint.Create("enabled"));
+        TenantDetail detail = Detail([]) with { Configuration = new ThrowingConfiguration() };
+
+        TenantSetConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeSetConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeFalse();
+        preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Unknown);
+    }
+
     private static TenantsBffComposition Composition(
         string json,
         TenantConfigurationPrincipalEvidence? evidence = null)

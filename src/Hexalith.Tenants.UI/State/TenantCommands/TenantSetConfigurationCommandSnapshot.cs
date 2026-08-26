@@ -139,6 +139,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
         => this with
         {
             State = TenantCommandLifecycleState.UnableToVerify,
+            CorrelationId = string.IsNullOrWhiteSpace(CorrelationId) ? MessageId : CorrelationId,
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
             AuditState = TenantCommandAuditState.AuditDelayed,
@@ -177,6 +178,12 @@ public sealed record TenantSetConfigurationCommandSnapshot(
 
         return status.Status.Value switch
         {
+            CommandStatus.Received or CommandStatus.Processing
+                when State is TenantCommandLifecycleState.ProjectionPending
+                    or TenantCommandLifecycleState.Degraded => this with
+            {
+                StatusObservationCount = StatusObservationCount + 1,
+            },
             CommandStatus.Received or CommandStatus.Processing => this with
             {
                 State = TenantCommandLifecycleState.Accepted,
@@ -185,7 +192,23 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 SafeMessageKey = null,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
-            CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed => this with
+            CommandStatus.EventsStored or CommandStatus.EventsPublished => this with
+            {
+                State = TenantCommandLifecycleState.ProjectionPending,
+                CompletedWithoutEvents = false,
+                HasCommandEventEvidence = true,
+                StatusObservationCount = StatusObservationCount + 1,
+                SafeMessage = null,
+                SafeMessageKey = null,
+                AuditState = TenantCommandAuditState.AuditPending,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            },
+            CommandStatus.Completed when status.EventCount is null or < 0
+                => UnableToVerify("Tenants.Configuration.Set.UnableToVerify.Status") with
+                {
+                    StatusObservationCount = StatusObservationCount + 1,
+                },
+            CommandStatus.Completed => this with
             {
                 State = TenantCommandLifecycleState.ProjectionPending,
                 CompletedWithoutEvents = status.EventCount == 0,

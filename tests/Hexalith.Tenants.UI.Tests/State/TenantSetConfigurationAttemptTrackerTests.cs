@@ -11,10 +11,11 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantSetConfigurationAttemptTrackerTests
 {
     [Fact]
-    public void Same_logical_dispatch_reuses_one_deterministic_ulid_and_rejects_a_different_intent()
+    public void Same_logical_dispatch_reuses_one_random_ulid_and_rejects_a_different_intent()
     {
         DateTimeOffset now = new(2026, 8, 26, 10, 0, 0, TimeSpan.Zero);
-        var tracker = new TenantSetConfigurationAttemptTracker(() => now);
+        string generated = NUlid.Ulid.NewUlid().ToString();
+        var tracker = new TenantSetConfigurationAttemptTracker(() => now, () => generated);
         TenantSetConfigurationIntent intent = Intent("fingerprint-one");
 
         (string first, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
@@ -26,6 +27,24 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
             Intent("fingerprint-two"),
             "tenant-sequence:41",
             now));
+    }
+
+    [Fact]
+    public void Separate_attempts_started_on_the_same_clock_tick_receive_distinct_message_ids()
+    {
+        DateTimeOffset now = new(2026, 8, 26, 10, 0, 0, TimeSpan.Zero);
+        Queue<string> ids = new([
+            NUlid.Ulid.NewUlid().ToString(),
+            NUlid.Ulid.NewUlid().ToString(),
+        ]);
+        var tracker = new TenantSetConfigurationAttemptTracker(() => now, ids.Dequeue);
+        TenantSetConfigurationIntent intent = Intent("fingerprint-one");
+
+        (string first, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        tracker.Forget(intent.TenantId, first);
+        (string second, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+
+        second.ShouldNotBe(first);
     }
 
     [Fact]
@@ -83,7 +102,7 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
     }
 
     [Fact]
-    public void Newer_verified_progress_supersedes_transient_degraded_evidence()
+    public void Stale_processing_observation_cannot_supersede_terminal_publish_failure()
     {
         DateTimeOffset now = new(2026, 8, 26, 10, 0, 0, TimeSpan.Zero);
         var tracker = new TenantSetConfigurationAttemptTracker(() => now);
@@ -99,7 +118,7 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
         tracker.Remember(degraded).ShouldBeTrue();
         tracker.Remember(recovered).ShouldBeTrue();
 
-        tracker.Find("tenant.alpha").ShouldNotBeNull().State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        tracker.Find("tenant.alpha").ShouldNotBeNull().State.ShouldBe(TenantCommandLifecycleState.Degraded);
     }
 
     [Fact]

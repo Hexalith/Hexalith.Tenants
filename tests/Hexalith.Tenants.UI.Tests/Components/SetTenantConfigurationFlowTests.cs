@@ -1,3 +1,5 @@
+using System.Reflection;
+
 using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
@@ -11,6 +13,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -93,6 +96,31 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-namespace']").TagName.ShouldBe("FLUENT-TEXT-INPUT");
     }
 
+    [Fact]
+    public void Global_administrator_open_focuses_the_required_namespace_before_the_key()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["*"], globalAdministrator: true),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Absent));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+
+        ElementReference namespaceReference = (ElementReference)(cut.Instance.GetType()
+            .GetField("_namespaceElement", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(cut.Instance)
+            ?? throw new InvalidOperationException("Namespace focus reference is unavailable."));
+        string focusedReferenceId = JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Last()
+            .Id;
+
+        focusedReferenceId.ShouldBe(namespaceReference.Id);
+    }
+
     [Theory]
     [InlineData(248, true)]
     [InlineData(249, false)]
@@ -144,6 +172,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         gateway.SetConfigurationCallCount.ShouldBe(0);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         cut.Markup.ShouldNotContain("secret", Case.Sensitive);
+        cut.Find("[data-testid='tenants-config-set-submit']").GetAttribute("disabled").ShouldNotBeNull();
     }
 
     [Fact]
@@ -183,7 +212,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Ambiguous_attempt_is_adopted_after_remount_without_redispatch_and_can_be_abandoned()
+    public void Ambiguous_attempt_is_adopted_and_reconciled_after_remount_without_redispatch()
     {
         StubTenantCommandGateway gateway = RegisterServices();
         gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(
@@ -192,7 +221,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         Func<TenantSetConfigurationIntent, TenantSetConfigurationPreview> preview = intent =>
             Preview(intent, TenantSetConfigurationCurrentState.Different);
         Func<TenantSetConfigurationIntent, TenantConfigurationProjectionProof> proof = intent =>
-            Proof(intent, TenantConfigurationProjectionProofKind.SetNotConfirmed, "tenant-sequence:41");
+            Proof(intent, TenantConfigurationProjectionProofKind.SetConfirmed, "tenant-sequence:42");
 
         IRenderedComponent<SetTenantConfigurationFlow> first = RenderFlow(gateway, Context(["billing"]), preview, proof);
         CompleteForm(first, "mode", "secret");
@@ -201,13 +230,203 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         first.Dispose();
 
         IRenderedComponent<SetTenantConfigurationFlow> remounted = RenderFlow(gateway, Context(["billing"]), preview, proof);
-        remounted.WaitForAssertion(() => remounted.Find("[data-testid='tenants-config-set-abandon']"));
+        remounted.WaitForAssertion(() => remounted.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         gateway.SetConfigurationCallCount.ShouldBe(1);
-        remounted.Find("[data-testid='tenants-config-set-submit']").GetAttribute("disabled").ShouldNotBeNull();
+        gateway.StatusCallCount.ShouldBe(1);
+        gateway.LastStatusHandle.ShouldNotBeNull().MessageId.ShouldBe(gateway.LastMessageId);
+        gateway.LastStatusHandle.CorrelationId.ShouldBe(gateway.LastMessageId);
+    }
 
-        remounted.Find("[data-testid='tenants-config-set-abandon']").Click();
-        remounted.Instance.Snapshot.RetainsAttempt.ShouldBeFalse();
-        gateway.SetConfigurationCallCount.ShouldBe(1);
+    [Theory]
+    [InlineData(" leading")]
+    [InlineData("trailing ")]
+    [InlineData("zero\u200bwidth")]
+    [InlineData("non\u00a0breaking")]
+    [InlineData("tag\U000E0001character")]
+    public void Unsafe_key_suffix_is_blocked_before_preview_or_dispatch(string suffix)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        int previewCalls = 0;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent =>
+            {
+                previewCalls++;
+                return Preview(intent, TenantSetConfigurationCurrentState.Absent);
+            });
+
+        CompleteForm(cut, suffix, "value");
+
+        previewCalls.ShouldBe(0);
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-config-set-preview']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Interior_ascii_space_is_preserved_in_the_literal_key()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        TenantSetConfigurationIntent? observed = null;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent =>
+            {
+                observed = intent;
+                return Preview(intent, TenantSetConfigurationCurrentState.Absent);
+            });
+
+        CompleteForm(cut, "service mode", "value");
+
+        observed.ShouldNotBeNull().FullKey.ShouldBe("billing.service mode");
+        cut.Find("[data-testid='tenants-config-set-preview-key']").TextContent
+            .ShouldBe("billing.service mode");
+    }
+
+    [Fact]
+    public void Canceled_preview_evidence_fails_closed_without_escaping_the_event_handler()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Absent),
+            previewAsync: _ => Task.FromException<TenantSetConfigurationPreview>(new TaskCanceledException()));
+
+        CompleteForm(cut, "mode", "value");
+
+        cut.FindAll("[data-testid='tenants-config-set-preview']").ShouldBeEmpty();
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Invalid_utf16_value_is_blocked_before_preview_or_dispatch()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        int previewCalls = 0;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent =>
+            {
+                previewCalls++;
+                return Preview(intent, TenantSetConfigurationCurrentState.Absent);
+            });
+
+        CompleteForm(cut, "mode", "\uD800");
+
+        previewCalls.ShouldBe(0);
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-config-set-preview']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Expiry_and_abandonment_do_not_release_ownership_while_dispatch_is_running()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var dispatch = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.SubmissionAsync = (_, _) => dispatch.Task;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        CompleteForm(cut, "mode", "value");
+
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        cut.WaitForAssertion(() => gateway.SetConfigurationCallCount.ShouldBe(1));
+        await cut.InvokeAsync(() => cut.Instance.ExpireRetainedAttemptAsync(DateTimeOffset.UtcNow.AddMinutes(6)));
+
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-config-set-abandon']").GetAttribute("disabled").ShouldNotBeNull();
+        dispatch.SetResult(TenantCommandSubmissionResult.Ambiguous(
+            gateway.LastMessageId!,
+            "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous"));
+        await submit;
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Freshness_change_during_submit_preview_blocks_before_lease_and_dispatch()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var previewGate = new TaskCompletionSource<TenantSetConfigurationPreview>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool holdPreview = false;
+        Func<TenantSetConfigurationIntent, Task<TenantSetConfigurationPreview>> provider = intent => holdPreview
+            ? previewGate.Task
+            : Task.FromResult(Preview(intent, TenantSetConfigurationCurrentState.Different));
+        TenantConfigurationManagementContext context = Context(["billing"]);
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            context,
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
+            previewAsync: provider);
+        CompleteForm(cut, "mode", "value");
+        holdPreview = true;
+
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await Task.Yield();
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Stale)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.PreviewEvidenceProvider, provider)
+            .Add(p => p.ProjectionEvidenceProvider, intent => Task.FromResult(
+                Proof(intent, TenantConfigurationProjectionProofKind.SetNotConfirmed, "tenant-sequence:41"))));
+        previewGate.SetResult(Preview(cut.Instance.Snapshot.Intent!, TenantSetConfigurationCurrentState.Different));
+        await submit;
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Tenant_change_during_submit_preview_cannot_dispatch_the_previous_tenant()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var previewGate = new TaskCompletionSource<TenantSetConfigurationPreview>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var previewEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantSetConfigurationIntent? pendingIntent = null;
+        bool holdPreview = false;
+        Func<TenantSetConfigurationIntent, Task<TenantSetConfigurationPreview>> provider = intent => holdPreview
+            ? HoldPreview(intent)
+            : Task.FromResult(Preview(intent, TenantSetConfigurationCurrentState.Different));
+        TenantConfigurationManagementContext firstContext = Context(["billing"]);
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            firstContext,
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
+            previewAsync: provider);
+        CompleteForm(cut, "mode", "value");
+        holdPreview = true;
+
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await previewEntered.Task;
+        TenantConfigurationManagementContext nextContext = TenantConfigurationManagementContext.Available(
+            "tenant.beta",
+            TenantStatus.Active,
+            isGlobalAdministrator: false,
+            ["billing"],
+            []);
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, nextContext)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.PreviewEvidenceProvider, provider));
+        previewGate.SetResult(Preview(pendingIntent!, TenantSetConfigurationCurrentState.Different));
+        await submit;
+
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse();
+
+        Task<TenantSetConfigurationPreview> HoldPreview(TenantSetConfigurationIntent intent)
+        {
+            pendingIntent = intent;
+            previewEntered.SetResult();
+            return previewGate.Task;
+        }
     }
 
     [Fact]
@@ -243,13 +462,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway,
         TenantConfigurationManagementContext context,
         Func<TenantSetConfigurationIntent, TenantSetConfigurationPreview> preview,
-        Func<TenantSetConfigurationIntent, TenantConfigurationProjectionProof>? proof = null)
+        Func<TenantSetConfigurationIntent, TenantConfigurationProjectionProof>? proof = null,
+        Func<TenantSetConfigurationIntent, Task<TenantSetConfigurationPreview>>? previewAsync = null)
         => Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.PreviewEvidenceProvider, intent => Task.FromResult(preview(intent)))
+            .Add(p => p.PreviewEvidenceProvider, previewAsync ?? (intent => Task.FromResult(preview(intent))))
             .Add(p => p.ProjectionEvidenceProvider, intent => Task.FromResult(
                 proof?.Invoke(intent)
                     ?? Proof(intent, TenantConfigurationProjectionProofKind.SetNotConfirmed, "tenant-sequence:41"))));
@@ -313,12 +533,15 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     {
         public bool SupportsTrackedSetConfigurationDispatch => true;
         public Func<SetTenantConfiguration, string, TenantCommandSubmissionResult>? SubmissionFactory { get; set; }
+        public Func<SetTenantConfiguration, string, Task<TenantCommandSubmissionResult>>? SubmissionAsync { get; set; }
         public Func<TenantCommandTrackingHandle, Task<TenantCommandStatusResult>>? StatusAsync { get; set; }
         public SetTenantConfiguration? LastSetConfigurationRequest { get; private set; }
         public string? LastMessageId { get; private set; }
         public int SetConfigurationCallCount { get; private set; }
+        public int StatusCallCount { get; private set; }
+        public TenantCommandTrackingHandle? LastStatusHandle { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
+        public async Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
             SetTenantConfiguration request,
             string messageId,
             CancellationToken cancellationToken = default)
@@ -326,8 +549,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             SetConfigurationCallCount++;
             LastSetConfigurationRequest = request;
             LastMessageId = messageId;
-            return Task.FromResult(SubmissionFactory?.Invoke(request, messageId)
-                ?? TenantCommandSubmissionResult.Accepted(messageId, "correlation-1"));
+            return SubmissionAsync is not null
+                ? await SubmissionAsync(request, messageId)
+                : SubmissionFactory?.Invoke(request, messageId)
+                    ?? TenantCommandSubmissionResult.Accepted(messageId, "correlation-1");
         }
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
@@ -338,10 +563,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         public Task<TenantCommandStatusResult> GetStatusAsync(
             TenantCommandTrackingHandle handle,
             CancellationToken cancellationToken = default)
-            => StatusAsync?.Invoke(handle) ?? Task.FromResult(new TenantCommandStatusResult(
-                CommandStatus.Completed,
-                EventCount: 1,
-                HasVerifiedCommandIdentity: true));
+        {
+            StatusCallCount++;
+            LastStatusHandle = handle;
+            return StatusAsync?.Invoke(handle) ?? Task.FromResult(new TenantCommandStatusResult(
+                    CommandStatus.Completed,
+                    EventCount: 1,
+                    HasVerifiedCommandIdentity: true));
+        }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));

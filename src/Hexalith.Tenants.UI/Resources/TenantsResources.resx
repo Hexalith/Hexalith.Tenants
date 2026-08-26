@@ -1348,6 +1348,9 @@
   <data name="Tenants.Configuration.Set.Validation.ValueLength" xml:space="preserve">
     <value>The configuration value must be {0} characters or fewer.</value>
   </data>
+  <data name="Tenants.Configuration.Set.Validation.ValueLiteral" xml:space="preserve">
+    <value>Enter a valid Unicode configuration value before previewing the change.</value>
+  </data>
   <data name="Tenants.Configuration.Set.Preview.Title" xml:space="preserve">
     <value>Consequence preview</value>
   </data>

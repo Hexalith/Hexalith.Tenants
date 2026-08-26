@@ -114,6 +114,61 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         snapshot.SafeMessageKey.ShouldBe("Tenants.Configuration.Set.UnableToVerify.TrackingMismatch");
     }
 
+    [Theory]
+    [InlineData(CommandStatus.EventsStored)]
+    [InlineData(CommandStatus.EventsPublished)]
+    public void Stored_or_published_status_is_event_evidence_even_without_a_count(CommandStatus status)
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                status,
+                EventCount: null,
+                HasVerifiedCommandIdentity: true));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        snapshot.HasCommandEventEvidence.ShouldBeTrue();
+        snapshot.CompletedWithoutEvents.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(-1)]
+    public void Completed_status_requires_a_non_negative_event_count(int? eventCount)
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: eventCount,
+                HasVerifiedCommandIdentity: true));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.CompletedWithoutEvents.ShouldBeFalse();
+        snapshot.HasCommandEventEvidence.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Stale_processing_status_cannot_regress_projection_or_terminal_publish_evidence()
+    {
+        TenantSetConfigurationCommandSnapshot accepted = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        TenantSetConfigurationCommandSnapshot projected = accepted.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.EventsStored,
+            HasVerifiedCommandIdentity: true));
+        TenantSetConfigurationCommandSnapshot degraded = accepted.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.PublishFailed,
+            EventCount: 1,
+            HasVerifiedCommandIdentity: true));
+
+        projected.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Processing,
+            HasVerifiedCommandIdentity: true)).State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        degraded.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Processing,
+            HasVerifiedCommandIdentity: true)).State.ShouldBe(TenantCommandLifecycleState.Degraded);
+    }
+
     [Fact]
     public void Signalr_is_only_a_nudge()
     {
@@ -151,13 +206,10 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
-        string text = snapshot.ToString();
-
-        text.ShouldNotContain("message-1", Case.Sensitive);
-        text.ShouldNotContain("correlation-1", Case.Sensitive);
-        text.ShouldNotContain("tenant-sequence", Case.Sensitive);
-        text.ShouldNotContain("tenant.alpha", Case.Sensitive);
-        text.ShouldContain("HasTracking = True");
+        snapshot.ToString().ShouldBe(
+            "TenantSetConfigurationCommandSnapshot { State = Accepted, HasIntent = True, HasPreview = True, "
+            + "HasTracking = True, HasCommandEventEvidence = False, CompletedWithoutEvents = False, "
+            + "AuditState = AuditPending }");
     }
 
     private static TenantSetConfigurationCommandSnapshot Pending(

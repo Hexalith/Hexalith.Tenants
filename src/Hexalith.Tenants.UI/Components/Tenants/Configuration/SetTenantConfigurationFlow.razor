@@ -3,6 +3,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using System.Globalization
+@using System.Text
 @using Microsoft.Extensions.DependencyInjection
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
@@ -95,7 +96,7 @@
                    data-testid="tenants-config-set-validation" role="alert">@_validationMessage</p>
             }
 
-            @if (IsPreviewComplete)
+            @if (ShouldRenderPreview)
             {
                 <section class="tenants-config-set__preview" data-testid="tenants-config-set-preview"
                          aria-labelledby="tenants-config-set-preview-heading">
@@ -133,6 +134,7 @@
             @if (_snapshot.RetainsAttempt)
             {
                 <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-config-set-abandon"
+                              Disabled="@_isSubmitting"
                               OnClick="AbandonAttemptAsync">@Localizer["Tenants.Configuration.Set.Abandon"]</FluentButton>
             }
             <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-config-set-cancel"
@@ -286,7 +288,17 @@
         => IsPreviewSurfaceAvailable;
     private bool CanOpen => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
     private bool IsPreviewComplete => _snapshot.Preview is { IsComplete: true } preview
-        && _snapshot.Intent is not null && Equals(preview.Intent, _snapshot.Intent);
+        && _snapshot.Intent is not null
+        && TryBuildIntent(_value, out TenantSetConfigurationIntent? currentIntent, showValidation: false)
+        && Equals(currentIntent, _snapshot.Intent)
+        && Equals(preview.Intent, currentIntent);
+    private bool ShouldRenderPreview => _snapshot.Preview is { IsComplete: true }
+        && (_snapshot.RetainsAttempt
+            || _snapshot.State is TenantCommandLifecycleState.AlreadyApplied
+                or TenantCommandLifecycleState.Confirmed
+                or TenantCommandLifecycleState.Rejected
+                or TenantCommandLifecycleState.Failed
+            || IsPreviewComplete);
     private bool IsSubmitDisabled => _isSubmitting || _snapshot.RetainsAttempt || !IsPreviewComplete
         || !string.IsNullOrWhiteSpace(UnavailableReason);
     private bool CanRefresh => !_isRefreshing && _snapshot.RetainsAttempt;
@@ -421,7 +433,8 @@
         _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
         _previewEvidenceUnavailable = false;
         _isOpen = true;
-        _focusKeyPending = true;
+        _focusNamespacePending = Context.IsGlobalAdministrator;
+        _focusKeyPending = !Context.IsGlobalAdministrator;
         return Task.CompletedTask;
     }
 
@@ -475,7 +488,7 @@
             preview = PreviewEvidenceProvider is null ? TenantSetConfigurationPreview.Unavailable(intent)
                 : await PreviewEvidenceProvider(intent).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { throw; }
+        catch (OperationCanceledException) { preview = TenantSetConfigurationPreview.Unavailable(intent); }
         catch (Exception) { preview = TenantSetConfigurationPreview.Unavailable(intent); }
         if (generation != _previewGeneration
             || _isSubmitting
@@ -535,7 +548,7 @@
                 preview = PreviewEvidenceProvider is null ? TenantSetConfigurationPreview.Unavailable(intent)
                     : await PreviewEvidenceProvider(intent).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException) { preview = TenantSetConfigurationPreview.Unavailable(intent); }
             catch (Exception) { preview = TenantSetConfigurationPreview.Unavailable(intent); }
             if (!IsCurrentSubmit(submitGeneration, inputGeneration, tenantId)
                 || !preview.IsComplete
@@ -547,6 +560,13 @@
                     SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
                         Localizer["Tenants.Configuration.Set.Unavailable.PreviewEvidence"], TenantCommandFocusTarget.Submit));
                 }
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                    UnavailableReason,
+                    TenantCommandFocusTarget.Submit));
                 return;
             }
 
@@ -670,7 +690,14 @@
             {
                 _activeSubmitGeneration = 0;
                 _isSubmitting = false;
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
+                {
+                    await ExpireRetainedAttemptAsync(DateTimeOffset.UtcNow).ConfigureAwait(false);
+                }
+                else
+                {
+                    await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                }
             }
         }
     }
@@ -732,7 +759,16 @@
                 {
                     proof = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) { throw; }
+                catch (OperationCanceledException)
+                {
+                    if (IsCurrentAttempt(attemptGeneration, tenantId, messageId)
+                        && _snapshot.State is (TenantCommandLifecycleState.Accepted
+                            or TenantCommandLifecycleState.ProjectionPending))
+                    {
+                        SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh"));
+                    }
+                    return;
+                }
                 catch (Exception)
                 {
                     if (IsCurrentAttempt(attemptGeneration, tenantId, messageId)
@@ -750,7 +786,13 @@
                 }
             }
         }
-        catch (OperationCanceledException) { throw; }
+        catch (OperationCanceledException)
+        {
+            if (IsCurrentAttempt(attemptGeneration, tenantId, messageId))
+            {
+                SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.Status"));
+            }
+        }
         catch (Exception)
         {
             if (IsCurrentAttempt(attemptGeneration, tenantId, messageId))
@@ -770,6 +812,11 @@
 
     private async Task AbandonAttemptAsync()
     {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
         string? messageId = _snapshot.MessageId;
         string? tenantId = _snapshot.Intent?.TenantId;
         _ = Interlocked.Increment(ref _attemptGeneration);
@@ -821,7 +868,18 @@
             SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.ValueLength", MaxConfigurationValueLength], TenantCommandFocusTarget.Value);
             return false;
         }
-        intent = new(Context.TenantId, prefix, suffix, fullKey, TenantSetConfigurationValueFingerprint.Create(rawValue));
+        string fingerprint;
+        try
+        {
+            fingerprint = TenantSetConfigurationValueFingerprint.Create(rawValue);
+        }
+        catch (EncoderFallbackException)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.ValueLiteral"], TenantCommandFocusTarget.Value);
+            return false;
+        }
+
+        intent = new(Context.TenantId, prefix, suffix, fullKey, fingerprint);
         return true;
     }
 
@@ -916,7 +974,10 @@
                 await RefreshPreviewAsync().ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) { throw; }
+        catch (OperationCanceledException)
+        {
+            _previewEvidenceUnavailable = true;
+        }
         catch (Exception)
         {
             _previewEvidenceUnavailable = true;
@@ -929,7 +990,7 @@
 
     internal async Task ExpireRetainedAttemptAsync(DateTimeOffset observedAtUtc)
     {
-        if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(observedAtUtc))
+        if (!_isSubmitting && _snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(observedAtUtc))
         {
             await AbandonAttemptAsync().ConfigureAwait(false);
         }
@@ -1035,8 +1096,8 @@
                 or UnicodeCategory.Format
                 or UnicodeCategory.LineSeparator
                 or UnicodeCategory.ParagraphSeparator
-                or UnicodeCategory.SpaceSeparator
-                or UnicodeCategory.Surrogate)
+                or UnicodeCategory.Surrogate
+                || category is UnicodeCategory.SpaceSeparator && value[index] != ' ')
             {
                 return true;
             }

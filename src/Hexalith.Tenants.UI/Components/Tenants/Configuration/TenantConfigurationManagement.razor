@@ -46,7 +46,7 @@
         </section>
     </section>
 
-    @if (!HasPolicyScope)
+    @if (!HasPolicyScope && !_setCommandInFlight)
     {
         <p id="tenants-config-management-unavailable"
            data-testid="tenants-config-management-unavailable"
@@ -55,7 +55,7 @@
             @Localizer[PolicyUnavailableResourceKey]
         </p>
     }
-    else if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    else if (!string.IsNullOrWhiteSpace(UnavailableReason) && !_setCommandInFlight)
     {
         <p id="tenants-config-management-unavailable"
            data-testid="tenants-config-management-unavailable"
@@ -81,13 +81,13 @@
                                     PreviewEvidenceProvider="@SetPreviewEvidenceProvider"
                                     ProjectionEvidenceProvider="@SetProjectionEvidenceProvider" />
 
-        @if (EffectiveContext.RemovableRows.Count == 0)
+        @if (HasPolicyScope && EffectiveContext.RemovableRows.Count == 0)
         {
             <p data-testid="tenants-config-management-empty">
                 @Localizer["Tenants.Configuration.Management.Empty"]
             </p>
         }
-        else
+        else if (HasPolicyScope)
         {
             <div class="tenant-config-management__targets"
                  role="region"
@@ -128,7 +128,7 @@
             </div>
         }
 
-        @if (!string.IsNullOrWhiteSpace(_removeKey))
+        @if (HasPolicyScope && !string.IsNullOrWhiteSpace(_removeKey))
         {
             <RemoveTenantConfigurationFlow Context="@EffectiveContext"
                                            Evidence="@ResolvedRemoveEvidence"

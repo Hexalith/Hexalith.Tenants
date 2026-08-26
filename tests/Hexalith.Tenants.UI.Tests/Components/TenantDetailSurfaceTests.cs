@@ -2304,6 +2304,102 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_set_configuration_completes_preview_dispatch_status_and_projection_proof()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        StubTenantCommandGateway gateway = new()
+        {
+            SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-config"),
+            Status = new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true),
+        };
+        StubTenantsBffComposition composition = new()
+        {
+            ReauthorizeConfigurationManagement = static (tenantId, status, safeModel)
+                => TenantConfigurationManagementContext.Available(
+                    tenantId,
+                    status,
+                    isGlobalAdministrator: false,
+                    ["billing"],
+                    safeModel.Rows),
+        };
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.SupportsSetConfigurationPreview.Returns(true);
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
+                projectionVersion: "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+        queryGateway.GetSetConfigurationPreviewAsync(
+                Arg.Any<TenantSetConfigurationIntent>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantSetConfigurationIntent intent = call.Arg<TenantSetConfigurationIntent>();
+                return Task.FromResult(TenantSetConfigurationPreview.Create(
+                    intent,
+                    TenantStatus.Active,
+                    TenantSetConfigurationCurrentState.Different,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:41",
+                    isAuthorized: true));
+            });
+        queryGateway.GetSetConfigurationProjectionProofAsync(
+                Arg.Any<TenantSetConfigurationIntent>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantSetConfigurationIntent intent = call.Arg<TenantSetConfigurationIntent>();
+                return Task.FromResult(TenantConfigurationProjectionProof.Create(
+                    intent.TenantId,
+                    TenantConfigurationProjectionProofKind.SetConfirmed,
+                    "tenant-sequence:42",
+                    intent.AttemptFingerprint));
+            });
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddScoped<TenantSetConfigurationAttemptTracker>();
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key-suffix']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("production");
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-set-submit']")
+            .GetAttribute("disabled").ShouldBeNull());
+
+        cut.Find("[data-testid='tenants-config-set-flow'] form").Submit();
+
+        cut.WaitForAssertion(() => cut.FindComponent<SetTenantConfigurationFlow>()
+            .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+        gateway.LastMessageId.ShouldNotBeNullOrWhiteSpace();
+        gateway.LastSetConfigurationRequest.ShouldNotBeNull().Key.ShouldBe("billing.mode");
+        gateway.StatusCallCount.ShouldBe(1);
+        gateway.LastStatusHandle.ShouldNotBeNull().AggregateId.ShouldBe("tenant.alpha");
+        gateway.LastStatusHandle.MessageId.ShouldBe(gateway.LastMessageId);
+        _ = queryGateway.Received().GetSetConfigurationPreviewAsync(
+            Arg.Any<TenantSetConfigurationIntent>(),
+            Arg.Any<CancellationToken>());
+        _ = queryGateway.Received(1).GetSetConfigurationProjectionProofAsync(
+            Arg.Any<TenantSetConfigurationIntent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void Detail_page_requires_fresh_safe_preview_evidence_on_set_submit()
     {
         // The page must call BffComposition.ReauthorizeConfigurationManagementAsync rather than returning
@@ -2785,6 +2881,42 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsCommandSurfaceAvailable, false));
         cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Policy_loss_keeps_a_retained_set_flow_mounted_for_reconciliation()
+    {
+        RegisterComponentServices();
+        TenantConfigurationManagementContext available = TenantConfigurationManagementContext.Available(
+            "tenant.alpha",
+            TenantStatus.Active,
+            false,
+            ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, available)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceAvailable, true)
+            .Add(p => p.SetEvidence, ManagementEvidence(available, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(available, TenantHighImpactAction.RemoveConfiguration)));
+        SetTenantConfigurationFlow setFlow = cut.FindComponent<SetTenantConfigurationFlow>().Instance;
+        await cut.InvokeAsync(() => setFlow.CommandActivityLease!(true));
+
+        TenantConfigurationManagementContext unavailable = TenantConfigurationManagementContext.Unavailable(
+            "tenant.alpha",
+            TenantStatus.Active);
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, unavailable)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Unknown)
+            .Add(p => p.IsCommandSurfaceAvailable, false));
+
+        cut.FindAll("[data-testid='tenants-config-set-flow']").ShouldNotBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-management-targets']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -6322,6 +6454,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
+        public bool SupportsTrackedSetConfigurationDispatch => true;
+
         public TenantCommandSubmissionResult AddMemberSubmission { get; init; }
             = TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.");
 
@@ -6333,7 +6467,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         public int SetConfigurationCallCount { get; private set; }
 
+        public int StatusCallCount { get; private set; }
+
         public SetTenantConfiguration? LastSetConfigurationRequest { get; private set; }
+
+        public string? LastMessageId { get; private set; }
+
+        public TenantCommandTrackingHandle? LastStatusHandle { get; private set; }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
@@ -6357,11 +6497,26 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             return Task.FromResult(SetConfigurationSubmission);
         }
 
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
+            SetTenantConfiguration request,
+            string messageId,
+            CancellationToken cancellationToken = default)
+        {
+            SetConfigurationCallCount++;
+            LastSetConfigurationRequest = request;
+            LastMessageId = messageId;
+            return Task.FromResult(SetConfigurationSubmission with { MessageId = messageId });
+        }
+
         public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(RemoveTenantConfiguration request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
-            => Task.FromResult(Status);
+        {
+            StatusCallCount++;
+            LastStatusHandle = handle;
+            return Task.FromResult(Status);
+        }
     }
 
     private sealed class StubTenantsBffComposition(

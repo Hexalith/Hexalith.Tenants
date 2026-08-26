@@ -1,7 +1,3 @@
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
-
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.State.TenantCommands;
@@ -10,20 +6,28 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 public sealed class TenantSetConfigurationAttemptTracker
 {
     private readonly object _sync = new();
+    private readonly Func<string> _newMessageId;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly Dictionary<string, TenantSetConfigurationCommandSnapshot> _snapshots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (TenantSetConfigurationIntent Intent, string BaselineProjectionVersion, DateTimeOffset AttemptStartedAtUtc, string MessageId)> _dispatches = new(StringComparer.Ordinal);
 
     /// <summary>Initializes a tracker using the system UTC clock.</summary>
     public TenantSetConfigurationAttemptTracker()
-        : this(static () => DateTimeOffset.UtcNow)
+        : this(static () => DateTimeOffset.UtcNow, static () => NUlid.Ulid.NewUlid().ToString())
     {
     }
 
     internal TenantSetConfigurationAttemptTracker(Func<DateTimeOffset> utcNow)
+        : this(utcNow, static () => NUlid.Ulid.NewUlid().ToString())
+    {
+    }
+
+    internal TenantSetConfigurationAttemptTracker(Func<DateTimeOffset> utcNow, Func<string> newMessageId)
     {
         ArgumentNullException.ThrowIfNull(utcNow);
+        ArgumentNullException.ThrowIfNull(newMessageId);
         _utcNow = utcNow;
+        _newMessageId = newMessageId;
     }
 
     /// <summary>Gets the stable admission-gate owner for retained set attempts.</summary>
@@ -57,7 +61,12 @@ public sealed class TenantSetConfigurationAttemptTracker
             }
 
             DateTimeOffset normalized = attemptStartedAtUtc.ToUniversalTime();
-            string messageId = CreateDeterministicMessageId(intent, baselineProjectionVersion, normalized);
+            string messageId = _newMessageId();
+            if (!NUlid.Ulid.TryParse(messageId, out _))
+            {
+                throw new InvalidOperationException("The set-configuration message id factory returned an invalid ULID.");
+            }
+
             _dispatches[intent.TenantId] = (intent, baselineProjectionVersion, normalized, messageId);
             return (messageId, normalized);
         }
@@ -173,13 +182,13 @@ public sealed class TenantSetConfigurationAttemptTracker
         TenantLifecycleSequenceRelation proofRelation = TenantLifecycleProjectionVersion.CompareSequences(
             incoming.LastConfigurationProof?.ProjectionVersion,
             retained.LastConfigurationProof?.ProjectionVersion);
-        TenantSetConfigurationCommandSnapshot preferred = incoming.StatusObservationCount > retained.StatusObservationCount
+        TenantSetConfigurationCommandSnapshot preferred = incomingRank > retainedRank
             ? incoming
-            : incoming.StatusObservationCount < retained.StatusObservationCount
+            : incomingRank < retainedRank
                 ? retained
-                : incomingRank > retainedRank
+                : incoming.StatusObservationCount > retained.StatusObservationCount
                     ? incoming
-                    : incomingRank < retainedRank
+                    : incoming.StatusObservationCount < retained.StatusObservationCount
                         ? retained
                         : incoming.PendingStatusPollCount >= retained.PendingStatusPollCount
                             ? incoming
@@ -229,34 +238,14 @@ public sealed class TenantSetConfigurationAttemptTracker
         }
     }
 
-    private static string CreateDeterministicMessageId(
-        TenantSetConfigurationIntent intent,
-        string baselineProjectionVersion,
-        DateTimeOffset attemptStartedAtUtc)
-    {
-        string material = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{intent.AttemptFingerprint}|{baselineProjectionVersion.Length}:{baselineProjectionVersion}|{attemptStartedAtUtc.UtcDateTime.Ticks}");
-        byte[] digest = SHA256.HashData(Encoding.UTF8.GetBytes(material));
-        Span<byte> deterministicUlid = stackalloc byte[16];
-        ulong unixTimeMilliseconds = (ulong)Math.Max(0, attemptStartedAtUtc.ToUnixTimeMilliseconds());
-        for (int index = 5; index >= 0; index--)
-        {
-            deterministicUlid[index] = (byte)unixTimeMilliseconds;
-            unixTimeMilliseconds >>= 8;
-        }
-
-        digest.AsSpan(0, 10).CopyTo(deterministicUlid[6..]);
-        return new NUlid.Ulid(deterministicUlid).ToString();
-    }
-
     private static int ProgressRank(TenantCommandLifecycleState state)
         => state switch
         {
             TenantCommandLifecycleState.RequestSent => 0,
-            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => 1,
+            TenantCommandLifecycleState.UnableToVerify => 1,
             TenantCommandLifecycleState.Accepted => 2,
             TenantCommandLifecycleState.ProjectionPending => 3,
+            TenantCommandLifecycleState.Degraded => 4,
             _ => int.MinValue,
         };
 
