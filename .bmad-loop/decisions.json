@@ -52,5 +52,14 @@
     "key": "1",
     "label": "Timeout charges budget",
     "resolution": ""
+  },
+  "DW-173": {
+    "answered_at": "2026-08-26",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Propagate page or circuit cancellation and apply one configurable finite resolver and subscription timeout.",
+    "key": "1",
+    "label": "Configured shared bound",
+    "resolution": ""
   }
 }
