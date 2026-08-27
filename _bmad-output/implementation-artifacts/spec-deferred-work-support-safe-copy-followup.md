@@ -2,7 +2,7 @@
 title: 'Deferred Work: Support-Safe Copy Follow-up'
 type: 'bugfix'
 created: '2026-08-27'
-status: 'done'
+status: 'in-review'
 baseline_revision: 'c6a722cb94813d233a72a86ace26d36d4ac10d42'
 baseline_commit: 'c6a722cb94813d233a72a86ace26d36d4ac10d42'
 review_loop_iteration: 0
@@ -133,35 +133,3 @@ The component-local receipt literal is the localization boundary; the state mode
 - `git diff --exit-code -- .bmad-loop/runs/20260827-213738-29ba/bundles/support-safe-copy-followup/intent.md` -- expected: the read-only bundle intent remains unchanged. `_bmad-output/implementation-artifacts/deferred-work.md` is deliberately excluded: the ledger is orchestrator-owned and the orchestrator records entry resolutions there outside this workflow.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-deferred-work-support-safe-copy-followup.md` -- expected: PASS with no `references/` pointer changes in range.
 
-## Auto Run Result
-
-Status: done
-
-Summary: Independent four-layer follow-up review of the hardened support-safe copy bundle. The review found one high-severity regression introduced by the previous pass -- the clipboard disposal path had stopped tolerating `JSDisconnectedException`, the exact circuit-loss race the pre-change code handled -- plus two fail-open gaps where a support-safe literal could render and be copied without carrying any audit reference. All seven accepted findings were patched and the three behavioural fixes were mutation-verified. The deferred-work ledger and the bundle intent were not edited.
-
-Files changed in this pass:
-- `src/Hexalith.Tenants.UI/Components/Shared/SupportSafeCopyButton.razor` -- matches `JSDisconnectedException` and `ObjectDisposedException` as known teardown exceptions again.
-- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor` -- requires a support-safe bare event reference before composing the rendered/copied literal; restores attribute alignment.
-- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor` -- rejects a localized literal that does not contain the audit reference.
-- `tests/Hexalith.Tenants.UI.Tests/Components/SupportSafeCopyButtonTests.cs` -- adds disconnected/object-disposed teardown cases and a renderer-dispatcher disposal regression.
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` -- adds the context-only (reference-less) row regression.
-- `tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs` -- adds the reference-less localized literal and rendered-PII regressions.
-- `tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs` -- adds the PII-shaped command-reference model regression.
-- `_bmad-output/implementation-artifacts/spec-deferred-work-support-safe-copy-followup.md` -- records this triage pass, the deferred item, and corrected verification commands.
-
-Carried forward from the implementation pass (unchanged here): `State/TenantAudit/TenantAuditReceipt.cs`, both `TenantsResources` resource files, `RemoveTenantMemberFlowTests.cs`, and `GlobalAdministratorsProjectionLoaderTests.cs`.
-
-Review findings: 7 patches applied (high 1, medium 4, low 2), 1 item deferred (low), 15 items rejected (medium 5, low 10) as duplicate, pre-existing, intent-implementing, or factually incorrect. Two reviewer claims were checked and found wrong: the unsafe-value theory's parameter is still load-bearing (`CommandReference.ShouldBeNull()` fails if the policy admits the input), and no `references/` gitlink moved in range.
-
-Follow-up review recommendation: true -- patched findings were high 1, medium 4, low 2; a high-severity patch independently requires follow-up, and the weighted medium/low score is 14.
-
-Verification performed:
-- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false` -- 0 warnings, 0 errors.
-- Focused clipboard/grid/receipt/model tests -- 143/143 passed (was 139 before this pass).
-- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` -- 2,491/2,491 passed (was 2,484).
-- `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -warnaserror -m:1 -nr:false` -- 0 warnings, 0 errors.
-- `git diff --check` -- clean. Read-only bundle intent unchanged. `python3 scripts/validate-story-gitlinks.py` -- PASS, no `references/` pointer changes in range.
-- Mutation verification: reverting the teardown predicate fails the two new teardown cases (stack trace confirms the fault reaching `Renderer.HandleAsyncExceptions`); reverting the grid gate fails the context-only row regression; reverting the receipt containment guard fails the reference-less literal regression.
-- An interim attempt to assert PII non-disclosure via `receipt.ToString()` was rejected by the repository's own `SupportSafetyEvidenceGateTests`; the evidence was moved to rendered markup, which is the surface where disclosure is possible.
-
-Residual risks: The renderer-dispatcher disposal regression starts disposal on the dispatcher but does not await it there, so a hypothetical deadlock in real circuit teardown (where the framework awaits the returned task) remains represented by component-level tests rather than an end-to-end browser scenario. The French audit resource block keeps its pre-existing unaccented "Reference" spellings; that is recorded in `deferred`.

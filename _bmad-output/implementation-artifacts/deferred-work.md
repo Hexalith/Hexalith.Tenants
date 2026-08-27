@@ -2605,3 +2605,11 @@ reason: `PendingStatusPollCount` is incremented, saturated, and merged across at
 status: open
 decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
 decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
+
+### DW-324: French audit resource values spell "Reference" without its accent, so a French operator reads unaccented labels where the rest of the file is correctly accented.
+origin: spec-deferred 1be4f24f2760
+location: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3374
+source_spec: `spec-deferred-work-support-safe-copy-followup.md`
+severity: low
+reason: TenantsResources.fr.resx uses accented French throughout ("Non connecte" is spelled "Non connecté" at line 19, "Périmé" at line 85), and line 3707 already carries "Référence d'audit d'origine". The audit block is the exception: line 3374 "Reference d'audit : {0}", line 3380 "Reference de commande", line 3389 "Reference d'audit", line 3410 "Reference indisponible". Lines 3380 and 3389 predate this story, so the cluster is pre-existing rather than introduced here.
+status: open
