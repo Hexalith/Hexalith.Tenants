@@ -107,7 +107,7 @@ development_status:
   # (launcher-side same-route lease reclamation + launcher abandon affordance), mutation-verified. Loop 5
   # production patches closed; follow-up review patches applied in this pass. 8 deferred to deferred-work.md.
   3-4-disable-or-enable-tenant-with-complete-preview: review
-  3-5-set-namespaced-configuration-with-complete-preview: backlog
+  3-5-set-namespaced-configuration-with-complete-preview: done
   3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done
 
