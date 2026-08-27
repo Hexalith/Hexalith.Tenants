@@ -421,8 +421,8 @@
             return CurrentProjection;
         }
 
-        return await QueryGateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None)
+        return await GlobalAdministratorsProjectionLoader
+            .LoadAsync(QueryGateway, cancellationToken: CancellationToken.None)
             .ConfigureAwait(false);
     }
 

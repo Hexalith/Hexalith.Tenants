@@ -431,19 +431,35 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
 
     private static GlobalAdministratorsSnapshot ProjectionReady(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
+            userIds.Select(userId => new GlobalAdministratorRow(
+                userId,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)).ToArray(),
             nextCursor: null,
             hasMore: false,
             eTag: "\"ga-etag\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "ga-v1",
+            IsCompleteEvidence = true,
+        };
 
     // A current, readable, but INCOMPLETE (paged) fixed projection: the loaded page is authoritative
     // for the rows it contains, but HasMore signals that more administrators exist beyond this page.
     private static GlobalAdministratorsSnapshot PagedProjectionReady(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
+            userIds.Select(userId => new GlobalAdministratorRow(
+                userId,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)).ToArray(),
             nextCursor: "ga-cursor-2",
             hasMore: true,
             eTag: "\"ga-etag\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "ga-v1",
+            IsCompleteEvidence = false,
+        };
 }

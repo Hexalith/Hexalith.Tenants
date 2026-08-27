@@ -920,8 +920,19 @@
                 return; // A newer correction open superseded this one while its projection refreshed.
             }
 
-            _activeCorrectionIntent = intent;
-            _activeCorrectionFocusReference = intent.OriginalAuditReference;
+            TenantCorrectionStartIntent refreshedIntent = intent;
+            if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
+            {
+                TenantAuditRow? sourceRow = _snapshot.Rows.FirstOrDefault(row =>
+                    string.Equals(row.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
+                if (sourceRow is not null)
+                {
+                    refreshedIntent = CreateGlobalAdministratorCorrectionIntent(sourceRow);
+                }
+            }
+
+            _activeCorrectionIntent = refreshedIntent;
+            _activeCorrectionFocusReference = refreshedIntent.OriginalAuditReference;
         }).ConfigureAwait(false);
     }
 
@@ -1006,8 +1017,10 @@
         bool projectionReady = _globalAdministratorsSnapshot is
             {
                 Kind: GlobalAdministratorsSurfaceKind.Ready
-                    or GlobalAdministratorsSurfaceKind.Stale
                     or GlobalAdministratorsSurfaceKind.Empty,
+                IsCompleteEvidence: true,
+                HasMore: false,
+                Lifecycle: ProjectionLifecycleState.Current,
             }
             && _globalAdministratorsSnapshot.Freshness is ReadModelFreshnessState.Current;
         bool commandSupport = IsGlobalAdministratorAuthorized
@@ -1085,8 +1098,8 @@
     // the call site so a tenant audit page with no such rows never pays for an extra query.
     private async Task<GlobalAdministratorsSnapshot?> RefreshGlobalAdministratorsProjectionAsync()
     {
-        GlobalAdministratorsSnapshot snapshot = await QueryGateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), _globalAdministratorsSnapshot, CancellationToken.None)
+        GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
+            .LoadAsync(QueryGateway, cancellationToken: CancellationToken.None)
             .ConfigureAwait(false);
         // Assign on the renderer's dispatcher: this also runs as the correction panel's confirm-time
         // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
@@ -1099,9 +1112,8 @@
         long generation,
         CancellationToken cancellationToken)
     {
-        GlobalAdministratorsSnapshot? previous = _globalAdministratorsSnapshot;
-        GlobalAdministratorsSnapshot snapshot = await QueryGateway
-            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: previous?.ETag), previous, cancellationToken)
+        GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
+            .LoadAsync(QueryGateway, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         if (CanApply(tenantId, generation))
         {

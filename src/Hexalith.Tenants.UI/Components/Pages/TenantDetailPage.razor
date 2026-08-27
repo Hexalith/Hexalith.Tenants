@@ -257,13 +257,6 @@
     private bool _auditProofCapabilityAvailable;
     /// <summary>Upper bound on retained member paging history.</summary>
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
-    /// <summary>
-    /// Upper bound on supplementary full-list walks that must not block the primary detail. Deliberately its
-    /// own constant: it was aliased to <see cref="CursorHistory.DefaultMaximum"/>, which is a *paging-history
-    /// retention* bound with no relationship to evidence completeness, so tuning member paging silently
-    /// changed how many global-administrator pages were walked before the evidence degraded to incomplete.
-    /// </summary>
-    private const int MaximumSupplementaryPageCount = 50;
     private const int MetadataAuditProofPageSize = 100;
     private const int MetadataAuditProofMaximumPageCount = 50;
 
@@ -1636,67 +1629,9 @@
 
     private async Task<GlobalAdministratorsSnapshot> LoadCompleteGlobalAdministratorsAsync(
         CancellationToken cancellationToken)
-    {
-        GlobalAdministratorsRequest request = new();
-        var rows = new Dictionary<string, GlobalAdministratorRow>(StringComparer.Ordinal);
-        var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
-        string? projectionVersion = null;
-        GlobalAdministratorsSnapshot? page = null;
-        for (int pageNumber = 0; pageNumber < MaximumSupplementaryPageCount; pageNumber++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            page = await QueryGateway
-                .GetGlobalAdministratorsAsync(request, previous: null, cancellationToken)
-                .ConfigureAwait(false);
-            ArgumentNullException.ThrowIfNull(page);
-            projectionVersion ??= page.ProjectionVersion;
-
-            foreach (GlobalAdministratorRow row in page.Rows)
-            {
-                if (!rows.ContainsKey(row.UserId))
-                {
-                    rows.Add(row.UserId, row);
-                }
-            }
-
-            bool currentPage = page.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
-                && page.Freshness is ReadModelFreshnessState.Current
-                && page.Lifecycle is ProjectionLifecycleState.Current
-                && !string.IsNullOrWhiteSpace(page.ProjectionVersion)
-                && string.Equals(projectionVersion, page.ProjectionVersion, StringComparison.Ordinal);
-            if (!currentPage)
-            {
-                return ToIncompleteGlobalAdministrators(page, rows.Values);
-            }
-
-            if (!page.HasMore)
-            {
-                return page with
-                {
-                    Kind = rows.Count == 0
-                        ? GlobalAdministratorsSurfaceKind.Empty
-                        : GlobalAdministratorsSurfaceKind.Ready,
-                    Rows = rows.Values.ToArray(),
-                    NextCursor = null,
-                    HasMore = false,
-                    IsAuthorizationScopedEmpty = rows.Count == 0,
-                    IsCompleteEvidence = true,
-                    RequestCursor = null,
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(page.NextCursor) || !visitedCursors.Add(page.NextCursor))
-            {
-                return ToIncompleteGlobalAdministrators(page, rows.Values);
-            }
-
-            request = request with { Cursor = page.NextCursor, ETag = null };
-        }
-
-        return ToIncompleteGlobalAdministrators(
-            page ?? GlobalAdministratorsSnapshot.Unavailable(),
-            rows.Values);
-    }
+        => await GlobalAdministratorsProjectionLoader
+            .LoadAsync(QueryGateway, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
     private void StartAuditCapabilityProbe(string tenantId, long generation)
     {
@@ -1780,16 +1715,6 @@
                 && row.Lifecycle is ProjectionLifecycleState.Current
                 && row.Provenance is QueryResponseProvenance.ProjectionBacked);
     }
-
-    private static GlobalAdministratorsSnapshot ToIncompleteGlobalAdministrators(
-        GlobalAdministratorsSnapshot snapshot,
-        IEnumerable<GlobalAdministratorRow> rows)
-        => snapshot with
-        {
-            Rows = rows.ToArray(),
-            IsCompleteEvidence = false,
-            RequestCursor = null,
-        };
 
     private static GlobalAdministratorsSnapshot? ToFailClosedGlobalAdministrators(
         GlobalAdministratorsSnapshot? retained)

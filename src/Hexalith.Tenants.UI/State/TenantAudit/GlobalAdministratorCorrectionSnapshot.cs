@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -120,6 +121,14 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             TargetCurrentlyPresent = present,
         };
 
+        // Keep the explicit HasMore guard even though the shared loader also stamps IsCompleteEvidence.
+        // The two signals defend different boundaries: HasMore prevents a one-page caller from proving
+        // absence, while IsCompleteEvidence proves the bounded walk satisfied every cursor/version/lifecycle
+        // invariant before the aggregate reached this state model.
+        if (projection.HasMore || !projection.IsCompleteEvidence) {
+            return IncompleteProjectionFailClosed(withEvidence);
+        }
+
         if (CommandType is TenantCorrectionCommandType.SetGlobalAdministrator) {
             // Restore: success is the target appearing in the fixed projection, so a target that is
             // already present is already applied and must not become a second grant command.
@@ -134,20 +143,13 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 };
             }
 
-            // Absence is only conclusive when the whole fixed projection is loaded. A paged read
-            // (HasMore) may hide the target on a later page, so arming a restore from "not on this
-            // page" would submit a grant against unverified authority state — fail closed instead.
-            return projection.HasMore ? IncompleteProjectionFailClosed(withEvidence) : withEvidence;
+            return withEvidence;
         }
 
         // Revoke: a target that is already absent is already applied; otherwise the last
         // global administrator is a hard stop before submit (AC6) and must not be submittable.
         if (!present) {
-            // A paged read cannot prove the target is absent (it may be on a later page); only a
-            // fully-loaded projection conclusively shows "already removed". Fail closed otherwise.
-            return projection.HasMore
-                ? IncompleteProjectionFailClosed(withEvidence)
-                : withEvidence with {
+            return withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -291,18 +293,21 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         if (projection is null
             || projection.Kind is not GlobalAdministratorsSurfaceKind.Ready
             || projection.Freshness is not ReadModelFreshnessState.Current
+            || projection.Lifecycle is not ProjectionLifecycleState.Current
+            || string.IsNullOrWhiteSpace(projection.ProjectionVersion)
+            || projection.HasMore
+            || !projection.IsCompleteEvidence
             || LifecycleState is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
         bool present = TargetPresent(projection);
 
-        // A revoke is proven only by a CONCLUSIVE absence: a paged read (HasMore) may hide the target
-        // on a later page, so "absent from this page" is not proof of removal. A restore is proven by
-        // presence, which is always conclusive (the target IS in the loaded rows).
+        // The shared complete-evidence guard above means both presence and absence come from the full
+        // stable aggregate. A restore is proven by presence; a revoke is proven by absence.
         bool projectionProvesCorrection = IsRestoreAccessAction
             ? present
-            : !present && !projection.HasMore;
+            : !present;
 
         if (!projectionProvesCorrection) {
             return this with {
@@ -368,13 +373,14 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     // first-administrator restore path stays reachable (start gate + ConfirmProjection require Current too).
     private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
         => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
-        && projection.Freshness is ReadModelFreshnessState.Current;
+        && projection.IsMutationEvidenceBacked
+        && !string.IsNullOrWhiteSpace(projection.ProjectionVersion)
+        && projection.Rows.All(static row =>
+            row.Freshness is ReadModelFreshnessState.Current
+            && row.Lifecycle is ProjectionLifecycleState.Current);
 
-    // Fail-closed state for an incomplete (paged) fixed projection: absence cannot be proven from a
-    // single page, so a presence-based correction must not preview or confirm from it. Mirrors the
-    // ProjectionIsReadable fail-closed shape and reuses the current-projection-unavailable copy. The
-    // full multi-page load/aggregation that would let a page-2 correction actually run is out of scope
-    // here (routed to a dedicated projection-paging story); until then this stays conservatively closed.
+    // Fail-closed state for evidence that did not complete the bounded stable projection walk. Mirrors
+    // the ProjectionIsReadable fail-closed shape and reuses the current-projection-unavailable copy.
     private static GlobalAdministratorCorrectionSnapshot IncompleteProjectionFailClosed(
         GlobalAdministratorCorrectionSnapshot withEvidence)
         => withEvidence with {
