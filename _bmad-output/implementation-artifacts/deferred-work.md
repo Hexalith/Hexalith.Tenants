@@ -5,7 +5,9 @@ origin: review-budget-followup
 source_spec: `spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260721-185843-1016; this entry preserves the lingering recommendation for a deliberate later review.
-status: open
+status: done 2026-08-27
+resolution: resolved by sweep bundle dw-support-safe-copy-followup
+resolution-undo: e32f9ec5cfa74f6e713b0d8ce939f3393f91d53d4b83c40ea3313864db2fc699 2026-08-27 7374617475733a206f70656e
 
 ### DW-2: Global-administrator pagination >20 admins — fail-OPEN CLOSED (full paging redesign still routed)
 origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Work (pagination fail-closed + submodule doc handoffs)"), 2026-08-25
@@ -839,7 +841,9 @@ location: AuditDataGrid.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: Audit-grid unsafe references are omitted from copying but remain visible in the rendered reference label. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Audit-grid unsafe references are omitted from copying but remain visible in the rendered reference label. evidence: `AuditDataGrid.razor` sanitizes `EventReference` only for `SupportSafeCopyButton`; `ReferenceLabel(context)` still renders the raw reference and context, and the behavior predates this story's compatibility migration.
-status: open
+status: done 2026-08-27
+resolution: resolved by sweep bundle dw-support-safe-copy-followup
+resolution-undo: e32f9ec5cfa74f6e713b0d8ce939f3393f91d53d4b83c40ea3313864db2fc699 2026-08-27 7374617475733a206f70656e
 
 ### DW-107: Clipboard module import and write operations are not coordinated with component disposal
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -847,7 +851,9 @@ location: SupportSafeCopyButton.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: Clipboard module import and write operations are not coordinated with component disposal. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Clipboard module import and write operations are not coordinated with component disposal. evidence: `SupportSafeCopyButton.razor` inherited a disposal path that returns while `_module` is null and does not invalidate an import or write already in flight, allowing late interop or disposal races during navigation.
-status: open
+status: done 2026-08-27
+resolution: resolved by sweep bundle dw-support-safe-copy-followup
+resolution-undo: e32f9ec5cfa74f6e713b0d8ce939f3393f91d53d4b83c40ea3313864db2fc699 2026-08-27 7374617475733a206f70656e
 
 ### DW-108: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -863,7 +869,9 @@ location: AuditEvidenceReceipt.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: The audit receipt copies a hidden synthesized English composite rather than one exact visible localized literal. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: The audit receipt copies a hidden synthesized English composite rather than one exact visible localized literal. evidence: `TenantAuditReceipt.CopyableReferenceText` assembles hard-coded English labels and `AuditEvidenceReceipt.razor` approves that non-rendered multiline value, a pre-existing audit behavior exposed by the shared-component migration.
-status: open
+status: done 2026-08-27
+resolution: resolved by sweep bundle dw-support-safe-copy-followup
+resolution-undo: e32f9ec5cfa74f6e713b0d8ce939f3393f91d53d4b83c40ea3313864db2fc699 2026-08-27 7374617475733a206f70656e
 
 ### DW-110: Legacy configuration display safety remains a deny-list that can miss unrecognized secret formats
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
