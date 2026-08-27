@@ -197,6 +197,15 @@
     "label": "Aggregate-aware handles",
     "resolution": ""
   },
+  "DW-302": {
+    "answered_at": "2026-08-27",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.",
+    "key": "1",
+    "label": "Evidence is canonical",
+    "resolution": ""
+  },
   "DW-319": {
     "answered_at": "2026-08-26",
     "bundle_name": "",

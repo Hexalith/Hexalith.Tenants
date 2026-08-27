@@ -2435,6 +2435,7 @@ location: ProjectionVersion
 reason: The legacy ledger defers this issue: `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). Original context is preserved in legacy-detail.
 legacy-detail: - `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier.
 status: open
+decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
 
 ### DW-303: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
