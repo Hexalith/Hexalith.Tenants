@@ -2586,3 +2586,4 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
 reason: `PendingStatusPollCount` is incremented, saturated, and merged across attempts but never read as a budget; only the five-minute deadline bounds polling. Enforce a poll cap or remove the unused counter and its `MergeSameAttempt` plumbing.
 status: open
+decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.

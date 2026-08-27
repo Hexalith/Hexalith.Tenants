@@ -214,5 +214,14 @@
     "key": "1",
     "label": "Deprecate with guidance",
     "resolution": ""
+  },
+  "DW-323": {
+    "answered_at": "2026-08-27",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.",
+    "key": "1",
+    "label": "Enforce poll budget",
+    "resolution": ""
   }
 }
