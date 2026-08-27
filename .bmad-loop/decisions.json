@@ -170,6 +170,15 @@
     "label": "Unify optional identity",
     "resolution": ""
   },
+  "DW-255": {
+    "answered_at": "2026-08-27",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.",
+    "key": "1",
+    "label": "Wire injected timing",
+    "resolution": ""
+  },
   "DW-271": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
