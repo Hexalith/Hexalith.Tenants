@@ -1100,6 +1100,7 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:53
 reason: The legacy ledger defers this issue: Future feature — reversible route identifiers:. Original context is preserved in legacy-detail.
 legacy-detail: - **Future feature — reversible route identifiers:** Define an explicit backend route contract for literal tenant/user identifiers containing `/`, then update the six direct-read endpoints and clients to round-trip that representation. Until this is delivered, the direct-read client must fail closed for this identifier class rather than issue an ambiguous encoded-slash request. Owner: future Tenants API route-contract work. Reason: future feature. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
 status: open
+decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
 
 ### DW-138: Deferred to Story 1.11
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, review loop 4)"), 2026-08-25

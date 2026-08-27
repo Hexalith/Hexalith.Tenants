@@ -35,6 +35,15 @@
     "label": "Check exact proposal",
     "resolution": ""
   },
+  "DW-137": {
+    "answered_at": "2026-08-27",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.",
+    "key": "1",
+    "label": "Define reversible routes",
+    "resolution": ""
+  },
   "DW-144": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
