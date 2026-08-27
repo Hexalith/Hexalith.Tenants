@@ -1101,6 +1101,7 @@ reason: The legacy ledger defers this issue: Future feature — reversible route
 legacy-detail: - **Future feature — reversible route identifiers:** Define an explicit backend route contract for literal tenant/user identifiers containing `/`, then update the six direct-read endpoints and clients to round-trip that representation. Until this is delivered, the direct-read client must fail closed for this identifier class rather than issue an ambiguous encoded-slash request. Owner: future Tenants API route-contract work. Reason: future feature. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
 status: open
 decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
+decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
 
 ### DW-138: Deferred to Story 1.11
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, review loop 4)"), 2026-08-25
@@ -2072,6 +2073,7 @@ reason: The legacy ledger defers this issue: `AttemptStartedAtUtc` ships on the 
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock. evidence: The audit-provenance branch it feeds (`HasQualifyingAuditProvenance`) is never called for create and is already recorded as deferred work from the 2026-08-08 review; removing or wiring the field belongs with that slice.
 status: open
 decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
+decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
 
 ### DW-256: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-21)"), 2026-08-25
@@ -2436,6 +2438,7 @@ reason: The legacy ledger defers this issue: `ProjectionVersion` is threaded thr
 legacy-detail: - `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier.
 status: open
 decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
+decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
 
 ### DW-303: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
@@ -2586,4 +2589,5 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
 reason: `PendingStatusPollCount` is incremented, saturated, and merged across attempts but never read as a budget; only the five-minute deadline bounds polling. Enforce a poll cap or remove the unused counter and its `MergeSameAttempt` plumbing.
 status: open
+decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
 decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
