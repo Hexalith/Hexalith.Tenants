@@ -740,6 +740,88 @@ public sealed class TenantCommandGatewayTests
         result.CorrelationId.ShouldBe("correlation-remove-config");
     }
 
+    [Fact]
+    public async Task Tracked_remove_configuration_uses_the_callers_exact_message_id()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-remove-config"));
+        var ulidFactory = new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = new(
+            client,
+            ulidFactory,
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAA";
+
+        TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationTrackedAsync(
+            new RemoveTenantConfiguration("Tenant.Mixed-01", "Billing.Mode"),
+            messageId,
+            CancellationToken.None);
+
+        gateway.SupportsTrackedRemoveConfigurationDispatch.ShouldBeTrue();
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe(messageId);
+        submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
+        submitted.Payload.GetProperty("Key").GetString().ShouldBe("Billing.Mode");
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe(messageId);
+        result.CorrelationId.ShouldBe("correlation-remove-config");
+        ulidFactory.CallCount.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.RequestTimeout)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    public async Task Tracked_remove_configuration_retains_message_identity_when_http_delivery_is_ambiguous(
+        HttpStatusCode statusCode)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)statusCode,
+            "temporarily-unavailable",
+            detail: "raw payload Key=billing.secret Value=super-secret"));
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAA";
+
+        TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationTrackedAsync(
+            new RemoveTenantConfiguration("tenant.alpha", "billing.secret"),
+            messageId,
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.SafeMessageKey.ShouldBe("Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
+        result.SafeMessage.ShouldBeNull();
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+    }
+
+    [Theory]
+    [MemberData(nameof(AmbiguousTransportExceptions))]
+    public async Task Tracked_remove_configuration_retains_message_identity_for_ambiguous_transport_exceptions(
+        Exception exception)
+    {
+        CapturingGatewayClient client = new(exception);
+        TenantCommandGateway gateway = new(
+            client,
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAA";
+
+        TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationTrackedAsync(
+            new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
+            messageId,
+            CancellationToken.None);
+
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.SafeMessageKey.ShouldBe("Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
+        result.SafeMessage.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]

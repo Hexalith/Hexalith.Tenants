@@ -9,6 +9,8 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
 
     public bool SupportsTrackedSetConfigurationDispatch => false;
 
+    public bool SupportsTrackedRemoveConfigurationDispatch => false;
+
     public Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
         string? messageId = null,
@@ -55,6 +57,13 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+
+    public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
+        RemoveTenantConfiguration request,
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"));
 
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,

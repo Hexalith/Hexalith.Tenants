@@ -117,6 +117,76 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
         pending.ConfirmProjection(proof).State.ShouldBe(TenantCommandLifecycleState.Confirmed);
     }
 
+    [Fact]
+    public async Task Redacted_preview_status_and_post_baseline_absence_form_one_causal_remove_flow()
+    {
+        const string rawValue = "must-never-enter-remove-evidence";
+        const string policyJson = """
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [
+                    { "TenantId": "tenant.alpha", "Subject": "operator-user", "Prefix": "Billing" }
+                  ],
+                  "DisplaySafe": []
+                }
+              }
+            }
+            """;
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(policyJson)))
+            .Build();
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.NonAdministrator("operator-user")),
+            policyProvider: new TenantConfigurationReadPolicyProvider(configuration));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "Billing", "Billing.Mode");
+        TenantDetail before = new(
+            "tenant.alpha",
+            "Alpha",
+            null,
+            TenantStatus.Active,
+            [new TenantMember("operator-user", TenantRole.TenantOwner)],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = rawValue },
+            DateTimeOffset.UtcNow);
+        TenantRemoveConfigurationPreview preview = await composition.ComposeRemoveConfigurationPreviewAsync(
+            before,
+            intent,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:41");
+        TenantRemoveConfigurationCommandSnapshot pending = TenantRemoveConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, "01ARZ3NDEKTSV4RRFFQ69G5FAA", DateTimeOffset.UtcNow)
+            .Accepted(TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAA",
+                "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true));
+        TenantDetail after = before with
+        {
+            Configuration = new Dictionary<string, string>(StringComparer.Ordinal),
+        };
+        TenantRemoveConfigurationPreview proofPreview = await composition.ComposeRemoveConfigurationPreviewAsync(
+            after,
+            intent,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:42");
+        TenantConfigurationProjectionProof proof = TenantConfigurationProjectionProof.Create(
+            intent.TenantId,
+            TenantConfigurationProjectionProofKind.RemoveConfirmed,
+            proofPreview.ProjectionVersion,
+            intent.AttemptFingerprint);
+
+        preview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Present);
+        proofPreview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Absent);
+        pending.ConfirmProjection(proof).State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

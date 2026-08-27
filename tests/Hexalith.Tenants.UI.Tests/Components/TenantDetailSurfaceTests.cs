@@ -868,6 +868,305 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Page_remount_adopts_retained_remove_attempt_without_redispatch()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetail detail = Detail("tenant.alpha");
+        queryGateway.SupportsRemoveConfigurationPreview.Returns(true);
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail) with { ProjectionVersion = "tenant-sequence:41" }));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+        queryGateway.GetRemoveConfigurationProjectionProofAsync(intent, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantConfigurationProjectionProof.Create(
+                intent.TenantId,
+                TenantConfigurationProjectionProofKind.RemoveNotConfirmed,
+                "tenant-sequence:41",
+                intent.AttemptFingerprint)));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        var tracker = new TenantRemoveConfigurationAttemptTracker();
+        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+            intent,
+            "tenant-sequence:41",
+            DateTimeOffset.UtcNow);
+        TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
+            intent,
+            TenantStatus.Active,
+            TenantRemoveConfigurationCurrentState.Present,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:41",
+            isAuthorized: true);
+        TenantRemoveConfigurationCommandSnapshot retained = TenantRemoveConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, messageId, startedAt)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId));
+        tracker.Remember(retained).ShouldBeTrue();
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.TryAcquire(lockKey, tracker.LeaseOwner).ShouldBeTrue();
+        var commandGateway = new TrackingRemoveConfigurationCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(gate);
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() => cut.FindComponent<RemoveTenantConfigurationFlow>()
+            .Instance.Snapshot.MessageId.ShouldBe(messageId));
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+        gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeTrue();
+        commandGateway.RemoveCallCount.ShouldBe(0);
+        commandGateway.StatusCallCount.ShouldBeGreaterThanOrEqualTo(1);
+        commandGateway.LastStatusHandle.ShouldNotBeNull().MessageId.ShouldBe(messageId);
+
+        // The aggregate id is what makes GetStatusAsync reject a status response belonging to another
+        // tenant: TenantCommandGateway treats a blank handle.AggregateId as vacuously verified, so dropping
+        // it here would silently downgrade the destructive flow to message-id-only identity. Asserted the
+        // same way as the set sibling above.
+        commandGateway.LastStatusHandle.AggregateId.ShouldBe("tenant.alpha");
+    }
+
+    [Fact]
+    public void Confirmed_remove_dispatches_once_through_the_composed_detail_page()
+    {
+        // The flow-only tests hold IsCommandSurfaceAvailable at its default, so they cannot observe the
+        // parameter the page flips to false while granting the aggregate lease. Only the composed surface
+        // proves that acquiring the lease does not invalidate the submit it was acquired for.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetail detail = Detail("tenant.alpha");
+        queryGateway.SupportsRemoveConfigurationPreview.Returns(true);
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail) with { ProjectionVersion = "tenant-sequence:41" }));
+        queryGateway.GetRemoveConfigurationPreviewAsync(
+                Arg.Any<TenantRemoveConfigurationIntent>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantRemoveConfigurationPreview.Create(
+                call.ArgAt<TenantRemoveConfigurationIntent>(0),
+                TenantStatus.Active,
+                TenantRemoveConfigurationCurrentState.Present,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41",
+                isAuthorized: true)));
+        queryGateway.GetRemoveConfigurationProjectionProofAsync(
+                Arg.Any<TenantRemoveConfigurationIntent>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantConfigurationProjectionProof.Create(
+                "tenant.alpha",
+                TenantConfigurationProjectionProofKind.RemoveNotConfirmed,
+                "tenant-sequence:41",
+                call.ArgAt<TenantRemoveConfigurationIntent>(0).AttemptFingerprint)));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        var tracker = new TenantRemoveConfigurationAttemptTracker();
+        var gate = new TenantAggregateCommandAdmissionGate();
+        var commandGateway = new TrackingRemoveConfigurationCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(gate);
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-management-remove-open']"));
+        cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-confirmation']"));
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-remove-submit']")
+            .HasAttribute("disabled").ShouldBeFalse());
+        cut.Find("[data-testid='tenants-config-remove-flow'] form").Submit();
+
+        cut.WaitForAssertion(() => commandGateway.RemoveCallCount.ShouldBe(1));
+        cut.FindComponent<RemoveTenantConfigurationFlow>().Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Matching_signalr_notification_reconciles_retained_remove_without_redispatch_or_nudge_success()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backendSubscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        TenantDetail detail = Detail("tenant.alpha");
+        queryGateway.SupportsRemoveConfigurationPreview.Returns(true);
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail) with { ProjectionVersion = "tenant-sequence:41" }));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+        int proofReads = 0;
+        queryGateway.GetRemoveConfigurationProjectionProofAsync(intent, Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                int read = Interlocked.Increment(ref proofReads);
+                return Task.FromResult(TenantConfigurationProjectionProof.Create(
+                    intent.TenantId,
+                    read == 1
+                        ? TenantConfigurationProjectionProofKind.RemoveNotConfirmed
+                        : TenantConfigurationProjectionProofKind.RemoveConfirmed,
+                    read == 1 ? "tenant-sequence:41" : "tenant-sequence:42",
+                    intent.AttemptFingerprint));
+            });
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        backendSubscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        var tracker = new TenantRemoveConfigurationAttemptTracker();
+        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+            intent,
+            "tenant-sequence:41",
+            DateTimeOffset.UtcNow);
+        TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
+            intent,
+            TenantStatus.Active,
+            TenantRemoveConfigurationCurrentState.Present,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "tenant-sequence:41",
+            isAuthorized: true);
+        tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, messageId, startedAt)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
+        var commandGateway = new TrackingRemoveConfigurationCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton(backendSubscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<RemoveTenantConfigurationFlow>()
+            .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        int statusReadsBeforeNudge = commandGateway.StatusCallCount;
+        int proofReadsBeforeNudge = proofReads;
+        await backendSubscription.Received(1)
+            .SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+
+        commandGateway.Status = new TenantCommandStatusResult(
+            CommandStatus.Completed,
+            EventCount: 1,
+            HasVerifiedCommandIdentity: true);
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+
+        cut.WaitForAssertion(() => cut.FindComponent<RemoveTenantConfigurationFlow>()
+            .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commandGateway.RemoveCallCount.ShouldBe(0);
+        commandGateway.StatusCallCount.ShouldBeGreaterThan(statusReadsBeforeNudge);
+        proofReads.ShouldBeGreaterThan(proofReadsBeforeNudge);
+    }
+
+    [Fact]
+    public void Tracker_expiry_autonomously_releases_remove_gate_while_page_remains_mounted()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetail detail = Detail("tenant.alpha");
+        queryGateway.GetTenantAsync(
+                Arg.Any<TenantDetailRequest>(),
+                Arg.Any<TenantDetailSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(
+                detail,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(
+                Arg.Any<TenantUsersRequest>(),
+                Arg.Any<TenantUsersSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(detail) with { ProjectionVersion = "tenant-sequence:41" }));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        var tracker = new TenantRemoveConfigurationAttemptTracker();
+        DateTimeOffset startedAt = DateTimeOffset.UtcNow
+            - TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration
+            + TimeSpan.FromMilliseconds(500);
+        _ = tracker.BeginDispatch(
+            new TenantRemoveConfigurationIntent("tenant.alpha", "billing", "billing.mode"),
+            "tenant-sequence:41",
+            startedAt);
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.TryAcquire(lockKey, tracker.LeaseOwner).ShouldBeTrue();
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton(gate);
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new TrackingRemoveConfigurationCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(tracker);
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(
+            () => gate.IsOwnedBy(lockKey, tracker.LeaseOwner).ShouldBeFalse(),
+            TimeSpan.FromSeconds(3));
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Route_change_then_old_flow_terminalization_releases_the_tracker_owned_lifecycle_gate()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -2299,7 +2598,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
         else
         {
-            component.GetProperty("ReauthorizeProvider").ShouldNotBeNull();
+            component.GetProperty("ReauthorizeProvider").ShouldBeNull();
+            component.GetProperty("PreviewEvidenceProvider").ShouldNotBeNull();
         }
     }
 
@@ -3779,7 +4079,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
-            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(component => component.RemovePreviewEvidenceProvider, intent => Task.FromResult(
+                TenantRemoveConfigurationPreview.Create(
+                    intent,
+                    TenantStatus.Active,
+                    TenantRemoveConfigurationCurrentState.Present,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:10",
+                    isAuthorized: true))));
 
         cut.Find("[data-testid='tenants-config-management-section']");
         cut.Find("[data-testid='tenants-config-set-flow']");
@@ -3815,7 +4124,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
-            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(component => component.RemovePreviewEvidenceProvider, intent => Task.FromResult(
+                TenantRemoveConfigurationPreview.Create(
+                    intent,
+                    TenantStatus.Active,
+                    TenantRemoveConfigurationCurrentState.Present,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:10",
+                    isAuthorized: true))));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
         int focusCallsBeforeClose = FocusedElementIds().Count;
@@ -3850,11 +4168,21 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
-            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
+            .Add(component => component.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(component => component.RemovePreviewEvidenceProvider, intent => Task.FromResult(
+                TenantRemoveConfigurationPreview.Create(
+                    intent,
+                    TenantStatus.Active,
+                    TenantRemoveConfigurationCurrentState.Present,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:10",
+                    isAuthorized: true))));
 
         cut.Find("[data-testid='tenants-config-management-remove-open']").Click();
 
         cut.Find("[data-testid='tenants-config-remove-flow']");
+        cut.WaitForElement("[data-testid='tenants-config-remove-preview-namespace']");
         cut.FindAll("[data-testid='tenants-config-remove-preview-blocked']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-config-remove-preview-namespace']").TextContent.ShouldContain("maintenance");
     }
@@ -6452,6 +6780,78 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
     }
 
+    private sealed class TrackingRemoveConfigurationCommandGateway : ITenantCommandGateway
+    {
+        public bool SupportsTrackedRemoveConfigurationDispatch => true;
+
+        public TenantCommandStatusResult Status { get; set; }
+            = TenantCommandStatusResult.Pending("Command status is pending.");
+
+        public int RemoveCallCount { get; private set; }
+
+        public int StatusCallCount { get; private set; }
+
+        public TenantCommandTrackingHandle? LastStatusHandle { get; private set; }
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
+            CreateTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
+            AddUserToTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
+            ChangeUserRole request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
+            RemoveUserFromTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
+            UpdateTenant request,
+            string? messageId = null,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+            SetTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
+            RemoveTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
+            RemoveTenantConfiguration request,
+            string messageId,
+            CancellationToken cancellationToken = default)
+        {
+            RemoveCallCount++;
+            return Task.FromResult(TenantCommandSubmissionResult.Accepted(messageId, messageId));
+        }
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(
+            TenantCommandTrackingHandle handle,
+            CancellationToken cancellationToken = default)
+        {
+            StatusCallCount++;
+            LastStatusHandle = handle;
+            return Task.FromResult(Status);
+        }
+    }
+
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
         public bool SupportsTrackedSetConfigurationDispatch => true;
@@ -6797,7 +7197,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Unavailable.Freshness"] = "Refresh current tenant detail before removing configuration.",
             ["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration removal.",
             ["Tenants.Configuration.Remove.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
-            ["Tenants.Configuration.Remove.Unavailable.InFlight"] = "A tenant command is already in progress.",
             ["Tenants.Configuration.Remove.Unavailable.Identity"] = "Tenant identity is unavailable, so configuration removal fails closed.",
             ["Tenants.Configuration.Remove.Unavailable.Scope"] = "No authorized namespace prefix evidence is available from the current projection.",
             ["Tenants.Configuration.Remove.Unavailable.Target"] = "The selected configuration key is not visible in the current authorized projection. Refresh tenant detail before trying again.",
@@ -6814,15 +7213,25 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Preview.CurrentState"] = "Current known state",
             ["Tenants.Configuration.Remove.Preview.IntendedEffect"] = "Intended effect",
             ["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"] = "The selected configuration key will be removed only after command acceptance and projection proof.",
+            ["Tenants.Configuration.Remove.Unavailable.TargetMissing"] = "The selected key is absent from current authorized evidence. Refresh and select a visible key; no removal was submitted.",
+            ["Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value"] = "Read model: {0}; projection lifecycle: {1}.",
+            ["Tenants.Configuration.Remove.Preview.ConsequencesAndUnknowns.Value"] = "Authorized consumers may react after projection catch-up; downstream impact and command-specific audit proof remain unknown.",
+            ["Tenants.Configuration.Remove.Preview.CurrentState.Unknown"] = "Unknown",
+            ["Tenants.Configuration.Remove.Preview.CurrentState.Present"] = "The key is present; its value is not displayed.",
+            ["Tenants.Configuration.Remove.Preview.CurrentState.Absent"] = "The key is absent.",
+            ["Tenants.Configuration.Remove.Lifecycle.Unknown"] = "Unknown",
+            ["Tenants.Configuration.Remove.Lifecycle.Current"] = "Current",
+            ["Tenants.Configuration.Remove.Lifecycle.Stale"] = "Stale",
+            ["Tenants.Configuration.Remove.Lifecycle.Rebuilding"] = "Rebuilding",
+            ["Tenants.Configuration.Remove.Lifecycle.Degraded"] = "Degraded",
+            ["Tenants.Configuration.Remove.Lifecycle.Unavailable"] = "Unavailable",
+            ["Tenants.Configuration.Remove.Lifecycle.LocalOnly"] = "Local only",
             ["Tenants.Configuration.Remove.Preview.Freshness"] = "Freshness evidence",
             ["Tenants.Configuration.Remove.Preview.Authorization"] = "Authorization and scope evidence",
             ["Tenants.Configuration.Remove.Preview.Authorization.Value"] = "The namespace prefix and key are visible in the authorized tenant projection; backend authorization still enforces the command.",
-            ["Tenants.Configuration.Remove.Preview.KnownConsequences"] = "Known consequences",
-            ["Tenants.Configuration.Remove.Preview.KnownConsequences.Value"] = "Consumers that own this prefix may lose the configured value after projection catches up.",
-            ["Tenants.Configuration.Remove.Preview.KnownUnknowns"] = "Known unknowns",
-            ["Tenants.Configuration.Remove.Preview.KnownUnknowns.Value"] = "This UI cannot prove downstream consumer impact or audit receipt availability.",
+            ["Tenants.Configuration.Remove.Preview.KnownConsequences"] = "Known consequences versus unknowns",
             ["Tenants.Configuration.Remove.Preview.AuditExpectation"] = "Audit expectation",
-            ["Tenants.Configuration.Remove.Preview.AuditExpectation.Value"] = "Audit evidence is pending until the Epic 5 evidence source exists.",
+            ["Tenants.Configuration.Remove.Preview.AuditExpectation.Value"] = "Projection confirmation and audit evidence remain distinct; inspect the tenant audit surface separately.",
             ["Tenants.Configuration.Remove.Preview.RecoveryPath"] = "Recovery path",
             ["Tenants.Configuration.Remove.Preview.RecoveryPath.Value"] = "Refresh tenant detail, retry only from current projection proof, or submit a forward correction to set the key again.",
             ["Tenants.Configuration.Remove.Freshness.Current"] = "Current",
@@ -6830,7 +7239,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Freshness.Refreshing"] = "Refreshing",
             ["Tenants.Configuration.Remove.Freshness.Stale"] = "Stale",
             ["Tenants.Configuration.Remove.Freshness.Unknown"] = "Unknown",
-            ["Tenants.Configuration.Remove.DuplicatePrevented.Message"] = "A configuration removal command is already in progress.",
             ["Tenants.Configuration.Remove.State.Idle"] = "No configuration removal command submitted.",
             ["Tenants.Configuration.Remove.State.Previewed"] = "Configuration removal preview ready.",
             ["Tenants.Configuration.Remove.State.RequestSent"] = "Configuration removal request sent.",
@@ -6838,8 +7246,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.State.ProjectionPending"] = "Projection pending; the key is not confirmed removed yet.",
             ["Tenants.Configuration.Remove.State.Confirmed"] = "Projection confirmed the selected configuration key is removed.",
             ["Tenants.Configuration.Remove.State.Rejected"] = "Configuration removal command rejected.",
-            ["Tenants.Configuration.Remove.State.AlreadyApplied"] = "Already applied.",
-            ["Tenants.Configuration.Remove.State.DuplicatePrevented"] = "Duplicate configuration removal prevented.",
             ["Tenants.Configuration.Remove.State.Failed"] = "Configuration removal submission failed.",
             ["Tenants.Configuration.Remove.State.Degraded"] = "Configuration removal result is degraded and needs review.",
             ["Tenants.Configuration.Remove.State.UnableToVerify"] = "Unable to verify the configuration removal result.",
@@ -6847,7 +7253,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.Configuration.Remove.Audit.AuditDelayed"] = "Audit evidence delayed.",
             ["Tenants.Configuration.Remove.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.Configuration.Remove.Audit.MissingSupport"] = "Audit evidence support is missing until Epic 5 implements the evidence source.",
+            ["Tenants.Configuration.Remove.Audit.MissingSupport"] = "Command-specific audit proof is not available in this flow; inspect tenant audit evidence separately.",
             ["Tenants.Configuration.Remove.Recovery.Idle"] = "Choose a visible key when current projection evidence and namespace scope are available.",
             ["Tenants.Configuration.Remove.Recovery.Previewed"] = "Confirm removal, cancel, or continue read-only.",
             ["Tenants.Configuration.Remove.Recovery.RequestSent"] = "Wait for command status and projection refresh.",
@@ -6855,8 +7261,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Recovery.ProjectionPending"] = "Refresh tenant detail; do not display removal as complete until the key is absent from projection.",
             ["Tenants.Configuration.Remove.Recovery.Confirmed"] = "Continue read-only or inspect audit when evidence becomes available.",
             ["Tenants.Configuration.Remove.Recovery.Rejected"] = "Refresh projection evidence, request permission, start correction, or escalate.",
-            ["Tenants.Configuration.Remove.Recovery.AlreadyApplied"] = "Refresh projection evidence before treating the missing key as already removed.",
-            ["Tenants.Configuration.Remove.Recovery.DuplicatePrevented"] = "Wait for the in-flight command, retry status lookup, or continue read-only.",
             ["Tenants.Configuration.Remove.Recovery.Failed"] = "Retry after checking current projection evidence or escalate.",
             ["Tenants.Configuration.Remove.Recovery.Degraded"] = "Wait, retry status lookup, inspect audit when available, or escalate.",
             ["Tenants.Configuration.Remove.Recovery.UnableToVerify"] = "Refresh, retry status lookup, continue read-only, or escalate.",

@@ -190,6 +190,35 @@ public sealed class TenantsUiCompositionTests
         second.ShouldNotBeSameAs(first);
     }
 
+    [Fact]
+    public void Remove_configuration_attempt_tracker_is_scoped_to_a_circuit()
+    {
+        // Nothing else pins this registration: every remove component test supplies its own tracker, so a
+        // missing descriptor would only surface in production as a permanently blocked tracked dispatch,
+        // and a singleton would share one tenant's retained attempt and lease owner across every circuit.
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor descriptor = services.Single(static candidate =>
+            candidate.ServiceType == typeof(TenantRemoveConfigurationAttemptTracker));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantRemoveConfigurationAttemptTracker first = firstScope.ServiceProvider
+            .GetRequiredService<TenantRemoveConfigurationAttemptTracker>();
+        TenantRemoveConfigurationAttemptTracker firstAgain = firstScope.ServiceProvider
+            .GetRequiredService<TenantRemoveConfigurationAttemptTracker>();
+        TenantRemoveConfigurationAttemptTracker second = secondScope.ServiceProvider
+            .GetRequiredService<TenantRemoveConfigurationAttemptTracker>();
+
+        firstAgain.ShouldBeSameAs(first);
+        second.ShouldNotBeSameAs(first);
+    }
+
     /// <summary>
     /// Resolves the composed graph rather than inspecting descriptors, so a container cycle is caught.
     /// </summary>

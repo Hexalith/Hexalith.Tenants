@@ -200,6 +200,55 @@ internal sealed class TenantsBffComposition(
             isAuthorized: true);
     }
 
+    public async ValueTask<TenantRemoveConfigurationPreview> ComposeRemoveConfigurationPreviewAsync(
+        TenantDetail rawDetail,
+        TenantRemoveConfigurationIntent intent,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        string? projectionVersion,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawDetail);
+        ArgumentNullException.ThrowIfNull(intent);
+
+        if (!string.Equals(rawDetail.TenantId, intent.TenantId, StringComparison.Ordinal)
+            || string.IsNullOrEmpty(intent.NamespacePrefix)
+            || string.IsNullOrEmpty(intent.FullKey)
+            || !TenantConfigurationManagementContext.IsPrefixMatch(intent.NamespacePrefix, intent.FullKey))
+        {
+            return TenantRemoveConfigurationPreview.Unavailable(intent);
+        }
+
+        // Authority is resolved before the dictionary lookup so this seam cannot reveal whether an
+        // unauthorized literal key exists.
+        TenantConfigurationReadPolicyResolution policy = await ResolvePolicyAsync(intent.TenantId, cancellationToken)
+            .ConfigureAwait(false);
+        bool namespaceAuthorized = policy.IsAvailable
+            && (policy.IsGlobalAdministrator
+                || policy.AuthorizedPrefixes.Contains(intent.NamespacePrefix, StringComparer.Ordinal));
+        bool hasMutationAuthority = policy.IsGlobalAdministrator
+            || !string.IsNullOrWhiteSpace(policy.Subject)
+                && ((IReadOnlyList<TenantMember>?)rawDetail.Members ?? []).Any(member => member is not null
+                    && string.Equals(member.UserId, policy.Subject, StringComparison.Ordinal)
+                    && member.Role is TenantRole.TenantOwner);
+        if (!namespaceAuthorized || !hasMutationAuthority)
+        {
+            return TenantRemoveConfigurationPreview.Unavailable(intent);
+        }
+
+        TenantRemoveConfigurationCurrentState currentState = rawDetail.Configuration.ContainsKey(intent.FullKey)
+            ? TenantRemoveConfigurationCurrentState.Present
+            : TenantRemoveConfigurationCurrentState.Absent;
+        return TenantRemoveConfigurationPreview.Create(
+            intent,
+            rawDetail.Status,
+            currentState,
+            freshness,
+            lifecycle,
+            projectionVersion,
+            isAuthorized: true);
+    }
+
     private async ValueTask<TenantConfigurationReadPolicyResolution> ResolvePolicyAsync(
         string tenantId,
         CancellationToken cancellationToken) {

@@ -12,6 +12,8 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
     public bool SupportsSetConfigurationPreview => false;
 
+    public bool SupportsRemoveConfigurationPreview => false;
+
     public Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewAsync(
         TenantSetConfigurationIntent intent,
         CancellationToken cancellationToken = default) {
@@ -23,6 +25,24 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
     public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         TenantSetConfigurationIntent intent,
         CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(intent);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+    }
+
+    public Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
+        TenantRemoveConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(TenantRemoveConfigurationPreview.Unavailable(intent));
+    }
+
+    public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        TenantRemoveConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(intent);
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));

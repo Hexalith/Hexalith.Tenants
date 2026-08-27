@@ -38,6 +38,8 @@ internal sealed class TenantQueryGateway(
     TimeSpan? enrichmentDeadline = null) : ITenantQueryGateway {
     public bool SupportsSetConfigurationPreview => bffComposition is not null;
 
+    public bool SupportsRemoveConfigurationPreview => bffComposition is not null;
+
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
@@ -380,6 +382,73 @@ internal sealed class TenantQueryGateway(
             preview.CurrentState is TenantSetConfigurationCurrentState.Matching
                 ? TenantConfigurationProjectionProofKind.SetConfirmed
                 : TenantConfigurationProjectionProofKind.SetNotConfirmed,
+            preview.ProjectionVersion,
+            intent.AttemptFingerprint);
+    }
+
+    public async Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
+        TenantRemoveConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId) || bffComposition is null)
+        {
+            return TenantRemoveConfigurationPreview.Unavailable(intent);
+        }
+
+        try
+        {
+            EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
+                .GetTenantAsync(
+                    new GetTenantQuery { TenantId = intent.TenantId },
+                    eTag: null,
+                    cancellationToken)
+                .ConfigureAwait(false), TenantDetailReadName);
+            TenantDetail? detail = result.Payload;
+            if (result.IsNotModified
+                || detail is null
+                || !string.Equals(detail.TenantId, intent.TenantId, StringComparison.Ordinal)
+                || !HasSupportedProjectionVersion(result.Metadata))
+            {
+                return TenantRemoveConfigurationPreview.Unavailable(intent);
+            }
+
+            return await bffComposition.ComposeRemoveConfigurationPreviewAsync(
+                    detail,
+                    intent,
+                    ResolveFreshness(result.Metadata),
+                    ResolveLifecycle(result.Metadata),
+                    result.Metadata?.ProjectionVersion,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return TenantRemoveConfigurationPreview.Unavailable(intent);
+        }
+    }
+
+    public async Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        TenantRemoveConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        TenantRemoveConfigurationPreview preview = await GetRemoveConfigurationPreviewAsync(intent, cancellationToken)
+            .ConfigureAwait(false);
+        if (!preview.IsAuthoritative)
+        {
+            return TenantConfigurationProjectionProof.Unavailable(intent.TenantId);
+        }
+
+        return TenantConfigurationProjectionProof.Create(
+            intent.TenantId,
+            preview.CurrentState is TenantRemoveConfigurationCurrentState.Absent
+                ? TenantConfigurationProjectionProofKind.RemoveConfirmed
+                : TenantConfigurationProjectionProofKind.RemoveNotConfirmed,
             preview.ProjectionVersion,
             intent.AttemptFingerprint);
     }

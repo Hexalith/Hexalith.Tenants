@@ -8,6 +8,8 @@ public interface ITenantCommandGateway {
 
     bool SupportsTrackedSetConfigurationDispatch => false;
 
+    bool SupportsTrackedRemoveConfigurationDispatch => false;
+
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
         string? messageId = null,
@@ -48,6 +50,13 @@ public interface ITenantCommandGateway {
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable."));
+
+    Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
+        RemoveTenantConfiguration request,
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"));
 
     Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,

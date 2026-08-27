@@ -180,4 +180,18 @@ public interface ITenantsBffComposition {
         ArgumentNullException.ThrowIfNull(intent);
         return ValueTask.FromResult(TenantSetConfigurationPreview.Unavailable(intent));
     }
+
+    /// <summary>Composes an authorization-scoped, value-free remove preview from one fresh raw detail read.</summary>
+    ValueTask<TenantRemoveConfigurationPreview> ComposeRemoveConfigurationPreviewAsync(
+        TenantDetail rawDetail,
+        TenantRemoveConfigurationIntent intent,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        string? projectionVersion,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawDetail);
+        ArgumentNullException.ThrowIfNull(intent);
+        return ValueTask.FromResult(TenantRemoveConfigurationPreview.Unavailable(intent));
+    }
 }

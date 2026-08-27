@@ -1835,6 +1835,126 @@ public sealed class TenantQueryGatewayTests
         client.SubmittedQueries.All(query => query.IfNoneMatch is null).ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task Safe_remove_preview_and_proof_share_exact_fingerprint_and_ordered_projection_version()
+    {
+        const string rawValue = "raw-remove-secret";
+        CapturingGatewayClient client = new();
+        TenantDetail present = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = rawValue }) with
+        {
+            Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
+        };
+        TenantDetail absent = present with
+        {
+            Configuration = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Billing.Other"] = rawValue,
+            },
+        };
+        client.EnqueueQueryResult(
+            present,
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "tenant-sequence:41"));
+        client.EnqueueQueryResult(
+            absent,
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "tenant-sequence:42"));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(
+                BillingGrantPolicyJson.Replace("billing", "Billing", StringComparison.Ordinal)));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "Billing", "Billing.Mode");
+
+        TenantRemoveConfigurationPreview preview = await gateway.GetRemoveConfigurationPreviewAsync(intent);
+        TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(intent);
+
+        preview.IsComplete.ShouldBeTrue();
+        preview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Present);
+        preview.ProjectionVersion.ShouldBe("tenant-sequence:41");
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.RemoveConfirmed);
+        proof.ProjectionVersion.ShouldBe("tenant-sequence:42");
+        TenantLifecycleProjectionVersion.Compare(preview.ProjectionVersion, proof.ProjectionVersion)
+            .ShouldBe(TenantLifecycleProjectionVersionComparison.Advanced);
+        proof.Matches(intent).ShouldBeTrue();
+        proof.Matches(intent with { FullKey = "Billing.Other" }).ShouldBeFalse();
+        proof.Matches(intent with { NamespacePrefix = "Other" }).ShouldBeFalse();
+        client.SubmittedQueries.All(query => query.IfNoneMatch is null).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Remove_configuration_projection_proof_reports_matching_present_key_as_not_confirmed()
+    {
+        CapturingGatewayClient client = new();
+        TenantDetail present = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = "raw-remove-secret" }) with
+        {
+            Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
+        };
+        client.EnqueueQueryResult(
+            present,
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: ProjectionLifecycleState.Current,
+                projectionVersion: "tenant-sequence:41"));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(
+                BillingGrantPolicyJson.Replace("billing", "Billing", StringComparison.Ordinal)));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "Billing", "Billing.Mode");
+
+        TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(intent);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.RemoveNotConfirmed);
+        proof.ProjectionVersion.ShouldBe("tenant-sequence:41");
+        proof.Matches(intent).ShouldBeTrue();
+        proof.Matches(intent with { FullKey = "Billing.Other" }).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("wrong-tenant")]
+    [InlineData("stale")]
+    [InlineData("noncurrent-lifecycle")]
+    [InlineData("unversioned")]
+    public async Task Remove_configuration_projection_proof_fails_closed_for_mismatched_or_unavailable_evidence(
+        string outcome)
+    {
+        CapturingGatewayClient client = new();
+        TenantDetail detail = Detail(
+            outcome == "wrong-tenant" ? "tenant.beta" : "tenant.alpha",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.other"] = "raw-remove-secret" }) with
+        {
+            Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
+        };
+        client.EnqueueQueryResult(
+            detail,
+            metadata: ProjectionBackedMetadata(
+                isStale: false,
+                lifecycle: outcome switch
+                {
+                    "stale" => ProjectionLifecycleState.Stale,
+                    "noncurrent-lifecycle" => ProjectionLifecycleState.Rebuilding,
+                    _ => ProjectionLifecycleState.Current,
+                },
+                projectionVersion: outcome == "unversioned" ? null : "tenant-sequence:42"));
+        TenantQueryGateway gateway = CreateGateway(
+            client,
+            bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+
+        TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(intent);
+
+        proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
+        proof.ProjectionVersion.ShouldBeNull();
+        proof.Matches(intent).ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData(ProjectionLifecycleState.Unknown)]
     [InlineData(ProjectionLifecycleState.Rebuilding)]

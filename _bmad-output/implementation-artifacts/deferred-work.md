@@ -2613,3 +2613,35 @@ source_spec: `spec-deferred-work-support-safe-copy-followup.md`
 severity: low
 reason: TenantsResources.fr.resx uses accented French throughout ("Non connecte" is spelled "Non connecté" at line 19, "Périmé" at line 85), and line 3707 already carries "Référence d'audit d'origine". The audit block is the exception: line 3374 "Reference d'audit : {0}", line 3380 "Reference de commande", line 3389 "Reference d'audit", line 3410 "Reference indisponible". Lines 3380 and 3389 predate this story, so the cluster is pre-existing rather than introduced here.
 status: open
+
+### DW-325: TenantConfigurationManagement latches _removeCommandInFlight from a retained attempt with no reset branch, so the flag survives the tracker's autonomous expiry when the flow is unmounted.
+origin: spec-deferred 1af6159500d9
+location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor:363
+source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
+severity: low
+reason: OnParametersSet sets _removeCommandInFlight = true whenever RemoveAttemptTracker.Find returns a retained attempt, and only the flow's own lease callback lowers it. Tracker expiry raised while the flow is unmounted never runs that callback. The obvious else-reset was implemented and reverted: it lowers ChildCommandInFlight at the instant of confirmation, and the management landmark then replaces both flows with the unavailable paragraph before the operator can see the terminal state (Matching_signalr_notification_reconciles_retained_remove_without_redispatch_or_nudge_success fails). Impact is limited: the page clears its own _commandInFlight on expiry, so IsCommandSurfaceAvailable still recovers. A correct fix needs a distinct "flow owns the lease" signal.
+status: open
+
+### DW-326: One of the ten mandated preview facts is a constant, and roughly two dozen enum-keyed EN/FR strings can never render.
+origin: spec-deferred 3352ed6ca1f0
+location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationPreview.cs:50
+source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
+severity: low
+reason: TenantRemoveConfigurationPreview.IsComplete requires IsAuthoritative, which requires Freshness == Current and Lifecycle == Current. PreviewItems returns [] unless IsComplete, so the merged "Read model: {0}; projection lifecycle: {1}." fact always reads Current/Current, and only one of the Remove.Freshness.*, Remove.Lifecycle.* and Preview.CurrentState.* values is ever reachable. A degraded-freshness operator sees a block message instead of a degraded-freshness fact.
+status: open
+
+### DW-327: The untracked RemoveTenantConfigurationAsync overload silently changed its failure contract to keyed, SafeMessage-null results.
+origin: spec-deferred ee1c75c4860f
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:273
+source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
+severity: low
+reason: It now delegates to RemoveTenantConfigurationTrackedAsync, so it can return Ambiguous or FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference") with SafeMessage null. No production caller remains, and no test pins the overload, so a future caller rendering SafeMessage would show empty text.
+status: open
+
+### DW-328: Follow-up review still recommended for 3-6-remove-configuration-key-with-complete-preview after the damping cap was spent
+origin: review-budget-followup
+location: n/a
+source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
+severity: low
+reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260827-234608-260c; this entry preserves the lingering recommendation for a deliberate later review.
+status: open

@@ -1543,6 +1543,7 @@
   <data name="Tenants.Configuration.Remove.Cancel" xml:space="preserve">
     <value>Annuler</value>
   </data>
+  <data name="Tenants.Configuration.Remove.Abandon" xml:space="preserve"><value>Arrêter le rapprochement local</value></data>
   <data name="Tenants.Configuration.Remove.Confirmation.Label" xml:space="preserve">
     <value>Saisir la clé de configuration complète pour confirmer la suppression</value>
   </data>
@@ -1570,9 +1571,7 @@
   <data name="Tenants.Configuration.Remove.Unavailable.CommandSurface" xml:space="preserve">
     <value>Le support des commandes tenant est indisponible.</value>
   </data>
-  <data name="Tenants.Configuration.Remove.Unavailable.InFlight" xml:space="preserve">
-    <value>Une commande tenant est déjà en cours.</value>
-  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.TrackedDispatch" xml:space="preserve"><value>L’envoi suivi de suppression de configuration est indisponible.</value></data>
   <data name="Tenants.Configuration.Remove.Unavailable.Identity" xml:space="preserve">
     <value>L'identité du tenant est indisponible ; la suppression de configuration échoue fermée.</value>
   </data>
@@ -1585,6 +1584,9 @@
   <data name="Tenants.Configuration.Remove.Unavailable.Narrow" xml:space="preserve">
     <value>La suppression de configuration est indisponible sur les mises en page étroites car l'aperçu, l'identité du tenant, la fraîcheur, la clé cible et le contexte confirmé doivent rester visibles ensemble.</value>
   </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.PreviewEvidence" xml:space="preserve"><value>Un aperçu de suppression actuel, autorisé et complet n'a pas pu être vérifié. Actualisez le tenant et réessayez.</value></data>
+  <data name="Tenants.Configuration.Remove.Unavailable.PreviewCapability" xml:space="preserve"><value>La prise en charge sécurisée de l'aperçu et de la preuve de suppression est indisponible. Actualisez le tenant avant de réessayer.</value></data>
+  <data name="Tenants.Configuration.Remove.Unavailable.TargetMissing" xml:space="preserve"><value>La clé sélectionnée est absente des preuves autorisées actuelles. Actualisez et sélectionnez une clé visible ; aucune suppression n'a été envoyée.</value></data>
   <data name="Tenants.Configuration.Remove.Validation.KeyRequired" xml:space="preserve">
     <value>Sélectionnez une clé de configuration visible avant de prévisualiser la suppression.</value>
   </data>
@@ -1615,6 +1617,9 @@
   <data name="Tenants.Configuration.Remove.Preview.CurrentState" xml:space="preserve">
     <value>État connu courant</value>
   </data>
+  <data name="Tenants.Configuration.Remove.Preview.CurrentState.Unknown" xml:space="preserve"><value>Inconnu</value></data>
+  <data name="Tenants.Configuration.Remove.Preview.CurrentState.Present" xml:space="preserve"><value>La clé est présente ; sa valeur n'est pas affichée.</value></data>
+  <data name="Tenants.Configuration.Remove.Preview.CurrentState.Absent" xml:space="preserve"><value>La clé est absente.</value></data>
   <data name="Tenants.Configuration.Remove.Preview.IntendedEffect" xml:space="preserve">
     <value>Effet attendu</value>
   </data>
@@ -1631,22 +1636,15 @@
     <value>Le préfixe d'espace de noms et la clé sont visibles dans la projection autorisée du tenant ; l'autorisation backend applique toujours la commande.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Preview.KnownConsequences" xml:space="preserve">
-    <value>Conséquences connues</value>
+    <value>Conséquences connues versus inconnues</value>
   </data>
-  <data name="Tenants.Configuration.Remove.Preview.KnownConsequences.Value" xml:space="preserve">
-    <value>Les consommateurs propriétaires de ce préfixe peuvent perdre la valeur configurée après rattrapage de la projection.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Preview.KnownUnknowns" xml:space="preserve">
-    <value>Inconnues connues</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Preview.KnownUnknowns.Value" xml:space="preserve">
-    <value>Cette interface ne peut pas prouver l'impact sur les consommateurs aval ni la disponibilité du reçu d'audit.</value>
-  </data>
+  <data name="Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value" xml:space="preserve"><value>Modèle de lecture : {0} ; cycle de projection : {1}.</value></data>
+  <data name="Tenants.Configuration.Remove.Preview.ConsequencesAndUnknowns.Value" xml:space="preserve"><value>Les consommateurs autorisés peuvent réagir après le rattrapage de la projection ; l'impact en aval et la preuve d'audit propre à la commande restent inconnus.</value></data>
   <data name="Tenants.Configuration.Remove.Preview.AuditExpectation" xml:space="preserve">
     <value>Attente d'audit</value>
   </data>
   <data name="Tenants.Configuration.Remove.Preview.AuditExpectation.Value" xml:space="preserve">
-    <value>La preuve d'audit reste en attente jusqu'à l'existence de la source de preuve de l'Epic 5.</value>
+    <value>La confirmation de projection et la preuve d'audit restent distinctes ; consultez séparément l'audit du tenant.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Preview.RecoveryPath" xml:space="preserve">
     <value>Chemin de récupération</value>
@@ -1669,9 +1667,25 @@
   <data name="Tenants.Configuration.Remove.Freshness.Unknown" xml:space="preserve">
     <value>Inconnu</value>
   </data>
-  <data name="Tenants.Configuration.Remove.DuplicatePrevented.Message" xml:space="preserve">
-    <value>Une commande de suppression de configuration est déjà en cours.</value>
-  </data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Unknown" xml:space="preserve"><value>Inconnu</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Current" xml:space="preserve"><value>À jour</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Stale" xml:space="preserve"><value>Obsolète</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Rebuilding" xml:space="preserve"><value>Reconstruction</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Degraded" xml:space="preserve"><value>Dégradé</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Unavailable" xml:space="preserve"><value>Indisponible</value></data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.LocalOnly" xml:space="preserve"><value>Local uniquement</value></data>
+  <data name="Tenants.Configuration.Remove.Status.Pending" xml:space="preserve"><value>L'état de la commande n'est pas encore probant. Poursuivez le rapprochement avant toute autre action.</value></data>
+  <data name="Tenants.Configuration.Remove.Status.Rejected" xml:space="preserve"><value>La commande de suppression de configuration a été rejetée.</value></data>
+  <data name="Tenants.Configuration.Remove.Status.PublishFailed" xml:space="preserve"><value>La commande de suppression a été acceptée, mais sa publication n'a pas pu être vérifiée.</value></data>
+  <data name="Tenants.Configuration.Remove.Submission.Rejected" xml:space="preserve"><value>La commande de suppression a été rejetée avant son acceptation.</value></data>
+  <data name="Tenants.Configuration.Remove.Submission.Failed" xml:space="preserve"><value>La commande de suppression n'a pas pu être envoyée de façon sûre.</value></data>
+  <data name="Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La livraison de la commande est incertaine. Ne la renvoyez pas ; actualisez l'état ou arrêtez le rapprochement local.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>La preuve d'identité de la commande ne correspond pas à la tentative de suppression conservée.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.Status" xml:space="preserve"><value>L'état de la commande de suppression n'a pas pu être vérifié.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.StatusTimeout" xml:space="preserve"><value>La vérification de l'état a expiré avant la confirmation de projection.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.MissingEventEvidence" xml:space="preserve"><value>L'état de la commande ne prouve pas qu'un événement de suppression a été stocké ou publié.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.Abandoned" xml:space="preserve"><value>Le rapprochement local est arrêté. Actualisez les données probantes du tenant avant toute autre action.</value></data>
+  <data name="Tenants.Configuration.Remove.UnableToVerify.ProjectionProof" xml:space="preserve"><value>La preuve d’événement de suppression est conservée, mais la confirmation de projection n’a pas pu être vérifiée. Actualisez et rapprochez cette tentative.</value></data>
   <data name="Tenants.Configuration.Remove.State.Idle" xml:space="preserve">
     <value>Aucune commande de suppression de configuration soumise.</value>
   </data>
@@ -1692,12 +1706,6 @@
   </data>
   <data name="Tenants.Configuration.Remove.State.Rejected" xml:space="preserve">
     <value>Commande de suppression de configuration rejetée.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.State.AlreadyApplied" xml:space="preserve">
-    <value>Déjà appliqué.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.State.DuplicatePrevented" xml:space="preserve">
-    <value>Suppression de configuration en double empêchée.</value>
   </data>
   <data name="Tenants.Configuration.Remove.State.Failed" xml:space="preserve">
     <value>Échec de soumission de la suppression de configuration.</value>
@@ -1721,7 +1729,7 @@
     <value>Preuve d'audit indisponible.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Audit.MissingSupport" xml:space="preserve">
-    <value>Le support de preuve d'audit manque jusqu'à l'implémentation de la source de preuve par l'Epic 5.</value>
+    <value>La preuve d'audit propre à la commande n'est pas disponible dans ce flux ; consultez séparément l'audit du tenant.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Idle" xml:space="preserve">
     <value>Choisissez une clé visible lorsque la preuve de projection courante et la portée d'espace de noms sont disponibles.</value>
@@ -1743,12 +1751,6 @@
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Rejected" xml:space="preserve">
     <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Actualisez la preuve de projection avant de traiter la clé manquante comme déjà supprimée.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Recovery.DuplicatePrevented" xml:space="preserve">
-    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Failed" xml:space="preserve">
     <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>

@@ -47,7 +47,7 @@
 /* fc-css-exception: left-accent callout padding for the preview region; preserves the border-accent
    treatment Fluent has no primitive for. */
 .tenants-config-remove__preview {
-    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
+    border-inline-start: .25rem solid var(--colorPaletteRedBorder2, CanvasText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
@@ -110,7 +110,7 @@
 }
 
 .tenants-config-remove :focus-visible {
-    outline: 3px solid var(--focus-stroke-outer, Highlight);
+    outline: 3px solid var(--colorStrokeFocus2, Highlight);
     outline-offset: 2px;
 }
 

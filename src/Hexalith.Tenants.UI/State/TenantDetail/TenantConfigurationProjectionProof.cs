@@ -48,6 +48,15 @@ public sealed class TenantConfigurationProjectionProof
             && string.Equals(AttemptFingerprint, intent.AttemptFingerprint, StringComparison.Ordinal);
     }
 
+    /// <summary>Checks that proof tenant and fingerprint match one exact remove intent.</summary>
+    internal bool Matches(TenantRemoveConfigurationIntent intent)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return string.Equals(TenantId, intent.TenantId, StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(AttemptFingerprint)
+            && string.Equals(AttemptFingerprint, intent.AttemptFingerprint, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Returns a support-safe description that omits the tenant identifier and every configuration key or
     /// value. Without an override this class rendered as its own type name, so absence assertions written

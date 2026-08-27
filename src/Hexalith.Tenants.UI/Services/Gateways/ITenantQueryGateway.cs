@@ -14,6 +14,9 @@ public interface ITenantQueryGateway
     /// <summary>Gets whether this gateway provides the complete safe preview and proof capability.</summary>
     bool SupportsSetConfigurationPreview => false;
 
+    /// <summary>Gets whether this gateway provides complete safe remove preview and proof capability.</summary>
+    bool SupportsRemoveConfigurationPreview => false;
+
     Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewAsync(
         TenantSetConfigurationIntent intent,
         CancellationToken cancellationToken = default)
@@ -24,6 +27,22 @@ public interface ITenantQueryGateway
 
     Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         TenantSetConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+    }
+
+    Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
+        TenantRemoveConfigurationIntent intent,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return Task.FromResult(TenantRemoveConfigurationPreview.Unavailable(intent));
+    }
+
+    Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        TenantRemoveConfigurationIntent intent,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(intent);

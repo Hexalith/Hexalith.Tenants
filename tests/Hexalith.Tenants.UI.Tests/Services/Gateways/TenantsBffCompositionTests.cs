@@ -440,6 +440,79 @@ public sealed class TenantsBffCompositionTests
         preview.CurrentState.ShouldBe(TenantSetConfigurationCurrentState.Unknown);
     }
 
+    [Theory]
+    [InlineData(true, TenantRemoveConfigurationCurrentState.Present)]
+    [InlineData(false, TenantRemoveConfigurationCurrentState.Absent)]
+    public async Task Remove_preview_classifies_authorized_presence_without_exposing_raw_value(
+        bool containsTarget,
+        TenantRemoveConfigurationCurrentState expectedState)
+    {
+        const string rawValue = "raw-remove-secret";
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+        IReadOnlyDictionary<string, string> configuration = containsTarget
+            ? new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.mode"] = rawValue }
+            : new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.other"] = rawValue };
+        TenantDetail detail = Detail() with { Configuration = configuration };
+
+        TenantRemoveConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeRemoveConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeTrue();
+        preview.IsAuthoritative.ShouldBeTrue();
+        preview.CurrentState.ShouldBe(expectedState);
+        preview.GetType().GetProperties()
+            .ShouldNotContain(property => property.Name.Contains("Value", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Remove_preview_resolves_namespace_authority_before_configuration_lookup()
+    {
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "security", "security.mode");
+        TenantDetail detail = Detail() with { Configuration = new ThrowingConfiguration() };
+
+        TenantRemoveConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeRemoveConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeFalse();
+        preview.IsAuthoritative.ShouldBeFalse();
+        preview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Unknown);
+    }
+
+    [Theory]
+    [InlineData(TenantRole.TenantReader)]
+    [InlineData(TenantRole.TenantContributor)]
+    [InlineData(TenantRole.Unknown)]
+    public async Task Remove_preview_resolves_mutation_authority_before_configuration_lookup(TenantRole role)
+    {
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+        TenantDetail detail = Detail([new TenantMember("operator.alpha", role)]) with
+        {
+            Configuration = new ThrowingConfiguration(),
+        };
+
+        TenantRemoveConfigurationPreview preview = await Composition(GrantedPolicy)
+            .ComposeRemoveConfigurationPreviewAsync(
+                detail,
+                intent,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41");
+
+        preview.IsAuthorized.ShouldBeFalse();
+        preview.IsAuthoritative.ShouldBeFalse();
+        preview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Unknown);
+    }
+
     private static TenantsBffComposition Composition(
         string json,
         TenantConfigurationPrincipalEvidence? evidence = null)

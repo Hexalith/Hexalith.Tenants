@@ -114,7 +114,7 @@ development_status:
   # Release build -warnaserror 0/0; 2456 UI tests pass, 0 failed, 0 skipped (7 new); 2 fixes mutation-
   # verified; gitlink guard PASS (6 declared pointers); diff --check clean.
   3-5-set-namespaced-configuration-with-complete-preview: done
-  3-6-remove-configuration-key-with-complete-preview: backlog
+  3-6-remove-configuration-key-with-complete-preview: done
   epic-3-retrospective: done
 
   # --- Epic 4: Global Administrator Control ---
