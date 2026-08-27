@@ -233,6 +233,40 @@ public sealed class TenantLifecycleAttemptTrackerTests
         }
     }
 
+    [Theory]
+    [InlineData("tenant-sequence:41", "tenant-sequence:42", "incoming-message")]
+    [InlineData("tenant-sequence:42", "tenant-sequence:41", "retained-message")]
+    [InlineData("tenant-sequence:41", "not-a-tenant-sequence-marker", "retained-message")]
+    public void Same_rank_same_evidence_same_poll_count_merge_breaks_ties_by_projection_sequence_relation(
+        string retainedProjectionVersion,
+        string incomingProjectionVersion,
+        string expectedSafeMessageKey)
+    {
+        // Isolates MergeSameAttempt's own preferred-selection tie-break (line ~292) from the separate
+        // projectionEvidence switch: rank, EvidenceRevision, and PendingStatusPollCount are held equal so only
+        // the TenantLifecycleSequenceRelation between the two LastObservedProjectionVersion markers decides
+        // which snapshot's SafeMessageKey survives the merge.
+        TenantLifecycleCommandSnapshot retained = Pending("tenant.alpha", "message-1") with
+        {
+            LastObservedProjectionVersion = retainedProjectionVersion,
+            SafeMessageKey = "retained-message",
+            EvidenceRevision = 10,
+            PendingStatusPollCount = 2,
+        };
+        TenantLifecycleCommandSnapshot incoming = retained with
+        {
+            LastObservedProjectionVersion = incomingProjectionVersion,
+            SafeMessageKey = "incoming-message",
+        };
+        TenantLifecycleAttemptTracker tracker = CreateTracker();
+        tracker.Remember(retained).ShouldBeTrue();
+
+        tracker.Remember(incoming).ShouldBeTrue();
+
+        TenantLifecycleCommandSnapshot merged = tracker.Find("tenant.alpha").ShouldNotBeNull();
+        merged.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
+    }
+
     [Fact]
     public void New_evidence_revision_outranks_a_higher_poll_count_without_losing_the_count()
     {

@@ -79,7 +79,8 @@ public sealed record TenantCommandSubmissionResult(
     string? SafeMessage = null,
     string? RejectionCode = null,
     string? SafeMessageKey = null,
-    bool IsAmbiguousFailure = false) {
+    bool IsAmbiguousFailure = false)
+{
     public static TenantCommandSubmissionResult Accepted(string messageId, string correlationId)
         => new(TenantCommandLifecycleState.Accepted, messageId, correlationId);
 
@@ -121,7 +122,8 @@ public sealed record TenantCommandStatusResult(
     int? EventCount = null,
     bool IsPending = false,
     bool IsRetryableFailure = false,
-    bool HasVerifiedCommandIdentity = false) {
+    bool HasVerifiedCommandIdentity = false)
+{
     public static TenantCommandStatusResult Unknown(string safeMessage)
         => new(null, safeMessage);
 

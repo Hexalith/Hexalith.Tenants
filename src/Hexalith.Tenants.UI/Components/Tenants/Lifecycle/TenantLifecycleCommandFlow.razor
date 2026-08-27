@@ -281,15 +281,15 @@
             : ResolvedEvidence is not null && !EntryAvailability.IsEligible
                 ? Localizer[EntryAvailability.SafeMessageKey].Value
             : Availability.Evidence is null && Availability.IsUnavailable
-                ? Localizer[Availability.SafeMessageKey, Detail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
+                ? Localizer[Availability.SafeMessageKey, PreviewDetail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
             : CommandGateway is null || !CommandGateway.SupportsTrackedLifecycleDispatch
-                ? Localizer["Tenants.Lifecycle.Unavailable.CommandSurface", Detail.TenantId, OperationLabel, string.Empty].Value
+                ? Localizer["Tenants.Lifecycle.Unavailable.CommandSurface", PreviewDetail.TenantId, OperationLabel, string.Empty].Value
                 : _preview is { IsCommandSurfaceAvailable: false } && !IsOwnedCommandInFlight
                     ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
                 : string.IsNullOrWhiteSpace(PreviewDetail.TenantId) || string.IsNullOrWhiteSpace(PreviewDetail.Name)
                     ? Localizer["Tenants.Lifecycle.Unavailable.Identity"].Value
-                    : Detail.Status == IntendedStatus
-                        ? Localizer["Tenants.Lifecycle.Unavailable.SameState", StatusLabel(Detail.Status)].Value
+                    : PreviewDetail.Status == IntendedStatus
+                        ? Localizer["Tenants.Lifecycle.Unavailable.SameState", StatusLabel(PreviewDetail.Status)].Value
                         : !IsPreviewComplete
                             ? Localizer["Tenants.Lifecycle.Unavailable.PreviewIncomplete"].Value
                             : null;
@@ -403,7 +403,14 @@
                 : !string.IsNullOrWhiteSpace(UnavailableReason)
                     ? UnavailableRecoveryKey
                     : $"Tenants.Lifecycle.Recovery.{_snapshot.State}";
-            return Localizer[key, RetentionMinutes].Value;
+
+            // Only this one key has a {0} placeholder for the retention bound. Passing RetentionMinutes to
+            // every other key is harmless today (unused format args are ignored) but silently fragile: a
+            // future key gaining a {0} placeholder for an unrelated purpose would receive the wrong value
+            // instead of failing a build or test.
+            return string.Equals(key, "Tenants.Lifecycle.Dispatch.Recovery", StringComparison.Ordinal)
+                ? Localizer[key, RetentionMinutes].Value
+                : Localizer[key].Value;
         }
     }
 
@@ -766,9 +773,9 @@
         _hasRaisedCommandActivity = isActive;
         if (CommandActivityLease is null)
         {
-            if (_disposed && isActive)
+            if (_disposed)
             {
-                return false;
+                return !isActive;
             }
 
             await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
@@ -944,8 +951,9 @@
                 "Tenants.HighImpact.Recovery.MissingPermission"));
             return;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (_disposed)
         {
+            _isSubmitting = false;
             throw;
         }
         catch (Exception exception)
@@ -979,8 +987,9 @@
                     preflightStartedAtUtc + ExternalOperationTimeout)
                     .ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (_disposed)
         {
+            _isSubmitting = false;
             throw;
         }
         catch (Exception exception)
@@ -1680,14 +1689,32 @@
         && Equals(context.Intent, Intent)
         && string.Equals(context.ConfirmationText, _confirmationText, StringComparison.Ordinal);
 
-    private static async Task<T> AwaitWithinDeadlineAsync<T>(
+    private async Task<T> AwaitWithinDeadlineAsync<T>(
         Func<CancellationToken, Task<T>> operation,
         DateTimeOffset deadline)
     {
         ArgumentNullException.ThrowIfNull(operation);
-        using var timeoutCts = new CancellationTokenSource();
-        TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
+        var timeoutCts = new CancellationTokenSource();
         Task<T> task = operation(timeoutCts.Token);
+
+        // The caller may abandon this method (via TimeoutException) while `task` keeps running server-side.
+        // Dispose timeoutCts only once that abandoned task actually settles, and surface its eventual fault
+        // instead of letting it become an unobserved task exception.
+        _ = task.ContinueWith(
+            completed =>
+            {
+                if (completed.IsFaulted)
+                {
+                    LogLifecycleFailure("lifecycle-preflight-abandoned-task-fault", completed.Exception!);
+                }
+
+                timeoutCts.Dispose();
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+
+        TimeSpan remaining = deadline - DateTimeOffset.UtcNow;
         if (remaining <= TimeSpan.Zero)
         {
             if (!task.IsCompleted)

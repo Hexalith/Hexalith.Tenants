@@ -19,6 +19,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 using Shouldly;
@@ -910,6 +911,207 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.WaitForAssertion(() => observedCancellation.IsCancellationRequested.ShouldBeTrue());
     }
 
+    [Fact]
+    public void Authority_preflight_deadline_cancels_the_forwarded_token_and_blocks_with_missing_permission()
+    {
+        var neverAuthority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observedCancellation = default;
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.Availability, AvailableLifecycle(
+                TenantStatus.Active,
+                TenantLifecycleOperation.DisableTenant))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflectionProvider, cancellationToken =>
+            {
+                observedCancellation = cancellationToken;
+                return neverAuthority.Task;
+            })
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(Proof(
+                "tenant.alpha",
+                TenantStatus.Active,
+                "tenant-sequence:41"))));
+        cut.Instance.ExternalOperationTimeout = TimeSpan.FromMilliseconds(30);
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessageKey
+            .ShouldBe("Tenants.Lifecycle.Unavailable.MissingPermission"));
+        gateway.DisableSubmissions.ShouldBe(0);
+        observedCancellation.CanBeCanceled.ShouldBeTrue();
+        cut.WaitForAssertion(() => observedCancellation.IsCancellationRequested.ShouldBeTrue());
+    }
+
+    [Theory]
+    [InlineData("authority")]
+    [InlineData("proof")]
+    public void Preflight_stray_cancellation_unrelated_to_the_deadline_degrades_safely_instead_of_crashing(
+        string stage)
+    {
+        // A cancellation that does not come from AwaitWithinDeadlineAsync's own timeoutCts (e.g. an internal
+        // HttpClient timeout inside an injected provider) must not propagate raw out of the submit handler --
+        // it must be treated like any other unexpected fault, not rethrown and left to tear down the circuit.
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"),
+        };
+        RegisterServices(gateway);
+        var recordingLoggerFactory = new RecordingLoggerFactory();
+        Services.AddSingleton<ILoggerFactory>(recordingLoggerFactory);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.Availability, AvailableLifecycle(
+                TenantStatus.Active,
+                TenantLifecycleOperation.DisableTenant))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflectionProvider, _ => stage == "authority"
+                ? Task.FromException<TenantLifecycleAuthorizationReflectionState>(
+                    new OperationCanceledException("unrelated cancellation"))
+                : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => stage == "proof"
+                ? Task.FromException<TenantDetailSnapshot?>(new OperationCanceledException("unrelated cancellation"))
+                : Task.FromResult<TenantDetailSnapshot?>(Proof(
+                    "tenant.alpha",
+                    TenantStatus.Active,
+                    "tenant-sequence:41"))));
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+
+        Should.NotThrow(() => cut.Find("form").Submit());
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessageKey.ShouldNotBeNullOrWhiteSpace());
+        gateway.DisableSubmissions.ShouldBe(0);
+        cut.WaitForAssertion(() => recordingLoggerFactory.Entries.ShouldContain(
+            entry => entry.ReasonCode == $"lifecycle-{stage}-preflight-fault" && entry.Exception is OperationCanceledException));
+    }
+
+    private sealed class RecordingLoggerFactory : ILoggerFactory
+    {
+        public List<(string ReasonCode, Exception? Exception)> Entries { get; } = [];
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+        }
+
+        public ILogger CreateLogger(string categoryName) => new RecordingLogger(this);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class RecordingLogger(RecordingLoggerFactory factory) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                string reasonCode = state is IEnumerable<KeyValuePair<string, object>> pairs
+                    ? pairs.FirstOrDefault(pair => pair.Key == "LifecycleReasonCode").Value?.ToString() ?? string.Empty
+                    : string.Empty;
+                factory.Entries.Add((reasonCode, exception));
+            }
+        }
+    }
+
+    [Fact]
+    public void Disposing_mid_dispatch_still_releases_the_lease_once_the_pending_call_settles()
+    {
+        // The old guard (`if (_disposed) { return !isActive; }`) made a disposed-component release a silent
+        // no-op. Dispose while the lease is held and the gateway call is still pending, then let it settle,
+        // and confirm the release callback still fires with false.
+        var pendingSubmission = new TaskCompletionSource<TenantCommandSubmissionResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionProvider = (_, _, _) => pendingSubmission.Task,
+        };
+        RegisterServices(gateway);
+        List<bool> leaseCalls = [];
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.Availability, AvailableLifecycle(
+                TenantStatus.Active,
+                TenantLifecycleOperation.DisableTenant))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(
+                TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider, (_, _) => Task.FromResult<TenantDetailSnapshot?>(
+                Proof("tenant.alpha", TenantStatus.Active, "tenant-sequence:41")))
+            .Add(component => component.CommandActivityLease, isActive =>
+            {
+                leaseCalls.Add(isActive);
+                return Task.FromResult(true);
+            }));
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => leaseCalls.ShouldContain(true));
+        cut.Dispose();
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"));
+
+        SpinWait.SpinUntil(() => leaseCalls.Contains(false), TimeSpan.FromSeconds(5))
+            .ShouldBeTrue("the release callback should still fire with false after the pending dispatch settles");
+    }
+
+    [Fact]
+    public void Refresh_arriving_mid_submit_is_queued_not_dropped_and_is_replayed_once_dispatch_settles()
+    {
+        // Before this commit, RefreshStatusAsync unconditionally dropped a nudge/refresh that arrived while
+        // _isSubmitting was true. It must now be queued (never lost) and replayed once submission settles.
+        var pendingSubmission = new TaskCompletionSource<TenantCommandSubmissionResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        string? dispatchedMessageId = null;
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionProvider = (_, messageId, _) =>
+            {
+                dispatchedMessageId = messageId;
+                return pendingSubmission.Task;
+            },
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = RenderLifecycleFlow();
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent));
+        gateway.StatusCalls.ShouldBe(0);
+        dispatchedMessageId.ShouldNotBeNullOrWhiteSpace();
+
+        // Arrives mid-submit: must be queued rather than silently dropped, and must not call the gateway while
+        // dispatch still owns the attempt.
+        cut.Find("[data-testid='tenants-lifecycle-refresh']").Click();
+        gateway.StatusCalls.ShouldBe(0);
+        GetPrivateField<TenantLifecycleCommandFlow, int>(cut.Instance, "_refreshReplayRequested").ShouldBe(1);
+
+        pendingSubmission.SetResult(TenantCommandSubmissionResult.Accepted(dispatchedMessageId!, "correlation-life"));
+
+        cut.WaitForAssertion(() => gateway.StatusCalls.ShouldBeGreaterThan(0));
+        cut.WaitForAssertion(() => GetPrivateField<TenantLifecycleCommandFlow, int>(cut.Instance, "_refreshReplayRequested")
+            .ShouldBe(0));
+    }
+
     [Theory]
     [MemberData(nameof(AmbiguousSubmissionExceptions))]
     public void Ambiguous_submission_failure_is_localized_and_retry_reuses_dispatch_identity(
@@ -935,6 +1137,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.VisibleText().ShouldNotContain("token", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent
             .ShouldContain("same command identity", Case.Insensitive);
+        cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent
+            .ShouldContain($"{(int)TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration.TotalMinutes} minutes");
         string firstMessageId = gateway.LastDisableMessageId!;
 
         gateway.SubmissionException = null;
@@ -1988,6 +2192,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         var abandon = cut.Find("[data-testid='tenants-lifecycle-disable-abandon']");
         abandon.GetAttribute("disabled").ShouldBeNull();
         abandon.GetAttribute("aria-describedby").ShouldBe("tenants-lifecycle-disable-abandon-hint");
+        cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("aria-describedby")
+            .ShouldNotBeNull().ShouldContain("tenants-lifecycle-disable-abandon-hint");
 
         abandon.Click();
 
@@ -1995,6 +2201,46 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
         activity.ShouldContain(false);
         gateway.StatusCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Retained_attempt_abandon_releases_the_lease_through_the_command_activity_lease_seam()
+    {
+        // Every production caller (TenantDetailPage) wires CommandActivityLease, not OnCommandActivityChanged.
+        // The sibling test above only exercises the OnCommandActivityChanged fallback branch.
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        TenantLifecycleAttemptTracker tracker = new();
+        tracker.Remember(PendingLifecycleAttempt()).ShouldBeTrue();
+        RegisterServices(gateway, tracker);
+        List<bool> leaseCalls = [];
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, false)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.CommandActivityLease, isActive =>
+            {
+                leaseCalls.Add(isActive);
+                return Task.FromResult(true);
+            }));
+
+        var abandon = cut.Find("[data-testid='tenants-lifecycle-disable-abandon']");
+        abandon.Click();
+
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        leaseCalls.ShouldContain(false);
     }
 
     [Fact]
@@ -2041,6 +2287,49 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         int lowered = activity.Count(static active => !active);
         cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
         activity.Count(static active => !active).ShouldBe(lowered);
+    }
+
+    [Fact]
+    public void Same_route_retained_attempt_expiry_lowers_the_lease_through_the_command_activity_lease_seam()
+    {
+        // Every production caller (TenantDetailPage) wires CommandActivityLease, not OnCommandActivityChanged.
+        // The sibling test above only exercises the OnCommandActivityChanged fallback branch.
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        TenantLifecycleCommandSnapshot attempt = PendingLifecycleAttempt();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        TenantLifecycleAttemptTracker tracker = new(() => now);
+        tracker.Remember(attempt).ShouldBeTrue();
+        RegisterServices(gateway, tracker);
+        List<bool> leaseCalls = [];
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, false)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(component => component.CommandActivityLease, isActive =>
+            {
+                leaseCalls.Add(isActive);
+                return Task.FromResult(true);
+            }));
+
+        leaseCalls.ShouldNotContain(false);
+
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        cut.Render(parameters => parameters.Add(component => component.CurrentStatus, TenantStatus.Active));
+
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        leaseCalls.ShouldContain(false);
     }
 
     [Fact]
@@ -2851,6 +3140,14 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         FieldInfo field = typeof(TComponent).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingFieldException(typeof(TComponent).FullName, fieldName);
         field.SetValue(component, value);
+    }
+
+    private static TValue GetPrivateField<TComponent, TValue>(TComponent component, string fieldName)
+        where TComponent : class
+    {
+        FieldInfo field = typeof(TComponent).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(TComponent).FullName, fieldName);
+        return (TValue)field.GetValue(component)!;
     }
 
     private IReadOnlyList<string> FocusedElementIds()

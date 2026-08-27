@@ -1,5 +1,5 @@
 # generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-08-26
+# last_updated: 2026-08-27
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: '2026-08-26'
+last_updated: '2026-08-27'
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -106,7 +106,13 @@ development_status:
   # 2026-08-26: code review loop 5 (chunk A = production src/). Both decisions resolved and implemented
   # (launcher-side same-route lease reclamation + launcher abandon affordance), mutation-verified. Loop 5
   # production patches closed; follow-up review patches applied in this pass. 8 deferred to deferred-work.md.
-  3-4-disable-or-enable-tenant-with-complete-preview: review
+  3-4-disable-or-enable-tenant-with-complete-preview: done
+  # 2026-08-27: code review loop 7 closed all 13 Loop 6 findings (1 decision + 12 patches), plus its own
+  # 1 decision (declared references/Hexalith.Commons pointer drift). 10 patches fixed with code+tests; 1
+  # test-only; 2 sub-findings re-verified against the codebase and dismissed as false premises (no ILogger<T>
+  # injection convention exists here; ForUnavailableReason's silent fallback matches its sibling idiom).
+  # Release build -warnaserror 0/0; 2456 UI tests pass, 0 failed, 0 skipped (7 new); 2 fixes mutation-
+  # verified; gitlink guard PASS (6 declared pointers); diff --check clean.
   3-5-set-namespaced-configuration-with-complete-preview: done
   3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done
