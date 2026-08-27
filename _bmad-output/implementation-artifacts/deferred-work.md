@@ -12,7 +12,8 @@ origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Wor
 location: src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs
 reason: The legacy ledger defers this issue: Global-administrator pagination >20 admins — fail-OPEN CLOSED (full paging redesign still routed). Original context is preserved in legacy-detail.
 legacy-detail: - **Global-administrator pagination >20 admins — fail-OPEN CLOSED (full paging redesign still routed).** `GlobalAdministratorCorrectionSnapshot` now treats absence as conclusive only when the whole fixed projection is loaded (`!HasMore`): `EvaluateCurrentProjection` fails closed to `UnableToVerify` (`Tenants.Correction.Unavailable.CurrentProjectionUnavailable`) for a restore/revoke whose target is absent from an incomplete page, and `ConfirmProjection` proves a revoke only on `!present && !HasMore`, killing the false-`Confirmed` on a revoke of a page-2 administrator. Presence-found stays conclusive, so page-1 corrections at scale are unaffected. +3 tests + `PagedProjectionReady` helper. The multi-page load/aggregation that would let a page-2 correction actually RUN (rather than be conservatively blocked) stays routed to a dedicated projection-paging story. (`src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs`)
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit 7716f0b11423eb54d74935b6cc6e3edf405dc400; src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:23-89 now walks and aggregates all stable cursor pages.
 
 ### DW-3: FrontComposer `FcContentLabel` single-writer dispose-clobber + server first-paint — DOCUMENTED
 origin: migrated from legacy ledger ("2026-07-01 Correct Course — Deferred Work (pagination fail-closed + submodule doc handoffs)"), 2026-08-25
@@ -579,7 +580,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-a
 location: src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs
 reason: The legacy ledger defers this issue: Global-administrator projection pagination ignored (>20 admins). Original context is preserved in legacy-detail.
 legacy-detail: - **Global-administrator projection pagination ignored (>20 admins)** — `GlobalAdministratorsRequest` defaults to PageSize=20 and `HasMore`/cursor are never read; the correction snapshot only inspects page 1's `Rows` for presence and admin count. For more than 20 global administrators: a restore of a 21st+ target is treated as not-applied and can never reach `present=true` (stuck `ProjectionPending`), and a revoke of a 21st+ target is blocked as "already removed". Pre-existing query-shape limitation reused by this story; unusual scale and most failure modes fail closed. Follow-up: design projection paging/aggregation for the fixed global-administrator projection. (`src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs`) — **UPDATE 2026-07-01 (CC deferred-work): the fail-OPEN is CLOSED.** The snapshot now reads `HasMore` and treats absence as conclusive only on a fully-loaded page: `ConfirmProjection` proves a revoke only on `!present && !HasMore` (killing the page-2 false-`Confirmed`), and `EvaluateCurrentProjection` fails closed to `UnableToVerify` (`…CurrentProjectionUnavailable`) rather than the false `AlreadyRemoved` (revoke) or a mis-armed grant (restore). Presence-found stays conclusive so page-1 corrections at scale are unaffected. The residual is now narrowed to the full multi-page load/aggregation that would let a page-2 correction actually RUN instead of being conservatively blocked — still a dedicated projection-paging story.
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit 7716f0b11423eb54d74935b6cc6e3edf405dc400; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1093-1121 now uses the complete-projection loader for correction evidence.
 
 ### DW-74: No story-specific gateway-routing test — CLOSED 2026-06-30 (CC deferred-work) as already-covered
 origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-administrator-correction-verification (2026-06-29)"), 2026-08-25
@@ -2112,7 +2114,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantCommandGateway.cs:42,69; CreateTenantFlow.razor:348
 reason: The legacy ledger defers this issue: `CreateTenantFlow` never adopts the reusable `messageId` affordance this story added. Original context is preserved in legacy-detail.
 legacy-detail: - **`CreateTenantFlow` never adopts the reusable `messageId` affordance this story added.** `TenantCommandGateway.CreateTenantAsync` gained `string? messageId = null` and now returns `MessageId` on indeterminate failure (`TenantCommandGateway.cs:42,69`), but `CreateTenantFlow.razor:348` hard-codes `messageId: null` and `:359-368` discards `result.MessageId`. Its own tracking guard at `:307-319` therefore never engages, and a retry after an ambiguous 503 mints a fresh ULID — surfacing `TenantAlreadyExistsRejection` for a tenant the operator just created. Belongs to story `3-1-create-tenant-with-projection-confirmation` (currently `review`).
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit 24c978d4; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:405-418 reuses the snapshot MessageId and retains accepted tracking.
 
 ### DW-261: Missing test coverage for three branches this story introduced
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
@@ -2280,7 +2283,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: references/Hexalith.EventStore; references/
 reason: The legacy ledger defers this issue: An eighth undeclared `references/` pointer move appeared during this review. Original context is preserved in legacy-detail.
 legacy-detail: - summary: An eighth undeclared `references/` pointer move appeared during this review. evidence: `references/Hexalith.EventStore` moved `c890235` -> `f8b514f` in the working tree while the review was running, on top of the seven `validate-story-gitlinks.py` already reports. Extends the open chunk-A gitlink decision rather than forming a new one.
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit d7329f2a; the EventStore pointer is now tracked at 2ae587024ec7dd7dfaca174bf22aa8d74b7a8dc1 and the working tree contains no undeclared pointer move.
 
 ### DW-284: Exercise the production create-attempt tracker across a real component remount
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
