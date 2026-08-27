@@ -363,8 +363,13 @@
         }
     }
 
+    // JSDisconnectedException and ObjectDisposedException derive from Exception, not JSException,
+    // so they must be listed explicitly: circuit loss during navigation is the expected teardown race.
     private static bool IsKnownTeardownException(Exception exception)
-        => exception is JSException or OperationCanceledException;
+        => exception is JSDisconnectedException
+            or ObjectDisposedException
+            or JSException
+            or OperationCanceledException;
 
     private enum CopyFeedbackKind
     {

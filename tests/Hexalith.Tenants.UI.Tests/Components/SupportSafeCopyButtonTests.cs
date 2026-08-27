@@ -380,6 +380,32 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Disposal_started_on_the_renderer_dispatcher_drains_pending_write_once()
+    {
+        var runtime = new ControllableClipboardRuntime(delayImport: false, delayWrite: true);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+
+        Task activation = cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+        await runtime.WriteRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Navigation disposes the component from the renderer dispatcher, not from a free thread.
+        Task disposal = Task.CompletedTask;
+        Task dispatched = cut.InvokeAsync(() => { disposal = cut.Instance.DisposeAsync().AsTask(); });
+        await dispatched.WaitAsync(TimeSpan.FromSeconds(5));
+
+        disposal.IsCompleted.ShouldBeFalse();
+
+        runtime.WriteRelease.SetResult(true);
+        await Task.WhenAll(activation, disposal).WaitAsync(TimeSpan.FromSeconds(5));
+
+        runtime.Writes.ShouldBe(["tenant.alpha"]);
+        runtime.DisposeCount.ShouldBe(1);
+        cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Activation_after_disposal_completes_starts_no_clipboard_interop()
     {
         var runtime = new ControllableClipboardRuntime(delayImport: false, delayWrite: false);
@@ -448,11 +474,17 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
     [Theory]
     [InlineData("js")]
     [InlineData("canceled")]
+    [InlineData("disconnected")]
+    [InlineData("object-disposed")]
     public async Task Known_module_teardown_failures_complete_without_disclosing_details(string failureKind)
     {
-        Exception exception = failureKind is "js"
-            ? new JSException("sensitive-js-teardown-detail")
-            : new OperationCanceledException("sensitive-cancellation-detail");
+        Exception exception = failureKind switch
+        {
+            "js" => new JSException("sensitive-js-teardown-detail"),
+            "canceled" => new OperationCanceledException("sensitive-cancellation-detail"),
+            "disconnected" => new JSDisconnectedException("sensitive-disconnection-detail"),
+            _ => new ObjectDisposedException("sensitive-object-disposed-detail"),
+        };
         var runtime = new ControllableClipboardRuntime(
             delayImport: false,
             delayWrite: false,

@@ -91,7 +91,7 @@
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Correction"]"
                         ColumnId="audit-correction"
-            Width="190px">
+                        Width="190px">
             @{
                 string? supportSafeReference = SupportSafeReferenceLabel(context);
                 TenantCorrectionStartIntent? correctionIntent = supportSafeReference is null
@@ -166,11 +166,16 @@
         TenantRole.TenantReader,
     ];
 
+    // Gate the bare event reference first: a composed "{reference} - {context}" literal can satisfy the
+    // policy while the reference itself is missing or unsafe, which would render and copy a
+    // reference-less literal and leave the row without its data-audit-reference anchor.
     private static string? SupportSafeReferenceLabel(TenantAuditRow row)
-        => TenantAuditSupportSafety.SafeApprovedReference(
-            string.IsNullOrWhiteSpace(row.ReferenceContext)
-                ? row.EventReference
-                : $"{row.EventReference} - {row.ReferenceContext}");
+    {
+        string? reference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
+        return reference is null || string.IsNullOrWhiteSpace(row.ReferenceContext)
+            ? reference
+            : TenantAuditSupportSafety.SafeApprovedReference($"{reference} - {row.ReferenceContext}");
+    }
 
     private static string? SupportSafeRowMarker(TenantAuditRow row)
         => SupportSafeReferenceLabel(row) is null

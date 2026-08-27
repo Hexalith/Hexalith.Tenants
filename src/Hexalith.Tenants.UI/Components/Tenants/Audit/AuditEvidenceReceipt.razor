@@ -161,7 +161,12 @@
         }
 
         string localizedReference = Localizer["Tenants.Audit.Receipt.ReferenceLiteral", auditReference].Value;
-        return TenantAuditSupportSafety.SafeApprovedReference(localizedReference);
+
+        // A missing or placeholder-less resource makes IStringLocalizer return the key itself, which the
+        // safety policy would accept: refuse any literal that does not actually carry the audit reference.
+        return localizedReference.Contains(auditReference, StringComparison.Ordinal)
+            ? TenantAuditSupportSafety.SafeApprovedReference(localizedReference)
+            : null;
     }
 
     private static string SafeReferenceFallback(string? auditReference)

@@ -126,6 +126,15 @@ public sealed class TenantAuditReceiptTests
         receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
     }
 
+    // Actor and target are caller-supplied user identifiers, so the identifier policy deliberately
+    // admits an e-mail shape there; the approved-reference policy must still refuse it.
+    [Fact]
+    public void Receipt_blocks_a_pii_shaped_command_reference()
+        => TenantAuditReceipt
+            .FromRow(Row(), supportSafeCommandReference: "person@example.test")
+            .CommandReference
+            .ShouldBeNull();
+
     [Fact]
     public void Receipt_with_missing_required_fields_is_partial_and_not_copyable()
     {

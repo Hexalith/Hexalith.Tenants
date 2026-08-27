@@ -299,6 +299,27 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
     }
 
+    // A composed "{reference} - {context}" literal can pass the policy while the reference itself is
+    // missing, which would render and copy a literal carrying no audit reference at all.
+    [Fact]
+    public void Tenant_audit_page_omits_reference_surfaces_when_only_the_context_is_present()
+    {
+        RegisterServices(ReadySnapshot(
+            [
+                Row(string.Empty, AuditEventCategory.Access, referenceContext: "userId: target-user"),
+            ]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-row-reference'] > .audit-data-grid__wrap")
+            .TextContent.ShouldBe("Reference unavailable");
+        cut.FindAll("[data-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-row']").HasAttribute("data-audit-reference").ShouldBeFalse();
+        cut.FindAll("[data-correction-focus-reference]").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Tenant_audit_page_omits_all_reference_and_correction_markers_for_unsafe_supported_context()
     {

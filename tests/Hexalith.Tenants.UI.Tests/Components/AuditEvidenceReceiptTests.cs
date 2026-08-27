@@ -132,6 +132,36 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
 
+    // The disclosure surface for a PII-shaped command reference is the rendered receipt, not the model:
+    // the visible reference proves the assertion can fail if the value were ever admitted.
+    [Fact]
+    public void Receipt_component_never_renders_a_pii_shaped_command_reference()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), supportSafeCommandReference: "person@example.test")));
+
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("Audit reference: event-safe-reference");
+        cut.Markup.ShouldNotContain("person@example.test", Case.Insensitive);
+        cut.Markup.ShouldNotContain("Command reference");
+    }
+
+    // A missing resource makes IStringLocalizer echo the key, which carries no placeholder and would
+    // otherwise pass the safety policy as a reference-less literal on both the page and the clipboard.
+    [Fact]
+    public void Receipt_component_rejects_a_localized_literal_that_drops_the_audit_reference()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(
+            new StubTenantsLocalizer("Tenants.Audit.Receipt.ReferenceLiteral"));
+        TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference");
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
+    }
+
     [Fact]
     public void Ready_receipt_hides_inspect_action_without_a_real_inspect_delegate()
     {
