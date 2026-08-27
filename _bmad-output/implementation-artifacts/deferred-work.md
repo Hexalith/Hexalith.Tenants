@@ -203,14 +203,16 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-ac
 location: n/a
 reason: The legacy ledger defers this issue: Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18. Original context is preserved in legacy-detail.
 legacy-detail: - Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/spec-frontcomposer-fluent-structural-and-style-conformance-sweep.md:145 records the independent 2026-06-18 three-layer code review and reproduced verification.
 
 ### DW-27: Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18. Original context is preserved in legacy-detail.
 legacy-detail: - Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/spec-frontcomposer-shell-and-adminui-fluent-conformance-audit.md:246-248 records the 2026-06-18 independent review resolving findings and advancing the story to done.
 
 ### DW-28: Compact non-zero spacing (e.g. `margin:0.5rem`/`padding:0.5rem`) is now flagged by the styling-ownership guard. The `(?!0)` zero-skip was replaced with a zero-token matcher that still skips genuine resets (`0`, `0 0 0 0`, `0px`, `0 !important`). No real component CSS regressed
 origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`"), 2026-08-25
@@ -281,35 +283,40 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-domain-ui-governance-and-ac
 location: n/a
 reason: The legacy ledger defers this issue: The claim that the styling scan is blind to declarations inside `@media` blocks was verified as a false positive in the structural/style story and is not open work. Original context is preserved in legacy-detail.
 legacy-detail: - The claim that the styling scan is blind to declarations inside `@media` blocks was verified as a false positive in the structural/style story and is not open work.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/spec-frontcomposer-fluent-structural-and-style-conformance-sweep.md:152-154 documents the empirical retest and dismissal as a verified false positive.
 
 ### DW-37: Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18. Original context is preserved in legacy-detail.
 legacy-detail: - Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/spec-frontcomposer-fluent-structural-and-style-conformance-sweep.md:145 records the completed 2026-06-18 review.
 
 ### DW-38: Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18. Original context is preserved in legacy-detail.
 legacy-detail: - Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/spec-frontcomposer-shell-and-adminui-fluent-conformance-audit.md:246-248 records the completed 2026-06-18 review.
 
 ### DW-39: Current deployment docs/YAML scan on 2026-06-19
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: docs/YAML
 reason: The legacy ledger defers this issue: Current deployment docs/YAML scan on 2026-06-19. Original context is preserved in legacy-detail.
 legacy-detail: - Current deployment docs/YAML scan on 2026-06-19.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md:83-91 records the current YAML/docs scan, patches, and documentation assertions.
 
 ### DW-40: DAPR v1.17 topic-scoping documentation checked on 2026-06-20
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: DAPR v1.17 topic-scoping documentation checked on 2026-06-20. Original context is preserved in legacy-detail.
 legacy-detail: - DAPR v1.17 topic-scoping documentation checked on 2026-06-20.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md:81 records the DAPR v1.17/v1.18 topic-scoping documentation verification.
 
 ### DW-41: Production `deploy/dapr/pubsub.yaml` denies `sample` publishing with an empty topic list (`publishingScopes: "sample="`) and allows `sample` to subscribe to `tenants.events`, while leaving `eventstore` unlisted so it keeps unrestricted publish access (required for EventStore dynamic per-tenant topic provisioning, NFR20 — listing `eventstore` is the documented anti-pattern)
 origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`"), 2026-08-25
@@ -348,7 +355,8 @@ origin: migrated from legacy ledger ("`cc-2026-06-19-dapr-deployment-docs-and-de
 location: n/a
 reason: The legacy ledger defers this issue: June 18 review-record contradictions are kept as routed, stale/resolved, or future-owner handoff entries instead of open Tenants implementation work. Original context is preserved in legacy-detail.
 legacy-detail: - June 18 review-record contradictions are kept as routed, stale/resolved, or future-owner handoff entries instead of open Tenants implementation work.
-status: open
+status: done 2026-08-27
+resolution: already resolved: _bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md:84,92 records normalized routing/evidence records and the stale/resolved EventStore item.
 
 ### DW-46: `FrontComposerShell` exposes a shell content landmark contract that can be a native `<main>` or an equivalent role with an accessible-name parameter
 origin: migrated from legacy ledger ("FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`"), 2026-08-25
@@ -657,14 +665,16 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-a
 location: n/a
 reason: The legacy ledger defers this issue: Already-logged (2026-06-29), re-confirmed:. Original context is preserved in legacy-detail.
 legacy-detail: - **Already-logged (2026-06-29), re-confirmed:** no story-owned gateway-routing test. No new entry created.
-status: open
+status: done 2026-08-27
+resolution: already resolved: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:31-70 pins system/global-administrators/global-administrators, command types, and literal payloads for set/remove.
 
 ### DW-85: Ledger-hygiene (see 5.7 patch P-9) — CLOSED 2026-06-30:
 origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-administrator-correction-verification — committed bundle re-review (2026-06-30)"), 2026-08-25
 location: n/a
 reason: The legacy ledger defers this issue: Ledger-hygiene (see 5.7 patch P-9) — CLOSED 2026-06-30:. Original context is preserved in legacy-detail.
 legacy-detail: - **~~Ledger-hygiene (see 5.7 patch P-9)~~ — CLOSED 2026-06-30:** the stale "ConfirmProjection confirms off a known-Stale projection" and "Corrective-proof timestamp uses CurrentCulture" entries were rewritten/closed after the follow-up patches landed. Global-admin stale projection and proof timestamp/parse paths are resolved; tenant-domain residuals are tracked separately below.
-status: open
+status: done 2026-08-27
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:285-305 rejects non-Current and inconclusive paged absence; GlobalAdministratorCorrectionPanel.razor:466-478 parses timestamps invariantly with RoundtripKind.
 
 ### DW-86: Concurrent correction opens can finish projection refresh out of order — RESOLVED 2026-06-30 (CC deferred-work, Edit D)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-30)"), 2026-08-25
@@ -1040,7 +1050,8 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: The guard fails on any published version above the floor, even when the version semantic-release would actually propose is free, with no override. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: The guard fails on any published version above the floor, even when the version semantic-release would actually propose is free, with no override. evidence: floor v3.2.18 with a published 3.3.0-3.15.1 band and a breaking change in range proposes 4.0.0, which is free, yet the guard exits 1. There is no workflow_dispatch acknowledgement input, so the only escape is mutating tags.
-status: open
+status: done 2026-08-27
+resolution: already resolved: Hexalith.Builds commit bd94f7fe; references/Hexalith.Builds/.github/workflows/domain-release.yml:889-907 dry-runs semantic-release and collision-checks the exact proposed version.
 decision: 2026-08-26 Check exact proposal — Calculate semantic-release's exact proposal before approval and collision-check that version.
 decision: 2026-08-25 Check proposed version — Calculate semantic-release's exact proposal before approval and collision-check that version.
 
@@ -1237,7 +1248,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:189; TenantsResources.resx
 reason: The legacy ledger defers this issue: Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries. Original context is preserved in legacy-detail.
 legacy-detail: - Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries. The new page-scoped global-administrator removal message is a hardcoded literal, but so is the pre-existing "Current complete projection evidence is required…" arm it branches against, and the same shape recurs across the command snapshot types. Reason for deferral: pre-existing pattern, not introduced by this story. Converting one arm in isolation would leave the file internally inconsistent and split one message pair across two mechanisms. Revisit if: the command snapshots get a localization pass, or EN/FR parity is enforced by a governance test that reaches C# literals rather than only `.resx` keys. [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:189]
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit 7d865ce8; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:219-233 uses localizable resource keys instead of raw English SafeMessage literals.
 
 ### DW-157: `RestQueryClientAdapter` carries 13 lines of dead freshness computation that re-implement `TenantsRestQueryClient.ResolveFreshness`, discard the result, and omit the `IsDegraded == true` collapse both production implementations perform — so it will drift silently while reading as if it models the client
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
@@ -1459,7 +1471,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:846
 reason: The legacy ledger defers this issue: Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap. Original context is preserved in legacy-detail.
 legacy-detail: - Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:846]
-status: open
+status: done 2026-08-27
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1202-1211 refuses Next when HasMore is false or NextCursor is blank, and the rendered pager applies the same guard.
 
 ### DW-186: Coarse `StaleData` category for every non-Current projection lifecycle — deferred, pre-existing; message key is specific (`ProjectionLifecycle`) but category chip stays StaleData
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-12-projection-lifecycle-badges.md (2026-08-08)"), 2026-08-25
@@ -2537,7 +2550,8 @@ status: open
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css:49
 reason: The stylesheet uses `var(--accent-fill-rest, LinkText)`, violating the project ban on legacy `--accent-*`, `--neutral-*`, `--type-ramp-*`, and `--palette-*` Fluent tokens. Replace it with the approved Fluent UI v5 styling contract while preserving the intended visual state.
-status: open
+status: done 2026-08-27
+resolution: already resolved: commit 2e19cc8e; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css:48-50 uses Fluent v5 --colorBrandStroke1 instead of --accent-fill-rest.
 
 ### DW-319: Retire or deprecate untracked lifecycle dispatch methods
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
