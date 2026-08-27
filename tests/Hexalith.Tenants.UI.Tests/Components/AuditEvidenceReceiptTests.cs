@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Xml.Linq;
 
 using Bunit;
 
@@ -30,7 +31,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.OnInspectAudit, () => { }));
 
         cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("role").ShouldBe("region");
-        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("Audit reference: event-safe-reference");
         cut.Find("[data-testid='tenants-audit-receipt-copy']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
         cut.Markup.ShouldContain("actor-user");
         cut.Markup.ShouldContain("target-user");
@@ -46,6 +47,37 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Find(".audit-evidence-receipt__action").NodeName.ShouldBe("FLUENT-BUTTON");
     }
 
+    [Theory]
+    [InlineData("TenantsResources.resx", "Audit reference: {0}")]
+    [InlineData("TenantsResources.fr.resx", "Reference d'audit : {0}")]
+    public void Receipt_component_copies_the_exact_visible_localized_reference_literal(
+        string resourceFile,
+        string expectedFormat)
+    {
+        string projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string resourcePath = Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", resourceFile);
+        string resourceFormat = XDocument.Load(resourcePath)
+            .Root!
+            .Elements("data")
+            .Single(element => element.Attribute("name")?.Value is "Tenants.Audit.Receipt.ReferenceLiteral")
+            .Element("value")!
+            .Value;
+        resourceFormat.ShouldBe(expectedFormat);
+
+        string visibleReference = string.Format(CultureInfo.InvariantCulture, resourceFormat, "event-safe-reference");
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer(resourceFormat));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", visibleReference).SetVoidResult();
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row())));
+
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe(visibleReference);
+        cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
+
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe(visibleReference);
+    }
+
     [Fact]
     public void Receipt_component_omits_copy_when_partial_receipt_has_no_safe_reference()
     {
@@ -57,6 +89,47 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-audit-receipt-copy-feedback']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(TenantAuditReceiptState.Partial)]
+    [InlineData(TenantAuditReceiptState.InvalidReference)]
+    public void Receipt_component_omits_copy_for_direct_non_ready_receipts_with_safe_references(
+        TenantAuditReceiptState state)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditReceipt receipt = DirectReceipt(state, "event-safe-reference");
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
+    }
+
+    [Fact]
+    public void Receipt_component_omits_unsafe_reference_from_visible_and_copy_surfaces()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "Bearer raw-token");
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("-");
+        cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Receipt_component_rejects_an_unsafe_final_localized_reference_literal()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer("Bearer {0}"));
+        TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference");
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
+        cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
 
     [Fact]
@@ -241,6 +314,18 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             CurrentProjectionSnapshotReference: "tenant.alpha@current",
             IntendedRole: intendedRole);
 
+    private static TenantAuditReceipt DirectReceipt(TenantAuditReceiptState state, string auditReference)
+        => new(
+            "actor-user",
+            "target-user",
+            "tenant.alpha",
+            "UserAddedToTenant (Access)",
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+            ReadModelFreshnessState.Current,
+            auditReference,
+            null,
+            state);
+
     private static TenantAuditRow Row(string eventReference = "event-safe-reference", string eventType = "UserAddedToTenant")
         => new(
             eventReference,
@@ -259,10 +344,29 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
+        private readonly string _referenceLiteralFormat;
+
+        public StubTenantsLocalizer()
+            : this("Audit reference: {0}")
+        {
+        }
+
+        public StubTenantsLocalizer(string referenceLiteralFormat)
+        {
+            _referenceLiteralFormat = referenceLiteralFormat;
+        }
+
         public LocalizedString this[string name] => new(name, Values.TryGetValue(name, out string? value) ? value : name);
 
         public LocalizedString this[string name, params object[] arguments]
-            => new(name, string.Format(CultureInfo.CurrentCulture, Values.TryGetValue(name, out string? value) ? value : name, arguments));
+            => new(
+                name,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    name is "Tenants.Audit.Receipt.ReferenceLiteral"
+                        ? _referenceLiteralFormat
+                        : Values.TryGetValue(name, out string? value) ? value : name,
+                    arguments));
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
             => Values.Select(static value => new LocalizedString(value.Key, value.Value));
@@ -297,6 +401,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.Action.Retry"] = "Retry",
             ["Tenants.Audit.Receipt.Action.Wait"] = "Wait for audit evidence",
             ["Tenants.Audit.Receipt.Copy"] = "Copy audit receipt reference",
+            ["Tenants.Audit.Receipt.ReferenceLiteral"] = "Audit reference: {0}",
             ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
             ["Tenants.Audit.Receipt.Field.CommandReference"] = "Command reference",
             ["Tenants.Audit.Receipt.Field.Outcome"] = "Outcome",

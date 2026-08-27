@@ -65,16 +65,16 @@
                         Class="tenants-audit-critical tenants-audit-critical--reference"
                         Width="260px">
             @{
-                string? supportSafeEventReference = TenantAuditSupportSafety.SafeApprovedReference(context.EventReference);
+                string? supportSafeReference = SupportSafeReferenceLabel(context);
             }
             <div class="audit-data-grid__reference" data-testid="tenants-audit-row-reference">
-                <span class="audit-data-grid__wrap">@ReferenceLabel(context)</span>
-                @if (supportSafeEventReference is not null)
+                <span class="audit-data-grid__wrap">@(supportSafeReference ?? Localizer["Tenants.Audit.Reference.Unavailable"].Value)</span>
+                @if (supportSafeReference is not null)
                 {
-                    <SupportSafeCopyButton Value="@supportSafeEventReference"
+                    <SupportSafeCopyButton Value="@supportSafeReference"
                                            ValueKind="SupportSafeCopyValueKind.ApprovedReference"
                                            IsApproved="true"
-                                           AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", supportSafeEventReference]"
+                                           AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", supportSafeReference]"
                                            TestId="tenants-audit-copy-reference" />
                 }
             </div>
@@ -91,9 +91,12 @@
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Correction"]"
                         ColumnId="audit-correction"
-                        Width="190px">
+            Width="190px">
             @{
-                TenantCorrectionStartIntent? correctionIntent = CorrectionIntentFor(context);
+                string? supportSafeReference = SupportSafeReferenceLabel(context);
+                TenantCorrectionStartIntent? correctionIntent = supportSafeReference is null
+                    ? null
+                    : CorrectionIntentFor(context);
             }
             @if (correctionIntent?.IsAvailable is true)
             {
@@ -136,7 +139,7 @@
         <span class="audit-data-grid__row-marker"
               data-testid="tenants-audit-row"
               tabindex="-1"
-              data-audit-reference="@row.EventReference"></span>
+              data-audit-reference="@SupportSafeRowMarker(row)"></span>
     }
 </div>
 
@@ -163,10 +166,16 @@
         TenantRole.TenantReader,
     ];
 
-    private string ReferenceLabel(TenantAuditRow row)
-        => string.IsNullOrWhiteSpace(row.ReferenceContext)
-            ? row.EventReference
-            : $"{row.EventReference} - {row.ReferenceContext}";
+    private static string? SupportSafeReferenceLabel(TenantAuditRow row)
+        => TenantAuditSupportSafety.SafeApprovedReference(
+            string.IsNullOrWhiteSpace(row.ReferenceContext)
+                ? row.EventReference
+                : $"{row.EventReference} - {row.ReferenceContext}");
+
+    private static string? SupportSafeRowMarker(TenantAuditRow row)
+        => SupportSafeReferenceLabel(row) is null
+            ? null
+            : TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
 
     // Render in UTC: Blazor InteractiveServer runs server-side, so ToLocalTime() would bind the
     // displayed timestamp to the server's timezone (non-deterministic across deployments) and

@@ -3370,6 +3370,9 @@
   <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
     <value>Copy audit receipt reference</value>
   </data>
+  <data name="Tenants.Audit.Receipt.ReferenceLiteral" xml:space="preserve">
+    <value>Audit reference: {0}</value>
+  </data>
   <data name="Tenants.Audit.Receipt.Field.Actor" xml:space="preserve">
     <value>Actor</value>
   </data>
@@ -3402,6 +3405,9 @@
   </data>
   <data name="Tenants.Audit.Receipt.State.Delayed" xml:space="preserve">
     <value>Audit evidence is delayed. Inspect audit or retry before citing proof.</value>
+  </data>
+  <data name="Tenants.Audit.Reference.Unavailable" xml:space="preserve">
+    <value>Reference unavailable</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.InvalidReference" xml:space="preserve">
     <value>The requested receipt reference is not loaded in the current tenant-scoped audit result.</value>

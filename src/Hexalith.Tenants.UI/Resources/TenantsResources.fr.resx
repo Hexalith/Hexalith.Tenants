@@ -3370,6 +3370,9 @@
   <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
     <value>Copier la reference du recu d'audit</value>
   </data>
+  <data name="Tenants.Audit.Receipt.ReferenceLiteral" xml:space="preserve">
+    <value>Reference d'audit : {0}</value>
+  </data>
   <data name="Tenants.Audit.Receipt.Field.Actor" xml:space="preserve">
     <value>Acteur</value>
   </data>
@@ -3402,6 +3405,9 @@
   </data>
   <data name="Tenants.Audit.Receipt.State.Delayed" xml:space="preserve">
     <value>La preuve d'audit est retardee. Inspectez l'audit ou reessayez avant de citer une preuve.</value>
+  </data>
+  <data name="Tenants.Audit.Reference.Unavailable" xml:space="preserve">
+    <value>Reference indisponible</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.InvalidReference" xml:space="preserve">
     <value>La reference de recu demandee n'est pas chargee dans le resultat d'audit limite au locataire actuel.</value>

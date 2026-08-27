@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.SupportSafety;
@@ -30,8 +29,7 @@ public sealed record TenantAuditReceipt(
     ReadModelFreshnessState ProjectionMarker,
     string AuditReference,
     string? CommandReference,
-    TenantAuditReceiptState State,
-    string CopyableReferenceText) {
+    TenantAuditReceiptState State) {
     public string TimestampLabel
         => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture) ?? string.Empty;
 
@@ -56,7 +54,6 @@ public sealed record TenantAuditReceipt(
         string outcome = $"{row.EventType} ({row.Category})";
         TenantAuditReceiptState state = ResolveState(row, outcome, surfaceKind, auditState);
         string? commandReference = TenantAuditSupportSafety.SafeApprovedReference(supportSafeCommandReference);
-        string copyableReferenceText = BuildCopyableReferenceText(row, outcome, commandReference, state);
 
         return new(
             TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId),
@@ -67,8 +64,7 @@ public sealed record TenantAuditReceipt(
             row.Freshness,
             TenantAuditSupportSafety.SafeApprovedReference(row.EventReference) ?? string.Empty,
             commandReference,
-            state,
-            copyableReferenceText);
+            state);
     }
 
     public static TenantAuditReceipt Unavailable(
@@ -88,8 +84,7 @@ public sealed record TenantAuditReceipt(
             ReadModelFreshnessState.Unknown,
             auditReference,
             commandReference,
-            TenantAuditReceiptState.InvalidReference,
-            string.Empty);
+            TenantAuditReceiptState.InvalidReference);
     }
 
     private static TenantAuditReceiptState ResolveState(
@@ -138,37 +133,6 @@ public sealed record TenantAuditReceipt(
             && !string.IsNullOrWhiteSpace(SafeTarget(row))
             && !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId))
             && !string.IsNullOrWhiteSpace(outcome);
-
-    private static string BuildCopyableReferenceText(
-        TenantAuditRow row,
-        string outcome,
-        string? commandReference,
-        TenantAuditReceiptState state) {
-        string? auditReference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
-        if (state is TenantAuditReceiptState.Partial || string.IsNullOrWhiteSpace(auditReference)) {
-            return string.Empty;
-        }
-
-        StringBuilder builder = new();
-        AppendLine(builder, "Audit reference", auditReference);
-        AppendLine(builder, "Command reference", commandReference);
-        AppendLine(builder, "Tenant scope", TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId));
-        AppendLine(builder, "Target", SafeTarget(row));
-        AppendLine(builder, "Outcome", TenantAuditSupportSafety.SafeApprovedReference(outcome));
-        AppendLine(builder, "Projection marker", row.Freshness.ToString());
-        AppendLine(builder, "Timestamp", row.Timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture));
-
-        string result = builder.ToString();
-        return TenantAuditSupportSafety.IsSafe(result, SupportSafeCopyValueKind.ApprovedReference)
-            ? result
-            : string.Empty;
-    }
-
-    private static void AppendLine(StringBuilder builder, string label, string? value) {
-        if (!string.IsNullOrWhiteSpace(value)) {
-            _ = builder.Append(label).Append(": ").AppendLine(value);
-        }
-    }
 
     private static string SafeTarget(TenantAuditRow row)
         => TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));

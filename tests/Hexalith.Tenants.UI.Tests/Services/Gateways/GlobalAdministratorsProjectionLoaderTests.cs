@@ -127,10 +127,14 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(Page(
-                [],
-                continuation == "cycle" ? "cycle" : continuation,
-                hasMore: true)));
+            .Returns(_ =>
+            {
+                calls++;
+                return Task.FromResult(Page(
+                    [],
+                    continuation == "cycle" ? "cycle" : continuation,
+                    hasMore: true));
+            });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
             gateway,

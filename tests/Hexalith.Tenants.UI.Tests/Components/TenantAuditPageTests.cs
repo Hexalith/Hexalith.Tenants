@@ -247,6 +247,7 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public void Tenant_audit_page_renders_grid_filters_paging_and_support_safe_rows()
     {
+        const string visibleReference = "event-safe-reference - userId: target-user; role: TenantReader";
         TenantAuditSnapshot snapshot = ReadySnapshot(
             [
                 Row("event-safe-reference", AuditEventCategory.Access, "userId: target-user; role: TenantReader"),
@@ -255,7 +256,7 @@ public sealed class TenantAuditPageTests : BunitContext
             hasMore: true);
         StubTenantQueryGateway gateway = RegisterServices(snapshot);
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
-        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "event-safe-reference").SetVoidResult();
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", visibleReference).SetVoidResult();
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
@@ -270,6 +271,7 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-previous']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-safe-reference");
         cut.Find("[data-testid='tenants-audit-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
+        cut.Find("[data-testid='tenants-audit-row-reference'] > .audit-data-grid__wrap").TextContent.ShouldBe(visibleReference);
         cut.Find("[data-testid='tenants-audit-receipt-open']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Markup.ShouldContain("target-user");
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
@@ -278,7 +280,7 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.Find("[data-surface-testid='tenants-audit-copy-reference']").Click();
         cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
-        writeHandler.Invocations.Single().Arguments[0].ShouldBe("event-safe-reference");
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe(visibleReference);
     }
 
     [Fact]
@@ -292,6 +294,34 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
         cut.FindAll("[data-surface-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-row-reference']").TextContent.ShouldBe("Reference unavailable");
+        cut.Find("[data-testid='tenants-audit-row']").HasAttribute("data-audit-reference").ShouldBeFalse();
+        cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_omits_all_reference_and_correction_markers_for_unsafe_supported_context()
+    {
+        RegisterServices(ReadySnapshot(
+            [
+                Row(
+                    "event-safe-correction",
+                    AuditEventCategory.Access,
+                    referenceContext: "userId: Bearer raw-token; role: TenantReader",
+                    eventType: "UserRemovedFromTenant"),
+            ]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-row-reference'] > .audit-data-grid__wrap")
+            .TextContent.ShouldBe("Reference unavailable");
+        cut.FindAll("[data-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-row']").HasAttribute("data-audit-reference").ShouldBeFalse();
+        cut.FindAll("[data-correction-focus-reference]").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
 
     [Fact]
@@ -848,11 +878,18 @@ public sealed class TenantAuditPageTests : BunitContext
 
     private static GlobalAdministratorsSnapshot GlobalAdmins(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
+            userIds.Select(userId => new GlobalAdministratorRow(
+                userId,
+                ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current)).ToArray(),
             nextCursor: null,
             hasMore: false,
             eTag: "\"ga-etag\"",
-            freshness: ReadModelFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "v1",
+        };
 
     private static TenantAuditSnapshot GlobalAdminAuditSnapshot(string eventType, string targetUserId)
         => TenantAuditSnapshot.Ready(
@@ -1160,6 +1197,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Column.Timestamp"] = "Timestamp",
             ["Tenants.Audit.ControlsLabel"] = "Tenant audit filters and paging controls",
             ["Tenants.Audit.Copy.EventReference"] = "Copy audit event reference {0}",
+            ["Tenants.Audit.Reference.Unavailable"] = "Reference unavailable",
             ["Tenants.Audit.Description"] = "Read-only tenant audit evidence from the server-side query gateway.",
             ["Tenants.Audit.Eyebrow"] = "Tenant audit trail",
             ["Tenants.Audit.Filter.Category"] = "Category",
@@ -1183,6 +1221,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Receipt.Action.Retry"] = "Retry",
             ["Tenants.Audit.Receipt.Action.Wait"] = "Wait for audit evidence",
             ["Tenants.Audit.Receipt.Copy"] = "Copy audit receipt reference",
+            ["Tenants.Audit.Receipt.ReferenceLiteral"] = "Audit reference: {0}",
             ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
             ["Tenants.Audit.Receipt.Field.CommandReference"] = "Command reference",
             ["Tenants.Audit.Receipt.Field.Outcome"] = "Outcome",

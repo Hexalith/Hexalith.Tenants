@@ -1601,6 +1601,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
             ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
             ["Tenants.Audit.Receipt.Copy"] = "Copy audit receipt reference",
+            ["Tenants.Audit.Receipt.ReferenceLiteral"] = "Audit reference: {0}",
             ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
             ["Tenants.Audit.Receipt.Field.Target"] = "Target",
             ["Tenants.Audit.Receipt.Field.Scope"] = "Tenant scope",

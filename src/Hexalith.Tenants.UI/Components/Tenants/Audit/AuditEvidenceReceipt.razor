@@ -4,6 +4,7 @@
 
 @if (Receipt is not null)
 {
+    string? receiptReferenceLiteral = ReceiptReferenceLiteral(Receipt);
     <section class="audit-evidence-receipt audit-evidence-receipt--@StateCss"
              role="region"
              aria-labelledby="tenants-audit-receipt-heading"
@@ -21,11 +22,14 @@
                     </p>
                 }
             </div>
-            <SupportSafeCopyButton Value="@Receipt.CopyableReferenceText"
-                                   ValueKind="SupportSafeCopyValueKind.ApprovedReference"
-                                   IsApproved="true"
-                                   AccessibleName="@Localizer["Tenants.Audit.Receipt.Copy"]"
-                                   TestId="tenants-audit-receipt-copy" />
+            @if (receiptReferenceLiteral is not null)
+            {
+                <SupportSafeCopyButton Value="@receiptReferenceLiteral"
+                                       ValueKind="SupportSafeCopyValueKind.ApprovedReference"
+                                       IsApproved="true"
+                                       AccessibleName="@Localizer["Tenants.Audit.Receipt.Copy"]"
+                                       TestId="tenants-audit-receipt-copy" />
+            }
         </header>
 
         <dl class="audit-evidence-receipt__fields">
@@ -55,7 +59,7 @@
             </div>
             <div class="audit-evidence-receipt__field">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Reference"]</dt>
-                <dd data-testid="tenants-audit-receipt-reference">@FieldValue(Receipt.AuditReference)</dd>
+                <dd data-testid="tenants-audit-receipt-reference">@(receiptReferenceLiteral ?? SafeReferenceFallback(Receipt.AuditReference))</dd>
             </div>
             @if (!string.IsNullOrWhiteSpace(Receipt.CommandReference))
             {
@@ -142,6 +146,26 @@
         => CorrectionIntent is not null
             && Receipt?.State is TenantAuditReceiptState.Ready
             && (CorrectionIntent.IsAvailable || HasRenderableUnavailableReason);
+
+    private string? ReceiptReferenceLiteral(TenantAuditReceipt receipt)
+    {
+        if (receipt.State is not TenantAuditReceiptState.Ready)
+        {
+            return null;
+        }
+
+        string? auditReference = TenantAuditSupportSafety.SafeApprovedReference(receipt.AuditReference);
+        if (auditReference is null)
+        {
+            return null;
+        }
+
+        string localizedReference = Localizer["Tenants.Audit.Receipt.ReferenceLiteral", auditReference].Value;
+        return TenantAuditSupportSafety.SafeApprovedReference(localizedReference);
+    }
+
+    private static string SafeReferenceFallback(string? auditReference)
+        => FieldValue(TenantAuditSupportSafety.SafeApprovedReference(auditReference));
 
     private bool HasRenderableUnavailableReason
         => CorrectionIntent is not null

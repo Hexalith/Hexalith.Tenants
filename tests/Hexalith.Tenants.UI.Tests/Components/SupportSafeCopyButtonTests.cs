@@ -269,6 +269,35 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Disposal_waits_for_pending_import_and_disposes_resolved_module_once()
+    {
+        var runtime = new ControllableClipboardRuntime(delayImport: true, delayWrite: false);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+
+        Task activation = cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+        await runtime.ImportRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Task disposal = cut.Instance.DisposeAsync().AsTask();
+        await Task.Yield();
+        disposal.IsCompleted.ShouldBeFalse();
+
+        await cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+        runtime.ImportCount.ShouldBe(1);
+
+        runtime.ImportRelease.SetResult(true);
+        await Task.WhenAll(activation, disposal);
+
+        runtime.Writes.ShouldBeEmpty();
+        runtime.DisposeCount.ShouldBe(1);
+        cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
+
+        await cut.Instance.DisposeAsync();
+        runtime.DisposeCount.ShouldBe(1);
+    }
+
     [Theory]
     [InlineData("approval")]
     [InlineData("kind")]
@@ -322,6 +351,122 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 
         runtime.Writes.ShouldBe(["tenant.alpha"]);
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Disposal_waits_for_pending_write_disposes_module_once_and_suppresses_feedback()
+    {
+        var runtime = new ControllableClipboardRuntime(delayImport: false, delayWrite: true);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+
+        Task activation = cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+        await runtime.WriteRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Task disposal = cut.Instance.DisposeAsync().AsTask();
+        await Task.Yield();
+        disposal.IsCompleted.ShouldBeFalse();
+
+        runtime.WriteRelease.SetResult(true);
+        await Task.WhenAll(activation, disposal);
+
+        runtime.Writes.ShouldBe(["tenant.alpha"]);
+        runtime.DisposeCount.ShouldBe(1);
+        cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
+
+        await cut.Instance.DisposeAsync();
+        runtime.DisposeCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Activation_after_disposal_completes_starts_no_clipboard_interop()
+    {
+        var runtime = new ControllableClipboardRuntime(delayImport: false, delayWrite: false);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+
+        await cut.Instance.DisposeAsync();
+        await cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+
+        runtime.ImportCount.ShouldBe(0);
+        runtime.Writes.ShouldBeEmpty();
+        runtime.DisposeCount.ShouldBe(0);
+        cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Concurrent_disposal_callers_wait_for_one_module_disposal()
+    {
+        var runtime = new ControllableClipboardRuntime(
+            delayImport: false,
+            delayWrite: false,
+            delayDispose: true);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+        await cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+
+        Task firstDisposal = cut.Instance.DisposeAsync().AsTask();
+        await runtime.DisposeRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task secondDisposal = cut.Instance.DisposeAsync().AsTask();
+
+        firstDisposal.IsCompleted.ShouldBeFalse();
+        secondDisposal.IsCompleted.ShouldBeFalse();
+        runtime.DisposeRelease.SetResult(true);
+        await Task.WhenAll(firstDisposal, secondDisposal);
+
+        runtime.DisposeCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Unexpected_module_disposal_failure_faults_every_disposal_caller_consistently()
+    {
+        var runtime = new ControllableClipboardRuntime(
+            delayImport: false,
+            delayWrite: false,
+            disposeException: new InvalidOperationException("sensitive-disposal-detail"));
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+        await cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+
+        Task firstDisposal = cut.Instance.DisposeAsync().AsTask();
+        Task secondDisposal = cut.Instance.DisposeAsync().AsTask();
+        InvalidOperationException firstFailure = await Should.ThrowAsync<InvalidOperationException>(firstDisposal);
+        InvalidOperationException secondFailure = await Should.ThrowAsync<InvalidOperationException>(secondDisposal);
+        InvalidOperationException subsequentFailure = await Should.ThrowAsync<InvalidOperationException>(
+            cut.Instance.DisposeAsync().AsTask());
+
+        secondFailure.ShouldBeSameAs(firstFailure);
+        subsequentFailure.ShouldBeSameAs(firstFailure);
+        runtime.DisposeCount.ShouldBe(1);
+        cut.Markup.ShouldNotContain("sensitive-disposal-detail", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("js")]
+    [InlineData("canceled")]
+    public async Task Known_module_teardown_failures_complete_without_disclosing_details(string failureKind)
+    {
+        Exception exception = failureKind is "js"
+            ? new JSException("sensitive-js-teardown-detail")
+            : new OperationCanceledException("sensitive-cancellation-detail");
+        var runtime = new ControllableClipboardRuntime(
+            delayImport: false,
+            delayWrite: false,
+            disposeException: exception);
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+        await cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+
+        await cut.Instance.DisposeAsync();
+        await cut.Instance.DisposeAsync();
+
+        runtime.DisposeCount.ShouldBe(1);
+        cut.Markup.ShouldNotContain("sensitive-", Case.Insensitive);
     }
 
     [Fact]
@@ -560,7 +705,9 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
     private sealed class ControllableClipboardRuntime(
         bool delayImport,
         bool delayWrite,
-        int delayWriteFromInvocation = 1) : IJSRuntime, IJSObjectReference
+        int delayWriteFromInvocation = 1,
+        bool delayDispose = false,
+        Exception? disposeException = null) : IJSRuntime, IJSObjectReference
     {
         public TaskCompletionSource<bool> ImportRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -570,7 +717,15 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 
         public TaskCompletionSource<bool> WriteRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        public TaskCompletionSource<bool> DisposeRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource<bool> DisposeRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public List<string> Writes { get; } = [];
+
+        public int DisposeCount { get; private set; }
+
+        public int ImportCount { get; private set; }
 
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
             => InvokeAsync<TValue>(identifier, CancellationToken.None, args);
@@ -583,10 +738,24 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
                 _ => throw new JSException($"Unexpected JS invocation '{identifier}'."),
             };
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public async ValueTask DisposeAsync()
+        {
+            DisposeCount++;
+            DisposeRequested.TrySetResult(true);
+            if (delayDispose)
+            {
+                await DisposeRelease.Task.ConfigureAwait(false);
+            }
+
+            if (disposeException is not null)
+            {
+                throw disposeException;
+            }
+        }
 
         private async ValueTask<TValue> ImportAsync<TValue>()
         {
+            ImportCount++;
             ImportRequested.TrySetResult(true);
             if (delayImport)
             {

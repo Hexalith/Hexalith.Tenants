@@ -14,7 +14,7 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantAuditReceiptTests
 {
     [Fact]
-    public void Receipt_from_entry_derives_required_fields_and_safe_copy_summary()
+    public void Receipt_from_entry_derives_required_support_safe_fields()
     {
         TenantAuditReceipt receipt = TenantAuditReceipt.FromEntry(
             Entry(new Dictionary<string, string>
@@ -33,11 +33,7 @@ public sealed class TenantAuditReceiptTests
         receipt.AuditReference.ShouldBe("event-safe-reference");
         receipt.CommandReference.ShouldBe("command-safe-reference");
         receipt.ProjectionMarker.ShouldBe(ReadModelFreshnessState.Current);
-        receipt.CopyableReferenceText.ShouldContain("event-safe-reference");
-        receipt.CopyableReferenceText.ShouldContain("command-safe-reference");
-        receipt.CopyableReferenceText.ShouldContain("tenant.alpha");
-        receipt.CopyableReferenceText.ShouldContain("target-user");
-        receipt.CopyableReferenceText.ShouldContain("2026-06-01 10:00:00 UTC");
+        receipt.TimestampLabel.ShouldBe("2026-06-01 10:00:00 UTC");
     }
 
     [Fact]
@@ -74,12 +70,8 @@ public sealed class TenantAuditReceiptTests
             ReadModelFreshnessState.Current);
 
         receipt.Target.ShouldBe("target-user");
-        receipt.CopyableReferenceText.ShouldContain("target-user");
-        receipt.CopyableReferenceText.ShouldNotContain("raw payload", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("token", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("authorization", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("correlation", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("stack trace", Case.Insensitive);
+        receipt.Actor.ShouldBe("actor-user");
+        receipt.AuditReference.ShouldBe("event-safe-reference");
     }
 
     [Theory]
@@ -117,8 +109,7 @@ public sealed class TenantAuditReceiptTests
     [InlineData("System.InvalidOperationException stack trace")]
     [InlineData("internal-correlation-123")]
     [InlineData("MessageId 01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    [InlineData("person@example.test")]
-    public void Receipt_copy_summary_omits_or_blocks_unsafe_values(string unsafeValue)
+    public void Receipt_fields_omit_or_block_unsafe_values(string unsafeValue)
     {
         TenantAuditRow row = Row(
             eventReference: "event-safe-reference",
@@ -128,12 +119,11 @@ public sealed class TenantAuditReceiptTests
 
         TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row, supportSafeCommandReference: unsafeValue);
 
-        receipt.CopyableReferenceText.ShouldNotContain(unsafeValue, Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("raw-token", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("payload", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("metadata", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("correlation", Case.Insensitive);
-        receipt.CopyableReferenceText.ShouldNotContain("MessageId", Case.Insensitive);
+        receipt.Actor.ShouldBeEmpty();
+        receipt.Target.ShouldBeEmpty();
+        receipt.CommandReference.ShouldBeNull();
+        receipt.AuditReference.ShouldBe("event-safe-reference");
+        receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
     }
 
     [Fact]
@@ -142,7 +132,6 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row(eventReference: string.Empty));
 
         receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
-        receipt.CopyableReferenceText.ShouldBeEmpty();
     }
 
     [Fact]
@@ -153,7 +142,25 @@ public sealed class TenantAuditReceiptTests
         receipt.State.ShouldBe(TenantAuditReceiptState.InvalidReference);
         receipt.Timestamp.ShouldBeNull();
         receipt.TimestampLabel.ShouldBeEmpty();
-        receipt.CopyableReferenceText.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Receipt_model_contains_no_hidden_presentation_copy()
+    {
+        typeof(TenantAuditReceipt).GetProperty("CopyableReferenceText").ShouldBeNull();
+
+        string projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string source = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "State",
+            "TenantAudit",
+            "TenantAuditReceipt.cs"));
+
+        source.ShouldNotContain("StringBuilder");
+        source.ShouldNotContain("AppendLine");
+        source.ShouldNotContain("CopyableReferenceText");
     }
 
     private static TenantAuditEntry Entry(IReadOnlyDictionary<string, string> narrative)

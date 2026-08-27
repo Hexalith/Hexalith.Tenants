@@ -32,6 +32,9 @@
 @code {
     private const string ClipboardModulePath = "./js/tenantsClipboard.js";
 
+    private readonly object _interopLifetime = new();
+    private Task? _disposalTask;
+    private TaskCompletionSource<bool>? _interopDrained;
     private IJSObjectReference? _module;
     private string _feedback = string.Empty;
     private CopyFeedbackKind _feedbackKind = CopyFeedbackKind.Ready;
@@ -41,6 +44,8 @@
     private string _observedAccessibleName = string.Empty;
     private long _inputVersion;
     private int _activationInProgress;
+    private int _interopInProgress;
+    private int _disposeStarted;
 
     [Parameter]
     public string Value { get; set; } = string.Empty;
@@ -91,23 +96,49 @@
 
     private async Task CopyAsync()
     {
-        if (Interlocked.CompareExchange(ref _activationInProgress, 1, 0) != 0)
+        if (Volatile.Read(ref _disposeStarted) != 0
+            || Interlocked.CompareExchange(ref _activationInProgress, 1, 0) != 0)
         {
             return;
         }
 
         CopyInput input = new(Value, ValueKind, IsApproved, AccessibleName, Volatile.Read(ref _inputVersion));
+        bool interopEntered = false;
         try
         {
-            if (!input.IsEligible)
+            if (!input.IsEligible || !TryBeginInterop())
+            {
+                return;
+            }
+
+            interopEntered = true;
+            if (!IsCurrent(input.Version))
             {
                 return;
             }
 
             await ClearFeedbackAsync(input.Version).ConfigureAwait(false);
 
-            IJSObjectReference module = _module
-                ??= await JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath).ConfigureAwait(false);
+            IJSObjectReference? module = _module;
+            if (module is null)
+            {
+                if (!TryStartModuleImport(out ValueTask<IJSObjectReference> importOperation))
+                {
+                    return;
+                }
+
+                module = await importOperation.ConfigureAwait(false);
+                lock (_interopLifetime)
+                {
+                    _module ??= module;
+                }
+            }
+
+            if (!IsCurrent(input.Version))
+            {
+                return;
+            }
+
             bool writeStarted = false;
             await InvokeAsync(async () =>
             {
@@ -116,8 +147,13 @@
                     return;
                 }
 
+                if (!TryStartClipboardWrite(module, input.Value, out ValueTask writeOperation))
+                {
+                    return;
+                }
+
                 writeStarted = true;
-                await module.InvokeVoidAsync("writeText", input.Value).ConfigureAwait(false);
+                await writeOperation.ConfigureAwait(false);
             }).ConfigureAwait(false);
             if (!writeStarted)
             {
@@ -152,12 +188,81 @@
         }
         finally
         {
+            if (interopEntered)
+            {
+                EndInterop();
+            }
+
             Volatile.Write(ref _activationInProgress, 0);
         }
     }
 
+    private bool TryBeginInterop()
+    {
+        lock (_interopLifetime)
+        {
+            if (_disposeStarted != 0)
+            {
+                return false;
+            }
+
+            _interopInProgress++;
+            return true;
+        }
+    }
+
+    private bool TryStartModuleImport(out ValueTask<IJSObjectReference> operation)
+    {
+        lock (_interopLifetime)
+        {
+            if (_disposeStarted != 0)
+            {
+                operation = default;
+                return false;
+            }
+
+            operation = JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath);
+            return true;
+        }
+    }
+
+    private bool TryStartClipboardWrite(
+        IJSObjectReference module,
+        string value,
+        out ValueTask operation)
+    {
+        lock (_interopLifetime)
+        {
+            if (_disposeStarted != 0)
+            {
+                operation = default;
+                return false;
+            }
+
+            operation = module.InvokeVoidAsync("writeText", value);
+            return true;
+        }
+    }
+
+    private void EndInterop()
+    {
+        TaskCompletionSource<bool>? interopDrained = null;
+        lock (_interopLifetime)
+        {
+            _interopInProgress--;
+            if (_interopInProgress == 0)
+            {
+                interopDrained = _interopDrained;
+                _interopDrained = null;
+            }
+        }
+
+        interopDrained?.TrySetResult(true);
+    }
+
     private bool IsCurrent(long version)
-        => Volatile.Read(ref _inputVersion) == version;
+        => Volatile.Read(ref _disposeStarted) == 0
+            && Volatile.Read(ref _inputVersion) == version;
 
     private async Task ClearFeedbackAsync(long version)
     {
@@ -199,22 +304,67 @@
         }).ConfigureAwait(false);
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_module is null)
+        Task disposalTask;
+        Task interopDrained;
+        var disposalCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_interopLifetime)
         {
-            return;
+            if (_disposalTask is not null)
+            {
+                return new(_disposalTask);
+            }
+
+            _disposeStarted = 1;
+            _ = Interlocked.Increment(ref _inputVersion);
+            interopDrained = _interopInProgress == 0
+                ? Task.CompletedTask
+                : (_interopDrained ??= new(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
+            _disposalTask = disposalCompleted.Task;
+            disposalTask = _disposalTask;
         }
 
+        _ = CompleteDisposalAsync(interopDrained, disposalCompleted);
+        return new(disposalTask);
+    }
+
+    private async Task CompleteDisposalAsync(
+        Task interopDrained,
+        TaskCompletionSource<bool> disposalCompleted)
+    {
         try
         {
-            await _module.DisposeAsync().ConfigureAwait(false);
+            await interopDrained.ConfigureAwait(false);
+            IJSObjectReference? module;
+            lock (_interopLifetime)
+            {
+                module = _module;
+                _module = null;
+            }
+
+            if (module is not null)
+            {
+                try
+                {
+                    await module.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception) when (IsKnownTeardownException(exception))
+                {
+                    // Teardown can race circuit loss or cancellation; never retain or surface its details.
+                }
+            }
+
+            disposalCompleted.TrySetResult(true);
         }
-        catch (JSDisconnectedException)
+        catch (Exception exception)
         {
-            // The circuit is already gone; no support-safe value is logged or surfaced here.
+            disposalCompleted.TrySetException(exception);
         }
     }
+
+    private static bool IsKnownTeardownException(Exception exception)
+        => exception is JSException or OperationCanceledException;
 
     private enum CopyFeedbackKind
     {
