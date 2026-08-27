@@ -2450,6 +2450,7 @@ location: ProjectionVersion
 reason: The legacy ledger defers this issue: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Original context is preserved in legacy-detail.
 legacy-detail: - A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key.
 status: open
+decision: 2026-08-27 Specific recovery key — Keep the existing unavailable-reason enum stable, detect the missing-version branch explicitly at the lifecycle component boundary, and emit dedicated EN/FR message and recovery keys with focused tests.
 
 ### DW-304: The ten-item preview renders from `_snapshot.LastConfirmedProjection ?? Detail` while the eligibility gate validates `Detail`/`ResolvedEvidence`; after an in-flow Refresh the user can be shown facts no gate validated. Fails closed at submit, so consistency rather than correctness. Fix is ambiguous (which source wins)
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25

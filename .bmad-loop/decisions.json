@@ -206,6 +206,15 @@
     "label": "Evidence is canonical",
     "resolution": ""
   },
+  "DW-303": {
+    "answered_at": "2026-08-27",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Keep the existing unavailable-reason enum stable, detect the missing-version branch explicitly at the lifecycle component boundary, and emit dedicated EN/FR message and recovery keys with focused tests.",
+    "key": "1",
+    "label": "Specific recovery key",
+    "resolution": ""
+  },
   "DW-319": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
