@@ -1025,6 +1025,7 @@ location: TenantQueryGateway.cs:890
 reason: The legacy ledger defers this issue: Partially hidden authoritative-search windows disclose hidden candidates through paging state. Original context is preserved in legacy-detail.
 legacy-detail: - **Partially hidden authoritative-search windows disclose hidden candidates through paging state.** This is the already-recorded Story 1.9 `PARTIAL-WINDOW-DISCLOSURE-1.9` residual: `TenantQueryGateway.cs:890` renders surviving rows while retaining a `HasMore` value derived from the raw pre-authorization total. It is pre-existing relative to the Story 1.6 trust-boundary chunk and remains owned by Story 1.9.
 status: open
+decision: 2026-08-28 Await stronger requirement
 
 ### DW-128: Search hydration conflates forbidden and missing candidates when deciding whether to end paging
 origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-28)"), 2026-08-25

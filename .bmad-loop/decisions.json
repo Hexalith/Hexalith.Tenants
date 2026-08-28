@@ -17,6 +17,15 @@
     "label": "Upstream uniqueness",
     "resolution": ""
   },
+  "DW-127": {
+    "answered_at": "2026-08-28",
+    "bundle_name": "",
+    "effect": "keep-open",
+    "intent": "",
+    "key": "3",
+    "label": "Await stronger requirement",
+    "resolution": ""
+  },
   "DW-128": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
