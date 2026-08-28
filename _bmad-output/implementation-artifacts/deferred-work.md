@@ -1192,7 +1192,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:200-216
 reason: The legacy ledger defers this issue: Mobile read-only for platform-authority mutations is enforced only by CSS. Original context is preserved in legacy-detail.
 legacy-detail: - **Mobile read-only for platform-authority mutations is enforced only by CSS** — `@media (max-width: 42rem)` sets `display: none` on `.global-admins__mutation-initiation` (both the descendant and `::deep` selectors), and the paired `FluentMessageBar` states "Grant and remove controls require a wider viewport." The `EditForm … OnSubmit="SubmitGrantAsync"`, the grant submit button and the per-row Remove `FluentButton` remain rendered and wired over the circuit; `SubmitGrantAsync`, `PreviewRemove` and `SubmitRemoveAsync` contain no viewport check, and a hidden element still dispatches events in Blazor Server. Reason for deferral: viewport is an affordance, not an authorization boundary. The server API plus the existing authorization, read-surface, freshness and completeness gates remain the real enforcement, so this is a copy-accuracy point rather than a security defect. Revisit if: the notice is ever restated as a safety guarantee, or a viewport-scoped capability becomes part of the authorization model. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:200-216]
-status: open
+status: done 2026-08-28
+resolution: already resolved: commit 03566fb1; src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorActionAvailabilityEvaluator.cs:84-87 and GlobalAdministratorsPage.razor:2153-2159,2410-2418 now re-evaluate runtime viewport safety before submission.
 
 ### DW-148: Deferred to Story 1.11
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-30)"), 2026-08-25
@@ -1876,7 +1877,8 @@ location: src/; tests/
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Global-administrator command surface is not covered by the new AggregateIdentity admission gate. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Global-administrator command surface is not covered by the new AggregateIdentity admission gate. evidence: `TenantCommandAggregateLock.ForGlobalAdministrators()` and `TenantAggregateCommandAdmissionGate.HasActiveLock` have zero call sites in `src/` or `tests/`; `GlobalAdministratorsPage` and `GlobalAdministratorCorrectionPanel` dispatch ungated, so one-at-a-time exclusivity holds for tenant aggregates only.
-status: open
+status: done 2026-08-28
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1042-1046,2175-2179,2430-2434 resolves the admission gate and acquires the fixed aggregate lease; commits 03566fb1 and ba060a2f.
 
 ### DW-232: Optional `messageId` reached create-tenant and update-tenant beyond the declared membership scope
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
@@ -1892,7 +1894,8 @@ location: IsCommandSurfaceAvailable
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: A missing admission-gate registration disables Epic 3 command surfaces as well as membership. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: A missing admission-gate registration disables Epic 3 command surfaces as well as membership. evidence: `IsCommandSurfaceAvailable` now requires `AggregateAdmissionGate is not null`, and that value is passed to `EditTenantMetadataFlow`, `TenantLifecycleActionAvailability`, and `TenantConfigurationManagement`. Fail-closed, so acceptable, but it widens the blast radius of a composition mistake beyond this story.
-status: open
+status: done 2026-08-28
+resolution: already resolved: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:96 registers TenantAggregateCommandAdmissionGate, while TenantDetailPage.razor:358-362 remains intentionally fail-closed when unavailable.
 
 ### DW-234: Gateway and snapshot safe-message strings are still hard-coded English
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
@@ -2144,7 +2147,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: *Flow.razor; MemberAccessReview.razor:734-738
 reason: The legacy ledger defers this issue: `RemoveTenantMemberFlow.Dispose` does not release the command-activity lease — attempted and reverted. Original context is preserved in legacy-detail.
 legacy-detail: - **`RemoveTenantMemberFlow.Dispose` does not release the command-activity lease — attempted and reverted.** An unmount path other than `CloseAsync` leaves `_hasRaisedCommandActivity` true, so the parent's `_childCommandLeaseOwner` and the page's aggregate key stay held. Releasing from the flow was implemented and then reverted: `CommandFlowGuardConformanceTests.Command_flows_do_not_release_page_activity_directly` forbids any `*Flow.razor` from calling `OnCommandActivityChanged.InvokeAsync(false)`, because a flow that self-releases while still Accepted/ProjectionPending would unlock sibling command surfaces before terminal evidence. The parent is the designated owner and already compensates in `MemberAccessReview.DisposeAsync` and on the authorization-teardown path (`MemberAccessReview.razor:734-738`). Any residual gap is a parent-side concern and should be closed there, not in the flow.
-status: open
+status: done 2026-08-28
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:720-744 releases command activity after terminal flow teardown and lines 1043-1048 release it during disposal.
 
 ### DW-264: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
@@ -2201,7 +2205,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantDetailPage.razor:1689-1703
 reason: The legacy ledger defers this issue: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload. evidence: `:26-46` — same-owner `TryAcquire` now returns `false`, forcing every caller to keep its own bookkeeping (which `TenantDetailPage.razor:1689-1703` reimplements); `Release` at `:55-70` silently no-ops on owner mismatch with no return value, so a leaked lock is undetectable. The `<returns>` doc never mentions the same-owner case.
-status: open
+status: done 2026-08-28
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:22-50 and TenantAggregateCommandLease.cs:36-62 provide owner-aware lease/result APIs while preserving compatible legacy acquisition.
 decision: 2026-08-26 Add compatible outcomes — Add explicit owner-aware result APIs while retaining current signatures as compatibility wrappers.
 
 ### DW-272: The audit-capability probe has no reconnect subscription, and every read refresh briefly blocks removal
@@ -2247,14 +2252,16 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantDetailPage.razor:406-418
 reason: The legacy ledger defers this issue: A `TenantId` change does not notify non-keyed command surfaces that their lease was revoked. Original context is preserved in legacy-detail.
 legacy-detail: - summary: A `TenantId` change does not notify non-keyed command surfaces that their lease was revoked. evidence: `TenantDetailPage.razor:406-418` releases the old aggregate key on route change, but metadata, lifecycle and configuration flows keep `_hasRaisedCommandActivity` true with no lease behind it.
-status: open
+status: done 2026-08-28
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:149,192 keys child surfaces by tenant, and lifecycle/configuration flows reset raised activity on tenant changes at TenantLifecycleCommandFlow.razor:480-490 and sibling flow equivalents.
 
 ### DW-278: The global-administrator aggregation loop uses `ContainsKey`+`Add` and silently drops duplicate or null `UserId` rows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 location: TenantDetailPage.razor:1435-1442
 reason: The legacy ledger defers this issue: The global-administrator aggregation loop uses `ContainsKey`+`Add` and silently drops duplicate or null `UserId` rows. Original context is preserved in legacy-detail.
 legacy-detail: - summary: The global-administrator aggregation loop uses `ContainsKey`+`Add` and silently drops duplicate or null `UserId` rows. evidence: `TenantDetailPage.razor:1435-1442`. `TryAdd` does one lookup; a null `UserId` would throw into the fail-closed catch rather than being handled explicitly.
-status: open
+status: done 2026-08-28
+resolution: already resolved: commit ba060a2f; src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:63-68 aggregates with TryAdd and lines 130-135 reject null, blank, and control-character identities.
 
 ### DW-279: Add and change-role `retryMessageId` exclude the `Rejected` state
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2357,7 +2364,8 @@ location: sprint-status.yaml
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog. evidence: `sprint-status.yaml` currently reports `epic-3: done` and `epic-3-retrospective: done` alongside unfinished Epic 3 story entries, so aggregate status is internally contradictory.
-status: open
+status: done 2026-08-28
+resolution: already resolved: _bmad-output/implementation-artifacts/sprint-status.yaml:98-118 now marks Epic 3, Stories 3.2 through 3.6, and the Epic 3 retrospective done consistently.
 
 ### DW-292: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof — loop 3 final verification (2026-08-21)"), 2026-08-25
