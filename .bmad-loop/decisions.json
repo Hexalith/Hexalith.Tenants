@@ -250,5 +250,14 @@
     "key": "1",
     "label": "Enforce poll budget",
     "resolution": ""
+  },
+  "DW-326": {
+    "answered_at": "2026-08-28",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Keep the complete-preview contract, document Current and Current as an explicit proof fact, prune unreachable resources, and pin the intentional constant in tests.",
+    "key": "2",
+    "label": "Keep ten-fact contract",
+    "resolution": ""
   }
 }
