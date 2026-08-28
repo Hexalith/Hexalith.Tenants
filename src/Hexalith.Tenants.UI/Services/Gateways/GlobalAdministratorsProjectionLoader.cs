@@ -44,9 +44,24 @@ internal static class GlobalAdministratorsProjectionLoader
             page = await gateway
                 .GetGlobalAdministratorsAsync(request, previous: null, cancellationToken)
                 .ConfigureAwait(false);
-            ArgumentNullException.ThrowIfNull(page);
+            if (page is null)
+            {
+                return ToIncomplete(GlobalAdministratorsSnapshot.Invalid(), rows.Values);
+            }
 
-            if (!IsCurrentStablePage(page, projectionVersion))
+            if (page.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
+            {
+                return page with
+                {
+                    Rows = [],
+                    NextCursor = null,
+                    HasMore = false,
+                    ETag = null,
+                    IsCompleteEvidence = false,
+                };
+            }
+
+            if (!IsCurrentStablePage(page, request, projectionVersion))
             {
                 return ToIncomplete(page, rows.Values);
             }
@@ -54,7 +69,10 @@ internal static class GlobalAdministratorsProjectionLoader
             projectionVersion ??= page.ProjectionVersion;
             foreach (GlobalAdministratorRow row in page.Rows)
             {
-                _ = rows.TryAdd(row.UserId, row);
+                if (!rows.TryAdd(row.UserId, row))
+                {
+                    return ToIncomplete(page, rows.Values);
+                }
             }
 
             if (!page.HasMore)
@@ -95,17 +113,34 @@ internal static class GlobalAdministratorsProjectionLoader
 
     private static bool IsCurrentStablePage(
         GlobalAdministratorsSnapshot page,
+        GlobalAdministratorsRequest request,
         string? projectionVersion)
         => page.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
             && page.Freshness is ReadModelFreshnessState.Current
             && page.Lifecycle is ProjectionLifecycleState.Current
             && !page.PagingRecovered
+            && page.Rows is not null
+            && page.Rows.Count <= request.PageSize
+            && page.RequestPageSize == request.PageSize
+            && string.Equals(page.RequestCursor, request.Cursor, StringComparison.Ordinal)
             && !string.IsNullOrWhiteSpace(page.ProjectionVersion)
             && (projectionVersion is null
                 || string.Equals(projectionVersion, page.ProjectionVersion, StringComparison.Ordinal))
-            && (page.Kind is not GlobalAdministratorsSurfaceKind.Empty || page.IsAuthorizationScopedEmpty)
+            && (page.Kind is not GlobalAdministratorsSurfaceKind.Empty
+                || page.IsAuthorizationScopedEmpty
+                    && page.Rows.Count == 0
+                    && !page.HasMore
+                    && string.IsNullOrWhiteSpace(page.NextCursor))
+            && (page.Kind is not GlobalAdministratorsSurfaceKind.Ready
+                || !page.IsAuthorizationScopedEmpty && page.Rows.Count > 0)
+            && (page.HasMore
+                ? !string.IsNullOrWhiteSpace(page.NextCursor)
+                : string.IsNullOrWhiteSpace(page.NextCursor))
             && page.Rows.All(static row =>
-                row.Freshness is ReadModelFreshnessState.Current
+                row is not null
+                && !string.IsNullOrWhiteSpace(row.UserId)
+                && !row.UserId.Any(char.IsControl)
+                && row.Freshness is ReadModelFreshnessState.Current
                 && row.Lifecycle is ProjectionLifecycleState.Current);
 
     private static GlobalAdministratorsSnapshot ToIncomplete(

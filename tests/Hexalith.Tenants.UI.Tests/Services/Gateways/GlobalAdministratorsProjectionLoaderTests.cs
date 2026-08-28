@@ -12,7 +12,7 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class GlobalAdministratorsProjectionLoaderTests
 {
     [Fact]
-    public async Task LoadAsync_aggregates_pages_deduplicates_ids_and_forwards_opaque_cursors()
+    public async Task LoadAsyncAggregatesValidPagesAndForwardsOpaqueCursors()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         var requests = new List<GlobalAdministratorsRequest>();
@@ -25,8 +25,8 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
                 requests.Add(request);
                 return Task.FromResult(request.Cursor is null
-                    ? Page(["admin-a", "duplicate"], "opaque cursor/+", hasMore: true, eTag: "etag-page-1")
-                    : Page(["duplicate", "admin-b"], null, hasMore: false, eTag: "etag-page-2"));
+                    ? Page(["admin-a"], "opaque cursor/+", hasMore: true, eTag: "etag-page-1", request: request)
+                    : Page(["admin-b"], null, hasMore: false, eTag: "etag-page-2", request: request));
             });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
@@ -38,7 +38,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         result.HasMore.ShouldBeFalse();
         result.NextCursor.ShouldBeNull();
         result.ETag.ShouldBeNull();
-        result.Rows.Select(static row => row.UserId).ShouldBe(["admin-a", "duplicate", "admin-b"]);
+        result.Rows.Select(static row => row.UserId).ShouldBe(["admin-a", "admin-b"]);
         requests.ShouldBe(
         [
             new GlobalAdministratorsRequest(PageSize: 7, ETag: "etag-page-1"),
@@ -60,10 +60,11 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ =>
+            .Returns(call =>
             {
                 calls++;
-                GlobalAdministratorsSnapshot page = Page([], calls == 1 ? "page-2" : null, calls == 1);
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                GlobalAdministratorsSnapshot page = Page([calls == 1 ? "admin-a" : "admin-b"], calls == 1 ? "page-2" : null, calls == 1, request: request);
                 return Task.FromResult(scenario switch
                 {
                     "stale" => page with
@@ -102,9 +103,13 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(++calls == 1
-                ? Page(["admin-a"], "page-2", hasMore: true)
-                : Page(["admin-a"], null, hasMore: false) with { PagingRecovered = true }));
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                return Task.FromResult(++calls == 1
+                    ? Page(["admin-a"], "page-2", hasMore: true, request: request)
+                    : Page(["admin-b"], null, hasMore: false, request: request) with { PagingRecovered = true });
+            });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
             gateway,
@@ -127,13 +132,15 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ =>
+            .Returns(call =>
             {
                 calls++;
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
                 return Task.FromResult(Page(
-                    [],
+                    [$"admin-{calls}"],
                     continuation == "cycle" ? "cycle" : continuation,
-                    hasMore: true));
+                    hasMore: true,
+                    request: request));
             });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
@@ -155,7 +162,12 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(Page([], $"page-{++calls}", hasMore: true)));
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                calls++;
+                return Task.FromResult(Page([$"admin-{calls}"], $"page-{calls}", hasMore: true, request: request));
+            });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
             gateway,
@@ -177,11 +189,12 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ =>
+            .Returns(call =>
             {
                 calls++;
                 source.Cancel();
-                return Task.FromResult(Page([], "page-2", hasMore: true));
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                return Task.FromResult(Page(["admin-a"], "page-2", hasMore: true, request: request));
             });
 
         await Should.ThrowAsync<OperationCanceledException>(() => GlobalAdministratorsProjectionLoader.LoadAsync(
@@ -196,7 +209,8 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         string? nextCursor,
         bool hasMore,
         string? eTag = "etag",
-        string projectionVersion = "v1")
+        string projectionVersion = "v1",
+        GlobalAdministratorsRequest? request = null)
         => GlobalAdministratorsSnapshot.Ready(
             userIds.Select(static userId => new GlobalAdministratorRow(
                 userId,
@@ -209,5 +223,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         {
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = projectionVersion,
+            RequestCursor = request?.Cursor,
+            RequestPageSize = request?.PageSize ?? 20,
         };
 }

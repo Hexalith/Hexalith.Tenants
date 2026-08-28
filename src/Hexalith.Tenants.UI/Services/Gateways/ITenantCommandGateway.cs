@@ -4,6 +4,12 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantCommandGateway {
+    /// <summary>Gets whether fixed-scope global-administrator dispatch is supported.</summary>
+    bool SupportsGlobalAdministratorDispatch => false;
+
+    /// <summary>Gets whether authoritative command-status lookup is supported.</summary>
+    bool SupportsCommandStatusLookup => false;
+
     bool SupportsTrackedLifecycleDispatch => false;
 
     bool SupportsTrackedSetConfigurationDispatch => false;

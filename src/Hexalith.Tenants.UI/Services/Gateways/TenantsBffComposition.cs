@@ -21,6 +21,15 @@ internal sealed class TenantsBffComposition(
 
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 
+    public bool IsGlobalAdministratorDispatchConnected
+        => commandGateway.SupportsGlobalAdministratorDispatch;
+
+    public bool IsGlobalAdministratorStatusConnected
+        => commandGateway.SupportsCommandStatusLookup;
+
+    public bool IsGlobalAdministratorRequeryConnected
+        => readSurface?.IsConnected == true;
+
     public TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => IsCommandSurfaceConnected
             ? TenantsGlobalAdministratorClaims.Evaluate(httpContextAccessor?.HttpContext?.User)

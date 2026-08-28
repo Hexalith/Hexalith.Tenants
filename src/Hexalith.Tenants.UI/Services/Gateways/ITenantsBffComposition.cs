@@ -13,6 +13,15 @@ public interface ITenantsBffComposition {
 
     bool IsCommandSurfaceConnected { get; }
 
+    /// <summary>Gets whether fixed-scope command dispatch is connected.</summary>
+    bool IsGlobalAdministratorDispatchConnected => false;
+
+    /// <summary>Gets whether command status lookup is connected.</summary>
+    bool IsGlobalAdministratorStatusConnected => false;
+
+    /// <summary>Gets whether fixed-scope projection requery is connected.</summary>
+    bool IsGlobalAdministratorRequeryConnected => false;
+
     TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 

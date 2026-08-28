@@ -14,6 +14,39 @@ public sealed class TenantAggregateCommandAdmissionGate
     private readonly object _sync = new();
     private readonly Dictionary<string, object> _ownerByKey = new(StringComparer.Ordinal);
 
+    /// <summary>Raised after an aggregate admission changes.</summary>
+    public event EventHandler? StateChanged;
+
+    /// <summary>Acquires an ownership-safe lease for one aggregate attempt.</summary>
+    /// <param name="aggregateLockKey">AggregateIdentity-shaped lock key.</param>
+    /// <param name="owner">Stable command-surface owner.</param>
+    /// <param name="lease">Acquired lease, or <see langword="null"/> when admission failed.</param>
+    /// <returns><see langword="true"/> when the key was free.</returns>
+    public bool TryAcquireLease(
+        string aggregateLockKey,
+        object owner,
+        out TenantAggregateCommandLease? lease)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
+        ArgumentNullException.ThrowIfNull(owner);
+
+        var candidate = new TenantAggregateCommandLease(this, aggregateLockKey, owner);
+        lock (_sync)
+        {
+            if (_ownerByKey.ContainsKey(aggregateLockKey))
+            {
+                lease = null;
+                return false;
+            }
+
+            _ownerByKey.Add(aggregateLockKey, candidate);
+            lease = candidate;
+        }
+
+        NotifyStateChanged();
+        return true;
+    }
+
     /// <summary>
     /// Acquires the lock for <paramref name="aggregateLockKey"/> on behalf of <paramref name="owner"/>.
     /// Unrelated keys remain independently acquirable on the same circuit.
@@ -28,6 +61,7 @@ public sealed class TenantAggregateCommandAdmissionGate
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
         ArgumentNullException.ThrowIfNull(owner);
 
+        bool acquired;
         lock (_sync)
         {
             if (_ownerByKey.ContainsKey(aggregateLockKey))
@@ -36,8 +70,11 @@ public sealed class TenantAggregateCommandAdmissionGate
             }
 
             _ownerByKey.Add(aggregateLockKey, owner);
-            return true;
+            acquired = true;
         }
+
+        NotifyStateChanged();
+        return acquired;
     }
 
     /// <summary>
@@ -50,13 +87,20 @@ public sealed class TenantAggregateCommandAdmissionGate
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
         ArgumentNullException.ThrowIfNull(owner);
 
+        bool released = false;
         lock (_sync)
         {
             if (_ownerByKey.TryGetValue(aggregateLockKey, out object? currentOwner)
                 && ReferenceEquals(currentOwner, owner))
             {
                 _ = _ownerByKey.Remove(aggregateLockKey);
+                released = true;
             }
+        }
+
+        if (released)
+        {
+            NotifyStateChanged();
         }
     }
 
@@ -111,6 +155,30 @@ public sealed class TenantAggregateCommandAdmissionGate
         }
     }
 
+    internal bool TryReleaseLease(TenantAggregateCommandLease lease, bool requireDispatched)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        if (requireDispatched && !lease.IsDispatchMarked)
+        {
+            return false;
+        }
+
+        bool released;
+        lock (_sync)
+        {
+            released = _ownerByKey.TryGetValue(lease.AggregateLockKey, out object? currentOwner)
+                && ReferenceEquals(currentOwner, lease)
+                && _ownerByKey.Remove(lease.AggregateLockKey);
+        }
+
+        if (released)
+        {
+            NotifyStateChanged();
+        }
+
+        return released;
+    }
+
     /// <summary>
     /// Returns whether any aggregate is locked on this circuit.
     /// </summary>
@@ -121,6 +189,27 @@ public sealed class TenantAggregateCommandAdmissionGate
             lock (_sync)
             {
                 return _ownerByKey.Count > 0;
+            }
+        }
+    }
+
+    private void NotifyStateChanged()
+    {
+        EventHandler? handlers = StateChanged;
+        if (handlers is null)
+        {
+            return;
+        }
+
+        foreach (EventHandler handler in handlers.GetInvocationList().Cast<EventHandler>())
+        {
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch
+            {
+                // Admission ownership must not depend on the health of a UI observer.
             }
         }
     }

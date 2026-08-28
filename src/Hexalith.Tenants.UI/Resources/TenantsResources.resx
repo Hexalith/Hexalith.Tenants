@@ -4052,4 +4052,34 @@
   <data name="Tenants.HighImpact.DomainRecovery.TenantDisabled" xml:space="preserve"><value>Enable the tenant through its dedicated lifecycle preview before changing configuration.</value></data>
   <data name="Tenants.HighImpact.DomainRecovery.ConfigurationAlreadyApplied" xml:space="preserve"><value>Review the last-confirmed value; no command was submitted.</value></data>
   <data name="Tenants.HighImpact.DomainRecovery.ConfigurationKeyNotFound" xml:space="preserve"><value>Refresh the authorized configuration list or select a present key.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Available" xml:space="preserve"><value>Grant is available for the fixed platform scope.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Available" xml:space="preserve"><value>Remove is available for this visible administrator.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingPermission" xml:space="preserve"><value>Grant is unavailable because current platform authority is not proven.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingPermission" xml:space="preserve"><value>Remove is unavailable because current platform authority is not proven.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.StaleData" xml:space="preserve"><value>Grant is unavailable until the fixed-scope projection is current and versioned.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.StaleData" xml:space="preserve"><value>Remove is unavailable until the visible fixed-scope projection is current and versioned.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingLifecycleSupport" xml:space="preserve"><value>Grant is unavailable because dispatch, status, or requery support is missing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingLifecycleSupport" xml:space="preserve"><value>Remove is unavailable because dispatch, status, or requery support is missing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport" xml:space="preserve"><value>Grant is read-only until the browser measures a safe tablet or desktop viewport.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.UnsafeViewport" xml:space="preserve"><value>Remove is read-only until the browser measures a safe tablet or desktop viewport.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy" xml:space="preserve"><value>Grant is unavailable while another global-administrator attempt is active.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy" xml:space="preserve"><value>Remove is unavailable while another global-administrator attempt is active.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingConsequencePreview" xml:space="preserve"><value>Grant is unavailable because its safety flow is not ready.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview" xml:space="preserve"><value>Remove is unavailable until its complete consequence preview is ready.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.IncompletePopulation" xml:space="preserve"><value>Grant is unavailable because fixed-scope population evidence is incomplete.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation" xml:space="preserve"><value>Remove is unavailable because the complete fixed-scope population is not proven.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.TargetMissing" xml:space="preserve"><value>Grant is unavailable because its target evidence is invalid.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.TargetMissing" xml:space="preserve"><value>Remove is unavailable because the target is not present in qualified visible evidence.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Unavailable.LastAdministrator" xml:space="preserve"><value>Grant is unavailable because its safety evidence is invalid.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator" xml:space="preserve"><value>Remove is unavailable because this is the last proven global administrator.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.None" xml:space="preserve"><value>No recovery is required.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission" xml:space="preserve"><value>Refresh authorization or ask a platform administrator to verify your authority.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.StaleData" xml:space="preserve"><value>Refresh the fixed-scope projection and review its current version.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport" xml:space="preserve"><value>Restore dispatch, status, and requery support, then retry.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport" xml:space="preserve"><value>Use a measured tablet or desktop viewport to continue.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy" xml:space="preserve"><value>Reconcile the active attempt to terminal evidence before starting another.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Restore the dedicated removal preview before continuing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation" xml:space="preserve"><value>Refresh and complete the bounded fixed-scope population read.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing" xml:space="preserve"><value>Refresh the visible rows and select a current administrator.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator" xml:space="preserve"><value>Grant another administrator before removing this authority.</value></data>
 </root>

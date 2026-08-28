@@ -1,4 +1,6 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -19,6 +21,9 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
     /// must come from the same evidence.
     /// </remarks>
     bool PreviewIsCompleteEvidence = false,
+    string? PreviewProjectionVersion = null,
+    ReadModelFreshnessState PreviewFreshness = ReadModelFreshnessState.Unknown,
+    ProjectionLifecycleState PreviewLifecycle = ProjectionLifecycleState.Unknown,
     GlobalAdministratorRow? LastConfirmedProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -79,6 +84,23 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+    }
+
+    /// <summary>Captures one immutable, complete fixed-scope removal preview.</summary>
+    /// <param name="intent">Removal intent.</param>
+    /// <param name="snapshot">Complete current projection evidence.</param>
+    /// <returns>The previewed or fail-closed command state.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot Preview(
+        RemoveGlobalAdministrator intent,
+        GlobalAdministratorsSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return Preview(intent, snapshot.Rows, snapshot.IsCompleteEvidence) with
+        {
+            PreviewProjectionVersion = snapshot.ProjectionVersion,
+            PreviewFreshness = snapshot.Freshness,
+            PreviewLifecycle = snapshot.Lifecycle,
         };
     }
 

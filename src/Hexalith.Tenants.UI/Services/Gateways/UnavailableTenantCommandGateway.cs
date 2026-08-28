@@ -5,6 +5,10 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
 {
+    public bool SupportsGlobalAdministratorDispatch => false;
+
+    public bool SupportsCommandStatusLookup => false;
+
     public bool SupportsTrackedLifecycleDispatch => false;
 
     public bool SupportsTrackedSetConfigurationDispatch => false;

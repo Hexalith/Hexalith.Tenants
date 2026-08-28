@@ -23,6 +23,10 @@ internal sealed class TenantCommandGateway(
 
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
+    public bool SupportsGlobalAdministratorDispatch => true;
+
+    public bool SupportsCommandStatusLookup => true;
+
     public bool SupportsTrackedLifecycleDispatch => true;
 
     public bool SupportsTrackedSetConfigurationDispatch => true;

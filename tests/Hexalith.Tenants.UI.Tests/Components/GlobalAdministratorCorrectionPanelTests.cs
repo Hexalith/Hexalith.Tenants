@@ -5,6 +5,7 @@ using Bunit;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.FrontComposer.Shell.State.Navigation;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -28,6 +29,15 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 {
+    public GlobalAdministratorCorrectionPanelTests()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+    }
+
     [Fact]
     public void Restore_preview_shows_fixed_scope_command_and_no_tenant_role_selector()
     {
@@ -319,6 +329,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0),
         };
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("other-admin"),
+            TenantAuditSnapshot.Unavailable(new TenantAuditRequest("system"))));
         TenantCorrectionStartIntent intent = RestoreIntent();
 
         IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
@@ -545,6 +558,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
+        public bool SupportsGlobalAdministratorDispatch => true;
+
+        public bool SupportsCommandStatusLookup => true;
+
         public List<SetGlobalAdministrator> SetRequests { get; } = [];
 
         public List<RemoveGlobalAdministrator> RemoveRequests { get; } = [];
@@ -601,6 +618,23 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             => throw new NotSupportedException();
     }
 
+    private sealed class StubTenantsBffComposition : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => true;
+
+        public bool IsCommandSurfaceConnected => true;
+
+        public bool IsGlobalAdministratorDispatchConnected => true;
+
+        public bool IsGlobalAdministratorStatusConnected => true;
+
+        public bool IsGlobalAdministratorRequeryConnected => true;
+
+        public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
     private sealed class StubTenantQueryGateway(GlobalAdministratorsSnapshot projection, TenantAuditSnapshot audit) : ITenantQueryGateway
     {
         /// <summary>
@@ -632,7 +666,12 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            return Task.FromResult(GlobalAdministratorProvider?.Invoke(request) ?? projection);
+            GlobalAdministratorsSnapshot result = GlobalAdministratorProvider?.Invoke(request) ?? projection;
+            return Task.FromResult(result with
+            {
+                RequestCursor = request.Cursor,
+                RequestPageSize = request.PageSize,
+            });
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(

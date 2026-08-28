@@ -20,6 +20,9 @@ public sealed class TenantHighImpactViewportObservation
     /// <summary>Raised after the observed safety state changes.</summary>
     public event EventHandler? StateChanged;
 
+    /// <summary>Gets a value indicating whether a browser measurement has been observed.</summary>
+    public bool HasMeasurement { get; private set; }
+
     /// <summary>Gets the latest measured viewport safety state.</summary>
     public TenantHighImpactViewportState State { get; private set; }
 
@@ -34,12 +37,14 @@ public sealed class TenantHighImpactViewportObservation
                 => TenantHighImpactViewportState.Safe,
             _ => TenantHighImpactViewportState.Unknown,
         };
-        if (next == State)
+        bool changed = next != State || !HasMeasurement;
+        State = next;
+        HasMeasurement = true;
+        if (!changed)
         {
             return;
         }
 
-        State = next;
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
 }
