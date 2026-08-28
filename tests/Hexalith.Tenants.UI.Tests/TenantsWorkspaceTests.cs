@@ -1,7 +1,11 @@
 using System.Globalization;
 using System.Security.Claims;
 
+using AngleSharp.Dom;
+
 using Bunit;
+
+using Hexalith.FrontComposer.Shell.Components.Layout;
 
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -86,7 +90,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
-    public void Workspace_default_route_renders_page_local_tabs_and_tenant_list_controls()
+    public void Workspace_default_route_renders_associated_tenant_panel_with_complete_body()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
@@ -99,6 +103,19 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-workspace-tabs']");
+
+        FcPageTabs pageTabs = cut.FindComponent<FcPageTabs>().Instance;
+        pageTabs.ActiveTabId.ShouldBe("tenants");
+        pageTabs.AriaLabel.ShouldBe("Tenant workspace sections");
+
+        IElement tenantTab = cut.Find("#tenants");
+        IElement tenantPanel = cut.Find("#tenants-panel");
+        tenantTab.GetAttribute("aria-controls").ShouldBe("tenants-panel");
+        tenantPanel.GetAttribute("role").ShouldBe("tabpanel");
+        tenantPanel.QuerySelector("[data-testid='tenants-workspace-tenants-panel-content']").ShouldNotBeNull();
+        tenantPanel.QuerySelector("[data-testid='tenants-list-refresh']").ShouldNotBeNull();
+        tenantPanel.QuerySelector("[data-testid='tenants-list-search']").ShouldNotBeNull();
+        tenantPanel.QuerySelector("[data-testid='tenants-workspace-scope']").ShouldNotBeNull();
 
         cut.Find("[data-testid='tenants-workspace-tabs']").TextContent.ShouldContain("Tenants");
         cut.Find("[data-testid='tenants-workspace-tabs']").TextContent.ShouldContain("Users");
@@ -528,6 +545,12 @@ public sealed class TenantsWorkspaceTests : BunitContext
         gateway.DidNotReceive()
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("USER.Target-01");
+        IElement usersTab = cut.Find("#users");
+        IElement usersPanel = cut.Find("#users-panel");
+        usersTab.GetAttribute("aria-controls").ShouldBe("users-panel");
+        usersPanel.GetAttribute("role").ShouldBe("tabpanel");
+        usersPanel.QuerySelector("[data-testid='tenants-user-lookup-results']").ShouldNotBeNull();
+        cut.FindAll("[data-testid='tenants-workspace-tenants-panel-content']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-user-lookup-input']").GetAttribute("value").ShouldBe("USER.Target-01");
         cut.Markup.ShouldContain("lookup", Case.Insensitive);
         cut.Markup.ShouldNotContain("all users", Case.Insensitive);

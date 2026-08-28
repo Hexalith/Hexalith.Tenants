@@ -21,268 +21,255 @@
                      Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
                      HeaderTestId="tenants-list-page-header">
     <Toolbar>
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12px" Width="100%">
-            <FluentTabs ActiveTabId="@_activeTabId"
-                        ActiveTabIdChanged="OnActiveTabChanged"
-                        Appearance="TabsAppearance.Subtle"
-                        Width="100%"
-                        aria-label="@Localizer["Tenants.Workspace.Tabs.Label"]"
-                        data-testid="tenants-workspace-tabs">
-                <FluentTab Id="@TenantsTabId" Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]" />
-                <FluentTab Id="@UsersTabId" Header="@Localizer["Tenants.Workspace.Tabs.Users"]" />
-            </FluentTabs>
+        @if (_canReviewGlobalAdministrators)
+        {
+            <FluentAnchorButton Href="@GlobalAdministratorsHref"
+                                Appearance="ButtonAppearance.Outline"
+                                data-testid="tenants-global-administrators-entry">
+                @Localizer["Tenants.Navigation.GlobalAdministrators"]
+            </FluentAnchorButton>
+        }
+    </Toolbar>
+    <Body>
+        <FcPageTabs ActiveTabId="@_activeTabId"
+                    ActiveTabIdChanged="OnActiveTabChanged"
+                    AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
+                    TestId="tenants-workspace-tabs">
+            <FcPageTab Id="@TenantsTabId"
+                       Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]"
+                       DeferredLoading="true">
+                <FluentStack Orientation="Orientation.Vertical"
+                             VerticalGap="24px"
+                             Width="100%"
+                             data-testid="tenants-workspace-tenants-panel-content">
+                    <FluentStack Orientation="Orientation.Horizontal"
+                                 HorizontalGap="12px"
+                                 VerticalGap="12px"
+                                 VerticalAlignment="VerticalAlignment.Bottom"
+                                 Wrap="true"
+                                 Width="100%">
+                        <FluentSelect TOption="string" TValue="string"
+                                      Value="@_tenantScope"
+                                      ValueChanged="OnTenantScopeChanged"
+                                      Label="@Localizer["Tenants.Workspace.Scope.Label"]"
+                                      data-testid="tenants-workspace-scope"
+                                      aria-label="@Localizer["Tenants.Workspace.Scope.Label"]">
+                            <FluentOption TValue="string" Value="@AllTenantsScope">@Localizer["Tenants.Workspace.Scope.All"]</FluentOption>
+                            <FluentOption TValue="string" Value="@MyTenantsScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
+                        </FluentSelect>
 
-            @if (_canReviewGlobalAdministrators)
-            {
-                <FluentAnchorButton Href="@GlobalAdministratorsHref"
-                                    Appearance="ButtonAppearance.Outline"
-                                    data-testid="tenants-global-administrators-entry">
-                    @Localizer["Tenants.Navigation.GlobalAdministrators"]
-                </FluentAnchorButton>
-            }
-
-            @if (IsTenantsTab)
-            {
-                <FluentStack Orientation="Orientation.Horizontal"
-                             HorizontalGap="12px"
-                             VerticalGap="12px"
-                             VerticalAlignment="VerticalAlignment.Bottom"
-                             Wrap="true"
-                             Width="100%">
-                    <FluentSelect TOption="string" TValue="string"
-                                  Value="@_tenantScope"
-                                  ValueChanged="OnTenantScopeChanged"
-                                  Label="@Localizer["Tenants.Workspace.Scope.Label"]"
-                                  data-testid="tenants-workspace-scope"
-                                  aria-label="@Localizer["Tenants.Workspace.Scope.Label"]">
-                        <FluentOption TValue="string" Value="@AllTenantsScope">@Localizer["Tenants.Workspace.Scope.All"]</FluentOption>
-                        <FluentOption TValue="string" Value="@MyTenantsScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
-                    </FluentSelect>
-
+                        @if (IsTenantListView)
+                        {
+                            @* Maxlength stops the interactive path reaching the rejection at all: without it a
+                               pasted over-length term was accepted by the input, dropped by normalization, and
+                               the operator watched their own text disappear. A URL-supplied term still bypasses
+                               the input, which is why the rejection also raises a localized notice. *@
+                            <FluentTextInput TextInputType="TextInputType.Search"
+                                             Value="@_search"
+                                             ValueChanged="OnSearchChanged"
+                                             MaxLength="TenantWorkspaceState.MaximumSearchLength"
+                                             Immediate="true"
+                                             ImmediateDelay="350"
+                                             Label="@Localizer["Tenants.List.SearchLabel"]"
+                                             Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                                             data-testid="tenants-list-search"
+                                             aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+                            <FluentSelect TOption="string" TValue="string"
+                                          Value="@_statusFilter"
+                                          ValueChanged="OnStatusFilterChanged"
+                                          Label="@Localizer[StatusFilterLabelKey]"
+                                          data-testid="tenants-list-status-filter"
+                                          aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                                <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+                                <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+                                <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+                                <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+                            </FluentSelect>
+                            <FluentSelect TOption="int" TValue="int"
+                                          Value="@_pageSize"
+                                          ValueChanged="OnPageSizeChanged"
+                                          Label="@Localizer["Tenants.List.PageSizeLabel"]"
+                                          data-testid="tenants-list-page-size"
+                                          aria-label="@Localizer["Tenants.List.PageSizeLabel"]">
+                                @foreach (int pageSize in _pageSizes)
+                                {
+                                    <FluentOption TValue="int" Value="@pageSize">
+                                        @Localizer["Tenants.List.PageSizeOption", pageSize]
+                                    </FluentOption>
+                                }
+                            </FluentSelect>
+                            <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
+                                @Localizer["Tenants.List.Refresh"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
+                                @Localizer["Tenants.List.Reset"]
+                            </FluentButton>
+                        }
+                    </FluentStack>
                     @if (IsTenantListView)
                     {
-                        @* Maxlength stops the interactive path reaching the rejection at all: without it a
-                           pasted over-length term was accepted by the input, dropped by normalization, and
-                           the operator watched their own text disappear. A URL-supplied term still bypasses
-                           the input, which is why the rejection also raises a localized notice. *@
-                        <FluentTextInput TextInputType="TextInputType.Search"
-                                         Value="@_search"
-                                         ValueChanged="OnSearchChanged"
-                                         MaxLength="TenantWorkspaceState.MaximumSearchLength"
-                                         Immediate="true"
-                                         ImmediateDelay="350"
-                                         Label="@Localizer["Tenants.List.SearchLabel"]"
-                                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                                         data-testid="tenants-list-search"
-                                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
-                        <FluentSelect TOption="string" TValue="string"
-                                      Value="@_statusFilter"
-                                      ValueChanged="OnStatusFilterChanged"
-                                  Label="@Localizer[StatusFilterLabelKey]"
-                                      data-testid="tenants-list-status-filter"
-                                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
-                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
-                        </FluentSelect>
-                        <FluentSelect TOption="int" TValue="int"
-                                      Value="@_pageSize"
-                                      ValueChanged="OnPageSizeChanged"
-                                      Label="@Localizer["Tenants.List.PageSizeLabel"]"
-                                      data-testid="tenants-list-page-size"
-                                      aria-label="@Localizer["Tenants.List.PageSizeLabel"]">
-                            @foreach (int pageSize in _pageSizes)
-                            {
-                                <FluentOption TValue="int" Value="@pageSize">
-                                    @Localizer["Tenants.List.PageSizeOption", pageSize]
-                                </FluentOption>
-                            }
-                        </FluentSelect>
-                        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
-                            @Localizer["Tenants.List.Refresh"]
-                        </FluentButton>
-                        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
-                            @Localizer["Tenants.List.Reset"]
-                        </FluentButton>
+                        <FluentText As="TextTag.Paragraph"
+                                    Size="TextSize.Size200"
+                                    Color="Color.Lightweight"
+                                    data-testid="tenants-list-page-local-semantics">
+                            @Localizer[_snapshot.IsAuthoritativeSearch
+                                ? "Tenants.List.AuthoritativeSearchSemantics"
+                                : "Tenants.List.PageLocalSemantics"]
+                        </FluentText>
+                    }
+                    @if (IsTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
+                    {
+                        <FluentText As="TextTag.Paragraph"
+                                    Size="TextSize.Size300"
+                                    Color="Color.Lightweight"
+                                    data-testid="tenants-list-return-context">
+                            @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
+                        </FluentText>
+                    }
+                    @if (IsMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
+                    {
+                        <FluentText As="TextTag.Paragraph"
+                                    Size="TextSize.Size300"
+                                    Color="Color.Lightweight"
+                                    data-testid="tenants-my-return-context">
+                            @Localizer["Tenants.MyTenants.ReturnContext", _selectedTenantId]
+                        </FluentText>
+                    }
+                    @if (IsTenantListView)
+                    {
+                        <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
+                            <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
+                                                 Expanded="false"
+                                                 data-testid="tenants-create-accordion">
+                                <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
+                                                  IsFresh="@IsCreateFresh"
+                                                  IsCommandSurfaceAvailable="@IsCommandSurfaceConnected"
+                                                  BaselineProjectionVersion="@_snapshot.ProjectionVersion"
+                                                  BaselineTenantAbsent="@IsAuthoritativeFirstTenantEmpty"
+                                                  IsFirstTenantBootstrap="@IsFirstTenantBootstrap"
+                                                  ShowHeading="false"
+                                                  OnProjectionRefreshRequested="RefreshAsync"
+                                                  ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+                            </FluentAccordionItem>
+                        </FluentAccordion>
+                    }
+                    @* Both notices share exactly one polite live region. Two sibling live regions announcing together
+                       are routinely coalesced or dropped by screen readers, so the region wraps the bars instead. The
+                       region itself renders unconditionally -- including across a workspace tab round trip, which must
+                       not re-insert it together with an already-populated notice -- because a live region inserted in
+                       the same render that first populates it is routinely not announced. Only the bars inside are
+                       conditional. *@
+                    @* Lifecycle evidence owns its own live region. Nesting the badge inside the notices stack
+                       re-announced paging/info bars on every lifecycle change and kept Unavailable polite. *@
+                    @if (IsTenantListView)
+                    {
+                        <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
+                                                   TestId="tenants-list-projection-lifecycle-status"
+                                                   BadgeTestId="tenants-list-projection-lifecycle-status-badge" />
+                    }
+                    <FluentStack Orientation="Orientation.Vertical"
+                                 VerticalGap="8px"
+                                 Width="100%"
+                                 role="status"
+                                 aria-live="polite"
+                                 aria-atomic="true"
+                                 data-testid="tenants-list-notices">
+                        @if (HasPrimaryNotice)
+                        {
+                            <FluentMessageBar Intent="MessageBarIntent.Info"
+                                              Title="@NoticeMessage"
+                                              data-testid="@NoticeTestId" />
+                        }
+                        @if (HasSecondaryNotice)
+                        {
+                            <FluentMessageBar Intent="MessageBarIntent.Info"
+                                              Title="@PagingNoticeMessage"
+                                              data-testid="@PagingNoticeTestId" />
+                        }
+                    </FluentStack>
+                    @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
+                    }
+                    else if (IsTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
+                    {
+                        @* This surface offers the same way out as the filtered-empty verdict, because the operator who
+                           simply mistyped the term would otherwise reach a dead end. Reason is deliberately NOT passed:
+                           ListSurfaceStates prefers a reason string over the state message, so a window emptied with a
+                           dropped record attached would render different copy than a genuine no-match and re-disclose
+                           that candidates existed -- the exact difference this surface exists to erase. *@
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty"
+                                           HasMore="@_snapshot.HasMore"
+                                           OnReset="ResetFiltersAsync" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Reason="@_snapshot.Reason" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Stale)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
+                    }
+                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
+                    {
+                        <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Reason="@_snapshot.Reason" />
+                    }
+                    @if (IsTenantListView && ShowList)
+                    {
+                        <TenantDataGrid Rows="@_visibleRows"
+                                        DetailHref="CreateDetailHref"
+                                        AuditHref="CreateAuditHref"
+                                        SortColumn="@_sortColumn"
+                                        SortDescending="@_sortDescending"
+                                        PreserveRowOrder="@_snapshot.IsAuthoritativeSearch"
+                                        SortChanged="OnTenantSortChanged" />
+                    }
+                    else if (IsMyTenantsView)
+                    {
+                        <MyTenantsPanel InitialCursor="@_workspaceState.Cursor" />
+                    }
+                    @if (ShowPager)
+                    {
+                        <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(!HasPreviousPage)" OnClick="PreviousPageAsync">
+                                    @Localizer["Tenants.List.Previous"]
+                                </FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!HasNextPage)" OnClick="NextPageAsync">
+                                    @Localizer["Tenants.List.Next"]
+                                </FluentButton>
+                            </FluentStack>
+                        </nav>
                     }
                 </FluentStack>
-                @if (IsTenantListView)
-                {
-                    <FluentText As="TextTag.Paragraph"
-                                Size="TextSize.Size200"
-                                Color="Color.Lightweight"
-                                data-testid="tenants-list-page-local-semantics">
-                        @Localizer[_snapshot.IsAuthoritativeSearch
-                            ? "Tenants.List.AuthoritativeSearchSemantics"
-                            : "Tenants.List.PageLocalSemantics"]
-                    </FluentText>
-                }
-            }
-        </FluentStack>
-    </Toolbar>
-    <HeaderMetadata>
-        @if (IsTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
-        {
-            <FluentText As="TextTag.Paragraph"
-                        Size="TextSize.Size300"
-                        Color="Color.Lightweight"
-                        data-testid="tenants-list-return-context">
-                @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
-            </FluentText>
-        }
-        @if (IsMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
-        {
-            <FluentText As="TextTag.Paragraph"
-                        Size="TextSize.Size300"
-                        Color="Color.Lightweight"
-                        data-testid="tenants-my-return-context">
-                @Localizer["Tenants.MyTenants.ReturnContext", _selectedTenantId]
-            </FluentText>
-        }
-    </HeaderMetadata>
-    @* Search + status moved up into the single toolbar control bar (Aspire-style); the former
-       Filters band is intentionally empty. Sorting is performed in-grid via the FluentDataGrid
-       sortable column headers (Tenant → name, Status → status). *@
-    <Filters></Filters>
-    <Commands>
-        @if (IsTenantListView)
-        {
-            <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
-                <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
-                                     Expanded="false"
-                                     data-testid="tenants-create-accordion">
-                    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                                      IsFresh="@IsCreateFresh"
-                                      IsCommandSurfaceAvailable="@IsCommandSurfaceConnected"
-                                      BaselineProjectionVersion="@_snapshot.ProjectionVersion"
-                                      BaselineTenantAbsent="@IsAuthoritativeFirstTenantEmpty"
-                                      IsFirstTenantBootstrap="@IsFirstTenantBootstrap"
-                                      ShowHeading="false"
-                                      OnProjectionRefreshRequested="RefreshAsync"
-                                      ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
-                </FluentAccordionItem>
-            </FluentAccordion>
-        }
-    </Commands>
-    <States>
-        @* Both notices share exactly one polite live region. Two sibling live regions announcing together
-           are routinely coalesced or dropped by screen readers, so the region wraps the bars instead. The
-           region itself renders unconditionally -- including across a workspace tab round trip, which must
-           not re-insert it together with an already-populated notice -- because a live region inserted in
-           the same render that first populates it is routinely not announced. Only the bars inside are
-           conditional. *@
-        @* Lifecycle evidence owns its own live region. Nesting the badge inside the notices stack
-           re-announced paging/info bars on every lifecycle change and kept Unavailable polite. *@
-        @if (IsTenantListView)
-        {
-            <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
-                                       TestId="tenants-list-projection-lifecycle-status"
-                                       BadgeTestId="tenants-list-projection-lifecycle-status-badge" />
-        }
-        <FluentStack Orientation="Orientation.Vertical"
-                     VerticalGap="8px"
-                     Width="100%"
-                     role="status"
-                     aria-live="polite"
-                     aria-atomic="true"
-                     data-testid="tenants-list-notices">
-            @if (HasPrimaryNotice)
-            {
-                <FluentMessageBar Intent="MessageBarIntent.Info"
-                                  Title="@NoticeMessage"
-                                  data-testid="@NoticeTestId" />
-            }
-            @if (HasSecondaryNotice)
-            {
-                <FluentMessageBar Intent="MessageBarIntent.Info"
-                                  Title="@PagingNoticeMessage"
-                                  data-testid="@PagingNoticeTestId" />
-            }
-        </FluentStack>
-        @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
-        }
-        else if (IsTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
-        {
-            @* This surface offers the same way out as the filtered-empty verdict, because the operator who
-               simply mistyped the term would otherwise reach a dead end. Reason is deliberately NOT passed:
-               ListSurfaceStates prefers a reason string over the state message, so a window emptied with a
-               dropped record attached would render different copy than a genuine no-match and re-disclose
-               that candidates existed -- the exact difference this surface exists to erase. *@
-            <ListSurfaceStates Kind="TenantListSurfaceKind.SearchPageEmpty"
-                               HasMore="@_snapshot.HasMore"
-                               OnReset="ResetFiltersAsync" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Reason="@_snapshot.Reason" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Stale)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
-        }
-        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
-        {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Reason="@_snapshot.Reason" />
-        }
-    </States>
-    <Body>
-        @if (IsTenantListView && ShowList)
-        {
-            <TenantDataGrid Rows="@_visibleRows"
-                            DetailHref="CreateDetailHref"
-                            AuditHref="CreateAuditHref"
-                            SortColumn="@_sortColumn"
-                            SortDescending="@_sortDescending"
-                            PreserveRowOrder="@_snapshot.IsAuthoritativeSearch"
-                            SortChanged="OnTenantSortChanged" />
-        }
-        else if (IsMyTenantsView)
-        {
-            <MyTenantsPanel InitialCursor="@_workspaceState.Cursor" />
-        }
-        else if (IsUsersTab)
-        {
-            <UserMembershipLookupPanel InitialUserId="@_workspaceState.UserId"
-                                       InitialSort="@_workspaceState.Sort"
-                                       InitialCursor="@_workspaceState.Cursor"
-                                       UseWorkspaceRoute="true"
-                                       ShowBackLink="false" />
-        }
+            </FcPageTab>
+            <FcPageTab Id="@UsersTabId"
+                       Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
+                       DeferredLoading="true">
+                <UserMembershipLookupPanel InitialUserId="@_workspaceState.UserId"
+                                           InitialSort="@_workspaceState.Sort"
+                                           InitialCursor="@_workspaceState.Cursor"
+                                           UseWorkspaceRoute="true"
+                                           ShowBackLink="false" />
+            </FcPageTab>
+        </FcPageTabs>
     </Body>
-    <Pager>
-        @if (ShowPager)
-        {
-            <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(!HasPreviousPage)" OnClick="PreviousPageAsync">
-                        @Localizer["Tenants.List.Previous"]
-                    </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!HasNextPage)" OnClick="NextPageAsync">
-                        @Localizer["Tenants.List.Next"]
-                    </FluentButton>
-                </FluentStack>
-            </nav>
-        }
-    </Pager>
 </FcAggregateListPage>
 
 @code {
