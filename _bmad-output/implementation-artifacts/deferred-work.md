@@ -1784,6 +1784,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-co
 reason: The legacy ledger defers this issue: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` summary: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly. evidence: The pre-existing interface defaults allow a future implementation to omit both methods, compile successfully, and silently return unavailable proof; the concrete unavailable gateway is now covered directly, but the interface design debt remains outside this review diff.
 status: open
+decision: 2026-08-28 Require explicit methods — Remove the default implementations and update every gateway and stub to implement the proof contracts explicitly.
 
 ### DW-221: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

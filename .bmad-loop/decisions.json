@@ -125,6 +125,15 @@
     "label": "Role-aware BFF reflection",
     "resolution": ""
   },
+  "DW-220": {
+    "answered_at": "2026-08-28",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Remove the default implementations and update every gateway and stub to implement the proof contracts explicitly.",
+    "key": "1",
+    "label": "Require explicit methods",
+    "resolution": ""
+  },
   "DW-221": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
