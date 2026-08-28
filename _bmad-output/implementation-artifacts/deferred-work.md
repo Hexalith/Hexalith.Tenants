@@ -1638,7 +1638,9 @@ location: ITenantsBffComposition.IsCommandSurfaceConnected
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Workspace IsCommandSurfaceConnected is a render-time service lookup with no subscription, so BFF disconnect may not refresh create availability until an unrelated rerender. evidence: The `ITenantsBffComposition.IsCommandSurfaceConnected` property pre-existed, but Story 3.1 introduced the workspace-side render-time lookup and the `IsCommandSurfaceAvailable` parameter binding themselves. Corrected by code review 2026-08-21: the original wording understated what this story added.
-status: open
+status: done 2026-08-28
+resolution: closed by human decision: Document connectivity as immutable for the circuit and DI scope because no supported runtime transition exists.
+decision: 2026-08-28 Declare circuit immutable — Document connectivity as immutable for the circuit and DI scope because no supported runtime transition exists.
 
 ### DW-204: SignalR-elevated ProjectionPending can still confirm after unrelated projection-version advancement on metadata (and sibling create/membership) flows
 origin: migrated from legacy ledger ("Deferred from: implementation of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-08)"), 2026-08-25
