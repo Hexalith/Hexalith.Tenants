@@ -2650,6 +2650,7 @@ source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: It now delegates to RemoveTenantConfigurationTrackedAsync, so it can return Ambiguous or FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference") with SafeMessage null. No production caller remains, and no test pins the overload, so a future caller rendering SafeMessage would show empty text.
 status: open
+decision: 2026-08-28 Deprecate compatibly — Mark the overload obsolete, document the tracked replacement, and preserve safe compatibility behavior until a later removal.
 
 ### DW-328: Follow-up review still recommended for 3-6-remove-configuration-key-with-complete-preview after the damping cap was spent
 origin: review-budget-followup

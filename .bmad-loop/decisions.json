@@ -259,5 +259,14 @@
     "key": "2",
     "label": "Keep ten-fact contract",
     "resolution": ""
+  },
+  "DW-327": {
+    "answered_at": "2026-08-28",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Mark the overload obsolete, document the tracked replacement, and preserve safe compatibility behavior until a later removal.",
+    "key": "2",
+    "label": "Deprecate compatibly",
+    "resolution": ""
   }
 }
