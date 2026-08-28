@@ -46,24 +46,17 @@ internal static class GlobalAdministratorsProjectionLoader
                 .ConfigureAwait(false);
             if (page is null)
             {
-                return ToIncomplete(GlobalAdministratorsSnapshot.Invalid(), rows.Values);
+                return ToIncomplete(GlobalAdministratorsSnapshot.Invalid());
             }
 
             if (page.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
             {
-                return page with
-                {
-                    Rows = [],
-                    NextCursor = null,
-                    HasMore = false,
-                    ETag = null,
-                    IsCompleteEvidence = false,
-                };
+                return GlobalAdministratorsSnapshot.Unauthorized();
             }
 
             if (!IsCurrentStablePage(page, request, projectionVersion))
             {
-                return ToIncomplete(page, rows.Values);
+                return ToIncomplete(page);
             }
 
             projectionVersion ??= page.ProjectionVersion;
@@ -71,7 +64,7 @@ internal static class GlobalAdministratorsProjectionLoader
             {
                 if (!rows.TryAdd(row.UserId, row))
                 {
-                    return ToIncomplete(page, rows.Values);
+                    return ToIncomplete(page);
                 }
             }
 
@@ -96,7 +89,7 @@ internal static class GlobalAdministratorsProjectionLoader
             if (string.IsNullOrWhiteSpace(page.NextCursor)
                 || !visitedCursors.Add(page.NextCursor))
             {
-                return ToIncomplete(page, rows.Values);
+                return ToIncomplete(page);
             }
 
             request = request with
@@ -106,9 +99,7 @@ internal static class GlobalAdministratorsProjectionLoader
             };
         }
 
-        return ToIncomplete(
-            page ?? GlobalAdministratorsSnapshot.Unavailable(),
-            rows.Values);
+        return ToIncomplete(page ?? GlobalAdministratorsSnapshot.Unavailable());
     }
 
     private static bool IsCurrentStablePage(
@@ -143,15 +134,9 @@ internal static class GlobalAdministratorsProjectionLoader
                 && row.Freshness is ReadModelFreshnessState.Current
                 && row.Lifecycle is ProjectionLifecycleState.Current);
 
-    private static GlobalAdministratorsSnapshot ToIncomplete(
-        GlobalAdministratorsSnapshot snapshot,
-        IEnumerable<GlobalAdministratorRow> rows)
-        => snapshot with
-        {
-            Rows = rows.ToArray(),
-            NextCursor = null,
-            ETag = null,
-            IsCompleteEvidence = false,
-            RequestCursor = null,
-        };
+    private static GlobalAdministratorsSnapshot ToIncomplete(GlobalAdministratorsSnapshot snapshot)
+        => GlobalAdministratorsSnapshot.Unavailable(
+            snapshot.Reason is GlobalAdministratorsReason.None
+                ? GlobalAdministratorsReason.GatewayFailure
+                : snapshot.Reason);
 }

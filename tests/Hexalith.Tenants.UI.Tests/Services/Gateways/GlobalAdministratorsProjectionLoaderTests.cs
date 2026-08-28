@@ -52,7 +52,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     [InlineData("missing-version")]
     [InlineData("mixed-version")]
     [InlineData("row-not-current")]
-    public async Task LoadAsync_rejects_non_current_or_version_inconsistent_pages(string scenario)
+    public async Task LoadAsyncRejectsNonCurrentOrVersionInconsistentPages(string scenario)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -95,7 +95,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     }
 
     [Fact]
-    public async Task LoadAsync_rejects_gateway_page_one_recovery()
+    public async Task LoadAsyncRejectsGatewayPageOneRecovery()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -116,7 +116,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             cancellationToken: TestContext.Current.CancellationToken);
 
         result.IsCompleteEvidence.ShouldBeFalse();
-        result.PagingRecovered.ShouldBeTrue();
+        AssertCanonicalIncomplete(result);
         calls.ShouldBe(2);
     }
 
@@ -124,7 +124,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     [InlineData(null, 1)]
     [InlineData("", 1)]
     [InlineData("cycle", 2)]
-    public async Task LoadAsync_rejects_missing_or_repeated_continuations(string? continuation, int expectedCalls)
+    public async Task LoadAsyncRejectsMissingOrRepeatedContinuations(string? continuation, int expectedCalls)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -147,14 +147,12 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             gateway,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        result.IsCompleteEvidence.ShouldBeFalse();
-        result.HasMore.ShouldBeTrue();
-        result.NextCursor.ShouldBeNull();
+        AssertCanonicalIncomplete(result);
         calls.ShouldBe(expectedCalls);
     }
 
     [Fact]
-    public async Task LoadAsync_stops_at_page_cap()
+    public async Task LoadAsyncStopsAtPageCap()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -175,12 +173,11 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             maximumPageCount: 3);
 
         calls.ShouldBe(3);
-        result.IsCompleteEvidence.ShouldBeFalse();
-        result.HasMore.ShouldBeTrue();
+        AssertCanonicalIncomplete(result);
     }
 
     [Fact]
-    public async Task LoadAsync_propagates_cancellation_before_starting_another_page()
+    public async Task LoadAsyncPropagatesCancellationBeforeStartingAnotherPage()
     {
         using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -202,6 +199,48 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             cancellationToken: source.Token));
 
         calls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task LoadAsyncCollapsesLaterPageUnauthorizedToCanonicalRedactedResult()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                return Task.FromResult(++calls == 1
+                    ? Page(["sensitive-admin"], "page-2", hasMore: true, request: request)
+                    : GlobalAdministratorsSnapshot.Unauthorized() with
+                    {
+                        Rows = [new GlobalAdministratorRow("must-not-survive", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+                        ProjectionVersion = "must-not-survive",
+                    });
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        result.ShouldBe(GlobalAdministratorsSnapshot.Unauthorized());
+        calls.ShouldBe(2);
+        result.ToString().ShouldNotContain("sensitive-admin");
+    }
+
+    private static void AssertCanonicalIncomplete(GlobalAdministratorsSnapshot result)
+    {
+        result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        result.Rows.ShouldBeEmpty();
+        result.IsCompleteEvidence.ShouldBeFalse();
+        result.HasMore.ShouldBeFalse();
+        result.NextCursor.ShouldBeNull();
+        result.ETag.ShouldBeNull();
+        result.ProjectionVersion.ShouldBeNull();
+        result.RequestCursor.ShouldBeNull();
     }
 
     private static GlobalAdministratorsSnapshot Page(

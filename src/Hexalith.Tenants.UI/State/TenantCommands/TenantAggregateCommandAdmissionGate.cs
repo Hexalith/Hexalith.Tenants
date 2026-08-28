@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
+
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>
@@ -45,6 +47,43 @@ public sealed class TenantAggregateCommandAdmissionGate
 
         NotifyStateChanged();
         return true;
+    }
+
+    /// <summary>Adopts the retained reconciliation for an aggregate into exactly one replacement surface.</summary>
+    /// <param name="aggregateLockKey">AggregateIdentity-shaped lock key.</param>
+    /// <param name="owner">Replacement surface owner.</param>
+    /// <param name="lease">Exclusively adopted lease.</param>
+    /// <param name="reconciliation">Retained reconciliation evidence.</param>
+    /// <returns><see langword="true"/> when an adoptable reconciliation was claimed.</returns>
+    internal bool TryAdoptRetainedLease(
+        string aggregateLockKey,
+        object owner,
+        out TenantAggregateCommandLease? lease,
+        out GlobalAdministratorReconciliationState? reconciliation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
+        ArgumentNullException.ThrowIfNull(owner);
+
+        lock (_sync)
+        {
+            if (_ownerByKey.TryGetValue(aggregateLockKey, out object? current)
+                && current is TenantAggregateCommandLease candidate
+                && candidate.IsRetainedForAdoption
+                && candidate.CurrentOwner is null
+                && candidate.Reconciliation is not null
+                && !candidate.IsReleased)
+            {
+                candidate.CurrentOwner = owner;
+                candidate.IsRetainedForAdoption = false;
+                lease = candidate;
+                reconciliation = candidate.Reconciliation;
+                return true;
+            }
+        }
+
+        lease = null;
+        reconciliation = null;
+        return false;
     }
 
     /// <summary>
@@ -132,8 +171,14 @@ public sealed class TenantAggregateCommandAdmissionGate
 
         lock (_sync)
         {
-            return _ownerByKey.TryGetValue(aggregateLockKey, out object? currentOwner)
-                && !ReferenceEquals(currentOwner, owner);
+            if (!_ownerByKey.TryGetValue(aggregateLockKey, out object? currentOwner))
+            {
+                return false;
+            }
+
+            return currentOwner is TenantAggregateCommandLease lease
+                ? lease.IsRetainedForAdoption || !ReferenceEquals(lease.CurrentOwner, owner)
+                : !ReferenceEquals(currentOwner, owner);
         }
     }
 
@@ -155,20 +200,133 @@ public sealed class TenantAggregateCommandAdmissionGate
         }
     }
 
-    internal bool TryReleaseLease(TenantAggregateCommandLease lease, bool requireDispatched)
+    internal bool IsDispatchMarked(TenantAggregateCommandLease lease)
     {
         ArgumentNullException.ThrowIfNull(lease);
-        if (requireDispatched && !lease.IsDispatchMarked)
+        lock (_sync)
         {
-            return false;
+            return IsActiveLeaseCore(lease) && lease.DispatchMarked;
         }
+    }
 
+    internal bool TryMarkDispatched(TenantAggregateCommandLease lease, object owner)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        lock (_sync)
+        {
+            if (!IsOwnedActiveLeaseCore(lease, owner) || lease.DispatchMarked)
+            {
+                return false;
+            }
+
+            lease.DispatchMarked = true;
+            return true;
+        }
+    }
+
+    internal bool TryAdvanceReconciliation(
+        TenantAggregateCommandLease lease,
+        object owner,
+        GlobalAdministratorReconciliationState reconciliation)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(reconciliation);
+
+        lock (_sync)
+        {
+            if (!IsOwnedActiveLeaseCore(lease, owner)
+                || !lease.DispatchMarked
+                || !IsValidReconciliation(reconciliation)
+                || IsTerminal(reconciliation.LifecycleState)
+                || lease.Reconciliation is { } current
+                    && (!HasSameCommandIdentity(current, reconciliation)
+                        || IsLifecycleRegression(current.LifecycleState, reconciliation.LifecycleState)))
+            {
+                return false;
+            }
+
+            lease.Reconciliation = reconciliation;
+            return true;
+        }
+    }
+
+    internal bool TryRetainReconciliation(
+        TenantAggregateCommandLease lease,
+        object owner,
+        GlobalAdministratorReconciliationState reconciliation)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(reconciliation);
+
+        lock (_sync)
+        {
+            if (!IsOwnedActiveLeaseCore(lease, owner)
+                || !lease.DispatchMarked
+                || !IsValidReconciliation(reconciliation)
+                || IsTerminal(reconciliation.LifecycleState)
+                || lease.Reconciliation is { } current
+                    && (!HasSameCommandIdentity(current, reconciliation)
+                        || IsLifecycleRegression(current.LifecycleState, reconciliation.LifecycleState)))
+            {
+                return false;
+            }
+
+            lease.Reconciliation = reconciliation;
+            lease.CurrentOwner = null;
+            lease.IsRetainedForAdoption = true;
+            return true;
+        }
+    }
+
+    internal bool TryAbandonBeforeDispatch(TenantAggregateCommandLease lease, object owner)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
         bool released;
         lock (_sync)
         {
-            released = _ownerByKey.TryGetValue(lease.AggregateLockKey, out object? currentOwner)
-                && ReferenceEquals(currentOwner, lease)
+            released = IsOwnedActiveLeaseCore(lease, owner)
+                && !lease.DispatchMarked
                 && _ownerByKey.Remove(lease.AggregateLockKey);
+            if (released)
+            {
+                lease.IsReleased = true;
+                lease.CurrentOwner = null;
+            }
+        }
+
+        if (released)
+        {
+            NotifyStateChanged();
+        }
+
+        return released;
+    }
+
+    internal bool TryReleaseTerminal(
+        TenantAggregateCommandLease lease,
+        object owner,
+        TenantCommandLifecycleState terminalState)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        bool released;
+        lock (_sync)
+        {
+            released = IsOwnedActiveLeaseCore(lease, owner)
+                && lease.DispatchMarked
+                && IsTerminal(terminalState)
+                && _ownerByKey.Remove(lease.AggregateLockKey);
+            if (released)
+            {
+                lease.IsReleased = true;
+                lease.IsRetainedForAdoption = false;
+                lease.CurrentOwner = null;
+                lease.Reconciliation = null;
+            }
         }
 
         if (released)
@@ -213,4 +371,44 @@ public sealed class TenantAggregateCommandAdmissionGate
             }
         }
     }
+
+    private bool IsActiveLeaseCore(TenantAggregateCommandLease lease)
+        => !lease.IsReleased
+            && _ownerByKey.TryGetValue(lease.AggregateLockKey, out object? current)
+            && ReferenceEquals(current, lease);
+
+    private bool IsOwnedActiveLeaseCore(TenantAggregateCommandLease lease, object owner)
+        => IsActiveLeaseCore(lease)
+            && !lease.IsRetainedForAdoption
+            && ReferenceEquals(lease.CurrentOwner, owner);
+
+    private static bool IsValidReconciliation(
+        GlobalAdministratorReconciliationState reconciliation)
+        => reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
+                or GlobalAdministratorActionKind.Remove
+            && !string.IsNullOrWhiteSpace(reconciliation.TargetUserId)
+            && !string.IsNullOrWhiteSpace(reconciliation.MessageId)
+            && !string.IsNullOrWhiteSpace(reconciliation.CorrelationId);
+
+    private static bool HasSameCommandIdentity(
+        GlobalAdministratorReconciliationState current,
+        GlobalAdministratorReconciliationState next)
+        => current.ActionKind == next.ActionKind
+            && string.Equals(current.TargetUserId, next.TargetUserId, StringComparison.Ordinal)
+            && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
+            && string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal);
+
+    private static bool IsLifecycleRegression(
+        TenantCommandLifecycleState current,
+        TenantCommandLifecycleState next)
+        => next is TenantCommandLifecycleState.RequestSent
+            && current is not TenantCommandLifecycleState.RequestSent
+            || next is TenantCommandLifecycleState.Accepted
+                && current is TenantCommandLifecycleState.ProjectionPending;
+
+    private static bool IsTerminal(TenantCommandLifecycleState state)
+        => state is TenantCommandLifecycleState.Confirmed
+            or TenantCommandLifecycleState.Failed
+            or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied;
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 
 using Bunit;
 
@@ -10,6 +11,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Audit;
+using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -22,6 +24,7 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Microsoft.AspNetCore.Components.Authorization;
 
 using Shouldly;
 
@@ -36,6 +39,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         Services.AddSingleton(viewport);
         Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<AuthenticationStateProvider>(new StubAuthenticationStateProvider());
     }
 
     [Fact]
@@ -465,6 +469,81 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-original-evidence']").TextContent.ShouldContain("event-safe-reference");
     }
 
+    [Fact]
+    public void SubmittedCorrectionIsAdoptedAndCompletedByGlobalAdministratorsPage()
+    {
+        bool commandApplied = false;
+        var commandGateway = new StubTenantCommandGateway
+        {
+            Status = TenantCommandStatusResult.Unknown("Status is temporarily unavailable."),
+        };
+        var queryGateway = new StubTenantQueryGateway(Projection("other-admin"), Audit("proof", "GlobalAdministratorSet"))
+        {
+            GlobalAdministratorProvider = _ => commandApplied
+                ? Projection("admin-user", "other-admin")
+                : Projection("other-admin"),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> correction = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+        correction.Find("[data-testid='tenants-correction-confirm']").Click();
+        correction.WaitForAssertion(() => correction.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        correction.Dispose();
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+
+        commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
+        commandApplied = true;
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+
+        page.WaitForAssertion(() => gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse());
+        page.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("Confirmed");
+        commandGateway.SetRequests.ShouldHaveSingleItem().UserId.ShouldBe("admin-user");
+    }
+
+    [Fact]
+    public void SubmittedPageRemovalIsAdoptedAndCompletedByCorrectionPanel()
+    {
+        bool commandApplied = false;
+        var commandGateway = new StubTenantCommandGateway
+        {
+            Status = TenantCommandStatusResult.Unknown("Status is temporarily unavailable."),
+        };
+        var queryGateway = new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("proof", "GlobalAdministratorRemoved"))
+        {
+            GlobalAdministratorProvider = _ => commandApplied
+                ? Projection("other-admin")
+                : Projection("admin-user", "other-admin"),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+        page.Find("[data-testid='tenants-global-admin-remove']").Click();
+        page.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
+        page.WaitForAssertion(() => page.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("UnableToVerify"));
+        page.Dispose();
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+
+        commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
+        commandApplied = true;
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> correction = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RevokeIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        correction.WaitForAssertion(() => correction.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        commandGateway.RemoveRequests.ShouldHaveSingleItem().UserId.ShouldBe("admin-user");
+    }
+
     private static TenantCorrectionStartIntent RestoreIntent(bool hasCommandSupport = true)
         => TenantCorrectionStartIntent.Evaluate(Context("GlobalAdministratorRemoved", hasCommandSupport));
 
@@ -572,7 +651,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult>? RemoveResultTask { get; init; }
 
-        public TenantCommandStatusResult Status { get; init; }
+        public TenantCommandStatusResult Status { get; set; }
             = new(CommandStatus.Completed, EventCount: 1);
 
         public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
@@ -616,6 +695,13 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+    }
+
+    private sealed class StubAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
+                new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "operator")], "test"))));
     }
 
     private sealed class StubTenantsBffComposition : ITenantsBffComposition
