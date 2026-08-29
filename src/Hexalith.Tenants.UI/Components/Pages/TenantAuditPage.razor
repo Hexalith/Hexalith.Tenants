@@ -901,9 +901,10 @@
         // last-administrator hard stop, and present/absent evaluation run against current evidence:
         // the fixed global-administrator projection for platform-authority corrections, tenant detail
         // otherwise. The panel re-derives its preview from this refreshed CurrentProjection (AC6/AC8).
+        GlobalAdministratorsSnapshot? globalSnapshot = null;
         if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
         {
-            await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+            globalSnapshot = await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
         }
         else
         {
@@ -920,6 +921,11 @@
                 return; // A newer correction open superseded this one while its projection refreshed.
             }
 
+            if (globalSnapshot is not null)
+            {
+                _globalAdministratorsSnapshot = globalSnapshot;
+            }
+
             TenantCorrectionStartIntent refreshedIntent = intent;
             if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
             {
@@ -933,6 +939,7 @@
 
             _activeCorrectionIntent = refreshedIntent;
             _activeCorrectionFocusReference = refreshedIntent.OriginalAuditReference;
+            StateHasChanged();
         }).ConfigureAwait(false);
     }
 

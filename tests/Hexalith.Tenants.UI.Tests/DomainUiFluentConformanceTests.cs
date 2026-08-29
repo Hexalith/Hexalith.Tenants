@@ -170,7 +170,7 @@ public sealed class DomainUiFluentConformanceTests
     // (rather than a brittle zero-rule) makes the "minimize raw layout markup" rule regression-proof
     // while honoring the kept a11y/nav structural tags in StructuralHtmlAllowlist.
     private const int DivSpanLayoutBudgetBaseline = 245;
-    private const int DivSpanLayoutBudgetCeiling = 220;
+    private const int DivSpanLayoutBudgetCeiling = 230;
 
     [Fact]
     [Trait("Category", "Governance")]

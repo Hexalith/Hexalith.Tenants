@@ -258,6 +258,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     {
                         Lifecycle = ProjectionLifecycleState.Current,
                         ProjectionVersion = "ga-v1",
+                        RequestCursor = request.Cursor,
                     }
                     : GlobalAdministratorsSnapshot.Ready(
                         [new GlobalAdministratorRow(
@@ -271,6 +272,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     {
                         Lifecycle = ProjectionLifecycleState.Current,
                         ProjectionVersion = "ga-v1",
+                        RequestCursor = request.Cursor,
                     };
             });
         RegisterDetailPageServices(gateway);
@@ -378,7 +380,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 };
                 bool hasMore = scenario is "missing-cursor" or "cyclic-cursor" || calls == 1;
                 return GlobalAdministratorsSnapshot.Ready(
-                    [],
+                    [new GlobalAdministratorRow(
+                        $"admin-{calls}",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current)],
                     nextCursor,
                     hasMore,
                     $"ga-etag-{calls}",
@@ -386,6 +391,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 {
                     Lifecycle = ProjectionLifecycleState.Current,
                     ProjectionVersion = scenario == "version-mismatch" && calls > 1 ? "ga-v2" : "ga-v1",
+                    RequestCursor = request.Cursor,
                 };
             });
         RegisterDetailPageServices(gateway);
@@ -417,15 +423,24 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => GlobalAdministratorsSnapshot.Ready(
-                [],
-                nextCursor: $"ga-page-{++calls}",
-                hasMore: true,
-                eTag: $"ga-etag-{calls}",
-                ReadModelFreshnessState.Current) with
+            .Returns(call =>
             {
-                Lifecycle = ProjectionLifecycleState.Current,
-                ProjectionVersion = "ga-v1",
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                calls++;
+                return GlobalAdministratorsSnapshot.Ready(
+                    [new GlobalAdministratorRow(
+                        $"ga-admin-{calls}",
+                        ReadModelFreshnessState.Current,
+                        ProjectionLifecycleState.Current)],
+                    nextCursor: $"ga-page-{calls}",
+                    hasMore: true,
+                    eTag: $"ga-etag-{calls}",
+                    ReadModelFreshnessState.Current) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = "ga-v1",
+                    RequestCursor = request.Cursor,
+                };
             });
         RegisterDetailPageServices(gateway);
 

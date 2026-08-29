@@ -11,6 +11,7 @@
 @inject ITenantCommandGateway CommandGateway
 @inject IServiceProvider Services
 @implements IAsyncDisposable
+@implements IDisposable
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     @if (!IsAuthorized)
@@ -1608,7 +1609,39 @@
 
         _ = _grantAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
         _ = _removeAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+    }
 
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_aggregateAdmissionGate is not null)
+        {
+            _aggregateAdmissionGate.StateChanged -= OnFixedAggregateAdmissionChanged;
+        }
+
+        if (_viewportObservation is not null)
+        {
+            _viewportObservation.StateChanged -= OnViewportObservationChanged;
+        }
+        Interlocked.Increment(ref _authorizationTransitionVersion);
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+            _authenticationStateProvider = null;
+        }
+        Interlocked.Increment(ref _loadGeneration);
+        CancelActiveCancellation(ref _loadCancellation);
+        InvalidateAllMutations();
+        RetainReconciliationForReplacement();
+        IAsyncDisposable? lease = _readRefreshLease;
+        _readRefreshLease = null;
+        if (lease is not null)
+        {
+            _ = DisposeLeaseSupportSafelyAsync(lease);
+        }
+
+        _ = _grantAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+        _ = _removeAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
     }
 
     private void OnFixedAggregateAdmissionChanged(object? sender, EventArgs args)
@@ -2338,7 +2371,11 @@
         // The pagers already guard this way.
         if (snapshot is not null && CanApplyGrantMutation(generation) && ReferenceEquals(_snapshot, snapshot))
         {
-            SetGrantSnapshot(_grantSnapshot.ConfirmProjection(snapshot));
+            await InvokeAsync(() =>
+            {
+                SetGrantSnapshot(_grantSnapshot.ConfirmProjection(snapshot));
+                StateHasChanged();
+            }).ConfigureAwait(false);
         }
     }
 
@@ -2585,7 +2622,11 @@
         // Same reference check as the grant requery: a superseded load must not prove a removal.
         if (snapshot is not null && CanApplyRemoveMutation(generation) && ReferenceEquals(_snapshot, snapshot))
         {
-            SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(snapshot));
+            await InvokeAsync(() =>
+            {
+                SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(snapshot));
+                StateHasChanged();
+            }).ConfigureAwait(false);
         }
     }
 
@@ -2647,7 +2688,7 @@
                 TenantCommandAggregateLock.ForGlobalAdministrators(),
                 _fixedAggregateOwner,
                 out TenantAggregateCommandLease? lease,
-                out GlobalAdministratorReconciliationState? reconciliation) is not true
+                out GlobalAdministratorReconciliationState? reconciliation) != true
             || lease is null
             || reconciliation is null)
         {

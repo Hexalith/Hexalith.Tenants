@@ -50,6 +50,35 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         return false;
     }
 
+    internal GlobalAdministratorCorrectionSnapshot WithReconciliation(GlobalAdministratorReconciliationState reconciliation) {
+        ArgumentNullException.ThrowIfNull(reconciliation);
+        return this with {
+            LifecycleState = reconciliation.LifecycleState,
+            MessageId = reconciliation.MessageId,
+            CorrelationId = reconciliation.CorrelationId,
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+    }
+
+    internal GlobalAdministratorReconciliationState? ToReconciliation()
+        => MessageId is { Length: > 0 } messageId
+            && CorrelationId is { Length: > 0 } correlationId
+            && LifecycleState is TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify
+            ? new(
+                CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
+                    ? GlobalAdministratorActionKind.Remove
+                    : GlobalAdministratorActionKind.Grant,
+                TargetUserId,
+                messageId,
+                correlationId,
+                LifecycleState)
+            : null;
+
     public static GlobalAdministratorCorrectionSnapshot FromIntent(
         TenantCorrectionStartIntent intent,
         GlobalAdministratorsSnapshot? currentProjection = null) {

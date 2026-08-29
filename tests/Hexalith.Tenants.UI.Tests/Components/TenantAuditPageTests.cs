@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Security.Claims;
 using System.Collections;
 using System.Resources;
 using System.Xml.Linq;
@@ -8,7 +9,11 @@ using AngleSharp.Dom;
 
 using Bunit;
 
+using Microsoft.AspNetCore.Components.Authorization;
+
 using Hexalith.FrontComposer.Contracts.Communication;
+using Hexalith.FrontComposer.Shell.State.Navigation;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -19,9 +24,11 @@ using Hexalith.Tenants.UI.State;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
@@ -890,6 +897,12 @@ public sealed class TenantAuditPageTests : BunitContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantQueryGateway gateway = new(snapshots) { GlobalAdministrators = globalAdministrators };
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        Services.AddSingleton<AuthenticationStateProvider>(new StubAuthenticationStateProvider());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition(authorized: authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -1121,10 +1134,55 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public bool IsCommandSurfaceConnected => commandConnected;
 
+        public bool IsGlobalAdministratorDispatchConnected => commandConnected;
+
+        public bool IsGlobalAdministratorStatusConnected => commandConnected;
+
+        public bool IsGlobalAdministratorRequeryConnected => readConnected;
+
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
             => authorized
                 ? TenantLifecycleAuthorizationReflectionState.Authorized
                 : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+        public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection);
+    }
+
+    private sealed class StubTenantCommandGateway : ITenantCommandGateway
+    {
+        public bool SupportsGlobalAdministratorDispatch => true;
+
+        public bool SupportsCommandStatusLookup => true;
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, string? messageId = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
+            => Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+    }
+
+    private sealed class StubAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
+                new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "operator")], "test"))));
     }
 
     /// <summary>

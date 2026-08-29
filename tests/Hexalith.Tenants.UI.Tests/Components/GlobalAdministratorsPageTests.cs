@@ -1210,8 +1210,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-list']");
         cut.Find("[data-testid='tenants-global-admins-row']").TextContent.ShouldContain("admin-1");
         cut.Find("[data-testid='tenants-global-admins-live-region']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
-        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
-        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
     }
 
     [Fact]
@@ -1231,8 +1231,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-global-admins-list']");
         cut.Find("[data-testid='tenants-global-admins-row']").TextContent.ShouldContain("admin-1");
-        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
-        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("freshness", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
     }
 
@@ -1286,8 +1286,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("lifecycle", Case.Insensitive);
-        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("lifecycle", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-grant-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("fixed-scope", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
     }
 
@@ -1618,7 +1618,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("last global administrator", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("last proven global administrator", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("override", Case.Insensitive);
         cut.Markup.ShouldNotContain("elevated friction", Case.Insensitive);
@@ -2085,8 +2085,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(false, true, "projection lifecycle evidence")]
-    [InlineData(true, false, "command surface")]
+    [InlineData(false, true, "fixed-scope projection is current")]
+    [InlineData(true, false, "dispatch, status, or requery")]
     public void Command_or_read_surface_unavailable_blocks_grant_without_command_submission(
         bool isReadSurfaceConnected,
         bool isCommandSurfaceConnected,
@@ -2158,12 +2158,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
         cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
-            .ShouldContain("Current projection lifecycle evidence is required before granting platform authority.");
+            .ShouldContain("Grant is unavailable until the fixed-scope projection is current and versioned.");
 
         cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-global-admins-remove-reason']")
             .Select(static element => element.TextContent)
-            .ShouldAllBe(static text => text.Contains("Current projection lifecycle evidence is required before removing platform authority.", StringComparison.Ordinal));
+            .ShouldAllBe(static text => text.Contains("Remove is unavailable until the visible fixed-scope projection is current and versioned.", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -2369,7 +2369,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         {
             cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("accepted", Case.Insensitive);
             cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
-            cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("in flight");
+            cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("attempt is active");
         });
     }
 
@@ -3619,32 +3619,32 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Audit.MissingSupport"] = "Audit support for this flow is not available.",
             ["Tenants.GlobalAdministrators.Grant.Audit.NotStarted"] = "No audit evidence is available before command submission.",
             ["Tenants.GlobalAdministrators.Grant.Available"] = "Grant is available from the confirmed platform authority projection.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Available"] = "Grant is available from the confirmed platform authority projection.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Available"] = "Grant is available for the fixed platform scope.",
             ["Tenants.GlobalAdministrators.Availability.Remove.Available"] = "Remove is available for this visible administrator.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingPermission"] = "Platform authority is not confirmed.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingPermission"] = "Platform authority is not confirmed.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.StaleData"] = "Current projection lifecycle evidence is required before granting platform authority. Refresh projection freshness.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.StaleData"] = "Current projection lifecycle evidence is required before removing platform authority. Refresh projection freshness.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingLifecycleSupport"] = "The command surface, status, or read projection support is unavailable.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingLifecycleSupport"] = "The command surface, status, or read projection support is unavailable.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport"] = "Grant is read-only until a safe viewport is measured.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.UnsafeViewport"] = "Remove is read-only until a safe viewport is measured.",
-            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"] = "Another platform authority command is in flight.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy"] = "Another platform authority command is in flight.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview"] = "The removal consequence preview is unavailable.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation"] = "Current complete projection evidence is required before removing platform authority.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.TargetMissing"] = "The target administrator is not visible in the current projection.",
-            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator"] = "The last global administrator cannot be removed.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingPermission"] = "Grant is unavailable because current platform authority is not proven.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingPermission"] = "Remove is unavailable because current platform authority is not proven.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.StaleData"] = "Grant is unavailable until the fixed-scope projection is current and versioned.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.StaleData"] = "Remove is unavailable until the visible fixed-scope projection is current and versioned.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingLifecycleSupport"] = "Grant is unavailable because dispatch, status, or requery support is missing.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingLifecycleSupport"] = "Remove is unavailable because dispatch, status, or requery support is missing.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport"] = "Grant is read-only until the browser measures a safe tablet or desktop viewport.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.UnsafeViewport"] = "Remove is read-only until the browser measures a safe tablet or desktop viewport.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"] = "Grant is unavailable while another global-administrator attempt is active.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy"] = "Remove is unavailable while another global-administrator attempt is active.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview"] = "Remove is unavailable until its complete consequence preview is ready.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation"] = "Remove is unavailable because the complete fixed-scope population is not proven.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.TargetMissing"] = "Remove is unavailable because the target is not present in qualified visible evidence.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator"] = "Remove is unavailable because this is the last proven global administrator.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.None"] = "No recovery is required.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission"] = "Refresh authorization.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.StaleData"] = "Refresh projection evidence.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport"] = "Restore lifecycle support and retry.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport"] = "Use a measured tablet or desktop viewport.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"] = "Wait for terminal reconciliation.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview"] = "Restore the consequence preview.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation"] = "Refresh the complete population.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing"] = "Refresh the visible rows.",
-            ["Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator"] = "Grant another administrator first.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission"] = "Refresh authorization or ask a platform administrator to verify your authority.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.StaleData"] = "Refresh the fixed-scope projection and review its current version.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport"] = "Restore dispatch, status, and requery support, then retry.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport"] = "Use a measured tablet or desktop viewport to continue.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"] = "Reconcile the active attempt to terminal evidence before starting another.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview"] = "Restore the dedicated removal preview before continuing.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation"] = "Refresh and complete the bounded fixed-scope population read.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing"] = "Refresh the visible rows and select a current administrator.",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator"] = "Grant another administrator before removing this authority.",
             ["Tenants.GlobalAdministrators.Grant.Cancel"] = "Cancel",
             ["Tenants.GlobalAdministrators.Grant.Description"] = "Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.",
             ["Tenants.GlobalAdministrators.Grant.Lifecycle.Title"] = "Grant lifecycle",
@@ -3889,7 +3889,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             // The launcher is replaced by its unavailability reason rather than rendered disabled.
             cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
             cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent
-                .ShouldContain("Current complete projection evidence is required before removing platform authority.");
+                .ShouldContain("Remove is unavailable because the complete fixed-scope population is not proven.");
         });
     }
 
