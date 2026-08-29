@@ -1031,7 +1031,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         gateway.Requests[2].Cursor.ShouldBeNull();
         cut.Find("[data-testid='tenants-global-admins-previous']").HasAttribute("disabled").ShouldBeTrue();
 
-        await cut.Instance.DisposeAsync();
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
         await subscription.Received(1)
             .UnsubscribeAsync(
                 GetGlobalAdministratorsQuery.ProjectionType,
@@ -2807,6 +2807,34 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             RegexOptions.CultureInvariant).ShouldBeTrue();
     }
 
+    [Fact]
+    public void Status_and_projection_writes_recheck_generation_and_snapshot_identity_inside_renderer_callbacks()
+    {
+        string source = ReadGlobalAdministratorsPageSource();
+        AssertGuardsInsideRendererCallback(
+            ExtractMethodBody(source, "private async Task RefreshGrantStatusCoreAsync(long generation, CancellationToken cancellationToken)"),
+            "SetGrantSnapshot(statusSnapshot)",
+            "CanApplyGrantMutation(generation)",
+            "ReferenceEquals(_grantSnapshot, statusBasis)");
+        AssertGuardsInsideRendererCallback(
+            ExtractMethodBody(source, "private async Task RequeryGrantProjectionAsync(long generation)"),
+            "SetGrantSnapshot(projectionBasis.ConfirmProjection(snapshot))",
+            "CanApplyGrantMutation(generation)",
+            "ReferenceEquals(_snapshot, snapshot)",
+            "ReferenceEquals(_grantSnapshot, projectionBasis)");
+        AssertGuardsInsideRendererCallback(
+            ExtractMethodBody(source, "private async Task RefreshRemoveStatusCoreAsync(long generation, CancellationToken cancellationToken)"),
+            "SetRemoveSnapshot(statusSnapshot)",
+            "CanApplyRemoveMutation(generation)",
+            "ReferenceEquals(_removeSnapshot, statusBasis)");
+        AssertGuardsInsideRendererCallback(
+            ExtractMethodBody(source, "private async Task RequeryRemoveProjectionAsync(long generation)"),
+            "SetRemoveSnapshot(projectionBasis.ConfirmProjection(snapshot))",
+            "CanApplyRemoveMutation(generation)",
+            "ReferenceEquals(_snapshot, snapshot)",
+            "ReferenceEquals(_removeSnapshot, projectionBasis)");
+    }
+
     /// <summary>
     /// <c>ReauthorizeAsync</c> captures a transition version before resolving. A sign-out landing while grant
     /// submission is re-authorizing must not be overwritten by the pre-sign-out answer and must not dispatch
@@ -2963,6 +2991,161 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .ShouldContain("Remove command request was sent.");
         submissionGate.SetResult();
         await removeSubmit;
+    }
+
+    [Theory]
+    [InlineData("grant")]
+    [InlineData("remove")]
+    public async Task Superseded_mutation_completion_queued_behind_the_renderer_cannot_replace_current_state(string mutation)
+    {
+        var completionGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"))
+        {
+            SubmissionGate = mutation == "grant" ? completionGate : null,
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("message-remove", "correlation-remove"),
+            RemoveSubmissionGate = mutation == "remove" ? completionGate : null,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+            ],
+            null,
+            false,
+            "\"etag\"",
+            ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        }));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        Task submit;
+        Task entered;
+        string invalidator;
+        if (mutation == "grant")
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("new-admin");
+            submit = cut.Find("[data-testid='tenants-global-admin-grant-form']").SubmitAsync();
+            entered = commandGateway.SubmissionEntered.Task;
+            invalidator = "InvalidateGrantMutation";
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
+            entered = commandGateway.RemoveSubmissionEntered.Task;
+            invalidator = "InvalidateRemoveMutation";
+        }
+
+        await entered.WaitAsync(TimeSpan.FromSeconds(5));
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        completionGate.SetResult();
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        typeof(GlobalAdministratorsPage).GetMethod(invalidator, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, null);
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        if (mutation == "grant")
+        {
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot").State
+                .ShouldBe(TenantCommandLifecycleState.RequestSent);
+        }
+        else
+        {
+            PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot").State
+                .ShouldBe(TenantCommandLifecycleState.RequestSent);
+        }
+
+        var replacementOwner = new object();
+        TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        admissionGate.TryAdoptRetainedLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? retainedLease,
+            out GlobalAdministratorReconciliationState? reconciliation).ShouldBeTrue();
+        reconciliation!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+        retainedLease!.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Confirmed).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("grant")]
+    [InlineData("remove")]
+    public async Task Superseded_status_completion_queued_behind_the_renderer_cannot_replace_accepted_state(string mutation)
+    {
+        var statusGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("message-remove", "correlation-remove"),
+            StatusGate = statusGate,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+            ],
+            null,
+            false,
+            "\"etag\"",
+            ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        }));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        Task submit;
+        string invalidator;
+        if (mutation == "grant")
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("new-admin");
+            submit = cut.Find("[data-testid='tenants-global-admin-grant-form']").SubmitAsync();
+            invalidator = "InvalidateGrantMutation";
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
+            invalidator = "InvalidateRemoveMutation";
+        }
+
+        await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        statusGate.SetResult();
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        typeof(GlobalAdministratorsPage).GetMethod(invalidator, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, null);
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        if (mutation == "grant")
+        {
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot").State
+                .ShouldBe(TenantCommandLifecycleState.Accepted);
+        }
+        else
+        {
+            PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot").State
+                .ShouldBe(TenantCommandLifecycleState.Accepted);
+        }
     }
 
     /// <summary>
@@ -3393,6 +3576,47 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             => Task.FromResult(TenantAuditSnapshot.Unavailable(request));
     }
 
+    private static T PrivateField<T>(GlobalAdministratorsPage instance, string name)
+        => (T)(typeof(GlobalAdministratorsPage)
+            .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(instance)
+            ?? throw new InvalidOperationException($"Field {name} was null."));
+
+    private static void AssertGuardsInsideRendererCallback(
+        string methodBody,
+        string mutation,
+        params string[] guards)
+    {
+        int mutationIndex = methodBody.IndexOf(mutation, StringComparison.Ordinal);
+        mutationIndex.ShouldBeGreaterThan(-1, $"Mutation '{mutation}' was not found.");
+        int callbackIndex = methodBody.LastIndexOf("await InvokeAsync(() =>", mutationIndex, StringComparison.Ordinal);
+        callbackIndex.ShouldBeGreaterThan(-1, $"Mutation '{mutation}' is not inside an InvokeAsync callback.");
+        int callbackEnd = methodBody.IndexOf("}).ConfigureAwait(false);", mutationIndex, StringComparison.Ordinal);
+        callbackEnd.ShouldBeGreaterThan(mutationIndex, $"Mutation '{mutation}' callback end was not found.");
+        foreach (string guard in guards)
+        {
+            int guardIndex = methodBody.IndexOf(guard, callbackIndex, StringComparison.Ordinal);
+            guardIndex.ShouldBeInRange(
+                callbackIndex,
+                mutationIndex,
+                $"Guard '{guard}' must execute inside the renderer callback before '{mutation}'.");
+        }
+    }
+
+    private static async Task<(Task RendererBlock, TaskCompletionSource ReleaseRenderer)> BlockRendererAsync(
+        IRenderedComponent<GlobalAdministratorsPage> cut)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task block = Task.Run(() => cut.InvokeAsync(() =>
+        {
+            entered.SetResult();
+            release.Task.GetAwaiter().GetResult();
+        }));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        return (block, release);
+    }
+
     private sealed class StubTenantCommandGateway(
         TenantCommandSubmissionResult? submission = null,
         params TenantCommandStatusResult[] statuses) : ITenantCommandGateway
@@ -3416,6 +3640,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         /// <summary>Completes when a gated remove submission has entered and suspended.</summary>
         public TaskCompletionSource RemoveSubmissionEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Arms a one-shot suspension of the next status lookup.</summary>
+        public TaskCompletionSource? StatusGate { get; set; }
+
+        /// <summary>Completes when a gated status lookup has entered and suspended.</summary>
+        public TaskCompletionSource StatusEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public int SetGlobalAdministratorCalls { get; private set; }
 
@@ -3511,12 +3741,22 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<TenantCommandStatusResult> GetStatusAsync(
+        public async Task<TenantCommandStatusResult> GetStatusAsync(
             TenantCommandTrackingHandle handle,
             CancellationToken cancellationToken = default)
-            => Task.FromResult(_statuses.Count == 0
+        {
+            TaskCompletionSource? gate = StatusGate;
+            if (gate is not null)
+            {
+                StatusGate = null;
+                _ = StatusEntered.TrySetResult();
+                await gate.Task.ConfigureAwait(false);
+            }
+
+            return _statuses.Count == 0
                 ? TenantCommandStatusResult.Unknown("No command status configured.")
-                : _statuses.Dequeue());
+                : _statuses.Dequeue();
+        }
     }
 
     private sealed class CapturingUntypedLogger : ILogger

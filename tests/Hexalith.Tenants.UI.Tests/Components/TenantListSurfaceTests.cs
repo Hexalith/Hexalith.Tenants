@@ -4,7 +4,6 @@ using Bunit;
 
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Components.Layout;
-
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -366,7 +365,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
-        FcPageTabs tabs = cut.FindComponent<FcPageTabs>().Instance;
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
 
@@ -374,8 +373,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             navigation.Uri.ShouldContain("tab=users");
             navigation.Uri.ShouldNotContain("tenant-list-cursor");
-            cut.Find("#users").GetAttribute("aria-controls").ShouldBe("users-panel");
-            cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
+            cut.Find("#users").GetAttribute("aria-controls").ShouldBe("users-retained-panel");
+            cut.Find("#users-retained-panel").GetAttribute("role").ShouldBe("tabpanel");
             cut.FindComponent<UserMembershipLookupPanel>().Instance.InitialCursor.ShouldBeNull();
         });
     }
@@ -395,7 +394,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         await ChangeSearchAsync(cut, "filtered");
-        FcPageTabs tabs = cut.FindComponent<FcPageTabs>().Instance;
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
 
@@ -407,6 +406,28 @@ public sealed class TenantListSurfaceTests : BunitContext
             cut.Markup.ShouldContain("tenant.filtered");
             cut.Markup.ShouldNotContain("tenant.default");
         });
+    }
+
+    [Fact]
+    public async Task Workspace_tab_round_trip_retains_the_once_loaded_users_panel_instance()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        FluentDataGrid<TenantListRow> firstTenantsPanel = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        UserMembershipLookupPanel firstUsersPanel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
+        cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
+        cut.FindComponents<UserMembershipLookupPanel>().ShouldHaveSingleItem().Instance.ShouldBeSameAs(firstUsersPanel);
+        cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(firstUsersPanel);
     }
 
     [Fact]

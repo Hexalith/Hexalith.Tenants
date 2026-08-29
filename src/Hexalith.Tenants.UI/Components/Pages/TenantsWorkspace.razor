@@ -31,13 +31,28 @@
         }
     </Toolbar>
     <Body>
-        <FcPageTabs ActiveTabId="@_activeTabId"
+        <FluentTabs ActiveTabId="@_activeTabId"
                     ActiveTabIdChanged="OnActiveTabChanged"
-                    AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
-                    TestId="tenants-workspace-tabs">
-            <FcPageTab Id="@TenantsTabId"
+                    aria-label="@Localizer["Tenants.Workspace.Tabs.Label"]"
+                    data-testid="tenants-workspace-tabs">
+            <FluentTab Id="@TenantsTabId"
                        Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]"
-                       DeferredLoading="true">
+                       aria-controls="tenants-retained-panel" />
+            <FluentTab Id="@UsersTabId"
+                       Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
+                       aria-controls="users-retained-panel" />
+        </FluentTabs>
+        @* FluentTab removes inactive content from its render tree. Keep the tab headers in FluentTabs,
+           but mount each workspace panel here exactly once after its first activation and hide it when
+           inactive. This preserves the panel component instance, local state, and in-flight work. *@
+        @if (_tenantsTabLoaded)
+        {
+            <div id="tenants-retained-panel"
+                 role="tabpanel"
+                 aria-labelledby="tenants"
+                 hidden="@(_activeTabId != TenantsTabId)"
+                 aria-hidden="@(_activeTabId != TenantsTabId)"
+                 data-testid="tenants-workspace-tenants-panel">
                 <FluentStack Orientation="Orientation.Vertical"
                              VerticalGap="24px"
                              Width="100%"
@@ -58,7 +73,7 @@
                             <FluentOption TValue="string" Value="@MyTenantsScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
                         </FluentSelect>
 
-                        @if (IsTenantListView)
+                        @if (IsRetainedTenantListView)
                         {
                             @* Maxlength stops the interactive path reaching the rejection at all: without it a
                                pasted over-length term was accepted by the input, dropped by normalization, and
@@ -106,7 +121,7 @@
                             </FluentButton>
                         }
                     </FluentStack>
-                    @if (IsTenantListView)
+                    @if (IsRetainedTenantListView)
                     {
                         <FluentText As="TextTag.Paragraph"
                                     Size="TextSize.Size200"
@@ -117,7 +132,7 @@
                                 : "Tenants.List.PageLocalSemantics"]
                         </FluentText>
                     }
-                    @if (IsTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
+                    @if (IsRetainedTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
                     {
                         <FluentText As="TextTag.Paragraph"
                                     Size="TextSize.Size300"
@@ -126,7 +141,7 @@
                             @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
                         </FluentText>
                     }
-                    @if (IsMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
+                    @if (IsRetainedMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
                     {
                         <FluentText As="TextTag.Paragraph"
                                     Size="TextSize.Size300"
@@ -135,7 +150,7 @@
                             @Localizer["Tenants.MyTenants.ReturnContext", _selectedTenantId]
                         </FluentText>
                     }
-                    @if (IsTenantListView)
+                    @if (IsRetainedTenantListView)
                     {
                         <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
                             <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
@@ -161,7 +176,7 @@
                        conditional. *@
                     @* Lifecycle evidence owns its own live region. Nesting the badge inside the notices stack
                        re-announced paging/info bars on every lifecycle change and kept Unavailable polite. *@
-                    @if (IsTenantListView)
+                    @if (IsRetainedTenantListView)
                     {
                         <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
                                                    TestId="tenants-list-projection-lifecycle-status"
@@ -187,19 +202,19 @@
                                               data-testid="@PagingNoticeTestId" />
                         }
                     </FluentStack>
-                    @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+                    @if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
                     }
-                    else if (IsTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
+                    else if (IsRetainedTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.SearchPageEmpty)
                     {
                         @* This surface offers the same way out as the filtered-empty verdict, because the operator who
                            simply mistyped the term would otherwise reach a dead end. Reason is deliberately NOT passed:
@@ -210,27 +225,27 @@
                                            HasMore="@_snapshot.HasMore"
                                            OnReset="ResetFiltersAsync" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Reason="@_snapshot.Reason" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Stale)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Stale)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
                     }
-                    else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
+                    else if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Reason="@_snapshot.Reason" />
                     }
-                    @if (IsTenantListView && ShowList)
+                    @if (IsRetainedTenantListView && ShowList)
                     {
                         <TenantDataGrid Rows="@_visibleRows"
                                         DetailHref="CreateDetailHref"
@@ -240,7 +255,7 @@
                                         PreserveRowOrder="@_snapshot.IsAuthoritativeSearch"
                                         SortChanged="OnTenantSortChanged" />
                     }
-                    else if (IsMyTenantsView)
+                    else if (IsRetainedMyTenantsView)
                     {
                         <MyTenantsPanel InitialCursor="@_workspaceState.Cursor" />
                     }
@@ -258,17 +273,23 @@
                         </nav>
                     }
                 </FluentStack>
-            </FcPageTab>
-            <FcPageTab Id="@UsersTabId"
-                       Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
-                       DeferredLoading="true">
+            </div>
+        }
+        @if (_usersTabLoaded)
+        {
+            <div id="users-retained-panel"
+                 role="tabpanel"
+                 aria-labelledby="users"
+                 hidden="@(_activeTabId != UsersTabId)"
+                 aria-hidden="@(_activeTabId != UsersTabId)"
+                 data-testid="tenants-workspace-users-panel">
                 <UserMembershipLookupPanel InitialUserId="@_workspaceState.UserId"
                                            InitialSort="@_workspaceState.Sort"
                                            InitialCursor="@_workspaceState.Cursor"
                                            UseWorkspaceRoute="true"
                                            ShowBackLink="false" />
-            </FcPageTab>
-        </FcPageTabs>
+            </div>
+        }
     </Body>
 </FcAggregateListPage>
 
@@ -322,6 +343,10 @@
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
     private bool _canReviewGlobalAdministrators;
+    // External panels are mounted only after their first activation and remain in the render tree after
+    // that, because FluentTab removes inactive child content and would discard local/in-flight state.
+    private bool _tenantsTabLoaded;
+    private bool _usersTabLoaded;
     private AuthenticationStateProvider? _authenticationStateProvider;
     private long _authorizationVersion;
 
@@ -389,6 +414,12 @@
 
     private bool IsMyTenantsView
         => IsTenantsTab && string.Equals(_tenantScope, MyTenantsScope, StringComparison.Ordinal);
+
+    private bool IsRetainedTenantListView
+        => string.Equals(_tenantWorkspaceState.Scope, AllTenantsScope, StringComparison.Ordinal);
+
+    private bool IsRetainedMyTenantsView
+        => string.Equals(_tenantWorkspaceState.Scope, MyTenantsScope, StringComparison.Ordinal);
 
     private bool HasPageLocalFilter
         => !_snapshot.IsAuthoritativeSearch && !string.IsNullOrWhiteSpace(_statusFilter);
@@ -478,7 +509,7 @@
                 or TenantListSurfaceKind.Unauthorized);
 
     private bool ShowPager
-        => IsTenantListView
+        => IsRetainedTenantListView
             && _snapshot.Kind is not (TenantListSurfaceKind.Loading
                 or TenantListSurfaceKind.Error
                 or TenantListSurfaceKind.Unauthorized)
@@ -499,13 +530,13 @@
     // Neither notice bar may render without a mapped localized message and a stable non-empty test id, so
     // no reason can produce a blank titled message bar or an unaddressable selector.
     private bool HasPrimaryNotice
-        => IsTenantListView
+        => IsRetainedTenantListView
             && _snapshot.Notice is not TenantListReason.None
             && !string.IsNullOrEmpty(NoticeMessage)
             && !string.IsNullOrEmpty(NoticeTestId);
 
     private bool HasSecondaryNotice
-        => IsTenantListView
+        => IsRetainedTenantListView
             && _snapshot.PagingNotice is not TenantListReason.None
             && _snapshot.PagingNotice != _snapshot.Notice
             && !string.IsNullOrEmpty(PagingNoticeMessage)
@@ -1286,11 +1317,13 @@
 
         if (state.Tab == UsersTabId)
         {
+            _usersTabLoaded = true;
             _usersTabUserId = state.UserId;
             _usersTabSort = state.Sort;
             return;
         }
 
+        _tenantsTabLoaded = true;
         _tenantWorkspaceState = state;
         _tenantScope = state.Scope;
         _search = state.Search;

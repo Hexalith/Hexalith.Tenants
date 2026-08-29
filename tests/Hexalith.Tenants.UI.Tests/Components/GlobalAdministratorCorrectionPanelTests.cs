@@ -43,6 +43,30 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Initial_correction_authorization_ignores_non_authoritative_synchronous_reflection_until_resolver_completes()
+    {
+        var pendingAuthorization = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition
+        {
+            SynchronousReflection = TenantLifecycleAuthorizationReflectionState.Authorized,
+            AuthorizationTask = pendingAuthorization.Task,
+        });
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
+
+        pendingAuthorization.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse());
+    }
+
+    [Fact]
     public void Restore_preview_shows_fixed_scope_command_and_no_tenant_role_selector()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -440,6 +464,110 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Superseded_correction_completion_queued_behind_the_renderer_cannot_replace_request_sent()
+    {
+        var pending = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway { SetResultTask = pending.Task };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commandGateway.SetRequests.ShouldHaveSingleItem());
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        pending.SetResult(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        IncrementPrivateGeneration(cut.Instance, "_operationGeneration");
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        var replacementOwner = new object();
+        TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        admissionGate.TryAdoptRetainedLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? retainedLease,
+            out GlobalAdministratorReconciliationState? reconciliation).ShouldBeTrue();
+        reconciliation!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+        retainedLease!.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Confirmed).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Superseded_status_completion_queued_behind_the_renderer_cannot_replace_accepted_correction()
+    {
+        var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway { StatusResultTask = pendingStatus.Task };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        pendingStatus.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        IncrementPrivateGeneration(cut.Instance, "_operationGeneration");
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+    }
+
+    [Fact]
+    public async Task Superseded_projection_completion_queued_behind_the_renderer_cannot_confirm_correction()
+    {
+        var projectionEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pendingProjection = new TaskCompletionSource<GlobalAdministratorsSnapshot?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin"))
+            .Add(component => component.ProjectionRefreshProvider, async () =>
+            {
+                projectionEntered.SetResult();
+                return await pendingProjection.Task;
+            }));
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await projectionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        pendingProjection.SetResult(Projection("admin-user", "other-admin"));
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        IncrementPrivateGeneration(cut.Instance, "_operationGeneration");
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
     public void Close_uses_callback_for_focus_return()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -635,6 +763,27 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ProjectionLifecycleState.Current,
             QueryResponseProvenance.ProjectionBacked);
 
+    private static void IncrementPrivateGeneration(GlobalAdministratorCorrectionPanel instance, string name)
+    {
+        System.Reflection.FieldInfo field = typeof(GlobalAdministratorCorrectionPanel)
+            .GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        field.SetValue(instance, (long)field.GetValue(instance)! + 1);
+    }
+
+    private static async Task<(Task RendererBlock, TaskCompletionSource ReleaseRenderer)> BlockRendererAsync(
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task block = Task.Run(() => cut.InvokeAsync(() =>
+        {
+            entered.SetResult();
+            release.Task.GetAwaiter().GetResult();
+        }));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        return (block, release);
+    }
+
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
         public bool SupportsGlobalAdministratorDispatch => true;
@@ -653,6 +802,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public TenantCommandStatusResult Status { get; set; }
             = new(CommandStatus.Completed, EventCount: 1);
+
+        public Task<TenantCommandStatusResult>? StatusResultTask { get; init; }
+
+        public TaskCompletionSource StatusEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
             SetGlobalAdministrator request,
@@ -675,6 +828,12 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             StatusHandles.Add(handle);
+            if (StatusResultTask is not null)
+            {
+                _ = StatusEntered.TrySetResult();
+                return StatusResultTask;
+            }
+
             return Task.FromResult(Status);
         }
 
@@ -716,12 +875,19 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public bool IsGlobalAdministratorRequeryConnected => true;
 
+        public TenantLifecycleAuthorizationReflectionState SynchronousReflection { get; init; }
+            = TenantLifecycleAuthorizationReflectionState.Authorized;
+
+        public Task<TenantLifecycleAuthorizationReflectionState>? AuthorizationTask { get; init; }
+
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
-            => TenantLifecycleAuthorizationReflectionState.Authorized;
+            => SynchronousReflection;
 
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            => AuthorizationTask is null
+                ? ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)
+                : new ValueTask<TenantLifecycleAuthorizationReflectionState>(AuthorizationTask);
     }
 
     private sealed class StubTenantQueryGateway(GlobalAdministratorsSnapshot projection, TenantAuditSnapshot audit) : ITenantQueryGateway

@@ -31,13 +31,13 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **.NET 10 / C#** — SDK pinned to `10.0.400` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
-- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.96.2`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
+- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.99.0`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
 - **DAPR** — DAPR SDK packages `1.18.5`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default). The `1.19.0-preview.2` SDK family is intentionally held because stable pins do not move to prerelease channels in a dependency refresh.
-- **Aspire** — Aspire packages `13.4.6`; Keycloak/Kubernetes packages use `13.4.6-preview.1.26319.6`; DAPR hosting uses `CommunityToolkit.Aspire.Hosting.Dapr` `13.4.1-beta.706`. The `13.5.1` family is held until the shared catalog and every allowlisted external AppHost SDK owner can advance together.
+- **Aspire** — Aspire packages `13.5.3`; Keycloak/Kubernetes packages use `13.5.3-preview.1.26425.3`; DAPR hosting uses `CommunityToolkit.Aspire.Hosting.Dapr` `13.5.0-preview.1.260825-0345`.
 - **Backend stack** — MediatR `14.2.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.22.0`, OpenAPI `10.0.11`, Swagger UI `10.2.3`, and OpenTelemetry `1.17.0` including Runtime instrumentation.
 - **UI stack** — Blazor InteractiveServer, FrontComposer Shell/Contracts source references, Fluent UI Blazor V5 `5.0.0-rc.5-26219.1`, bUnit `2.9.0`.
 - **Memories search** — Tenants UI uses `MemoriesClient.SearchAsync` as an index lookup only; rows are hydrated from Tenants REST query endpoints.
-- **Testing** — xUnit v3 `3.2.2` with runner `3.1.5`, Shouldly `4.3.0`, NSubstitute `6.2.0`, Testcontainers `4.14.0`, coverlet `10.0.1`, Microsoft.NET.Test.Sdk `18.9.0`, YamlDotNet `18.1.0`. xUnit `4.0.0` is held because it requires a non-mechanical parallelization migration; Shouldly `5.0.0-preview.2` is held because stable pins do not move to prerelease channels in a dependency refresh.
+- **Testing** — xUnit v3/runner `4.0.0` on Microsoft.Testing.Platform, Shouldly `4.3.0`, NSubstitute `6.2.0`, Testcontainers `4.14.0`, Microsoft.Testing.Extensions.CodeCoverage `18.10.0`, Microsoft.NET.Test.Sdk `18.9.0`, and YamlDotNet `18.1.0`. Shouldly `5.0.0-preview.2` is held because stable pins do not move to prerelease channels in a dependency refresh.
 - **Release tooling** — semantic-release `25.0.9`, commitlint `21.2.2`, `@semantic-release/changelog` `7.0.0`, and `@semantic-release/git` `11.0.1`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
 - **Framework family held at .NET 10.** `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and `System.Collections.Immutable` stay on `10.0.x` stable. Their higher versions are .NET 11 prereleases, and several publish only `net11.0` assets that cannot restore against `net10.0` / SDK `10.0.400`. Do not update this family without an approved platform migration.
 
@@ -117,7 +117,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Domain logic tests should prefer `Hexalith.Tenants.Testing`: `InMemoryTenantService`, `TenantTestHelpers`, `TenantIsolationTestHelpers`, and `InMemoryTenantProjection`.
 - UI command tests must cover validation before submit, fail-closed availability, projection-confirmed success, non-collapse lifecycle states, SignalR nudge-only behavior, support-safe copy, EN/FR resource parity, and focus/live-region behavior where relevant.
 - Query/freshness tests must cover `X-Hexalith-Is-Stale`, `X-Hexalith-Served-At`, `X-Hexalith-Projection-Version`, `304` with freshness headers, unknown freshness, stale freshness, and conservative threshold behavior.
-- If `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility locally, use the built xUnit v3 executable fallback for that test assembly and record the fallback.
+- Run each test project with the repository-selected Microsoft.Testing.Platform path; direct-assembly fallback is not acceptance evidence for a maintained `dotnet test` lane.
 - All configured tests relevant to a story must pass before completion; document any blocked validation with the exact blocker.
 
 ### Code Quality & Style Rules

@@ -5,8 +5,6 @@ using AngleSharp.Dom;
 
 using Bunit;
 
-using Hexalith.FrontComposer.Shell.Components.Layout;
-
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -104,13 +102,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-workspace-tabs']");
 
-        FcPageTabs pageTabs = cut.FindComponent<FcPageTabs>().Instance;
+        FluentTabs pageTabs = cut.FindComponent<FluentTabs>().Instance;
         pageTabs.ActiveTabId.ShouldBe("tenants");
-        pageTabs.AriaLabel.ShouldBe("Tenant workspace sections");
+        pageTabs.AdditionalAttributes!["aria-label"].ToString().ShouldBe("Tenant workspace sections");
 
         IElement tenantTab = cut.Find("#tenants");
-        IElement tenantPanel = cut.Find("#tenants-panel");
-        tenantTab.GetAttribute("aria-controls").ShouldBe("tenants-panel");
+        IElement tenantPanel = cut.Find("#tenants-retained-panel");
+        tenantTab.GetAttribute("aria-controls").ShouldBe("tenants-retained-panel");
         tenantPanel.GetAttribute("role").ShouldBe("tabpanel");
         tenantPanel.QuerySelector("[data-testid='tenants-workspace-tenants-panel-content']").ShouldNotBeNull();
         tenantPanel.QuerySelector("[data-testid='tenants-list-refresh']").ShouldNotBeNull();
@@ -546,8 +544,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("USER.Target-01");
         IElement usersTab = cut.Find("#users");
-        IElement usersPanel = cut.Find("#users-panel");
-        usersTab.GetAttribute("aria-controls").ShouldBe("users-panel");
+        IElement usersPanel = cut.Find("#users-retained-panel");
+        usersTab.GetAttribute("aria-controls").ShouldBe("users-retained-panel");
         usersPanel.GetAttribute("role").ShouldBe("tabpanel");
         usersPanel.QuerySelector("[data-testid='tenants-user-lookup-results']").ShouldNotBeNull();
         cut.FindAll("[data-testid='tenants-workspace-tenants-panel-content']").ShouldBeEmpty();

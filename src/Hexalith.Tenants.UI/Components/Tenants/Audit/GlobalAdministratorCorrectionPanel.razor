@@ -328,10 +328,6 @@
         }
 
         _bffComposition = Services.GetService<ITenantsBffComposition>();
-        if (_bffComposition is not null)
-        {
-            _authorizationReflection = _bffComposition.GlobalAdministratorsAuthorizationReflection;
-        }
         _authenticationStateProvider = Services.GetService<AuthenticationStateProvider>();
         if (_authenticationStateProvider is not null)
         {
@@ -506,6 +502,28 @@
         }
     }
 
+    private void RetainOrReleaseCompletion(
+        GlobalAdministratorCorrectionSnapshot snapshot,
+        TenantAggregateCommandLease submissionLease)
+    {
+        if (!ReferenceEquals(_admissionLease, submissionLease))
+        {
+            return;
+        }
+
+        if (snapshot.ToReconciliation() is { } reconciliation
+            && submissionLease.TryRetainReconciliation(_admissionOwner, reconciliation))
+        {
+            _adoptedReconciliation = reconciliation;
+            _admissionLease = null;
+        }
+        else if (submissionLease.TryReleaseTerminal(_admissionOwner, snapshot.LifecycleState))
+        {
+            _admissionLease = null;
+            _adoptedReconciliation = null;
+        }
+    }
+
     private async Task SubmitAsync()
     {
         long generation = Interlocked.Increment(ref _operationGeneration);
@@ -526,6 +544,7 @@
             return;
         }
 
+        GlobalAdministratorCorrectionSnapshot? requestSentSnapshot = null;
         await InvokeAsync(() =>
         {
             if (!CanApplyOperation(generation))
@@ -534,23 +553,37 @@
             }
 
             _snapshot = _snapshot.RequestSent();
+            requestSentSnapshot = _snapshot;
             _isSubmitting = true;
             StateHasChanged();
         }).ConfigureAwait(false);
+
+        if (requestSentSnapshot is null)
+        {
+            return;
+        }
 
         try
         {
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
-                await InvokeAsync(() => SetSnapshot(_snapshot with
+                await InvokeAsync(() =>
                 {
-                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"],
-                    SafeMessageKey = null,
-                    AuditState = TenantCommandAuditState.MissingSupport,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                }, focusTerminalState: true)).ConfigureAwait(false);
+                    if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
+                    {
+                        return;
+                    }
+
+                    SetSnapshot(requestSentSnapshot with
+                    {
+                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessage = Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"],
+                        SafeMessageKey = null,
+                        AuditState = TenantCommandAuditState.MissingSupport,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    }, focusTerminalState: true);
+                }).ConfigureAwait(false);
                 return;
             }
 
@@ -560,48 +593,59 @@
                 _admissionLease = null;
                 return;
             }
+            TenantAggregateCommandLease submissionLease = _admissionLease;
 
-            TenantCommandSubmissionResult result = _snapshot.CommandType switch
+            TenantCommandSubmissionResult result = requestSentSnapshot.CommandType switch
             {
                 TenantCorrectionCommandType.SetGlobalAdministrator => await gateway
-                    .SetGlobalAdministratorAsync(new SetGlobalAdministrator(_snapshot.TargetUserId), CancellationToken.None)
+                    .SetGlobalAdministratorAsync(new SetGlobalAdministrator(requestSentSnapshot.TargetUserId), CancellationToken.None)
                     .ConfigureAwait(false),
                 TenantCorrectionCommandType.RemoveGlobalAdministrator => await gateway
-                    .RemoveGlobalAdministratorAsync(new RemoveGlobalAdministrator(_snapshot.TargetUserId), CancellationToken.None)
+                    .RemoveGlobalAdministratorAsync(new RemoveGlobalAdministrator(requestSentSnapshot.TargetUserId), CancellationToken.None)
                     .ConfigureAwait(false),
                 _ => TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"]),
             };
 
+            GlobalAdministratorCorrectionSnapshot submissionSnapshot = result.State is TenantCommandLifecycleState.Accepted
+                ? requestSentSnapshot.Accepted(result)
+                : requestSentSnapshot.ApplySubmissionFailure(result);
             if (!CanApplyOperation(generation))
             {
+                RetainOrReleaseCompletion(submissionSnapshot, submissionLease);
                 return;
             }
 
-            GlobalAdministratorCorrectionSnapshot submissionSnapshot = result.State is TenantCommandLifecycleState.Accepted
-                ? _snapshot.Accepted(result)
-                : _snapshot.ApplySubmissionFailure(result);
-            if (submissionSnapshot.ToReconciliation() is { } reconciliation)
+            bool submissionApplied = false;
+            await InvokeAsync(() =>
             {
-                _adoptedReconciliation = reconciliation;
-                _ = _admissionLease?.TryAdvanceReconciliation(_admissionOwner, reconciliation);
-            }
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
+                {
+                    RetainOrReleaseCompletion(submissionSnapshot, submissionLease);
+                    return;
+                }
 
-            await InvokeAsync(() => SetSnapshot(
-                    submissionSnapshot,
-                    focusTerminalState: true))
-                .ConfigureAwait(false);
+                SetSnapshot(submissionSnapshot, focusTerminalState: true);
+                submissionApplied = true;
+                StateHasChanged();
+            }).ConfigureAwait(false);
 
-            if (CanApplyOperation(generation)
-                && _snapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
+            if (submissionApplied
+                && submissionSnapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
             {
                 await RefreshStatusCoreAsync(generation).ConfigureAwait(false);
             }
         }
         finally
         {
-            if (CanApplyOperation(generation))
+            if (!_disposed)
             {
-                await InvokeAsync(() => _isSubmitting = false).ConfigureAwait(false);
+                await InvokeAsync(() =>
+                {
+                    if (CanApplyOperation(generation))
+                    {
+                        _isSubmitting = false;
+                    }
+                }).ConfigureAwait(false);
             }
         }
     }
@@ -637,12 +681,22 @@
             return;
         }
 
+        GlobalAdministratorCorrectionSnapshot statusBasis = _snapshot;
+
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
-            await InvokeAsync(() => SetSnapshot(_snapshot.ApplyStatus(
-                TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"])),
-                focusTerminalState: true)).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusBasis))
+                {
+                    return;
+                }
+
+                SetSnapshot(statusBasis.ApplyStatus(
+                    TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"])),
+                    focusTerminalState: true);
+            }).ConfigureAwait(false);
             return;
         }
 
@@ -654,11 +708,24 @@
             return;
         }
 
+        GlobalAdministratorCorrectionSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
+        bool statusApplied = false;
         await InvokeAsync(() =>
         {
-            SetSnapshot(_snapshot.ApplyStatus(status), focusTerminalState: true);
+            if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusBasis))
+            {
+                return;
+            }
+
+            SetSnapshot(statusSnapshot, focusTerminalState: true);
+            statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
+
+        if (!statusApplied)
+        {
+            return;
+        }
 
         GlobalAdministratorsSnapshot? projection = await RefreshProjectionAsync().ConfigureAwait(false);
         if (!CanApplyOperation(generation))
@@ -666,22 +733,24 @@
             return;
         }
 
-        GlobalAdministratorCorrectionSnapshot projectionSnapshot = _snapshot.ConfirmProjection(projection);
+        GlobalAdministratorCorrectionSnapshot projectionSnapshot = statusSnapshot.ConfirmProjection(projection);
         if (projectionSnapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
             TenantAuditRow? proof = await QueryCorrectiveProofAsync(projectionSnapshot).ConfigureAwait(false);
             projectionSnapshot = projectionSnapshot.WithCorrectiveProof(proof);
         }
 
-        if (CanApplyOperation(generation))
+        await InvokeAsync(() =>
         {
-            await InvokeAsync(() =>
+            if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusSnapshot))
             {
-                CurrentProjection = projection;
-                SetSnapshot(projectionSnapshot, focusTerminalState: true);
-                StateHasChanged();
-            }).ConfigureAwait(false);
-        }
+                return;
+            }
+
+            CurrentProjection = projection;
+            SetSnapshot(projectionSnapshot, focusTerminalState: true);
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private async Task<bool> ReauthorizeAsync(long operationGeneration)

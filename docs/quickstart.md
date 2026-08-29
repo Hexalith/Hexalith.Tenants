@@ -388,11 +388,10 @@ consumerProjection.IsAuthorized("tenant-a", "reader", TenantRole.TenantReader).S
 
 ### Run Local Test Projects
 
-Run test projects individually. With the current .NET 10 SDK, `dotnet test` can hit the Microsoft.Testing.Platform/VSTest incompatibility recorded in the Epic 2 implementation evidence. If that happens, build the project and run the generated xUnit v3 executable directly:
+Run test projects individually through the repository-selected Microsoft.Testing.Platform path:
 
 ```bash
-dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore
-tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none
+dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release
 ```
 
 ## Troubleshooting

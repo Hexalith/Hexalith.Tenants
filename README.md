@@ -115,7 +115,7 @@ project or file entries under `references/`.
 
 ### Test Requirements
 
-All pull requests must pass the relevant existing test projects. Run test projects individually. With the current .NET 10 SDK, `dotnet test` can hit the Microsoft.Testing.Platform/VSTest incompatibility recorded in the Epic 2 story evidence; when that happens, build the test project and run its generated xUnit v3 executable from `bin/Release/net10.0`.
+All pull requests must pass the relevant existing test projects. Run test projects individually; the repository selects Microsoft.Testing.Platform for its xUnit 4 projects.
 
 ```bash
 dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release
@@ -123,8 +123,7 @@ dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.cs
 dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release
 
-dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore
-tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none
+dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release
 ```
 
 Integration and server tests require DAPR initialization (`dapr init`) and the local runtime prerequisites documented in the quickstart.
