@@ -6,9 +6,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="coverlet.collector">
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 

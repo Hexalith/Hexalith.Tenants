@@ -20,9 +20,12 @@ public class QuickstartDocumentationTests {
     [Fact]
     public void Quickstart_prerequisite_validation_covers_blocking_local_setup_before_first_command() {
         string quickstart = ReadQuickstart();
+        using JsonDocument globalJson = JsonDocument.Parse(File.ReadAllText(RepositoryPath("global.json")));
+        string sdkVersion = globalJson.RootElement.GetProperty("sdk").GetProperty("version").GetString()
+            ?? throw new InvalidOperationException("global.json must declare a non-null SDK version.");
 
         quickstart.ShouldContain("dotnet --version");
-        quickstart.ShouldContain("10.0.400");
+        quickstart.ShouldContain(sdkVersion);
         quickstart.ShouldContain("global.json");
         quickstart.ShouldContain("dapr --version");
         quickstart.ShouldContain("dapr init");
