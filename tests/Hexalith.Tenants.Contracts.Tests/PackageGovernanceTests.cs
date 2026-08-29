@@ -296,6 +296,47 @@ public class PackageGovernanceTests {
         violations.ShouldBeEmpty("Every standalone-capable external edge must have exclusive source/package routing.");
     }
 
+    [Theory]
+    [InlineData(true, null, "true")]
+    [InlineData(true, "false", "false")]
+    [InlineData(false, null, "false")]
+    public void FrontComposer_source_routing_is_available_by_default_and_explicitly_overridable(
+        bool createSourceGraph,
+        string? sourceOverride,
+        string expectedFrontComposerRouting) {
+        string repoRoot = FindRepoRoot();
+        string sourceRoot = Path.Combine(Path.GetTempPath(), $"hexalith-frontcomposer-routing-{Guid.NewGuid():N}");
+
+        try {
+            if (createSourceGraph) {
+                foreach (string relativeProject in new[] {
+                    "src/Hexalith.FrontComposer.Contracts/Hexalith.FrontComposer.Contracts.csproj",
+                    "src/Hexalith.FrontComposer.Shell/Hexalith.FrontComposer.Shell.csproj",
+                    "src/Hexalith.FrontComposer.Testing/Hexalith.FrontComposer.Testing.csproj",
+                }) {
+                    string projectPath = Path.Combine(sourceRoot, relativeProject);
+                    _ = Directory.CreateDirectory(Path.GetDirectoryName(projectPath)!);
+                    File.WriteAllText(projectPath, "<Project />");
+                }
+            }
+
+            Dictionary<string, string> properties = EvaluateUiDependencyRouting(
+                repoRoot,
+                sourceRoot,
+                sourceOverride);
+
+            properties["HexalithFrontComposerFromSource"].ShouldBe(expectedFrontComposerRouting);
+            properties["HexalithCommonsFromSource"].ShouldNotBe("true");
+            properties["HexalithEventStoreFromSource"].ShouldNotBe("true");
+            properties["HexalithMemoriesFromSource"].ShouldNotBe("true");
+        }
+        finally {
+            if (Directory.Exists(sourceRoot)) {
+                Directory.Delete(sourceRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>
     /// Collects the <c>Hexalith.EventStore*</c> references of the requested item type, keyed by
     /// package id. A <c>ProjectReference</c> id is derived from its project file name so the rule is
@@ -357,6 +398,41 @@ public class PackageGovernanceTests {
         => packageReference.Attribute("Version") is not null
         || packageReference.Attribute("VersionOverride") is not null
         || packageReference.Elements().Any(child => child.Name.LocalName is "Version" or "VersionOverride");
+
+    private static Dictionary<string, string> EvaluateUiDependencyRouting(
+        string repoRoot,
+        string frontComposerRoot,
+        string? sourceOverride) {
+        var startInfo = new ProcessStartInfo("dotnet") {
+            WorkingDirectory = repoRoot,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add("msbuild");
+        startInfo.ArgumentList.Add("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj");
+        startInfo.ArgumentList.Add("-nologo");
+        startInfo.ArgumentList.Add("-getProperty:HexalithFrontComposerFromSource,HexalithCommonsFromSource,HexalithEventStoreFromSource,HexalithMemoriesFromSource");
+        startInfo.ArgumentList.Add("-property:UseHexalithProjectReferences=false");
+        startInfo.ArgumentList.Add($"-property:HexalithFrontComposerRoot={frontComposerRoot}");
+        if (sourceOverride is not null) {
+            startInfo.ArgumentList.Add($"-property:HexalithFrontComposerFromSource={sourceOverride}");
+        }
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start dotnet msbuild for FrontComposer routing evaluation.");
+        string standardOutput = process.StandardOutput.ReadToEnd();
+        string standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        process.ExitCode.ShouldBe(
+            0,
+            $"FrontComposer routing evaluation failed. stdout: {standardOutput}{Environment.NewLine}stderr: {standardError}");
+
+        using JsonDocument evaluation = JsonDocument.Parse(standardOutput);
+        return evaluation.RootElement.GetProperty("Properties")
+            .EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.GetString() ?? string.Empty, StringComparer.Ordinal);
+    }
 
     [Fact]
     public void Shared_build_defaults_keep_language_warning_metadata_and_EventStore_governance() {
