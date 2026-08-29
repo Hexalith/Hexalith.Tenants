@@ -2,7 +2,7 @@
 title: 'FrontComposer explicit page-tab panel contract'
 type: 'bugfix'
 created: '2026-08-28'
-status: 'blocked'
+status: ready-for-dev
 baseline_revision: 'b5d2734f1774923c5f4334b898653cfc49abf369'
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -87,9 +87,3 @@ The pinned Fluent package hard-codes panel ids and splats `AdditionalAttributes`
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false` then the built UI test executable -- expected: full UI suite passes against modified FrontComposer source.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-frontcomposer-tab-contract.md` -- expected: no undeclared moved gitlink.
 
-## Auto Run Result
-
-Status: blocked
-Blocking condition: implementation verification failed
-
-The exact command `dotnet build tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj --configuration Debug -m:1` fails during restore with `NU1107`: the centrally managed test graph combines `xunit.v3.common` 4.0.0 through `xunit.v3` 4.0.0 with `xunit.v3.common` 3.2.2 through `xunit.v3.extensibility.core` 3.2.2. The intent contract forbids dependency-version changes, so the workflow cannot fix or bypass the conflict. No FrontComposer bUnit assembly was produced and the matrix test audit cannot be completed.
