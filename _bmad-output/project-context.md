@@ -29,7 +29,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ## Technology Stack & Versions
 
-- **.NET 10 / C#** — SDK pinned to `10.0.302` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
+- **.NET 10 / C#** — SDK pinned to `10.0.400` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
 - **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.96.2`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
 - **DAPR** — DAPR SDK packages `1.18.5`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default). The `1.19.0-preview.2` SDK family is intentionally held because stable pins do not move to prerelease channels in a dependency refresh.
@@ -39,7 +39,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Memories search** — Tenants UI uses `MemoriesClient.SearchAsync` as an index lookup only; rows are hydrated from Tenants REST query endpoints.
 - **Testing** — xUnit v3 `3.2.2` with runner `3.1.5`, Shouldly `4.3.0`, NSubstitute `6.2.0`, Testcontainers `4.14.0`, coverlet `10.0.1`, Microsoft.NET.Test.Sdk `18.9.0`, YamlDotNet `18.1.0`. xUnit `4.0.0` is held because it requires a non-mechanical parallelization migration; Shouldly `5.0.0-preview.2` is held because stable pins do not move to prerelease channels in a dependency refresh.
 - **Release tooling** — semantic-release `25.0.9`, commitlint `21.2.2`, `@semantic-release/changelog` `7.0.0`, and `@semantic-release/git` `11.0.1`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
-- **Framework family held at .NET 10.** `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and `System.Collections.Immutable` stay on `10.0.x` stable. Their higher versions are .NET 11 prereleases, and several publish only `net11.0` assets that cannot restore against `net10.0` / SDK `10.0.302`. Do not update this family without an approved platform migration.
+- **Framework family held at .NET 10.** `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and `System.Collections.Immutable` stay on `10.0.x` stable. Their higher versions are .NET 11 prereleases, and several publish only `net11.0` assets that cannot restore against `net10.0` / SDK `10.0.400`. Do not update this family without an approved platform migration.
 
 ## Critical Implementation Rules
 
