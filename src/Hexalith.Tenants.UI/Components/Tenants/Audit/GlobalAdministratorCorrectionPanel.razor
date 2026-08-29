@@ -328,6 +328,10 @@
         }
 
         _bffComposition = Services.GetService<ITenantsBffComposition>();
+        if (_bffComposition is not null)
+        {
+            _authorizationReflection = _bffComposition.GlobalAdministratorsAuthorizationReflection;
+        }
         _authenticationStateProvider = Services.GetService<AuthenticationStateProvider>();
         if (_authenticationStateProvider is not null)
         {
@@ -352,6 +356,7 @@
             if (CanApplyAuthorization(generation))
             {
                 _authorizationReflection = reflection;
+                StateHasChanged();
             }
         }).ConfigureAwait(false);
     }
@@ -479,7 +484,7 @@
     private void SetSnapshot(GlobalAdministratorCorrectionSnapshot snapshot, bool focusTerminalState = false)
     {
         _snapshot = snapshot;
-        if (CreateReconciliation(snapshot) is { } reconciliation)
+        if (snapshot.ToReconciliation() is { } reconciliation)
         {
             _adoptedReconciliation = reconciliation;
             _ = _admissionLease?.TryAdvanceReconciliation(_admissionOwner, reconciliation);
@@ -575,7 +580,7 @@
             GlobalAdministratorCorrectionSnapshot submissionSnapshot = result.State is TenantCommandLifecycleState.Accepted
                 ? _snapshot.Accepted(result)
                 : _snapshot.ApplySubmissionFailure(result);
-            if (CreateReconciliation(submissionSnapshot) is { } reconciliation)
+            if (submissionSnapshot.ToReconciliation() is { } reconciliation)
             {
                 _adoptedReconciliation = reconciliation;
                 _ = _admissionLease?.TryAdvanceReconciliation(_admissionOwner, reconciliation);
@@ -649,8 +654,11 @@
             return;
         }
 
-        await InvokeAsync(() => SetSnapshot(_snapshot.ApplyStatus(status), focusTerminalState: true))
-            .ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            SetSnapshot(_snapshot.ApplyStatus(status), focusTerminalState: true);
+            StateHasChanged();
+        }).ConfigureAwait(false);
 
         GlobalAdministratorsSnapshot? projection = await RefreshProjectionAsync().ConfigureAwait(false);
         if (!CanApplyOperation(generation))
@@ -671,6 +679,7 @@
             {
                 CurrentProjection = projection;
                 SetSnapshot(projectionSnapshot, focusTerminalState: true);
+                StateHasChanged();
             }).ConfigureAwait(false);
         }
     }
@@ -693,14 +702,18 @@
 
     private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationAsync()
     {
-        if (_authenticationStateProvider is null || _bffComposition is null)
+        if (_bffComposition is null)
         {
             return TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
 
         try
         {
-            _ = await _authenticationStateProvider.GetAuthenticationStateAsync().ConfigureAwait(false);
+            if (_authenticationStateProvider is not null)
+            {
+                _ = await _authenticationStateProvider.GetAuthenticationStateAsync().ConfigureAwait(false);
+            }
+
             return await _bffComposition
                 .ResolveGlobalAdministratorsAuthorizationAsync(CancellationToken.None)
                 .ConfigureAwait(false);
@@ -781,15 +794,7 @@
             return;
         }
 
-        _snapshot = _snapshot with
-        {
-            LifecycleState = reconciliation.LifecycleState,
-            MessageId = reconciliation.MessageId,
-            CorrelationId = reconciliation.CorrelationId,
-            AuditState = TenantCommandAuditState.AuditPending,
-            FocusTarget = TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-        };
+        _snapshot = _snapshot.WithReconciliation(reconciliation);
     }
 
     private void AdoptRetainedReconciliation()
@@ -814,9 +819,7 @@
             || _adoptedReconciliation is null
             || _snapshot is null
             || !MatchesSnapshot(_adoptedReconciliation, _snapshot)
-            || !HasMeasuredSafeViewport
-            || !HasReconciliationSupport
-            || _authenticationStateProvider is null)
+            || !HasReconciliationSupport)
         {
             return;
         }
@@ -826,32 +829,13 @@
 
     private void RetainReconciliationForReplacement()
     {
-        if (CreateReconciliation(_snapshot) is { } reconciliation
+        if (_snapshot?.ToReconciliation() is { } reconciliation
             && _admissionLease?.TryRetainReconciliation(_admissionOwner, reconciliation) == true)
         {
             _adoptedReconciliation = reconciliation;
             _admissionLease = null;
         }
     }
-
-    private static GlobalAdministratorReconciliationState? CreateReconciliation(
-        GlobalAdministratorCorrectionSnapshot? snapshot)
-        => snapshot is not null
-            && snapshot.MessageId is { Length: > 0 } messageId
-            && snapshot.CorrelationId is { Length: > 0 } correlationId
-            && snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
-                or TenantCommandLifecycleState.ProjectionPending
-                or TenantCommandLifecycleState.Degraded
-                or TenantCommandLifecycleState.UnableToVerify
-            ? new(
-                snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
-                    ? GlobalAdministratorActionKind.Remove
-                    : GlobalAdministratorActionKind.Grant,
-                snapshot.TargetUserId,
-                messageId,
-                correlationId,
-                snapshot.LifecycleState)
-            : null;
 
     private static bool MatchesSnapshot(
         GlobalAdministratorReconciliationState reconciliation,

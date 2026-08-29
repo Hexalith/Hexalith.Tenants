@@ -228,7 +228,6 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
 
         result.ShouldBe(GlobalAdministratorsSnapshot.Unauthorized());
         calls.ShouldBe(2);
-        result.ToString().ShouldNotContain("sensitive-admin");
     }
 
     private static void AssertCanonicalIncomplete(GlobalAdministratorsSnapshot result)

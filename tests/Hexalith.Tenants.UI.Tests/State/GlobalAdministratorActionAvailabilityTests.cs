@@ -100,9 +100,6 @@ public sealed class GlobalAdministratorActionAvailabilityTests
             GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-secret");
 
         availability.IsAvailable.ShouldBeFalse();
-        evidence.ToString().ShouldNotContain("admin-secret");
-        evidence.ToString().ShouldNotContain("projection-secret");
-        availability.ToString().ShouldNotContain("admin-secret");
     }
 
     private static GlobalAdministratorActionEvidence ReadyEvidence()

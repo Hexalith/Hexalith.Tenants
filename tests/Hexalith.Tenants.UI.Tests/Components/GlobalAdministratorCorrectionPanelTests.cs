@@ -470,7 +470,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
-    public void SubmittedCorrectionIsAdoptedAndCompletedByGlobalAdministratorsPage()
+    public async Task SubmittedCorrectionIsAdoptedAndCompletedByGlobalAdministratorsPage()
     {
         bool commandApplied = false;
         var commandGateway = new StubTenantCommandGateway
@@ -493,7 +493,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             .Add(component => component.CurrentProjection, Projection("other-admin")));
         correction.Find("[data-testid='tenants-correction-confirm']").Click();
         correction.WaitForAssertion(() => correction.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
-        correction.Dispose();
+        correction.Instance.Dispose();
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
 
         commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
@@ -506,7 +506,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
-    public void SubmittedPageRemovalIsAdoptedAndCompletedByCorrectionPanel()
+    public async Task SubmittedPageRemovalIsAdoptedAndCompletedByCorrectionPanel()
     {
         bool commandApplied = false;
         var commandGateway = new StubTenantCommandGateway
@@ -530,7 +530,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         page.Find("[data-testid='tenants-global-admin-remove']").Click();
         page.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
         page.WaitForAssertion(() => page.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("UnableToVerify"));
-        page.Dispose();
+        await page.InvokeAsync(async () => await page.Instance.DisposeAsync());
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
 
         commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
@@ -715,6 +715,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         public bool IsGlobalAdministratorStatusConnected => true;
 
         public bool IsGlobalAdministratorRequeryConnected => true;
+
+        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+            => TenantLifecycleAuthorizationReflectionState.Authorized;
 
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
