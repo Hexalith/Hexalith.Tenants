@@ -110,7 +110,7 @@ scripts/
 
 `Hexalith.Tenants.slnx` remains the canonical development and topology solution.
 Dependency governance builds `Hexalith.Tenants.Standalone.slnx` in Release package
-mode (`-p:UseNuGetDeps=true`); that solution contains all 17 owned projects and no
+mode (`-p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false`); that solution contains all 17 owned projects and no
 project or file entries under `references/`.
 
 ### Test Requirements
