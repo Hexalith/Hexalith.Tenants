@@ -502,13 +502,13 @@
         }
     }
 
-    private void RetainOrReleaseCompletion(
+    private bool RetainOrReleaseCompletion(
         GlobalAdministratorCorrectionSnapshot snapshot,
         TenantAggregateCommandLease submissionLease)
     {
         if (!ReferenceEquals(_admissionLease, submissionLease))
         {
-            return;
+            return false;
         }
 
         if (snapshot.ToReconciliation() is { } reconciliation
@@ -516,12 +516,17 @@
         {
             _adoptedReconciliation = reconciliation;
             _admissionLease = null;
+            AdoptRetainedReconciliation();
+            ApplyAdoptedReconciliation();
+            return true;
         }
         else if (submissionLease.TryReleaseTerminal(_admissionOwner, snapshot.LifecycleState))
         {
             _admissionLease = null;
             _adoptedReconciliation = null;
         }
+
+        return false;
     }
 
     private async Task SubmitAsync()
@@ -538,27 +543,38 @@
             || !_admissionGate.TryAcquireLease(
                 TenantCommandAggregateLock.ForGlobalAdministrators(),
                 _admissionOwner,
-                out _admissionLease))
+                out TenantAggregateCommandLease? acquiredLease)
+            || acquiredLease is null)
         {
             await InvokeAsync(StateHasChanged).ConfigureAwait(false);
             return;
         }
 
         GlobalAdministratorCorrectionSnapshot? requestSentSnapshot = null;
+        TenantAggregateCommandLease? submissionLease = null;
         await InvokeAsync(() =>
         {
             if (!CanApplyOperation(generation))
             {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
                 return;
             }
 
+            if (!acquiredLease.TryMarkDispatched(_admissionOwner))
+            {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
+                return;
+            }
+
+            _admissionLease = acquiredLease;
             _snapshot = _snapshot.RequestSent();
             requestSentSnapshot = _snapshot;
+            submissionLease = acquiredLease;
             _isSubmitting = true;
             StateHasChanged();
         }).ConfigureAwait(false);
 
-        if (requestSentSnapshot is null)
+        if (requestSentSnapshot is null || submissionLease is null)
         {
             return;
         }
@@ -587,14 +603,6 @@
                 return;
             }
 
-            if (_admissionLease?.TryMarkDispatched(_admissionOwner) is not true)
-            {
-                _ = _admissionLease?.TryAbandonBeforeDispatch(_admissionOwner);
-                _admissionLease = null;
-                return;
-            }
-            TenantAggregateCommandLease submissionLease = _admissionLease;
-
             TenantCommandSubmissionResult result = requestSentSnapshot.CommandType switch
             {
                 TenantCorrectionCommandType.SetGlobalAdministrator => await gateway
@@ -609,18 +617,13 @@
             GlobalAdministratorCorrectionSnapshot submissionSnapshot = result.State is TenantCommandLifecycleState.Accepted
                 ? requestSentSnapshot.Accepted(result)
                 : requestSentSnapshot.ApplySubmissionFailure(result);
-            if (!CanApplyOperation(generation))
-            {
-                RetainOrReleaseCompletion(submissionSnapshot, submissionLease);
-                return;
-            }
-
             bool submissionApplied = false;
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
                 {
-                    RetainOrReleaseCompletion(submissionSnapshot, submissionLease);
+                    resumeAdopted = RetainOrReleaseCompletion(submissionSnapshot, submissionLease);
                     return;
                 }
 
@@ -628,12 +631,33 @@
                 submissionApplied = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                return;
+            }
 
             if (submissionApplied
                 && submissionSnapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
             {
                 await RefreshStatusCoreAsync(generation).ConfigureAwait(false);
             }
+        }
+        catch
+        {
+            GlobalAdministratorCorrectionSnapshot failedSnapshot = requestSentSnapshot.ApplySubmissionFailure(
+                TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.State.Failed"]));
+            await InvokeAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
+                {
+                    _ = RetainOrReleaseCompletion(failedSnapshot, submissionLease);
+                    return;
+                }
+
+                SetSnapshot(failedSnapshot, focusTerminalState: true);
+                StateHasChanged();
+            }).ConfigureAwait(false);
         }
         finally
         {
@@ -682,38 +706,61 @@
         }
 
         GlobalAdministratorCorrectionSnapshot statusBasis = _snapshot;
+        TenantAggregateCommandLease? statusLease = _admissionLease;
 
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
+            GlobalAdministratorCorrectionSnapshot unavailableSnapshot = statusBasis.ApplyStatus(
+                TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"]));
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusBasis))
                 {
+                    if (statusLease is not null)
+                    {
+                        resumeAdopted = RetainOrReleaseCompletion(unavailableSnapshot, statusLease);
+                    }
+
                     return;
                 }
 
-                SetSnapshot(statusBasis.ApplyStatus(
-                    TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"])),
-                    focusTerminalState: true);
+                SetSnapshot(unavailableSnapshot, focusTerminalState: true);
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            }
+
             return;
         }
 
-        TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(handle, CancellationToken.None)
-            .ConfigureAwait(false);
-        if (!CanApplyOperation(generation))
+        TenantCommandStatusResult status;
+        try
         {
-            return;
+            status = await gateway
+                .GetStatusAsync(handle, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            status = TenantCommandStatusResult.Unknown(
+                Localizer["Tenants.Correction.GlobalAdmin.State.UnableToVerify"]);
         }
 
         GlobalAdministratorCorrectionSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
         bool statusApplied = false;
+        bool statusResumeAdopted = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusBasis))
             {
+                if (statusLease is not null)
+                {
+                    statusResumeAdopted = RetainOrReleaseCompletion(statusSnapshot, statusLease);
+                }
+
                 return;
             }
 
@@ -721,16 +768,26 @@
             statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
+        if (statusResumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            return;
+        }
 
         if (!statusApplied)
         {
             return;
         }
 
-        GlobalAdministratorsSnapshot? projection = await RefreshProjectionAsync().ConfigureAwait(false);
-        if (!CanApplyOperation(generation))
+        TenantAggregateCommandLease? projectionLease = _admissionLease;
+        GlobalAdministratorsSnapshot? projection;
+        try
         {
-            return;
+            projection = await RefreshProjectionAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            projection = null;
         }
 
         GlobalAdministratorCorrectionSnapshot projectionSnapshot = statusSnapshot.ConfirmProjection(projection);
@@ -740,10 +797,16 @@
             projectionSnapshot = projectionSnapshot.WithCorrectiveProof(proof);
         }
 
+        bool projectionResumeAdopted = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, statusSnapshot))
             {
+                if (projectionLease is not null)
+                {
+                    projectionResumeAdopted = RetainOrReleaseCompletion(projectionSnapshot, projectionLease);
+                }
+
                 return;
             }
 
@@ -751,6 +814,10 @@
             SetSnapshot(projectionSnapshot, focusTerminalState: true);
             StateHasChanged();
         }).ConfigureAwait(false);
+        if (projectionResumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task<bool> ReauthorizeAsync(long operationGeneration)

@@ -212,6 +212,7 @@
     private int _correctionOpenGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
+    private long _globalAdministratorsProjectionGeneration;
     private IAsyncDisposable? _readRefreshLease;
     private string? _loadedTenantId;
     private string? _subscriptionTenantId;
@@ -1105,12 +1106,20 @@
     // the call site so a tenant audit page with no such rows never pays for an extra query.
     private async Task<GlobalAdministratorsSnapshot?> RefreshGlobalAdministratorsProjectionAsync()
     {
+        long projectionGeneration = Interlocked.Increment(ref _globalAdministratorsProjectionGeneration);
         GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
             .LoadAsync(QueryGateway, cancellationToken: CancellationToken.None)
             .ConfigureAwait(false);
         // Assign on the renderer's dispatcher: this also runs as the correction panel's confirm-time
         // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
-        await InvokeAsync(() => _globalAdministratorsSnapshot = snapshot).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!_disposed
+                && projectionGeneration == Volatile.Read(ref _globalAdministratorsProjectionGeneration))
+            {
+                _globalAdministratorsSnapshot = snapshot;
+            }
+        }).ConfigureAwait(false);
         return snapshot;
     }
 
@@ -1119,12 +1128,20 @@
         long generation,
         CancellationToken cancellationToken)
     {
+        long projectionGeneration = Interlocked.Increment(ref _globalAdministratorsProjectionGeneration);
         GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
             .LoadAsync(QueryGateway, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         if (CanApply(tenantId, generation))
         {
-            await InvokeAsync(() => _globalAdministratorsSnapshot = snapshot).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                if (CanApply(tenantId, generation)
+                    && projectionGeneration == Volatile.Read(ref _globalAdministratorsProjectionGeneration))
+                {
+                    _globalAdministratorsSnapshot = snapshot;
+                }
+            }).ConfigureAwait(false);
         }
     }
 

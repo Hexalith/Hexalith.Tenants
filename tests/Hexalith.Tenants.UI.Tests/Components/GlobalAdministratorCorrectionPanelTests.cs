@@ -464,7 +464,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task Superseded_correction_completion_queued_behind_the_renderer_cannot_replace_request_sent()
+    public async Task Superseded_accepted_correction_is_immediately_adopted_resumed_and_confirmed()
     {
         var pending = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var commandGateway = new StubTenantCommandGateway { SetResultTask = pending.Task };
@@ -490,20 +490,89 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         releaseRenderer.SetResult();
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
-        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
         var replacementOwner = new object();
         TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
-        admissionGate.TryAdoptRetainedLease(
+        admissionGate.TryAcquireLease(
             TenantCommandAggregateLock.ForGlobalAdministrators(),
             replacementOwner,
-            out TenantAggregateCommandLease? retainedLease,
-            out GlobalAdministratorReconciliationState? reconciliation).ShouldBeTrue();
-        reconciliation!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
-        retainedLease!.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Confirmed).ShouldBeTrue();
+            out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+        replacementLease!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("rejected")]
+    [InlineData("failed")]
+    public async Task Superseded_terminal_correction_completion_releases_aggregate_lease(string outcome)
+    {
+        var pending = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway { SetResultTask = pending.Task };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commandGateway.SetRequests.ShouldHaveSingleItem());
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        pending.SetResult(outcome == "rejected"
+            ? TenantCommandSubmissionResult.Rejected("The correction was rejected.", "RejectedForTest")
+            : TenantCommandSubmissionResult.Failed("The correction failed."));
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            await Task.Yield();
+        }
+
+        IncrementPrivateGeneration(cut.Instance, "_operationGeneration");
+        releaseRenderer.SetResult();
+        await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
+
+        TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var replacementOwner = new object();
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+        replacementLease!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
     }
 
     [Fact]
-    public async Task Superseded_status_completion_queued_behind_the_renderer_cannot_replace_accepted_correction()
+    public async Task Ordinary_correction_gateway_exception_fails_closed_and_releases_aggregate_lease()
+    {
+        var commandGateway = new StubTenantCommandGateway
+        {
+            SetResultTask = Task.FromException<TenantCommandSubmissionResult>(new HttpRequestException("transport detail")),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Markup.ShouldNotContain("transport detail", Case.Insensitive);
+        TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var replacementOwner = new object();
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+        replacementLease!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Superseded_status_completion_is_immediately_adopted_resumed_and_confirmed()
     {
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var commandGateway = new StubTenantCommandGateway { StatusResultTask = pendingStatus.Task };
@@ -529,7 +598,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         releaseRenderer.SetResult();
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
-        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
     }
 
     [Fact]
@@ -565,6 +634,34 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
         cut.Instance.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void Correction_lease_arming_and_component_field_write_are_renderer_guarded()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..")),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "GlobalAdministratorCorrectionPanel.razor"));
+        int submitStart = source.IndexOf("private async Task SubmitAsync()", StringComparison.Ordinal);
+        int submitEnd = source.IndexOf("private async Task RefreshStatusAsync()", submitStart, StringComparison.Ordinal);
+        string submit = source[submitStart..submitEnd];
+        int assignment = submit.IndexOf("_admissionLease = acquiredLease", StringComparison.Ordinal);
+        int callback = submit.LastIndexOf("await InvokeAsync(() =>", assignment, StringComparison.Ordinal);
+        int operationGuard = submit.IndexOf("CanApplyOperation(generation)", callback, StringComparison.Ordinal);
+        int dispatchGuard = submit.IndexOf("acquiredLease.TryMarkDispatched(_admissionOwner)", callback, StringComparison.Ordinal);
+
+        submitStart.ShouldBeGreaterThan(-1);
+        submitEnd.ShouldBeGreaterThan(submitStart);
+        callback.ShouldBeGreaterThan(-1);
+        operationGuard.ShouldBeInRange(callback, assignment);
+        dispatchGuard.ShouldBeInRange(callback, assignment);
+        submit.ShouldContain("_ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);");
+        submit.ShouldNotContain("out _admissionLease");
     }
 
     [Fact]

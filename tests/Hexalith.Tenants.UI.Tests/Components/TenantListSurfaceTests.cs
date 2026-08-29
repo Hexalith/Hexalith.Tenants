@@ -11,6 +11,7 @@ using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.UserTenants;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 
@@ -413,21 +414,52 @@ public sealed class TenantListSurfaceTests : BunitContext
     {
         RegisterServices(ReadySnapshot(
             [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?cursor=tenant-cursor");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
         FluentDataGrid<TenantListRow> firstTenantsPanel = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeFalse();
+        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
         UserMembershipLookupPanel firstUsersPanel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
+        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeTrue();
+        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
+        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeFalse();
+        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
+
+        navigation.NavigateTo("/tenants?tab=users&userId=user.one&sort=role&cursor=user-cursor");
+        cut.WaitForAssertion(() =>
+        {
+            firstUsersPanel.InitialUserId.ShouldBe("user.one");
+            firstUsersPanel.InitialSort.ShouldBe(UserTenantMembershipSortColumns.Role);
+            firstUsersPanel.InitialCursor.ShouldBe("user-cursor");
+        });
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
         cut.FindComponents<UserMembershipLookupPanel>().ShouldHaveSingleItem().Instance.ShouldBeSameAs(firstUsersPanel);
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
+        navigation.Uri.ShouldContain("cursor=tenant-cursor");
+        firstUsersPanel.InitialUserId.ShouldBe("user.one");
+        firstUsersPanel.InitialSort.ShouldBe(UserTenantMembershipSortColumns.Role);
+        firstUsersPanel.InitialCursor.ShouldBe("user-cursor");
+        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeFalse();
+        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
+        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeTrue();
+        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
         cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(firstUsersPanel);
+        navigation.Uri.ShouldContain("userId=user.one");
+        navigation.Uri.ShouldContain("sort=role");
+        navigation.Uri.ShouldContain("cursor=user-cursor");
+        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeTrue();
+        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
+        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeFalse();
+        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
     }
 
     [Fact]
@@ -2496,6 +2528,19 @@ public sealed class TenantListSurfaceTests : BunitContext
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(resultFactory);
+        gateway.GetUserTenantsAsync(
+                Arg.Any<UserTenantMembershipRequest>(),
+                Arg.Any<UserTenantMembershipSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                UserTenantMembershipRequest request = call.ArgAt<UserTenantMembershipRequest>(0);
+                return Task.FromResult(UserTenantMembershipSnapshot.Empty(
+                    isAuthorizationScoped: true,
+                    ReadModelFreshnessState.Current,
+                    eTag: "\"user-etag\"",
+                    request.TargetUserId));
+            });
         Services.AddSingleton(gateway);
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns("operator-user");

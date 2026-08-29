@@ -2175,7 +2175,8 @@
             || !_aggregateAdmissionGate.TryAcquireLease(
                 TenantCommandAggregateLock.ForGlobalAdministrators(),
                 _fixedAggregateOwner,
-                out _grantAdmissionLease))
+                out TenantAggregateCommandLease? acquiredLease)
+            || acquiredLease is null)
         {
             await InvokeAsync(() => SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
                 Localizer["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"],
@@ -2191,19 +2192,29 @@
         // BeginGrantMutation and these writes must not stick RequestSent after invalidation.
         bool grantRequestArmed = false;
         GlobalAdministratorGrantCommandSnapshot? requestSentSnapshot = null;
+        TenantAggregateCommandLease? submissionLease = null;
         await InvokeAsync(() =>
         {
             if (!CanApplyGrantMutation(generation))
             {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                 return;
             }
 
+            if (!acquiredLease.TryMarkDispatched(_fixedAggregateOwner))
+            {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                return;
+            }
+
+            _grantAdmissionLease = acquiredLease;
             SetGrantSnapshot(_grantSnapshot.RequestSent(request));
             requestSentSnapshot = _grantSnapshot;
+            submissionLease = acquiredLease;
             _isGrantSubmitting = true;
             grantRequestArmed = true;
         }).ConfigureAwait(false);
-        if (!grantRequestArmed || requestSentSnapshot is null)
+        if (!grantRequestArmed || requestSentSnapshot is null || submissionLease is null)
         {
             return;
         }
@@ -2216,30 +2227,17 @@
 
         try
         {
-            if (_grantAdmissionLease?.TryMarkDispatched(_fixedAggregateOwner) is not true)
-            {
-                _ = _grantAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
-                _grantAdmissionLease = null;
-                return;
-            }
-            TenantAggregateCommandLease submissionLease = _grantAdmissionLease;
-
             TenantCommandSubmissionResult result = await CommandGateway
                 .SetGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
             GlobalAdministratorGrantCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
-            if (!CanApplyGrantMutation(generation))
-            {
-                RetainOrReleaseGrantCompletion(submissionSnapshot, submissionLease);
-                return;
-            }
-
             bool submissionApplied = false;
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyGrantMutation(generation) || !ReferenceEquals(_grantSnapshot, requestSentSnapshot))
                 {
-                    RetainOrReleaseGrantCompletion(submissionSnapshot, submissionLease);
+                    resumeAdopted = RetainOrReleaseGrantCompletion(submissionSnapshot, submissionLease);
                     return;
                 }
 
@@ -2247,6 +2245,12 @@
                 submissionApplied = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                return;
+            }
+
             if (submissionApplied && result.State is TenantCommandLifecycleState.Accepted)
             {
                 await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
@@ -2254,7 +2258,11 @@
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Authorization collapse and explicit cancellation invalidate late command continuations.
+            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
+        }
+        catch
+        {
+            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
         }
         finally
         {
@@ -2296,6 +2304,7 @@
         }
 
         GlobalAdministratorGrantCommandSnapshot statusBasis = _grantSnapshot;
+        TenantAggregateCommandLease? statusLease = _grantAdmissionLease;
 
         TenantCommandStatusResult status;
         try
@@ -2308,13 +2317,24 @@
         {
             return;
         }
+        catch
+        {
+            status = TenantCommandStatusResult.Unknown(
+                Localizer["Tenants.GlobalAdministrators.Grant.State.UnableToVerify"]);
+        }
 
         GlobalAdministratorGrantCommandSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
         bool statusApplied = false;
+        bool resumeAdopted = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyGrantMutation(generation) || !ReferenceEquals(_grantSnapshot, statusBasis))
             {
+                if (statusLease is not null)
+                {
+                    resumeAdopted = RetainOrReleaseGrantCompletion(statusSnapshot, statusLease);
+                }
+
                 return;
             }
 
@@ -2322,6 +2342,11 @@
             statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
+        if (resumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            return;
+        }
 
         if (statusApplied
             && statusSnapshot.Intent is not null
@@ -2360,6 +2385,7 @@
         }
 
         GlobalAdministratorGrantCommandSnapshot projectionBasis = _grantSnapshot;
+        TenantAggregateCommandLease? projectionLease = _grantAdmissionLease;
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,
@@ -2371,18 +2397,29 @@
         // The pagers already guard this way.
         if (snapshot is not null)
         {
+            GlobalAdministratorGrantCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyGrantMutation(generation)
                     || !ReferenceEquals(_snapshot, snapshot)
                     || !ReferenceEquals(_grantSnapshot, projectionBasis))
                 {
+                    if (projectionLease is not null)
+                    {
+                        resumeAdopted = RetainOrReleaseGrantCompletion(projectionSnapshot, projectionLease);
+                    }
+
                     return;
                 }
 
-                SetGrantSnapshot(projectionBasis.ConfirmProjection(snapshot));
+                SetGrantSnapshot(projectionSnapshot);
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -2430,24 +2467,48 @@
         }
     }
 
-    private void RetainOrReleaseGrantCompletion(
+    private bool RetainOrReleaseGrantCompletion(
         GlobalAdministratorGrantCommandSnapshot snapshot,
         TenantAggregateCommandLease submissionLease)
     {
         if (!ReferenceEquals(_grantAdmissionLease, submissionLease))
         {
-            return;
+            return false;
         }
 
         if (CreateReconciliation(snapshot) is { } reconciliation
             && submissionLease.TryRetainReconciliation(_fixedAggregateOwner, reconciliation))
         {
             _grantAdmissionLease = null;
+            AdoptRetainedReconciliation();
+            return true;
         }
         else if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
         {
             _grantAdmissionLease = null;
         }
+
+        return false;
+    }
+
+    private async Task ApplyGrantSubmissionExceptionAsync(
+        long generation,
+        GlobalAdministratorGrantCommandSnapshot requestSentSnapshot,
+        TenantAggregateCommandLease submissionLease)
+    {
+        GlobalAdministratorGrantCommandSnapshot failedSnapshot = requestSentSnapshot.ApplySubmission(
+            TenantCommandSubmissionResult.Failed(Localizer["Tenants.GlobalAdministrators.Grant.State.Failed"]));
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyGrantMutation(generation) || !ReferenceEquals(_grantSnapshot, requestSentSnapshot))
+            {
+                _ = RetainOrReleaseGrantCompletion(failedSnapshot, submissionLease);
+                return;
+            }
+
+            SetGrantSnapshot(failedSnapshot);
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private void PreviewRemove(string userId)
@@ -2495,7 +2556,8 @@
             || !_aggregateAdmissionGate.TryAcquireLease(
                 TenantCommandAggregateLock.ForGlobalAdministrators(),
                 _fixedAggregateOwner,
-                out _removeAdmissionLease))
+                out TenantAggregateCommandLease? acquiredLease)
+            || acquiredLease is null)
         {
             await InvokeAsync(() => SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Blocked(
                 Localizer["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy"],
@@ -2508,19 +2570,29 @@
         CancellationToken cancellationToken = operation.CancellationToken;
         bool removeRequestArmed = false;
         GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
+        TenantAggregateCommandLease? submissionLease = null;
         await InvokeAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation))
             {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                 return;
             }
 
+            if (!acquiredLease.TryMarkDispatched(_fixedAggregateOwner))
+            {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                return;
+            }
+
+            _removeAdmissionLease = acquiredLease;
             SetRemoveSnapshot(_removeSnapshot.RequestSent());
             requestSentSnapshot = _removeSnapshot;
+            submissionLease = acquiredLease;
             _isRemoveSubmitting = true;
             removeRequestArmed = true;
         }).ConfigureAwait(false);
-        if (!removeRequestArmed || requestSentSnapshot is null)
+        if (!removeRequestArmed || requestSentSnapshot is null || submissionLease is null)
         {
             return;
         }
@@ -2531,30 +2603,17 @@
 
         try
         {
-            if (_removeAdmissionLease?.TryMarkDispatched(_fixedAggregateOwner) is not true)
-            {
-                _ = _removeAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
-                _removeAdmissionLease = null;
-                return;
-            }
-            TenantAggregateCommandLease submissionLease = _removeAdmissionLease;
-
             TenantCommandSubmissionResult result = await CommandGateway
                 .RemoveGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
             GlobalAdministratorRemoveCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
-            if (!CanApplyRemoveMutation(generation))
-            {
-                RetainOrReleaseRemoveCompletion(submissionSnapshot, submissionLease);
-                return;
-            }
-
             bool submissionApplied = false;
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, requestSentSnapshot))
                 {
-                    RetainOrReleaseRemoveCompletion(submissionSnapshot, submissionLease);
+                    resumeAdopted = RetainOrReleaseRemoveCompletion(submissionSnapshot, submissionLease);
                     return;
                 }
 
@@ -2562,6 +2621,12 @@
                 submissionApplied = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                return;
+            }
+
             if (submissionApplied && result.State is TenantCommandLifecycleState.Accepted)
             {
                 await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
@@ -2569,7 +2634,11 @@
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Authorization collapse and explicit cancellation invalidate late command continuations.
+            await ApplyRemoveSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
+        }
+        catch
+        {
+            await ApplyRemoveSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
         }
         finally
         {
@@ -2611,6 +2680,7 @@
         }
 
         GlobalAdministratorRemoveCommandSnapshot statusBasis = _removeSnapshot;
+        TenantAggregateCommandLease? statusLease = _removeAdmissionLease;
 
         TenantCommandStatusResult status;
         try
@@ -2623,13 +2693,24 @@
         {
             return;
         }
+        catch
+        {
+            status = TenantCommandStatusResult.Unknown(
+                Localizer["Tenants.GlobalAdministrators.Remove.State.UnableToVerify"]);
+        }
 
         GlobalAdministratorRemoveCommandSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
         bool statusApplied = false;
+        bool resumeAdopted = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, statusBasis))
             {
+                if (statusLease is not null)
+                {
+                    resumeAdopted = RetainOrReleaseRemoveCompletion(statusSnapshot, statusLease);
+                }
+
                 return;
             }
 
@@ -2637,6 +2718,11 @@
             statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
+        if (resumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            return;
+        }
 
         if (statusApplied
             && statusSnapshot.Intent is not null
@@ -2675,6 +2761,7 @@
         }
 
         GlobalAdministratorRemoveCommandSnapshot projectionBasis = _removeSnapshot;
+        TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
         GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
             reuseETag: false,
             retainConfirmed: true,
@@ -2683,18 +2770,29 @@
         // Same reference check as the grant requery: a superseded load must not prove a removal.
         if (snapshot is not null)
         {
+            GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+            bool resumeAdopted = false;
             await InvokeAsync(() =>
             {
                 if (!CanApplyRemoveMutation(generation)
                     || !ReferenceEquals(_snapshot, snapshot)
                     || !ReferenceEquals(_removeSnapshot, projectionBasis))
                 {
+                    if (projectionLease is not null)
+                    {
+                        resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease);
+                    }
+
                     return;
                 }
 
-                SetRemoveSnapshot(projectionBasis.ConfirmProjection(snapshot));
+                SetRemoveSnapshot(projectionSnapshot);
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -2750,24 +2848,48 @@
         }
     }
 
-    private void RetainOrReleaseRemoveCompletion(
+    private bool RetainOrReleaseRemoveCompletion(
         GlobalAdministratorRemoveCommandSnapshot snapshot,
         TenantAggregateCommandLease submissionLease)
     {
         if (!ReferenceEquals(_removeAdmissionLease, submissionLease))
         {
-            return;
+            return false;
         }
 
         if (CreateReconciliation(snapshot) is { } reconciliation
             && submissionLease.TryRetainReconciliation(_fixedAggregateOwner, reconciliation))
         {
             _removeAdmissionLease = null;
+            AdoptRetainedReconciliation();
+            return true;
         }
         else if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
         {
             _removeAdmissionLease = null;
         }
+
+        return false;
+    }
+
+    private async Task ApplyRemoveSubmissionExceptionAsync(
+        long generation,
+        GlobalAdministratorRemoveCommandSnapshot requestSentSnapshot,
+        TenantAggregateCommandLease submissionLease)
+    {
+        GlobalAdministratorRemoveCommandSnapshot failedSnapshot = requestSentSnapshot.ApplySubmission(
+            TenantCommandSubmissionResult.Failed(Localizer["Tenants.GlobalAdministrators.Remove.State.Failed"]));
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, requestSentSnapshot))
+            {
+                _ = RetainOrReleaseRemoveCompletion(failedSnapshot, submissionLease);
+                return;
+            }
+
+            SetRemoveSnapshot(failedSnapshot);
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private void AdoptRetainedReconciliation()

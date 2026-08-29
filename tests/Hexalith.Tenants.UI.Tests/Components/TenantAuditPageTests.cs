@@ -489,6 +489,42 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public async Task Newest_global_administrator_correction_projection_wins_an_out_of_order_open_race()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true,
+            GlobalAdmins("initial-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        int initialRequestCount = gateway.GlobalAdminRequests.Count;
+        var older = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var newer = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.QueueGlobalAdministratorResponse(older.Task);
+        gateway.QueueGlobalAdministratorResponse(newer.Task);
+
+        Task olderOpen = cut.Find("[data-testid='tenants-correction-start']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Count.ShouldBe(initialRequestCount + 1));
+        Task newerOpen = cut.Find("[data-testid='tenants-correction-start']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Count.ShouldBe(initialRequestCount + 2));
+
+        newer.SetResult(GlobalAdmins("newer-admin"));
+        await newerOpen.WaitAsync(TimeSpan.FromSeconds(5));
+        older.SetResult(GlobalAdmins("older-admin", "admin-user"));
+        await olderOpen.WaitAsync(TimeSpan.FromSeconds(5));
+
+        GlobalAdministratorsSnapshot applied = (GlobalAdministratorsSnapshot)(typeof(TenantAuditPage)
+            .GetField("_globalAdministratorsSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)
+            ?? throw new InvalidOperationException("The global-administrator projection was not applied."));
+        applied.Rows.ShouldHaveSingleItem().UserId.ShouldBe("newer-admin");
+        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.ShouldBe("1");
+    }
+
+    [Fact]
     public void Tenant_audit_page_keeps_global_administrator_correction_fail_closed_when_unauthorized()
     {
         RegisterGlobalAdminServices(
@@ -1053,12 +1089,16 @@ public sealed class TenantAuditPageTests : BunitContext
 
         private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
         private readonly Queue<Task<TenantAuditSnapshot>> _queuedResponses = [];
+        private readonly Queue<Task<GlobalAdministratorsSnapshot>> _queuedGlobalAdministratorResponses = [];
 
         public List<TenantAuditRequest> Requests { get; } = [];
         public List<TenantDetailRequest> DetailRequests { get; } = [];
 
         public void QueueResponse(Task<TenantAuditSnapshot> response)
             => _queuedResponses.Enqueue(response);
+
+        public void QueueGlobalAdministratorResponse(Task<GlobalAdministratorsSnapshot> response)
+            => _queuedGlobalAdministratorResponses.Enqueue(response);
 
         public Task<TenantDetailSnapshot> GetTenantAsync(
             TenantDetailRequest request,
@@ -1108,7 +1148,9 @@ public sealed class TenantAuditPageTests : BunitContext
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            return GlobalAdminFault is not null
+            return _queuedGlobalAdministratorResponses.Count > 0
+                ? _queuedGlobalAdministratorResponses.Dequeue()
+                : GlobalAdminFault is not null
                 ? throw GlobalAdminFault
                 : Task.FromResult(GlobalAdministrators);
         }

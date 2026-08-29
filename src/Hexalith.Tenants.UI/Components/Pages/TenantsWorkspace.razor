@@ -51,7 +51,7 @@
                  role="tabpanel"
                  aria-labelledby="tenants"
                  hidden="@(_activeTabId != TenantsTabId)"
-                 aria-hidden="@(_activeTabId != TenantsTabId)"
+                 aria-hidden="@(_activeTabId != TenantsTabId ? "true" : "false")"
                  data-testid="tenants-workspace-tenants-panel">
                 <FluentStack Orientation="Orientation.Vertical"
                              VerticalGap="24px"
@@ -257,7 +257,7 @@
                     }
                     else if (IsRetainedMyTenantsView)
                     {
-                        <MyTenantsPanel InitialCursor="@_workspaceState.Cursor" />
+                        <MyTenantsPanel InitialCursor="@_tenantWorkspaceState.Cursor" />
                     }
                     @if (ShowPager)
                     {
@@ -281,11 +281,11 @@
                  role="tabpanel"
                  aria-labelledby="users"
                  hidden="@(_activeTabId != UsersTabId)"
-                 aria-hidden="@(_activeTabId != UsersTabId)"
+                 aria-hidden="@(_activeTabId != UsersTabId ? "true" : "false")"
                  data-testid="tenants-workspace-users-panel">
-                <UserMembershipLookupPanel InitialUserId="@_workspaceState.UserId"
-                                           InitialSort="@_workspaceState.Sort"
-                                           InitialCursor="@_workspaceState.Cursor"
+                <UserMembershipLookupPanel InitialUserId="@_usersWorkspaceState.UserId"
+                                           InitialSort="@_usersWorkspaceState.Sort"
+                                           InitialCursor="@_usersWorkspaceState.Cursor"
                                            UseWorkspaceRoute="true"
                                            ShowBackLink="false" />
             </div>
@@ -323,6 +323,17 @@
         cursor: null,
         selectedTenantId: null,
         anchor: null);
+    private TenantWorkspaceState _usersWorkspaceState = TenantWorkspaceState.FromQuery(
+        tab: UsersTabId,
+        scope: null,
+        userId: null,
+        search: null,
+        status: null,
+        sort: null,
+        sortDescending: null,
+        cursor: null,
+        selectedTenantId: null,
+        anchor: null);
     private IReadOnlyList<TenantListRow> _visibleRows = [];
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
@@ -334,8 +345,6 @@
     private string? _selectedTenantId;
     private string? _returnAnchor;
     private string _activeTabId = TenantsTabId;
-    private string? _usersTabUserId;
-    private string _usersTabSort = UserTenantMembershipSortColumns.Tenant;
     private string _tenantScope = AllTenantsScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
@@ -1213,38 +1222,22 @@
 
         string previousTab = _activeTabId;
 
-        // Remember the last looked-up user so a Users -> Tenants -> Users round-trip restores it (mirrors the
-        // remembered tenant scope). The userId lives in the URL only while the Users tab is active, so capture
-        // it before navigating away from that tab.
+        // Preserve the complete state owned by the panel being left. Each retained panel stays mounted, and
+        // its parameters must remain that panel's last normalized state while the other tab owns the URL.
         if (string.Equals(previousTab, UsersTabId, StringComparison.Ordinal))
         {
-            _usersTabUserId = _workspaceState.UserId;
-            _usersTabSort = _workspaceState.Sort;
+            _usersWorkspaceState = _workspaceState;
         }
 
         if (string.Equals(NormalizeTab(activeTabId), UsersTabId, StringComparison.Ordinal))
         {
-            // Keep the remembered tenant scope so a Tenants -> Users -> Tenants round-trip can restore the
-            // My tenants view, and restore the last looked-up user so the Users tab is not reset to a blank
-            // form. Scope is inert on the Users tab (IsMyTenantsView requires the Tenants tab).
-            TenantWorkspaceState usersState = TenantWorkspaceState.FromQuery(
-                UsersTabId,
-                AllTenantsScope,
-                _usersTabUserId,
-                search: null,
-                status: null,
-                _usersTabSort,
-                sortDescending: null,
-                cursor: null,
-                selectedTenantId: null,
-                anchor: null);
+            TenantWorkspaceState usersState = _usersWorkspaceState;
             ApplyWorkspaceState(usersState, clearCursorHistory: true);
             NavigateToCanonicalWorkspaceIfNeeded(usersState);
             return;
         }
 
-        // Restore the last tenant surface while resetting its cursor at the tab boundary.
-        TenantWorkspaceState tenantsState = _tenantWorkspaceState.WithTab(TenantsTabId);
+        TenantWorkspaceState tenantsState = _tenantWorkspaceState;
         ApplyWorkspaceState(tenantsState, clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
         if (IsTenantListView)
@@ -1318,8 +1311,7 @@
         if (state.Tab == UsersTabId)
         {
             _usersTabLoaded = true;
-            _usersTabUserId = state.UserId;
-            _usersTabSort = state.Sort;
+            _usersWorkspaceState = state;
             return;
         }
 
