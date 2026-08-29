@@ -35,8 +35,11 @@ public class StatelessHostStateTests {
         List<string> writableStaticFields = hostAssembly
             .GetTypes()
             // Exclude compiler/source-generated types (e.g. the AddOpenApi XML-comment cache and lambda
-            // display classes). Their names carry '<' and they hold framework/doc state, not tenant state.
-            .Where(type => !IsCompilerGenerated(type) && !type.Name.Contains('<', StringComparison.Ordinal))
+            // display classes) plus the tracker type injected by Microsoft.Testing.Extensions.CodeCoverage.
+            // They hold framework/tooling state, not tenant state.
+            .Where(type => !IsCompilerGenerated(type)
+                && !type.Name.Contains('<', StringComparison.Ordinal)
+                && !IsCoverageInstrumentationType(type))
             .SelectMany(type => type.GetFields(
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             .Where(field => !field.IsLiteral && !field.IsInitOnly)
@@ -52,4 +55,9 @@ public class StatelessHostStateTests {
 
     private static bool IsCompilerGenerated(MemberInfo member)
         => member.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false);
+
+    private static bool IsCoverageInstrumentationType(Type type)
+        => type.FullName?.StartsWith(
+            "Microsoft.CodeCoverage.Instrumentation.Static.Tracker.",
+            StringComparison.Ordinal) is true;
 }

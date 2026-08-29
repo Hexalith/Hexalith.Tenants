@@ -431,6 +431,11 @@ public class PackageGovernanceTests {
         XDocument testProps = XDocument.Load(Path.Combine(repoRoot, "tests/Directory.Build.props"));
         ValueFor(testProps, "IsPackable").ShouldBe("false");
         ValueFor(testProps, "IsTestProject").ShouldBe("true");
+        testProps.Descendants("PackageReference")
+            .Single(reference => reference.Attribute("Include")?.Value == "Microsoft.Testing.Extensions.CodeCoverage")
+            .ShouldNotBeNull();
+        GetForbiddenPackageReferenceViolations(repoRoot, ["coverlet.collector"])
+            .ShouldBeEmpty("MTP coverage must replace the VSTest-only collector in every Tenants-owned test project.");
 
         List<string> testPackabilityViolations = [];
         foreach (string projectPath in GetOwnedProjectFiles(repoRoot).Where(project => project.StartsWith("tests/", StringComparison.Ordinal))) {
@@ -484,6 +489,7 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("permissions:\n  contents: read");
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
+        workflow.ShouldContain("test-platform: microsoft-testing-platform");
         string ciJob = GetYamlJobBlock(workflow, "ci");
         YamlBlockContainsKey(ciJob, "dapr-version").ShouldBeFalse("CI uses the shared domain-ci Dapr default instead of overriding it locally.");
         workflow.ShouldContain("run-consumer-validation: true");
