@@ -129,6 +129,44 @@ public sealed class TenantAggregateCommandAdmissionGateTests
     }
 
     [Fact]
+    public void MismatchingClaimantLeavesRetainedReconciliationForMatchingReplacement()
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string key = TenantCommandAggregateLock.ForGlobalAdministrators();
+        object originalOwner = new();
+        var retained = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove,
+            "admin-user",
+            "message-safe",
+            "correlation-safe",
+            TenantCommandLifecycleState.Accepted);
+        gate.TryAcquireLease(key, originalOwner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease.ShouldNotBeNull();
+        lease.TryMarkDispatched(originalOwner).ShouldBeTrue();
+        lease.TryRetainReconciliation(originalOwner, retained).ShouldBeTrue();
+
+        gate.TryAdoptRetainedLease(
+            key,
+            new object(),
+            GlobalAdministratorActionKind.Grant,
+            "different-admin",
+            out _,
+            out _).ShouldBeFalse();
+
+        object matchingOwner = new();
+        gate.TryAdoptRetainedLease(
+            key,
+            matchingOwner,
+            GlobalAdministratorActionKind.Remove,
+            "admin-user",
+            out TenantAggregateCommandLease? adopted,
+            out GlobalAdministratorReconciliationState? reconciliation).ShouldBeTrue();
+        adopted.ShouldBeSameAs(lease);
+        reconciliation.ShouldBe(retained);
+        adopted!.TryReleaseTerminal(matchingOwner, TenantCommandLifecycleState.Confirmed).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task RetainAndTerminalReleaseAreSerializedWithoutResurrectingAReleasedLease()
     {
         var gate = new TenantAggregateCommandAdmissionGate();

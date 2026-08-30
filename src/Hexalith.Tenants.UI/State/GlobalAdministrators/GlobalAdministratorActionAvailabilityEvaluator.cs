@@ -32,11 +32,6 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
             return common;
         }
 
-        if (!evidence.IsRemovePreviewReady)
-        {
-            return Blocked(GlobalAdministratorActionKind.Remove, GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
-        }
-
         if (!HasValidUniqueRows(evidence.CompleteRows)
             || !evidence.HasCompletePopulation
             || evidence.CompleteKind is not GlobalAdministratorsSurfaceKind.Ready
@@ -62,6 +57,11 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
         if (evidence.CompleteRows.Count <= 1)
         {
             return Blocked(GlobalAdministratorActionKind.Remove, GlobalAdministratorActionUnavailableReason.LastAdministrator);
+        }
+
+        if (!evidence.IsRemovePreviewReady)
+        {
+            return Blocked(GlobalAdministratorActionKind.Remove, GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
         }
 
         return Available(GlobalAdministratorActionKind.Remove);

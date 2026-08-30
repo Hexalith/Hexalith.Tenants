@@ -60,30 +60,83 @@ public sealed class TenantAggregateCommandAdmissionGate
         object owner,
         out TenantAggregateCommandLease? lease,
         out GlobalAdministratorReconciliationState? reconciliation)
+        => TryAdoptRetainedLeaseCore(
+            aggregateLockKey,
+            owner,
+            expectedActionKind: null,
+            expectedTargetUserId: null,
+            out lease,
+            out reconciliation);
+
+    /// <summary>Adopts only retained reconciliation that matches one correction intent.</summary>
+    /// <param name="aggregateLockKey">AggregateIdentity-shaped lock key.</param>
+    /// <param name="owner">Replacement surface owner.</param>
+    /// <param name="expectedActionKind">Expected fixed-scope action.</param>
+    /// <param name="expectedTargetUserId">Expected literal target identity.</param>
+    /// <param name="lease">Exclusively adopted lease.</param>
+    /// <param name="reconciliation">Retained reconciliation evidence.</param>
+    /// <returns><see langword="true"/> when matching retained reconciliation was claimed.</returns>
+    internal bool TryAdoptRetainedLease(
+        string aggregateLockKey,
+        object owner,
+        GlobalAdministratorActionKind expectedActionKind,
+        string expectedTargetUserId,
+        out TenantAggregateCommandLease? lease,
+        out GlobalAdministratorReconciliationState? reconciliation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedTargetUserId);
+        return TryAdoptRetainedLeaseCore(
+            aggregateLockKey,
+            owner,
+            expectedActionKind,
+            expectedTargetUserId,
+            out lease,
+            out reconciliation);
+    }
+
+    private bool TryAdoptRetainedLeaseCore(
+        string aggregateLockKey,
+        object owner,
+        GlobalAdministratorActionKind? expectedActionKind,
+        string? expectedTargetUserId,
+        out TenantAggregateCommandLease? lease,
+        out GlobalAdministratorReconciliationState? reconciliation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateLockKey);
         ArgumentNullException.ThrowIfNull(owner);
 
+        bool adopted = false;
         lock (_sync)
         {
             if (_ownerByKey.TryGetValue(aggregateLockKey, out object? current)
                 && current is TenantAggregateCommandLease candidate
                 && candidate.IsRetainedForAdoption
                 && candidate.CurrentOwner is null
-                && candidate.Reconciliation is not null
+                && candidate.Reconciliation is { } retained
+                && (expectedActionKind is null
+                    || retained.ActionKind == expectedActionKind
+                        && string.Equals(retained.TargetUserId, expectedTargetUserId, StringComparison.Ordinal))
                 && !candidate.IsReleased)
             {
                 candidate.CurrentOwner = owner;
                 candidate.IsRetainedForAdoption = false;
                 lease = candidate;
-                reconciliation = candidate.Reconciliation;
-                return true;
+                reconciliation = retained;
+                adopted = true;
+            }
+            else
+            {
+                lease = null;
+                reconciliation = null;
             }
         }
 
-        lease = null;
-        reconciliation = null;
-        return false;
+        if (adopted)
+        {
+            NotifyStateChanged();
+        }
+
+        return adopted;
     }
 
     /// <summary>
@@ -261,6 +314,7 @@ public sealed class TenantAggregateCommandAdmissionGate
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(reconciliation);
 
+        bool retained = false;
         lock (_sync)
         {
             if (!IsOwnedActiveLeaseCore(lease, owner)
@@ -277,8 +331,11 @@ public sealed class TenantAggregateCommandAdmissionGate
             lease.Reconciliation = reconciliation;
             lease.CurrentOwner = null;
             lease.IsRetainedForAdoption = true;
-            return true;
+            retained = true;
         }
+
+        NotifyStateChanged();
+        return retained;
     }
 
     internal bool TryAbandonBeforeDispatch(TenantAggregateCommandLease lease, object owner)
