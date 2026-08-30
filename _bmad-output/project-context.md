@@ -31,7 +31,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **.NET 10 / C#** — SDK pinned to `10.0.400` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
-- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.99.0`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
+- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.100.0`; `Hexalith.Memories` packages pinned to `2.21.3`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
 - **DAPR** — DAPR SDK packages `1.18.5`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default). The `1.19.0-preview.2` SDK family is intentionally held because stable pins do not move to prerelease channels in a dependency refresh.
 - **Aspire** — Aspire packages `13.5.3`; Keycloak/Kubernetes packages use `13.5.3-preview.1.26425.3`; DAPR hosting uses `CommunityToolkit.Aspire.Hosting.Dapr` `13.5.0-preview.1.260825-0345`.
 - **Backend stack** — MediatR `14.2.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.22.0`, OpenAPI `10.0.11`, Swagger UI `10.2.3`, and OpenTelemetry `1.17.0` including Runtime instrumentation.
