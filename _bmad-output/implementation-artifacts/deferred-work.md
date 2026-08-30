@@ -2664,3 +2664,11 @@ source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260827-234608-260c; this entry preserves the lingering recommendation for a deliberate later review.
 status: open
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
+  summary: Builds `package-version-audit.json` still records EventStore `3.99.0` while the catalog pin is `3.100.0`.
+  evidence: `references/Hexalith.Builds/Tools/package-version-audit.json` still has EventStore `selectedVersion` `3.99.0` (for example line 84274) after Builds `e1026cb` set `HexalithEventStoreVersion` to `3.100.0`. Regenerating the audit is a Builds-owned submodule edit and was Ask First for this story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
+  summary: In-progress `spec-refresh-dependencies.md` can overwrite the new EventStore `3.100.0` planning facts.
+  evidence: That spec remains `in-progress` and still tells an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; this story forbade resuming it but did not close or retarget that work.

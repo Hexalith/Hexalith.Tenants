@@ -257,7 +257,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 - **Fluent UI Blazor v5 pinned `5.0.0-rc.5-26219.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
 - **Current centralized platform package baselines (2026-08-29):** Hexalith.FrontComposer `4.1.1`,
-  Hexalith.EventStore `3.99.0`, and Hexalith.Memories `2.21.3`. Debug may consume source
+  Hexalith.EventStore `3.100.0`, and Hexalith.Memories `2.21.3`. Debug may consume source
   references, but submodule revisions are implementation state rather than architecture invariants.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
   (Ordinal), **NOT ULIDs** — never `Guid`/`Ulid.TryParse`; copy-full-id is literal.
