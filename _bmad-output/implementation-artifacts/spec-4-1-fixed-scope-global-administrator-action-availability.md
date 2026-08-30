@@ -2,10 +2,10 @@
 title: '4.1 Fixed-Scope Global Administrator Action Availability'
 type: 'feature'
 created: '2026-08-28'
-status: 'in-progress'
+status: 'blocked'
 baseline_commit: 'c69cdfd58a876648707782a028e1352be1e278cb'
 baseline_revision: 'c69cdfd58a876648707782a028e1352be1e278cb'
-review_loop_iteration: 5
+review_loop_iteration: 6
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -246,6 +246,56 @@ deferred:
   - `[medium]` `[patch]` Remove intent still lacks the missing-concrete-requery regression scenario — add it with optimistic composition flags and no command/status calls.
   - `[medium]` `[patch]` Retained reconciliation is not exercised through failing authentication and a later matching authorized owner — add that end-to-end ownership recovery assertion.
 
+### 2026-08-30 — Review pass 6
+- verdicts: 41 findings — high 8, medium 20, low 0, false 10, maybe-false 3
+- intent_gap: 0
+- bad_spec: 15: (high 8, medium 7, low 0)
+- patch: 12: (high 0, medium 12, low 0)
+- defer: 4: (high 0, medium 1, low 0, maybe-false 3)
+- reject: 10: (high 0, medium 0, low 0, false 10)
+- findings:
+  - `[false]` `[reject]` Advancing the baseline revision allegedly hides the story delta — step 3 requires capturing the current `HEAD` before this implementation derivation, so `c69cdfd` is the mandated loop baseline; changing the build spec back is also an explicitly rejected review fix.
+  - `[high]` `[bad_spec]` A command-gateway exception after renderer disposal can strand a dispatch-marked lease because terminal release still occurs only inside `InvokeAsync` — the gateway-await/disposal path is reachable and `completedIoSnapshot` remains null, so the final-loop renderer-independent completion requirement was not implemented.
+  - `[high]` `[bad_spec]` `AuthenticationStateChanged` returns reconciliation and mutates component fields before renderer dispatch — the provider event may arrive off-dispatcher and can race submit, refresh, parameter processing, or disposal, contrary to the final-loop marshalling contract.
+  - `[high]` `[bad_spec]` Refresh and completion continuations mutate reconciliation ownership after `ConfigureAwait(false)` outside `InvokeAsync` — lines that retain/release after reauthorization, status, and projection work change component fields without the required renderer serialization.
+  - `[high]` `[bad_spec]` Several completion paths call `TryAdoptEligibleReconciliation` outside a renderer callback — the method assigns the lease, retained evidence, snapshot, and resume flag, so these paths violate the same renderer-ownership invariant.
+  - `[false]` `[reject]` Any decorator or custom query gateway can falsely count as concrete support — installed composition validates the connected/unavailable pairing and the built-in unavailable gateway is rejected explicitly; a custom gateway that advertises connection while intentionally returning only unavailable evidence violates its host contract rather than demonstrating this outcome.
+  - `[maybe-false]` `[defer]` Matching only action and target could attach retained work to a different audit row for the same outcome — timestamp filtering prevents an older proof from being linked, but product semantics must settle whether equivalent fixed-scope work is intentionally reusable across same-action/same-target audit rows.
+  - `[false]` `[reject]` Capability changes cannot trigger a live panel render — production gateway/composition capability values are immutable for the scoped service lifetime, so the mutable-stub transition is not an installed runtime state.
+  - `[medium]` `[bad_spec]` Manual refresh can overlap automatic accepted-command reconciliation — the refresh button becomes enabled after `Accepted`, while automatic reconciliation bypasses `_refreshInFlight`, allowing duplicate status/projection walks despite the spec's serialization requirement.
+  - `[medium]` `[bad_spec]` Unrelated aggregate gate notifications can start global-administrator reconciliation — `StateChanged` is circuit-global and the panel resumes any owned dispatch-marked lease after every notification, so unrelated tenant activity can cause redundant or overlapping fixed-scope status I/O.
+  - `[maybe-false]` `[defer]` Synchronous retain notification may run before the caller clears its local lease pointer — the gate notifies before `RetainReconciliationForReplacement` nulls `_admissionLease`; a deterministic dispatcher-order test is needed to prove whether `InvokeAsync` can observe and act on that stale pointer inline.
+  - `[medium]` `[bad_spec]` Status completion after ownership retention can update only the disposed/disabled panel while the retained ledger stays stale — `TryAdvanceReconciliation` fails for an ownerless lease, but the unchanged generation can still apply the newer local state, forcing a replacement to restart from older evidence.
+  - `[medium]` `[bad_spec]` Reconciliation high-water logic allows `Degraded` or `UnableToVerify` to regress to `Accepted` — `IsLifecycleRegression` rejects only `RequestSent` and `ProjectionPending` to `Accepted`, violating the explicit monotonic lifecycle requirement.
+  - `[high]` `[bad_spec]` Corrective-audit proof I/O starts without another live authorization/viewport/support check after projection I/O — authorization can be revoked while projection loading is suspended, yet privileged audit I/O still begins before the stale generation is noticed.
+  - `[medium]` `[defer]` Confirmed audit-delayed state has no in-panel proof retry — the proof-retry limitation predates this availability change and the new copy does not promise automatic polling; a later lifecycle owner can decide whether confirmed audit evidence needs an explicit retry surface.
+  - `[medium]` `[bad_spec]` Visible `RequestSent` removal state reports missing consequence preview — with no tracking handle and `CanSubmit == false`, the decision falls through the evaluator and masks the already-dispatched lifecycle with pre-submit copy.
+  - `[false]` `[reject]` Localized reason/recovery strings lack a whitespace fallback — tracked production resources are nonblank and parity-checked, while missing resource keys resolve to nonblank keys; a custom whitespace localizer is not a reachable installed outcome.
+  - `[medium]` `[patch]` Preview precedence lacks explicit target-missing and last-administrator combinations with preview disabled — the code order is correct, but lower patch work is moot because verified bad-spec defects exceeded the final repair loop.
+  - `[medium]` `[patch]` Retained-adoption tests do not isolate same-action/different-target mismatch — action mismatch is covered, but deleting the target comparison would still pass; the test patch is moot under non-convergence.
+  - `[medium]` `[patch]` Retained support-restoration coverage exercises grant only — remove is covered for initial unavailable-query refusal but not retained adoption after support recovery; the test patch is moot under non-convergence.
+  - `[medium]` `[patch]` Authentication coverage omits an authorized tracked owner losing authentication during status I/O and handing work to a replacement — the missing regression is verified but lower patch work is moot under non-convergence.
+  - `[medium]` `[bad_spec]` The suite omits renderer-loss gateway failure, concurrent manual/automatic refresh, and post-projection authorization-loss paths that expose verified lifecycle defects — these are nontrivial state-machine gaps governed by the final-loop contract, not isolated assertion additions.
+  - `[medium]` `[patch]` Preview precedence is not verified for preview-disabled target-missing and last-administrator removal — existing tests leave preview ready in those branches, so the direct test patch remains missing and is moot under non-convergence.
+  - `[medium]` `[patch]` Target-only retained-work mismatch is untested — deleting the target predicate while retaining action matching passes current tests and can monopolize the lease; the direct test patch is moot under non-convergence.
+  - `[medium]` `[patch]` Missing `AuthenticationStateProvider` behavior has no component regression — the implementation fails closed, but all current panel tests register a provider; the direct hidden/no-I/O/no-adoption test is moot under non-convergence.
+  - `[medium]` `[patch]` Accepted completion is not tested against renderer loss before its post-I/O callback — the durable catch path exists for accepted results, but the direct disposal-and-replacement proof is absent and moot under non-convergence.
+  - `[medium]` `[patch]` Healthy tracked recovery copy and control association are unverified — current coverage changes the viewport first and therefore exercises the live-block branch; the direct assertion patch is moot under non-convergence.
+  - `[medium]` `[patch]` Whitespace `SafeMessage` fallback has no regression test — the implementation uses `IsNullOrWhiteSpace`, but terminal tests supply nonblank messages; the direct fallback/ARIA test is moot under non-convergence.
+  - `[false]` `[reject]` The incremental diff does not restate the page-centered implementation — this run reviews the cumulative tree from its required loop baseline, and unchanged page/loader/routing behavior passed the exact focused and full suites.
+  - `[false]` `[reject]` The matrix requires a grant preview even though the task ignores it — the action-specific reading is explicit: grant is direct and only removal opens the dedicated preview, so preview readiness is vacuous for grant.
+  - `[medium]` `[patch]` Blank target identity can throw during filtered retained adoption — a global-administrator intent may be fail-closed with an empty target while support is otherwise present, and the filtered gate validates before checking retained work; a simple pre-adoption whitespace guard is required but moot under non-convergence.
+  - `[false]` `[reject]` A tenant-domain correction can be coerced to grant and claim retained work — the production parent renders this panel only when `IntendedCommandDomain` is `GlobalAdministrators`; tenant-domain intents route to `CorrectionStartPanel`.
+  - `[false]` `[reject]` Ignoring unavailable-reason and preview-input differences in intent identity can permit stale dispatch — pre-submit snapshots are rebuilt from the new intent when projection evidence exists, and absent projection evidence independently makes availability fail closed before dispatch.
+  - `[high]` `[bad_spec]` An `Accepted` gateway result with blank tracking identifiers leaves a dispatch-marked lease neither refreshable, retainable, nor terminally releasable — the public gateway result type permits the state and the panel accepts it without validating the required handle.
+  - `[high]` `[bad_spec]` A stale status response can regress `ProjectionPending` to `Accepted`, fail ledger advancement, and leave disposal unable to retain the local regressed state — this reachable monotonicity failure can strand ownership and duplicates the incomplete high-water root cause.
+  - `[maybe-false]` `[defer]` A corrective-proof query that never completes can delay terminal lease release indefinitely — installed HTTP timeout/cancellation behavior and a deterministic noncompletion reproducer are needed to distinguish bounded latency from an actual permanent lock.
+  - `[high]` `[bad_spec]` Renderer loss during a gateway exception can strand the dispatch-marked lease — independent edge tracing confirms the terminal failure path has no renderer-independent release and shares the first lifecycle-completion root cause.
+  - `[false]` `[reject]` Disabled decisions can lose all explanation when localization returns whitespace — tracked EN/FR resources are nonblank and missing keys remain visible keys, so the cited resource state is not reachable in the installed application.
+  - `[medium]` `[bad_spec]` Retaining nonterminal reconciliation clears `_admissionLease`, which makes `CanClose` true while the snapshot still tracks active work — close, cancel, or Escape can hide an active correction despite the explicit nonterminal-close requirement.
+  - `[false]` `[reject]` Runtime capability loss leaves controls enabled until another render — installed capability objects are immutable for the circuit scope, so no live production transition was demonstrated.
+  - `[medium]` `[patch]` Post-I/O renderer-loss retention lacks a direct disposal test — blocking/invalidation tests still allow callbacks to run, so the missing accepted-completion replacement proof is verified but moot under non-convergence.
+
 ## Design Notes
 
 The evaluator owns no localization or I/O. It returns typed availability, reason, and recovery identifiers from immutable evidence. The page maps those identifiers to whole-string resources and re-evaluates immediately before preview/submit; the gateway and aggregate remain the security and invariant boundaries.
@@ -260,3 +310,9 @@ The evaluator owns no localization or I/O. It returns typed availability, reason
 - `dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false` -- expected: full solution warning-clean.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-4-1-fixed-scope-global-administrator-action-availability.md` -- expected: story file declares every moved gitlink or reports none moved.
 - `git diff --check` -- expected: no whitespace errors.
+
+## Auto Run Result
+
+Status: blocked
+
+The auto-build run completed implementation and verification, but the final review found contract-level reconciliation, renderer-loss, and lifecycle defects after the fifth permitted repair loop. The run halted with `review repair loop exceeded 5 iterations (non-convergence)`; no commit was created, and `sprint-status.yaml` was not modified.
