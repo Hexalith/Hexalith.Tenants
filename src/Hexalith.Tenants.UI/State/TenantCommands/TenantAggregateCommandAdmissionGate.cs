@@ -445,7 +445,9 @@ public sealed class TenantAggregateCommandAdmissionGate
                 or GlobalAdministratorActionKind.Remove
             && !string.IsNullOrWhiteSpace(reconciliation.TargetUserId)
             && !string.IsNullOrWhiteSpace(reconciliation.MessageId)
-            && !string.IsNullOrWhiteSpace(reconciliation.CorrelationId);
+            && (reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
+                && reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
+                || !string.IsNullOrWhiteSpace(reconciliation.CorrelationId));
 
     private static bool HasSameCommandIdentity(
         GlobalAdministratorReconciliationState current,
@@ -453,7 +455,9 @@ public sealed class TenantAggregateCommandAdmissionGate
         => current.ActionKind == next.ActionKind
             && string.Equals(current.TargetUserId, next.TargetUserId, StringComparison.Ordinal)
             && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
-            && string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal);
+            && (current.CorrelationId is null
+                || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
+            && Equals(current.GrantPreview, next.GrantPreview);
 
     private static bool IsLifecycleRegression(
         TenantCommandLifecycleState current,
