@@ -26,7 +26,6 @@
 .global-admins__scope,
 .global-admins__grant,
 .global-admins__grant-form,
-.global-admins__grant-preview,
 .global-admins__grant-lifecycle,
 .global-admins__remove,
 .global-admins__remove-preview,
@@ -60,7 +59,6 @@
    typography primitive wraps these semantic list elements. */
 .global-admins__scope dl,
 .global-admins__grant-scope,
-.global-admins__grant-preview-grid,
 .global-admins__remove-preview-grid {
     display: grid;
     gap: 0.5rem;
@@ -71,7 +69,6 @@
    FluentGrid is a 12-column responsive system and cannot express these content-sized columns. */
 .global-admins__scope div,
 .global-admins__grant-scope div,
-.global-admins__grant-preview-grid div,
 .global-admins__remove-preview-grid div {
     display: grid;
     gap: 0.25rem;
@@ -82,7 +79,6 @@
    element. */
 .global-admins__scope dt,
 .global-admins__grant-scope dt,
-.global-admins__grant-preview-grid dt,
 .global-admins__remove-preview-grid dt {
     font-weight: 600;
 }
@@ -91,7 +87,6 @@
    primitive wraps these semantic elements. */
 .global-admins__scope dd,
 .global-admins__grant-scope dd,
-.global-admins__grant-preview-grid dd,
 .global-admins__remove-preview-grid dd {
     margin: 0;
 }
@@ -106,7 +101,6 @@
 }
 
 .global-admins__state:focus-visible,
-.global-admins__grant-preview:focus-visible,
 .global-admins__grant-lifecycle:focus-visible,
 .global-admins__remove-lifecycle:focus-visible {
     outline: 2px solid Highlight;
@@ -130,7 +124,6 @@
 .global-admins__table-header,
 .global-admins__pager,
 .global-admins__grant-actions,
-.global-admins__grant-preview-actions,
 .global-admins__remove-actions {
     align-items: center;
     display: flex;
@@ -159,7 +152,6 @@
 /* fc-css-exception: bordered lifecycle/preview cards on semantic <section> landmarks; container
    padding defines the card chrome Fluent has no bordered card primitive for here. */
 .global-admins__grant-lifecycle,
-.global-admins__grant-preview,
 .global-admins__remove-preview,
 .global-admins__remove-lifecycle {
     border: 1px solid CanvasText;
@@ -168,8 +160,6 @@
 }
 
 .global-admins__grant-lifecycle p,
-.global-admins__grant-preview p,
-.global-admins__grant-preview-grid dd,
 .global-admins__remove-preview p,
 .global-admins__remove-preview-grid dd,
 .global-admins__remove-lifecycle p {
@@ -243,7 +233,6 @@
        single column; no Fluent layout primitive expresses this content-sized column behaviour. */
     .global-admins__scope div,
     .global-admins__grant-scope div,
-    .global-admins__grant-preview-grid div,
     .global-admins__remove-preview-grid div,
     .global-admins__state {
         grid-template-columns: 1fr;
@@ -258,7 +247,6 @@
     .global-admins__scope,
     .global-admins__state,
     .global-admins__grant,
-    .global-admins__grant-preview,
     .global-admins__grant-lifecycle,
     .global-admins__remove,
     .global-admins__remove-preview,
@@ -271,7 +259,6 @@
     }
 
     .global-admins__state:focus-visible,
-    .global-admins__grant-preview:focus-visible,
     .global-admins__grant-lifecycle:focus-visible,
     .global-admins__remove-lifecycle:focus-visible {
         outline-color: Highlight;

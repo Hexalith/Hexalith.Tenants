@@ -7,9 +7,6 @@ public interface ITenantCommandGateway {
     /// <summary>Gets whether fixed-scope global-administrator dispatch is supported.</summary>
     bool SupportsGlobalAdministratorDispatch => false;
 
-    /// <summary>Gets whether caller-owned tracked global-administrator dispatch is supported.</summary>
-    bool SupportsTrackedGlobalAdministratorDispatch => false;
-
     /// <summary>Gets whether authoritative command-status lookup is supported.</summary>
     bool SupportsCommandStatusLookup => false;
 
@@ -71,18 +68,6 @@ public interface ITenantCommandGateway {
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
-
-    /// <summary>Dispatches a grant with the exact caller-owned ULID retained by the preview lifecycle.</summary>
-    /// <param name="request">Literal grant intent.</param>
-    /// <param name="messageId">Exact caller-owned ULID.</param>
-    /// <param name="cancellationToken">Caller cancellation token.</param>
-    /// <returns>Tracked submission evidence.</returns>
-    Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
-        SetGlobalAdministrator request,
-        string messageId,
-        CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
-            "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"));
 
     Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,

@@ -6,23 +6,17 @@ namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 /// <param name="ActionKind">Fixed-scope action being reconciled.</param>
 /// <param name="TargetUserId">Literal target identity, retained only inside the interactive circuit.</param>
 /// <param name="MessageId">Opaque command message identifier.</param>
-/// <param name="CorrelationId">Opaque command correlation identifier, when acceptance returned one.</param>
+/// <param name="CorrelationId">Opaque command correlation identifier.</param>
 /// <param name="LifecycleState">Latest monotonic lifecycle evidence.</param>
-/// <param name="GrantPreview">Complete retained grant preview.</param>
-/// <param name="HasCommandEventEvidence">Whether exact-command status proved positive event evidence.</param>
-/// <param name="IsSubmissionAmbiguous">Whether transport left request delivery unresolved.</param>
 internal sealed record GlobalAdministratorReconciliationState(
     GlobalAdministratorActionKind ActionKind,
     string TargetUserId,
     string MessageId,
-    string? CorrelationId,
-    TenantCommandLifecycleState LifecycleState,
-    GlobalAdministratorGrantPreview? GrantPreview = null,
-    bool HasCommandEventEvidence = false,
-    bool IsSubmissionAmbiguous = false)
+    string CorrelationId,
+    TenantCommandLifecycleState LifecycleState)
 {
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()
-        => $"{nameof(GlobalAdministratorReconciliationState)} {{ ActionKind = {ActionKind}, LifecycleState = {LifecycleState}, HasGrantPreview = {GrantPreview is not null}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous} }}";
+        => $"{nameof(GlobalAdministratorReconciliationState)} {{ ActionKind = {ActionKind}, LifecycleState = {LifecycleState} }}";
 }
