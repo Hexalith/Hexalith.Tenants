@@ -26,127 +26,9 @@ public sealed class TenantCommandGatewayTests
         var unavailable = new UnavailableTenantCommandGateway();
 
         configured.SupportsGlobalAdministratorDispatch.ShouldBeTrue();
-        configured.SupportsTrackedGlobalAdministratorDispatch.ShouldBeTrue();
         configured.SupportsCommandStatusLookup.ShouldBeTrue();
         unavailable.SupportsGlobalAdministratorDispatch.ShouldBeFalse();
-        unavailable.SupportsTrackedGlobalAdministratorDispatch.ShouldBeFalse();
         unavailable.SupportsCommandStatusLookup.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task TrackedGlobalAdministratorGrantPreservesExactLiteralAndCallerUlid()
-    {
-        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-        const string target = "  User/CaseSensitive.01  ";
-        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
-        TenantCommandGateway gateway = CreateGateway(client);
-
-        TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorTrackedAsync(
-            new SetGlobalAdministrator(target),
-            messageId,
-            CancellationToken.None);
-
-        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
-        submitted.MessageId.ShouldBe(messageId);
-        submitted.Tenant.ShouldBe("system");
-        submitted.Domain.ShouldBe("global-administrators");
-        submitted.AggregateId.ShouldBe("global-administrators");
-        submitted.Payload.GetProperty("UserId").GetString().ShouldBe(target);
-        result.MessageId.ShouldBe(messageId);
-    }
-
-    [Theory]
-    [InlineData("not-a-ulid")]
-    [InlineData("01arz3ndektsv4rrffq69g5fav")]
-    [InlineData(" 01ARZ3NDEKTSV4RRFFQ69G5FAV")]
-    public async Task TrackedGlobalAdministratorGrantRejectsNonCanonicalMessageId(string messageId)
-    {
-        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-unused"));
-
-        TenantCommandSubmissionResult result = await CreateGateway(client)
-            .SetGlobalAdministratorTrackedAsync(
-                new SetGlobalAdministrator("target-admin"),
-                messageId,
-                CancellationToken.None);
-
-        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
-        result.SafeMessageKey.ShouldBe("Tenants.Commands.Unavailable.InvalidTrackingReference");
-        client.SubmittedCommands.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task SameIdRedispatchUsesNoReplacementIdentity()
-    {
-        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
-        TenantCommandGateway gateway = CreateGateway(client);
-        var request = new SetGlobalAdministrator("target-admin");
-
-        _ = await gateway.SetGlobalAdministratorTrackedAsync(request, messageId, CancellationToken.None);
-        _ = await gateway.SetGlobalAdministratorTrackedAsync(request, messageId, CancellationToken.None);
-
-        client.SubmittedCommands.Count.ShouldBe(2);
-        client.SubmittedCommands.ShouldAllBe(command => command.MessageId == messageId);
-    }
-
-    public static IEnumerable<object[]> AmbiguousGrantExceptions()
-    {
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.RequestTimeout, "timeout")];
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.TooManyRequests, "throttled")];
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "unavailable")];
-        yield return [new TaskCanceledException("transport timeout")];
-        yield return [new HttpRequestException("connection failed")];
-        yield return [new TimeoutException("plain timeout")];
-    }
-
-    [Theory]
-    [MemberData(nameof(AmbiguousGrantExceptions))]
-    public async Task AmbiguousGrantTransportRetainsCallerMessageId(Exception exception)
-    {
-        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-        CapturingGatewayClient client = new(exception);
-
-        TenantCommandSubmissionResult result = await CreateGateway(client)
-            .SetGlobalAdministratorTrackedAsync(
-                new SetGlobalAdministrator("target-admin"),
-                messageId,
-                CancellationToken.None);
-
-        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
-        result.IsAmbiguousFailure.ShouldBeTrue();
-        result.MessageId.ShouldBe(messageId);
-        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
-    }
-
-    [Fact]
-    public async Task GlobalAdministratorStatusVerifiesFixedAggregateTrackingHandle()
-    {
-        const string body = """
-            {
-              "correlationId": "correlation-global-admin",
-              "status": "EventsPublished",
-              "statusCode": 3,
-              "timestamp": "2026-08-31T02:00:00Z",
-              "aggregateId": "global-administrators",
-              "eventCount": 1,
-              "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-            }
-            """;
-        TenantCommandGateway gateway = new(
-            new CapturingGatewayClient(new SubmitCommandResponse("unused")),
-            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
-            new HttpClient(new StatusHandler(body)) { BaseAddress = new Uri("https://eventstore.example/") });
-
-        TenantCommandStatusResult result = await gateway.GetStatusAsync(
-            new TenantCommandTrackingHandle(
-                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-                "correlation-global-admin",
-                "global-administrators"),
-            CancellationToken.None);
-
-        result.Status.ShouldBe(CommandStatus.EventsPublished);
-        result.EventCount.ShouldBe(1);
-        result.HasVerifiedCommandIdentity.ShouldBeTrue();
     }
 
     [Fact]
@@ -293,10 +175,12 @@ public sealed class TenantCommandGatewayTests
             new SetGlobalAdministrator("target-user"),
             CancellationToken.None);
 
-        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
-        result.IsAmbiguousFailure.ShouldBeTrue();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        result.SafeMessage.ShouldBeNull();
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain("Global administrator command gateway");
+        safeMessage.ShouldNotContain("Tenant command gateway");
+        safeMessage.ShouldNotContain("target-user", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
     }
 
     [Theory]
@@ -2368,15 +2252,6 @@ public sealed class TenantCommandGatewayTests
     private static TenantCommandGateway CreateLifecycleGateway(object response)
         => new(
             new CapturingGatewayClient(response),
-            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
-            new HttpClient(new StatusHandler("{}"))
-            {
-                BaseAddress = new Uri("https://eventstore.example/"),
-            });
-
-    private static TenantCommandGateway CreateGateway(CapturingGatewayClient client)
-        => new(
-            client,
             new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
             new HttpClient(new StatusHandler("{}"))
             {

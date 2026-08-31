@@ -1,7 +1,5 @@
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
-using Hexalith.EventStore.Client.Projections;
-using Hexalith.EventStore.Contracts.Queries;
 
 using Shouldly;
 
@@ -200,65 +198,4 @@ public sealed class TenantAggregateCommandAdmissionGateTests
             gate.TryAdoptRetainedLease(key, new object(), out _, out _).ShouldBeTrue();
         }
     }
-
-    [Fact]
-    public void RequestSentGrantCanBeAdoptedAsSameIdAmbiguousWork()
-    {
-        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-        var gate = new TenantAggregateCommandAdmissionGate();
-        object originalOwner = new();
-        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
-            "  CaseSensitive.Target  ",
-            Complete("projection-v1", "existing-admin"),
-            isAuthorized: true);
-        var reconciliation = new GlobalAdministratorReconciliationState(
-            GlobalAdministratorActionKind.Grant,
-            preview.TargetUserId,
-            messageId,
-            CorrelationId: null,
-            TenantCommandLifecycleState.RequestSent,
-            preview,
-            HasCommandEventEvidence: false,
-            IsSubmissionAmbiguous: true);
-
-        gate.TryAcquireLease(
-            TenantCommandAggregateLock.ForGlobalAdministrators(),
-            originalOwner,
-            out TenantAggregateCommandLease? lease).ShouldBeTrue();
-        lease.ShouldNotBeNull();
-        lease.TryMarkDispatched(originalOwner).ShouldBeTrue();
-        lease.TryRetainReconciliation(originalOwner, reconciliation).ShouldBeTrue();
-
-        object replacementOwner = new();
-        gate.TryAdoptRetainedLease(
-            TenantCommandAggregateLock.ForGlobalAdministrators(),
-            replacementOwner,
-            out TenantAggregateCommandLease? adopted,
-            out GlobalAdministratorReconciliationState? retained).ShouldBeTrue();
-
-        adopted.ShouldBeSameAs(lease);
-        retained.ShouldNotBeNull();
-        retained.MessageId.ShouldBe(messageId);
-        retained.TargetUserId.ShouldBe("  CaseSensitive.Target  ");
-        retained.CorrelationId.ShouldBeNull();
-        retained.IsSubmissionAmbiguous.ShouldBeTrue();
-        retained.GrantPreview.ShouldBeSameAs(preview);
-        retained.GrantPreview!.ProjectionVersion.ShouldBe("projection-v1");
-    }
-
-    private static GlobalAdministratorsSnapshot Complete(string projectionVersion, params string[] userIds)
-        => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(static userId => new GlobalAdministratorRow(
-                userId,
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)).ToArray(),
-            nextCursor: null,
-            hasMore: false,
-            eTag: $"\"{projectionVersion}\"",
-            freshness: ReadModelFreshnessState.Current) with
-        {
-            Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = projectionVersion,
-            IsCompleteEvidence = true,
-        };
 }

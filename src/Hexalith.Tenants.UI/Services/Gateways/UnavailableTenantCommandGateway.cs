@@ -7,8 +7,6 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
 {
     public bool SupportsGlobalAdministratorDispatch => false;
 
-    public bool SupportsTrackedGlobalAdministratorDispatch => false;
-
     public bool SupportsCommandStatusLookup => false;
 
     public bool SupportsTrackedLifecycleDispatch => false;
@@ -75,13 +73,6 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing."));
-
-    public Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
-        SetGlobalAdministrator request,
-        string messageId,
-        CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
-            "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"));
 
     public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,

@@ -6,7 +6,6 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
-using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -63,7 +62,6 @@ public sealed class TenantsBffCompositionTests
     {
         ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
         gateway.SupportsGlobalAdministratorDispatch.Returns(supportsDispatch);
-        gateway.SupportsTrackedGlobalAdministratorDispatch.Returns(supportsDispatch);
         gateway.SupportsCommandStatusLookup.Returns(supportsStatus);
         var composition = new TenantsBffComposition(
             gateway,
@@ -84,64 +82,6 @@ public sealed class TenantsBffCompositionTests
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
         composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void ProductionGrantPreviewReadinessRequiresConcretePrincipalComposition()
-    {
-        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
-        var composition = new TenantsBffComposition(
-            gateway,
-            principalResolver: new StubPrincipalResolver(
-                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
-            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
-
-        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task GrantPreviewPreservesLiteralTargetAndOwnsEveryRequiredSafeFact()
-    {
-        TenantsBffComposition composition = Composition(
-            RevokedPolicy,
-            TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
-        const string target = "  CaseSensitive/User.01  ";
-
-        GlobalAdministratorGrantPreview preview = await composition
-            .ComposeGlobalAdministratorGrantPreviewAsync(
-                target,
-                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
-
-        preview.TargetUserId.ShouldBe(target);
-        preview.ScopeTenantId.ShouldBe("system");
-        preview.ScopeDomain.ShouldBe("global-administrators");
-        preview.ScopeAggregateId.ShouldBe("global-administrators");
-        preview.CurrentAdministratorCount.ShouldBe(1);
-        preview.ResultingAdministratorCount.ShouldBe(2);
-        preview.HasAllSafeFacts.ShouldBeTrue();
-        preview.IsComplete.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task GrantPreviewFailsClosedForUnauthorizedCallerWithoutUsingRowsAsOracle()
-    {
-        TenantsBffComposition composition = Composition(
-            RevokedPolicy,
-            TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
-        GlobalAdministratorsSnapshot snapshot = CompleteGlobalAdministrators(
-            "projection-v1",
-            "hidden-admin") with
-        {
-            Rows = new ThrowingGlobalAdministratorRows(),
-        };
-
-        GlobalAdministratorGrantPreview preview = await composition
-            .ComposeGlobalAdministratorGrantPreviewAsync("target-admin", snapshot);
-
-        preview.IsAuthorized.ShouldBeFalse();
-        preview.IsComplete.ShouldBeFalse();
-        preview.UnavailableReasonKey.ShouldBe(
-            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization");
     }
 
     [Fact]
@@ -629,24 +569,6 @@ public sealed class TenantsBffCompositionTests
             .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
             .Build();
 
-    private static GlobalAdministratorsSnapshot CompleteGlobalAdministrators(
-        string projectionVersion,
-        params string[] userIds)
-        => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(static userId => new GlobalAdministratorRow(
-                userId,
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)).ToArray(),
-            nextCursor: null,
-            hasMore: false,
-            eTag: $"\"{projectionVersion}\"",
-            freshness: ReadModelFreshnessState.Current) with
-        {
-            Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = projectionVersion,
-            IsCompleteEvidence = true,
-        };
-
     private static TenantDetail Detail(IReadOnlyList<TenantMember>? members = null)
         => new(
             "tenant.alpha",
@@ -691,19 +613,6 @@ public sealed class TenantsBffCompositionTests
             => throw new InvalidOperationException("Raw configuration was inspected before authority.");
         public bool TryGetValue(string key, out string value)
             => throw new InvalidOperationException("Raw configuration was inspected before authority.");
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
-    private sealed class ThrowingGlobalAdministratorRows : IReadOnlyList<GlobalAdministratorRow>
-    {
-        public int Count => throw new InvalidOperationException("Rows were inspected before authority.");
-
-        public GlobalAdministratorRow this[int index]
-            => throw new InvalidOperationException("Rows were inspected before authority.");
-
-        public IEnumerator<GlobalAdministratorRow> GetEnumerator()
-            => throw new InvalidOperationException("Rows were inspected before authority.");
-
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

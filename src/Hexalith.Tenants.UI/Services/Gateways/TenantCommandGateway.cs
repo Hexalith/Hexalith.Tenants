@@ -25,8 +25,6 @@ internal sealed class TenantCommandGateway(
 
     public bool SupportsGlobalAdministratorDispatch => true;
 
-    public bool SupportsTrackedGlobalAdministratorDispatch => true;
-
     public bool SupportsCommandStatusLookup => true;
 
     public bool SupportsTrackedLifecycleDispatch => true;
@@ -332,14 +330,8 @@ internal sealed class TenantCommandGateway(
         }
     }
 
-    public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
+    public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
-        CancellationToken cancellationToken = default)
-        => SetGlobalAdministratorTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
-
-    public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
-        SetGlobalAdministrator request,
-        string messageId,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -347,10 +339,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
         }
 
-        if (!TryValidateCallerMessageId(messageId)) {
-            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
-        }
-
+        string messageId = ulidFactory.NewUlid();
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
@@ -367,29 +356,7 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            if (ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
-                || ex.StatusCode >= 500) {
-                return TenantCommandSubmissionResult.Ambiguous(
-                    messageId,
-                    "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-            }
-
-            return MapSetGlobalAdministratorGatewayException(ex) with { MessageId = messageId };
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-        catch (TimeoutException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
+            return MapSetGlobalAdministratorGatewayException(ex);
         }
     }
 
@@ -1153,11 +1120,6 @@ internal sealed class TenantCommandGateway(
         resolvedMessageId = parsed.ToString();
         return string.Equals(candidate, resolvedMessageId, StringComparison.Ordinal);
     }
-
-    private static bool TryValidateCallerMessageId(string? messageId)
-        => !string.IsNullOrWhiteSpace(messageId)
-            && NUlid.Ulid.TryParse(messageId, out NUlid.Ulid parsed)
-            && string.Equals(messageId, parsed.ToString(), StringComparison.Ordinal);
 
     private static string? BoundSafeFailureReason(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {

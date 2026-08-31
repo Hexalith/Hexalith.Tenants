@@ -63,10 +63,8 @@
                   Description="@Localizer["Tenants.GlobalAdministrators.Description"]"
                   TestId="tenants-global-admins-page-header" />
 
-    <FluentAnchorButton Href="@(IsGrantPreviewOpen ? null : SafeReturnUrl)"
+    <FluentAnchorButton Href="@SafeReturnUrl"
                         Appearance="ButtonAppearance.Outline"
-                        aria-disabled="@(IsGrantPreviewOpen ? "true" : null)"
-                        tabindex="@(IsGrantPreviewOpen ? "-1" : null)"
                         data-testid="tenants-global-admins-return">
         @Localizer["Tenants.GlobalAdministrators.Return"]
     </FluentAnchorButton>
@@ -87,7 +85,6 @@
                      ExpandMode="AccordionExpandMode.Multi"
                      Block="true">
         <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Scope.Title"]"
-                             Disabled="@IsGrantPreviewOpen"
                              Expanded="true">
             <section class="global-admins__scope"
                      aria-labelledby="global-admins-scope-heading"
@@ -130,7 +127,6 @@
         </FluentAccordionItem>
 
         <FluentAccordionItem Header="@StatusHeading"
-                             Disabled="@IsGrantPreviewOpen"
                              Expanded="true">
             <section class="global-admins__state global-admins__state--@StateCss"
                      role="@StatusRole"
@@ -150,13 +146,13 @@
             {
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
                     <FluentButton Appearance="ButtonAppearance.Outline"
-                                  Disabled="@(PageLoadInFlight || IsGrantPreviewOpen)"
+                                  Disabled="@PageLoadInFlight"
                                   data-testid="tenants-global-admins-retry"
                                   OnClick="RetryAsync">
                         @Localizer["Tenants.GlobalAdministrators.Recovery.Retry"]
                     </FluentButton>
                     <FluentButton Appearance="ButtonAppearance.Outline"
-                                  Disabled="@(PageLoadInFlight || IsGrantPreviewOpen)"
+                                  Disabled="@PageLoadInFlight"
                                   data-testid="tenants-global-admins-reset"
                                   OnClick="ResetPagingAsync">
                         @Localizer["Tenants.GlobalAdministrators.Recovery.Reset"]
@@ -205,7 +201,6 @@
 
         <FluentAccordionItem Class="global-admins__mutation-section"
                              Header="@Localizer["Tenants.GlobalAdministrators.Grant.Title"]"
-                             Disabled="@IsGrantPreviewOpen"
                              Expanded="true">
             <section class="global-admins__grant"
                      aria-labelledby="global-admins-grant-heading"
@@ -247,7 +242,6 @@
                                     where an over-long id gets an explicit localized rejection instead. *@
                                  Value="@_grantUserId"
                                  ValueChanged="OnGrantUserIdInput"
-                                 Disabled="@(_grantSnapshot.State is TenantCommandLifecycleState.Previewed || IsGrantInFlight)"
                                  data-testid="tenants-global-admin-grant-user-id"
                                  aria-describedby="@GrantUserIdDescribedBy" />
                 <FluentText id="tenants-global-admin-grant-user-id-help">
@@ -281,20 +275,19 @@
             }
 
             <div class="global-admins__grant-actions">
-                <span class="global-admins__grant-submit-focus global-admins__mutation-initiation" tabindex="-1">
+                <span class="global-admins__grant-submit-focus global-admins__mutation-initiation" tabindex="-1" @ref="_grantLauncherElement">
                     <FluentButton Type="ButtonType.Submit"
                                   Appearance="ButtonAppearance.Primary"
-                                  AutoFocus="@_focusGrantLauncherPending"
                                   data-testid="tenants-global-admin-grant-submit"
                                   aria-describedby="@(GrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
                                   Disabled="@IsGrantSubmitDisabled">
-                        @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Launch"]
+                        @Localizer["Tenants.GlobalAdministrators.Grant.Submit"]
                     </FluentButton>
                 </span>
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               Class="global-admins__mutation-initiation"
                               data-testid="tenants-global-admin-grant-cancel"
-                              Disabled="@(!CanCancelGrant || IsGrantPreviewOpen)"
+                              Disabled="@(!CanCancelGrant)"
                               OnClick="CancelGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
                 </FluentButton>
@@ -308,68 +301,6 @@
             </div>
         </EditForm>
 
-        @if (_grantSnapshot.State is TenantCommandLifecycleState.Previewed
-            && _grantSnapshot.PreviewEvidence is { IsComplete: true } grantPreview)
-        {
-            <section class="global-admins__grant-preview"
-                     role="dialog"
-                     aria-modal="true"
-                     aria-labelledby="global-admins-grant-preview-heading"
-                     data-testid="tenants-global-admin-grant-preview"
-                     @onkeydown="HandleGrantPreviewKeyDownAsync">
-                <span class="global-admins__grant-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-grant-focus-start"
-                      @onfocus="FocusGrantCancelAsync"></span>
-                <h3 id="global-admins-grant-preview-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Title"]</h3>
-                <dl class="global-admins__grant-preview-grid">
-                    <dt data-testid="tenants-global-admin-grant-preview-scope">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Scope"]</dt>
-                    <dd>@Localizer[grantPreview.ScopeFactKey!]</dd>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Target"]</dt>
-                    <dd data-testid="tenants-global-admin-grant-preview-target">@grantPreview.TargetUserId</dd>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts"]</dt>
-                    <dd data-testid="tenants-global-admin-grant-preview-counts">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts.Value", grantPreview.CurrentAdministratorCount, grantPreview.ResultingAdministratorCount]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-authority-change">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange"]</dt>
-                    <dd>@Localizer[grantPreview.AuthorityChangeFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-freshness">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Freshness"]</dt>
-                    <dd>@Localizer[grantPreview.FreshnessFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-recovery">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Recovery"]</dt>
-                    <dd>@Localizer[grantPreview.RecoveryFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-audit">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Audit"]</dt>
-                    <dd>@Localizer[grantPreview.AuditFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-context">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext"]</dt>
-                    <dd>@Localizer[grantPreview.CallerTargetContextFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-known-consequences">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences"]</dt>
-                    <dd>@Localizer[grantPreview.KnownConsequencesFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-known-unknowns">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns"]</dt>
-                    <dd>@Localizer[grantPreview.KnownUnknownsFactKey!]</dd>
-                </dl>
-                <FluentCheckbox @ref="_grantAcknowledgementElement"
-                                Value="@_grantAcknowledged"
-                                ValueChanged="OnGrantAcknowledgementChanged"
-                                Label="@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Acknowledge"]"
-                                data-testid="tenants-global-admin-grant-acknowledge" />
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.75rem" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Primary"
-                                  Disabled="@IsGrantConfirmDisabled"
-                                  data-testid="tenants-global-admin-grant-confirm"
-                                  OnClick="ConfirmGrantAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Confirm"]
-                    </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                  AutoFocus="@_focusGrantPreviewCancelPending"
-                                  data-testid="tenants-global-admin-grant-preview-cancel"
-                                  OnClick="CancelGrantAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
-                    </FluentButton>
-                </FluentStack>
-                <span class="global-admins__grant-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-grant-focus-end"
-                      @onfocus="FocusGrantConfirmAsync"></span>
-            </section>
-        }
-
         <section class="global-admins__grant-lifecycle global-admins__grant-lifecycle--@GrantStateCss"
                  @ref="_grantLifecycleElement"
                  tabindex="-1"
@@ -381,13 +312,9 @@
                 <FluentText Class="global-admins__grant-state-symbol" aria-hidden="true">@GrantStateSymbol</FluentText>
                 <FluentText>@GrantStateText</FluentText>
             </p>
-            @if (!string.IsNullOrWhiteSpace(GrantSafeMessage))
+            @if (!string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessage))
             {
-                <p data-testid="tenants-global-admin-grant-safe-message">@GrantSafeMessage</p>
-            }
-            @if (!string.IsNullOrWhiteSpace(GrantSafeRecovery))
-            {
-                <p data-testid="tenants-global-admin-grant-safe-recovery">@GrantSafeRecovery</p>
+                <p data-testid="tenants-global-admin-grant-safe-message">@ResolveSafeMessage(_grantSnapshot.SafeMessage)</p>
             }
             <p data-testid="tenants-global-admin-grant-audit-state">@GrantAuditText</p>
             <p class="global-admins__grant-live"
@@ -402,7 +329,6 @@
 
         <FluentAccordionItem Class="global-admins__mutation-section"
                              Header="@Localizer["Tenants.GlobalAdministrators.Remove.Title"]"
-                             Disabled="@IsGrantPreviewOpen"
                              Expanded="true">
             <section class="global-admins__remove"
                      aria-labelledby="global-admins-remove-heading"
@@ -505,7 +431,6 @@
                     <span class="global-admins__remove-cancel-focus global-admins__mutation-initiation" tabindex="-1" @ref="_removeCancelElement">
                         <FluentButton Appearance="ButtonAppearance.Outline"
                                       data-testid="tenants-global-admin-remove-cancel"
-                                      Disabled="@IsGrantPreviewOpen"
                                       OnClick="CancelRemoveAsync">
                             @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
                         </FluentButton>
@@ -513,7 +438,7 @@
                     <FluentButton Appearance="ButtonAppearance.Outline"
                                   Class="global-admins__mutation-initiation"
                                   data-testid="tenants-global-admin-remove-refresh"
-                                  Disabled="@(!CanRefreshRemoveStatus || IsGrantPreviewOpen)"
+                                  Disabled="@(!CanRefreshRemoveStatus)"
                                   OnClick="RefreshRemoveStatusAsync">
                         @Localizer["Tenants.GlobalAdministrators.Remove.Refresh"]
                     </FluentButton>
@@ -554,16 +479,14 @@
         @if (ShouldRenderRows)
         {
             <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.List.Title"]"
-                                 Disabled="@IsGrantPreviewOpen"
                                  Expanded="true">
                 <section class="global-admins__table-shell"
                          aria-labelledby="global-admins-list-heading"
-                         inert="@(IsGrantPreviewOpen ? string.Empty : null)"
                          data-testid="tenants-global-admins-list">
             <div class="global-admins__table-header">
                 <h2 id="global-admins-list-heading">@Localizer["Tenants.GlobalAdministrators.List.Title"]</h2>
                 <FluentButton Appearance="ButtonAppearance.Outline"
-                              Disabled="@(PageLoadInFlight || IsGrantPreviewOpen)"
+                              Disabled="@PageLoadInFlight"
                               data-testid="tenants-global-admins-refresh"
                               OnClick="RefreshAsync">
                     @Localizer["Tenants.GlobalAdministrators.Refresh"]
@@ -648,7 +571,6 @@
                                 <FluentButton Appearance="ButtonAppearance.Outline"
                                               Class="global-admins__mutation-initiation"
                                               data-testid="tenants-global-admin-remove"
-                                              Disabled="@IsGrantPreviewOpen"
                                               aria-describedby="@RemoveDescribedBy(context)"
                                               OnClick="() => PreviewRemove(context.UserId)">
                                     @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
@@ -659,13 +581,13 @@
                 </FluentDataGrid>
             </div>
             <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(PageLoadInFlight || IsGrantPreviewOpen || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(PageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Previous"]
                 </FluentButton>
                 @* Enabled on HasMore alone rendered a dead button: NextPageAsync also requires a non-blank
                    cursor, so a page reporting HasMore with no cursor left Next clickable and silent. The two
                    conditions must match, as they do on the tenant-detail member pager. *@
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(PageLoadInFlight || IsGrantPreviewOpen || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(PageLoadInFlight || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Next"]
                 </FluentButton>
             </nav>
@@ -737,7 +659,7 @@
     // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
     private readonly Lock _cancellationLock = new();
     private FluentTextInput _grantUserIdElement = default!;
-    private FluentCheckbox _grantAcknowledgementElement = default!;
+    private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
     private ElementReference _removeSubmitElement;
     private ElementReference _removeCancelElement;
@@ -745,8 +667,6 @@
     private bool _focusGrantUserIdPending;
     private bool _focusGrantLauncherPending;
     private bool _focusGrantLifecyclePending;
-    private bool _focusGrantAcknowledgementPending;
-    private bool _focusGrantPreviewCancelPending;
     private bool _focusRemoveSubmitPending;
     private bool _focusRemoveLifecyclePending;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
@@ -756,10 +676,6 @@
     private TenantAggregateCommandLease? _grantAdmissionLease;
     private TenantAggregateCommandLease? _removeAdmissionLease;
     private readonly object _fixedAggregateOwner = new();
-    private bool _grantAcknowledged;
-    private int _grantPreviewInFlight;
-    private int _grantConfirmationInFlight;
-    private long _grantPreviewGeneration;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "returnUrl")]
@@ -965,7 +881,6 @@
             _viewportObservation?.HasMeasurement == true)
         {
             IsGrantPreviewReady = BffComposition.IsGlobalAdministratorGrantPreviewReady,
-            SupportsTrackedGrantDispatch = CommandGateway.SupportsTrackedGlobalAdministratorDispatch,
         };
 
     private string RemoveReasonId(GlobalAdministratorRow row)
@@ -992,45 +907,7 @@
         return -1;
     }
 
-    private bool IsGrantSubmitDisabled
-        => !string.IsNullOrWhiteSpace(GrantUnavailableReason)
-            || Volatile.Read(ref _grantPreviewInFlight) != 0
-            || _grantSnapshot.State is TenantCommandLifecycleState.Previewed
-            || IsGrantInFlight;
-
-    private bool IsGrantPreviewOpen
-        => _grantSnapshot.State is TenantCommandLifecycleState.Previewed
-            && _grantSnapshot.PreviewEvidence?.IsComplete == true;
-
-    private bool IsGrantConfirmDisabled
-        => !_grantAcknowledged
-            || Volatile.Read(ref _grantConfirmationInFlight) != 0
-            || _grantSnapshot.State is not TenantCommandLifecycleState.Previewed
-            || _grantSnapshot.PreviewEvidence is not { IsComplete: true } preview
-            || _grantAdmissionLease is null
-            || _grantAdmissionLease.IsDispatchMarked
-            || !AreGrantPreviewPrerequisitesCurrent(preview);
-
-    private bool AreGrantPreviewPrerequisitesCurrent(GlobalAdministratorGrantPreview preview)
-        => IsAuthorized
-            && !IsRemoveInFlight
-            && BffComposition.IsGlobalAdministratorDispatchConnected
-            && BffComposition.IsGlobalAdministratorStatusConnected
-            && BffComposition.IsGlobalAdministratorRequeryConnected
-            && CommandGateway.SupportsGlobalAdministratorDispatch
-            && CommandGateway.SupportsTrackedGlobalAdministratorDispatch
-            && CommandGateway.SupportsCommandStatusLookup
-            && _viewportObservation?.HasMeasurement == true
-            && _viewportObservation.State is TenantHighImpactViewportState.Safe
-            && _completeSnapshot.IsCompleteEvidence
-            && _completeSnapshot.IsMutationEvidenceBacked
-            && string.Equals(
-                preview.ProjectionVersion,
-                _completeSnapshot.ProjectionVersion,
-                StringComparison.Ordinal)
-            && preview.CurrentAdministratorCount == _completeSnapshot.Rows.Count
-            && !_completeSnapshot.Rows.Any(row =>
-                string.Equals(row.UserId, preview.TargetUserId, StringComparison.Ordinal));
+    private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
 
     // The reason the previewed intent cannot be submitted *now*, re-derived from the current snapshot.
     private string? RemoveIntentUnavailableReason
@@ -1085,7 +962,6 @@
 
     private bool IsRemoveSubmitDisabled
         => _removeSnapshot.State is not TenantCommandLifecycleState.Previewed
-        || IsGrantPreviewOpen
         || IsGrantInFlight
         || IsRemoveInFlight
         || _removeSnapshot.Intent is null
@@ -1097,22 +973,11 @@
 
     private bool CanRefreshGrantStatus
         => _grantSnapshot.MessageId is not null
-        && (_grantSnapshot.IsSubmissionAmbiguous || _grantSnapshot.CorrelationId is not null)
+        && _grantSnapshot.CorrelationId is not null
         && _grantSnapshot.State is TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
-
-    private string GrantSafeMessage
-        => !string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessageKey)
-            ? Localizer[_grantSnapshot.SafeMessageKey].Value
-            : ResolveSafeMessage(_grantSnapshot.SafeMessage);
-
-    private string GrantSafeRecovery
-        => string.IsNullOrWhiteSpace(_grantSnapshot.SafeRecoveryKey)
-            ? string.Empty
-            : Localizer[_grantSnapshot.SafeRecoveryKey].Value;
 
     private string GrantUserIdDescribedBy
         => string.IsNullOrWhiteSpace(_grantValidationMessage)
@@ -1254,23 +1119,13 @@
         if (_focusGrantLauncherPending)
         {
             _focusGrantLauncherPending = false;
-        }
-
-        if (_focusGrantAcknowledgementPending)
-        {
-            _focusGrantAcknowledgementPending = false;
-            await _grantAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
+            await _grantLauncherElement.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusGrantLifecyclePending)
         {
             _focusGrantLifecyclePending = false;
             await _grantLifecycleElement.FocusAsync().ConfigureAwait(false);
-        }
-
-        if (_focusGrantPreviewCancelPending)
-        {
-            _focusGrantPreviewCancelPending = false;
         }
 
         if (_focusRemoveSubmitPending)
@@ -1597,22 +1452,6 @@
             return;
         }
 
-        if (_grantAdmissionLease?.IsDispatchMarked == true
-            && _grantSnapshot.State is TenantCommandLifecycleState.RequestSent
-                or TenantCommandLifecycleState.Accepted
-                or TenantCommandLifecycleState.ProjectionPending
-                or TenantCommandLifecycleState.Degraded
-                or TenantCommandLifecycleState.UnableToVerify)
-        {
-            await InvokeAsync(() =>
-            {
-                SetGrantSnapshot(_grantSnapshot.SignalRNudge());
-                StateHasChanged();
-            }).ConfigureAwait(false);
-            await RefreshGrantStatusAsync().ConfigureAwait(false);
-            return;
-        }
-
         _isNotificationRefreshing = true;
         StateHasChanged();
         try
@@ -1764,19 +1603,6 @@
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);
         InvalidateAllMutations();
-
-        if (_grantAdmissionLease is { IsDispatchMarked: false } grantLease
-            && grantLease.TryAbandonBeforeDispatch(_fixedAggregateOwner))
-        {
-            _grantAdmissionLease = null;
-        }
-
-        if (_removeAdmissionLease is { IsDispatchMarked: false } removeLease
-            && removeLease.TryAbandonBeforeDispatch(_fixedAggregateOwner))
-        {
-            _removeAdmissionLease = null;
-        }
-
         RetainReconciliationForReplacement();
         IAsyncDisposable? lease = _readRefreshLease;
         _readRefreshLease = null;
@@ -2186,19 +2012,6 @@
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);
         InvalidateAllMutations();
-
-        if (_grantAdmissionLease is { IsDispatchMarked: false } grantLease
-            && grantLease.TryAbandonBeforeDispatch(_fixedAggregateOwner))
-        {
-            _grantAdmissionLease = null;
-        }
-
-        if (_removeAdmissionLease is { IsDispatchMarked: false } removeLease
-            && removeLease.TryAbandonBeforeDispatch(_fixedAggregateOwner))
-        {
-            _removeAdmissionLease = null;
-        }
-
         RetainReconciliationForReplacement();
         IAsyncDisposable? lease = _readRefreshLease;
         _readRefreshLease = null;
@@ -2218,20 +2031,10 @@
             _currentCursor = null;
             _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
             _completeSnapshot = GlobalAdministratorsSnapshot.Unauthorized();
-            if (_grantAdmissionLease is null)
-            {
-                _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
-            }
-
-            if (_removeAdmissionLease is null)
-            {
-                _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
-            }
-
+            _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
+            _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
             _grantUserId = null;
             _grantValidationMessage = null;
-            _grantAcknowledged = false;
-            Interlocked.Increment(ref _grantPreviewGeneration);
             _isGrantSubmitting = false;
             _isRemoveSubmitting = false;
             _isNotificationRefreshing = false;
@@ -2241,8 +2044,6 @@
             _focusGrantUserIdPending = false;
             _focusGrantLauncherPending = false;
             _focusGrantLifecyclePending = false;
-            _focusGrantAcknowledgementPending = false;
-            _focusGrantPreviewCancelPending = false;
             _focusRemoveSubmitPending = false;
             _focusRemoveLifecyclePending = false;
             StateHasChanged();
@@ -2343,350 +2144,96 @@
     {
         _grantValidationMessage = null;
 
+        if (!await ReauthorizeAsync().ConfigureAwait(false))
+        {
+            return;
+        }
+
+        // Everything from here resumes on a thread-pool continuation whenever the hoisted re-authorization above
+        // suspends, so every renderer-read write below is marshalled -- the same reason the RequestSent render
+        // further down is. _focusGrantUserIdPending is consumed by OnAfterRenderAsync, so writing it
+        // off-dispatcher can miss the render batch that would move focus, leaving the assertive validation
+        // message announced with focus still on Submit.
+        if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
+        {
+            string blockedReason = GrantUnavailableReason;
+            await InvokeAsync(() => SetGrantSnapshot(
+                GlobalAdministratorGrantCommandSnapshot.Blocked(blockedReason, TenantCommandFocusTarget.Submit)))
+                .ConfigureAwait(false);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_grantUserId))
         {
             await RejectGrantInputAsync("Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired").ConfigureAwait(false);
             return;
         }
 
-        string targetUserId = _grantUserId;
-        if (targetUserId.Length > MaximumGrantUserIdLength || targetUserId.Any(char.IsControl))
+        string normalizedUserId = _grantUserId.Trim();
+        if (normalizedUserId.Length > MaximumGrantUserIdLength || normalizedUserId.Any(char.IsControl))
         {
             await RejectGrantInputAsync("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid").ConfigureAwait(false);
             return;
         }
 
-        if (Interlocked.CompareExchange(ref _grantPreviewInFlight, 1, 0) != 0)
+        if (_aggregateAdmissionGate is null
+            || !_aggregateAdmissionGate.TryAcquireLease(
+                TenantCommandAggregateLock.ForGlobalAdministrators(),
+                _fixedAggregateOwner,
+                out TenantAggregateCommandLease? acquiredLease)
+            || acquiredLease is null)
         {
+            await InvokeAsync(() => SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
+                Localizer["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"],
+                TenantCommandFocusTarget.Submit))).ConfigureAwait(false);
             return;
         }
 
-        try
-        {
-            if (!await ReauthorizeAsync().ConfigureAwait(false))
-            {
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
-            {
-                string blockedReason = GrantUnavailableReason;
-                await InvokeAsync(() => SetGrantSnapshot(
-                    GlobalAdministratorGrantCommandSnapshot.Blocked(blockedReason, TenantCommandFocusTarget.Submit)))
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
-                .ConfigureAwait(false);
-            if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
-            {
-                await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            GlobalAdministratorGrantPreview preview = await ComposeGrantPreviewSafelyAsync(targetUserId, current)
-                .ConfigureAwait(false);
-            if (string.Equals(
-                    preview.UnavailableReasonKey,
-                    "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization",
-                    StringComparison.Ordinal))
-            {
-                await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            if (!preview.IsComplete)
-            {
-                await InvokeAsync(() =>
-                {
-                    _completeSnapshot = current;
-                    SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.UnavailablePreview(preview));
-                    StateHasChanged();
-                }).ConfigureAwait(false);
-                return;
-            }
-
-            if (_aggregateAdmissionGate is null
-                || !_aggregateAdmissionGate.TryAcquireLease(
-                    TenantCommandAggregateLock.ForGlobalAdministrators(),
-                    _fixedAggregateOwner,
-                    out TenantAggregateCommandLease? acquiredLease)
-                || acquiredLease is null)
-            {
-                await InvokeAsync(() => SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
-                    Localizer["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"],
-                    TenantCommandFocusTarget.Submit))).ConfigureAwait(false);
-                return;
-            }
-
-            string messageId = NUlid.Ulid.NewUlid().ToString();
-            await InvokeAsync(() =>
-            {
-                if (_disposed
-                    || !IsAuthorized
-                    || IsGrantPreviewOpen
-                    || _grantAdmissionLease is not null)
-                {
-                    _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
-                    return;
-                }
-
-                _completeSnapshot = current;
-                _grantAdmissionLease = acquiredLease;
-                _grantAcknowledged = false;
-                Interlocked.Increment(ref _grantPreviewGeneration);
-                SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, messageId));
-                _focusGrantAcknowledgementPending = true;
-                StateHasChanged();
-            }).ConfigureAwait(false);
-        }
-        finally
-        {
-            Volatile.Write(ref _grantPreviewInFlight, 0);
-            if (!_disposed)
-            {
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private void OnGrantAcknowledgementChanged(bool value)
-    {
-        _grantAcknowledged = IsGrantPreviewOpen && value;
-        StateHasChanged();
-    }
-
-    private async Task ConfirmGrantAsync()
-    {
-        if (IsGrantConfirmDisabled
-            || Interlocked.CompareExchange(ref _grantConfirmationInFlight, 1, 0) != 0)
-        {
-            return;
-        }
-
-        try
-        {
-            GlobalAdministratorGrantCommandSnapshot expectedSnapshot = _grantSnapshot;
-            GlobalAdministratorGrantPreview? expectedPreview = expectedSnapshot.PreviewEvidence;
-            TenantAggregateCommandLease? expectedLease = _grantAdmissionLease;
-            string? expectedMessageId = expectedSnapshot.MessageId;
-            long previewGeneration = Volatile.Read(ref _grantPreviewGeneration);
-            if (expectedPreview?.IsComplete != true
-                || expectedLease is null
-                || expectedMessageId is null
-                || !MatchesGrantPreviewAttempt(
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration)
-                || !await RevalidateGrantPreviewAsync(
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration).ConfigureAwait(false))
-            {
-                return;
-            }
-
-            await DispatchGrantAsync(
-                isRedispatch: false,
-                expectedSnapshot,
-                expectedPreview,
-                expectedLease,
-                expectedMessageId,
-                previewGeneration).ConfigureAwait(false);
-        }
-        finally
-        {
-            Volatile.Write(ref _grantConfirmationInFlight, 0);
-            if (!_disposed)
-            {
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async Task<GlobalAdministratorGrantPreview> ComposeGrantPreviewSafelyAsync(
-        string targetUserId,
-        GlobalAdministratorsSnapshot current)
-    {
-        try
-        {
-            return await BffComposition
-                .ComposeGlobalAdministratorGrantPreviewAsync(targetUserId, current)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            return GlobalAdministratorGrantPreview.Unavailable(targetUserId);
-        }
-    }
-
-    private async Task<bool> RevalidateGrantPreviewAsync(
-        GlobalAdministratorGrantCommandSnapshot expectedSnapshot,
-        GlobalAdministratorGrantPreview preview,
-        TenantAggregateCommandLease expectedLease,
-        string expectedMessageId,
-        long previewGeneration)
-    {
-        if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || !MatchesGrantPreviewAttempt(
-                expectedSnapshot,
-                preview,
-                expectedLease,
-                expectedMessageId,
-                previewGeneration))
-        {
-            return false;
-        }
-
-        GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
-            .ConfigureAwait(false);
-        if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
-        {
-            await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
-                .ConfigureAwait(false);
-            return false;
-        }
-
-        GlobalAdministratorGrantPreview rebuilt = await ComposeGrantPreviewSafelyAsync(preview.TargetUserId, current)
-            .ConfigureAwait(false);
-        if (string.Equals(
-                rebuilt.UnavailableReasonKey,
-                "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization",
-                StringComparison.Ordinal))
-        {
-            await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
-                .ConfigureAwait(false);
-            return false;
-        }
-
-        bool supportStillAvailable = BffComposition.IsGlobalAdministratorDispatchConnected
-            && BffComposition.IsGlobalAdministratorStatusConnected
-            && BffComposition.IsGlobalAdministratorRequeryConnected
-            && CommandGateway.SupportsGlobalAdministratorDispatch
-            && CommandGateway.SupportsTrackedGlobalAdministratorDispatch
-            && CommandGateway.SupportsCommandStatusLookup;
-        bool viewportStillSafe = _viewportObservation?.HasMeasurement == true
-            && _viewportObservation.State is TenantHighImpactViewportState.Safe;
-        bool validated = false;
-
-        await InvokeAsync(() =>
-        {
-            if (!MatchesGrantPreviewAttempt(
-                    expectedSnapshot,
-                    preview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration))
-            {
-                return;
-            }
-
-            _completeSnapshot = current;
-            if (preview.Matches(rebuilt) && supportStillAvailable && viewportStillSafe && !IsRemoveInFlight)
-            {
-                validated = true;
-                return;
-            }
-
-            _grantAcknowledged = false;
-            if (expectedLease.TryAbandonBeforeDispatch(_fixedAggregateOwner)
-                && ReferenceEquals(_grantAdmissionLease, expectedLease))
-            {
-                _grantAdmissionLease = null;
-            }
-
-            Interlocked.Increment(ref _grantPreviewGeneration);
-            SetGrantSnapshot(expectedSnapshot.InvalidatePreview(
-                rebuilt.UnavailableReasonKey
-                    ?? "Tenants.GlobalAdministrators.Grant.Preview.Invalidated"));
-            StateHasChanged();
-        }).ConfigureAwait(false);
-        return validated;
-    }
-
-    private bool MatchesGrantPreviewAttempt(
-        GlobalAdministratorGrantCommandSnapshot expectedSnapshot,
-        GlobalAdministratorGrantPreview expectedPreview,
-        TenantAggregateCommandLease expectedLease,
-        string expectedMessageId,
-        long previewGeneration)
-        => !_disposed
-            && Volatile.Read(ref _grantPreviewGeneration) == previewGeneration
-            && ReferenceEquals(_grantSnapshot, expectedSnapshot)
-            && ReferenceEquals(_grantSnapshot.PreviewEvidence, expectedPreview)
-            && ReferenceEquals(_grantAdmissionLease, expectedLease)
-            && string.Equals(_grantSnapshot.MessageId, expectedMessageId, StringComparison.Ordinal);
-
-    private async Task DispatchGrantAsync(
-        bool isRedispatch,
-        GlobalAdministratorGrantCommandSnapshot expectedSnapshot,
-        GlobalAdministratorGrantPreview expectedPreview,
-        TenantAggregateCommandLease expectedLease,
-        string expectedMessageId,
-        long previewGeneration)
-    {
-        if (expectedSnapshot.Intent is not { } request
-            || !MatchesGrantPreviewAttempt(
-                expectedSnapshot,
-                expectedPreview,
-                expectedLease,
-                expectedMessageId,
-                previewGeneration)
-            || isRedispatch && (!expectedLease.IsDispatchMarked
-                || !expectedSnapshot.IsSubmissionAmbiguous
-                || expectedSnapshot.CorrelationId is not null)
-            || !isRedispatch && (!_grantAcknowledged
-                || expectedSnapshot.State is not TenantCommandLifecycleState.Previewed
-                || expectedLease.IsDispatchMarked))
-        {
-            return;
-        }
-
+        var request = new SetGlobalAdministrator(normalizedUserId);
         using PendingOperation operation = BeginGrantMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
+        // Marshal RequestSent onto the dispatcher and re-check generation: Cancel/collapse between
+        // BeginGrantMutation and these writes must not stick RequestSent after invalidation.
         bool grantRequestArmed = false;
         GlobalAdministratorGrantCommandSnapshot? requestSentSnapshot = null;
+        TenantAggregateCommandLease? submissionLease = null;
         await InvokeAsync(() =>
         {
-            if (!CanApplyGrantMutation(generation)
-                || !MatchesGrantPreviewAttempt(
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration)
-                || isRedispatch && !expectedLease.IsDispatchMarked
-                || !isRedispatch && (!_grantAcknowledged
-                    || expectedLease.IsDispatchMarked
-                    || !expectedLease.TryMarkDispatched(_fixedAggregateOwner)))
+            if (!CanApplyGrantMutation(generation))
             {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                 return;
             }
 
-            SetGrantSnapshot(expectedSnapshot.RequestSent());
+            if (!acquiredLease.TryMarkDispatched(_fixedAggregateOwner))
+            {
+                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                return;
+            }
+
+            _grantAdmissionLease = acquiredLease;
+            SetGrantSnapshot(_grantSnapshot.RequestSent(request));
             requestSentSnapshot = _grantSnapshot;
-            _grantAcknowledged = false;
+            submissionLease = acquiredLease;
             _isGrantSubmitting = true;
             grantRequestArmed = true;
-            StateHasChanged();
         }).ConfigureAwait(false);
-        if (!grantRequestArmed || requestSentSnapshot is null)
+        if (!grantRequestArmed || requestSentSnapshot is null || submissionLease is null)
         {
             return;
         }
+
+        // ReauthorizeAsync is the handler's first await, so Blazor's automatic render at that suspension still
+        // showed Idle; these writes then land on a thread-pool continuation. Without an explicit marshalled
+        // render the RequestSent lifecycle state was never observable until the whole round trip finished,
+        // collapsing the non-collapse truth-state model this surface is required to preserve.
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
 
         try
         {
             TenantCommandSubmissionResult result = await CommandGateway
-                .SetGlobalAdministratorTrackedAsync(request, expectedMessageId, cancellationToken)
+                .SetGlobalAdministratorAsync(request, cancellationToken)
                 .ConfigureAwait(false);
             GlobalAdministratorGrantCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
             bool submissionApplied = false;
@@ -2695,7 +2242,7 @@
             {
                 if (!CanApplyGrantMutation(generation) || !ReferenceEquals(_grantSnapshot, requestSentSnapshot))
                 {
-                    resumeAdopted = RetainOrReleaseGrantCompletion(submissionSnapshot, expectedLease);
+                    resumeAdopted = RetainOrReleaseGrantCompletion(submissionSnapshot, submissionLease);
                     return;
                 }
 
@@ -2716,11 +2263,11 @@
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, expectedLease).ConfigureAwait(false);
+            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
         }
         catch
         {
-            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, expectedLease).ConfigureAwait(false);
+            await ApplyGrantSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
         }
         finally
         {
@@ -2740,55 +2287,8 @@
     private async Task RefreshGrantStatusAsync()
     {
         if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || _grantSnapshot.MessageId is null)
-        {
-            return;
-        }
-
-        if (_grantSnapshot.IsSubmissionAmbiguous && _grantSnapshot.CorrelationId is null)
-        {
-            GlobalAdministratorGrantCommandSnapshot expectedSnapshot = _grantSnapshot;
-            GlobalAdministratorGrantPreview? expectedPreview = expectedSnapshot.PreviewEvidence;
-            TenantAggregateCommandLease? expectedLease = _grantAdmissionLease;
-            string expectedMessageId = expectedSnapshot.MessageId;
-            long previewGeneration = Volatile.Read(ref _grantPreviewGeneration);
-            bool supportStillAvailable = BffComposition.IsGlobalAdministratorDispatchConnected
-                && BffComposition.IsGlobalAdministratorStatusConnected
-                && BffComposition.IsGlobalAdministratorRequeryConnected
-                && CommandGateway.SupportsGlobalAdministratorDispatch
-                && CommandGateway.SupportsTrackedGlobalAdministratorDispatch
-                && CommandGateway.SupportsCommandStatusLookup;
-            bool viewportStillSafe = _viewportObservation?.HasMeasurement == true
-                && _viewportObservation.State is TenantHighImpactViewportState.Safe;
-            if (expectedPreview?.IsComplete == true
-                && expectedLease?.IsDispatchMarked == true
-                && supportStillAvailable
-                && viewportStillSafe
-                && !IsRemoveInFlight
-                && MatchesGrantPreviewAttempt(
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration))
-            {
-                // This is delivery recovery, not a new authorization decision. Rebuilding the preview here
-                // would reject a safe same-id retry precisely when the first delivery already advanced the
-                // projection but lost its response. The retained preview, baseline, lock, and ULID remain the
-                // only admissible retry basis.
-                await DispatchGrantAsync(
-                    isRedispatch: true,
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration).ConfigureAwait(false);
-            }
-
-            return;
-        }
-
-        if (_grantSnapshot.CorrelationId is null)
+            || _grantSnapshot.MessageId is null
+            || _grantSnapshot.CorrelationId is null)
         {
             return;
         }
@@ -2815,12 +2315,7 @@
         try
         {
             status = await CommandGateway
-                .GetStatusAsync(
-                    new TenantCommandTrackingHandle(
-                        messageId,
-                        correlationId,
-                        GlobalAdministratorGrantPreview.FixedAggregateId),
-                    cancellationToken)
+                .GetStatusAsync(new TenantCommandTrackingHandle(messageId, correlationId), cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -2860,14 +2355,35 @@
 
         if (statusApplied
             && statusSnapshot.Intent is not null
-            && statusSnapshot.State is TenantCommandLifecycleState.ProjectionPending)
+            && statusSnapshot.State is TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending)
         {
-            await RequeryGrantProjectionAsync(generation, cancellationToken).ConfigureAwait(false);
+            await RequeryGrantProjectionAsync(generation).ConfigureAwait(false);
         }
     }
 
-    private async Task RequeryGrantProjectionAsync(long generation, CancellationToken cancellationToken)
+    private async Task RequeryGrantProjectionAsync(long generation)
     {
+        if (!CanApplyGrantMutation(generation))
+        {
+            return;
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyGrantMutation(generation))
+            {
+                return;
+            }
+
+            // The re-query below deliberately renders page one; reset the cursor state that describes the
+            // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
+            _cursorHistory.Clear();
+            _pagingHistoryTruncated = false;
+            _pagingJumpedToFirstPage = false;
+            _authorizationPagingReset = false;
+            _currentCursor = null;
+        }).ConfigureAwait(false);
         if (!CanApplyGrantMutation(generation))
         {
             return;
@@ -2875,42 +2391,40 @@
 
         GlobalAdministratorGrantCommandSnapshot projectionBasis = _grantSnapshot;
         TenantAggregateCommandLease? projectionLease = _grantAdmissionLease;
-        GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(cancellationToken)
-            .ConfigureAwait(false);
-        GlobalAdministratorGrantCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
-        bool resumeAdopted = false;
-        await InvokeAsync(() =>
+        GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
+            reuseETag: false,
+            retainConfirmed: true,
+            requestedCursor: null,
+            useRequestedCursor: true).ConfigureAwait(false);
+        // LoadAsync returns its result even when its own guard discarded it as superseded, so the reference
+        // check is what proves the confirming evidence is the evidence on screen. Without it a notification
+        // refresh landing mid-requery let the surface report "confirmed" from rows the operator never saw.
+        // The pagers already guard this way.
+        if (snapshot is not null)
         {
-            if (!CanApplyGrantMutation(generation)
-                || !ReferenceEquals(_grantSnapshot, projectionBasis))
+            GlobalAdministratorGrantCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+            bool resumeAdopted = false;
+            await InvokeAsync(() =>
             {
-                if (projectionLease is not null)
+                if (!CanApplyGrantMutation(generation)
+                    || !ReferenceEquals(_snapshot, snapshot)
+                    || !ReferenceEquals(_grantSnapshot, projectionBasis))
                 {
-                    resumeAdopted = RetainOrReleaseGrantCompletion(projectionSnapshot, projectionLease);
+                    if (projectionLease is not null)
+                    {
+                        resumeAdopted = RetainOrReleaseGrantCompletion(projectionSnapshot, projectionLease);
+                    }
+
+                    return;
                 }
 
-                return;
-            }
-
-            if (projectionSnapshot.State is TenantCommandLifecycleState.Confirmed)
+                SetGrantSnapshot(projectionSnapshot);
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            if (resumeAdopted)
             {
-                _completeSnapshot = snapshot;
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
             }
-
-            SetGrantSnapshot(projectionSnapshot);
-            StateHasChanged();
-        }).ConfigureAwait(false);
-        if (resumeAdopted)
-        {
-            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
-        }
-        else if (projectionSnapshot.State is TenantCommandLifecycleState.Confirmed
-            && CanApplyGrantMutation(generation))
-        {
-            // Confirmation comes from a complete bounded walk, but the review surface remains a paged
-            // contract. Refresh the currently displayed cursor instead of replacing it with the complete
-            // population or silently navigating to page one.
-            _ = await LoadAsync(reuseETag: false, retainConfirmed: true).ConfigureAwait(false);
         }
     }
 
@@ -2922,39 +2436,13 @@
         }
 
         InvalidateGrantMutation();
-        TenantAggregateCommandLease? lease = _grantAdmissionLease;
-        if (lease is not null
-            && lease.TryAbandonBeforeDispatch(_fixedAggregateOwner)
-            && ReferenceEquals(_grantAdmissionLease, lease))
-        {
-            _grantAdmissionLease = null;
-        }
-
-        Interlocked.Increment(ref _grantPreviewGeneration);
+        _ = _grantAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+        _grantAdmissionLease = null;
         _grantUserId = null;
         _grantValidationMessage = null;
-        _grantAcknowledged = false;
         SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
         _focusGrantLauncherPending = true;
         await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private async Task HandleGrantPreviewKeyDownAsync(KeyboardEventArgs args)
-    {
-        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal))
-        {
-            await CancelGrantAsync().ConfigureAwait(false);
-        }
-    }
-
-    private async Task FocusGrantConfirmAsync(FocusEventArgs args)
-        => await _grantAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
-
-    private Task FocusGrantCancelAsync(FocusEventArgs args)
-    {
-        _focusGrantPreviewCancelPending = true;
-        StateHasChanged();
-        return Task.CompletedTask;
     }
 
     private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot)
@@ -3014,9 +2502,7 @@
         TenantAggregateCommandLease submissionLease)
     {
         GlobalAdministratorGrantCommandSnapshot failedSnapshot = requestSentSnapshot.ApplySubmission(
-            TenantCommandSubmissionResult.Ambiguous(
-                requestSentSnapshot.MessageId!,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+            TenantCommandSubmissionResult.Failed(Localizer["Tenants.GlobalAdministrators.Grant.State.Failed"]));
         await InvokeAsync(() =>
         {
             if (!CanApplyGrantMutation(generation) || !ReferenceEquals(_grantSnapshot, requestSentSnapshot))
@@ -3433,10 +2919,7 @@
                 MessageId: reconciliation.MessageId,
                 CorrelationId: reconciliation.CorrelationId,
                 AuditState: TenantCommandAuditState.AuditPending,
-                FocusTarget: TenantCommandFocusTarget.Refresh,
-                PreviewEvidence: reconciliation.GrantPreview,
-                HasCommandEventEvidence: reconciliation.HasCommandEventEvidence,
-                IsSubmissionAmbiguous: reconciliation.IsSubmissionAmbiguous);
+                FocusTarget: TenantCommandFocusTarget.Refresh);
         }
         else
         {
@@ -3486,12 +2969,9 @@
     private static GlobalAdministratorReconciliationState? CreateReconciliation(
         GlobalAdministratorGrantCommandSnapshot snapshot)
         => snapshot.Intent is not null
-            && snapshot.PreviewEvidence?.IsComplete == true
             && snapshot.MessageId is { Length: > 0 } messageId
-            && (snapshot.CorrelationId is { Length: > 0 }
-                || snapshot.State is TenantCommandLifecycleState.RequestSent)
-            && snapshot.State is TenantCommandLifecycleState.RequestSent
-                or TenantCommandLifecycleState.Accepted
+            && snapshot.CorrelationId is { Length: > 0 } correlationId
+            && snapshot.State is TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.ProjectionPending
                 or TenantCommandLifecycleState.Degraded
                 or TenantCommandLifecycleState.UnableToVerify
@@ -3499,13 +2979,8 @@
                 GlobalAdministratorActionKind.Grant,
                 snapshot.Intent.UserId,
                 messageId,
-                snapshot.CorrelationId,
-                snapshot.State,
-                snapshot.PreviewEvidence,
-                snapshot.HasCommandEventEvidence,
-                snapshot.IsSubmissionAmbiguous
-                    || snapshot.State is TenantCommandLifecycleState.RequestSent
-                        && string.IsNullOrWhiteSpace(snapshot.CorrelationId))
+                correlationId,
+                snapshot.State)
             : null;
 
     private static GlobalAdministratorReconciliationState? CreateReconciliation(

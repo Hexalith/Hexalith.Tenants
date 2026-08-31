@@ -441,25 +441,11 @@ public sealed class TenantAggregateCommandAdmissionGate
 
     private static bool IsValidReconciliation(
         GlobalAdministratorReconciliationState reconciliation)
-    {
-        if (string.IsNullOrWhiteSpace(reconciliation.TargetUserId)
-            || string.IsNullOrWhiteSpace(reconciliation.MessageId))
-        {
-            return false;
-        }
-
-        return reconciliation.ActionKind switch
-        {
-            GlobalAdministratorActionKind.Grant
-                => reconciliation.GrantPreview?.IsComplete == true
-                    && (!string.IsNullOrWhiteSpace(reconciliation.CorrelationId)
-                        || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
-                            && reconciliation.IsSubmissionAmbiguous),
-            GlobalAdministratorActionKind.Remove
-                => !string.IsNullOrWhiteSpace(reconciliation.CorrelationId),
-            _ => false,
-        };
-    }
+        => reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
+                or GlobalAdministratorActionKind.Remove
+            && !string.IsNullOrWhiteSpace(reconciliation.TargetUserId)
+            && !string.IsNullOrWhiteSpace(reconciliation.MessageId)
+            && !string.IsNullOrWhiteSpace(reconciliation.CorrelationId);
 
     private static bool HasSameCommandIdentity(
         GlobalAdministratorReconciliationState current,
@@ -467,9 +453,7 @@ public sealed class TenantAggregateCommandAdmissionGate
         => current.ActionKind == next.ActionKind
             && string.Equals(current.TargetUserId, next.TargetUserId, StringComparison.Ordinal)
             && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
-            && (current.CorrelationId is null
-                || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
-            && Equals(current.GrantPreview, next.GrantPreview);
+            && string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal);
 
     private static bool IsLifecycleRegression(
         TenantCommandLifecycleState current,

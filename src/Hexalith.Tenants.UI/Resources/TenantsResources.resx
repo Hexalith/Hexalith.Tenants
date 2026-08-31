@@ -2985,46 +2985,6 @@
   <data name="Tenants.GlobalAdministrators.Grant.Description" xml:space="preserve">
     <value>Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Launch" xml:space="preserve"><value>Review grant consequences</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Title" xml:space="preserve"><value>Grant consequence preview</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope" xml:space="preserve"><value>Platform authority scope</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope.Value" xml:space="preserve"><value>tenant system, domain global-administrators, aggregate global-administrators</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Target" xml:space="preserve"><value>Target user id</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts" xml:space="preserve"><value>Administrator count change</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts.Value" xml:space="preserve"><value>Current complete count: {0}; resulting count after confirmation: {1}</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange" xml:space="preserve"><value>Authority change</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value" xml:space="preserve"><value>The target gains platform global-administrator authority only after qualified projection confirmation.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness" xml:space="preserve"><value>Evidence freshness</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value" xml:space="preserve"><value>The preview uses a complete, current, versioned fixed-scope projection captured before dispatch.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery" xml:space="preserve"><value>Recovery path</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value" xml:space="preserve"><value>Refresh authority and projection truth, then retry the same tracked attempt when delivery is ambiguous.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit" xml:space="preserve"><value>Audit expectation</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit.Value" xml:space="preserve"><value>Audit evidence is expected after qualified confirmation, but this flow does not fabricate or promise an audit receipt.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext" xml:space="preserve"><value>Caller and target context</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value" xml:space="preserve"><value>A currently authorized platform operator is granting the literal target identifier; tenant membership is not read or changed.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences" xml:space="preserve"><value>Known consequences</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value" xml:space="preserve"><value>The target can exercise platform governance authority in the fixed global-administrators scope after confirmation.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns" xml:space="preserve"><value>Known unknowns</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value" xml:space="preserve"><value>Session refresh, token issuance, downstream enforcement timing, and audit availability are not proven by command acceptance.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Acknowledge" xml:space="preserve"><value>I reviewed the fixed scope, authority change, evidence limits, and recovery path.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Confirm" xml:space="preserve"><value>Confirm tracked grant</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization" xml:space="preserve"><value>Current platform authority is not proven, so the grant preview is unavailable.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Target" xml:space="preserve"><value>The literal target identifier is unsupported.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Evidence" xml:space="preserve"><value>Complete, current, versioned fixed-scope evidence is required for the grant preview.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists" xml:space="preserve"><value>The exact target is already present in the complete global-administrator projection, so no grant was dispatched.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Authorization" xml:space="preserve"><value>Refresh authorization or ask a platform administrator to verify your authority.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Target" xml:space="preserve"><value>Enter a supported literal user id without changing its casing or whitespace.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh" xml:space="preserve"><value>Refresh the complete fixed-scope projection and rebuild the preview.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists" xml:space="preserve"><value>Keep the confirmed rows unchanged and choose a target absent from the complete projection.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Invalidated" xml:space="preserve"><value>The grant preview changed before dispatch. Refresh and review a new preview.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>Grant delivery is ambiguous. Refresh or retry with the same retained command identity.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>Command status did not match the exact retained grant identity.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence" xml:space="preserve"><value>Exact command status did not prove that the grant produced an event.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout" xml:space="preserve"><value>Grant status timed out before the tracked result could be verified.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Status.Pending" xml:space="preserve"><value>Tracked grant status is pending; keep the same command identity and refresh.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Status.Unknown" xml:space="preserve"><value>Tracked grant status is unavailable; keep the same command identity and retry verification.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch" xml:space="preserve"><value>Caller-owned tracked grant dispatch is unavailable.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced" xml:space="preserve"><value>The complete projection has not advanced beyond the grant preview baseline.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">
     <value>Grant lifecycle</value>
   </data>

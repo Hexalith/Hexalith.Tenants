@@ -1,9 +1,10 @@
-using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.EventStore.Client.Projections;
 
 using Shouldly;
 
@@ -11,252 +12,180 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class GlobalAdministratorGrantCommandSnapshotTests
 {
-    private const string MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-
-    [Theory]
-    [InlineData(CommandStatus.EventsStored)]
-    [InlineData(CommandStatus.EventsPublished)]
-    [InlineData(CommandStatus.Completed)]
-    public void EventProducingStatusWithVerifiedIdentityCanConfirmOnlyAdvancedCompleteProjection(
-        CommandStatus status)
+    [Fact]
+    public void Completed_status_requires_target_projection_evidence_before_confirmation()
     {
-        GlobalAdministratorGrantCommandSnapshot pending = AcceptedAttempt()
-            .ApplyStatus(new TenantCommandStatusResult(
-                status,
-                EventCount: 1,
-                HasVerifiedCommandIdentity: true));
+        var intent = new SetGlobalAdministrator("User/CaseSensitive.01");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
-        pending.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        pending.HasCommandEventEvidence.ShouldBeTrue();
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
-        GlobalAdministratorGrantCommandSnapshot confirmed = pending.ConfirmProjection(
-            Complete("projection-v2", "existing-admin", "  User/CaseSensitive.01  "));
+        GlobalAdministratorGrantCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Ready("other-user"));
+
+        withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        withoutEvidence.LastConfirmedProjection.ShouldBeNull();
+        withoutEvidence.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        // Ready() defaults IsCompleteEvidence=false, so absence hits the page-scoped arm.
+        withoutEvidence.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.PageScoped");
+
+        GlobalAdministratorGrantCommandSnapshot confirmed = snapshot.ConfirmProjection(Ready("User/CaseSensitive.01") with { IsCompleteEvidence = true });
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        confirmed.LastConfirmedProjection.ShouldNotBeNull().UserId.ShouldBe("  User/CaseSensitive.01  ");
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
-    }
-
-    [Theory]
-    [InlineData(CommandStatus.EventsStored)]
-    [InlineData(CommandStatus.EventsPublished)]
-    [InlineData(CommandStatus.Completed)]
-    public void EventProducingStatusWithoutPositiveEventCountCannotConfirm(CommandStatus status)
-    {
-        GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt()
-            .ApplyStatus(new TenantCommandStatusResult(
-                status,
-                EventCount: 0,
-                HasVerifiedCommandIdentity: true));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        result.HasCommandEventEvidence.ShouldBeFalse();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence");
-        result.ConfirmProjection(Complete("projection-v2", "existing-admin", "  User/CaseSensitive.01  "))
-            .State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-    }
-
-    [Theory]
-    [InlineData(false, "Tenants.GlobalAdministrators.Grant.Status.Unknown")]
-    [InlineData(true, "Tenants.GlobalAdministrators.Grant.Status.Pending")]
-    public void MissingStatusIsClassifiedBeforeTrackingIdentity(bool pending, string expectedKey)
-    {
-        TenantCommandStatusResult status = pending
-            ? TenantCommandStatusResult.Pending("Still propagating.")
-            : TenantCommandStatusResult.Unknown("Not available.");
-
-        GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt().ApplyStatus(status);
-
-        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        result.SafeMessageKey.ShouldBe(expectedKey);
-        result.SafeMessageKey.ShouldNotBe("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+        confirmed.LastConfirmedProjection.ShouldNotBeNull().UserId.ShouldBe("User/CaseSensitive.01");
     }
 
     [Fact]
-    public void NonNullStatusWithoutVerifiedFixedCommandIdentityFailsClosed()
+    public void Page_scoped_absence_is_distinguished_from_a_failed_verification_read()
     {
-        GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt().ApplyStatus(
-            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        GlobalAdministratorGrantCommandSnapshot pending = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(new SetGlobalAdministrator("target-admin"))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
-        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        result.HasCommandEventEvidence.ShouldBeFalse();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
-    }
-
-    [Theory]
-    [InlineData(CommandStatus.Received)]
-    [InlineData(CommandStatus.Processing)]
-    public void EarlierLifecycleStatusCannotRegressVerifiedEventEvidence(CommandStatus status)
-    {
-        GlobalAdministratorGrantCommandSnapshot projectionPending = AcceptedAttempt().ApplyStatus(
-            new TenantCommandStatusResult(
-                CommandStatus.EventsStored,
-                EventCount: 1,
-                HasVerifiedCommandIdentity: true));
-
-        GlobalAdministratorGrantCommandSnapshot result = projectionPending.ApplyStatus(
-            new TenantCommandStatusResult(status, HasVerifiedCommandIdentity: true));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        result.HasCommandEventEvidence.ShouldBeTrue();
-        result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
-    }
-
-    [Fact]
-    public void SignalRNudgeRequestsRefreshWithoutInventingLifecycleOrAuditEvidence()
-    {
-        GlobalAdministratorGrantCommandSnapshot accepted = AcceptedAttempt();
-
-        GlobalAdministratorGrantCommandSnapshot result = accepted.SignalRNudge();
-
-        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
-        result.AuditState.ShouldBe(accepted.AuditState);
-        result.HasCommandEventEvidence.ShouldBeFalse();
-        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
-    }
-
-    [Fact]
-    public void TargetPresenceAtUnchangedVersionDoesNotConfirm()
-    {
-        GlobalAdministratorGrantCommandSnapshot result = EventBackedAttempt().ConfirmProjection(
-            Complete("projection-v1", "existing-admin", "  User/CaseSensitive.01  "));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        result.LastConfirmedProjection.ShouldBeNull();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced");
-    }
-
-    [Fact]
-    public void AdvancedVersionWithoutTargetDoesNotConfirm()
-    {
-        GlobalAdministratorGrantCommandSnapshot result = EventBackedAttempt().ConfirmProjection(
-            Complete("projection-v2", "existing-admin", "unrelated-admin"));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        result.LastConfirmedProjection.ShouldBeNull();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm");
-    }
-
-    [Fact]
-    public void PageScopedTargetPresenceDoesNotConfirm()
-    {
-        GlobalAdministratorsSnapshot page = Complete(
-            "projection-v2",
-            "existing-admin",
-            "  User/CaseSensitive.01  ") with
+        GlobalAdministratorsSnapshot pageScoped = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current)],
+            nextCursor: "protected-next",
+            hasMore: true,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
         {
-            IsCompleteEvidence = false,
-            HasMore = true,
-            NextCursor = "protected-next",
+            Lifecycle = ProjectionLifecycleState.Current,
+            ProjectionVersion = "projection-v1",
         };
+        pageScoped.IsMutationEvidenceBacked.ShouldBeTrue();
 
-        GlobalAdministratorGrantCommandSnapshot result = EventBackedAttempt().ConfirmProjection(page);
+        GlobalAdministratorGrantCommandSnapshot pageScopedResult = pending.ConfirmProjection(pageScoped);
+
+        pageScopedResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        pageScopedResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.PageScoped");
+
+        GlobalAdministratorsSnapshot completeAbsence = Ready("other-admin") with { IsCompleteEvidence = true };
+        GlobalAdministratorGrantCommandSnapshot completeResult = pending.ConfirmProjection(completeAbsence);
+
+        completeResult.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        completeResult.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm");
+        completeResult.SafeMessage.ShouldNotBe(pageScopedResult.SafeMessage);
+    }
+
+    // A projection re-query whose Current freshness came only from the legacy X-Hexalith-Is-Stale
+    // compatibility signal carries no lifecycle evidence, so it cannot certify that the grant reached the
+    // projection even when the target row is present.
+    [Fact]
+    public void Completed_status_without_projection_lifecycle_evidence_stays_unable_to_verify()
+    {
+        var intent = new SetGlobalAdministrator("target-admin");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+
+        GlobalAdministratorGrantCommandSnapshot result = snapshot.ConfirmProjection(
+            Ready("target-admin") with { Lifecycle = ProjectionLifecycleState.Unknown });
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.LastConfirmedProjection.ShouldBeNull();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired");
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        result.SafeMessage.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired");
     }
 
     [Fact]
-    public void VersionChangeWithoutExactCommandEventEvidenceDoesNotConfirm()
+    public void Already_admin_rejection_stays_rejected_and_not_already_applied()
     {
-        GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt().ConfirmProjection(
-            Complete("projection-v2", "existing-admin", "  User/CaseSensitive.01  "));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        result.LastConfirmedProjection.ShouldBeNull();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired");
-    }
-
-    [Fact]
-    public void MismatchedAcceptanceIdentityRetainsSameAttemptAsAmbiguous()
-    {
-        GlobalAdministratorGrantCommandSnapshot requestSent = PreviewedAttempt().RequestSent();
-
-        GlobalAdministratorGrantCommandSnapshot result = requestSent.Accepted(
-            TenantCommandSubmissionResult.Accepted("01BX5ZZKBKACTAV9WEVGEMMVRZ", "correlation-1"));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
-        result.IsSubmissionAmbiguous.ShouldBeTrue();
-        result.MessageId.ShouldBe(MessageId);
-        result.PreviewEvidence.ShouldBeSameAs(requestSent.PreviewEvidence);
-    }
-
-    [Fact]
-    public void BlankAcceptanceCorrelationRetainsSameAttemptAsAmbiguous()
-    {
-        GlobalAdministratorGrantCommandSnapshot requestSent = PreviewedAttempt().RequestSent();
-
-        GlobalAdministratorGrantCommandSnapshot result = requestSent.Accepted(
-            TenantCommandSubmissionResult.Accepted(MessageId, string.Empty));
-
-        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
-        result.IsSubmissionAmbiguous.ShouldBeTrue();
-        result.MessageId.ShouldBe(MessageId);
-        result.BaselineProjectionVersion.ShouldBe("projection-v1");
-    }
-
-    [Fact]
-    public void MissingBffFactMakesPreviewIncomplete()
-    {
-        GlobalAdministratorGrantPreview preview = PreviewedAttempt().PreviewEvidence! with
-        {
-            KnownUnknownsFactKey = null,
-        };
-
-        preview.IsComplete.ShouldBeFalse();
-        GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, MessageId)
-            .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-    }
-
-    [Fact]
-    public void AlreadyAdministratorRejectionStaysRejected()
-    {
-        GlobalAdministratorGrantCommandSnapshot result = PreviewedAttempt()
-            .RequestSent()
+        var intent = new SetGlobalAdministrator("existing-admin");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
             .ApplySubmission(TenantCommandSubmissionResult.Rejected(
                 "This user is already a global administrator.",
                 "GlobalAdministratorAlreadyExists"));
 
-        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
-        result.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
-        result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
-        result.RejectionCode.ShouldBe("GlobalAdministratorAlreadyExists");
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        snapshot.RejectionCode.ShouldBe("GlobalAdministratorAlreadyExists");
+        snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
     }
 
-    private static GlobalAdministratorGrantCommandSnapshot EventBackedAttempt()
-        => AcceptedAttempt().ApplyStatus(new TenantCommandStatusResult(
-            CommandStatus.Completed,
-            EventCount: 1,
-            HasVerifiedCommandIdentity: true));
-
-    private static GlobalAdministratorGrantCommandSnapshot AcceptedAttempt()
-        => PreviewedAttempt()
-            .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"));
-
-    private static GlobalAdministratorGrantCommandSnapshot PreviewedAttempt()
+    [Fact]
+    public void Signalr_nudge_cannot_confirm_grant_or_audit_success()
     {
-        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
-            "  User/CaseSensitive.01  ",
-            Complete("projection-v1", "existing-admin"),
-            isAuthorized: true);
-        return GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, MessageId);
+        var intent = new SetGlobalAdministrator("target-user");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .SignalRNudge();
+
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        snapshot.LastConfirmedProjection.ShouldBeNull();
+        snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 
-    private static GlobalAdministratorsSnapshot Complete(string projectionVersion, params string[] userIds)
+    [Theory]
+    [InlineData(GlobalAdministratorsSurfaceKind.Stale)]
+    [InlineData(GlobalAdministratorsSurfaceKind.Unknown)]
+    [InlineData(GlobalAdministratorsSurfaceKind.Degraded)]
+    public void Target_presence_on_non_current_projection_cannot_confirm_grant(GlobalAdministratorsSurfaceKind kind)
+    {
+        GlobalAdministratorGrantCommandSnapshot pending = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(new SetGlobalAdministrator("target-user"))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        GlobalAdministratorRow[] rows = [new("target-user", ReadModelFreshnessState.Stale)];
+        GlobalAdministratorsSnapshot evidence = kind switch
+        {
+            GlobalAdministratorsSurfaceKind.Stale => GlobalAdministratorsSnapshot.Stale(rows, null, false, "\"etag\""),
+            GlobalAdministratorsSurfaceKind.Unknown => GlobalAdministratorsSnapshot.Unknown(rows, null, false, "\"etag\""),
+            GlobalAdministratorsSurfaceKind.Degraded => GlobalAdministratorsSnapshot.Degraded(rows, GlobalAdministratorsReason.ProjectionDegraded, "\"etag\""),
+            _ => throw new InvalidOperationException(),
+        };
+
+        GlobalAdministratorGrantCommandSnapshot result = pending.ConfirmProjection(evidence);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.LastConfirmedProjection.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed)]
+    [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed)]
+    public void Projection_evidence_cannot_convert_terminal_non_success_states_to_confirmed(
+        CommandStatus status,
+        TenantCommandLifecycleState expectedState,
+        TenantCommandAuditState expectedAudit)
+    {
+        var intent = new SetGlobalAdministrator("target-user");
+        GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .RequestSent(intent)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message."));
+
+        GlobalAdministratorGrantCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(Ready("target-user"));
+
+        withProjectionEvidence.State.ShouldBe(expectedState);
+        withProjectionEvidence.AuditState.ShouldBe(expectedAudit);
+        withProjectionEvidence.LastConfirmedProjection.ShouldBeNull();
+    }
+
+    // Lifecycle is stated explicitly because ConfirmProjection gates on IsMutationEvidenceBacked: a snapshot
+    // whose Current freshness carries no projection lifecycle evidence cannot certify the grant.
+    private static GlobalAdministratorsSnapshot Ready(string userId)
         => GlobalAdministratorsSnapshot.Ready(
-            userIds.Select(static userId => new GlobalAdministratorRow(
-                userId,
-                ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current)).ToArray(),
+            [new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
-            eTag: $"\"{projectionVersion}\"",
-            freshness: ReadModelFreshnessState.Current) with
-        {
-            Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = projectionVersion,
-            IsCompleteEvidence = true,
-        };
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
 }
