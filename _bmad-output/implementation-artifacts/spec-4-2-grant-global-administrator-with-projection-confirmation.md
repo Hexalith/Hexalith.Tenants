@@ -2,9 +2,9 @@
 title: '4.2 Grant Global Administrator with Projection Confirmation'
 type: 'feature'
 created: '2026-08-31'
-status: 'in-review'
-baseline_revision: '7ec00718363a2681b2937496583b5bd652cbb3ec'
-baseline_commit: '7ec00718363a2681b2937496583b5bd652cbb3ec'
+status: 'in-progress'
+baseline_revision: 'b318929ad8c657eebddfbd912aa8b77e38ef99c6'
+baseline_commit: 'b318929ad8c657eebddfbd912aa8b77e38ef99c6'
 review_loop_iteration: 1
 followup_review_recommended: false
 context:

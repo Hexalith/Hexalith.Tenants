@@ -21,6 +21,13 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
             return common;
         }
 
+        if (!evidence.SupportsTrackedGrantDispatch)
+        {
+            return Blocked(
+                GlobalAdministratorActionKind.Grant,
+                GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+        }
+
         return evidence.IsGrantPreviewReady
             ? Available(GlobalAdministratorActionKind.Grant)
             : Blocked(

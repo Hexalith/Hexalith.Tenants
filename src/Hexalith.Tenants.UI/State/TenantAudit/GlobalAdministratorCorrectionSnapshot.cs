@@ -62,22 +62,29 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         };
     }
 
-    internal GlobalAdministratorReconciliationState? ToReconciliation()
-        => MessageId is { Length: > 0 } messageId
-            && CorrelationId is { Length: > 0 } correlationId
-            && LifecycleState is TenantCommandLifecycleState.Accepted
+    internal GlobalAdministratorReconciliationState? ToReconciliation() {
+        if (MessageId is not { Length: > 0 } messageId
+            || CorrelationId is not { Length: > 0 } correlationId
+            || LifecycleState is not (TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.ProjectionPending
                 or TenantCommandLifecycleState.Degraded
-                or TenantCommandLifecycleState.UnableToVerify
-            ? new(
-                CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
-                    ? GlobalAdministratorActionKind.Remove
-                    : GlobalAdministratorActionKind.Grant,
-                TargetUserId,
-                messageId,
-                correlationId,
-                LifecycleState)
+                or TenantCommandLifecycleState.UnableToVerify)) {
+            return null;
+        }
+
+        bool isGrant = CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
+        GlobalAdministratorGrantPreview? grantPreview = isGrant
+            && LastConfirmedProjectionEvidence is { } projection
+            ? GlobalAdministratorGrantPreview.Create(TargetUserId, projection, isAuthorized: true)
             : null;
+        return new(
+            isGrant ? GlobalAdministratorActionKind.Grant : GlobalAdministratorActionKind.Remove,
+            TargetUserId,
+            messageId,
+            correlationId,
+            LifecycleState,
+            grantPreview);
+    }
 
     public static GlobalAdministratorCorrectionSnapshot FromIntent(
         TenantCorrectionStartIntent intent,

@@ -708,7 +708,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         var queryGateway = new StubTenantQueryGateway(Projection("other-admin"), Audit("proof", "GlobalAdministratorSet"))
         {
             GlobalAdministratorProvider = _ => commandApplied
-                ? Projection("admin-user", "other-admin")
+                ? Projection("admin-user", "other-admin") with { ProjectionVersion = "ga-v2" }
                 : Projection("other-admin"),
         };
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -1300,6 +1300,12 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull();
         lease.TryMarkDispatched(owner).ShouldBeTrue();
+        GlobalAdministratorGrantPreview? preview = actionKind is GlobalAdministratorActionKind.Grant
+            ? GlobalAdministratorGrantPreview.Create(
+                targetUserId,
+                Projection("other-admin"),
+                isAuthorized: true)
+            : null;
         lease.TryRetainReconciliation(
             owner,
             new(
@@ -1307,7 +1313,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
                 targetUserId,
                 "message-safe",
                 "tracking-safe",
-                TenantCommandLifecycleState.Accepted)).ShouldBeTrue();
+                TenantCommandLifecycleState.Accepted,
+                preview)).ShouldBeTrue();
     }
 
     private static void SetLiveGate(
@@ -1493,7 +1500,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             return RemoveResultTask ?? Task.FromResult(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
         }
 
-        public Task<TenantCommandStatusResult> GetStatusAsync(
+        public async Task<TenantCommandStatusResult> GetStatusAsync(
             TenantCommandTrackingHandle handle,
             CancellationToken cancellationToken = default)
         {
@@ -1501,10 +1508,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             if (StatusResultTask is not null)
             {
                 _ = StatusEntered.TrySetResult();
-                return StatusResultTask;
+                TenantCommandStatusResult pending = await StatusResultTask.ConfigureAwait(false);
+                return pending with { HasVerifiedCommandIdentity = true };
             }
 
-            return Task.FromResult(Status);
+            return Status with { HasVerifiedCommandIdentity = true };
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)
