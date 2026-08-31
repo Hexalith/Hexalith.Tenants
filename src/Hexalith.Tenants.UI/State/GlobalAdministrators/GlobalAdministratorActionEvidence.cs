@@ -58,6 +58,9 @@ public sealed record GlobalAdministratorActionEvidence(
     /// </remarks>
     public bool IsGrantPreviewReady { get; init; } = IsRemovePreviewReady;
 
+    /// <summary>Gets whether grant dispatch accepts a caller-owned stable message identifier.</summary>
+    public bool SupportsTrackedGrantDispatch { get; init; }
+
     /// <summary>Returns a support-safe description that omits identities and projection metadata.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()

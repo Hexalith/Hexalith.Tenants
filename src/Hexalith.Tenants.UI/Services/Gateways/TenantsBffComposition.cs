@@ -3,8 +3,12 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
+using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
+
+using Microsoft.Extensions.Localization;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
@@ -13,7 +17,8 @@ internal sealed class TenantsBffComposition(
     IHttpContextAccessor? httpContextAccessor = null,
     ITenantConfigurationPrincipalResolver? principalResolver = null,
     TenantConfigurationReadPolicyProvider? policyProvider = null,
-    ITenantsReadSurfaceAvailability? readSurface = null) : ITenantsBffComposition {
+    ITenantsReadSurfaceAvailability? readSurface = null,
+    IStringLocalizer<TenantsResources>? resourceLocalizer = null) : ITenantsBffComposition {
     // Reads the composition decision rather than resolving ITenantQueryGateway, which would close a
     // container cycle (this type -> gateway -> this type) the moment Tenants:BaseAddress is configured.
     // Absence fails closed: an unregistered read surface is not evidence of a connected one.
@@ -22,7 +27,8 @@ internal sealed class TenantsBffComposition(
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 
     public bool IsGlobalAdministratorDispatchConnected
-        => commandGateway.SupportsGlobalAdministratorDispatch;
+        => commandGateway.SupportsGlobalAdministratorDispatch
+            && commandGateway.SupportsTrackedGlobalAdministratorDispatch;
 
     public bool IsGlobalAdministratorStatusConnected
         => commandGateway.SupportsCommandStatusLookup;
@@ -30,9 +36,8 @@ internal sealed class TenantsBffComposition(
     public bool IsGlobalAdministratorRequeryConnected
         => readSurface?.IsConnected == true;
 
-    // The corrected grant story owns the complete grant consequence preview. Until that downstream flow is
-    // installed, availability must not treat the historical direct-submit form as preview evidence.
-    public bool IsGlobalAdministratorGrantPreviewReady => false;
+    public bool IsGlobalAdministratorGrantPreviewReady
+        => principalResolver is not null && resourceLocalizer is not null;
 
     // The existing removal flow already renders and rechecks its dedicated complete-population preview.
     public bool IsGlobalAdministratorRemovePreviewReady => true;
@@ -60,6 +65,59 @@ internal sealed class TenantsBffComposition(
                 => TenantLifecycleAuthorizationReflectionState.MissingPermission,
             _ => TenantLifecycleAuthorizationReflectionState.Indeterminate,
         };
+    }
+
+    public async ValueTask<GlobalAdministratorGrantPreview> ComposeGlobalAdministratorGrantPreviewAsync(
+        string targetUserId,
+        GlobalAdministratorsSnapshot completeSnapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(completeSnapshot);
+
+        // Authority is resolved before the row collection is inspected. This prevents the preview seam from
+        // becoming a fixed-scope administrator-presence oracle for an unauthorized caller.
+        TenantLifecycleAuthorizationReflectionState authority =
+            await ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
+            targetUserId,
+            completeSnapshot,
+            authority is TenantLifecycleAuthorizationReflectionState.Authorized);
+        if (!preview.IsComplete)
+        {
+            return preview;
+        }
+
+        string?[] requiredFactKeys =
+        [
+            preview.ScopeFactKey,
+            "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+            preview.AuthorityChangeFactKey,
+            preview.FreshnessFactKey,
+            preview.RecoveryFactKey,
+            preview.AuditFactKey,
+            preview.CallerTargetContextFactKey,
+            preview.KnownConsequencesFactKey,
+            preview.KnownUnknownsFactKey,
+        ];
+        return resourceLocalizer is not null && requiredFactKeys.All(IsResolvedResource)
+            ? preview
+            : GlobalAdministratorGrantPreview.Unavailable(
+                targetUserId,
+                "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization",
+                "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
+
+        bool IsResolvedResource(string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return false;
+            }
+
+            LocalizedString value = resourceLocalizer![key];
+            return !value.ResourceNotFound
+                && !string.IsNullOrWhiteSpace(value.Value)
+                && !string.Equals(value.Value, key, StringComparison.Ordinal);
+        }
     }
 
     public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveLifecycleAuthorizationAsync(

@@ -2,7 +2,7 @@
 title: 'FrontComposer Shell, Counter samples, and EventStore Admin.UI Fluent conformance audit'
 type: 'audit'
 created: '2026-06-18'
-status: 'ready-for-dev'
+status: 'done'
 sprint_key: 'cc-frontcomposer-shell-and-adminui-fluent-conformance-audit'
 baseline_commit: '4ce8a84'
 approval: 'Administrator approved sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md (§5.2) on 2026-06-18'

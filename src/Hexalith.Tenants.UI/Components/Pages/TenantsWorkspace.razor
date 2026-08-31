@@ -31,28 +31,19 @@
         }
     </Toolbar>
     <Body>
-        <FluentTabs ActiveTabId="@_activeTabId"
+        @* FcPageTabs owns tab semantics, selection, roving focus, and the association to its
+           Fluent-generated "${Id}-panel" tab panel. Each FcPageTab.ChildContent is the real panel
+           content: FcPageTab retains it (via DeferredLoading) after first activation, so switching
+           tabs preserves the panel component instance, local state, and in-flight work without
+           Tenants hand-rolling its own hidden/aria-hidden panel wrapper. *@
+        <FcPageTabs ActiveTabId="@_activeTabId"
                     ActiveTabIdChanged="OnActiveTabChanged"
-                    aria-label="@Localizer["Tenants.Workspace.Tabs.Label"]"
-                    data-testid="tenants-workspace-tabs">
-            <FluentTab Id="@TenantsTabId"
+                    AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
+                    TestId="tenants-workspace-tabs">
+            <FcPageTab Id="@TenantsTabId"
                        Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]"
-                       aria-controls="tenants-retained-panel" />
-            <FluentTab Id="@UsersTabId"
-                       Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
-                       aria-controls="users-retained-panel" />
-        </FluentTabs>
-        @* FluentTab removes inactive content from its render tree. Keep the tab headers in FluentTabs,
-           but mount each workspace panel here exactly once after its first activation and hide it when
-           inactive. This preserves the panel component instance, local state, and in-flight work. *@
-        @if (_tenantsTabLoaded)
-        {
-            <div id="tenants-retained-panel"
-                 role="tabpanel"
-                 aria-labelledby="tenants"
-                 hidden="@(_activeTabId != TenantsTabId)"
-                 aria-hidden="@(_activeTabId != TenantsTabId ? "true" : "false")"
-                 data-testid="tenants-workspace-tenants-panel">
+                       DeferredLoading="true">
+                <div data-testid="tenants-workspace-tenants-panel">
                 <FluentStack Orientation="Orientation.Vertical"
                              VerticalGap="24px"
                              Width="100%"
@@ -273,23 +264,20 @@
                         </nav>
                     }
                 </FluentStack>
-            </div>
-        }
-        @if (_usersTabLoaded)
-        {
-            <div id="users-retained-panel"
-                 role="tabpanel"
-                 aria-labelledby="users"
-                 hidden="@(_activeTabId != UsersTabId)"
-                 aria-hidden="@(_activeTabId != UsersTabId ? "true" : "false")"
-                 data-testid="tenants-workspace-users-panel">
-                <UserMembershipLookupPanel InitialUserId="@_usersWorkspaceState.UserId"
-                                           InitialSort="@_usersWorkspaceState.Sort"
-                                           InitialCursor="@_usersWorkspaceState.Cursor"
-                                           UseWorkspaceRoute="true"
-                                           ShowBackLink="false" />
-            </div>
-        }
+                </div>
+            </FcPageTab>
+            <FcPageTab Id="@UsersTabId"
+                       Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
+                       DeferredLoading="true">
+                <div data-testid="tenants-workspace-users-panel">
+                    <UserMembershipLookupPanel InitialUserId="@_usersWorkspaceState.UserId"
+                                               InitialSort="@_usersWorkspaceState.Sort"
+                                               InitialCursor="@_usersWorkspaceState.Cursor"
+                                               UseWorkspaceRoute="true"
+                                               ShowBackLink="false" />
+                </div>
+            </FcPageTab>
+        </FcPageTabs>
     </Body>
 </FcAggregateListPage>
 
@@ -352,10 +340,6 @@
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
     private bool _canReviewGlobalAdministrators;
-    // External panels are mounted only after their first activation and remain in the render tree after
-    // that, because FluentTab removes inactive child content and would discard local/in-flight state.
-    private bool _tenantsTabLoaded;
-    private bool _usersTabLoaded;
     private AuthenticationStateProvider? _authenticationStateProvider;
     private long _authorizationVersion;
 
@@ -1310,12 +1294,10 @@
 
         if (state.Tab == UsersTabId)
         {
-            _usersTabLoaded = true;
             _usersWorkspaceState = state;
             return;
         }
 
-        _tenantsTabLoaded = true;
         _tenantWorkspaceState = state;
         _tenantScope = state.Scope;
         _search = state.Search;

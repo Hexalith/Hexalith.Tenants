@@ -102,13 +102,19 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-workspace-tabs']");
 
+        // The workspace composes the shared FcPageTabs/FcPageTab contract: Fluent UI owns tab
+        // semantics, selection, and the "${id}-panel" association from FcPageTab.ChildContent, so the
+        // generated tenants panel is non-empty and reciprocally associated with its tab -- not a
+        // hand-rolled sibling panel.
         FluentTabs pageTabs = cut.FindComponent<FluentTabs>().Instance;
         pageTabs.ActiveTabId.ShouldBe("tenants");
-        pageTabs.AdditionalAttributes!["aria-label"].ToString().ShouldBe("Tenant workspace sections");
+
+        IElement tabsRoot = cut.Find("[data-testid='tenants-workspace-tabs']");
+        tabsRoot.GetAttribute("aria-label").ShouldBe("Tenant workspace sections");
 
         IElement tenantTab = cut.Find("#tenants");
-        IElement tenantPanel = cut.Find("#tenants-retained-panel");
-        tenantTab.GetAttribute("aria-controls").ShouldBe("tenants-retained-panel");
+        IElement tenantPanel = cut.Find("#tenants-panel");
+        tenantTab.GetAttribute("aria-controls").ShouldBe("tenants-panel");
         tenantPanel.GetAttribute("role").ShouldBe("tabpanel");
         tenantPanel.QuerySelector("[data-testid='tenants-workspace-tenants-panel-content']").ShouldNotBeNull();
         tenantPanel.QuerySelector("[data-testid='tenants-list-refresh']").ShouldNotBeNull();
@@ -544,8 +550,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("USER.Target-01");
         IElement usersTab = cut.Find("#users");
-        IElement usersPanel = cut.Find("#users-retained-panel");
-        usersTab.GetAttribute("aria-controls").ShouldBe("users-retained-panel");
+        IElement usersPanel = cut.Find("#users-panel");
+        usersTab.GetAttribute("aria-controls").ShouldBe("users-panel");
         usersPanel.GetAttribute("role").ShouldBe("tabpanel");
         usersPanel.QuerySelector("[data-testid='tenants-user-lookup-results']").ShouldNotBeNull();
         cut.FindAll("[data-testid='tenants-workspace-tenants-panel-content']").ShouldBeEmpty();

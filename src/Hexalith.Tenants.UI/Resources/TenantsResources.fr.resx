@@ -2985,6 +2985,46 @@
   <data name="Tenants.GlobalAdministrators.Grant.Description" xml:space="preserve">
     <value>Accordez l'autorite plateforme dans le locataire system, domaine global-administrators, agregat global-administrators. L'achevement exige la confirmation de projection.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Launch" xml:space="preserve"><value>Examiner les consequences de l'attribution</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Title" xml:space="preserve"><value>Apercu des consequences de l'attribution</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope" xml:space="preserve"><value>Perimetre d'autorite de plateforme</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope.Value" xml:space="preserve"><value>locataire system, domaine global-administrators, agregat global-administrators</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Target" xml:space="preserve"><value>Identifiant utilisateur cible</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts" xml:space="preserve"><value>Evolution du nombre d'administrateurs</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts.Value" xml:space="preserve"><value>Nombre complet actuel : {0} ; nombre resultant apres confirmation : {1}</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange" xml:space="preserve"><value>Changement d'autorite</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value" xml:space="preserve"><value>La cible obtient l'autorite d'administrateur global de plateforme uniquement apres une confirmation de projection qualifiee.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness" xml:space="preserve"><value>Actualite des preuves</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value" xml:space="preserve"><value>L'apercu utilise une projection complete, actuelle et versionnee du perimetre fixe capturee avant l'envoi.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery" xml:space="preserve"><value>Chemin de recuperation</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value" xml:space="preserve"><value>Actualisez l'autorite et la verite de projection, puis reessayez la meme tentative suivie si la livraison est ambigue.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit" xml:space="preserve"><value>Attente d'audit</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit.Value" xml:space="preserve"><value>Une preuve d'audit est attendue apres confirmation qualifiee, mais ce flux ne fabrique ni ne promet de recu d'audit.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext" xml:space="preserve"><value>Contexte de l'appelant et de la cible</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value" xml:space="preserve"><value>Un operateur de plateforme actuellement autorise attribue l'identifiant cible litteral ; l'appartenance au locataire n'est ni lue ni modifiee.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences" xml:space="preserve"><value>Consequences connues</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value" xml:space="preserve"><value>La cible peut exercer l'autorite de gouvernance de plateforme dans le perimetre global-administrators fixe apres confirmation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns" xml:space="preserve"><value>Inconnues connues</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value" xml:space="preserve"><value>L'actualisation de session, l'emission de jeton, le delai d'application en aval et la disponibilite de l'audit ne sont pas prouves par l'acceptation de la commande.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Acknowledge" xml:space="preserve"><value>J'ai examine le perimetre fixe, le changement d'autorite, les limites des preuves et le chemin de recuperation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Confirm" xml:space="preserve"><value>Confirmer l'attribution suivie</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization" xml:space="preserve"><value>L'autorite de plateforme actuelle n'est pas prouvee ; l'apercu d'attribution est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Target" xml:space="preserve"><value>L'identifiant cible litteral n'est pas pris en charge.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Evidence" xml:space="preserve"><value>Une preuve complete, actuelle et versionnee du perimetre fixe est requise pour l'apercu d'attribution.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists" xml:space="preserve"><value>La cible exacte existe deja dans la projection complete des administrateurs globaux ; aucune attribution n'a ete envoyee.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Authorization" xml:space="preserve"><value>Actualisez l'autorisation ou demandez a un administrateur de plateforme de verifier votre autorite.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Target" xml:space="preserve"><value>Saisissez un identifiant utilisateur litteral pris en charge sans modifier sa casse ni ses espaces.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh" xml:space="preserve"><value>Actualisez la projection complete du perimetre fixe et reconstruisez l'apercu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists" xml:space="preserve"><value>Conservez les lignes confirmees et choisissez une cible absente de la projection complete.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Invalidated" xml:space="preserve"><value>L'apercu d'attribution a change avant l'envoi. Actualisez et examinez un nouvel apercu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La livraison de l'attribution est ambigue. Actualisez ou reessayez avec la meme identite de commande conservee.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>L'etat de commande ne correspond pas a l'identite exacte de l'attribution conservee.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence" xml:space="preserve"><value>L'etat exact de la commande ne prouve pas que l'attribution a produit un evenement.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout" xml:space="preserve"><value>L'etat de l'attribution a expire avant la verification du resultat suivi.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.Pending" xml:space="preserve"><value>L'etat de l'attribution suivie est en attente ; conservez la meme identite de commande et actualisez.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.Unknown" xml:space="preserve"><value>L'etat de l'attribution suivie est indisponible ; conservez la meme identite de commande et recommencez la verification.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch" xml:space="preserve"><value>L'envoi suivi avec identite fournie par l'appelant est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced" xml:space="preserve"><value>La projection complete n'a pas progresse au-dela de la reference de l'apercu d'attribution.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">
     <value>Cycle de vie de l'accord</value>
   </data>

@@ -374,8 +374,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             navigation.Uri.ShouldContain("tab=users");
             navigation.Uri.ShouldNotContain("tenant-list-cursor");
-            cut.Find("#users").GetAttribute("aria-controls").ShouldBe("users-retained-panel");
-            cut.Find("#users-retained-panel").GetAttribute("role").ShouldBe("tabpanel");
+            cut.Find("#users").GetAttribute("aria-controls").ShouldBe("users-panel");
+            cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
             cut.FindComponent<UserMembershipLookupPanel>().Instance.InitialCursor.ShouldBeNull();
         });
     }
@@ -420,16 +420,25 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
         FluentDataGrid<TenantListRow> firstTenantsPanel = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
-        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeFalse();
-        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
+
+        // Fluent UI v5 owns the generated "${id}-panel" tab panel and its visibility; it renders every
+        // registered panel unconditionally and toggles which one is visible client-side, so bUnit's
+        // server-rendered markup cannot observe a hidden/visible attribute flip. What this workspace still
+        // owns -- and what stays a regression lock here -- is that each panel keeps its Fluent-derived id,
+        // role=tabpanel, and (per Workspace_tab_round_trip...) its retained component instance across the
+        // whole round trip instead of being recreated.
+        cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
+
+        // Fluent always renders every registered tab's wrapping panel div (even before first
+        // activation), but the Users FcPageTab is DeferredLoading, so its owned content -- the
+        // UserMembershipLookupPanel -- is not mounted merely because the tab header exists.
+        cut.FindComponents<UserMembershipLookupPanel>().ShouldBeEmpty();
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
         UserMembershipLookupPanel firstUsersPanel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
-        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeTrue();
-        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
-        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeFalse();
-        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
+        cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
 
         navigation.NavigateTo("/tenants?tab=users&userId=user.one&sort=role&cursor=user-cursor");
         cut.WaitForAssertion(() =>
@@ -446,20 +455,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         firstUsersPanel.InitialUserId.ShouldBe("user.one");
         firstUsersPanel.InitialSort.ShouldBe(UserTenantMembershipSortColumns.Role);
         firstUsersPanel.InitialCursor.ShouldBe("user-cursor");
-        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeFalse();
-        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
-        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeTrue();
-        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
+        cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
         cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(firstUsersPanel);
         navigation.Uri.ShouldContain("userId=user.one");
         navigation.Uri.ShouldContain("sort=role");
         navigation.Uri.ShouldContain("cursor=user-cursor");
-        cut.Find("#tenants-retained-panel").HasAttribute("hidden").ShouldBeTrue();
-        cut.Find("#tenants-retained-panel").GetAttribute("aria-hidden").ShouldBe("true");
-        cut.Find("#users-retained-panel").HasAttribute("hidden").ShouldBeFalse();
-        cut.Find("#users-retained-panel").GetAttribute("aria-hidden").ShouldBe("false");
+        cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
     }
 
     [Fact]

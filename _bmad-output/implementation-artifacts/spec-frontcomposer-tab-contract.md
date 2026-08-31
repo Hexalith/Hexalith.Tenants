@@ -2,8 +2,9 @@
 title: 'FrontComposer explicit page-tab panel contract'
 type: 'bugfix'
 created: '2026-08-28'
-status: ready-for-dev
+status: in-progress
 baseline_revision: 'b5d2734f1774923c5f4334b898653cfc49abf369'
+baseline_commit: 'b011873a2cae73718f5054a83569ea6ac92e3bdb'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
