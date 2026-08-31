@@ -55,6 +55,8 @@
                  VerticalGap="20px"
                  Class="global-admins"
                  data-testid="tenants-global-admins-area"
+                 inert="@(IsGrantPreviewOpen ? string.Empty : null)"
+                 aria-hidden="@(IsGrantPreviewOpen ? "true" : null)"
                  aria-labelledby="global-admins-heading">
     <FcPageHeader PageTitle="@PageTitleText"
                   Heading="@PageTitleText"
@@ -247,7 +249,7 @@
                                     where an over-long id gets an explicit localized rejection instead. *@
                                  Value="@_grantUserId"
                                  ValueChanged="OnGrantUserIdInput"
-                                 Disabled="@(_grantSnapshot.State is TenantCommandLifecycleState.Previewed || IsGrantInFlight)"
+                                 Disabled="@(_grantSnapshot.State is TenantCommandLifecycleState.Previewed || IsGrantInFlight || Volatile.Read(ref _grantPreviewInFlight) != 0)"
                                  data-testid="tenants-global-admin-grant-user-id"
                                  aria-describedby="@GrantUserIdDescribedBy" />
                 <FluentText id="tenants-global-admin-grant-user-id-help">
@@ -283,6 +285,7 @@
             <div class="global-admins__grant-actions">
                 <span class="global-admins__grant-submit-focus global-admins__mutation-initiation" tabindex="-1">
                     <FluentButton Type="ButtonType.Submit"
+                                  @key="_grantLauncherFocusVersion"
                                   Appearance="ButtonAppearance.Primary"
                                   AutoFocus="@_focusGrantLauncherPending"
                                   data-testid="tenants-global-admin-grant-submit"
@@ -303,72 +306,10 @@
                               data-testid="tenants-global-admin-grant-refresh"
                               Disabled="@(!CanRefreshGrantStatus)"
                               OnClick="RefreshGrantStatusAsync">
-                    @Localizer["Tenants.GlobalAdministrators.Grant.Refresh"]
+                    @GrantRefreshActionText
                 </FluentButton>
             </div>
         </EditForm>
-
-        @if (_grantSnapshot.State is TenantCommandLifecycleState.Previewed
-            && _grantSnapshot.PreviewEvidence is { IsComplete: true } grantPreview)
-        {
-            <section class="global-admins__grant-preview"
-                     role="dialog"
-                     aria-modal="true"
-                     aria-labelledby="global-admins-grant-preview-heading"
-                     data-testid="tenants-global-admin-grant-preview"
-                     @onkeydown="HandleGrantPreviewKeyDownAsync">
-                <span class="global-admins__grant-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-grant-focus-start"
-                      @onfocus="FocusGrantCancelAsync"></span>
-                <h3 id="global-admins-grant-preview-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Title"]</h3>
-                <dl class="global-admins__grant-preview-grid">
-                    <dt data-testid="tenants-global-admin-grant-preview-scope">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Scope"]</dt>
-                    <dd>@Localizer[grantPreview.ScopeFactKey!]</dd>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Target"]</dt>
-                    <dd data-testid="tenants-global-admin-grant-preview-target">@grantPreview.TargetUserId</dd>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts"]</dt>
-                    <dd data-testid="tenants-global-admin-grant-preview-counts">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts.Value", grantPreview.CurrentAdministratorCount, grantPreview.ResultingAdministratorCount]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-authority-change">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange"]</dt>
-                    <dd>@Localizer[grantPreview.AuthorityChangeFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-freshness">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Freshness"]</dt>
-                    <dd>@Localizer[grantPreview.FreshnessFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-recovery">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Recovery"]</dt>
-                    <dd>@Localizer[grantPreview.RecoveryFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-audit">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Audit"]</dt>
-                    <dd>@Localizer[grantPreview.AuditFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-context">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext"]</dt>
-                    <dd>@Localizer[grantPreview.CallerTargetContextFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-known-consequences">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences"]</dt>
-                    <dd>@Localizer[grantPreview.KnownConsequencesFactKey!]</dd>
-                    <dt data-testid="tenants-global-admin-grant-preview-known-unknowns">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns"]</dt>
-                    <dd>@Localizer[grantPreview.KnownUnknownsFactKey!]</dd>
-                </dl>
-                <FluentCheckbox @ref="_grantAcknowledgementElement"
-                                Value="@_grantAcknowledged"
-                                ValueChanged="OnGrantAcknowledgementChanged"
-                                Label="@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Acknowledge"]"
-                                data-testid="tenants-global-admin-grant-acknowledge" />
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.75rem" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Primary"
-                                  Disabled="@IsGrantConfirmDisabled"
-                                  data-testid="tenants-global-admin-grant-confirm"
-                                  OnClick="ConfirmGrantAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Confirm"]
-                    </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                  AutoFocus="@_focusGrantPreviewCancelPending"
-                                  data-testid="tenants-global-admin-grant-preview-cancel"
-                                  OnClick="CancelGrantAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
-                    </FluentButton>
-                </FluentStack>
-                <span class="global-admins__grant-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-grant-focus-end"
-                      @onfocus="FocusGrantConfirmAsync"></span>
-            </section>
-        }
 
         <section class="global-admins__grant-lifecycle global-admins__grant-lifecycle--@GrantStateCss"
                  @ref="_grantLifecycleElement"
@@ -674,6 +615,68 @@
         }
     </FluentAccordion>
     </FluentStack>
+    @if (_grantSnapshot.State is TenantCommandLifecycleState.Previewed
+        && _grantSnapshot.PreviewEvidence is { IsComplete: true } grantPreview)
+    {
+        <section class="global-admins__grant-preview"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="global-admins-grant-preview-heading"
+                 data-testid="tenants-global-admin-grant-preview"
+                 @onkeydown="HandleGrantPreviewKeyDownAsync">
+            <span class="global-admins__grant-focus-sentinel"
+                  tabindex="0"
+                  data-testid="tenants-global-admin-grant-focus-start"
+                  @onfocus="FocusGrantCancelAsync"></span>
+            <h3 id="global-admins-grant-preview-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Title"]</h3>
+            <dl class="global-admins__grant-preview-grid">
+                <dt data-testid="tenants-global-admin-grant-preview-scope">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Scope"]</dt>
+                <dd>@Localizer[grantPreview.ScopeFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Target"]</dt>
+                <dd data-testid="tenants-global-admin-grant-preview-target">@grantPreview.TargetUserId</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts"]</dt>
+                <dd data-testid="tenants-global-admin-grant-preview-counts">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Counts.Value", grantPreview.CurrentAdministratorCount, grantPreview.ResultingAdministratorCount]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-authority-change">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange"]</dt>
+                <dd>@Localizer[grantPreview.AuthorityChangeFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-freshness">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Freshness"]</dt>
+                <dd>@Localizer[grantPreview.FreshnessFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-recovery">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Recovery"]</dt>
+                <dd>@Localizer[grantPreview.RecoveryFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-audit">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Audit"]</dt>
+                <dd>@Localizer[grantPreview.AuditFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-context">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext"]</dt>
+                <dd>@Localizer[grantPreview.CallerTargetContextFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-known-consequences">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences"]</dt>
+                <dd>@Localizer[grantPreview.KnownConsequencesFactKey!]</dd>
+                <dt data-testid="tenants-global-admin-grant-preview-known-unknowns">@Localizer["Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns"]</dt>
+                <dd>@Localizer[grantPreview.KnownUnknownsFactKey!]</dd>
+            </dl>
+            <FluentCheckbox @ref="_grantAcknowledgementElement"
+                            Value="@_grantAcknowledged"
+                            ValueChanged="OnGrantAcknowledgementChanged"
+                            Label="@Localizer["Tenants.GlobalAdministrators.Grant.Preview.Acknowledge"]"
+                            data-testid="tenants-global-admin-grant-acknowledge" />
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.75rem" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Disabled="@IsGrantConfirmDisabled"
+                              data-testid="tenants-global-admin-grant-confirm"
+                              OnClick="ConfirmGrantAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Confirm"]
+                </FluentButton>
+                <FluentButton @key="_grantPreviewCancelFocusVersion"
+                              Appearance="ButtonAppearance.Outline"
+                              AutoFocus="@_focusGrantPreviewCancelPending"
+                              data-testid="tenants-global-admin-grant-preview-cancel"
+                              OnClick="CancelGrantAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
+                </FluentButton>
+            </FluentStack>
+            <span class="global-admins__grant-focus-sentinel"
+                  tabindex="0"
+                  data-testid="tenants-global-admin-grant-focus-end"
+                  @onfocus="FocusGrantConfirmAsync"></span>
+        </section>
+    }
     }
 </FcPageLayout>
 
@@ -747,6 +750,8 @@
     private bool _focusGrantLifecyclePending;
     private bool _focusGrantAcknowledgementPending;
     private bool _focusGrantPreviewCancelPending;
+    private long _grantLauncherFocusVersion;
+    private long _grantPreviewCancelFocusVersion;
     private bool _focusRemoveSubmitPending;
     private bool _focusRemoveLifecyclePending;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
@@ -1103,6 +1108,11 @@
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
+
+    private string GrantRefreshActionText
+        => _grantSnapshot.IsSubmissionAmbiguous && _grantSnapshot.CorrelationId is null
+            ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
+            : Localizer["Tenants.GlobalAdministrators.Grant.Refresh"];
 
     private string GrantSafeMessage
         => !string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessageKey)

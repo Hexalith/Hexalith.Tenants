@@ -84,11 +84,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         }
 
         bool isGrant = CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
-        if (isGrant
-            && (GrantPreview?.IsComplete != true
-                || string.IsNullOrWhiteSpace(CorrelationId)
-                    && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous))
-            || !isGrant && string.IsNullOrWhiteSpace(CorrelationId))
+        if ((isGrant
+                && (GrantPreview?.IsComplete != true
+                    || (string.IsNullOrWhiteSpace(CorrelationId)
+                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous))))
+            || (!isGrant && string.IsNullOrWhiteSpace(CorrelationId)))
         {
             return null;
         }
@@ -168,6 +168,28 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         }
 
         bool present = TargetPresent(projection);
+
+        if (IsRestoreAccessAction
+            && (LifecycleState is not TenantCommandLifecycleState.ProjectionPending
+                || !HasCommandEventEvidence
+                || GrantPreview?.IsComplete != true
+                || !TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                    GrantPreview.ProjectionVersion,
+                    projection.ProjectionVersion,
+                    hasCommandEventEvidence: true)))
+        {
+            return this with
+            {
+                LastConfirmedProjectionEvidence = projection,
+                CurrentAdministratorCount = DistinctAdministratorCount(projection),
+                TargetCurrentlyPresent = present,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired",
+                SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
         int count = DistinctAdministratorCount(projection);
         GlobalAdministratorCorrectionSnapshot withEvidence = this with {
             LastConfirmedProjectionEvidence = projection,
@@ -446,7 +468,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             TargetCurrentlyPresent = present,
             SafeMessage = null,
             SafeMessageKey = null,
+            SafeRecoveryKey = null,
             RejectionCode = null,
+            IsSubmissionAmbiguous = false,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -479,6 +503,22 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     // proven by a GlobalAdministratorSet row, a revoke by a GlobalAdministratorRemoved row.
     public string CorrectiveEventType
         => IsRestoreAccessAction ? "GlobalAdministratorSet" : "GlobalAdministratorRemoved";
+
+    private GlobalAdministratorCorrectionSnapshot AmbiguousTrackingFailure()
+        => UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+
+    private GlobalAdministratorCorrectionSnapshot UnableToVerify(string safeMessageKey)
+        => this with
+        {
+            LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage = null,
+            SafeMessageKey = safeMessageKey,
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
 
     private bool TargetPresent(GlobalAdministratorsSnapshot projection)
         => projection.Rows.Any(row => string.Equals(row.UserId, TargetUserId, StringComparison.Ordinal));
