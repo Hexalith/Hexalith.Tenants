@@ -1017,8 +1017,7 @@
             || !AreGrantPreviewPrerequisitesCurrent(preview);
 
     private bool AreGrantPreviewPrerequisitesCurrent(GlobalAdministratorGrantPreview preview)
-        => IsAuthorized
-            && !IsRemoveInFlight
+        => AreGrantDispatchCapabilitiesCurrent()
             && BffComposition.IsGlobalAdministratorDispatchConnected
             && BffComposition.IsGlobalAdministratorStatusConnected
             && BffComposition.IsGlobalAdministratorRequeryConnected
@@ -1036,6 +1035,18 @@
             && preview.CurrentAdministratorCount == _completeSnapshot.Rows.Count
             && !_completeSnapshot.Rows.Any(row =>
                 string.Equals(row.UserId, preview.TargetUserId, StringComparison.Ordinal));
+
+    private bool AreGrantDispatchCapabilitiesCurrent()
+        => IsAuthorized
+            && !IsRemoveInFlight
+            && BffComposition.IsGlobalAdministratorDispatchConnected
+            && BffComposition.IsGlobalAdministratorStatusConnected
+            && BffComposition.IsGlobalAdministratorRequeryConnected
+            && CommandGateway.SupportsGlobalAdministratorDispatch
+            && CommandGateway.SupportsTrackedGlobalAdministratorDispatch
+            && CommandGateway.SupportsCommandStatusLookup
+            && _viewportObservation?.HasMeasurement == true
+            && _viewportObservation.State is TenantHighImpactViewportState.Safe;
 
     // The reason the previewed intent cannot be submitted *now*, re-derived from the current snapshot.
     private string? RemoveIntentUnavailableReason
@@ -2336,7 +2347,16 @@
     }
 
     private void OnGrantUserIdInput(string? value)
-        => _grantUserId = value;
+    {
+        if (!string.Equals(_grantUserId, value, StringComparison.Ordinal)
+            && Volatile.Read(ref _grantPreviewInFlight) != 0)
+        {
+            InvalidateGrantMutation();
+            Interlocked.Increment(ref _grantPreviewGeneration);
+        }
+
+        _grantUserId = value;
+    }
 
     // Marshalled: both callers run on a thread-pool continuation after the hoisted re-authorization, and both
     // fields are renderer-read -- the validation paragraph and its aria-describedby wiring, and the focus flag
@@ -2371,9 +2391,15 @@
             return;
         }
 
+        using PendingOperation operation = BeginGrantMutation();
+        long generation = operation.Generation;
+        CancellationToken cancellationToken = operation.CancellationToken;
+        long previewGeneration = Interlocked.Increment(ref _grantPreviewGeneration);
+
         try
         {
-            if (!await ReauthorizeAsync().ConfigureAwait(false))
+            if (!await ReauthorizeAsync().ConfigureAwait(false)
+                || !CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId))
             {
                 return;
             }
@@ -2387,8 +2413,13 @@
                 return;
             }
 
-            GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
+            GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
                 .ConfigureAwait(false);
+            if (!CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId))
+            {
+                return;
+            }
+
             if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
             {
                 await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
@@ -2398,6 +2429,11 @@
 
             GlobalAdministratorGrantPreview preview = await ComposeGrantPreviewSafelyAsync(targetUserId, current)
                 .ConfigureAwait(false);
+            if (!CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId))
+            {
+                return;
+            }
+
             if (string.Equals(
                     preview.UnavailableReasonKey,
                     "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization",
@@ -2419,39 +2455,51 @@
                 return;
             }
 
-            if (_aggregateAdmissionGate is null
-                || !_aggregateAdmissionGate.TryAcquireLease(
-                    TenantCommandAggregateLock.ForGlobalAdministrators(),
-                    _fixedAggregateOwner,
-                    out TenantAggregateCommandLease? acquiredLease)
-                || acquiredLease is null)
-            {
-                await InvokeAsync(() => SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
-                    Localizer["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"],
-                    TenantCommandFocusTarget.Submit))).ConfigureAwait(false);
-                return;
-            }
-
             string messageId = NUlid.Ulid.NewUlid().ToString();
             await InvokeAsync(() =>
             {
-                if (_disposed
-                    || !IsAuthorized
+                if (!CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId)
                     || IsGrantPreviewOpen
                     || _grantAdmissionLease is not null)
                 {
-                    _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                     return;
                 }
 
                 _completeSnapshot = current;
+                if (!AreGrantPreviewPrerequisitesCurrent(preview))
+                {
+                    SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
+                        Localizer["Tenants.GlobalAdministrators.Grant.Preview.Invalidated"],
+                        TenantCommandFocusTarget.Submit));
+                    StateHasChanged();
+                    return;
+                }
+
+                if (_aggregateAdmissionGate is null
+                    || !_aggregateAdmissionGate.TryAcquireLease(
+                        TenantCommandAggregateLock.ForGlobalAdministrators(),
+                        _fixedAggregateOwner,
+                        out TenantAggregateCommandLease? acquiredLease)
+                    || acquiredLease is null)
+                {
+                    SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(
+                        Localizer["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"],
+                        TenantCommandFocusTarget.Submit));
+                    StateHasChanged();
+                    return;
+                }
+
                 _grantAdmissionLease = acquiredLease;
                 _grantAcknowledged = false;
-                Interlocked.Increment(ref _grantPreviewGeneration);
                 SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, messageId));
-                _focusGrantAcknowledgementPending = true;
+                _focusGrantPreviewCancelPending = true;
+                Interlocked.Increment(ref _grantPreviewCancelFocusVersion);
                 StateHasChanged();
             }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancellation invalidates this composition attempt; no preview or lease may survive it.
         }
         finally
         {
@@ -2462,6 +2510,14 @@
             }
         }
     }
+
+    private bool CanApplyGrantPreviewOperation(
+        long generation,
+        long previewGeneration,
+        string targetUserId)
+        => CanApplyGrantMutation(generation)
+            && previewGeneration == Volatile.Read(ref _grantPreviewGeneration)
+            && string.Equals(_grantUserId, targetUserId, StringComparison.Ordinal);
 
     private void OnGrantAcknowledgementChanged(bool value)
     {
@@ -2479,6 +2535,9 @@
 
         try
         {
+            using PendingOperation operation = BeginGrantMutation();
+            long generation = operation.Generation;
+            CancellationToken cancellationToken = operation.CancellationToken;
             GlobalAdministratorGrantCommandSnapshot expectedSnapshot = _grantSnapshot;
             GlobalAdministratorGrantPreview? expectedPreview = expectedSnapshot.PreviewEvidence;
             TenantAggregateCommandLease? expectedLease = _grantAdmissionLease;
@@ -2498,7 +2557,9 @@
                     expectedPreview,
                     expectedLease,
                     expectedMessageId,
-                    previewGeneration).ConfigureAwait(false))
+                    previewGeneration,
+                    generation,
+                    cancellationToken).ConfigureAwait(false))
             {
                 return;
             }
@@ -2509,7 +2570,13 @@
                 expectedPreview,
                 expectedLease,
                 expectedMessageId,
-                previewGeneration).ConfigureAwait(false);
+                previewGeneration,
+                generation,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancel, authorization collapse, and replacement attempts all invalidate confirmation.
         }
         finally
         {
@@ -2542,9 +2609,12 @@
         GlobalAdministratorGrantPreview preview,
         TenantAggregateCommandLease expectedLease,
         string expectedMessageId,
-        long previewGeneration)
+        long previewGeneration,
+        long generation,
+        CancellationToken cancellationToken)
     {
         if (!await ReauthorizeAsync().ConfigureAwait(false)
+            || !CanApplyGrantMutation(generation)
             || !MatchesGrantPreviewAttempt(
                 expectedSnapshot,
                 preview,
@@ -2555,8 +2625,13 @@
             return false;
         }
 
-        GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
+        GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
             .ConfigureAwait(false);
+        if (!CanApplyGrantMutation(generation))
+        {
+            return false;
+        }
+
         if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
         {
             await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
@@ -2588,7 +2663,8 @@
 
         await InvokeAsync(() =>
         {
-            if (!MatchesGrantPreviewAttempt(
+            if (!CanApplyGrantMutation(generation)
+                || !MatchesGrantPreviewAttempt(
                     expectedSnapshot,
                     preview,
                     expectedLease,
@@ -2640,7 +2716,9 @@
         GlobalAdministratorGrantPreview expectedPreview,
         TenantAggregateCommandLease expectedLease,
         string expectedMessageId,
-        long previewGeneration)
+        long previewGeneration,
+        long generation,
+        CancellationToken cancellationToken)
     {
         if (expectedSnapshot.Intent is not { } request
             || !MatchesGrantPreviewAttempt(
@@ -2659,9 +2737,6 @@
             return;
         }
 
-        using PendingOperation operation = BeginGrantMutation();
-        long generation = operation.Generation;
-        CancellationToken cancellationToken = operation.CancellationToken;
         bool grantRequestArmed = false;
         GlobalAdministratorGrantCommandSnapshot? requestSentSnapshot = null;
         await InvokeAsync(() =>
@@ -2673,6 +2748,8 @@
                     expectedLease,
                     expectedMessageId,
                     previewGeneration)
+                || !AreGrantDispatchCapabilitiesCurrent()
+                || (!isRedispatch && !AreGrantPreviewPrerequisitesCurrent(expectedPreview))
                 || isRedispatch && !expectedLease.IsDispatchMarked
                 || !isRedispatch && (!_grantAcknowledged
                     || expectedLease.IsDispatchMarked
@@ -2786,13 +2863,17 @@
                 // would reject a safe same-id retry precisely when the first delivery already advanced the
                 // projection but lost its response. The retained preview, baseline, lock, and ULID remain the
                 // only admissible retry basis.
+                using PendingOperation operation = BeginGrantMutation();
                 await DispatchGrantAsync(
-                    isRedispatch: true,
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration).ConfigureAwait(false);
+                        isRedispatch: true,
+                        expectedSnapshot,
+                        expectedPreview,
+                        expectedLease,
+                        expectedMessageId,
+                        previewGeneration,
+                        operation.Generation,
+                        operation.CancellationToken)
+                    .ConfigureAwait(false);
             }
 
             return;
@@ -2946,6 +3027,7 @@
         _grantAcknowledged = false;
         SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
         _focusGrantLauncherPending = true;
+        Interlocked.Increment(ref _grantLauncherFocusVersion);
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -2963,6 +3045,7 @@
     private Task FocusGrantCancelAsync(FocusEventArgs args)
     {
         _focusGrantPreviewCancelPending = true;
+        Interlocked.Increment(ref _grantPreviewCancelFocusVersion);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -2985,6 +3068,7 @@
         else if (_grantSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
         {
             _focusGrantLauncherPending = true;
+            Interlocked.Increment(ref _grantLauncherFocusVersion);
         }
         else if (_grantSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || _grantSnapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle
