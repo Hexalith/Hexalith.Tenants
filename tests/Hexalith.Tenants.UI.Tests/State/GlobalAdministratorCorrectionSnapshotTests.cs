@@ -31,14 +31,14 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
-    public void Restore_with_present_target_is_already_applied_and_not_submittable()
+    public void RestoreWithPresentTargetFailsClosedWithoutAnotherGrant()
     {
         GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
             RestoreIntent(),
             ProjectionReady("admin-user", "other-admin"));
 
-        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
-        snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.GlobalAdmin.AlreadyGranted");
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists");
         snapshot.CanSubmit.ShouldBeFalse();
     }
 
@@ -118,7 +118,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         // The re-query returns a page that does NOT contain the target, but HasMore is true, so the
         // target could still be present on a later page. Absent-from-one-page is not proof of removal:
@@ -217,9 +217,9 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     {
         GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
             .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
-            .RequestSent()
+            .RequestSent("message-safe")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         accepted.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
@@ -227,8 +227,47 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         stillPending.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         stillPending.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
 
-        GlobalAdministratorCorrectionSnapshot confirmed = accepted.ConfirmProjection(ProjectionReady("admin-user", "other-admin"));
+        GlobalAdministratorCorrectionSnapshot confirmed = accepted.ConfirmProjection(
+            ProjectionReadyAtVersion("ga-v2", "admin-user", "other-admin"));
         confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Fact]
+    public void RestoreConfirmationUsesOpaqueVersionInequalityWithExactCommandEventEvidence()
+    {
+        GlobalAdministratorCorrectionSnapshot eventBacked = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReadyAtVersion("opaque:zeta", "other-admin"))
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true));
+
+        GlobalAdministratorCorrectionSnapshot confirmed = eventBacked.ConfirmProjection(
+            ProjectionReadyAtVersion("opaque:alpha", "admin-user", "other-admin"));
+
+        confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        confirmed.HasCommandEventEvidence.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UnverifiedRestoreEventStatusCannotConfirmProjection()
+    {
+        GlobalAdministratorCorrectionSnapshot unverified = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: false));
+
+        GlobalAdministratorCorrectionSnapshot result = unverified.ConfirmProjection(
+            ProjectionReadyAtVersion("ga-v2", "admin-user", "other-admin"));
+
+        result.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        result.HasCommandEventEvidence.ShouldBeFalse();
     }
 
     [Fact]
@@ -238,7 +277,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         GlobalAdministratorCorrectionSnapshot stillPending = accepted.ConfirmProjection(ProjectionReady("admin-user", "other-admin"));
         stillPending.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
@@ -254,7 +293,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         // An empty/auth-scoped-empty re-query is never proof of a successful removal: a successful
         // revoke can never empty the fixed projection (the last administrator is hard-blocked), so the
@@ -272,9 +311,9 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     {
         GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
             .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
-            .RequestSent()
+            .RequestSent("message-safe")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         // A stale projection is held to the same fail-closed bar as the start gate's current-freshness
         // requirement; success may only be asserted from an authoritative current projection, even though
@@ -315,10 +354,10 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     {
         GlobalAdministratorCorrectionSnapshot confirmed = GlobalAdministratorCorrectionSnapshot
             .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
-            .RequestSent()
+            .RequestSent("message-safe")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(ProjectionReady("admin-user", "other-admin"));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true))
+            .ConfirmProjection(ProjectionReadyAtVersion("ga-v2", "admin-user", "other-admin"));
 
         confirmed.CorrectiveEventType.ShouldBe("GlobalAdministratorSet");
 
@@ -345,10 +384,10 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     {
         GlobalAdministratorCorrectionSnapshot confirmed = GlobalAdministratorCorrectionSnapshot
             .FromIntent(MalformedTimestampIntent(), ProjectionReady("other-admin"))
-            .RequestSent()
+            .RequestSent("message-safe")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(ProjectionReady("admin-user", "other-admin"));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true))
+            .ConfirmProjection(ProjectionReadyAtVersion("ga-v2", "admin-user", "other-admin"));
 
         GlobalAdministratorCorrectionSnapshot delayed = confirmed.WithCorrectiveProof(
             CorrectiveRow("event-corrective", "GlobalAdministratorSet"));
@@ -362,12 +401,113 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     {
         GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot
             .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
-            .RequestSent()
+            .RequestSent("message-safe")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
 
         snapshot.HasCommandTracking.ShouldBeTrue();
         snapshot.TryGetTrackingHandle(out TenantCommandTrackingHandle handle).ShouldBeTrue();
-        handle.ShouldBe(new TenantCommandTrackingHandle("message-safe", "tracking-safe"));
+        handle.ShouldBe(new TenantCommandTrackingHandle(
+            "message-safe",
+            "tracking-safe",
+            GlobalAdministratorGrantPreview.FixedAggregateId));
+    }
+
+    [Fact]
+    public void MismatchedGrantAcceptanceRetainsTheCallerOwnedIdentityForDeliveryRetry()
+    {
+        GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe");
+
+        GlobalAdministratorCorrectionSnapshot mismatch = requestSent.Accepted(
+            TenantCommandSubmissionResult.Accepted("different-message", "tracking-safe"));
+
+        mismatch.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        mismatch.MessageId.ShouldBe("message-safe");
+        mismatch.CorrelationId.ShouldBeNull();
+        mismatch.IsSubmissionAmbiguous.ShouldBeTrue();
+        mismatch.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+        mismatch.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+        mismatch.ToReconciliation().ShouldNotBeNull().MessageId.ShouldBe("message-safe");
+    }
+
+    [Fact]
+    public void BlankGrantAcceptanceCorrelationRetainsTheCallerOwnedIdentityForDeliveryRetry()
+    {
+        GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe");
+
+        GlobalAdministratorCorrectionSnapshot mismatch = requestSent.Accepted(
+            TenantCommandSubmissionResult.Accepted("message-safe", string.Empty));
+
+        mismatch.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        mismatch.MessageId.ShouldBe("message-safe");
+        mismatch.CorrelationId.ShouldBeNull();
+        mismatch.IsSubmissionAmbiguous.ShouldBeTrue();
+        mismatch.ToReconciliation().ShouldNotBeNull().IsSubmissionAmbiguous.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AmbiguousGrantReconciliationRestoresRetryRecoveryAndProgressClearsStaleSafeState()
+    {
+        GlobalAdministratorCorrectionSnapshot basis = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"));
+        var reconciliation = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Grant,
+            "admin-user",
+            "message-safe",
+            CorrelationId: null,
+            TenantCommandLifecycleState.RequestSent,
+            basis.GrantPreview,
+            HasCommandEventEvidence: true,
+            IsSubmissionAmbiguous: true,
+            SafeMessageKey: "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+            SafeRecoveryKey: "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+
+        GlobalAdministratorCorrectionSnapshot adopted = basis.WithReconciliation(reconciliation);
+
+        adopted.IsSubmissionAmbiguous.ShouldBeTrue();
+        adopted.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
+        adopted.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+        adopted.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+
+        GlobalAdministratorCorrectionSnapshot progressed = adopted.ApplyStatus(
+            new TenantCommandStatusResult(
+                CommandStatus.Received,
+                EventCount: 0,
+                HasVerifiedCommandIdentity: true));
+
+        progressed.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        progressed.HasCommandEventEvidence.ShouldBeTrue();
+        progressed.SafeMessage.ShouldBeNull();
+        progressed.SafeMessageKey.ShouldBeNull();
+        progressed.SafeRecoveryKey.ShouldBeNull();
+        progressed.RejectionCode.ShouldBeNull();
+        progressed.IsSubmissionAmbiguous.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CorrelationlessAmbiguousRemovalRemainsTerminalAndCannotStrandReconciliation()
+    {
+        GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .RequestSent();
+
+        GlobalAdministratorCorrectionSnapshot failed = requestSent.ApplySubmissionFailure(
+            TenantCommandSubmissionResult.Ambiguous(
+                "message-safe",
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+
+        failed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        failed.IsSubmissionAmbiguous.ShouldBeFalse();
+        failed.SafeMessageKey.ShouldBe("Tenants.Correction.State.Failed");
+        failed.SafeRecoveryKey.ShouldBeNull();
+        failed.ToReconciliation().ShouldBeNull();
     }
 
     private static TenantCorrectionStartIntent RestoreIntent(bool hasCommandSupport = true)
@@ -430,6 +570,11 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             QueryResponseProvenance.ProjectionBacked);
 
     private static GlobalAdministratorsSnapshot ProjectionReady(params string[] userIds)
+        => ProjectionReadyAtVersion("ga-v1", userIds);
+
+    private static GlobalAdministratorsSnapshot ProjectionReadyAtVersion(
+        string projectionVersion,
+        params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
             userIds.Select(userId => new GlobalAdministratorRow(
                 userId,
@@ -441,7 +586,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             freshness: ReadModelFreshnessState.Current) with
         {
             Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = "ga-v1",
+            ProjectionVersion = projectionVersion,
             IsCompleteEvidence = true,
         };
 

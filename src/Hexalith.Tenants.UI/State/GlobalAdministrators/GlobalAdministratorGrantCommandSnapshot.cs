@@ -209,7 +209,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                     SafeMessage = null,
                     SafeMessageKey = result.SafeMessageKey
                         ?? "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
-                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
                     RejectionCode = null,
                     IsSubmissionAmbiguous = true,
                     AuditState = TenantCommandAuditState.AuditDelayed,
@@ -406,7 +406,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             State = TenantCommandLifecycleState.RequestSent,
             SafeMessage = null,
             SafeMessageKey = "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch",
-            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
             IsSubmissionAmbiguous = true,
             AuditState = TenantCommandAuditState.AuditDelayed,
             FocusTarget = TenantCommandFocusTarget.Refresh,

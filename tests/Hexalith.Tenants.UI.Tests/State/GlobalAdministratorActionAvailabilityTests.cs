@@ -92,6 +92,20 @@ public sealed class GlobalAdministratorActionAvailabilityTests
     }
 
     [Fact]
+    public void TrackedGrantDispatchCapabilityBlocksGrantWithoutBlockingRemoval()
+    {
+        GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
+        {
+            SupportsTrackedGrantDispatch = false,
+        };
+
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).UnavailableReason
+            .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a").IsAvailable
+            .ShouldBeTrue();
+    }
+
+    [Fact]
     public void DuplicateOrInvalidIdentityEvidenceFailsClosedAndDiagnosticsAreSupportSafe()
     {
         GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
@@ -246,6 +260,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
             HasViewportMeasurement: true)
         {
             IsGrantPreviewReady = true,
+            SupportsTrackedGrantDispatch = true,
         };
 
     private static GlobalAdministratorRow Row(string userId)

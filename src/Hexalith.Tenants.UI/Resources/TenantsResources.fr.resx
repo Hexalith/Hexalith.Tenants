@@ -2962,10 +2962,10 @@
     <value>Donnees d'administrateurs globaux indisponibles</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed" xml:space="preserve">
-    <value>La preuve d'audit est retardee; actualisez le statut ou inspectez l'audit avant de citer une preuve.</value>
+    <value>La preuve d'audit est retardée ; actualisez l'état ou consultez l'audit avant de citer une preuve.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditPending" xml:space="preserve">
-    <value>La preuve d'audit est en attente; ne citez pas de preuve d'audit tant qu'elle n'est pas visible.</value>
+    <value>La preuve d'audit est en attente ; ne citez aucune preuve d'audit tant qu'elle n'est pas visible.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable" xml:space="preserve">
     <value>La preuve d'audit est indisponible depuis ce flux.</value>
@@ -2977,134 +2977,138 @@
     <value>Aucune preuve d'audit n'est disponible avant la soumission de commande.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Available" xml:space="preserve">
-    <value>L'accord est disponible depuis la projection d'autorite plateforme confirmee.</value>
+    <value>L'attribution est disponible à partir de la projection confirmée de l'autorité de plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Cancel" xml:space="preserve">
     <value>Annuler</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Description" xml:space="preserve">
-    <value>Accordez l'autorite plateforme dans le locataire system, domaine global-administrators, agregat global-administrators. L'achevement exige la confirmation de projection.</value>
+    <value>Attribuez l'autorité de plateforme dans le locataire system, le domaine global-administrators et l'agrégat global-administrators. L'achèvement exige la confirmation de la projection.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Launch" xml:space="preserve"><value>Examiner les consequences de l'attribution</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Title" xml:space="preserve"><value>Apercu des consequences de l'attribution</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope" xml:space="preserve"><value>Perimetre d'autorite de plateforme</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope.Value" xml:space="preserve"><value>locataire system, domaine global-administrators, agregat global-administrators</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Launch" xml:space="preserve"><value>Examiner les conséquences de l'attribution</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Title" xml:space="preserve"><value>Aperçu des conséquences de l'attribution</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope" xml:space="preserve"><value>Périmètre d'autorité de plateforme</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Scope.Value" xml:space="preserve"><value>locataire system, domaine global-administrators, agrégat global-administrators</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.Target" xml:space="preserve"><value>Identifiant utilisateur cible</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts" xml:space="preserve"><value>Evolution du nombre d'administrateurs</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts.Value" xml:space="preserve"><value>Nombre complet actuel : {0} ; nombre resultant apres confirmation : {1}</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange" xml:space="preserve"><value>Changement d'autorite</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value" xml:space="preserve"><value>La cible obtient l'autorite d'administrateur global de plateforme uniquement apres une confirmation de projection qualifiee.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness" xml:space="preserve"><value>Actualite des preuves</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value" xml:space="preserve"><value>L'apercu utilise une projection complete, actuelle et versionnee du perimetre fixe capturee avant l'envoi.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery" xml:space="preserve"><value>Chemin de recuperation</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value" xml:space="preserve"><value>Actualisez l'autorite et la verite de projection, puis reessayez la meme tentative suivie si la livraison est ambigue.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts" xml:space="preserve"><value>Évolution du nombre d'administrateurs</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Counts.Value" xml:space="preserve"><value>Nombre complet actuel : {0} ; nombre résultant après confirmation : {1}</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange" xml:space="preserve"><value>Changement d'autorité</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value" xml:space="preserve"><value>La confirmation qualifiée établit que cette attribution suivie exacte a produit un événement et apparaît dans une projection complète plus récente du périmètre fixe ; elle ne prouve pas le délai d'application en aval.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness" xml:space="preserve"><value>Actualité des preuves</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value" xml:space="preserve"><value>L'aperçu utilise une projection complète, actuelle et versionnée du périmètre fixe capturée avant l'envoi.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery" xml:space="preserve"><value>Chemin de récupération</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value" xml:space="preserve"><value>Actualisez l'autorité et la vérité de projection, puis réessayez la même tentative suivie si la livraison est ambiguë.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit" xml:space="preserve"><value>Attente d'audit</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit.Value" xml:space="preserve"><value>Une preuve d'audit est attendue apres confirmation qualifiee, mais ce flux ne fabrique ni ne promet de recu d'audit.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Audit.Value" xml:space="preserve"><value>Une preuve d'audit est attendue après confirmation qualifiée, mais ce flux ne fabrique ni ne promet de reçu d'audit.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext" xml:space="preserve"><value>Contexte de l'appelant et de la cible</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value" xml:space="preserve"><value>Un operateur de plateforme actuellement autorise attribue l'identifiant cible litteral ; l'appartenance au locataire n'est ni lue ni modifiee.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences" xml:space="preserve"><value>Consequences connues</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value" xml:space="preserve"><value>La cible peut exercer l'autorite de gouvernance de plateforme dans le perimetre global-administrators fixe apres confirmation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value" xml:space="preserve"><value>Un opérateur de plateforme actuellement autorisé attribue l'identifiant cible littéral ; l'appartenance au locataire n'est ni lue ni modifiée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences" xml:space="preserve"><value>Conséquences connues</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value" xml:space="preserve"><value>La projection du périmètre fixe devrait inclure la cible après l'attribution suivie ; la session et l'application en aval restent séparément non prouvées.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns" xml:space="preserve"><value>Inconnues connues</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value" xml:space="preserve"><value>L'actualisation de session, l'emission de jeton, le delai d'application en aval et la disponibilite de l'audit ne sont pas prouves par l'acceptation de la commande.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Acknowledge" xml:space="preserve"><value>J'ai examine le perimetre fixe, le changement d'autorite, les limites des preuves et le chemin de recuperation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value" xml:space="preserve"><value>L'actualisation de session, l'émission de jeton, le délai d'application en aval et la disponibilité de l'audit ne sont pas prouvés par l'acceptation de la commande.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Acknowledge" xml:space="preserve"><value>J'ai examiné le périmètre fixe, le changement d'autorité, les limites des preuves et le chemin de récupération.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.Confirm" xml:space="preserve"><value>Confirmer l'attribution suivie</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization" xml:space="preserve"><value>L'autorite de plateforme actuelle n'est pas prouvee ; l'apercu d'attribution est indisponible.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Target" xml:space="preserve"><value>L'identifiant cible litteral n'est pas pris en charge.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Evidence" xml:space="preserve"><value>Une preuve complete, actuelle et versionnee du perimetre fixe est requise pour l'apercu d'attribution.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists" xml:space="preserve"><value>La cible exacte existe deja dans la projection complete des administrateurs globaux ; aucune attribution n'a ete envoyee.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Authorization" xml:space="preserve"><value>Actualisez l'autorisation ou demandez a un administrateur de plateforme de verifier votre autorite.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Target" xml:space="preserve"><value>Saisissez un identifiant utilisateur litteral pris en charge sans modifier sa casse ni ses espaces.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh" xml:space="preserve"><value>Actualisez la projection complete du perimetre fixe et reconstruisez l'apercu.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists" xml:space="preserve"><value>Conservez les lignes confirmees et choisissez une cible absente de la projection complete.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Preview.Invalidated" xml:space="preserve"><value>L'apercu d'attribution a change avant l'envoi. Actualisez et examinez un nouvel apercu.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La livraison de l'attribution est ambigue. Actualisez ou reessayez avec la meme identite de commande conservee.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>L'etat de commande ne correspond pas a l'identite exacte de l'attribution conservee.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence" xml:space="preserve"><value>L'etat exact de la commande ne prouve pas que l'attribution a produit un evenement.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout" xml:space="preserve"><value>L'etat de l'attribution a expire avant la verification du resultat suivi.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Status.Pending" xml:space="preserve"><value>L'etat de l'attribution suivie est en attente ; conservez la meme identite de commande et actualisez.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Status.Unknown" xml:space="preserve"><value>L'etat de l'attribution suivie est indisponible ; conservez la meme identite de commande et recommencez la verification.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch" xml:space="preserve"><value>L'envoi suivi avec identite fournie par l'appelant est indisponible.</value></data>
-  <data name="Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced" xml:space="preserve"><value>La projection complete n'a pas progresse au-dela de la reference de l'apercu d'attribution.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Authorization" xml:space="preserve"><value>L'autorité de plateforme actuelle n'est pas prouvée ; l'aperçu d'attribution est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Target" xml:space="preserve"><value>L'identifiant cible littéral n'est pas pris en charge.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Evidence" xml:space="preserve"><value>Une preuve complète, actuelle et versionnée du périmètre fixe est requise pour l'aperçu d'attribution.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists" xml:space="preserve"><value>La cible exacte existe déjà dans la projection complète des administrateurs globaux ; aucune attribution n'a été envoyée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization" xml:space="preserve"><value>Les faits localisés sur les conséquences sont incomplets ; l'aperçu d'attribution ne peut pas être examiné en toute sécurité.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Authorization" xml:space="preserve"><value>Actualisez l'autorisation ou demandez à un administrateur de plateforme de vérifier votre autorité.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Target" xml:space="preserve"><value>Saisissez un identifiant utilisateur littéral pris en charge sans modifier sa casse ni ses espaces.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh" xml:space="preserve"><value>Actualisez la projection complète du périmètre fixe et reconstruisez l'aperçu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists" xml:space="preserve"><value>Conservez les lignes confirmées et choisissez une cible absente de la projection complète.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization" xml:space="preserve"><value>Restaurez toutes les ressources localisées sur les conséquences, puis reconstruisez et examinez l'aperçu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Preview.Invalidated" xml:space="preserve"><value>L'aperçu d'attribution a changé avant l'envoi. Actualisez et examinez un nouvel aperçu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La livraison de l'attribution est ambiguë. Actualisez ou réessayez avec la même identité de commande conservée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry" xml:space="preserve"><value>Réessayer la livraison avec la même commande suivie</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery" xml:space="preserve"><value>Réessayez uniquement avec l'identité de commande conservée ; ne créez pas une nouvelle tentative d'attribution.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>L'état de commande ne correspond pas à l'identité exacte de l'attribution conservée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence" xml:space="preserve"><value>L'état exact de la commande ne prouve pas que l'attribution a produit un événement.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout" xml:space="preserve"><value>L'état de l'attribution a expiré avant la vérification du résultat suivi.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.Pending" xml:space="preserve"><value>L'état de l'attribution suivie est en attente ; conservez la même identité de commande et actualisez.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.Unknown" xml:space="preserve"><value>L'état de l'attribution suivie est indisponible ; conservez la même identité de commande et recommencez la vérification.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch" xml:space="preserve"><value>L'envoi suivi avec une identité fournie par l'appelant est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced" xml:space="preserve"><value>La projection complète n'a pas évolué au-delà de la version de référence de l'aperçu d'attribution.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">
-    <value>Cycle de vie de l'accord</value>
+    <value>Cycle de vie de l'attribution</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Refresh" xml:space="preserve">
     <value>Actualiser le statut</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Accepted" xml:space="preserve">
-    <value>Commande acceptee; la confirmation de projection reste requise.</value>
+    <value>Commande acceptée ; la confirmation de la projection reste requise.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.AlreadyApplied" xml:space="preserve">
-    <value>Deja applique n'est pas utilise pour les accords d'administrateur global.</value>
+    <value>L'état « déjà appliqué » n'est pas utilisé pour les attributions d'administrateur global.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Confirmed" xml:space="preserve">
-    <value>La projection a confirme l'utilisateur cible dans la portee fixe global-administrators.</value>
+    <value>La projection a confirmé l'utilisateur cible dans le périmètre fixe global-administrators.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Degraded" xml:space="preserve">
-    <value>La verification de l'accord est degradee; la publication ou l'audit n'a pas pu etre verifie.</value>
+    <value>La vérification de l'attribution est dégradée ; la publication ou la preuve d'audit n'a pas pu être vérifiée.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented" xml:space="preserve">
-    <value>Une commande d'accord concurrente a ete empechee.</value>
+    <value>Une commande d'attribution concurrente a été empêchée.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Failed" xml:space="preserve">
-    <value>La commande d'accord a echoue avant de pouvoir etre verifiee.</value>
+    <value>La commande d'attribution a échoué avant de pouvoir être vérifiée.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Idle" xml:space="preserve">
-    <value>Aucune commande d'accord d'administrateur global n'a ete soumise.</value>
+    <value>Aucune commande d'attribution d'administrateur global n'a été soumise.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Previewed" xml:space="preserve">
-    <value>L'intention d'accord est previsualisee mais non soumise.</value>
+    <value>L'intention d'attribution est prévisualisée, mais n'a pas été soumise.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.ProjectionPending" xml:space="preserve">
-    <value>Projection en attente; l'utilisateur cible n'est pas encore confirme administrateur global.</value>
+    <value>Projection en attente ; l'utilisateur cible n'est pas encore confirmé comme administrateur global.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.Rejected" xml:space="preserve">
-    <value>La commande d'accord a ete rejetee.</value>
+    <value>La commande d'attribution a été rejetée.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.RequestSent" xml:space="preserve">
-    <value>La demande de commande d'accord a ete envoyee.</value>
+    <value>La demande de commande d'attribution a été envoyée.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.State.UnableToVerify" xml:space="preserve">
-    <value>La commande d'accord n'a pas pu etre verifiee par le statut et la preuve de projection.</value>
+    <value>La commande d'attribution n'a pas pu être vérifiée à partir de l'état de la commande et de la preuve de projection.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Submit" xml:space="preserve">
-    <value>Accorder administrateur global</value>
+    <value>Attribuer le rôle d'administrateur global</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Title" xml:space="preserve">
-    <value>Accorder administrateur global</value>
+    <value>Attribuer le rôle d'administrateur global</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Authorization" xml:space="preserve">
-    <value>L'autorite plateforme n'est pas confirmee; l'accord echoue ferme sans reveler de donnees d'administrateur.</value>
+    <value>L'autorité de plateforme n'est pas confirmée ; l'attribution échoue de manière fermée sans révéler de données d'administrateur.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface" xml:space="preserve">
-    <value>La surface de commande est indisponible pour les changements de gouvernance plateforme.</value>
+    <value>La surface de commande est indisponible pour les changements de gouvernance de la plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Freshness" xml:space="preserve">
-    <value>Actualisez la fraicheur de projection avant d'accorder l'autorite plateforme.</value>
+    <value>Actualisez la projection avant d'attribuer l'autorité de plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ProjectionLifecycle" xml:space="preserve">
-    <value>Une preuve de cycle de vie de projection actuelle est requise avant d'accorder l'autorité plateforme.</value>
+    <value>Une preuve actuelle du cycle de vie de la projection est requise avant d'attribuer l'autorité de plateforme.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
-    <value>Une autre commande d'autorite plateforme est en cours.</value>
+    <value>Une autre commande d'autorité de plateforme est en cours.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
-    <value>La projection de lecture des administrateurs globaux doit etre disponible avant la soumission.</value>
+    <value>La projection de lecture des administrateurs globaux doit être disponible avant la soumission.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred" xml:space="preserve">
-    <value>Le retrait d'administrateur global est gere par un flux garde separe.</value>
+    <value>Le retrait d'un administrateur global est géré par un flux protégé distinct.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Help" xml:space="preserve">
-    <value>Saisissez l'identifiant utilisateur literal fourni par l'appelant (256 caractères maximum, sans caractère de contrôle). Il n'est pas analyse comme membre locataire, GUID ou ULID.</value>
+    <value>Saisissez l'identifiant utilisateur littéral fourni par l'appelant (256 caractères maximum, sans caractère de contrôle). Il n'est pas interprété comme un membre de locataire, un GUID ou un ULID.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired" xml:space="preserve">
-    <value>Une preuve de projection actuelle est requise avant de confirmer l'octroi d'administrateur global.</value>
+    <value>Une preuve de projection actuelle est requise avant de confirmer l'attribution du rôle d'administrateur global.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm" xml:space="preserve">
     <value>La nouvelle requête de projection n'a pas confirmé l'administrateur global cible.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Confirm.PageScoped" xml:space="preserve">
-    <value>La nouvelle requête de projection ne couvre que la première page des administrateurs globaux, qui n'inclut pas cet utilisateur ; l'octroi ne peut pas être confirmé depuis cette page. Confirmez le résultat dans la piste d'audit du locataire.</value>
+    <value>La nouvelle requête de projection ne couvre que la première page des administrateurs globaux, qui n'inclut pas cet utilisateur ; l'attribution ne peut pas être confirmée depuis cette page. Confirmez le résultat dans la piste d'audit du locataire.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
     <value>Identifiant utilisateur</value>
@@ -3113,7 +3117,7 @@
     <value>Saisissez un identifiant utilisateur pris en charge de 256 caractères maximum, sans caractère de contrôle.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
-    <value>L'identifiant utilisateur est requis avant d'accorder l'autorite d'administrateur global.</value>
+    <value>L'identifiant utilisateur est requis avant d'attribuer l'autorité d'administrateur global.</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed" xml:space="preserve">
     <value>La preuve d'audit est retardee; actualisez le statut ou consultez l'audit avant de citer une preuve.</value>

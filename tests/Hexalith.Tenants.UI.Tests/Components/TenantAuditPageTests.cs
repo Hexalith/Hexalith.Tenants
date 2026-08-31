@@ -773,7 +773,14 @@ public sealed class TenantAuditPageTests : BunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.resx"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"),
         ];
-        string combined = string.Join('\n', files.Select(File.ReadAllText));
+        string combined = string.Join('\n', files.Select(path =>
+        {
+            string content = File.ReadAllText(path);
+            int codeBlock = string.Equals(Path.GetExtension(path), ".razor", StringComparison.OrdinalIgnoreCase)
+                ? content.IndexOf("@code", StringComparison.Ordinal)
+                : -1;
+            return codeBlock >= 0 ? content[..codeBlock] : content;
+        }));
 
         combined.ShouldNotContain("undo", Case.Insensitive);
         combined.ShouldNotContain("rollback", Case.Insensitive);

@@ -94,6 +94,8 @@ public sealed class TenantCommandGatewayTests
         yield return [new EventStoreGatewayException((int)HttpStatusCode.RequestTimeout, "timeout")];
         yield return [new EventStoreGatewayException((int)HttpStatusCode.TooManyRequests, "throttled")];
         yield return [new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "unavailable")];
+        yield return [new EventStoreGatewayException((int)HttpStatusCode.BadRequest, "retryable", retryable: true)];
+        yield return [new OperationCanceledException("transport cancellation")];
         yield return [new TaskCanceledException("transport timeout")];
         yield return [new HttpRequestException("connection failed")];
         yield return [new TimeoutException("plain timeout")];

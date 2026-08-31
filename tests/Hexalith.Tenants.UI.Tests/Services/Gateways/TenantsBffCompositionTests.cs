@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 using Hexalith.EventStore.Client.Projections;
@@ -6,11 +7,13 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
 
 using NSubstitute;
 
@@ -94,9 +97,30 @@ public sealed class TenantsBffCompositionTests
             gateway,
             principalResolver: new StubPrincipalResolver(
                 TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
-            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true),
+            resourceLocalizer: ResolvedGrantLocalizer());
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GrantPreviewFailsClosedWhenLocalizerIsAbsent()
+    {
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        GlobalAdministratorGrantPreview preview = await composition
+            .ComposeGlobalAdministratorGrantPreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
     }
 
     [Fact]
@@ -120,6 +144,118 @@ public sealed class TenantsBffCompositionTests
         preview.ResultingAdministratorCount.ShouldBe(2);
         preview.HasAllSafeFacts.ShouldBeTrue();
         preview.IsComplete.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GrantPreviewFailsClosedWhenARequiredLocalizedFactIsUnresolved()
+    {
+        const string unresolvedKey = "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value";
+        IStringLocalizer<TenantsResources> localizer = Substitute.For<IStringLocalizer<TenantsResources>>();
+        localizer[Arg.Any<string>()].Returns(callInfo =>
+        {
+            string key = callInfo.Arg<string>();
+            return string.Equals(key, unresolvedKey, StringComparison.Ordinal)
+                ? new LocalizedString(key, key, resourceNotFound: true)
+                : new LocalizedString(key, $"resolved:{key}", resourceNotFound: false);
+        });
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+
+        GlobalAdministratorGrantPreview preview = await composition
+            .ComposeGlobalAdministratorGrantPreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
+        preview.RecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value")]
+    public async Task GrantPreviewFailsClosedWhenLocalizedValueIsWhitespaceOrKeyEcho(string unresolvedValue)
+    {
+        const string key = "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value";
+        IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(
+            (_, candidate) => string.Equals(candidate, key, StringComparison.Ordinal)
+                ? unresolvedValue
+                : DefaultGrantResourceValue(candidate));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+
+        GlobalAdministratorGrantPreview preview = await composition
+            .ComposeGlobalAdministratorGrantPreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("fr")]
+    public async Task GrantPreviewRequiresEveryExplicitEnglishAndFrenchResource(string missingCultureName)
+    {
+        const string key = "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value";
+        IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(
+            include: (culture, candidate) => !string.Equals(candidate, key, StringComparison.Ordinal)
+                || !string.Equals(culture.Name, missingCultureName, StringComparison.Ordinal));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+
+        GlobalAdministratorGrantPreview preview = await composition
+            .ComposeGlobalAdministratorGrantPreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
+    }
+
+    [Theory]
+    [InlineData("Current: {0}")]
+    [InlineData("Resulting: {1}")]
+    [InlineData("Counts without placeholders")]
+    [InlineData("Malformed: {0} {2}")]
+    public async Task GrantPreviewFailsClosedForInvalidOrIncompleteCountCompositeFormat(string countFormat)
+    {
+        const string key = "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value";
+        IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(
+            (_, candidate) => string.Equals(candidate, key, StringComparison.Ordinal)
+                ? countFormat
+                : DefaultGrantResourceValue(candidate));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+
+        GlobalAdministratorGrantPreview preview = await composition
+            .ComposeGlobalAdministratorGrantPreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
     }
 
     [Fact]
@@ -615,7 +751,53 @@ public sealed class TenantsBffCompositionTests
             new UnavailableTenantCommandGateway(),
             principalResolver: new StubPrincipalResolver(
                 evidence ?? TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")),
-            policyProvider: new TenantConfigurationReadPolicyProvider(Configuration(json)));
+            policyProvider: new TenantConfigurationReadPolicyProvider(Configuration(json)),
+            resourceLocalizer: ResolvedGrantLocalizer());
+
+    private static IStringLocalizer<TenantsResources> ResolvedGrantLocalizer(
+        Func<CultureInfo, string, string>? value = null,
+        Func<CultureInfo, string, bool>? include = null)
+    {
+        Func<CultureInfo, string, string> resolve = value
+            ?? ((_, candidate) => DefaultGrantResourceValue(candidate));
+        Func<CultureInfo, string, bool> contains = include ?? ((_, _) => true);
+        IStringLocalizer<TenantsResources> localizer = Substitute.For<IStringLocalizer<TenantsResources>>();
+        localizer[Arg.Any<string>()].Returns(callInfo =>
+        {
+            string key = callInfo.Arg<string>();
+            string localizedValue = resolve(CultureInfo.CurrentUICulture, key);
+            return new LocalizedString(key, localizedValue, resourceNotFound: false);
+        });
+        localizer.GetAllStrings(includeParentCultures: false).Returns(_ => RequiredGrantResourceKeys
+            .Where(key => contains(CultureInfo.CurrentUICulture, key))
+            .Select(key => new LocalizedString(
+                key,
+                resolve(CultureInfo.CurrentUICulture, key),
+                resourceNotFound: false))
+            .ToArray());
+        return localizer;
+    }
+
+    private static readonly string[] RequiredGrantResourceKeys =
+    [
+        "Tenants.GlobalAdministrators.Grant.Preview.Scope.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Audit.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value",
+    ];
+
+    private static string DefaultGrantResourceValue(string key)
+        => string.Equals(
+            key,
+            "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+            StringComparison.Ordinal)
+            ? "Current complete count: {0}; resulting count: {1}"
+            : $"resolved:{key}";
 
     private static TenantConfigurationSafeModel SafeModel(string json)
     {

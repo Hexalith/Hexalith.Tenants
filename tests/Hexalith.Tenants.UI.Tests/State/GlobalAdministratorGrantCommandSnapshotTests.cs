@@ -138,6 +138,31 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     }
 
     [Fact]
+    public void UnequalOpaqueVersionConfirmsWithoutNumericOrOrderedParsing()
+    {
+        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
+            "target-admin",
+            Complete("opaque:zeta", "existing-admin"),
+            isAuthorized: true);
+        GlobalAdministratorGrantCommandSnapshot eventBacked = GlobalAdministratorGrantCommandSnapshot
+            .Idle()
+            .Preview(preview, MessageId)
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true));
+
+        GlobalAdministratorGrantCommandSnapshot result = eventBacked.ConfirmProjection(
+            Complete("opaque:alpha", "existing-admin", "target-admin"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        result.LastConfirmedProjection.ShouldNotBeNull().UserId.ShouldBe("target-admin");
+        result.BaselineProjectionVersion.ShouldBe("opaque:zeta");
+    }
+
+    [Fact]
     public void PageScopedTargetPresenceDoesNotConfirm()
     {
         GlobalAdministratorsSnapshot page = Complete(

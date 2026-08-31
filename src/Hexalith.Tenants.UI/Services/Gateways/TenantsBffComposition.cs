@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.EventStore.Client.Projections;
@@ -19,6 +21,19 @@ internal sealed class TenantsBffComposition(
     TenantConfigurationReadPolicyProvider? policyProvider = null,
     ITenantsReadSurfaceAvailability? readSurface = null,
     IStringLocalizer<TenantsResources>? resourceLocalizer = null) : ITenantsBffComposition {
+    private static readonly string?[] RequiredGrantFactKeys =
+    [
+        "Tenants.GlobalAdministrators.Grant.Preview.Scope.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Audit.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value",
+    ];
+
     // Reads the composition decision rather than resolving ITenantQueryGateway, which would close a
     // container cycle (this type -> gateway -> this type) the moment Tenants:BaseAddress is configured.
     // Absence fails closed: an unregistered read surface is not evidence of a connected one.
@@ -37,7 +52,7 @@ internal sealed class TenantsBffComposition(
         => readSurface?.IsConnected == true;
 
     public bool IsGlobalAdministratorGrantPreviewReady
-        => principalResolver is not null && resourceLocalizer is not null;
+        => principalResolver is not null && HasCompleteGrantLocalization(RequiredGrantFactKeys);
 
     // The existing removal flow already renders and rechecks its dedicated complete-population preview.
     public bool IsGlobalAdministratorRemovePreviewReady => true;
@@ -99,24 +114,81 @@ internal sealed class TenantsBffComposition(
             preview.KnownConsequencesFactKey,
             preview.KnownUnknownsFactKey,
         ];
-        return resourceLocalizer is not null && requiredFactKeys.All(IsResolvedResource)
+        return HasCompleteGrantLocalization(requiredFactKeys)
             ? preview
             : GlobalAdministratorGrantPreview.Unavailable(
                 targetUserId,
                 "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization",
                 "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
+    }
 
-        bool IsResolvedResource(string? key)
+    private bool HasCompleteGrantLocalization(IReadOnlyList<string?> requiredFactKeys)
+        => resourceLocalizer is not null
+            && HasCompleteGrantLocalization(CultureInfo.InvariantCulture, requiredFactKeys)
+            && HasCompleteGrantLocalization(CultureInfo.GetCultureInfo("fr"), requiredFactKeys);
+
+    private bool HasCompleteGrantLocalization(
+        CultureInfo culture,
+        IReadOnlyList<string?> requiredFactKeys)
+    {
+        CultureInfo previousUiCulture = CultureInfo.CurrentUICulture;
+        try
         {
-            if (string.IsNullOrWhiteSpace(key))
+            CultureInfo.CurrentUICulture = culture;
+            IReadOnlyDictionary<string, LocalizedString> explicitResources = resourceLocalizer!
+                .GetAllStrings(includeParentCultures: false)
+                .GroupBy(static value => value.Name, StringComparer.Ordinal)
+                .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
+            foreach (string? key in requiredFactKeys)
             {
-                return false;
+                if (string.IsNullOrWhiteSpace(key)
+                    || !explicitResources.TryGetValue(key, out LocalizedString? explicitValue)
+                    || !IsResolvedResource(key, explicitValue)
+                    || !IsResolvedResource(key, resourceLocalizer[key]))
+                {
+                    return false;
+                }
+
+                if (string.Equals(
+                        key,
+                        "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+                        StringComparison.Ordinal)
+                    && !HasRequiredCountPlaceholders(resourceLocalizer[key].Value, culture))
+                {
+                    return false;
+                }
             }
 
-            LocalizedString value = resourceLocalizer![key];
-            return !value.ResourceNotFound
-                && !string.IsNullOrWhiteSpace(value.Value)
-                && !string.Equals(value.Value, key, StringComparison.Ordinal);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
+    }
+
+    private static bool IsResolvedResource(string key, LocalizedString value)
+        => !value.ResourceNotFound
+            && !string.IsNullOrWhiteSpace(value.Value)
+            && !string.Equals(value.Value, key, StringComparison.Ordinal);
+
+    private static bool HasRequiredCountPlaceholders(string format, CultureInfo culture)
+    {
+        const string currentCountMarker = "__current-count__";
+        const string resultingCountMarker = "__resulting-count__";
+        try
+        {
+            string rendered = string.Format(culture, format, currentCountMarker, resultingCountMarker);
+            return rendered.Contains(currentCountMarker, StringComparison.Ordinal)
+                && rendered.Contains(resultingCountMarker, StringComparison.Ordinal);
+        }
+        catch (FormatException)
+        {
+            return false;
         }
     }
 

@@ -283,16 +283,15 @@
             }
 
             <div class="global-admins__grant-actions">
-                <span class="global-admins__grant-submit-focus global-admins__mutation-initiation" tabindex="-1">
-                    <FluentButton Type="ButtonType.Submit"
-                                  @key="_grantLauncherFocusVersion"
-                                  Appearance="ButtonAppearance.Primary"
-                                  AutoFocus="@_focusGrantLauncherPending"
-                                  data-testid="tenants-global-admin-grant-submit"
-                                  aria-describedby="@(GrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
-                                  Disabled="@IsGrantSubmitDisabled">
+                <span class="global-admins__grant-submit-focus global-admins__mutation-initiation">
+                    <fluent-button type="submit"
+                                   appearance="primary"
+                                   @ref="_grantLauncherElement"
+                                   data-testid="tenants-global-admin-grant-submit"
+                                   aria-describedby="@(GrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
+                                   disabled="@IsGrantSubmitDisabled">
                         @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Launch"]
-                    </FluentButton>
+                    </fluent-button>
                 </span>
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               Class="global-admins__mutation-initiation"
@@ -663,13 +662,12 @@
                               OnClick="ConfirmGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Confirm"]
                 </FluentButton>
-                <FluentButton @key="_grantPreviewCancelFocusVersion"
-                              Appearance="ButtonAppearance.Outline"
-                              AutoFocus="@_focusGrantPreviewCancelPending"
-                              data-testid="tenants-global-admin-grant-preview-cancel"
-                              OnClick="CancelGrantAsync">
+                <fluent-button appearance="outline"
+                               @ref="_grantPreviewCancelElement"
+                               data-testid="tenants-global-admin-grant-preview-cancel"
+                               @onclick="CancelGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
-                </FluentButton>
+                </fluent-button>
             </FluentStack>
             <span class="global-admins__grant-focus-sentinel"
                   tabindex="0"
@@ -741,6 +739,8 @@
     private readonly Lock _cancellationLock = new();
     private FluentTextInput _grantUserIdElement = default!;
     private FluentCheckbox _grantAcknowledgementElement = default!;
+    private ElementReference _grantLauncherElement;
+    private ElementReference _grantPreviewCancelElement;
     private ElementReference _grantLifecycleElement;
     private ElementReference _removeSubmitElement;
     private ElementReference _removeCancelElement;
@@ -750,8 +750,6 @@
     private bool _focusGrantLifecyclePending;
     private bool _focusGrantAcknowledgementPending;
     private bool _focusGrantPreviewCancelPending;
-    private long _grantLauncherFocusVersion;
-    private long _grantPreviewCancelFocusVersion;
     private bool _focusRemoveSubmitPending;
     private bool _focusRemoveLifecyclePending;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
@@ -1018,6 +1016,7 @@
 
     private bool AreGrantPreviewPrerequisitesCurrent(GlobalAdministratorGrantPreview preview)
         => AreGrantDispatchCapabilitiesCurrent()
+            && BffComposition.IsGlobalAdministratorGrantPreviewReady
             && BffComposition.IsGlobalAdministratorDispatchConnected
             && BffComposition.IsGlobalAdministratorStatusConnected
             && BffComposition.IsGlobalAdministratorRequeryConnected
@@ -1039,6 +1038,7 @@
     private bool AreGrantDispatchCapabilitiesCurrent()
         => IsAuthorized
             && !IsRemoveInFlight
+            && BffComposition.IsGlobalAdministratorGrantPreviewReady
             && BffComposition.IsGlobalAdministratorDispatchConnected
             && BffComposition.IsGlobalAdministratorStatusConnected
             && BffComposition.IsGlobalAdministratorRequeryConnected
@@ -1275,6 +1275,7 @@
         if (_focusGrantLauncherPending)
         {
             _focusGrantLauncherPending = false;
+            await _grantLauncherElement.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusGrantAcknowledgementPending)
@@ -1292,6 +1293,7 @@
         if (_focusGrantPreviewCancelPending)
         {
             _focusGrantPreviewCancelPending = false;
+            await _grantPreviewCancelElement.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusRemoveSubmitPending)
@@ -2153,14 +2155,15 @@
         }
     }
 
-    private async Task<bool> ReauthorizeAsync()
+    private async Task<bool> ReauthorizeAsync(CancellationToken cancellationToken = default)
     {
         // The transition version is captured before the resolve. A sign-out landing while this resolve is in
         // flight must not be overwritten by the pre-sign-out answer -- that restored Authorized and re-rendered
         // the grant and remove forms after the operator had signed out. The write is marshalled for the same
         // reason every other write to this field is: it gates the whole render tree.
         long version = Volatile.Read(ref _authorizationTransitionVersion);
-        TenantLifecycleAuthorizationReflectionState reflection = await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        TenantLifecycleAuthorizationReflectionState reflection = await ResolveAuthorizationReflectionAsync(cancellationToken)
+            .ConfigureAwait(false);
         if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
         {
             if (!CanApplyAuthorizationTransition(version))
@@ -2183,11 +2186,16 @@
         return false;
     }
 
-    private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationReflectionAsync()
+    private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationReflectionAsync(
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            return await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync().ConfigureAwait(false);
+            return await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -2348,14 +2356,28 @@
 
     private void OnGrantUserIdInput(string? value)
     {
-        if (!string.Equals(_grantUserId, value, StringComparison.Ordinal)
-            && Volatile.Read(ref _grantPreviewInFlight) != 0)
+        if (string.Equals(_grantUserId, value, StringComparison.Ordinal))
         {
-            InvalidateGrantMutation();
-            Interlocked.Increment(ref _grantPreviewGeneration);
+            return;
         }
 
         _grantUserId = value;
+        if (Volatile.Read(ref _grantPreviewInFlight) != 0)
+        {
+            InvalidateGrantMutation();
+            Interlocked.Increment(ref _grantPreviewGeneration);
+            return;
+        }
+
+        TenantAggregateCommandLease? previewLease = _grantAdmissionLease;
+        GlobalAdministratorGrantCommandSnapshot previewSnapshot = _grantSnapshot;
+        if (previewSnapshot.State is TenantCommandLifecycleState.Previewed
+            && previewLease is { IsDispatchMarked: false })
+        {
+            InvalidateGrantMutation();
+            InvalidateUndispatchedGrantPreview(previewSnapshot, previewLease);
+            StateHasChanged();
+        }
     }
 
     // Marshalled: both callers run on a thread-pool continuation after the hoisted re-authorization, and both
@@ -2398,7 +2420,7 @@
 
         try
         {
-            if (!await ReauthorizeAsync().ConfigureAwait(false)
+            if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false)
                 || !CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId))
             {
                 return;
@@ -2427,7 +2449,10 @@
                 return;
             }
 
-            GlobalAdministratorGrantPreview preview = await ComposeGrantPreviewSafelyAsync(targetUserId, current)
+            GlobalAdministratorGrantPreview preview = await ComposeGrantPreviewSafelyAsync(
+                    targetUserId,
+                    current,
+                    cancellationToken)
                 .ConfigureAwait(false);
             if (!CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId))
             {
@@ -2493,7 +2518,6 @@
                 _grantAcknowledged = false;
                 SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, messageId));
                 _focusGrantPreviewCancelPending = true;
-                Interlocked.Increment(ref _grantPreviewCancelFocusVersion);
                 StateHasChanged();
             }).ConfigureAwait(false);
         }
@@ -2590,13 +2614,18 @@
 
     private async Task<GlobalAdministratorGrantPreview> ComposeGrantPreviewSafelyAsync(
         string targetUserId,
-        GlobalAdministratorsSnapshot current)
+        GlobalAdministratorsSnapshot current,
+        CancellationToken cancellationToken)
     {
         try
         {
             return await BffComposition
-                .ComposeGlobalAdministratorGrantPreviewAsync(targetUserId, current)
+                .ComposeGlobalAdministratorGrantPreviewAsync(targetUserId, current, cancellationToken)
                 .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -2613,7 +2642,7 @@
         long generation,
         CancellationToken cancellationToken)
     {
-        if (!await ReauthorizeAsync().ConfigureAwait(false)
+        if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false)
             || !CanApplyGrantMutation(generation)
             || !MatchesGrantPreviewAttempt(
                 expectedSnapshot,
@@ -2639,7 +2668,10 @@
             return false;
         }
 
-        GlobalAdministratorGrantPreview rebuilt = await ComposeGrantPreviewSafelyAsync(preview.TargetUserId, current)
+        GlobalAdministratorGrantPreview rebuilt = await ComposeGrantPreviewSafelyAsync(
+                preview.TargetUserId,
+                current,
+                cancellationToken)
             .ConfigureAwait(false);
         if (string.Equals(
                 rebuilt.UnavailableReasonKey,
@@ -2671,6 +2703,12 @@
                     expectedMessageId,
                     previewGeneration))
             {
+                if (!_disposed)
+                {
+                    InvalidateUndispatchedGrantPreview(expectedSnapshot, expectedLease);
+                    StateHasChanged();
+                }
+
                 return;
             }
 
@@ -2681,17 +2719,11 @@
                 return;
             }
 
-            _grantAcknowledged = false;
-            if (expectedLease.TryAbandonBeforeDispatch(_fixedAggregateOwner)
-                && ReferenceEquals(_grantAdmissionLease, expectedLease))
-            {
-                _grantAdmissionLease = null;
-            }
-
-            Interlocked.Increment(ref _grantPreviewGeneration);
-            SetGrantSnapshot(expectedSnapshot.InvalidatePreview(
+            InvalidateUndispatchedGrantPreview(
+                expectedSnapshot,
+                expectedLease,
                 rebuilt.UnavailableReasonKey
-                    ?? "Tenants.GlobalAdministrators.Grant.Preview.Invalidated"));
+                    ?? "Tenants.GlobalAdministrators.Grant.Preview.Invalidated");
             StateHasChanged();
         }).ConfigureAwait(false);
         return validated;
@@ -2721,18 +2753,9 @@
         CancellationToken cancellationToken)
     {
         if (expectedSnapshot.Intent is not { } request
-            || !MatchesGrantPreviewAttempt(
-                expectedSnapshot,
-                expectedPreview,
-                expectedLease,
-                expectedMessageId,
-                previewGeneration)
             || isRedispatch && (!expectedLease.IsDispatchMarked
                 || !expectedSnapshot.IsSubmissionAmbiguous
-                || expectedSnapshot.CorrelationId is not null)
-            || !isRedispatch && (!_grantAcknowledged
-                || expectedSnapshot.State is not TenantCommandLifecycleState.Previewed
-                || expectedLease.IsDispatchMarked))
+                || expectedSnapshot.CorrelationId is not null))
         {
             return;
         }
@@ -2741,20 +2764,41 @@
         GlobalAdministratorGrantCommandSnapshot? requestSentSnapshot = null;
         await InvokeAsync(() =>
         {
-            if (!CanApplyGrantMutation(generation)
-                || !MatchesGrantPreviewAttempt(
+            bool exactAttempt = MatchesGrantPreviewAttempt(
                     expectedSnapshot,
                     expectedPreview,
                     expectedLease,
                     expectedMessageId,
-                    previewGeneration)
-                || !AreGrantDispatchCapabilitiesCurrent()
-                || (!isRedispatch && !AreGrantPreviewPrerequisitesCurrent(expectedPreview))
-                || isRedispatch && !expectedLease.IsDispatchMarked
-                || !isRedispatch && (!_grantAcknowledged
-                    || expectedLease.IsDispatchMarked
-                    || !expectedLease.TryMarkDispatched(_fixedAggregateOwner)))
+                    previewGeneration);
+            if (!exactAttempt)
             {
+                if (!isRedispatch)
+                {
+                    InvalidateUndispatchedGrantPreview(expectedSnapshot, expectedLease);
+                    StateHasChanged();
+                }
+
+                return;
+            }
+
+            bool livePrerequisites = CanApplyGrantMutation(generation)
+                && AreGrantDispatchCapabilitiesCurrent()
+                && BffComposition.IsGlobalAdministratorGrantPreviewReady;
+            if (isRedispatch)
+            {
+                if (!livePrerequisites || !expectedLease.IsDispatchMarked)
+                {
+                    return;
+                }
+            }
+            else if (!livePrerequisites
+                || !AreGrantPreviewPrerequisitesCurrent(expectedPreview)
+                || !_grantAcknowledged
+                || expectedLease.IsDispatchMarked
+                || !expectedLease.TryMarkDispatched(_fixedAggregateOwner))
+            {
+                InvalidateUndispatchedGrantPreview(expectedSnapshot, expectedLease);
+                StateHasChanged();
                 return;
             }
 
@@ -2863,7 +2907,7 @@
                 // would reject a safe same-id retry precisely when the first delivery already advanced the
                 // projection but lost its response. The retained preview, baseline, lock, and ULID remain the
                 // only admissible retry basis.
-                using PendingOperation operation = BeginGrantMutation();
+                using PendingOperation deliveryOperation = BeginGrantMutation();
                 await DispatchGrantAsync(
                         isRedispatch: true,
                         expectedSnapshot,
@@ -2871,8 +2915,8 @@
                         expectedLease,
                         expectedMessageId,
                         previewGeneration,
-                        operation.Generation,
-                        operation.CancellationToken)
+                        deliveryOperation.Generation,
+                        deliveryOperation.CancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -3027,7 +3071,6 @@
         _grantAcknowledged = false;
         SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
         _focusGrantLauncherPending = true;
-        Interlocked.Increment(ref _grantLauncherFocusVersion);
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -3042,12 +3085,30 @@
     private async Task FocusGrantConfirmAsync(FocusEventArgs args)
         => await _grantAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
 
-    private Task FocusGrantCancelAsync(FocusEventArgs args)
+    private async Task FocusGrantCancelAsync(FocusEventArgs args)
+        => await _grantPreviewCancelElement.FocusAsync().ConfigureAwait(false);
+
+    private void InvalidateUndispatchedGrantPreview(
+        GlobalAdministratorGrantCommandSnapshot expectedSnapshot,
+        TenantAggregateCommandLease expectedLease,
+        string reasonKey = "Tenants.GlobalAdministrators.Grant.Preview.Invalidated")
     {
-        _focusGrantPreviewCancelPending = true;
-        Interlocked.Increment(ref _grantPreviewCancelFocusVersion);
-        StateHasChanged();
-        return Task.CompletedTask;
+        if (!ReferenceEquals(_grantSnapshot, expectedSnapshot)
+            || !ReferenceEquals(_grantAdmissionLease, expectedLease)
+            || expectedLease.IsDispatchMarked)
+        {
+            return;
+        }
+
+        _grantAcknowledged = false;
+        if (expectedLease.TryAbandonBeforeDispatch(_fixedAggregateOwner)
+            && ReferenceEquals(_grantAdmissionLease, expectedLease))
+        {
+            _grantAdmissionLease = null;
+        }
+
+        Interlocked.Increment(ref _grantPreviewGeneration);
+        SetGrantSnapshot(expectedSnapshot.InvalidatePreview(reasonKey));
     }
 
     private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot)
@@ -3068,7 +3129,6 @@
         else if (_grantSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
         {
             _focusGrantLauncherPending = true;
-            Interlocked.Increment(ref _grantLauncherFocusVersion);
         }
         else if (_grantSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || _grantSnapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle
@@ -3526,8 +3586,18 @@
                 new SetGlobalAdministrator(reconciliation.TargetUserId),
                 MessageId: reconciliation.MessageId,
                 CorrelationId: reconciliation.CorrelationId,
-                AuditState: TenantCommandAuditState.AuditPending,
+                AuditState: reconciliation.IsSubmissionAmbiguous
+                    ? TenantCommandAuditState.AuditDelayed
+                    : TenantCommandAuditState.AuditPending,
                 FocusTarget: TenantCommandFocusTarget.Refresh,
+                SafeMessageKey: reconciliation.IsSubmissionAmbiguous
+                    ? reconciliation.SafeMessageKey
+                        ?? "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"
+                    : reconciliation.SafeMessageKey,
+                SafeRecoveryKey: reconciliation.IsSubmissionAmbiguous
+                    ? reconciliation.SafeRecoveryKey
+                        ?? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
+                    : reconciliation.SafeRecoveryKey,
                 PreviewEvidence: reconciliation.GrantPreview,
                 HasCommandEventEvidence: reconciliation.HasCommandEventEvidence,
                 IsSubmissionAmbiguous: reconciliation.IsSubmissionAmbiguous);
@@ -3599,7 +3669,9 @@
                 snapshot.HasCommandEventEvidence,
                 snapshot.IsSubmissionAmbiguous
                     || snapshot.State is TenantCommandLifecycleState.RequestSent
-                        && string.IsNullOrWhiteSpace(snapshot.CorrelationId))
+                        && string.IsNullOrWhiteSpace(snapshot.CorrelationId),
+                snapshot.SafeMessageKey,
+                snapshot.SafeRecoveryKey)
             : null;
 
     private static GlobalAdministratorReconciliationState? CreateReconciliation(

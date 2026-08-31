@@ -2307,6 +2307,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     [Fact]
     public void GrantPreviewRendersTenBffFactsExactCountsAndModalIsolation()
     {
+        JSInterop.Mode = JSRuntimeMode.Loose;
         const string target = "  CaseSensitive/Target.01  ";
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(
@@ -2329,6 +2330,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-grant-preview-target']").TextContent.ShouldContain(target);
         cut.Find("[data-testid='tenants-global-admin-grant-preview-counts']").TextContent.ShouldContain("2");
         cut.Find("[data-testid='tenants-global-admin-grant-preview-counts']").TextContent.ShouldContain("3");
+        cut.WaitForAssertion(() => FocusedElementIds()[^1].ShouldBe(
+            CapturedElementReferenceId(cut.Instance, "_grantPreviewCancelElement")));
         string[] factSelectors =
         [
             "scope",
@@ -2348,15 +2351,37 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
         cut.Find("[data-testid='tenants-global-admin-grant-confirm']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-global-admins-return']").GetAttribute("aria-disabled").ShouldBe("true");
+        cut.Find("[data-testid='tenants-global-admins-area']").HasAttribute("inert").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-global-admins-area']").GetAttribute("aria-hidden").ShouldBe("true");
         cut.Find("[data-testid='tenants-global-admins-list']").HasAttribute("inert").ShouldBeTrue();
         cut.FindAll("[data-testid='tenants-global-admin-remove']")
             .ShouldAllBe(static button => button.HasAttribute("disabled"));
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
 
+        cut.Find("[data-testid='tenants-global-admin-grant-focus-end']")
+            .TriggerEvent("onfocus", new FocusEventArgs());
+        FocusedElementIds()[^1].ShouldBe(CapturedChildElementReferenceId(
+            cut.Instance,
+            "_grantAcknowledgementElement"));
+        cut.Find("[data-testid='tenants-global-admin-grant-focus-start']")
+            .TriggerEvent("onfocus", new FocusEventArgs());
+        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(
+            cut.Instance,
+            "_grantPreviewCancelElement"));
+
         preview.KeyDown(new KeyboardEventArgs { Key = "Escape" });
 
         cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
-        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("autofocus").ShouldBeTrue();
+        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(
+            cut.Instance,
+            "_grantLauncherElement"));
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change(target);
+        OpenGrantPreview(cut);
+        cut.Find("[data-testid='tenants-global-admin-grant-preview-cancel']").Click();
+        cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
+        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(
+            cut.Instance,
+            "_grantLauncherElement"));
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
     }
 
@@ -2502,6 +2527,194 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public void TargetReplacementInvalidatesOpenUndispatchedPreviewAndReleasesItsExactLease()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-a");
+        OpenGrantPreview(cut);
+        TenantAggregateCommandLease previewLease =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-b");
+
+        GlobalAdministratorGrantCommandSnapshot invalidated =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        invalidated.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        invalidated.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Invalidated");
+        PrivateField<TenantAggregateCommandLease?>(cut.Instance, "_grantAdmissionLease").ShouldBeNull();
+        previewLease.TryAbandonBeforeDispatch(new object()).ShouldBeFalse();
+        TenantAggregateCommandAdmissionGate gate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var replacementOwner = new object();
+        gate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? replacement).ShouldBeTrue();
+        replacement!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("tracked-capability")]
+    [InlineData("preview-readiness")]
+    [InlineData("viewport")]
+    [InlineData("authorization")]
+    [InlineData("acknowledgement")]
+    public async Task FinalRendererPrerequisiteLossReleasesExactUndispatchedLeaseAndRequiresFreshReview(
+        string prerequisite)
+    {
+        var composition = new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized);
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        OpenGrantPreview(cut);
+        AcknowledgeGrantPreview(cut);
+        TenantAggregateCommandLease previewLease =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
+        var revalidationGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        composition.GrantPreviewGate = revalidationGate;
+        composition.GrantPreviewCompletedSignal = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task confirmation = cut.Find("[data-testid='tenants-global-admin-grant-confirm']")
+            .ClickAsync(new MouseEventArgs());
+        await composition.GrantPreviewEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        int trackedCapabilityReads = 0;
+        switch (prerequisite)
+        {
+            case "tracked-capability":
+                commandGateway.TrackedDispatchSupportProvider = () =>
+                    Interlocked.Increment(ref trackedCapabilityReads) == 1;
+                break;
+            case "preview-readiness":
+                composition.IsGlobalAdministratorGrantPreviewReady = false;
+                break;
+            case "viewport":
+                Services.GetRequiredService<TenantHighImpactViewportObservation>()
+                    .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+                break;
+            case "authorization":
+                typeof(GlobalAdministratorsPage)
+                    .GetField("_authorizationReflection", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .SetValue(cut.Instance, TenantLifecycleAuthorizationReflectionState.MissingPermission);
+                break;
+            default:
+                typeof(GlobalAdministratorsPage)
+                    .GetField("_grantAcknowledged", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .SetValue(cut.Instance, false);
+                break;
+        }
+
+        revalidationGate.SetResult();
+        await confirmation.WaitAsync(TimeSpan.FromSeconds(5));
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        GlobalAdministratorGrantCommandSnapshot invalidated =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        invalidated.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        invalidated.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Invalidated");
+        invalidated.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh");
+        PrivateField<bool>(cut.Instance, "_grantAcknowledged").ShouldBeFalse();
+        PrivateField<TenantAggregateCommandLease?>(cut.Instance, "_grantAdmissionLease").ShouldBeNull();
+        previewLease.IsDispatchMarked.ShouldBeFalse();
+
+        commandGateway.TrackedDispatchSupportProvider = null;
+        commandGateway.SupportsTrackedGlobalAdministratorDispatch = true;
+        composition.IsGlobalAdministratorGrantPreviewReady = true;
+        Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        typeof(GlobalAdministratorsPage)
+            .GetField("_authorizationReflection", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, TenantLifecycleAuthorizationReflectionState.Authorized);
+        cut.Render();
+        cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-global-admin-grant-confirm']").ShouldBeEmpty();
+
+        TenantAggregateCommandAdmissionGate gate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var replacementOwner = new object();
+        gate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? replacement).ShouldBeTrue();
+        replacement!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("version")]
+    [InlineData("count")]
+    [InlineData("completeness")]
+    [InlineData("target")]
+    public void ConfirmationProjectionChangesDispatchNothingAndRequireFreshReview(string change)
+    {
+        GlobalAdministratorsSnapshot baseline = ComponentReady("projection-v1", "admin-a");
+        GlobalAdministratorsSnapshot changed = change switch
+        {
+            "version" => ComponentReady("projection-v2", "admin-a"),
+            "count" => ComponentReady("projection-v1", "admin-a", "admin-b"),
+            "target" => ComponentReady("projection-v1", "admin-a", "target-admin"),
+            _ => ComponentReady("projection-v1", "admin-a") with
+            {
+                Freshness = ReadModelFreshnessState.Stale,
+                IsCompleteEvidence = false,
+            },
+        };
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            baseline,
+            baseline,
+            changed)
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        OpenGrantPreview(cut);
+        AcknowledgeGrantPreview(cut);
+        TenantAggregateCommandLease previewLease =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
+
+        cut.Find("[data-testid='tenants-global-admin-grant-confirm']").Click();
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        GlobalAdministratorGrantCommandSnapshot invalidated =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        invalidated.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        invalidated.SafeMessageKey.ShouldNotBeNullOrWhiteSpace();
+        invalidated.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh");
+        PrivateField<TenantAggregateCommandLease?>(cut.Instance, "_grantAdmissionLease").ShouldBeNull();
+        previewLease.IsDispatchMarked.ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task RendererReplacementAutomaticallyRedispatchesSameAmbiguousGrantId()
     {
         var commandGateway = new StubTenantCommandGateway(
@@ -2533,6 +2746,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         adopted.MessageId.ShouldBe(messageId);
         adopted.IsSubmissionAmbiguous.ShouldBeTrue();
         adopted.BaselineProjectionVersion.ShouldBe("projection-v1");
+        replacement.Find("[data-testid='tenants-global-admin-grant-refresh']").TextContent
+            .ShouldContain("Retry delivery", Case.Insensitive);
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
     }
@@ -3397,7 +3612,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         AssertGuardsInsideRendererCallback(
             grantSubmit,
             "_grantAdmissionLease = acquiredLease",
-            "!IsAuthorized",
+            "CanApplyGrantPreviewOperation(generation, previewGeneration, targetUserId)",
             "_grantAdmissionLease is not null");
         AssertGuardsInsideRendererCallback(
             grantDispatch,
@@ -3410,7 +3625,6 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "_removeAdmissionLease = acquiredLease",
             "CanApplyRemoveMutation(generation)",
             "acquiredLease.TryMarkDispatched(_fixedAggregateOwner)");
-        grantSubmit.ShouldContain("_ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);");
         removeSubmit.ShouldContain("_ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);");
         grantSubmit.ShouldNotContain("out _grantAdmissionLease");
         removeSubmit.ShouldNotContain("out _removeAdmissionLease");
@@ -3421,6 +3635,86 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     /// submission is re-authorizing must not be overwritten by the pre-sign-out answer and must not dispatch
     /// the platform command.
     /// </summary>
+    [Theory]
+    [InlineData("authorization", "cancel")]
+    [InlineData("authorization", "replace")]
+    [InlineData("complete-walk", "cancel")]
+    [InlineData("complete-walk", "replace")]
+    [InlineData("composition", "cancel")]
+    [InlineData("composition", "replace")]
+    public async Task CancelOrTargetReplacementDuringInitialGrantPreviewStagesCancelsAndLeavesNoStaleAttempt(
+        string stage,
+        string action)
+    {
+        var composition = new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized);
+        var queryGateway = new StubTenantQueryGateway(ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        };
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admins-list']");
+        var suspended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task entered;
+        if (stage == "authorization")
+        {
+            composition.ResolutionGate = suspended;
+            entered = composition.ResolutionEntered.Task;
+        }
+        else if (stage == "complete-walk")
+        {
+            queryGateway.QueueResponse(suspended.Task.ContinueWith(
+                _ => ComponentReady("projection-v1", "admin-a"),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default));
+            entered = queryGateway.QueuedResponseEntered.Task;
+        }
+        else
+        {
+            composition.GrantPreviewGate = suspended;
+            entered = composition.GrantPreviewEntered.Task;
+        }
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-a");
+        Task submit = cut.Find("[data-testid='tenants-global-admin-grant-form']").SubmitAsync();
+        await entered.WaitAsync(TimeSpan.FromSeconds(5));
+
+        if (action == "cancel")
+        {
+            await cut.Find("[data-testid='tenants-global-admin-grant-cancel']")
+                .ClickAsync(new MouseEventArgs());
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-b");
+        }
+
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        int cancellationCount = stage switch
+        {
+            "authorization" => composition.ResolutionCancellationObserved,
+            "complete-walk" => queryGateway.QueuedResponseCancellationObserved,
+            _ => composition.GrantPreviewCancellationObserved,
+        };
+        cancellationCount.ShouldBe(1);
+        cut.FindAll("[data-testid='tenants-global-admin-grant-preview']").ShouldBeEmpty();
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        PrivateField<TenantAggregateCommandLease?>(cut.Instance, "_grantAdmissionLease").ShouldBeNull();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        if (action == "replace")
+        {
+            PrivateField<string?>(cut.Instance, "_grantUserId").ShouldBe("target-b");
+        }
+    }
+
     [Fact]
     public async Task A_sign_out_during_grant_reauthorization_fails_closed_without_dispatching_the_command()
     {
@@ -4203,7 +4497,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public bool IsGlobalAdministratorRequeryConnected => isReadSurfaceConnected;
 
-        public bool IsGlobalAdministratorGrantPreviewReady => isGrantPreviewReady;
+        public bool IsGlobalAdministratorGrantPreviewReady { get; set; } = isGrantPreviewReady;
 
         public bool IsGlobalAdministratorRemovePreviewReady => isRemovePreviewReady;
 
@@ -4235,6 +4529,16 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         /// <summary>Completes when a gated resolution has entered and suspended.</summary>
         public TaskCompletionSource ResolutionEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int ResolutionCancellationObserved { get; private set; }
+
+        public TaskCompletionSource? GrantPreviewGate { get; set; }
+
+        public TaskCompletionSource GrantPreviewEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int GrantPreviewCancellationObserved { get; private set; }
+
+        public TaskCompletionSource? GrantPreviewCompletedSignal { get; set; }
 
         /// <summary>Counts async resolutions, proving the page does not fall back to the sync property.</summary>
         public int AsyncResolutionCount { get; private set; }
@@ -4269,7 +4573,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                     // One-shot: only the resolve that is armed suspends, so a later transition can overtake it.
                     ResolutionGate = null;
                     _ = ResolutionEntered.TrySetResult();
-                    await gate.Task.ConfigureAwait(false);
+                    try
+                    {
+                        await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        ResolutionCancellationObserved++;
+                        throw;
+                    }
                 }
 
                 return answer;
@@ -4292,12 +4604,30 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 throw GrantPreviewException;
             }
 
+            TaskCompletionSource? previewGate = GrantPreviewGate;
+            if (previewGate is not null)
+            {
+                GrantPreviewGate = null;
+                _ = GrantPreviewEntered.TrySetResult();
+                try
+                {
+                    await previewGate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    GrantPreviewCancellationObserved++;
+                    throw;
+                }
+            }
+
             TenantLifecycleAuthorizationReflectionState current = await ResolveGlobalAdministratorsAuthorizationAsync(
                 cancellationToken);
-            return GlobalAdministratorGrantPreview.Create(
+            GlobalAdministratorGrantPreview result = GlobalAdministratorGrantPreview.Create(
                 targetUserId,
                 completeSnapshot,
                 current is TenantLifecycleAuthorizationReflectionState.Authorized);
+            _ = GrantPreviewCompletedSignal?.TrySetResult();
+            return result;
         }
     }
 
@@ -4338,6 +4668,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public List<GlobalAdministratorsSnapshot?> PreviousSnapshots { get; } = [];
 
+        public int QueuedResponseCancellationObserved { get; private set; }
+
+        public TaskCompletionSource QueuedResponseEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public void QueueResponse(Task<GlobalAdministratorsSnapshot> response)
             => _queuedResponses.Enqueue(response);
 
@@ -4375,7 +4709,16 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             PreviousSnapshots.Add(previous);
             if (_queuedResponses.Count > 0)
             {
-                return QualifyLegacyFixture(await _queuedResponses.Dequeue());
+                _ = QueuedResponseEntered.TrySetResult();
+                try
+                {
+                    return QualifyLegacyFixture(await _queuedResponses.Dequeue().WaitAsync(cancellationToken));
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    QueuedResponseCancellationObserved++;
+                    throw;
+                }
             }
 
             if (_snapshots.Count > 0)
@@ -4428,10 +4771,40 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     private static T PrivateField<T>(GlobalAdministratorsPage instance, string name)
-        => (T)(typeof(GlobalAdministratorsPage)
-            .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(instance)
-            ?? throw new InvalidOperationException($"Field {name} was null."));
+    {
+        FieldInfo field = typeof(GlobalAdministratorsPage)
+            .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Field {name} was not found.");
+        return (T)field.GetValue(instance)!;
+    }
+
+    private IReadOnlyList<string> FocusedElementIds()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.Count > 0
+                && invocation.Arguments[0] is ElementReference reference
+                    ? reference.Id
+                    : string.Empty)];
+
+    private static string CapturedElementReferenceId(object component, string fieldName)
+    {
+        object value = component.GetType()
+            .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(component)
+            ?? throw new InvalidOperationException($"'{fieldName}' was not captured by the component.");
+        return ((ElementReference)value).Id;
+    }
+
+    private static string CapturedChildElementReferenceId(object component, string fieldName)
+    {
+        object child = component.GetType()
+            .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(component)
+            ?? throw new InvalidOperationException($"'{fieldName}' was not captured by the component.");
+        object element = child.GetType().GetProperty("Element")?.GetValue(child)
+            ?? throw new InvalidOperationException($"'{fieldName}' does not expose a captured Element reference.");
+        return ((ElementReference)element).Id;
+    }
 
     private static void AssertGuardsInsideRendererCallback(
         string methodBody,
@@ -4474,7 +4847,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         public bool SupportsGlobalAdministratorDispatch { get; init; } = true;
 
-        public bool SupportsTrackedGlobalAdministratorDispatch { get; init; } = true;
+        private bool _supportsTrackedGlobalAdministratorDispatch = true;
+
+        public Func<bool>? TrackedDispatchSupportProvider { get; set; }
+
+        public bool SupportsTrackedGlobalAdministratorDispatch
+        {
+            get => TrackedDispatchSupportProvider?.Invoke() ?? _supportsTrackedGlobalAdministratorDispatch;
+            set => _supportsTrackedGlobalAdministratorDispatch = value;
+        }
 
         public bool SupportsCommandStatusLookup { get; init; } = true;
 
@@ -4800,7 +5181,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Preview.Counts"] = "Administrator count change",
             ["Tenants.GlobalAdministrators.Grant.Preview.Counts.Value"] = "Current complete count: {0}; resulting count after confirmation: {1}",
             ["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange"] = "Authority change",
-            ["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value"] = "The target gains platform global-administrator authority only after qualified projection confirmation.",
+            ["Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value"] = "Qualified confirmation records that this exact tracked grant produced an event and appeared in a newer complete fixed-scope projection; it does not prove downstream enforcement timing.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Freshness"] = "Evidence freshness",
             ["Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value"] = "The preview uses a complete, current, versioned fixed-scope projection captured before dispatch.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery"] = "Recovery path",
@@ -4810,7 +5191,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext"] = "Caller and target context",
             ["Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value"] = "A currently authorized platform operator is granting the literal target identifier; tenant membership is not read or changed.",
             ["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences"] = "Known consequences",
-            ["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value"] = "The target can exercise platform governance authority in the fixed global-administrators scope after confirmation.",
+            ["Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value"] = "The fixed-scope projection is expected to include the target after the tracked grant; session and downstream enforcement remain separately unproven.",
             ["Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns"] = "Known unknowns",
             ["Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value"] = "Session refresh, token issuance, downstream enforcement timing, and audit availability are not proven by command acceptance.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Acknowledge"] = "I reviewed the fixed scope, authority change, evidence limits, and recovery path.",
@@ -4824,6 +5205,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection and rebuild the preview.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists"] = "Keep the confirmed rows unchanged and choose a target absent from the complete projection.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Invalidated"] = "The grant preview changed before dispatch. Refresh and review a new preview.",
+            ["Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"] = "Grant delivery is ambiguous. Refresh or retry with the same retained command identity.",
+            ["Tenants.GlobalAdministrators.Grant.DeliveryRetry"] = "Retry delivery with the same tracked command",
+            ["Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"] = "Retry only with the retained command identity; do not create a new grant attempt.",
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout"] = "Grant status timed out before the tracked result could be verified.",
             ["Tenants.GlobalAdministrators.Grant.Description"] = "Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.",
             ["Tenants.GlobalAdministrators.Grant.Lifecycle.Title"] = "Grant lifecycle",
