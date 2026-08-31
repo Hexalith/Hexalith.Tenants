@@ -433,6 +433,14 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         // alone cannot detect a missing or wrong badge string.
         cut.Find("[data-testid='tenants-global-admins-projection-lifecycle']").TextContent.Trim().ShouldBe("Current");
         cut.Find("[data-testid='tenants-global-admins-action-reasons']").TextContent.ShouldContain("Grant is available");
+        cut.Find("[data-testid='tenants-global-admins-evidence-scope']").TextContent
+            .ShouldBe("Fixed platform global-administrator scope");
+        cut.Find("[data-testid='tenants-global-admins-evidence-freshness']").TextContent
+            .ShouldBe("Current lifecycle and version evidence");
+        cut.Find("[data-testid='tenants-global-admins-evidence-count']").TextContent
+            .ShouldBe("Administrator count from complete evidence: 1");
+        cut.Find("[data-testid='tenants-global-admins-evidence-admission']").TextContent
+            .ShouldBe("Available");
         cut.Find("[data-testid='tenants-global-admins-live-region']").GetAttribute("aria-live").ShouldBeNull();
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
         cut.Markup.ShouldNotContain("/api/users", Case.Insensitive);
@@ -1602,6 +1610,195 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Markup.ShouldNotContain("member table", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData("grant")]
+    [InlineData("remove")]
+    public void MissingActionSpecificPreviewReadinessBlocksOnlyTheAffectedEntryPointWithoutDispatch(
+        string action)
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            isGrantPreviewReady: action != "grant",
+            isRemovePreviewReady: action != "remove"));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("admin-a", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("admin-b", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        }));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        if (action == "grant")
+        {
+            IElement submit = cut.Find("[data-testid='tenants-global-admin-grant-submit']");
+            submit.HasAttribute("disabled").ShouldBeTrue();
+            submit.GetAttribute("aria-describedby").ShouldBe(
+                "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery");
+            cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
+                .ShouldContain("safety flow is not ready");
+            cut.Find("[data-testid='tenants-global-admin-grant-recovery']").TextContent
+                .ShouldContain("dedicated grant preview");
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2);
+
+            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("candidate");
+            cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled")
+                .ShouldBeFalse();
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+            IReadOnlyList<IElement> actionSlots = cut.FindAll(
+                "[data-testid='tenants-global-admins-action-reasons']");
+            IReadOnlyList<IElement> reasons = cut.FindAll(
+                "[data-testid='tenants-global-admins-remove-reason']");
+            IReadOnlyList<IElement> recoveries = cut.FindAll(
+                "[data-testid='tenants-global-admins-remove-recovery']");
+
+            reasons.Count.ShouldBe(2);
+            recoveries.Count.ShouldBe(2);
+            reasons.Select(static element => element.Id).Distinct(StringComparer.Ordinal).Count().ShouldBe(2);
+            recoveries.Select(static element => element.Id).Distinct(StringComparer.Ordinal).Count().ShouldBe(2);
+            reasons.ShouldAllBe(static element =>
+                !string.IsNullOrWhiteSpace(element.TextContent)
+                && element.TextContent.Contains("consequence preview", StringComparison.Ordinal));
+            recoveries.ShouldAllBe(static element =>
+                !string.IsNullOrWhiteSpace(element.TextContent)
+                && element.TextContent.Contains("dedicated removal preview", StringComparison.Ordinal));
+            for (int index = 0; index < actionSlots.Count; index++)
+            {
+                actionSlots[index].GetAttribute("aria-describedby")
+                    .ShouldBe($"{reasons[index].Id} {recoveries[index].Id}");
+            }
+        }
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void MissingConcreteGatewayCapabilityBlocksBothActionsWithoutDispatch(
+        bool supportsDispatch,
+        bool supportsStatus)
+    {
+        var commandGateway = new StubTenantCommandGateway
+        {
+            SupportsGlobalAdministratorDispatch = supportsDispatch,
+            SupportsCommandStatusLookup = supportsStatus,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("admin-a", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("admin-b", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        }));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
+            .ShouldContain("dispatch, status, or requery");
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-global-admins-remove-reason']")
+            .ShouldAllBe(static element => element.TextContent.Contains(
+                "dispatch, status, or requery",
+                StringComparison.Ordinal));
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("candidate");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ViewportAndAdmissionEvidenceTransitionsReevaluateAvailabilityWithoutDispatch()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("admin-a", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("admin-b", ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            IsCompleteEvidence = true,
+        }));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2);
+
+        TenantHighImpactViewportObservation viewport =
+            Services.GetRequiredService<TenantHighImpactViewportObservation>();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
+                .ShouldContain("measures a safe");
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+        });
+
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2));
+
+        TenantAggregateCommandAdmissionGate gate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var externalOwner = new object();
+        gate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            externalOwner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admins-evidence-admission']").TextContent
+                .ShouldContain("Active attempt");
+            cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
+                .ShouldContain("another global-administrator attempt");
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+        });
+
+        lease!.TryAbandonBeforeDispatch(externalOwner).ShouldBeTrue();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admins-evidence-admission']").TextContent.ShouldBe("Available");
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").Count.ShouldBe(2);
+        });
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+    }
+
     [Fact]
     public void Last_global_administrator_remove_is_unavailable_without_confirmation_affordance()
     {
@@ -1879,6 +2076,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     public async Task Cancelling_grant_does_not_cancel_in_flight_remove_status_tracking()
     {
         ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.SupportsGlobalAdministratorDispatch.Returns(true);
+        commandGateway.SupportsCommandStatusLookup.Returns(true);
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken removeStatusToken = default;
         commandGateway
@@ -3536,7 +3735,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         TenantLifecycleAuthorizationReflectionState reflection,
         bool isReadSurfaceConnected = true,
         bool isCommandSurfaceConnected = true,
-        AuthenticationStateProvider? principalSource = null) : ITenantsBffComposition
+        AuthenticationStateProvider? principalSource = null,
+        bool isGrantPreviewReady = true,
+        bool isRemovePreviewReady = true) : ITenantsBffComposition
     {
         public bool IsReadSurfaceConnected => isReadSurfaceConnected;
 
@@ -3547,6 +3748,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         public bool IsGlobalAdministratorStatusConnected => isCommandSurfaceConnected;
 
         public bool IsGlobalAdministratorRequeryConnected => isReadSurfaceConnected;
+
+        public bool IsGlobalAdministratorGrantPreviewReady => isGrantPreviewReady;
+
+        public bool IsGlobalAdministratorRemovePreviewReady => isRemovePreviewReady;
 
         public TenantLifecycleAuthorizationReflectionState Reflection { get; set; } = reflection;
 
@@ -3789,9 +3994,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         TenantCommandSubmissionResult? submission = null,
         params TenantCommandStatusResult[] statuses) : ITenantCommandGateway
     {
-        public bool SupportsGlobalAdministratorDispatch => true;
+        public bool SupportsGlobalAdministratorDispatch { get; init; } = true;
 
-        public bool SupportsCommandStatusLookup => true;
+        public bool SupportsCommandStatusLookup { get; init; } = true;
 
         private readonly Queue<TenantCommandStatusResult> _statuses = new(statuses);
 
@@ -4053,6 +4258,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.UnsafeViewport"] = "Remove is read-only until the browser measures a safe tablet or desktop viewport.",
             ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"] = "Grant is unavailable while another global-administrator attempt is active.",
             ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy"] = "Remove is unavailable while another global-administrator attempt is active.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingConsequencePreview"] = "Grant is unavailable because its safety flow is not ready.",
             ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview"] = "Remove is unavailable until its complete consequence preview is ready.",
             ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation"] = "Remove is unavailable because the complete fixed-scope population is not proven.",
             ["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.TargetMissing"] = "Remove is unavailable because the target is not present in qualified visible evidence.",
@@ -4064,9 +4270,16 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport"] = "Use a measured tablet or desktop viewport to continue.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"] = "Reconcile the active attempt to terminal evidence before starting another.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview"] = "Restore the dedicated removal preview before continuing.",
+            ["Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview"] = "Restore the dedicated grant preview before continuing.",
+            ["Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview"] = "Restore the dedicated removal preview before continuing.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation"] = "Refresh and complete the bounded fixed-scope population read.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing"] = "Refresh the visible rows and select a current administrator.",
             ["Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator"] = "Grant another administrator before removing this authority.",
+            ["Tenants.GlobalAdministrators.Evidence.Scope.Fixed"] = "Fixed platform global-administrator scope",
+            ["Tenants.GlobalAdministrators.Evidence.Freshness.Qualified"] = "Current lifecycle and version evidence",
+            ["Tenants.GlobalAdministrators.Evidence.Count.Qualified"] = "Administrator count from complete evidence: {0}",
+            ["Tenants.GlobalAdministrators.Evidence.Admission.Available"] = "Available",
+            ["Tenants.GlobalAdministrators.Evidence.Admission.Busy"] = "Active attempt requires reconciliation",
             ["Tenants.GlobalAdministrators.Grant.Cancel"] = "Cancel",
             ["Tenants.GlobalAdministrators.Grant.Description"] = "Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.",
             ["Tenants.GlobalAdministrators.Grant.Lifecycle.Title"] = "Grant lifecycle",
@@ -4220,6 +4433,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         // remove->grant direction kept the whole suite green -- while in production it discarded an accepted
         // grant's tracking handle and left its snapshot stuck at RequestSent.
         ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
+        commandGateway.SupportsGlobalAdministratorDispatch.Returns(true);
+        commandGateway.SupportsCommandStatusLookup.Returns(true);
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken grantStatusToken = default;
         commandGateway

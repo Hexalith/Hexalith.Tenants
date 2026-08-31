@@ -4079,6 +4079,8 @@
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport" xml:space="preserve"><value>Use a measured tablet or desktop viewport to continue.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy" xml:space="preserve"><value>Reconcile the active attempt to terminal evidence before starting another.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Restore the dedicated removal preview before continuing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Restore the dedicated grant preview before continuing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Restore the dedicated removal preview before continuing.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation" xml:space="preserve"><value>Refresh and complete the bounded fixed-scope population read.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing" xml:space="preserve"><value>Refresh the visible rows and select a current administrator.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator" xml:space="preserve"><value>Grant another administrator before removing this authority.</value></data>
@@ -4094,7 +4096,7 @@
   <data name="Tenants.GlobalAdministrators.Evidence.Freshness.Label" xml:space="preserve"><value>Qualified freshness</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Freshness.Qualified" xml:space="preserve"><value>Current lifecycle and version evidence</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Count.Label" xml:space="preserve"><value>Qualified administrator count</value></data>
-  <data name="Tenants.GlobalAdministrators.Evidence.Count.Qualified" xml:space="preserve"><value>{0} administrators from complete evidence</value></data>
+  <data name="Tenants.GlobalAdministrators.Evidence.Count.Qualified" xml:space="preserve"><value>Administrator count from complete evidence: {0}</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Label" xml:space="preserve"><value>Fixed-aggregate admission</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Available" xml:space="preserve"><value>Available</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Busy" xml:space="preserve"><value>Active attempt requires reconciliation</value></data>

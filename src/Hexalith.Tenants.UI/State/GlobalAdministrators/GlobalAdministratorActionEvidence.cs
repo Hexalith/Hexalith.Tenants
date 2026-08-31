@@ -49,8 +49,17 @@ public sealed record GlobalAdministratorActionEvidence(
     TenantHighImpactViewportState Viewport,
     bool HasViewportMeasurement)
 {
+    /// <summary>
+    /// Gets whether the actual grant preview is ready.
+    /// </summary>
+    /// <remarks>
+    /// Existing action-specific consumers that supplied one preview value retain that value. Consumers that
+    /// can observe grant and removal independently must set this property explicitly.
+    /// </remarks>
+    public bool IsGrantPreviewReady { get; init; } = IsRemovePreviewReady;
+
     /// <summary>Returns a support-safe description that omits identities and projection metadata.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()
-        => $"{nameof(GlobalAdministratorActionEvidence)} {{ IsAuthorized = {IsAuthorized}, VisibleKind = {VisibleKind}, CompleteKind = {CompleteKind}, HasCompletePopulation = {HasCompletePopulation}, SupportsDispatch = {SupportsDispatch}, SupportsStatus = {SupportsStatus}, SupportsRequery = {SupportsRequery}, IsAdmissionAvailable = {IsAdmissionAvailable}, IsRemovePreviewReady = {IsRemovePreviewReady}, Viewport = {Viewport}, HasViewportMeasurement = {HasViewportMeasurement} }}";
+        => $"{nameof(GlobalAdministratorActionEvidence)} {{ IsAuthorized = {IsAuthorized}, VisibleKind = {VisibleKind}, CompleteKind = {CompleteKind}, HasCompletePopulation = {HasCompletePopulation}, SupportsDispatch = {SupportsDispatch}, SupportsStatus = {SupportsStatus}, SupportsRequery = {SupportsRequery}, IsAdmissionAvailable = {IsAdmissionAvailable}, IsGrantPreviewReady = {IsGrantPreviewReady}, IsRemovePreviewReady = {IsRemovePreviewReady}, Viewport = {Viewport}, HasViewportMeasurement = {HasViewportMeasurement} }}";
 }

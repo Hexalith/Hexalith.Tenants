@@ -4079,6 +4079,8 @@
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport" xml:space="preserve"><value>Utilisez une fenêtre de tablette ou de bureau mesurée pour continuer.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy" xml:space="preserve"><value>Rapprochez la tentative active d’une preuve terminale avant d’en commencer une autre.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Rétablissez l’aperçu dédié à la suppression avant de continuer.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Rétablissez l’aperçu dédié à l’attribution avant de continuer.</value></data>
+  <data name="Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview" xml:space="preserve"><value>Rétablissez l’aperçu dédié à la suppression avant de continuer.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation" xml:space="preserve"><value>Actualisez et terminez la lecture bornée de la population à portée fixe.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing" xml:space="preserve"><value>Actualisez les lignes visibles et sélectionnez un administrateur actuel.</value></data>
   <data name="Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator" xml:space="preserve"><value>Attribuez les droits à un autre administrateur avant de supprimer cette autorité.</value></data>
@@ -4094,7 +4096,7 @@
   <data name="Tenants.GlobalAdministrators.Evidence.Freshness.Label" xml:space="preserve"><value>Actualité qualifiée</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Freshness.Qualified" xml:space="preserve"><value>Données actuelles de cycle de vie et de version</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Count.Label" xml:space="preserve"><value>Nombre qualifié d’administrateurs</value></data>
-  <data name="Tenants.GlobalAdministrators.Evidence.Count.Qualified" xml:space="preserve"><value>{0} administrateurs selon des données complètes</value></data>
+  <data name="Tenants.GlobalAdministrators.Evidence.Count.Qualified" xml:space="preserve"><value>Nombre d’administrateurs selon des données complètes : {0}</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Label" xml:space="preserve"><value>Admission de l’agrégat fixe</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Available" xml:space="preserve"><value>Disponible</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Busy" xml:space="preserve"><value>La tentative active doit être rapprochée</value></data>

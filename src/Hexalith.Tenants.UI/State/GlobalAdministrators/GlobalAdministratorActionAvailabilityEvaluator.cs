@@ -13,8 +13,19 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
     public static GlobalAdministratorActionAvailability EvaluateGrant(GlobalAdministratorActionEvidence evidence)
     {
         ArgumentNullException.ThrowIfNull(evidence);
-        return EvaluateCommon(evidence, GlobalAdministratorActionKind.Grant)
-            ?? Available(GlobalAdministratorActionKind.Grant);
+        GlobalAdministratorActionAvailability? common = EvaluateCommon(
+            evidence,
+            GlobalAdministratorActionKind.Grant);
+        if (common is not null)
+        {
+            return common;
+        }
+
+        return evidence.IsGrantPreviewReady
+            ? Available(GlobalAdministratorActionKind.Grant)
+            : Blocked(
+                GlobalAdministratorActionKind.Grant,
+                GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
     }
 
     /// <summary>Evaluates removal availability for one visible target.</summary>
@@ -158,5 +169,7 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
             IsAvailable: false,
             reason,
             $"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.{reason}",
-            $"Tenants.GlobalAdministrators.Availability.Recovery.{reason}");
+            reason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+                ? $"Tenants.GlobalAdministrators.Availability.{action}.Recovery.{reason}"
+                : $"Tenants.GlobalAdministrators.Availability.Recovery.{reason}");
 }

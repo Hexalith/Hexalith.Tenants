@@ -11,6 +11,8 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.Extensions.Configuration;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
@@ -48,6 +50,39 @@ public sealed class TenantsBffCompositionTests
           }
         }
         """;
+
+    [Theory]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    public void FixedScopeCapabilitiesMapOnlyToTheirCorrespondingProductionSeams(
+        bool supportsDispatch,
+        bool supportsStatus,
+        bool supportsRequery)
+    {
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        gateway.SupportsGlobalAdministratorDispatch.Returns(supportsDispatch);
+        gateway.SupportsCommandStatusLookup.Returns(supportsStatus);
+        var composition = new TenantsBffComposition(
+            gateway,
+            readSurface: new TenantsReadSurfaceAvailability(supportsRequery));
+
+        composition.IsGlobalAdministratorDispatchConnected.ShouldBe(supportsDispatch);
+        composition.IsGlobalAdministratorStatusConnected.ShouldBe(supportsStatus);
+        composition.IsGlobalAdministratorRequeryConnected.ShouldBe(supportsRequery);
+    }
+
+    [Fact]
+    public void ProductionPreviewReadinessReflectsOnlyInstalledDownstreamFlows()
+    {
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        var composition = new TenantsBffComposition(
+            gateway,
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
+    }
 
     [Fact]
     public async Task Reauthorize_returns_current_scope_when_the_grant_still_stands()

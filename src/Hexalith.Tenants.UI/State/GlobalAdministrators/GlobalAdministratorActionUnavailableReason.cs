@@ -21,7 +21,7 @@ public enum GlobalAdministratorActionUnavailableReason
     /// <summary>Another owner has admitted work for the fixed aggregate.</summary>
     AggregateBusy = 5,
 
-    /// <summary>The removal consequence preview is unavailable.</summary>
+    /// <summary>The evaluated action's consequence preview is unavailable.</summary>
     MissingConsequencePreview = 6,
 
     /// <summary>The complete fixed population cannot be proven.</summary>

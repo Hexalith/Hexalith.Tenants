@@ -20,6 +20,18 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantCommandGatewayTests
 {
     [Fact]
+    public void FixedScopeGatewayCapabilitiesFailClosedOrAdvertiseOnlyConcreteSupport()
+    {
+        TenantCommandGateway configured = CreateLifecycleGateway(new SubmitCommandResponse("correlation"));
+        var unavailable = new UnavailableTenantCommandGateway();
+
+        configured.SupportsGlobalAdministratorDispatch.ShouldBeTrue();
+        configured.SupportsCommandStatusLookup.ShouldBeTrue();
+        unavailable.SupportsGlobalAdministratorDispatch.ShouldBeFalse();
+        unavailable.SupportsCommandStatusLookup.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Set_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));

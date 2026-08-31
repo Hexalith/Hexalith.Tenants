@@ -30,6 +30,13 @@ internal sealed class TenantsBffComposition(
     public bool IsGlobalAdministratorRequeryConnected
         => readSurface?.IsConnected == true;
 
+    // The corrected grant story owns the complete grant consequence preview. Until that downstream flow is
+    // installed, availability must not treat the historical direct-submit form as preview evidence.
+    public bool IsGlobalAdministratorGrantPreviewReady => false;
+
+    // The existing removal flow already renders and rechecks its dedicated complete-population preview.
+    public bool IsGlobalAdministratorRemovePreviewReady => true;
+
     public TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => IsCommandSurfaceConnected
             ? TenantsGlobalAdministratorClaims.Evaluate(httpContextAccessor?.HttpContext?.User)

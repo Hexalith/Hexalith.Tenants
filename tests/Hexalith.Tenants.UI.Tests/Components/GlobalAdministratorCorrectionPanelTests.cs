@@ -1557,6 +1557,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public bool IsGlobalAdministratorRequeryConnected { get; set; } = true;
 
+        public bool IsGlobalAdministratorGrantPreviewReady => true;
+
+        public bool IsGlobalAdministratorRemovePreviewReady => true;
+
         public TenantLifecycleAuthorizationReflectionState SynchronousReflection { get; init; }
             = TenantLifecycleAuthorizationReflectionState.Authorized;
 

@@ -230,6 +230,93 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         calls.ShouldBe(2);
     }
 
+    [Theory]
+    [InlineData("null-row")]
+    [InlineData("empty-with-row")]
+    [InlineData("ready-without-row")]
+    [InlineData("oversized-page")]
+    [InlineData("wrong-request-cursor")]
+    [InlineData("wrong-request-page-size")]
+    [InlineData("duplicate-identity")]
+    [InlineData("blank-identity")]
+    [InlineData("control-character-identity")]
+    public async Task LoadAsyncRejectsMalformedPageShapesWithCanonicalBoundedResult(string scenario)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                calls++;
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                GlobalAdministratorsSnapshot valid = Page(["admin-a"], null, hasMore: false, request: request);
+                return Task.FromResult(scenario switch
+                {
+                    "null-row" => valid with { Rows = [null!] },
+                    "empty-with-row" => valid with
+                    {
+                        Kind = GlobalAdministratorsSurfaceKind.Empty,
+                        IsAuthorizationScopedEmpty = true,
+                    },
+                    "ready-without-row" => valid with { Rows = [] },
+                    "oversized-page" => valid with
+                    {
+                        Rows = Enumerable.Range(0, request.PageSize + 1)
+                            .Select(static index => new GlobalAdministratorRow(
+                                $"admin-{index}",
+                                ReadModelFreshnessState.Current,
+                                ProjectionLifecycleState.Current))
+                            .ToArray(),
+                    },
+                    "wrong-request-cursor" => valid with { RequestCursor = "unexpected" },
+                    "wrong-request-page-size" => valid with { RequestPageSize = request.PageSize + 1 },
+                    "duplicate-identity" => valid with
+                    {
+                        Rows = [CurrentRow("admin-a"), CurrentRow("admin-a")],
+                    },
+                    "blank-identity" => valid with { Rows = [CurrentRow(" ")] },
+                    "control-character-identity" => valid with { Rows = [CurrentRow("admin\u0001")] },
+                    _ => throw new InvalidOperationException($"Unknown malformed scenario '{scenario}'."),
+                });
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task LoadAsyncRejectsDuplicateIdentityAcrossPagesWithoutReadingPastTheConflict()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                calls++;
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                return Task.FromResult(calls == 1
+                    ? Page(["admin-a"], "page-2", hasMore: true, request: request)
+                    : Page(["admin-a"], null, hasMore: false, request: request));
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(2);
+    }
+
     private static void AssertCanonicalIncomplete(GlobalAdministratorsSnapshot result)
     {
         result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
@@ -264,4 +351,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             RequestCursor = request?.Cursor,
             RequestPageSize = request?.PageSize ?? 20,
         };
+
+    private static GlobalAdministratorRow CurrentRow(string userId)
+        => new(userId, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current);
 }

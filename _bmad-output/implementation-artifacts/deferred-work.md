@@ -2672,3 +2672,34 @@ status: open
 - source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
   summary: In-progress `spec-refresh-dependencies.md` can overwrite the new EventStore `3.100.0` planning facts.
   evidence: That spec remains `in-progress` and still tells an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; this story forbade resuming it but did not close or retarget that work.
+
+### DW-329: Global-administrator command retries do not retain a caller-owned message id across ambiguous transport failures.
+origin: spec-deferred 9acd809c21e3
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:329
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+severity: high
+reason: The existing gateway creates the message id inside SetGlobalAdministratorAsync/RemoveGlobalAdministratorAsync and catches only EventStoreGatewayException, so timeout/HttpRequestException retry semantics belong to the downstream command-lifecycle stories rather than this availability-only story.
+status: open
+
+### DW-330: Existing grant/remove projection confirmation does not require baseline projection-version advancement or command-specific audit provenance.
+origin: spec-deferred b69ce19c6d80
+location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:150
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+severity: high
+reason: The historical downstream command snapshots can accept qualifying target presence/absence without comparing the pre-command projection version; Story 4.1 dispatches no command and owns availability, so confirmation hardening remains follow-up work for the grant/remove lifecycle owners.
+status: open
+
+### DW-331: A contradictory complete-read authorization-scope flag is not revalidated by the pure removal evaluator.
+origin: spec-deferred b78a2689221d
+location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs:46
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+severity: medium
+reason: GlobalAdministratorActionAvailabilityEvaluator accepts CompleteKind Ready with non-empty complete rows without checking CompleteIsAuthorizationScopedEmpty. The bounded page loader rejects that shape and both installed production callers currently supply internally consistent snapshots, so the defect predates and is not caused by this re-drive's action-specific readiness change; a direct public evaluator caller could still construct the contradictory evidence and receive an available removal result.
+status: open
+
+### DW-332: Repeated availability evaluation during one Razor render could theoretically produce mismatched reason and recovery associations.
+origin: spec-deferred cb19669a12d0
+location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:821
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+reason: Grant and removal availability are recomputed independently for visible copy, disabled state, and aria-describedby. Blazor serializes renderer callbacks, but the admission gate's state can change before its notification callback is rendered; a deterministic test that changes gate or viewport evidence between those synchronous property reads is needed to establish whether an inconsistent render is reachable. The evaluation pattern predates this re-drive.
+status: open

@@ -819,7 +819,7 @@
             && _snapshot.Rows.Count > 0;
 
     private GlobalAdministratorActionAvailability GrantAvailability
-        => GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(ActionEvidence(removePreviewReady: false));
+        => GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(ActionEvidence());
 
     private string? GrantUnavailableReason
         => GrantAvailability.IsAvailable ? null : Localizer[GrantAvailability.ReasonKey].Value;
@@ -846,11 +846,11 @@
 
     private GlobalAdministratorActionAvailability RemoveAvailability(string? userId)
         => GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(
-            ActionEvidence(removePreviewReady: true),
+            ActionEvidence(),
             userId);
 
-    private GlobalAdministratorActionEvidence ActionEvidence(bool removePreviewReady)
-        => new(
+    private GlobalAdministratorActionEvidence ActionEvidence()
+        => new GlobalAdministratorActionEvidence(
             IsAuthorized,
             _snapshot.Kind,
             _snapshot.Freshness,
@@ -865,8 +865,10 @@
             _completeSnapshot.IsAuthorizationScopedEmpty,
             _completeSnapshot.Rows,
             _completeSnapshot.IsCompleteEvidence,
-            BffComposition.IsGlobalAdministratorDispatchConnected,
-            BffComposition.IsGlobalAdministratorStatusConnected,
+            BffComposition.IsGlobalAdministratorDispatchConnected
+                && CommandGateway.SupportsGlobalAdministratorDispatch,
+            BffComposition.IsGlobalAdministratorStatusConnected
+                && CommandGateway.SupportsCommandStatusLookup,
             BffComposition.IsGlobalAdministratorRequeryConnected,
             _aggregateAdmissionGate is not null
                 && !IsGrantInFlight
@@ -874,9 +876,12 @@
                 && !_aggregateAdmissionGate.IsLockedByAnother(
                         TenantCommandAggregateLock.ForGlobalAdministrators(),
                         _fixedAggregateOwner),
-            removePreviewReady,
+            BffComposition.IsGlobalAdministratorRemovePreviewReady,
             _viewportObservation?.State ?? TenantHighImpactViewportState.Unknown,
-            _viewportObservation?.HasMeasurement == true);
+            _viewportObservation?.HasMeasurement == true)
+        {
+            IsGrantPreviewReady = BffComposition.IsGlobalAdministratorGrantPreviewReady,
+        };
 
     private string RemoveReasonId(GlobalAdministratorRow row)
         => $"tenants-global-admin-remove-reason-{RowOrdinal(row)}";

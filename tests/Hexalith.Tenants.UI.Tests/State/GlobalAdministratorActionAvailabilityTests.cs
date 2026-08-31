@@ -1,3 +1,5 @@
+using System.Reflection;
+
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -85,6 +87,8 @@ public sealed class GlobalAdministratorActionAvailabilityTests
 
         GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).UnavailableReason
             .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a").UnavailableReason
+            .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
     }
 
     [Fact]
@@ -99,7 +103,51 @@ public sealed class GlobalAdministratorActionAvailabilityTests
         GlobalAdministratorActionAvailability availability =
             GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-secret");
 
-        availability.IsAvailable.ShouldBeFalse();
+        availability.UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.StaleData);
+        evidence.ToString().ShouldBe(
+            "GlobalAdministratorActionEvidence { IsAuthorized = True, VisibleKind = Ready, "
+            + "CompleteKind = Ready, HasCompletePopulation = True, SupportsDispatch = True, "
+            + "SupportsStatus = True, SupportsRequery = True, IsAdmissionAvailable = True, "
+            + "IsGrantPreviewReady = True, IsRemovePreviewReady = True, Viewport = Safe, "
+            + "HasViewportMeasurement = True }");
+        availability.ToString().ShouldBe(
+            "GlobalAdministratorActionAvailability { Action = Remove, IsAvailable = False, "
+            + "UnavailableReason = StaleData }");
+    }
+
+    [Fact]
+    public void PreviewReadinessBlocksOnlyTheEvaluatedAction()
+    {
+        GlobalAdministratorActionEvidence missingGrantPreview = ReadyEvidence() with
+        {
+            IsGrantPreviewReady = false,
+            IsRemovePreviewReady = true,
+        };
+
+        GlobalAdministratorActionAvailability grant =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(missingGrantPreview);
+        GlobalAdministratorActionAvailability remove =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(missingGrantPreview, "admin-a");
+
+        grant.UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
+        grant.RecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview");
+        remove.IsAvailable.ShouldBeTrue();
+
+        GlobalAdministratorActionEvidence missingRemovePreview = missingGrantPreview with
+        {
+            IsGrantPreviewReady = true,
+            IsRemovePreviewReady = false,
+        };
+
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(missingRemovePreview).IsAvailable
+            .ShouldBeTrue();
+        GlobalAdministratorActionAvailability missingRemove =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(missingRemovePreview, "admin-a");
+        missingRemove.UnavailableReason.ShouldBe(
+            GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
+        missingRemove.RecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview");
     }
 
     [Fact]
@@ -109,6 +157,41 @@ public sealed class GlobalAdministratorActionAvailabilityTests
 
         GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a").UnavailableReason
             .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingConsequencePreview);
+    }
+
+    [Fact]
+    public void LastAdministratorAndMissingTargetPrecedeMissingRemovePreview()
+    {
+        GlobalAdministratorActionEvidence singleAdministrator = ReadyEvidence() with
+        {
+            VisibleRows = [Row("admin-a")],
+            CompleteRows = [Row("admin-a")],
+            IsRemovePreviewReady = false,
+        };
+
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(singleAdministrator, "missing")
+            .UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.TargetMissing);
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(singleAdministrator, "admin-a")
+            .UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.LastAdministrator);
+    }
+
+    [Fact]
+    public void EvaluatorSurfaceIsPureEvidenceInAndResultOut()
+    {
+        MethodInfo grant = typeof(GlobalAdministratorActionAvailabilityEvaluator)
+            .GetMethod(nameof(GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant))!;
+        MethodInfo remove = typeof(GlobalAdministratorActionAvailabilityEvaluator)
+            .GetMethod(nameof(GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove))!;
+
+        grant.GetParameters().Select(static parameter => parameter.ParameterType)
+            .ShouldBe([typeof(GlobalAdministratorActionEvidence)]);
+        grant.ReturnType.ShouldBe(typeof(GlobalAdministratorActionAvailability));
+        remove.GetParameters().Select(static parameter => parameter.ParameterType)
+            .ShouldBe([typeof(GlobalAdministratorActionEvidence), typeof(string)]);
+        remove.ReturnType.ShouldBe(typeof(GlobalAdministratorActionAvailability));
+        typeof(GlobalAdministratorActionAvailabilityEvaluator).GetFields(
+            BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .ShouldBeEmpty();
     }
 
     [Theory]
@@ -160,7 +243,10 @@ public sealed class GlobalAdministratorActionAvailabilityTests
             IsAdmissionAvailable: true,
             IsRemovePreviewReady: true,
             TenantHighImpactViewportState.Safe,
-            HasViewportMeasurement: true);
+            HasViewportMeasurement: true)
+        {
+            IsGrantPreviewReady = true,
+        };
 
     private static GlobalAdministratorRow Row(string userId)
         => new(userId, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current);

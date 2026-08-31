@@ -22,6 +22,12 @@ public interface ITenantsBffComposition {
     /// <summary>Gets whether fixed-scope projection requery is connected.</summary>
     bool IsGlobalAdministratorRequeryConnected => false;
 
+    /// <summary>Gets whether the downstream grant consequence preview is ready.</summary>
+    bool IsGlobalAdministratorGrantPreviewReady => false;
+
+    /// <summary>Gets whether the downstream removal consequence preview is ready.</summary>
+    bool IsGlobalAdministratorRemovePreviewReady => false;
+
     TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
