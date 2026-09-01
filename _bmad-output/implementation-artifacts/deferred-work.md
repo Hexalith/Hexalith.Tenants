@@ -2703,3 +2703,51 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
 reason: Grant and removal availability are recomputed independently for visible copy, disabled state, and aria-describedby. Blazor serializes renderer callbacks, but the admission gate's state can change before its notification callback is rendered; a deterministic test that changes gate or viewport evidence between those synchronous property reads is needed to establish whether an inconsistent render is reachable. The evaluation pattern predates this re-drive.
 status: open
+
+### DW-333: The concurrently introduced tenant-workspace tab migration lacks browser-level proof that inactive panels are not visible or focusable.
+origin: spec-deferred 55356cb8b10a
+location: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:420
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: medium
+reason: The workspace-tab change arrived in a separate concurrent commit and is outside Story 4.2. Existing component assertions cover attributes, but an authenticated browser active-element and visibility trace would settle the remaining interaction risk.
+status: open
+
+### DW-334: The concurrently introduced Memories secret-store topology lacks a deployed Aspire model and health verification.
+origin: spec-deferred dd7b16301f77
+location: src/Hexalith.Tenants.AppHost/Program.cs:117
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: medium
+reason: The AppHost secret-store change arrived in a separate concurrent commit and is outside Story 4.2. An Aspire resource-model inspection plus a healthy deployed startup using the intended secret provider would settle the topology risk.
+status: open
+
+### DW-335: The tenant-workspace tab migration removed every inactive-panel visibility assertion inside this story's own commit, not a concurrent one.
+origin: spec-deferred 36063b3ad145
+location: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:426
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: medium
+reason: Commit 8da765ad -- the same commit that carries the Story 4.2 grant work -- replaced the `hidden`/`aria-hidden` assertions on `#tenants-retained-panel`/`#users-retained-panel` with `role="tabpanel"` checks that hold for the active and inactive panel alike. Fluent UI v5 owns the panel flip client-side, so bUnit cannot observe it and no assertion anywhere distinguishes the two states. An authenticated browser trace showing the inactive panel is neither visible, focusable, nor exposed to assistive technology would settle it.
+status: open
+
+### DW-336: Focus containment, focus restoration, and viewport measurement are proven at the interop layer rather than in a real browser.
+origin: spec-deferred 36c5b71ef493
+location: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: medium
+reason: The component tests assert which ElementReference the page asked the runtime to focus and drive the viewport by calling Observe on the observation singleton. Neither reaches document.activeElement, a real Tab cycle, `inert` semantics, or a real JS measurement, and there is no browser-driven lane in this repository. An authenticated browser trace over the grant preview -- open, Tab cycle, Escape, restore -- and a real viewport measurement would settle it.
+status: open
+
+### DW-337: Identical transport conditions are classified two different ways depending on which tracked command was dispatched.
+origin: spec-deferred 61e82d34cb29
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:258
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: low
+reason: `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
+status: open
+
+### DW-338: Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
+origin: spec-deferred 0ab333618257
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:575
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: low
+reason: Every status assertion is fed by a stub. This pass corrected one concrete assumption -- that EventsStored/EventsPublished carry an EventCount -- only by reading AggregateActor and CommandStatusRecord in the submodule. A contract or integration test over a real command-status response would settle the remaining assumptions the same way.
+status: open
