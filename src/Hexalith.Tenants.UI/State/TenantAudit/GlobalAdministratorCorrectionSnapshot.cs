@@ -248,10 +248,14 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         return withEvidence;
     }
 
+    // A new attempt takes exactly the identity its caller owns: the restore path passes its freshly minted
+    // ULID, and the untracked revoke path passes none, so the id it gets is the one the gateway mints on
+    // acceptance. Retaining a previous attempt's id here paired a stale message id with the new attempt's
+    // correlation id, and the resulting handle could never verify against command status.
     public GlobalAdministratorCorrectionSnapshot RequestSent(string? messageId = null)
         => this with {
             LifecycleState = TenantCommandLifecycleState.RequestSent,
-            MessageId = messageId ?? MessageId,
+            MessageId = messageId,
             CorrelationId = null,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -395,25 +399,17 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                         FocusTarget = TenantCommandFocusTarget.Lifecycle,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     },
+            // `EventsStored`/`EventsPublished` carry no `EventCount` by design (the contract documents it as
+            // "Completed status only"), yet the aggregate only advertises them once this exact command's own
+            // events were stored or published. Treating them as zero evidence turned a healthy in-flight
+            // correction into an unverifiable one and changed the revoke path's behavior; only `Completed`
+            // needs a positive count, because a completed command with no event is the real zero case.
             Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsStored
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsPublished
-                or Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
-                    when status.EventCount is > 0
-                    => this with
-                    {
-                        LifecycleState = TenantCommandLifecycleState.ProjectionPending,
-                        HasCommandEventEvidence = true,
-                        SafeMessage = null,
-                        SafeMessageKey = null,
-                        SafeRecoveryKey = null,
-                        RejectionCode = null,
-                        IsSubmissionAmbiguous = false,
-                        AuditState = TenantCommandAuditState.AuditPending,
-                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-                    },
-            Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsStored
-                or Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsPublished
-                or Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+                    => WithPositiveEventEvidence(),
+            Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed when status.EventCount is > 0
+                    => WithPositiveEventEvidence(),
+            Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
                     => UnableToVerify(IsRestoreAccessAction
                         ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"
                         : "Tenants.Correction.GlobalAdmin.State.UnableToVerify"),
@@ -570,6 +566,20 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
+
+    private GlobalAdministratorCorrectionSnapshot WithPositiveEventEvidence()
+        => this with
+        {
+            LifecycleState = TenantCommandLifecycleState.ProjectionPending,
+            HasCommandEventEvidence = true,
+            SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
+            RejectionCode = null,
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditPending,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
 
     private GlobalAdministratorCorrectionSnapshot UnableToVerify(string safeMessageKey)
         => this with

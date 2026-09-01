@@ -12,6 +12,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 
@@ -101,6 +102,57 @@ public sealed class TenantsBffCompositionTests
             resourceLocalizer: ResolvedGrantLocalizer());
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeTrue();
+    }
+
+    // Every other readiness test substitutes the localizer and feeds it a test-local copy of the key list,
+    // so none of them can notice a shipped resource going missing, blank, or losing its count placeholders
+    // -- and this gate is a production kill switch for the whole grant surface when it returns false.
+    // Resolve the real localizer over the real compiled resources instead, and prove the keys the gate
+    // demands are the keys a real preview actually renders.
+    [Fact]
+    public void GrantPreviewReadinessHoldsAgainstTheShippedEnglishAndFrenchResources()
+    {
+        ServiceProvider provider = new ServiceCollection()
+            .AddLogging()
+            .AddLocalization()
+            .BuildServiceProvider();
+        var composition = new TenantsBffComposition(
+            Substitute.For<ITenantCommandGateway>(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true),
+            resourceLocalizer: provider.GetRequiredService<IStringLocalizer<TenantsResources>>());
+
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GrantPreviewReadinessCoversEveryFactKeyARealPreviewRenders()
+    {
+        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
+            "target-admin",
+            CompleteGlobalAdministrators("projection-v1", "existing-admin"),
+            isAuthorized: true);
+        preview.IsComplete.ShouldBeTrue();
+
+        string[] renderedFactKeys =
+        [
+            preview.ScopeFactKey!,
+            "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+            preview.AuthorityChangeFactKey!,
+            preview.FreshnessFactKey!,
+            preview.RecoveryFactKey!,
+            preview.AuditFactKey!,
+            preview.CallerTargetContextFactKey!,
+            preview.KnownConsequencesFactKey!,
+            preview.KnownUnknownsFactKey!,
+        ];
+
+        renderedFactKeys.Length.ShouldBe(RequiredGrantResourceKeys.Length);
+        foreach (string key in renderedFactKeys)
+        {
+            key.ShouldNotBeNullOrWhiteSpace();
+        }
     }
 
     [Fact]

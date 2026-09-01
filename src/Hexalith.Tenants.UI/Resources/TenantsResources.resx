@@ -3821,9 +3821,6 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value" xml:space="preserve">
     <value>Retry status lookup, inspect audit, continue read-only, or escalate using support-safe references.</value>
   </data>
-  <data name="Tenants.Correction.GlobalAdmin.AlreadyGranted" xml:space="preserve">
-    <value>The current platform authority projection already shows this user as a global administrator.</value>
-  </data>
   <data name="Tenants.Correction.GlobalAdmin.AlreadyRemoved" xml:space="preserve">
     <value>The current platform authority projection already shows this user is not a global administrator.</value>
   </data>

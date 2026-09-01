@@ -5,6 +5,7 @@
 @using Hexalith.Tenants.UI.State
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
@@ -748,7 +749,6 @@
     private bool _focusGrantUserIdPending;
     private bool _focusGrantLauncherPending;
     private bool _focusGrantLifecyclePending;
-    private bool _focusGrantAcknowledgementPending;
     private bool _focusGrantPreviewCancelPending;
     private bool _focusRemoveSubmitPending;
     private bool _focusRemoveLifecyclePending;
@@ -1118,10 +1118,23 @@
             or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Degraded
-            or TenantCommandLifecycleState.UnableToVerify;
+            or TenantCommandLifecycleState.UnableToVerify
+        && (!IsAmbiguousGrantDeliveryRetry || CanRetryAmbiguousGrantDelivery);
+
+    // In the ambiguous-delivery state this button is a redispatch, not a status read, so it must advertise
+    // itself only while the redispatch's own prerequisites hold. Without this the action stayed enabled and
+    // labelled "retry delivery" while RefreshGrantStatusAsync's inner guards silently returned, leaving the
+    // operator clicking a live control that did nothing and said nothing.
+    private bool IsAmbiguousGrantDeliveryRetry
+        => _grantSnapshot.IsSubmissionAmbiguous && _grantSnapshot.CorrelationId is null;
+
+    private bool CanRetryAmbiguousGrantDelivery
+        => _grantSnapshot.PreviewEvidence?.IsComplete == true
+            && _grantAdmissionLease?.IsDispatchMarked == true
+            && AreGrantDispatchCapabilitiesCurrent();
 
     private string GrantRefreshActionText
-        => _grantSnapshot.IsSubmissionAmbiguous && _grantSnapshot.CorrelationId is null
+        => IsAmbiguousGrantDeliveryRetry
             ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
             : Localizer["Tenants.GlobalAdministrators.Grant.Refresh"];
 
@@ -1269,43 +1282,57 @@
         if (_focusGrantUserIdPending)
         {
             _focusGrantUserIdPending = false;
-            await _grantUserIdElement.Element.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_grantUserIdElement.Element).ConfigureAwait(false);
         }
 
         if (_focusGrantLauncherPending)
         {
             _focusGrantLauncherPending = false;
-            await _grantLauncherElement.FocusAsync().ConfigureAwait(false);
-        }
-
-        if (_focusGrantAcknowledgementPending)
-        {
-            _focusGrantAcknowledgementPending = false;
-            await _grantAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_grantLauncherElement).ConfigureAwait(false);
         }
 
         if (_focusGrantLifecyclePending)
         {
             _focusGrantLifecyclePending = false;
-            await _grantLifecycleElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_grantLifecycleElement).ConfigureAwait(false);
         }
 
         if (_focusGrantPreviewCancelPending)
         {
             _focusGrantPreviewCancelPending = false;
-            await _grantPreviewCancelElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_grantPreviewCancelElement).ConfigureAwait(false);
         }
 
         if (_focusRemoveSubmitPending)
         {
             _focusRemoveSubmitPending = false;
-            await _removeSubmitElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_removeSubmitElement).ConfigureAwait(false);
         }
 
         if (_focusRemoveLifecyclePending)
         {
             _focusRemoveLifecyclePending = false;
-            await _removeLifecycleElement.FocusAsync().ConfigureAwait(false);
+            await FocusSafelyAsync(_removeLifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    // A pending focus can outlive its circuit: the flag is set during a render that the operator then
+    // abandons (navigation, tab close, dropped connection). The interop call is the first thing to notice,
+    // and an unguarded throw here escapes OnAfterRenderAsync. Every sibling focus call in this project --
+    // including GlobalAdministratorCorrectionPanel in this same flow -- swallows the disconnect instead.
+    private static async Task FocusSafelyAsync(ElementReference element)
+    {
+        try
+        {
+            await element.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit dropped between the render that requested focus and this call; focus is unobservable.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The renderer or its JS runtime was torn down while the focus call was in flight.
         }
     }
 
@@ -2270,7 +2297,6 @@
             _focusGrantUserIdPending = false;
             _focusGrantLauncherPending = false;
             _focusGrantLifecyclePending = false;
-            _focusGrantAcknowledgementPending = false;
             _focusGrantPreviewCancelPending = false;
             _focusRemoveSubmitPending = false;
             _focusRemoveLifecyclePending = false;
@@ -3083,10 +3109,10 @@
     }
 
     private async Task FocusGrantConfirmAsync(FocusEventArgs args)
-        => await _grantAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
+        => await FocusSafelyAsync(_grantAcknowledgementElement.Element).ConfigureAwait(false);
 
     private async Task FocusGrantCancelAsync(FocusEventArgs args)
-        => await _grantPreviewCancelElement.FocusAsync().ConfigureAwait(false);
+        => await FocusSafelyAsync(_grantPreviewCancelElement).ConfigureAwait(false);
 
     private void InvalidateUndispatchedGrantPreview(
         GlobalAdministratorGrantCommandSnapshot expectedSnapshot,

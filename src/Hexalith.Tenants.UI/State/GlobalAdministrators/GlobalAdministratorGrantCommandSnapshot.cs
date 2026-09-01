@@ -265,21 +265,19 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                     IsSubmissionAmbiguous = false,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                 },
-            CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
-                when status.EventCount is > 0
-                => this with
-                {
-                    State = TenantCommandLifecycleState.ProjectionPending,
-                    HasCommandEventEvidence = true,
-                    SafeMessage = null,
-                    SafeMessageKey = null,
-                    SafeRecoveryKey = null,
-                    IsSubmissionAmbiguous = false,
-                    AuditState = TenantCommandAuditState.AuditPending,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-                },
-            CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
+            // `EventsStored`/`EventsPublished` ARE the platform's positive event evidence for this exact
+            // command: the aggregate only advertises them after the command's own events were stored or
+            // published, and the identity match above already pins them to the retained attempt. They are
+            // written with no `EventCount` on purpose -- `CommandStatusRecord.EventCount` is documented and
+            // implemented as "Completed status only" -- so requiring a positive count here rejected the very
+            // evidence the story depends on and reported a healthy in-flight grant as unverifiable.
+            // `Completed` still needs a positive count, because a completed command that produced no event
+            // is exactly the zero-evidence case that must never confirm.
+            CommandStatus.EventsStored or CommandStatus.EventsPublished
+                => WithPositiveEventEvidence(),
+            CommandStatus.Completed when status.EventCount is > 0
+                => WithPositiveEventEvidence(),
+            CommandStatus.Completed
                 => UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"),
             CommandStatus.Rejected
                 => this with
@@ -387,6 +385,20 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
     }
+
+    private GlobalAdministratorGrantCommandSnapshot WithPositiveEventEvidence()
+        => this with
+        {
+            State = TenantCommandLifecycleState.ProjectionPending,
+            HasCommandEventEvidence = true,
+            SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
 
     private GlobalAdministratorGrantCommandSnapshot UnableToVerify(string safeMessageKey)
         => this with

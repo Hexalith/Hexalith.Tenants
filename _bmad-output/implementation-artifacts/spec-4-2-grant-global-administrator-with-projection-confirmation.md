@@ -5,7 +5,7 @@ created: '2026-08-31'
 status: done
 baseline_revision: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
 baseline_commit: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
-review_loop_iteration: 2
+review_loop_iteration: 0
 followup_review_recommended: true
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -26,6 +26,34 @@ deferred:
     location: >-
       src/Hexalith.Tenants.AppHost/Program.cs:117
     severity: medium
+  - summary: >-
+      The tenant-workspace tab migration removed every inactive-panel visibility assertion inside this story's own commit, not a concurrent one.
+    evidence: |-
+      Commit 8da765ad -- the same commit that carries the Story 4.2 grant work -- replaced the `hidden`/`aria-hidden` assertions on `#tenants-retained-panel`/`#users-retained-panel` with `role="tabpanel"` checks that hold for the active and inactive panel alike. Fluent UI v5 owns the panel flip client-side, so bUnit cannot observe it and no assertion anywhere distinguishes the two states. An authenticated browser trace showing the inactive panel is neither visible, focusable, nor exposed to assistive technology would settle it.
+    location: >-
+      tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:426
+    severity: medium
+  - summary: >-
+      Focus containment, focus restoration, and viewport measurement are proven at the interop layer rather than in a real browser.
+    evidence: |-
+      The component tests assert which ElementReference the page asked the runtime to focus and drive the viewport by calling Observe on the observation singleton. Neither reaches document.activeElement, a real Tab cycle, `inert` semantics, or a real JS measurement, and there is no browser-driven lane in this repository. An authenticated browser trace over the grant preview -- open, Tab cycle, Escape, restore -- and a real viewport measurement would settle it.
+    location: >-
+      tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+    severity: medium
+  - summary: >-
+      Identical transport conditions are classified two different ways depending on which tracked command was dispatched.
+    evidence: |-
+      `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
+    location: >-
+      src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:258
+    severity: low
+  - summary: >-
+      Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
+    evidence: |-
+      Every status assertion is fed by a stub. This pass corrected one concrete assumption -- that EventsStored/EventsPublished carry an EventCount -- only by reading AggregateActor and CommandStatusRecord in the submodule. A contract or integration test over a real command-status response would settle the remaining assumptions the same way.
+    location: >-
+      src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:575
+    severity: low
 ---
 
 <intent-contract>
@@ -258,6 +286,71 @@ deferred:
   - `[low]` `[patch]` Main-flow ambiguous delivery still used generic refresh wording — the visible action now says delivery retry and its recovery warns against creating a new grant attempt.
   - `[medium]` `[defer]` Concurrent Memories secret-store topology lacks deployed Aspire health evidence — this separate AppHost change is outside Story 4.2; Aspire model inspection and a healthy deployment with the intended provider would settle it.
 
+### 2026-09-01 — Review pass
+- verdicts: 61 findings — high 1, medium 16, low 37, false 7, maybe-false 0
+- findings:
+  - `[low]` `[reject]` Background isolation stops at the page content area, leaving the app shell tabbable — refuted for keyboard users: the preview's start/end focus sentinels return focus to Cancel/Acknowledge, so Tab never reaches the shell; only the shell's assistive-technology exposure remains, and the fix is a layout-shell restructure rather than a direct correction.
+  - `[medium]` `[patch]` New focus interop is unguarded — `OnAfterRenderAsync` and both sentinel handlers now route through `FocusSafelyAsync`, which swallows `JSDisconnectedException`/`ObjectDisposedException` exactly as `GlobalAdministratorCorrectionPanel` and five sibling components already do.
+  - `[false]` `[reject]` `ConfigureAwait(false)` on the focus chain drops off the renderer Dispatcher — the recorded circuit-teardown mode needs an `EventCallback`/`StateHasChanged` off-Dispatcher; this method invokes neither, and `ElementReference.FocusAsync` is a plain interop call.
+  - `[low]` `[reject]` Two raw `<fluent-button>` custom elements — `FluentButton` exposes no `ElementReference`, unlike the `FluentTextInput`/`FluentCheckbox` `.Element` used elsewhere in the file, so the raw element is the only way to obtain the focus target the story requires.
+  - `[medium]` `[patch]` Localization completeness runs a full resource scan on the render path — the fixed-key walk is now resolved once per composition instead of twice per read, several times per render.
+  - `[low]` `[reject]` The validated culture set is hardcoded to invariant + `fr` — the app ships exactly two resource sets and configures no additional supported cultures, so the checked set is the shipped set.
+  - `[low]` `[reject]` `resourceLocalizer` is an optional trailing parameter whose absence means "not ready" — every collaborator on this type is optional by design and absence already fails closed with its own localized reason.
+  - `[low]` `[reject]` Two hand-synchronized lists of required fact keys — real drift risk, but deriving one from the other is a restructure, not a direct correction; the new preview-key coverage test pins the two lists' lengths instead.
+  - `[low]` `[reject]` Duplicated capability predicates — behaviour is identical and the memoization above removes the cost that made the duplication matter.
+  - `[false]` `[reject]` `ConfirmGrantAsync`'s cancellation catch has no exception filter — a transport `OperationCanceledException` never reaches it: `DispatchGrantAsync` wraps the gateway call in its own bare `catch` that maps to same-message-id ambiguity.
+  - `[low]` `[reject]` The correction retry path is uncancellable and over-catches — `CancellationToken.None` matches the panel's pre-existing submit paths, and mapping a swallowed failure to ambiguity is the fail-closed outcome the intent requires.
+  - `[low]` `[reject]` Grant-namespaced recovery keys leak into the removal path — the shared recovery string reads "Refresh the complete fixed-scope projection and rebuild the preview", which is accurate for the correction flow too; only the key's namespace is grant-flavoured and users never see it.
+  - `[low]` `[patch]` `Tenants.Correction.GlobalAdmin.AlreadyGranted` is orphaned — deleted from both resx files and from the correction-panel localizer double; the localizer parity gate now passes on the reduced set.
+  - `[low]` `[reject]` "Already a global administrator" is reported as a verification failure — the intent explicitly forbids `AlreadyApplied`, NoOp, and success for an existing grant target, so a non-success state is mandated; only the generic state label reads oddly, and no other state exists to move it to.
+  - `[false]` `[reject]` `HasCommandTracking` and `TryGetTrackingHandle` disagree — deliberate and consistent: `RefreshStatusAsync` branches on the ambiguous/no-correlation shape before ever calling the handle-based status path, so no caller reaches an unexpected `false`.
+  - `[low]` `[reject]` No dedicated unavailable reason for missing tracked dispatch — adding an enum member plus reason-to-copy wiring is more than a direct correction, and the generic lifecycle-support copy is not misleading.
+  - `[low]` `[reject]` `SupportsTrackedGrantDispatch` default flipped without compiler enforcement — fail-closed is correct and both construction sites set it explicitly; making it `required` changes the public record's contract.
+  - `[low]` `[defer]` `Retryable == false` is not honored and only the grant dispatch path was updated — over-classifying as ambiguous is fail-closed, and the sibling tracked dispatches are unchanged pre-existing behaviour outside this story's fixed-scope intent.
+  - `[medium]` `[defer]` Deleted workspace-panel test coverage was not replaced — confirmed, and the deletion is in this story's own commit `8da765ad`, not a separate concurrent one; bUnit cannot observe Fluent's client-side panel flip, so a browser lane is what would settle it.
+  - `[medium]` `[reject]` Five root gitlinks move with no File List declaration — real and reproduced by `validate-story-gitlinks.py`, but the only fix is to declare them in this build's spec File List.
+  - `[low]` `[reject]` French repair is partial and introduces terminology drift — the untouched neighbours are pre-existing strings this story never edited, and "statut"/"état" both render correctly.
+  - `[low]` `[reject]` The new localization-failure copy is not actionable for its audience — a missing satellite resource is a deployment defect; naming it is more useful than hiding it behind a generic support pointer.
+  - `[low]` `[patch]` Dead `_grantPreviewInFlight` branch plus an unmarshalled cross-thread read — the branch is defence in depth behind the input's `disabled` term and is kept; the missing half was that no test pinned that `disabled` term, which the target-replacement test now asserts on both sides of the invalidation.
+  - `[false]` `[reject]` Pending status arrives with `HasVerifiedCommandIdentity` still false — pending is classified first: `status.Status is null` returns before the identity gate is reached.
+  - `[high]` `[patch]` `status.EventCount is null` on `EventsStored`/`EventsPublished` collapses to `UnableToVerify` — confirmed end to end: `CommandStatusRecord.EventCount` is "Completed status only" and `AggregateActor.WriteAdvisoryStatusAsync(command, CommandStatus.EventsStored)` leaves it null, so the story's own positive event evidence was reported as missing on both the grant page and the correction panel. Both snapshots now qualify `EventsStored`/`EventsPublished` on the status alone and keep the positive-count requirement for `Completed`; the two theories that pinned the fictional counts were rewritten to the shipped shape.
+  - `[low]` `[patch]` `CultureInfo.GetCultureInfo("fr")` sits outside the fail-closed try — moved into its own guarded lookup so globalization-invariant hosting fails closed instead of throwing out of a render-path property.
+  - `[low]` `[reject]` Only invariant and `fr` cultures are validated — same refutation as above: those are the shipped resource sets.
+  - `[low]` `[reject]` A null localizer is indistinguishable from incomplete resources — absence already produces the localized unavailable reason and recovery.
+  - `[medium]` `[patch]` Delivery-retry click can do nothing silently — `CanRefreshGrantStatus` now withdraws the action when the redispatch's own live prerequisites cannot hold, and a new test proves the withdrawal.
+  - `[medium]` `[patch]` `isRedispatch` with lapsed live prerequisites returns with no state change or feedback — same root cause and same fix as the entry above.
+  - `[low]` `[reject]` Correction delivery-retry guards return without a render — the panel's inner guards mirror `CreateCorrectionDecision().CanRefresh`, the same predicate that enables its button, so the silent window is a narrow race rather than a reachable dead end.
+  - `[low]` `[reject]` Component disposed while the tracked redispatch await is outstanding — the `InvokeAsync` throw happens only during renderer teardown, where the renderer already absorbs it.
+  - `[low]` `[reject]` The bare catch also swallows cancellation and disposal — mapping them to retained ambiguity is the fail-closed outcome; releasing them as terminal is what the intent forbids.
+  - `[medium]` `[patch]` `RequestSent` retains a stale message id on the untracked revoke path — it now takes exactly the identity its caller owns, so the revoke path returns to letting acceptance supply the id instead of pairing an old message id with a new correlation id.
+  - `[false]` `[reject]` A non-ambiguous failure clears an established correlation id — unreachable: every resubmit passes through `RequestSent`, which has already cleared `CorrelationId` to null.
+  - `[false]` `[reject]` `_snapshot is null` short-circuits the tracked-dispatch requirement — with no snapshot there is no intent and nothing is submittable, so no unsupported path opens.
+  - `[medium]` `[patch]` `JSDisconnectedException` from the new focus interop — same entry and same fix as the unguarded-focus finding above.
+  - `[low]` `[reject]` Shell chrome outside the inert stack — same refutation as the background-isolation finding above.
+  - `[medium]` `[defer]` Inactive workspace panels lost their invisibility guarantee — same entry as the deleted-coverage finding above.
+  - `[low]` `[patch]` `_focusGrantAcknowledgementPending` is never set true — the dead field and its `OnAfterRenderAsync` branch were deleted; the acknowledgement checkbox is still focused by the end-sentinel handler.
+  - `[low]` `[reject]` `SupportsTrackedGrantDispatch` initializer removed — same as above.
+  - `[low]` `[patch]` Orphaned EN/FR resource pair plus a stale test-double string — same entry and same fix as the orphan-key finding above.
+  - `[low]` `[reject]` Removed revoke `AlreadyApplied` and gateway-exception tests — the revoke `Completed`+`EventCount == 0` arm is unreachable in production because the platform writes a null count instead of zero; re-adding a test for it would pin a shape the platform never emits.
+  - `[low]` `[reject]` Adjacent French `Remove.*` values keep undiacritized text — pre-existing strings this story never touched.
+  - `[low]` `[patch]` Target-replacement invalidation is reachable only through bUnit and the `disabled` term is unpinned — the target-replacement test now asserts the field is disabled while a preview is open and live again after invalidation.
+  - `[medium]` `[patch]` The grant page's delivery-retry action is never clicked by any test — the renderer-replacement test now clicks it and proves a third dispatch on the retained message id.
+  - `[medium]` `[defer]` Inactive workspace tab panels lost their `hidden`/`aria-hidden` assertions with no browser lane — same entry as above.
+  - `[medium]` `[patch]` The localization readiness gate is a production kill switch tested only against substitutes — a new test resolves the real `IStringLocalizer<TenantsResources>` over the shipped resources and asserts the gate holds, plus a test tying the gate's key list to the keys a real preview renders.
+  - `[low]` `[defer]` The new ambiguity classification was adopted only in the grant dispatch method — same entry as the `Retryable` finding above.
+  - `[medium]` `[patch]` Culture mutation and double enumeration on the render path — same entry and same fix as the memoization above.
+  - `[low]` `[patch]` `GetCultureInfo` outside the guarded walk — same entry and same fix as above.
+  - `[low]` `[reject]` The forbidden-copy scan now truncates `.razor` inputs at `@code` — all user-visible copy comes from the resx files, which are still scanned whole; the narrowing only stops matching C# identifiers.
+  - `[medium]` `[defer]` The AppHost Memories secret-store component name is coupled to `EmbeddingSecretStore.SecretStoreName` with no topology test — a separate concurrent commit (`7453ba5b`) outside this story; already recorded in this spec's deferred list.
+  - `[low]` `[defer]` Command-status semantics are asserted only against stubs — the concrete `EventCount` assumption is now corrected from the platform source, but nothing pins EventStore's status contract from this repository.
+  - `[false]` `[reject]` "Advanced" is implemented as opaque-token inequality — the Design Notes settle this deliberately: this projection exposes ETag-like tokens, so inequality plus exact-command event evidence is the intended rule.
+  - `[low]` `[reject]` Authorization is exercised through a private-field poke — a test technique for an in-process component, not a production defect.
+  - `[medium]` `[defer]` Focus containment and background inertness are proven at the interop layer, not in a browser — real, and unsettled by this pass; a browser active-element and background-focus trace is what would close it.
+  - `[low]` `[defer]` Measured viewport is driven through the observation singleton and never measured — same browser-lane entry as above.
+  - `[low]` `[reject]` Localization completeness is verified for cultures a third-culture viewer will not see — same refutation as the hardcoded-culture entries.
+  - `[low]` `[reject]` The message-id exposure scan now covers markup only — same refutation as the forbidden-copy entry.
+  - `[medium]` `[reject]` The diff carries material outside any reading of the intent (gitlinks, AppHost, tab migration) — the gitlink half's only fix is to edit this build's spec File List; the AppHost and tab halves are already deferred.
+
 ## Design Notes
 
 The preview baseline is the complete fixed-scope projection version captured before dispatch. A different post-command version is necessary but not sufficient: confirmation also requires positive event evidence from status whose message, correlation, and fixed aggregate identity match the retained attempt, plus exact ordinal target presence in a new complete current walk. This prevents pre-existing, concurrent, page-scoped, or unrelated projection observations from becoming success.
@@ -278,54 +371,43 @@ Status: done
 
 ### Summary
 
-Implemented and review-hardened the fixed-scope global-administrator grant flow. The UI composes a complete localized consequence preview from fresh authoritative evidence, retains one caller-owned tracked command identity through ambiguous delivery and renderer replacement, refuses stale final-arm dispatch, and reports confirmation only after exact-command positive event evidence plus a newer complete projection containing the literal target. The correction surface now preserves the same grant evidence and retry semantics without changing removal-domain rules.
+Follow-up review pass over the whole Story 4.2 change since `7e88a571`. Four independent review layers reported 61 findings; each was verified at its cited location before triage. The pass found one high-severity correctness defect that had shipped in the story's core evidence rule: the platform writes `EventsStored`/`EventsPublished` command statuses with no `EventCount` at all -- `CommandStatusRecord.EventCount` is documented and implemented as "Completed status only" -- so requiring a positive count for those two statuses reported the story's own positive event evidence as missing, on the grant page and the correction panel alike. Eight patch entries were applied and re-verified; five items were deferred with settlement criteria.
 
 ### Files Changed
 
-- `_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md` — records the intent, three review passes, deferred concurrent risks, verification evidence, and terminal result.
-- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` — adds cancellable preview composition, exact-attempt/final-arm guards, explicit focus behavior, same-ID recovery, and qualified projection confirmation.
-- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor` — adopts retained grant attempts, exposes honest same-ID delivery retry, and releases only terminal or qualified work.
-- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` — adds fail-closed localization recovery, delivery-retry copy, and evidence wording that does not promise downstream enforcement.
-- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` — provides parity-matched native-quality French preview, lifecycle, ambiguity, and recovery copy.
-- `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs` — maps retryable and non-caller transport failures to retained same-message ambiguity.
-- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs` — propagates preview cancellation and requires explicit resolved EN/FR facts with valid two-count formatting.
-- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionEvidence.cs` — carries the grant-specific readiness evidence consumed by the fail-closed action gate.
-- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs` — preserves ambiguous delivery retry semantics and qualified exact-command projection evidence.
-- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs` — retains support-safe ambiguity and recovery keys across renderer replacement.
-- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs` — preserves restore evidence, rejects unverified identity, applies opaque-token advancement, and keeps removal ambiguity terminal.
-- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs` — covers retained-identity retry, correction replacement, event-evidence retention, and qualified release.
-- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` — covers cancellation, supersession, final-arm races, exact focus targets, ambiguity, paging preservation, and every confirmation refusal.
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` — keeps correction rendering and support-safe audit copy covered.
-- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` — pins retryable transport mapping and caller-owned tracked identities.
-- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs` — covers missing, fallback, blank, key-echo, culture-specific, and malformed-count localization failures.
-- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorActionAvailabilityTests.cs` — verifies tracked-dispatch readiness remains independent and fail-closed.
-- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs` — covers mismatch, ambiguity adoption, stale-state clearing, opaque advancement, and removal isolation.
-- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs` — covers positive event evidence, unchanged/noncausal projection refusal, and honest retry recovery.
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs` -- qualifies `EventsStored`/`EventsPublished` on the status itself and keeps the positive-count requirement for `Completed`.
+- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs` -- same event-evidence correction, and `RequestSent` now takes exactly the identity its caller owns so the untracked revoke path no longer pairs a stale message id with a new correlation id.
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` -- routes every programmatic focus through a disconnect-safe helper, withdraws the delivery-retry action when the redispatch's own live prerequisites cannot hold, and drops a dead focus flag.
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs` -- resolves the fixed-key localization walk once per composition and fails closed on a missing French culture instead of throwing out of a render-path property.
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`, `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` -- remove the orphaned `Tenants.Correction.GlobalAdmin.AlreadyGranted` pair.
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs` -- replaces the fictional `EventCount` shapes with the ones the platform actually writes.
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- clicks the delivery-retry action and proves a same-identity redispatch, proves the action is withdrawn when its prerequisites lapse, and pins the target field's `disabled` state on both sides of preview invalidation.
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs` -- exercises the readiness gate against the real `IStringLocalizer<TenantsResources>` over the shipped resources, and ties the gate's key list to the keys a real preview renders.
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs` -- drops the stale localizer-double entry for the deleted resource key.
 
 ### Review Findings
 
-- Review pass 3 recorded 40 rows: high 11, medium 23, low 3, false 2, maybe-false 1.
-- Patches applied: 36 rows consolidated into 8 repair entries (`high 4`, `medium 2`, `low 2`). The grouped focus repair includes the maybe-false autofocus concern and replaces the uncertain mechanism with explicit focus calls.
-- Items deferred: 2 medium findings from separate concurrent changes — inactive workspace-tab browser visibility and Memories secret-store Aspire topology. Both are recorded in frontmatter with evidence and settlement criteria.
-- Rejected: the tenant-audit source scan does not hide a demonstrated user-facing violation; it excludes Razor code identifiers while resource, markup, render, and support-safety checks remain active.
-- Rejected: unrelated AppHost, workspace, and submodule changes are not Story 4.2 changes; commit history and the explicit story staging set keep them separate and they were neither edited nor reverted by this repair.
-- Follow-up review recommendation: true. This pass patched high-severity entries and at least two medium-severity entries.
+- Verdicts: 61 findings -- high 1, medium 16, low 37, false 7, maybe-false 0.
+- Patches applied: 8 entries -- high 1, medium 4, low 3. The high entry is the `EventCount` event-evidence correction; the mediums are the unguarded focus interop, the silent delivery-retry no-op (with its missing click test), the localization-gate cost and its missing real-resource coverage, and the stale revoke message id; the lows are the orphaned resource key, the dead focus flag, and the unpinned `disabled` term.
+- Items deferred: 4 new -- the workspace tab-panel assertions deleted inside this story's own commit `8da765ad` (which corrects the earlier entry's "separate concurrent commit" attribution), the absent browser lane for focus containment and viewport measurement, the sibling tracked dispatches that classify identical transport conditions differently, and the unpinned EventStore command-status contract. The two pre-existing deferred entries are preserved unchanged.
+- Rejected: 7 findings were disproved outright -- the `ConfigureAwait` circuit-crash claim (no `EventCallback` on that path), the unfiltered confirm catch (dispatch has its own bare catch), the tracking-property disagreement (the refresh path branches before it matters), pending-before-identity (pending is classified first), the cleared correlation id (`RequestSent` already nulled it), the null-snapshot support short-circuit (nothing is submittable without a snapshot), and opaque-token inequality (a deliberate documented design).
+- Rejected as low: the background-isolation finding (the focus sentinels contain Tab; only shell assistive-technology exposure remains and the fix is a layout restructure), the raw `<fluent-button>` downgrade (`FluentButton` exposes no `ElementReference`), the hardcoded culture set (those are the shipped resource sets), the grant-namespaced recovery copy (accurate for both flows), the "already a global administrator" state (the intent forbids `AlreadyApplied` for an existing target), and the remaining consistency/copy nits whose fixes exceed a direct correction.
+- Rejected as spec-editing: the five undeclared root gitlinks and the wider "carries unrelated material" finding -- both real and reproduced, but their only fix is to edit this build's spec File List.
+- Follow-up review recommendation: true. This pass patched a high-severity entry.
 
 ### Verification
 
-- Source-linked Debug build: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
-- Focused Story 4.2/correction lane: 549 passed, 0 failed, 0 skipped, 0 not run.
-- Full Debug UI assembly: 2,720 passed and 1 failed out of 2,721. The sole failure is the package-consumer restore case, which cannot resolve unpublished `Hexalith.EventStore.Client` and `Hexalith.EventStore.Contracts` version `999.1.20-proof.fa2d1c9910f8`; nearest published version is `3.100.1`.
-- Release UI-test build and full solution Release build stop during restore with the same `NU1102` unpublished-package condition before Story 4.2 compilation; no stale Release binary is claimed as evidence.
-- Story gitlink validation reports five root gitlinks moved by separate committed workspace synchronization: Builds, Commons, EventStore, FrontComposer, and PolymorphicSerializations. Story 4.2 neither owns nor reverts those pointers.
-- `git diff --check` passed, and the complete frontmatter parses as YAML.
-- Matrix audit: each of the eight intent-contract rows is represented in the passing 549-test lane, including preview eligibility, existing target, invalidation, ambiguity, unqualified status, qualified confirmation, noncausal projection, and cancel/Escape behavior.
-- An isolated current-Debug UI was launched against the existing Aspire endpoints and authenticated, but the local identity lacked the runtime global-administrator policy and the route redirected to AccessDenied; no unauthorized state or shared bootstrap identity was mutated.
-- `_bmad-output/implementation-artifacts/sprint-status.yaml` remained byte-for-byte outside the diff and staging set; its orchestrator row was not used as verification evidence.
+- Source-linked Debug build: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false` -- 0 warnings, 0 errors.
+- Full Debug UI lane: 2,725 tests, 2,724 passed, 1 failed, 0 skipped. The sole failure is `TenantsUiCompositionTests.TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost(useProjectReferences: False)`, the package-consumer restore case that cannot resolve unpublished `Hexalith.EventStore.Client`/`Hexalith.EventStore.Contracts` `999.1.20-proof.fa2d1c9910f8` (nearest published `3.100.1`). It is the same pre-existing environmental failure recorded by the previous pass and is unrelated to these changes.
+- Release lane: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false` still stops during restore with the same `NU1102` unpublished-package condition before compilation, unchanged from the previous pass. No stale Release binary is claimed as evidence.
+- `python3 scripts/validate-story-gitlinks.py ...` -- FAIL, 5 undeclared root pointer moves (Builds, Commons, EventStore, FrontComposer, PolymorphicSerializations) carried by separate committed workspace synchronization. Unchanged by this pass; declaring them would mean editing this build's spec.
+- `git diff --check` -- clean.
+- The complete frontmatter parses as YAML and `deferred` is one list of six items: the two prior entries plus the four appended here.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` and `_bmad-output/implementation-artifacts/deferred-work.md` were excluded from the reviewed diff and were neither read as evidence nor written.
 
 ### Residual Risks
 
+- The Design Notes still state that `EventsStored` and `EventsPublished` "are qualified like `Completed` only with positive exact-command event evidence". That sentence encodes the platform assumption this pass disproved; the code now follows the platform contract instead, so the note is the stale half and should be corrected by whoever owns the spec.
 - Package-mode and Release verification remain unavailable until the proof-version EventStore packages are published or the repository pin changes through its owning workflow.
-- Authenticated live-browser acceptance on `/global-administrators` still needs a runtime identity that satisfies the global-administrator policy; component focus behavior is covered by target-aware JS interop tests in the meantime.
-- Five unrelated committed root-submodule pointer moves keep the baseline-relative story-gitlink validator red; they are preserved as concurrent workspace state.
-- The two unrelated medium findings in frontmatter retain their own browser/Aspire settlement criteria and do not change Story 4.2 acceptance.
+- Authenticated live-browser acceptance on `/global-administrators` -- focus containment, background inertness, real viewport measurement -- is still absent and is now recorded as its own deferred item.
+- Five unrelated committed root-submodule pointer moves keep the baseline-relative story-gitlink validator red.

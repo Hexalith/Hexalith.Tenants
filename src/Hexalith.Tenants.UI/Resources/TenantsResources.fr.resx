@@ -3821,9 +3821,6 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value" xml:space="preserve">
     <value>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support.</value>
   </data>
-  <data name="Tenants.Correction.GlobalAdmin.AlreadyGranted" xml:space="preserve">
-    <value>La projection courante d'autorité de la plateforme montre déjà cet utilisateur comme administrateur global.</value>
-  </data>
   <data name="Tenants.Correction.GlobalAdmin.AlreadyRemoved" xml:space="preserve">
     <value>La projection courante d'autorité de la plateforme montre déjà que cet utilisateur n'est pas administrateur global.</value>
   </data>

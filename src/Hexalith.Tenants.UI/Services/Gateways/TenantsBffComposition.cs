@@ -51,8 +51,16 @@ internal sealed class TenantsBffComposition(
     public bool IsGlobalAdministratorRequeryConnected
         => readSurface?.IsConnected == true;
 
+    // The fixed-key completeness walk enumerates the whole resource table twice and swaps the ambient UI
+    // culture while it does so. Its inputs -- the compiled satellite resources and this instance's localizer
+    // -- cannot change for the lifetime of the composition, but the property is read several times per
+    // render of the global-administrators page (availability, confirm-disabled, and the final dispatch arm),
+    // so the walk is resolved once and reused. The per-preview overload below still evaluates its own keys.
+    private bool? _hasCompleteFixedGrantLocalization;
+
     public bool IsGlobalAdministratorGrantPreviewReady
-        => principalResolver is not null && HasCompleteGrantLocalization(RequiredGrantFactKeys);
+        => principalResolver is not null
+            && (_hasCompleteFixedGrantLocalization ??= HasCompleteGrantLocalization(RequiredGrantFactKeys));
 
     // The existing removal flow already renders and rechecks its dedicated complete-population preview.
     public bool IsGlobalAdministratorRemovePreviewReady => true;
@@ -123,9 +131,28 @@ internal sealed class TenantsBffComposition(
     }
 
     private bool HasCompleteGrantLocalization(IReadOnlyList<string?> requiredFactKeys)
-        => resourceLocalizer is not null
-            && HasCompleteGrantLocalization(CultureInfo.InvariantCulture, requiredFactKeys)
-            && HasCompleteGrantLocalization(CultureInfo.GetCultureInfo("fr"), requiredFactKeys);
+    {
+        if (resourceLocalizer is null)
+        {
+            return false;
+        }
+
+        CultureInfo french;
+        try
+        {
+            french = CultureInfo.GetCultureInfo("fr");
+        }
+        catch (CultureNotFoundException)
+        {
+            // Globalization-invariant or predefined-cultures-only hosting cannot prove the French facts
+            // resolve. This lookup sits outside the per-culture walk's own catch, so it fails closed here
+            // instead of throwing out of a property that is read while rendering.
+            return false;
+        }
+
+        return HasCompleteGrantLocalization(CultureInfo.InvariantCulture, requiredFactKeys)
+            && HasCompleteGrantLocalization(french, requiredFactKeys);
+    }
 
     private bool HasCompleteGrantLocalization(
         CultureInfo culture,

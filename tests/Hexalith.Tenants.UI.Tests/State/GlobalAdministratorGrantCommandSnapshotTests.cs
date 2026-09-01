@@ -13,17 +13,23 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
 {
     private const string MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
 
+    // The platform writes EventsStored/EventsPublished with no EventCount at all -- CommandStatusRecord
+    // documents the field as "Completed status only" and AggregateActor's advisory writes leave it null --
+    // so the null rows below are the shape the real gateway produces, not a lenient variant of it.
     [Theory]
-    [InlineData(CommandStatus.EventsStored)]
-    [InlineData(CommandStatus.EventsPublished)]
-    [InlineData(CommandStatus.Completed)]
+    [InlineData(CommandStatus.EventsStored, null)]
+    [InlineData(CommandStatus.EventsPublished, null)]
+    [InlineData(CommandStatus.EventsStored, 1)]
+    [InlineData(CommandStatus.EventsPublished, 1)]
+    [InlineData(CommandStatus.Completed, 1)]
     public void EventProducingStatusWithVerifiedIdentityCanConfirmOnlyAdvancedCompleteProjection(
-        CommandStatus status)
+        CommandStatus status,
+        int? eventCount)
     {
         GlobalAdministratorGrantCommandSnapshot pending = AcceptedAttempt()
             .ApplyStatus(new TenantCommandStatusResult(
                 status,
-                EventCount: 1,
+                EventCount: eventCount,
                 HasVerifiedCommandIdentity: true));
 
         pending.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
@@ -37,16 +43,18 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
+    // A completed command is the only status that reports how many events it produced, so it is the only
+    // one whose count can prove the absence of an event.
     [Theory]
-    [InlineData(CommandStatus.EventsStored)]
-    [InlineData(CommandStatus.EventsPublished)]
-    [InlineData(CommandStatus.Completed)]
-    public void EventProducingStatusWithoutPositiveEventCountCannotConfirm(CommandStatus status)
+    [InlineData(0)]
+    [InlineData(null)]
+    public void CompletedStatusWithoutPositiveEventCountCannotConfirm(int? eventCount)
     {
+        CommandStatus status = CommandStatus.Completed;
         GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt()
             .ApplyStatus(new TenantCommandStatusResult(
                 status,
-                EventCount: 0,
+                EventCount: eventCount,
                 HasVerifiedCommandIdentity: true));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);

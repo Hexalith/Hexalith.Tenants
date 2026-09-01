@@ -2546,12 +2546,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         TenantAggregateCommandLease previewLease =
             PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
 
+        // bUnit dispatches `onchange` regardless of `disabled`, so the invalidation branch below is only
+        // reachable in a browser if the control is actually still live. Pin the production control too:
+        // while a preview is open the field is disabled, which is what stops the retarget the branch guards.
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']")
+            .HasAttribute("disabled").ShouldBeTrue();
+
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-b");
 
         GlobalAdministratorGrantCommandSnapshot invalidated =
             PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
         invalidated.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         invalidated.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Invalidated");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']")
+            .HasAttribute("disabled").ShouldBeFalse();
         PrivateField<TenantAggregateCommandLease?>(cut.Instance, "_grantAdmissionLease").ShouldBeNull();
         previewLease.TryAbandonBeforeDispatch(new object()).ShouldBeFalse();
         TenantAggregateCommandAdmissionGate gate =
@@ -2746,10 +2754,56 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         adopted.MessageId.ShouldBe(messageId);
         adopted.IsSubmissionAmbiguous.ShouldBeTrue();
         adopted.BaselineProjectionVersion.ShouldBe("projection-v1");
-        replacement.Find("[data-testid='tenants-global-admin-grant-refresh']").TextContent
-            .ShouldContain("Retry delivery", Case.Insensitive);
+        IElement retry = replacement.Find("[data-testid='tenants-global-admin-grant-refresh']");
+        retry.TextContent.ShouldContain("Retry delivery", Case.Insensitive);
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+
+        // The control advertises a redispatch, so pressing it must actually perform one, on the retained
+        // identity. Asserting only the label left the handler's live-prerequisite guard free to return
+        // silently while the button still invited the click.
+        retry.HasAttribute("disabled").ShouldBeFalse();
+        await replacement.Find("[data-testid='tenants-global-admin-grant-refresh']").ClickAsync(new MouseEventArgs());
+        await WaitUntilAsync(() => commandGateway.SetGlobalAdministratorCalls == 3, TimeSpan.FromSeconds(5));
+        commandGateway.GrantMessageIds.ShouldAllBe(id => id == messageId);
+    }
+
+    [Fact]
+    public void AmbiguousGrantDeliveryRetryIsWithdrawnWhenItsDispatchPrerequisitesLapse()
+    {
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        PreviewAcknowledgeAndConfirmGrant(cut);
+
+        cut.Find("[data-testid='tenants-global-admin-grant-refresh']").TextContent
+            .ShouldContain("Retry delivery", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-grant-refresh']")
+            .HasAttribute("disabled").ShouldBeFalse();
+
+        // A safe measured viewport is one of the live prerequisites the redispatch itself rechecks. Once it
+        // lapses the action must stop advertising a retry it would then refuse, instead of accepting a click
+        // that returns silently.
+        Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        cut.Render();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-grant-refresh']")
+            .HasAttribute("disabled").ShouldBeTrue());
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
     }
 
     [Fact]
