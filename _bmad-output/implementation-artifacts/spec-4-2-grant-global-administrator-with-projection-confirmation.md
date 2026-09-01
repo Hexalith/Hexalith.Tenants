@@ -288,7 +288,7 @@ deferred:
 - KEEP: preserve the fixed identity, exact literal target, caller-owned canonical ULID, complete bounded reads, exact-command event evidence plus differing opaque projection version, same-id ambiguous recovery, last-confirmed rows, authoritative authorization collapse, paged display contract, support-safe diagnostics, and every warning-clean focused/full test that still expresses the corrected behavior.
 
 ### 2026-09-01 — Escalation resolution
-- Decision: keep the provider-neutral Story 29.2 resource-builder API canonical; publish Hexalith.Memories.Aspire with that signature and update the Hexalith.Builds `HexalithMemoriesVersion` pin before re-arming Story 4.2.
+- Human-confirmed decision: keep the provider-neutral Story 29.2 resource-builder API canonical; publish Hexalith.Memories.Aspire with that signature and update the Hexalith.Builds `HexalithMemoriesVersion` pin before re-arming Story 4.2.
 - Gate: retain the full-solution Release build unchanged. A Tenants rollback to the removed path-based overload, a source-only success, or a Release-gate waiver does not resolve this story.
 
 ## Review Triage Log
