@@ -174,6 +174,21 @@
     padding: 0.75rem;
 }
 
+/* fc-css-exception: the semantic grant-preview section is the modal focus surface, and neither Fluent
+   nor FrontComposer exposes an element-reference-capable dialog primitive for this focus-contained flow. */
+.global-admins__grant-preview {
+    background: var(--colorNeutralBackground1);
+    box-shadow: var(--shadow16);
+    inline-size: min(48rem, calc(100vw - 2rem));
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    max-block-size: 90vh;
+    overflow-y: auto;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
 .global-admins__grant-lifecycle p,
 .global-admins__grant-preview p,
 .global-admins__grant-preview-grid dd,
@@ -262,6 +277,10 @@
 }
 
 @media (forced-colors: active) {
+    .global-admins__grant-preview {
+        border: 2px solid CanvasText;
+    }
+
     .global-admins__scope,
     .global-admins__state,
     .global-admins__grant,

@@ -37,6 +37,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 using NSubstitute;
 
@@ -3260,6 +3261,54 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .ShouldBeFalse("hoisting the launcher rule out of the media query hides mutation affordances at every width");
         mobileBreakpoint.Contains("::deep .global-admins__mutation-initiation", StringComparison.Ordinal)
             .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GrantPreviewStylesPresentAsElevatedViewportBoundedModal()
+    {
+        string styles = File.ReadAllText(Path.Combine(
+            ProjectRoot(),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Pages",
+            "GlobalAdministratorsPage.razor.css"));
+        int ruleStart = styles.IndexOf(".global-admins__grant-preview {", StringComparison.Ordinal);
+        ruleStart.ShouldBeGreaterThan(-1);
+        int ruleEnd = styles.IndexOf('}', ruleStart);
+        ruleEnd.ShouldBeGreaterThan(ruleStart);
+        string modalRule = styles[ruleStart..ruleEnd];
+
+        modalRule.ShouldContain("background: var(--colorNeutralBackground1)");
+        modalRule.ShouldContain("box-shadow: var(--shadow16)");
+        modalRule.ShouldContain("inset-block-start: 50%");
+        modalRule.ShouldContain("inset-inline-start: 50%");
+        modalRule.ShouldContain("max-block-size: 90vh");
+        modalRule.ShouldContain("overflow-y: auto");
+        modalRule.ShouldContain("position: fixed");
+        modalRule.ShouldContain("transform: translate(-50%, -50%)");
+        styles.ShouldContain("border: 2px solid CanvasText");
+    }
+
+    [Fact]
+    public async Task GrantFocusHelperSwallowsDetachedElementJsException()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a")));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
+            .SetException(new JSException("Focus target detached."));
+        MethodInfo helper = typeof(GlobalAdministratorsPage).GetMethod(
+            "FocusSafelyAsync",
+            BindingFlags.Static | BindingFlags.NonPublic).ShouldNotBeNull();
+        ElementReference launcher = PrivateField<ElementReference>(cut.Instance, "_grantLauncherElement");
+
+        Task invocation = (Task)helper.Invoke(null, [launcher])!;
+        await invocation;
     }
 
     /// <summary>

@@ -21,17 +21,35 @@ internal sealed class TenantsBffComposition(
     TenantConfigurationReadPolicyProvider? policyProvider = null,
     ITenantsReadSurfaceAvailability? readSurface = null,
     IStringLocalizer<TenantsResources>? resourceLocalizer = null) : ITenantsBffComposition {
-    private static readonly string?[] RequiredGrantFactKeys =
+    /// <summary>Gets every localized string required to render or safely fail the grant-preview interaction.</summary>
+    internal static IReadOnlyList<string> RequiredGrantFactKeys { get; } =
     [
+        "Tenants.GlobalAdministrators.Grant.Preview.Launch",
+        "Tenants.GlobalAdministrators.Grant.Preview.Title",
+        "Tenants.GlobalAdministrators.Grant.Preview.Scope",
         "Tenants.GlobalAdministrators.Grant.Preview.Scope.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Target",
+        "Tenants.GlobalAdministrators.Grant.Preview.Counts",
         "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange",
         "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Freshness",
         "Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Recovery",
         "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Audit",
         "Tenants.GlobalAdministrators.Grant.Preview.Audit.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext",
         "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences",
         "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns",
         "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value",
+        "Tenants.GlobalAdministrators.Grant.Preview.Acknowledge",
+        "Tenants.GlobalAdministrators.Grant.Preview.Confirm",
+        "Tenants.GlobalAdministrators.Grant.Cancel",
+        "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization",
+        "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization",
     ];
 
     // Reads the composition decision rather than resolving ITenantQueryGateway, which would close a
@@ -110,19 +128,7 @@ internal sealed class TenantsBffComposition(
             return preview;
         }
 
-        string?[] requiredFactKeys =
-        [
-            preview.ScopeFactKey,
-            "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
-            preview.AuthorityChangeFactKey,
-            preview.FreshnessFactKey,
-            preview.RecoveryFactKey,
-            preview.AuditFactKey,
-            preview.CallerTargetContextFactKey,
-            preview.KnownConsequencesFactKey,
-            preview.KnownUnknownsFactKey,
-        ];
-        return HasCompleteGrantLocalization(requiredFactKeys)
+        return HasCompleteGrantLocalization(RequiredGrantFactKeys)
             ? preview
             : GlobalAdministratorGrantPreview.Unavailable(
                 targetUserId,

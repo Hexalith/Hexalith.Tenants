@@ -147,12 +147,37 @@ public sealed class TenantsBffCompositionTests
             preview.KnownConsequencesFactKey!,
             preview.KnownUnknownsFactKey!,
         ];
+        string[] renderedChromeKeys =
+        [
+            "Tenants.GlobalAdministrators.Grant.Preview.Launch",
+            "Tenants.GlobalAdministrators.Grant.Preview.Title",
+            "Tenants.GlobalAdministrators.Grant.Preview.Scope",
+            "Tenants.GlobalAdministrators.Grant.Preview.Target",
+            "Tenants.GlobalAdministrators.Grant.Preview.Counts",
+            "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange",
+            "Tenants.GlobalAdministrators.Grant.Preview.Freshness",
+            "Tenants.GlobalAdministrators.Grant.Preview.Recovery",
+            "Tenants.GlobalAdministrators.Grant.Preview.Audit",
+            "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext",
+            "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences",
+            "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns",
+            "Tenants.GlobalAdministrators.Grant.Preview.Acknowledge",
+            "Tenants.GlobalAdministrators.Grant.Preview.Confirm",
+            "Tenants.GlobalAdministrators.Grant.Cancel",
+        ];
 
-        renderedFactKeys.Length.ShouldBe(RequiredGrantResourceKeys.Length);
-        foreach (string key in renderedFactKeys)
+        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(26);
+        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(26);
+        foreach (string key in renderedFactKeys.Concat(renderedChromeKeys))
         {
             key.ShouldNotBeNullOrWhiteSpace();
+            TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(key);
         }
+
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
     }
 
     [Fact]
@@ -198,18 +223,17 @@ public sealed class TenantsBffCompositionTests
         preview.IsComplete.ShouldBeTrue();
     }
 
-    [Fact]
-    public async Task GrantPreviewFailsClosedWhenARequiredLocalizedFactIsUnresolved()
+    [Theory]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Counts.Value")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Title")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Cancel")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization")]
+    public async Task GrantPreviewFailsClosedWhenARequiredLocalizedStringIsUnresolved(string unresolvedKey)
     {
-        const string unresolvedKey = "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value";
-        IStringLocalizer<TenantsResources> localizer = Substitute.For<IStringLocalizer<TenantsResources>>();
-        localizer[Arg.Any<string>()].Returns(callInfo =>
-        {
-            string key = callInfo.Arg<string>();
-            return string.Equals(key, unresolvedKey, StringComparison.Ordinal)
-                ? new LocalizedString(key, key, resourceNotFound: true)
-                : new LocalizedString(key, $"resolved:{key}", resourceNotFound: false);
-        });
+        IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(
+            (_, candidate) => string.Equals(candidate, unresolvedKey, StringComparison.Ordinal)
+                ? candidate
+                : DefaultGrantResourceValue(candidate));
         var composition = new TenantsBffComposition(
             new UnavailableTenantCommandGateway(),
             principalResolver: new StubPrincipalResolver(
@@ -820,7 +844,7 @@ public sealed class TenantsBffCompositionTests
             string localizedValue = resolve(CultureInfo.CurrentUICulture, key);
             return new LocalizedString(key, localizedValue, resourceNotFound: false);
         });
-        localizer.GetAllStrings(includeParentCultures: false).Returns(_ => RequiredGrantResourceKeys
+        localizer.GetAllStrings(includeParentCultures: false).Returns(_ => TenantsBffComposition.RequiredGrantFactKeys
             .Where(key => contains(CultureInfo.CurrentUICulture, key))
             .Select(key => new LocalizedString(
                 key,
@@ -829,19 +853,6 @@ public sealed class TenantsBffCompositionTests
             .ToArray());
         return localizer;
     }
-
-    private static readonly string[] RequiredGrantResourceKeys =
-    [
-        "Tenants.GlobalAdministrators.Grant.Preview.Scope.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.AuthorityChange.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.Freshness.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.Audit.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.CallerTargetContext.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.KnownConsequences.Value",
-        "Tenants.GlobalAdministrators.Grant.Preview.KnownUnknowns.Value",
-    ];
 
     private static string DefaultGrantResourceValue(string key)
         => string.Equals(

@@ -120,6 +120,33 @@ public sealed class TenantCommandGatewayTests
         client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, TenantCommandLifecycleState.Failed)]
+    [InlineData(HttpStatusCode.Unauthorized, TenantCommandLifecycleState.Rejected)]
+    [InlineData(HttpStatusCode.Forbidden, TenantCommandLifecycleState.Rejected)]
+    [InlineData(HttpStatusCode.Conflict, TenantCommandLifecycleState.Failed)]
+    public async Task NonRetryableGrantRejectionsStayTerminal(
+        HttpStatusCode statusCode,
+        TenantCommandLifecycleState expectedState)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)statusCode,
+            "definite rejection",
+            retryable: false));
+
+        TenantCommandSubmissionResult result = await CreateGateway(client)
+            .SetGlobalAdministratorTrackedAsync(
+                new SetGlobalAdministrator("target-admin"),
+                messageId,
+                CancellationToken.None);
+
+        result.State.ShouldBe(expectedState);
+        result.IsAmbiguousFailure.ShouldBeFalse();
+        result.MessageId.ShouldBe(messageId);
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+    }
+
     [Fact]
     public async Task GlobalAdministratorStatusVerifiesFixedAggregateTrackingHandle()
     {
