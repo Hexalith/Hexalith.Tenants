@@ -2782,3 +2782,11 @@ source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.m
 severity: low
 reason: Every status assertion is fed by a stub. This pass corrected one concrete assumption -- that EventsStored/EventsPublished carry an EventCount -- only by reading AggregateActor and CommandStatusRecord in the submodule. A contract or integration test over a real command-status response would settle the remaining assumptions the same way.
 status: open
+
+### DW-341: `scripts/publish-partial-release.sh` reads `HEXALITH_RELEASE_PACKAGE_MANIFEST` into a `manifest` variable that no command ever consumes, so an operator override is silently ignored.
+origin: spec-deferred 6dcaa0451f25
+location: scripts/publish-partial-release.sh:6
+source_spec: `spec-package-boundary-source.md`
+severity: low
+reason: `scripts/publish-partial-release.sh:6` assigns `manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"` and no later line references `$manifest`; `grep -n manifest scripts/publish-partial-release.sh` returns line 6 only. The variable was already dead at `bbb0b11a` (the file is untouched by this change), and `scripts/pack-release-packages.py` accepts no manifest argument either, so threading the new `--manifest` flag alone would not make the override effective. Pre-existing, not caused by this story.
+status: open

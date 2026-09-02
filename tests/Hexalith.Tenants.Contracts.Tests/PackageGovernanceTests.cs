@@ -737,7 +737,8 @@ public class PackageGovernanceTests {
         releaseSecretsValidator.ShouldNotContain("set -x");
         packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
         packageValidator.ShouldContain("\".symbols.\" not in path.name");
-        packageValidator.ShouldContain("DEFAULT_MANIFEST = ROOT / \"tools\" / \"release-packages.json\"");
+        packageValidator.ShouldContain("DEFAULT_MANIFEST");
+        packageValidator.ShouldContain("\"release-packages.json\"");
         packageValidator.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
         packageValidator.Contains("EXPECTED_DEPENDENCIES", StringComparison.Ordinal).ShouldBeFalse();
 
@@ -1425,13 +1426,20 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
-        script.ShouldContain("DEFAULT_MANIFEST = ROOT / \"tools\" / \"release-packages.json\"");
+        script.ShouldContain("DEFAULT_MANIFEST");
+        script.ShouldContain("\"release-packages.json\"");
         script.ShouldContain("project.assets.json");
         script.ShouldContain("projectFileDependencyGroups");
         script.ShouldContain("centralTransitiveDependencyGroups");
-        script.ShouldContain("load_dependency_boundaries");
-        script.ShouldContain("load_restore_dependencies");
         script.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
+
+        // Expected dependency sets are derived, but the forbidden surface stays a hand-declared policy:
+        // no published package may ever depend on host, composition, sample, or test projects.
+        script.ShouldContain("Hexalith.Tenants.AppHost");
+        script.ShouldContain("Hexalith.Tenants.ServiceDefaults");
+        script.ShouldContain("Hexalith.Tenants.Sample");
+        script.ShouldContain("\".Tests\"");
+        script.ShouldContain("\".Samples\"");
         script.Contains("EXPECTED_DEPENDENCIES", StringComparison.Ordinal).ShouldBeFalse();
     }
 

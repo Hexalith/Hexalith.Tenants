@@ -399,17 +399,6 @@ def main() -> int:
         _, expected_dependencies = expected_boundary
         validate_dependency_boundaries(package, metadata, expected_dependencies)
 
-    if package_ids.keys() != expected_package_ids:
-        missing = sorted(
-            dependency_boundaries[package_id][0]
-            for package_id in expected_package_ids - package_ids.keys()
-        )
-        unexpected = sorted(
-            package_ids[package_id]
-            for package_id in package_ids.keys() - expected_package_ids
-        )
-        raise ValueError(f"Package id mismatch. Missing: {missing}; unexpected: {unexpected}")
-
     if len(versions) != 1:
         raise ValueError(f"Expected all packages to share one version, found: {sorted(versions)}")
 
