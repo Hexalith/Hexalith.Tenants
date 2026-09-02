@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Text.Json;
 
 using Shouldly;
 
@@ -226,162 +227,235 @@ public class CiQualityGateScriptTests {
     }
 
     [Fact]
-    public async Task Package_validator_accepts_exact_packages_and_ignores_symbols_packages() {
+    public async Task PackageValidatorAcceptsIndependentRestoreEvidenceAndIgnoresSymbolsPackages() {
         string repoRoot = FindRepoRoot();
         using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(
+            temp.Path,
+            project,
+            "Fixture.Package",
+            ["Fixture.Direct"],
+            ["Fixture.Transitive"]);
 
-        foreach (string packageId in ExpectedPackageIds) {
-            WritePackage(temp.Path, packageId, "1.2.3", includeLicense: true);
-            WritePackage(temp.Path, $"{packageId}.symbols", "1.2.3", includeLicense: true, fileName: $"{packageId}.symbols.nupkg");
-        }
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["Fixture.Direct", "Fixture.Transitive"]);
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package.symbols",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: [],
+            fileName: "Fixture.Package.symbols.nupkg");
 
         CommandResult result = await RunAsync(
             repoRoot,
             "python3",
-            $"scripts/validate-nuget-packages.py {Quote(temp.Path)}");
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
 
         result.ExitCode.ShouldBe(0, result.Output);
-        result.Output.ShouldContain("Validated 5 NuGet packages at version 1.2.3");
+        result.Output.ShouldContain("Validated 1 NuGet packages at version 1.2.3");
+        result.Output.ShouldContain("Fixture.Direct, Fixture.Transitive");
     }
 
     [Fact]
-    public async Task Package_validator_fails_before_publish_when_required_metadata_is_missing() {
+    public async Task PackageValidatorComparesNuGetIdsCaseInsensitivelyAndReportsCanonicalSpellings() {
         string repoRoot = FindRepoRoot();
         using TemporaryDirectory temp = new();
-
-        foreach (string packageId in ExpectedPackageIds) {
-            WritePackage(temp.Path, packageId, "1.2.3", includeLicense: packageId != "Hexalith.Tenants.Server");
-        }
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(
+            temp.Path,
+            project,
+            "Fixture.Package",
+            ["Fixture.Direct"],
+            ["Fixture.Transitive"]);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "fixture.package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["fixture.direct", "fixture.transitive"]);
 
         CommandResult result = await RunAsync(
             repoRoot,
             "python3",
-            $"scripts/validate-nuget-packages.py {Quote(temp.Path)}");
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
 
-        result.ExitCode.ShouldBe(1, result.Output);
-        result.Error.ShouldContain("Hexalith.Tenants.Server.1.2.3.nupkg: missing license metadata");
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Output.ShouldContain("- Fixture.Package dependencies: Fixture.Direct, Fixture.Transitive");
+        result.Output.Contains("- fixture.package dependencies:", StringComparison.Ordinal).ShouldBeFalse();
     }
 
-    private static readonly string[] ExpectedPackageIds =
-    [
-        "Hexalith.Tenants.Contracts",
-        "Hexalith.Tenants.Client",
-        "Hexalith.Tenants.Server",
-        "Hexalith.Tenants.Testing",
-        "Hexalith.Tenants.Aspire",
-    ];
+    [Fact]
+    public async Task PackageValidatorFailsBeforePublishWhenRequiredMetadataIsMissing() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(temp.Path, project, "Fixture.Package", [], []);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: false,
+            dependencyIds: []);
 
-    // Mirrors EXPECTED_DEPENDENCIES in scripts/validate-nuget-packages.py so synthetic fixtures satisfy the
-    // dependency-boundary validation added in Story 1.4 and keep isolating license/symbol/version behavior.
-    private static readonly Dictionary<string, string[]> ExpectedDependencies = new(StringComparer.Ordinal) {
-        ["Hexalith.Tenants.Contracts"] = ["ByteAether.Ulid", "Hexalith.Commons.UniqueIds", "Hexalith.EventStore.Contracts"],
-        ["Hexalith.Tenants.Client"] =
-        [
-            "ByteAether.Ulid",
-            "Dapr.AspNetCore",
-            "Dapr.Client",
-            "Hexalith.Commons.UniqueIds",
-            "Hexalith.EventStore.Client",
-            "Hexalith.EventStore.Contracts",
-            "Hexalith.Tenants.Contracts",
-        ],
-        ["Hexalith.Tenants.Server"] =
-        [
-            "ByteAether.Ulid",
-            "Dapr.Actors",
-            "Dapr.Actors.AspNetCore",
-            "Dapr.Client",
-            "FluentValidation",
-            "Hexalith.Commons.UniqueIds",
-            "Hexalith.EventStore.Client",
-            "Hexalith.EventStore.Contracts",
-            "Hexalith.EventStore.Server",
-            "Hexalith.Tenants.Contracts",
-            "MediatR",
-            "Microsoft.AspNetCore.DataProtection.Abstractions",
-            "Microsoft.Extensions.Configuration",
-            "Microsoft.Extensions.Configuration.Abstractions",
-            "Microsoft.Extensions.Configuration.Binder",
-            "Microsoft.Extensions.DependencyInjection",
-            "Microsoft.Extensions.DependencyInjection.Abstractions",
-            "Microsoft.Extensions.Diagnostics.Abstractions",
-            "Microsoft.Extensions.Hosting.Abstractions",
-            "Microsoft.Extensions.Http",
-            "Microsoft.Extensions.Http.Resilience",
-            "Microsoft.Extensions.Logging.Abstractions",
-            "Microsoft.Extensions.Options",
-            "Microsoft.Extensions.Options.ConfigurationExtensions",
-            "Microsoft.IdentityModel.Abstractions",
-            "Microsoft.IdentityModel.JsonWebTokens",
-            "Microsoft.IdentityModel.Logging",
-            "Microsoft.IdentityModel.Tokens",
-        ],
-        ["Hexalith.Tenants.Testing"] =
-        [
-            "ByteAether.Ulid",
-            "Dapr.Actors",
-            "Dapr.Actors.AspNetCore",
-            "Dapr.Client",
-            "FluentValidation",
-            "Hexalith.Commons.UniqueIds",
-            "Hexalith.EventStore.Client",
-            "Hexalith.EventStore.Contracts",
-            "Hexalith.EventStore.Server",
-            "Hexalith.Tenants.Contracts",
-            "Hexalith.Tenants.Server",
-            "MediatR",
-            "Microsoft.AspNetCore.DataProtection.Abstractions",
-            "Microsoft.Extensions.Configuration",
-            "Microsoft.Extensions.Configuration.Abstractions",
-            "Microsoft.Extensions.Configuration.Binder",
-            "Microsoft.Extensions.DependencyInjection",
-            "Microsoft.Extensions.DependencyInjection.Abstractions",
-            "Microsoft.Extensions.Diagnostics.Abstractions",
-            "Microsoft.Extensions.Hosting.Abstractions",
-            "Microsoft.Extensions.Http",
-            "Microsoft.Extensions.Http.Resilience",
-            "Microsoft.Extensions.Logging.Abstractions",
-            "Microsoft.Extensions.Options",
-            "Microsoft.Extensions.Options.ConfigurationExtensions",
-            "Microsoft.IdentityModel.Abstractions",
-            "Microsoft.IdentityModel.JsonWebTokens",
-            "Microsoft.IdentityModel.Logging",
-            "Microsoft.IdentityModel.Tokens",
-            "Shouldly",
-            "xunit.v3.assert",
-        ],
-        ["Hexalith.Tenants.Aspire"] =
-        [
-            "Aspire.Hosting",
-            "Aspire.Hosting.Keycloak",
-            "Aspire.Hosting.Redis",
-            "CommunityToolkit.Aspire.Hosting.Dapr",
-            "Grpc.Net.ClientFactory",
-            "Hexalith.EventStore.Aspire",
-            "MessagePack",
-            "ModelContextProtocol",
-            "Microsoft.Extensions.Configuration",
-            "Microsoft.Extensions.Configuration.Abstractions",
-            "Microsoft.Extensions.Configuration.Binder",
-            "Microsoft.Extensions.Configuration.FileExtensions",
-            "Microsoft.Extensions.Configuration.UserSecrets",
-            "Microsoft.Extensions.DependencyInjection",
-            "Microsoft.Extensions.DependencyInjection.Abstractions",
-            "Microsoft.Extensions.Diagnostics.Abstractions",
-            "Microsoft.Extensions.Hosting",
-            "Microsoft.Extensions.Hosting.Abstractions",
-            "Microsoft.Extensions.Http",
-            "Microsoft.Extensions.Logging.Abstractions",
-            "Microsoft.Extensions.Options",
-            "Microsoft.Extensions.Options.ConfigurationExtensions",
-            "Newtonsoft.Json",
-            "OpenTelemetry",
-            "OpenTelemetry.Exporter.OpenTelemetryProtocol",
-            "OpenTelemetry.Extensions.Hosting",
-            "StackExchange.Redis",
-            "YamlDotNet",
-        ],
-    };
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("Fixture.Package.1.2.3.nupkg: missing license metadata");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsUnexpectedDependencyAbsentFromRestoreEvidence() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(temp.Path, project, "Fixture.Package", ["Fixture.Direct"], []);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["Fixture.Direct", "Fixture.Unexpected"]);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("unexpected: ['Fixture.Unexpected']");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsDependencyMissingFromPackageMetadata() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(
+            temp.Path,
+            project,
+            "Fixture.Package",
+            ["Fixture.Direct"],
+            ["Fixture.Transitive"]);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["Fixture.Direct"]);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("Missing: ['Fixture.Transitive']");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsMissingRestoreEvidenceBeforeInspectingPackages() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(Path.Combine(temp.Path, "missing-packages"))} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("Restore assets are missing for Fixture.Package");
+        result.Error.ShouldNotContain("Expected 1 packages");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsMalformedRestoreEvidence() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        string assetsPath = Path.Combine(temp.Path, Path.GetDirectoryName(project)!, "obj", "project.assets.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(assetsPath)!);
+        File.WriteAllText(assetsPath, "{");
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(Path.Combine(temp.Path, "missing-packages"))} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("Restore assets");
+        result.Error.ShouldContain("is unusable");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsRestoreEvidenceAttributedToAnotherPackage() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(temp.Path, project, "Other.Package", [], []);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: []);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("identify package 'Other.Package', expected 'Fixture.Package'");
+    }
+
+    [Fact]
+    public async Task PackageValidatorRejectsForbiddenDependencyEvenWhenRestoreEvidenceIncludesIt() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(temp.Path, project, "Fixture.Package", ["hexalith.tenants.apphost"], []);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Fixture.Package",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["hexalith.tenants.apphost"]);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("forbidden projects");
+        result.Error.ShouldContain("hexalith.tenants.apphost");
+    }
 
     private static string CoverageClass(string filename, string[] lines)
         => $"""
@@ -416,20 +490,80 @@ public class CiQualityGateScriptTests {
             """);
     }
 
+    private static string WriteReleaseManifest(string projectRoot, string packageId, string projectRelativePath) {
+        string projectPath = Path.Combine(projectRoot, projectRelativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(projectPath)!);
+        File.WriteAllText(projectPath, "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+
+        string manifestPath = Path.Combine(projectRoot, "release-packages.json");
+        File.WriteAllText(
+            manifestPath,
+            JsonSerializer.Serialize(
+                new {
+                    packages = new[] {
+                        new {
+                            id = packageId,
+                            project = projectRelativePath,
+                        },
+                    },
+                }));
+        return manifestPath;
+    }
+
+    private static void WriteRestoreEvidence(
+        string projectRoot,
+        string projectRelativePath,
+        string packageId,
+        string[] directDependencyIds,
+        string[] transitiveDependencyIds) {
+        string projectPath = Path.GetFullPath(Path.Combine(projectRoot, projectRelativePath));
+        string assetsPath = Path.Combine(Path.GetDirectoryName(projectPath)!, "obj", "project.assets.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(assetsPath)!);
+
+        Dictionary<string, object> transitiveDependencies = new(StringComparer.Ordinal);
+        foreach (string dependencyId in transitiveDependencyIds) {
+            transitiveDependencies.Add(dependencyId, new { version = "[1.0.0, )" });
+        }
+
+        object evidence = new {
+            version = 4,
+            projectFileDependencyGroups = new Dictionary<string, string[]>(StringComparer.Ordinal) {
+                ["net10.0"] = Array.ConvertAll(directDependencyIds, id => $"{id} >= 1.0.0"),
+            },
+            centralTransitiveDependencyGroups = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal) {
+                ["net10.0"] = transitiveDependencies,
+            },
+            project = new {
+                restore = new {
+                    projectPath,
+                    projectName = packageId,
+                    projectStyle = "PackageReference",
+                    originalTargetFrameworks = new[] { "net10.0" },
+                },
+                frameworks = new Dictionary<string, object>(StringComparer.Ordinal) {
+                    ["net10.0"] = new { framework = "net10.0" },
+                },
+            },
+        };
+        File.WriteAllText(assetsPath, JsonSerializer.Serialize(evidence));
+    }
+
     private static void WritePackage(
         string packageDirectory,
         string packageId,
         string version,
         bool includeLicense,
+        string[] dependencyIds,
         string? fileName = null) {
+        Directory.CreateDirectory(packageDirectory);
         string path = Path.Combine(packageDirectory, fileName ?? $"{packageId}.{version}.nupkg");
         using ZipArchive package = ZipFile.Open(path, ZipArchiveMode.Create);
-        WriteZipEntry(package, $"{packageId}.nuspec", Nuspec(packageId, version, includeLicense));
+        WriteZipEntry(package, $"{packageId}.nuspec", Nuspec(packageId, version, includeLicense, dependencyIds));
         WriteZipEntry(package, "README.md", $"# {packageId}");
     }
 
-    private static string Nuspec(string packageId, string version, bool includeLicense) {
-        string dependencies = ExpectedDependencies.TryGetValue(packageId, out string[]? dependencyIds) && dependencyIds.Length > 0
+    private static string Nuspec(string packageId, string version, bool includeLicense, string[] dependencyIds) {
+        string dependencies = dependencyIds.Length > 0
             ? "<dependencies><group targetFramework=\"net10.0\">"
                 + string.Concat(Array.ConvertAll(dependencyIds, id => $"<dependency id=\"{id}\" version=\"1.0.0\" />"))
                 + "</group></dependencies>"

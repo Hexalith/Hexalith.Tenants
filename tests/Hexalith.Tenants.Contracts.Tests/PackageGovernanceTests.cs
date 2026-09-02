@@ -737,13 +737,9 @@ public class PackageGovernanceTests {
         releaseSecretsValidator.ShouldNotContain("set -x");
         packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
         packageValidator.ShouldContain("\".symbols.\" not in path.name");
-        packageValidator.ShouldContain("EXPECTED_DEPENDENCIES");
+        packageValidator.ShouldContain("DEFAULT_MANIFEST = ROOT / \"tools\" / \"release-packages.json\"");
         packageValidator.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
-
-        GetPythonStringCollectionEntries(packageValidator, "EXPECTED_PACKAGE_IDS")
-            .ToHashSet(StringComparer.Ordinal)
-            .SetEquals(ExpectedPackageIds)
-            .ShouldBeTrue("The release validator must enumerate exactly the expected package ids.");
+        packageValidator.Contains("EXPECTED_DEPENDENCIES", StringComparison.Ordinal).ShouldBeFalse();
 
         foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
             workflow.ShouldNotContain(forbiddenFragment);
@@ -1425,24 +1421,18 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
-    public void NuGet_package_validator_enforces_dependency_boundaries() {
+    public void NuGet_package_validator_derives_boundaries_from_manifest_and_restore_evidence() {
         string repoRoot = FindRepoRoot();
         string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
-        foreach (string packageId in ExpectedPackageIds) {
-            script.ShouldContain(packageId);
-        }
-
-        script.ShouldContain("Hexalith.EventStore.Contracts");
-        script.ShouldContain("Hexalith.EventStore.Server");
-        script.ShouldContain("Dapr.AspNetCore");
-        script.ShouldContain("Dapr.Client");
-        // AppHost/ServiceDefaults remain in the validator's forbidden-dependency surface even though the
-        // per-domain projects were removed — no published package may ever depend on such host/composition ids.
-        script.ShouldContain("Hexalith.Tenants.AppHost");
-        script.ShouldContain("Hexalith.Tenants.ServiceDefaults");
-        script.ShouldContain("samples");
-        script.ShouldContain("dependency");
+        script.ShouldContain("DEFAULT_MANIFEST = ROOT / \"tools\" / \"release-packages.json\"");
+        script.ShouldContain("project.assets.json");
+        script.ShouldContain("projectFileDependencyGroups");
+        script.ShouldContain("centralTransitiveDependencyGroups");
+        script.ShouldContain("load_dependency_boundaries");
+        script.ShouldContain("load_restore_dependencies");
+        script.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
+        script.Contains("EXPECTED_DEPENDENCIES", StringComparison.Ordinal).ShouldBeFalse();
     }
 
     [Fact]
