@@ -249,7 +249,49 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
-        result.SafeMessage.ShouldNotBeNull().ShouldContain("User id");
+        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Global_administrator_gateway_accepts_256_character_literal_for_both_discriminators()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+        string userId = new('A', 256);
+
+        TenantCommandSubmissionResult grant = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministrator(userId), CancellationToken.None);
+        TenantCommandSubmissionResult remove = await gateway.RemoveGlobalAdministratorAsync(
+            new RemoveGlobalAdministrator(userId), CancellationToken.None);
+
+        grant.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        remove.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        client.SubmittedCommands.Count.ShouldBe(2);
+        client.SubmittedCommands.ShouldAllBe(command =>
+            command.Payload.GetProperty("UserId").GetString() == userId);
+    }
+
+    [Fact]
+    public async Task Global_administrator_gateway_rejects_257_character_literal_for_both_discriminators()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+        string userId = new('A', 257);
+
+        TenantCommandSubmissionResult grant = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministrator(userId), CancellationToken.None);
+        TenantCommandSubmissionResult remove = await gateway.RemoveGlobalAdministratorAsync(
+            new RemoveGlobalAdministrator(userId), CancellationToken.None);
+
+        grant.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        remove.State.ShouldBe(TenantCommandLifecycleState.Failed);
         client.SubmittedCommands.ShouldBeEmpty();
     }
 
@@ -302,7 +344,7 @@ public sealed class TenantCommandGatewayTests
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
-        result.SafeMessage.ShouldNotBeNull().ShouldContain("User id");
+        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid");
         client.SubmittedCommands.ShouldBeEmpty();
     }
 

@@ -106,6 +106,19 @@ public sealed class GlobalAdministratorActionAvailabilityTests
     }
 
     [Fact]
+    public void TrackedRemoveDispatchCapabilityBlocksRemovalWithoutBlockingGrant()
+    {
+        GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
+        {
+            SupportsTrackedRemoveDispatch = false,
+        };
+
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).IsAvailable.ShouldBeTrue();
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a").UnavailableReason
+            .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+    }
+
+    [Fact]
     public void DuplicateOrInvalidIdentityEvidenceFailsClosedAndDiagnosticsAreSupportSafe()
     {
         GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
@@ -122,7 +135,8 @@ public sealed class GlobalAdministratorActionAvailabilityTests
             "GlobalAdministratorActionEvidence { IsAuthorized = True, VisibleKind = Ready, "
             + "CompleteKind = Ready, HasCompletePopulation = True, SupportsDispatch = True, "
             + "SupportsStatus = True, SupportsRequery = True, IsAdmissionAvailable = True, "
-            + "IsGrantPreviewReady = True, IsRemovePreviewReady = True, Viewport = Safe, "
+            + "IsGrantPreviewReady = True, IsRemovePreviewReady = True, SupportsTrackedGrantDispatch = True, "
+            + "SupportsTrackedRemoveDispatch = True, Viewport = Safe, "
             + "HasViewportMeasurement = True }");
         availability.ToString().ShouldBe(
             "GlobalAdministratorActionAvailability { Action = Remove, IsAvailable = False, "
@@ -261,6 +275,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
         {
             IsGrantPreviewReady = true,
             SupportsTrackedGrantDispatch = true,
+            SupportsTrackedRemoveDispatch = true,
         };
 
     private static GlobalAdministratorRow Row(string userId)

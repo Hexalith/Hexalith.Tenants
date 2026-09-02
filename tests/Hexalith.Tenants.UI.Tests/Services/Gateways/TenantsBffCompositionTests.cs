@@ -87,7 +87,7 @@ public sealed class TenantsBffCompositionTests
             readSurface: new TenantsReadSurfaceAvailability(IsConnected: true));
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
-        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeFalse();
     }
 
     [Fact]
@@ -124,6 +124,37 @@ public sealed class TenantsBffCompositionTests
             resourceLocalizer: provider.GetRequiredService<IStringLocalizer<TenantsResources>>());
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task RemovalPreviewReadinessAndSelfRemovalHoldAgainstShippedEnglishAndFrenchResources()
+    {
+        ServiceProvider provider = new ServiceCollection()
+            .AddLogging()
+            .AddLocalization()
+            .BuildServiceProvider();
+        var composition = new TenantsBffComposition(
+            Substitute.For<ITenantCommandGateway>(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("  Target.Admin  ")),
+            readSurface: new TenantsReadSurfaceAvailability(IsConnected: true),
+            resourceLocalizer: provider.GetRequiredService<IStringLocalizer<TenantsResources>>());
+
+        GlobalAdministratorRemovePreview preview = await composition
+            .ComposeGlobalAdministratorRemovePreviewAsync(
+                "  Target.Admin  ",
+                CompleteGlobalAdministrators("projection-v1", "  Target.Admin  ", "other-admin"));
+
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
+        preview.IsComplete.ShouldBeTrue();
+        preview.IsSelfRemoval.ShouldBeTrue();
+        preview.CurrentAdministratorCount.ShouldBe(2);
+        preview.ResultingAdministratorCount.ShouldBe(1);
+        preview.TargetUserId.ShouldBe("  Target.Admin  ");
+        TenantsBffComposition.RequiredRemoveFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Remove.Preview.Target.Value");
+        TenantsBffComposition.RequiredRemoveFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge");
     }
 
     [Fact]

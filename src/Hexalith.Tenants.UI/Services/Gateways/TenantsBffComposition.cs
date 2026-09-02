@@ -52,6 +52,73 @@ internal sealed class TenantsBffComposition(
         "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization",
     ];
 
+    /// <summary>Gets every localized string required to render or safely fail the removal interaction.</summary>
+    internal static IReadOnlyList<string> RequiredRemoveFactKeys { get; } =
+    [
+        "Tenants.GlobalAdministrators.Remove.Launch",
+        "Tenants.GlobalAdministrators.Remove.Preview.Title",
+        "Tenants.GlobalAdministrators.Remove.Preview.Scope",
+        "Tenants.GlobalAdministrators.Remove.Preview.Scope.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Target",
+        "Tenants.GlobalAdministrators.Remove.Preview.Target.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Counts",
+        "Tenants.GlobalAdministrators.Remove.Preview.Counts.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange",
+        "Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Freshness",
+        "Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Audit",
+        "Tenants.GlobalAdministrators.Remove.Preview.Audit.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext",
+        "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences",
+        "Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns",
+        "Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value",
+        "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge",
+        "Tenants.GlobalAdministrators.Remove.Preview.Confirm",
+        "Tenants.GlobalAdministrators.Remove.Cancel",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator",
+        "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Authorization",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Target",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.TargetMissing",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.LastAdministrator",
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization",
+        "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+        "Tenants.GlobalAdministrators.Remove.DeliveryRetry",
+        "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
+        "Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch",
+        "Tenants.GlobalAdministrators.Remove.UnableToVerify.EventEvidence",
+        "Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout",
+        "Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission",
+        "Tenants.GlobalAdministrators.Remove.Status.Pending",
+        "Tenants.GlobalAdministrators.Remove.Status.Unknown",
+        "Tenants.GlobalAdministrators.Remove.Status.PublishFailed",
+        "Tenants.GlobalAdministrators.Remove.Status.Rejected",
+        "Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator",
+        "Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound",
+        "Tenants.GlobalAdministrators.Remove.Status.Rejected.Permission",
+        "Tenants.GlobalAdministrators.Remove.Status.TimedOut",
+        "Tenants.GlobalAdministrators.Remove.Status.Failed",
+        "Tenants.GlobalAdministrators.Remove.Recovery.Rejected",
+        "Tenants.GlobalAdministrators.Remove.Recovery.Failed",
+        "Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed",
+        "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+        "Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired",
+        "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent",
+        "Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced",
+        "Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify",
+    ];
+
     // Reads the composition decision rather than resolving ITenantQueryGateway, which would close a
     // container cycle (this type -> gateway -> this type) the moment Tenants:BaseAddress is configured.
     // Absence fails closed: an unregistered read surface is not evidence of a connected one.
@@ -60,8 +127,7 @@ internal sealed class TenantsBffComposition(
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
 
     public bool IsGlobalAdministratorDispatchConnected
-        => commandGateway.SupportsGlobalAdministratorDispatch
-            && commandGateway.SupportsTrackedGlobalAdministratorDispatch;
+        => commandGateway.SupportsGlobalAdministratorDispatch;
 
     public bool IsGlobalAdministratorStatusConnected
         => commandGateway.SupportsCommandStatusLookup;
@@ -75,13 +141,15 @@ internal sealed class TenantsBffComposition(
     // render of the global-administrators page (availability, confirm-disabled, and the final dispatch arm),
     // so the walk is resolved once and reused. The per-preview overload below still evaluates its own keys.
     private bool? _hasCompleteFixedGrantLocalization;
+    private bool? _hasCompleteFixedRemoveLocalization;
 
     public bool IsGlobalAdministratorGrantPreviewReady
         => principalResolver is not null
-            && (_hasCompleteFixedGrantLocalization ??= HasCompleteGrantLocalization(RequiredGrantFactKeys));
+            && (_hasCompleteFixedGrantLocalization ??= HasCompleteLocalization(RequiredGrantFactKeys));
 
-    // The existing removal flow already renders and rechecks its dedicated complete-population preview.
-    public bool IsGlobalAdministratorRemovePreviewReady => true;
+    public bool IsGlobalAdministratorRemovePreviewReady
+        => principalResolver is not null
+            && (_hasCompleteFixedRemoveLocalization ??= HasCompleteLocalization(RequiredRemoveFactKeys));
 
     public TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => IsCommandSurfaceConnected
@@ -128,7 +196,7 @@ internal sealed class TenantsBffComposition(
             return preview;
         }
 
-        return HasCompleteGrantLocalization(RequiredGrantFactKeys)
+        return HasCompleteLocalization(RequiredGrantFactKeys)
             ? preview
             : GlobalAdministratorGrantPreview.Unavailable(
                 targetUserId,
@@ -136,7 +204,42 @@ internal sealed class TenantsBffComposition(
                 "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
     }
 
-    private bool HasCompleteGrantLocalization(IReadOnlyList<string?> requiredFactKeys)
+    public async ValueTask<GlobalAdministratorRemovePreview> ComposeGlobalAdministratorRemovePreviewAsync(
+        string targetUserId,
+        GlobalAdministratorsSnapshot completeSnapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(completeSnapshot);
+        if (principalResolver is null)
+        {
+            return GlobalAdministratorRemovePreview.Unavailable(
+                targetUserId,
+                "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+                "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Authorization");
+        }
+
+        TenantConfigurationPrincipalEvidence evidence = await principalResolver
+            .ResolveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        GlobalAdministratorRemovePreview preview = GlobalAdministratorRemovePreview.Create(
+            targetUserId,
+            evidence.Subject,
+            completeSnapshot,
+            evidence.State is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        if (!preview.IsComplete)
+        {
+            return preview;
+        }
+
+        return HasCompleteLocalization(RequiredRemoveFactKeys)
+            ? preview
+            : GlobalAdministratorRemovePreview.Unavailable(
+                targetUserId,
+                "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization",
+                "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization");
+    }
+
+    private bool HasCompleteLocalization(IReadOnlyList<string?> requiredFactKeys)
     {
         if (resourceLocalizer is null)
         {
@@ -156,11 +259,11 @@ internal sealed class TenantsBffComposition(
             return false;
         }
 
-        return HasCompleteGrantLocalization(CultureInfo.InvariantCulture, requiredFactKeys)
-            && HasCompleteGrantLocalization(french, requiredFactKeys);
+        return HasCompleteLocalization(CultureInfo.InvariantCulture, requiredFactKeys)
+            && HasCompleteLocalization(french, requiredFactKeys);
     }
 
-    private bool HasCompleteGrantLocalization(
+    private bool HasCompleteLocalization(
         CultureInfo culture,
         IReadOnlyList<string?> requiredFactKeys)
     {
@@ -182,11 +285,28 @@ internal sealed class TenantsBffComposition(
                     return false;
                 }
 
-                if (string.Equals(
-                        key,
-                        "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
-                        StringComparison.Ordinal)
+                if ((string.Equals(
+                            key,
+                            "Tenants.GlobalAdministrators.Grant.Preview.Counts.Value",
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            key,
+                            "Tenants.GlobalAdministrators.Remove.Preview.Counts.Value",
+                            StringComparison.Ordinal))
                     && !HasRequiredCountPlaceholders(resourceLocalizer[key].Value, culture))
+                {
+                    return false;
+                }
+
+                if ((string.Equals(
+                            key,
+                            "Tenants.GlobalAdministrators.Remove.Preview.Target.Value",
+                            StringComparison.Ordinal)
+                        || string.Equals(
+                            key,
+                            "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge",
+                            StringComparison.Ordinal))
+                    && !HasRequiredTargetPlaceholder(resourceLocalizer[key].Value, culture))
                 {
                     return false;
                 }
@@ -218,6 +338,20 @@ internal sealed class TenantsBffComposition(
             string rendered = string.Format(culture, format, currentCountMarker, resultingCountMarker);
             return rendered.Contains(currentCountMarker, StringComparison.Ordinal)
                 && rendered.Contains(resultingCountMarker, StringComparison.Ordinal);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    private static bool HasRequiredTargetPlaceholder(string format, CultureInfo culture)
+    {
+        const string targetMarker = "__literal-target__";
+        try
+        {
+            return string.Format(culture, format, targetMarker)
+                .Contains(targetMarker, StringComparison.Ordinal);
         }
         catch (FormatException)
         {

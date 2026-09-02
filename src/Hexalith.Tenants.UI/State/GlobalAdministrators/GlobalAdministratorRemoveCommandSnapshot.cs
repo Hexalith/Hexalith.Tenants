@@ -1,29 +1,28 @@
 using Hexalith.EventStore.Contracts.Commands;
-using Hexalith.EventStore.Client.Projections;
-using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
+/// <summary>Tracks one causally qualified global-administrator removal attempt.</summary>
+/// <param name="State">Current monotonic command lifecycle state.</param>
+/// <param name="Intent">Literal removal intent.</param>
+/// <param name="LastConfirmedProjection">Last confirmed target row, when still present.</param>
+/// <param name="MessageId">Caller-owned canonical ULID.</param>
+/// <param name="CorrelationId">Accepted command correlation identifier, when available.</param>
+/// <param name="SafeMessage">Legacy support-safe message; interactive consumers prefer resource keys.</param>
+/// <param name="RejectionCode">Structured rejection code.</param>
+/// <param name="AuditState">Current audit evidence state.</param>
+/// <param name="FocusTarget">Next accessible focus target.</param>
+/// <param name="LiveRegionPoliteness">Live-region politeness for the current state.</param>
+/// <param name="PreviewEvidence">Immutable complete BFF removal preview.</param>
+/// <param name="HasCommandEventEvidence">Whether exact-command status proved positive event evidence.</param>
+/// <param name="IsSubmissionAmbiguous">Whether delivery may have reached the server without acceptance evidence.</param>
+/// <param name="SafeMessageKey">Removal-specific localized lifecycle explanation.</param>
+/// <param name="SafeRecoveryKey">Removal-specific localized recovery.</param>
 public sealed record GlobalAdministratorRemoveCommandSnapshot(
     TenantCommandLifecycleState State,
     RemoveGlobalAdministrator? Intent = null,
-    IReadOnlyList<GlobalAdministratorRow>? PreviewRows = null,
-
-    /// <summary>
-    /// Whether the projection page <see cref="PreviewRows"/> was captured from was complete evidence.
-    /// </summary>
-    /// <remarks>
-    /// Captured with the rows, not read live. The preview renders the count from <see cref="PreviewRows"/>
-    /// while its label was selected from the live snapshot, so a notification refresh landing between preview
-    /// and render paired "Current administrator count" with a page-one count, or the converse. Both halves
-    /// must come from the same evidence.
-    /// </remarks>
-    bool PreviewIsCompleteEvidence = false,
-    string? PreviewProjectionVersion = null,
-    ReadModelFreshnessState PreviewFreshness = ReadModelFreshnessState.Unknown,
-    ProjectionLifecycleState PreviewLifecycle = ProjectionLifecycleState.Unknown,
     GlobalAdministratorRow? LastConfirmedProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -31,232 +30,475 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
-    /// <summary>
-    /// Returns a support-safe description that omits identities, preview rows, correlation data, and any
-    /// count that could be read as a platform-wide total.
-    /// </summary>
-    /// <returns>A bounded support-safe command-snapshot description.</returns>
-    public override string ToString()
-        => $"{nameof(GlobalAdministratorRemoveCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, PreviewIsCompleteEvidence = {PreviewIsCompleteEvidence}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+    GlobalAdministratorRemovePreview? PreviewEvidence = null,
+    bool HasCommandEventEvidence = false,
+    bool IsSubmissionAmbiguous = false,
+    string? SafeMessageKey = null,
+    string? SafeRecoveryKey = null)
+{
+    /// <summary>Gets the complete projection version captured before dispatch.</summary>
+    public string? BaselineProjectionVersion => PreviewEvidence?.ProjectionVersion;
 
+    /// <summary>Gets the complete fixed-scope count captured before dispatch.</summary>
+    public int? BaselineAdministratorCount => PreviewEvidence?.CurrentAdministratorCount;
+
+    /// <summary>Gets whether this attempt owns a complete preview and valid caller-owned message id.</summary>
+    public bool HasTrackedPreview
+        => PreviewEvidence?.IsComplete == true && IsValidMessageId(MessageId);
+
+    /// <summary>Returns a support-safe description without identity or tracking values.</summary>
+    /// <returns>A bounded diagnostic description.</returns>
+    public override string ToString()
+        => $"{nameof(GlobalAdministratorRemoveCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, HasTrackedPreview = {HasTrackedPreview}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
+
+    /// <summary>Creates an idle removal lifecycle.</summary>
+    /// <returns>An idle snapshot.</returns>
     public static GlobalAdministratorRemoveCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
-    public static GlobalAdministratorRemoveCommandSnapshot Blocked(string safeMessage, TenantCommandFocusTarget focusTarget)
-        => new(
-            TenantCommandLifecycleState.UnableToVerify,
-            SafeMessage: safeMessage,
-            AuditState: TenantCommandAuditState.MissingSupport,
-            FocusTarget: focusTarget,
-            LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
-
-    public GlobalAdministratorRemoveCommandSnapshot Preview(
-        RemoveGlobalAdministrator intent,
-        IReadOnlyList<GlobalAdministratorRow> rows,
-        bool isCompleteEvidence = false) {
-        ArgumentNullException.ThrowIfNull(intent);
-        ArgumentNullException.ThrowIfNull(rows);
-
-        GlobalAdministratorRow? target = rows.FirstOrDefault(row => string.Equals(row.UserId, intent.UserId, StringComparison.Ordinal));
-        if (target is null) {
-            return Blocked("The target global administrator is not visible in the current projection. Refresh before removing platform authority.", TenantCommandFocusTarget.Refresh)
-                with { Intent = intent, PreviewRows = rows, PreviewIsCompleteEvidence = isCompleteEvidence };
-        }
-
-        // Gated on completeness: a single-row page with more results available is not evidence that the target
-        // is the last global administrator, and claiming so states a platform-wide fact derived from one page.
-        // The sibling gates (RemoveUnavailableReasonForUser, ConfirmProjection) already require completeness;
-        // this one inferred a total from the page it happened to be shown.
-        if (isCompleteEvidence && rows.Count <= 1) {
-            return Blocked("The last global administrator cannot be removed.", TenantCommandFocusTarget.Submit)
-                with { Intent = intent, PreviewRows = rows, LastConfirmedProjection = target, PreviewIsCompleteEvidence = isCompleteEvidence };
-        }
-
-        return this with {
-            State = TenantCommandLifecycleState.Previewed,
-            Intent = intent,
-            PreviewRows = rows,
-            PreviewIsCompleteEvidence = isCompleteEvidence,
-            LastConfirmedProjection = target,
-            SafeMessage = null,
-            RejectionCode = null,
-            AuditState = TenantCommandAuditState.NotStarted,
-            FocusTarget = TenantCommandFocusTarget.Lifecycle,
-            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-        };
-    }
-
-    /// <summary>Captures one immutable, complete fixed-scope removal preview.</summary>
-    /// <param name="intent">Removal intent.</param>
-    /// <param name="snapshot">Complete current projection evidence.</param>
-    /// <returns>The previewed or fail-closed command state.</returns>
-    public GlobalAdministratorRemoveCommandSnapshot Preview(
-        RemoveGlobalAdministrator intent,
-        GlobalAdministratorsSnapshot snapshot)
+    /// <summary>Creates a fail-closed state before command dispatch.</summary>
+    /// <param name="safeMessage">Localized message or resource key.</param>
+    /// <param name="focusTarget">Next accessible focus target.</param>
+    /// <returns>A blocked snapshot.</returns>
+    public static GlobalAdministratorRemoveCommandSnapshot Blocked(
+        string safeMessage,
+        TenantCommandFocusTarget focusTarget)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        return Preview(intent, snapshot.Rows, snapshot.IsCompleteEvidence) with
+        ArgumentNullException.ThrowIfNull(safeMessage);
+        return safeMessage.StartsWith("Tenants.", StringComparison.Ordinal)
+            ? new(
+                TenantCommandLifecycleState.UnableToVerify,
+                SafeMessageKey: safeMessage,
+                SafeRecoveryKey: "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+                AuditState: TenantCommandAuditState.MissingSupport,
+                FocusTarget: focusTarget,
+                LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive)
+            : new(
+                TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage: safeMessage,
+                SafeRecoveryKey: "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+                AuditState: TenantCommandAuditState.MissingSupport,
+                FocusTarget: focusTarget,
+                LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    /// <summary>Surfaces a BFF-composed unavailable preview and its associated recovery.</summary>
+    /// <param name="preview">Fail-closed preview evidence.</param>
+    /// <returns>A support-safe state that retains no command identity.</returns>
+    public static GlobalAdministratorRemoveCommandSnapshot UnavailablePreview(
+        GlobalAdministratorRemovePreview preview)
+    {
+        ArgumentNullException.ThrowIfNull(preview);
+        return new(
+            TenantCommandLifecycleState.UnableToVerify,
+            Intent: new RemoveGlobalAdministrator(preview.TargetUserId),
+            PreviewEvidence: preview,
+            SafeMessageKey: preview.UnavailableReasonKey
+                ?? "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+            SafeRecoveryKey: preview.RecoveryKey
+                ?? "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+            AuditState: TenantCommandAuditState.MissingSupport,
+            FocusTarget: TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    /// <summary>Captures one complete preview and caller-owned ULID before dispatch.</summary>
+    /// <param name="preview">BFF-composed removal preview.</param>
+    /// <param name="messageId">Exact caller-owned canonical ULID.</param>
+    /// <returns>The previewed attempt, or a fail-closed snapshot.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot Preview(
+        GlobalAdministratorRemovePreview preview,
+        string messageId)
+    {
+        ArgumentNullException.ThrowIfNull(preview);
+        if (!preview.IsComplete || !IsValidMessageId(messageId))
         {
-            PreviewProjectionVersion = snapshot.ProjectionVersion,
-            PreviewFreshness = snapshot.Freshness,
-            PreviewLifecycle = snapshot.Lifecycle,
+            return this with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                Intent = new RemoveGlobalAdministrator(preview.TargetUserId),
+                PreviewEvidence = preview,
+                MessageId = IsValidMessageId(messageId) ? messageId : null,
+                SafeMessage = null,
+                SafeMessageKey = preview.UnavailableReasonKey
+                    ?? "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+                SafeRecoveryKey = preview.RecoveryKey
+                    ?? "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+                AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        return this with
+        {
+            State = TenantCommandLifecycleState.Previewed,
+            Intent = new RemoveGlobalAdministrator(preview.TargetUserId),
+            LastConfirmedProjection = null,
+            MessageId = messageId,
+            CorrelationId = null,
+            SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.NotStarted,
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            PreviewEvidence = preview,
+            HasCommandEventEvidence = false,
+            IsSubmissionAmbiguous = false,
         };
     }
 
-    public GlobalAdministratorRemoveCommandSnapshot RequestSent()
-        => this with {
-            State = TenantCommandLifecycleState.RequestSent,
+    /// <summary>Invalidates an undispatched preview with associated localized evidence.</summary>
+    /// <param name="reasonKey">Localized reason key.</param>
+    /// <param name="recoveryKey">Localized recovery key.</param>
+    /// <returns>A fail-closed snapshot.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot InvalidatePreview(
+        string reasonKey,
+        string recoveryKey)
+        => this with
+        {
+            State = TenantCommandLifecycleState.UnableToVerify,
             SafeMessage = null,
-            RejectionCode = null,
-            AuditState = TenantCommandAuditState.NotStarted,
+            SafeMessageKey = reasonKey,
+            SafeRecoveryKey = recoveryKey,
+            AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
-            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
 
-    public GlobalAdministratorRemoveCommandSnapshot Accepted(TenantCommandSubmissionResult result) {
-        ArgumentNullException.ThrowIfNull(result);
+    /// <summary>Retains an ambiguous dispatched attempt when a retry preflight fails closed.</summary>
+    /// <param name="reasonKey">Current localized preflight reason.</param>
+    /// <param name="recoveryKey">Current localized preflight recovery.</param>
+    /// <returns>The same retainable request-sent attempt.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot RetainAmbiguousPreflight(
+        string reasonKey,
+        string recoveryKey)
+        => this with
+        {
+            State = TenantCommandLifecycleState.RequestSent,
+            CorrelationId = null,
+            SafeMessage = null,
+            SafeMessageKey = reasonKey,
+            SafeRecoveryKey = recoveryKey,
+            IsSubmissionAmbiguous = true,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
 
-        return this with {
+    /// <summary>Moves the retained preview to request-sent without changing command identity.</summary>
+    /// <returns>The request-sent attempt.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot RequestSent()
+        => Intent is null || !HasTrackedPreview
+            ? InvalidatePreview(
+                "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+                "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh")
+            : this with
+            {
+                State = TenantCommandLifecycleState.RequestSent,
+                SafeMessage = null,
+                SafeMessageKey = null,
+                SafeRecoveryKey = null,
+                RejectionCode = null,
+                IsSubmissionAmbiguous = false,
+                AuditState = TenantCommandAuditState.NotStarted,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+
+    /// <summary>Applies accepted submission evidence only when it exactly matches the retained attempt.</summary>
+    /// <param name="result">Gateway submission result.</param>
+    /// <returns>The accepted or ambiguous tracking state.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot Accepted(TenantCommandSubmissionResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!IsValidMessageId(MessageId)
+            || !string.Equals(MessageId, result.MessageId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(result.CorrelationId))
+        {
+            return AmbiguousTrackingFailure();
+        }
+
+        return this with
+        {
             State = TenantCommandLifecycleState.Accepted,
-            MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
             SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
             RejectionCode = null,
+            IsSubmissionAmbiguous = false,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
     }
 
-    public GlobalAdministratorRemoveCommandSnapshot ApplySubmission(TenantCommandSubmissionResult result) {
+    /// <summary>Applies one gateway submission result without accepting unsupported lifecycle states.</summary>
+    /// <param name="result">Gateway result.</param>
+    /// <returns>The monotonic removal lifecycle.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot ApplySubmission(TenantCommandSubmissionResult result)
+    {
         ArgumentNullException.ThrowIfNull(result);
+        if (result.IsAmbiguousFailure)
+        {
+            return !IsValidMessageId(MessageId)
+                || !string.Equals(MessageId, result.MessageId, StringComparison.Ordinal)
+                    ? AmbiguousTrackingFailure()
+                    : this with
+                    {
+                        State = TenantCommandLifecycleState.RequestSent,
+                        CorrelationId = null,
+                        SafeMessage = null,
+                        SafeMessageKey = result.SafeMessageKey
+                            ?? "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+                        SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
+                        RejectionCode = null,
+                        IsSubmissionAmbiguous = true,
+                        AuditState = TenantCommandAuditState.AuditDelayed,
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    };
+        }
 
-        return result.State is TenantCommandLifecycleState.Accepted
-            ? Accepted(result)
-            : this with {
+        if (result.State is TenantCommandLifecycleState.Accepted)
+        {
+            return Accepted(result);
+        }
+
+        if (result.State is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed)
+        {
+            return this with
+            {
                 State = result.State,
-                SafeMessage = result.SafeMessage,
+                SafeMessage = null,
+                SafeMessageKey = result.State is TenantCommandLifecycleState.Rejected
+                    ? RejectionMessageKey(result.RejectionCode)
+                    : "Tenants.GlobalAdministrators.Remove.Status.Failed",
+                SafeRecoveryKey = result.State is TenantCommandLifecycleState.Rejected
+                    ? "Tenants.GlobalAdministrators.Remove.Recovery.Rejected"
+                    : "Tenants.GlobalAdministrators.Remove.Recovery.Failed",
                 RejectionCode = result.RejectionCode,
+                IsSubmissionAmbiguous = false,
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
-    }
-
-    public GlobalAdministratorRemoveCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
-        ArgumentNullException.ThrowIfNull(status);
-
-        if (status.Status is null) {
-            return this with {
-                State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = status.SafeMessage,
-                AuditState = TenantCommandAuditState.AuditUnavailable,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            };
         }
 
-        return status.Status.Value switch {
+        return UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission");
+    }
+
+    /// <summary>Applies exact command-status evidence.</summary>
+    /// <param name="status">Verified or fail-closed status result.</param>
+    /// <returns>The monotonic removal lifecycle.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot ApplyStatus(TenantCommandStatusResult status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        if (status.Status is null)
+        {
+            return UnableToVerify(status.IsPending
+                ? "Tenants.GlobalAdministrators.Remove.Status.Pending"
+                : "Tenants.GlobalAdministrators.Remove.Status.Unknown");
+        }
+
+        if (!status.HasVerifiedCommandIdentity)
+        {
+            return UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch");
+        }
+
+        return status.Status.Value switch
+        {
             CommandStatus.Received or CommandStatus.Processing
-                => this with { State = TenantCommandLifecycleState.Accepted, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
-            CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
-                => this with { State = TenantCommandLifecycleState.ProjectionPending, AuditState = TenantCommandAuditState.AuditPending, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
+                => this with
+                {
+                    State = HasCommandEventEvidence
+                        || State is TenantCommandLifecycleState.ProjectionPending
+                            ? TenantCommandLifecycleState.ProjectionPending
+                            : TenantCommandLifecycleState.Accepted,
+                    SafeMessage = null,
+                    SafeMessageKey = null,
+                    SafeRecoveryKey = null,
+                    IsSubmissionAmbiguous = false,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                },
+            CommandStatus.EventsStored or CommandStatus.EventsPublished
+                => WithPositiveEventEvidence(),
+            CommandStatus.Completed when status.EventCount is > 0
+                => WithPositiveEventEvidence(),
+            CommandStatus.Completed
+                => UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.EventEvidence"),
             CommandStatus.Rejected
-                => this with {
+                => this with
+                {
                     State = TenantCommandLifecycleState.Rejected,
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = null,
+                    SafeMessageKey = RejectionMessageKey(status.RejectionCode),
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.Rejected",
                     RejectionCode = status.RejectionCode,
+                    IsSubmissionAmbiguous = false,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
                     FocusTarget = TenantCommandFocusTarget.Lifecycle,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
             CommandStatus.PublishFailed
-                => this with {
+                => this with
+                {
                     State = TenantCommandLifecycleState.Degraded,
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Status.PublishFailed",
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed",
+                    IsSubmissionAmbiguous = false,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
             CommandStatus.TimedOut
-                => this with {
-                    State = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = status.SafeMessage,
+                => UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout") with
+                {
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
                     AuditState = TenantCommandAuditState.AuditDelayed,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
-            _ => this,
+            _ => UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission"),
         };
     }
 
+    /// <summary>Records a notification as a requery nudge without changing command proof.</summary>
+    /// <returns>The same lifecycle with refresh focus.</returns>
     public GlobalAdministratorRemoveCommandSnapshot SignalRNudge()
         => State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
-            ? this with {
-                State = TenantCommandLifecycleState.ProjectionPending,
-                AuditState = TenantCommandAuditState.AuditPending,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-            }
-            : this;
+                ? this with { FocusTarget = TenantCommandFocusTarget.Refresh }
+                : this;
 
-    public GlobalAdministratorRemoveCommandSnapshot ConfirmProjection(GlobalAdministratorsSnapshot snapshot) {
+    /// <summary>Confirms removal only from exact command-event evidence and complete causal absence.</summary>
+    /// <param name="snapshot">Complete current fixed-scope projection.</param>
+    /// <returns>The confirmed or fail-closed lifecycle.</returns>
+    public GlobalAdministratorRemoveCommandSnapshot ConfirmProjection(GlobalAdministratorsSnapshot snapshot)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
-
-        if (Intent is null || State is TenantCommandLifecycleState.Rejected
-            or TenantCommandLifecycleState.Failed
-            or TenantCommandLifecycleState.Degraded
-            or TenantCommandLifecycleState.UnableToVerify) {
+        if (Intent is null
+            || State is TenantCommandLifecycleState.Rejected
+                or TenantCommandLifecycleState.Failed
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify)
+        {
             return this;
         }
 
-        GlobalAdministratorRow? row = snapshot.Rows.FirstOrDefault(row => string.Equals(row.UserId, Intent.UserId, StringComparison.Ordinal));
-        if (row is null && snapshot.IsCompleteEvidence) {
-            return this with {
-                State = TenantCommandLifecycleState.Confirmed,
-                LastConfirmedProjection = null,
+        if (State is not TenantCommandLifecycleState.ProjectionPending
+            || !HasCommandEventEvidence
+            || PreviewEvidence?.IsComplete != true
+            || !snapshot.IsCompleteEvidence
+            || !snapshot.IsMutationEvidenceBacked
+            || snapshot.Kind is not GlobalAdministratorsSurfaceKind.Ready
+            || string.IsNullOrWhiteSpace(snapshot.ProjectionVersion))
+        {
+            return UnableToVerify("Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired");
+        }
+
+        GlobalAdministratorRow? row = snapshot.Rows.FirstOrDefault(candidate =>
+            string.Equals(candidate.UserId, Intent.UserId, StringComparison.Ordinal));
+        if (row is not null)
+        {
+            return this with
+            {
+                LastConfirmedProjection = row,
                 SafeMessage = null,
-                AuditState = TenantCommandAuditState.AuditPending,
-                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent",
+                SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             };
         }
 
-        if (row is null) {
-            // Absence proves removal only against complete evidence, and the re-query reads page one only,
-            // so IsCompleteEvidence requires a blank cursor plus !HasMore. On a deployment with more global
-            // administrators than one page holds, HasMore is permanently true and *every* successful removal
-            // reached this arm reading as a verification failure. Separate the two: a good, current,
-            // projection-backed page that simply does not span the population is page-scoped evidence, not a
-            // failed read. Both stay UnableToVerify -- absence is still not proven -- but only one of them
-            // implies something went wrong.
-            bool isPageScopedEvidence = snapshot.IsMutationEvidenceBacked
-                && snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty;
-            return this with {
-                State = TenantCommandLifecycleState.UnableToVerify,
+        if (!TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
+                PreviewEvidence.ProjectionVersion,
+                snapshot.ProjectionVersion,
+                HasCommandEventEvidence))
+        {
+            return this with
+            {
                 LastConfirmedProjection = null,
-                // Resource keys — resolved by the page localizer so EN/FR stay whole-string parity.
-                SafeMessage = isPageScopedEvidence
-                    ? "Tenants.GlobalAdministrators.Remove.Confirm.PageScoped"
-                    : "Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired",
-                AuditState = TenantCommandAuditState.AuditUnavailable,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced",
+                SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
                 FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             };
         }
 
-        return State is TenantCommandLifecycleState.ProjectionPending
-            ? this with {
-                State = TenantCommandLifecycleState.UnableToVerify,
-                LastConfirmedProjection = row,
-                SafeMessage = "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent",
-                AuditState = TenantCommandAuditState.AuditUnavailable,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            }
-            : this;
+        return this with
+        {
+            State = TenantCommandLifecycleState.Confirmed,
+            LastConfirmedProjection = null,
+            SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
+            RejectionCode = null,
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
     }
+
+    private GlobalAdministratorRemoveCommandSnapshot WithPositiveEventEvidence()
+        => this with
+        {
+            State = TenantCommandLifecycleState.ProjectionPending,
+            HasCommandEventEvidence = true,
+            SafeMessage = null,
+            SafeMessageKey = null,
+            SafeRecoveryKey = null,
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+
+    private GlobalAdministratorRemoveCommandSnapshot UnableToVerify(string safeMessageKey)
+        => this with
+        {
+            State = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage = null,
+            SafeMessageKey = safeMessageKey,
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+            IsSubmissionAmbiguous = false,
+            AuditState = TenantCommandAuditState.AuditUnavailable,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+
+    private GlobalAdministratorRemoveCommandSnapshot AmbiguousTrackingFailure()
+        => this with
+        {
+            State = TenantCommandLifecycleState.RequestSent,
+            CorrelationId = null,
+            SafeMessage = null,
+            SafeMessageKey = "Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch",
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
+            IsSubmissionAmbiguous = true,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+
+    private static string RejectionMessageKey(string? rejectionCode)
+        => rejectionCode switch
+        {
+            "LastGlobalAdministrator" => "Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator",
+            "GlobalAdministratorNotFound" => "Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound",
+            "InsufficientPermissions" => "Tenants.GlobalAdministrators.Remove.Status.Rejected.Permission",
+            _ => "Tenants.GlobalAdministrators.Remove.Status.Rejected",
+        };
+
+    private static bool IsValidMessageId(string? messageId)
+        => !string.IsNullOrWhiteSpace(messageId)
+            && NUlid.Ulid.TryParse(messageId, out NUlid.Ulid parsed)
+            && string.Equals(messageId, parsed.ToString(), StringComparison.Ordinal);
 }

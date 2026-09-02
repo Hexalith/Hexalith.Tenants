@@ -1841,7 +1841,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
 
         cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("target-admin");
         cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("system");
@@ -1929,7 +1929,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
 
         string previewCount = cut.Find("[data-testid='tenants-global-admin-remove-count']").TextContent;
         cut.Find("[data-testid='tenants-global-admin-remove-count-label']")
@@ -1984,7 +1984,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
 
         // Refresh under the open preview: the page now holds a complete single-administrator page.
@@ -2015,7 +2016,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-remove-preview']").GetAttribute("role").ShouldBe("dialog");
         cut.Find("[data-testid='tenants-global-admin-remove-preview']").GetAttribute("aria-modal").ShouldBe("true");
         cut.Find("[data-testid='tenants-global-admin-remove-focus-start']").GetAttribute("tabindex").ShouldBe("0");
@@ -2058,7 +2059,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
 
         cut.WaitForAssertion(() =>
@@ -2079,6 +2081,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
         commandGateway.SupportsGlobalAdministratorDispatch.Returns(true);
         commandGateway.SupportsTrackedGlobalAdministratorDispatch.Returns(true);
+        commandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch.Returns(true);
         commandGateway.SupportsCommandStatusLookup.Returns(true);
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken removeStatusToken = default;
@@ -2113,7 +2116,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("grant-candidate");
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         Task removeSubmit = cut.Find("[data-testid='tenants-global-admin-remove-submit']")
             .ClickAsync(new MouseEventArgs());
         cut.WaitForAssertion(() => removeStatusToken.CanBeCanceled.ShouldBeTrue());
@@ -2152,7 +2156,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
 
         cut.WaitForAssertion(() =>
@@ -3629,7 +3634,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             await Task.Delay(100);
             return confirmingSnapshot;
         }));
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         Task removeSubmit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
         queryGateway.QueueResponse(Task.FromResult(notificationSnapshot));
         await cut.InvokeAsync(() =>
@@ -3967,7 +3973,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         Task removeSubmit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
         await commandGateway.RemoveSubmissionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -4026,7 +4033,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
         else
         {
-            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            OpenRemovePreview(cut);
+            AcknowledgeRemovePreview(cut);
             submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
             entered = commandGateway.RemoveSubmissionEntered.Task;
             invalidator = "InvalidateRemoveMutation";
@@ -4127,7 +4135,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
         else
         {
-            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            OpenRemovePreview(cut);
+            AcknowledgeRemovePreview(cut);
             submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
             entered = commandGateway.RemoveSubmissionEntered.Task;
             invalidator = "InvalidateRemoveMutation";
@@ -4200,7 +4209,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
         else
         {
-            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            OpenRemovePreview(cut);
+            AcknowledgeRemovePreview(cut);
             await cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
             PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot").State
                 .ShouldBe(TenantCommandLifecycleState.Failed);
@@ -4267,7 +4277,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
         else
         {
-            cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+            OpenRemovePreview(cut);
+            AcknowledgeRemovePreview(cut);
             submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']").ClickAsync(new MouseEventArgs());
             invalidator = "InvalidateRemoveMutation";
         }
@@ -4512,6 +4523,26 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.WaitForElement("[data-testid='tenants-global-admin-grant-preview']");
     }
 
+    private static void OpenRemovePreview(
+        IRenderedComponent<GlobalAdministratorsPage> cut,
+        string targetUserId = "target-admin")
+    {
+        IElement launcher = cut.Find(
+            $"[data-testid='tenants-global-admin-remove'][data-user-id='{targetUserId}']");
+        launcher.Click();
+        cut.WaitForElement("[data-testid='tenants-global-admin-remove-preview']");
+    }
+
+    private static void AcknowledgeRemovePreview(
+        IRenderedComponent<GlobalAdministratorsPage> cut,
+        string targetUserId = "target-admin")
+    {
+        cut.Find("[data-testid='tenants-global-admin-remove-acknowledge']").Change(targetUserId);
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+                .HasAttribute("disabled").ShouldBeFalse());
+    }
+
     private static void AcknowledgeGrantPreview(IRenderedComponent<GlobalAdministratorsPage> cut)
     {
         cut.Find("[data-testid='tenants-global-admin-grant-acknowledge']").Change(true);
@@ -4732,6 +4763,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             _ = GrantPreviewCompletedSignal?.TrySetResult();
             return result;
         }
+
+        public async ValueTask<GlobalAdministratorRemovePreview> ComposeGlobalAdministratorRemovePreviewAsync(
+            string targetUserId,
+            GlobalAdministratorsSnapshot completeSnapshot,
+            CancellationToken cancellationToken = default)
+        {
+            TenantLifecycleAuthorizationReflectionState current = await ResolveGlobalAdministratorsAuthorizationAsync(
+                cancellationToken);
+            return GlobalAdministratorRemovePreview.Create(
+                targetUserId,
+                "operator",
+                completeSnapshot,
+                current is TenantLifecycleAuthorizationReflectionState.Authorized);
+        }
     }
 
     private sealed class StubTenantQueryGateway(params GlobalAdministratorsSnapshot[] snapshots) : ITenantQueryGateway
@@ -4763,7 +4808,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         /// read into an <see cref="InvalidOperationException"/> thrown from inside the gateway call, which
         /// the page does not catch -- so the test fails with a queue error rather than naming the behaviour.
         /// </summary>
-        public bool RepeatLastResponse { get; init; }
+        public bool RepeatLastResponse { get; init; } = true;
 
         public int GlobalAdministratorCalls { get; private set; }
 
@@ -4960,6 +5005,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             set => _supportsTrackedGlobalAdministratorDispatch = value;
         }
 
+        public bool SupportsTrackedGlobalAdministratorRemoveDispatch { get; set; } = true;
+
         public bool SupportsCommandStatusLookup { get; init; } = true;
 
         private readonly Queue<TenantCommandStatusResult> _statuses = new(statuses);
@@ -5108,6 +5155,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             }
 
             return RemoveSubmission ?? TenantCommandSubmissionResult.Failed("No remove command response configured.");
+        }
+
+        public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorTrackedAsync(
+            RemoveGlobalAdministrator request,
+            string messageId,
+            CancellationToken cancellationToken = default)
+        {
+            TenantCommandSubmissionResult result = await RemoveGlobalAdministratorAsync(
+                request,
+                cancellationToken).ConfigureAwait(false);
+            return result with { MessageId = messageId };
         }
 
         public Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
@@ -5370,7 +5428,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope"] = "Platform authority scope",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"] = "tenant system, domain global-administrators, aggregate global-administrators",
             ["Tenants.GlobalAdministrators.Remove.Preview.Target"] = "Target user id",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Target.Value"] = "Exact target: {0}",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Counts"] = "Administrator counts",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Counts.Value"] = "{0} administrators now; {1} after confirmed removal.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange"] = "Authority change",
+            ["Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange.Value"] = "The target loses platform-wide global-administrator authority after confirmation.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value"] = "Current complete fixed-scope evidence with a qualified projection version.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext"] = "Caller and target",
+            ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value"] = "This removes your own global-administrator authority.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value"] = "This removes another administrator's global authority.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge"] = "Type the exact target {0} to acknowledge this removal.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Confirm"] = "Confirm tracked removal",
             ["Tenants.GlobalAdministrators.Remove.Preview.Title"] = "Remove consequence preview",
+            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator"] = "The last global administrator cannot be removed.",
+            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound"] = "The target is not a global administrator.",
             ["Tenants.GlobalAdministrators.Remove.Refresh"] = "Refresh status",
             ["Tenants.GlobalAdministrators.Remove.State.Accepted"] = "Command accepted; projection confirmation is still required.",
             ["Tenants.GlobalAdministrators.Remove.State.AlreadyApplied"] = "Already-applied is not used for global administrator removal.",
@@ -5466,6 +5537,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         ITenantCommandGateway commandGateway = Substitute.For<ITenantCommandGateway>();
         commandGateway.SupportsGlobalAdministratorDispatch.Returns(true);
         commandGateway.SupportsTrackedGlobalAdministratorDispatch.Returns(true);
+        commandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch.Returns(true);
         commandGateway.SupportsCommandStatusLookup.Returns(true);
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken grantStatusToken = default;
@@ -5509,7 +5581,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
         // Preview a removal without submitting it, then submit a grant.
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("grant-candidate");
         OpenGrantPreview(cut);
         AcknowledgeGrantPreview(cut);
@@ -5612,7 +5684,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
         cut.Find("[data-testid='tenants-global-admin-remove-target']").TextContent.ShouldContain("target-admin");
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
 

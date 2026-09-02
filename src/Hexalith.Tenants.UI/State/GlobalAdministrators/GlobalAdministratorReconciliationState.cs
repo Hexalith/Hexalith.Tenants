@@ -13,6 +13,7 @@ namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 /// <param name="IsSubmissionAmbiguous">Whether transport left request delivery unresolved.</param>
 /// <param name="SafeMessageKey">Support-safe localized lifecycle explanation retained across renderer replacement.</param>
 /// <param name="SafeRecoveryKey">Support-safe localized recovery retained across renderer replacement.</param>
+/// <param name="RemovePreview">Complete retained removal preview.</param>
 internal sealed record GlobalAdministratorReconciliationState(
     GlobalAdministratorActionKind ActionKind,
     string TargetUserId,
@@ -23,10 +24,11 @@ internal sealed record GlobalAdministratorReconciliationState(
     bool HasCommandEventEvidence = false,
     bool IsSubmissionAmbiguous = false,
     string? SafeMessageKey = null,
-    string? SafeRecoveryKey = null)
+    string? SafeRecoveryKey = null,
+    GlobalAdministratorRemovePreview? RemovePreview = null)
 {
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()
-        => $"{nameof(GlobalAdministratorReconciliationState)} {{ ActionKind = {ActionKind}, LifecycleState = {LifecycleState}, HasGrantPreview = {GrantPreview is not null}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous} }}";
+        => $"{nameof(GlobalAdministratorReconciliationState)} {{ ActionKind = {ActionKind}, LifecycleState = {LifecycleState}, HasGrantPreview = {GrantPreview is not null}, HasRemovePreview = {RemovePreview is not null}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous} }}";
 }

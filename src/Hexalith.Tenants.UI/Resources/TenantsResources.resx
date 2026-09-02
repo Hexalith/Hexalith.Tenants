@@ -4142,4 +4142,49 @@
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Available" xml:space="preserve"><value>Available</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Busy" xml:space="preserve"><value>Active attempt requires reconciliation</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Target.Value" xml:space="preserve"><value>Exact target: “{0}”</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Counts" xml:space="preserve"><value>Administrator counts</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Counts.Value" xml:space="preserve"><value>{0} administrators now; {1} after confirmed removal.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange" xml:space="preserve"><value>Authority change</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange.Value" xml:space="preserve"><value>The target loses platform-wide global-administrator authority after confirmation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value" xml:space="preserve"><value>Current complete fixed-scope evidence with a qualified projection version.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext" xml:space="preserve"><value>Caller and target</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value" xml:space="preserve"><value>This removes your own global-administrator authority.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value" xml:space="preserve"><value>This removes another administrator’s global authority.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Acknowledge" xml:space="preserve"><value>Type the exact target “{0}” to acknowledge this removal.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Confirm" xml:space="preserve"><value>Confirm removal</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization" xml:space="preserve"><value>Current global-administrator authority could not be proven.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target" xml:space="preserve"><value>The literal target identifier is unsupported.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence" xml:space="preserve"><value>Complete current fixed-scope evidence is unavailable.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing" xml:space="preserve"><value>The exact target is not present in the complete projection.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator" xml:space="preserve"><value>The last global administrator cannot be removed.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization" xml:space="preserve"><value>Complete localized removal facts are unavailable.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Authorization" xml:space="preserve"><value>Restore current authority evidence, then reopen the preview.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Target" xml:space="preserve"><value>Use the exact supported identifier from the current projection.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh" xml:space="preserve"><value>Refresh the complete fixed-scope projection before continuing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.TargetMissing" xml:space="preserve"><value>Refresh and select an administrator currently present.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.LastAdministrator" xml:space="preserve"><value>Grant another global administrator before removing this authority.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization" xml:space="preserve"><value>Restore the English and French resource set before enabling removal.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>Delivery is uncertain; retry only with this attempt’s retained identifier.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.DeliveryRetry" xml:space="preserve"><value>Retry removal delivery</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery" xml:space="preserve"><value>Refresh evidence, then retry this same tracked removal attempt.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>The returned tracking identity does not match this removal attempt.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.EventEvidence" xml:space="preserve"><value>Exact-command removal event evidence is unavailable.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout" xml:space="preserve"><value>Removal status did not reach verifiable evidence in time.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission" xml:space="preserve"><value>The submission returned an unsupported lifecycle state.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Pending" xml:space="preserve"><value>The tracked removal is still processing.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Unknown" xml:space="preserve"><value>Tracked removal status is unavailable.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.PublishFailed" xml:space="preserve"><value>The removal event could not be published.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected" xml:space="preserve"><value>The removal command was rejected.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator" xml:space="preserve"><value>The server rejected removal of the last global administrator.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound" xml:space="preserve"><value>The server could not find the exact administrator target.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.Permission" xml:space="preserve"><value>Current authority does not permit this removal.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.TimedOut" xml:space="preserve"><value>The removal command timed out.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Failed" xml:space="preserve"><value>The removal command failed.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.Rejected" xml:space="preserve"><value>Refresh current evidence and review the rejection before a new attempt.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.Failed" xml:space="preserve"><value>Refresh current evidence before starting a new attempt.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed" xml:space="preserve"><value>Refresh tracked status until publication or terminal evidence is available.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.TimedOut" xml:space="preserve"><value>Refresh the tracked attempt before considering another removal.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced" xml:space="preserve"><value>The complete projection has not advanced beyond the removal preview.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify" xml:space="preserve"><value>The complete post-command projection could not be verified.</value></data>
 </root>

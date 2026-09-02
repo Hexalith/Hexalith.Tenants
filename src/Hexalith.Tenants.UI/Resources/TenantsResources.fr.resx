@@ -4142,4 +4142,49 @@
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Available" xml:space="preserve"><value>Disponible</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Admission.Busy" xml:space="preserve"><value>La tentative active doit être rapprochée</value></data>
   <data name="Tenants.GlobalAdministrators.Evidence.Unknown" xml:space="preserve"><value>Inconnu</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Target.Value" xml:space="preserve"><value>Cible exacte : « {0} »</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Counts" xml:space="preserve"><value>Nombres d’administrateurs</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Counts.Value" xml:space="preserve"><value>{0} administrateurs actuellement ; {1} après la suppression confirmée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange" xml:space="preserve"><value>Changement d’autorité</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange.Value" xml:space="preserve"><value>La cible perd son autorité d’administrateur global sur toute la plateforme après confirmation.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value" xml:space="preserve"><value>Données complètes et actuelles de portée fixe avec une version de projection qualifiée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext" xml:space="preserve"><value>Opérateur et cible</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value" xml:space="preserve"><value>Cette action supprime votre propre autorité d’administrateur global.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value" xml:space="preserve"><value>Cette action supprime l’autorité globale d’un autre administrateur.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Acknowledge" xml:space="preserve"><value>Saisissez la cible exacte « {0} » pour confirmer cette suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Confirm" xml:space="preserve"><value>Confirmer la suppression</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization" xml:space="preserve"><value>L’autorité actuelle d’administrateur global n’a pas pu être prouvée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target" xml:space="preserve"><value>L’identifiant littéral de la cible n’est pas pris en charge.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence" xml:space="preserve"><value>Les données complètes et actuelles de portée fixe sont indisponibles.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing" xml:space="preserve"><value>La cible exacte est absente de la projection complète.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator" xml:space="preserve"><value>Le dernier administrateur global ne peut pas être supprimé.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization" xml:space="preserve"><value>Les faits localisés complets sur la suppression sont indisponibles.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Authorization" xml:space="preserve"><value>Restaurez les données d’autorité actuelles, puis rouvrez l’aperçu.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Target" xml:space="preserve"><value>Utilisez l’identifiant exact pris en charge par la projection actuelle.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh" xml:space="preserve"><value>Actualisez la projection complète de portée fixe avant de continuer.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.TargetMissing" xml:space="preserve"><value>Actualisez et sélectionnez un administrateur actuellement présent.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.LastAdministrator" xml:space="preserve"><value>Attribuez les droits à un autre administrateur global avant de supprimer cette autorité.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization" xml:space="preserve"><value>Restaurez les ressources anglaises et françaises avant d’activer la suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>La livraison est incertaine ; réessayez uniquement avec l’identifiant conservé de cette tentative.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.DeliveryRetry" xml:space="preserve"><value>Réessayer la livraison de la suppression</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery" xml:space="preserve"><value>Actualisez les données, puis réessayez cette même tentative de suppression suivie.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>L’identité de suivi renvoyée ne correspond pas à cette tentative de suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.EventEvidence" xml:space="preserve"><value>La preuve d’événement de suppression pour cette commande exacte est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout" xml:space="preserve"><value>L’état de la suppression n’a pas atteint une preuve vérifiable à temps.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission" xml:space="preserve"><value>La soumission a renvoyé un état de cycle de vie non pris en charge.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Pending" xml:space="preserve"><value>La suppression suivie est toujours en cours.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Unknown" xml:space="preserve"><value>L’état de la suppression suivie est indisponible.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.PublishFailed" xml:space="preserve"><value>L’événement de suppression n’a pas pu être publié.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected" xml:space="preserve"><value>La commande de suppression a été rejetée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator" xml:space="preserve"><value>Le serveur a rejeté la suppression du dernier administrateur global.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound" xml:space="preserve"><value>Le serveur n’a pas trouvé la cible administrateur exacte.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Rejected.Permission" xml:space="preserve"><value>L’autorité actuelle ne permet pas cette suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.TimedOut" xml:space="preserve"><value>La commande de suppression a expiré.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Status.Failed" xml:space="preserve"><value>La commande de suppression a échoué.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.Rejected" xml:space="preserve"><value>Actualisez les données actuelles et examinez le rejet avant une nouvelle tentative.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.Failed" xml:space="preserve"><value>Actualisez les données actuelles avant de lancer une nouvelle tentative.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed" xml:space="preserve"><value>Actualisez l’état suivi jusqu’à disposer d’une publication ou d’une preuve terminale.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Recovery.TimedOut" xml:space="preserve"><value>Actualisez la tentative suivie avant d’envisager une autre suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced" xml:space="preserve"><value>La projection complète n’a pas avancé au-delà de l’aperçu de suppression.</value></data>
+  <data name="Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify" xml:space="preserve"><value>La projection complète après commande n’a pas pu être vérifiée.</value></data>
 </root>

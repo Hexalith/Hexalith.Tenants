@@ -50,6 +50,13 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
             return common;
         }
 
+        if (!evidence.SupportsTrackedRemoveDispatch)
+        {
+            return Blocked(
+                GlobalAdministratorActionKind.Remove,
+                GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+        }
+
         if (!HasValidUniqueRows(evidence.CompleteRows)
             || !evidence.HasCompletePopulation
             || evidence.CompleteKind is not GlobalAdministratorsSurfaceKind.Ready
@@ -148,6 +155,7 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
         {
             if (row is null
                 || string.IsNullOrWhiteSpace(row.UserId)
+                || row.UserId.Length > GlobalAdministratorRemovePreview.MaximumUserIdLength
                 || row.UserId.Any(char.IsControl)
                 || row.Freshness is not ReadModelFreshnessState.Current
                 || row.Lifecycle is not ProjectionLifecycleState.Current

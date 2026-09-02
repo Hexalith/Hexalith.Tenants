@@ -133,12 +133,25 @@ public sealed class GlobalAdministratorsSnapshotTests
         GlobalAdministratorRemoveCommandSnapshot remove = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
             .Preview(
-                new RemoveGlobalAdministrator("admin.secret"),
-                [
-                    new GlobalAdministratorRow("admin.secret", ReadModelFreshnessState.Current),
-                    new GlobalAdministratorRow("admin.other", ReadModelFreshnessState.Current),
-                ],
-                isCompleteEvidence: true);
+                GlobalAdministratorRemovePreview.Create(
+                    "admin.secret",
+                    "operator.admin",
+                    GlobalAdministratorsSnapshot.Ready(
+                        [
+                            new GlobalAdministratorRow("admin.secret", ReadModelFreshnessState.Current),
+                            new GlobalAdministratorRow("admin.other", ReadModelFreshnessState.Current),
+                        ],
+                        null,
+                        false,
+                        "\"etag\"",
+                        ReadModelFreshnessState.Current) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "projection-v1",
+                        IsCompleteEvidence = true,
+                    },
+                    isAuthorized: true),
+                "01J00000000000000000000000");
 
         row.ToString().ShouldBe("GlobalAdministratorRow { Freshness = Current, Lifecycle = Current }");
         grant.ToString().ShouldBe(
@@ -147,8 +160,8 @@ public sealed class GlobalAdministratorsSnapshotTests
             + "AuditState = NotStarted, RejectionCode = , FocusTarget = Lifecycle, LiveRegionPoliteness = Polite }");
         remove.ToString().ShouldBe(
             "GlobalAdministratorRemoveCommandSnapshot { State = Previewed, HasIntent = True, "
-            + "PreviewIsCompleteEvidence = True, AuditState = NotStarted, RejectionCode = , "
-            + "FocusTarget = Lifecycle, LiveRegionPoliteness = Polite }");
+            + "HasTrackedPreview = True, HasCommandEventEvidence = False, IsSubmissionAmbiguous = False, "
+            + "AuditState = NotStarted, RejectionCode = , FocusTarget = Submit, LiveRegionPoliteness = Polite }");
 
         foreach (string description in new[] { row.ToString(), grant.ToString(), remove.ToString() })
         {

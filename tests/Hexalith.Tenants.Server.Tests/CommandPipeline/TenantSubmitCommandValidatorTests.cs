@@ -15,7 +15,9 @@ public class TenantSubmitCommandValidatorTests {
         new AddUserToTenantValidator(),
         new ChangeUserRoleValidator(),
         new SetTenantConfigurationValidator(),
-        new RemoveTenantConfigurationValidator());
+        new RemoveTenantConfigurationValidator(),
+        new SetGlobalAdministratorValidator(),
+        new RemoveGlobalAdministratorValidator());
 
     [Fact]
     public void AddUserToTenant_payload_with_empty_user_id_fails_validation() {
@@ -229,6 +231,67 @@ public class TenantSubmitCommandValidatorTests {
         result.IsValid.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(nameof(SetGlobalAdministrator))]
+    [InlineData(nameof(RemoveGlobalAdministrator))]
+    public void Global_administrator_literal_identity_at_256_characters_passes(string commandType) {
+        SubmitCommand command = CreateGlobalAdministratorCommand(commandType, new string('A', 256));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(nameof(SetGlobalAdministrator), "")]
+    [InlineData(nameof(RemoveGlobalAdministrator), "   ")]
+    [InlineData(nameof(SetGlobalAdministrator), "admin\nuser")]
+    [InlineData(nameof(RemoveGlobalAdministrator), "admin\u0000user")]
+    public void Global_administrator_invalid_literal_identity_fails(string commandType, string userId) {
+        SubmitCommand command = CreateGlobalAdministratorCommand(commandType, userId);
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(error => error.PropertyName == "Payload.UserId");
+    }
+
+    [Theory]
+    [InlineData(nameof(SetGlobalAdministrator))]
+    [InlineData(nameof(RemoveGlobalAdministrator))]
+    public void Global_administrator_literal_identity_at_257_characters_fails(string commandType) {
+        SubmitCommand command = CreateGlobalAdministratorCommand(commandType, new string('A', 257));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(error => error.PropertyName == "Payload.UserId");
+    }
+
+    [Theory]
+    [InlineData(nameof(SetGlobalAdministrator), "System", "global-administrators", "global-administrators", nameof(SubmitCommand.Tenant))]
+    [InlineData(nameof(RemoveGlobalAdministrator), "system", "Global-Administrators", "global-administrators", nameof(SubmitCommand.Domain))]
+    [InlineData(nameof(SetGlobalAdministrator), "system", "global-administrators", "Global-Administrators", nameof(SubmitCommand.AggregateId))]
+    [InlineData(nameof(RemoveGlobalAdministrator), "SYSTEM", "GLOBAL-ADMINISTRATORS", "GLOBAL-ADMINISTRATORS", nameof(SubmitCommand.Tenant))]
+    public void Global_administrator_case_variant_envelope_fails_before_routing(
+        string commandType,
+        string tenant,
+        string domain,
+        string aggregateId,
+        string expectedProperty) {
+        SubmitCommand command = CreateGlobalAdministratorCommand(
+            commandType,
+            "  MixedCase.User  ",
+            tenant,
+            domain,
+            aggregateId);
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(error => error.PropertyName == expectedProperty);
+    }
+
     private static SubmitCommand CreateCommand<T>(T payload)
         where T : notnull
         => new(
@@ -253,4 +316,26 @@ public class TenantSubmitCommandValidatorTests {
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: "test-user",
             Extensions: null);
+
+    private static SubmitCommand CreateGlobalAdministratorCommand(
+        string commandType,
+        string userId,
+        string tenant = "system",
+        string domain = "global-administrators",
+        string aggregateId = "global-administrators")
+    {
+        object payload = commandType == nameof(SetGlobalAdministrator)
+            ? new SetGlobalAdministrator(userId)
+            : new RemoveGlobalAdministrator(userId);
+        return new(
+            MessageId: Guid.NewGuid().ToString(),
+            Tenant: tenant,
+            Domain: domain,
+            AggregateId: aggregateId,
+            CommandType: commandType,
+            Payload: JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType()),
+            CorrelationId: Guid.NewGuid().ToString(),
+            UserId: "test-user",
+            Extensions: null);
+    }
 }

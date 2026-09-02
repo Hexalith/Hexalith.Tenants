@@ -34,7 +34,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     string? SafeRecoveryKey = null,
     bool HasCommandEventEvidence = false,
     bool IsSubmissionAmbiguous = false,
-    GlobalAdministratorGrantPreview? GrantPreview = null) {
+    GlobalAdministratorGrantPreview? GrantPreview = null,
+    GlobalAdministratorRemovePreview? RemovePreview = null) {
     public bool IsRestoreAccessAction
         => CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
 
@@ -60,29 +61,34 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
     internal GlobalAdministratorCorrectionSnapshot WithReconciliation(GlobalAdministratorReconciliationState reconciliation) {
         ArgumentNullException.ThrowIfNull(reconciliation);
-        bool restoreAmbiguity = IsRestoreAccessAction && reconciliation.IsSubmissionAmbiguous;
+        bool deliveryAmbiguity = reconciliation.IsSubmissionAmbiguous;
         return this with {
             LifecycleState = reconciliation.LifecycleState,
             MessageId = reconciliation.MessageId,
             CorrelationId = reconciliation.CorrelationId,
             GrantPreview = reconciliation.GrantPreview,
+            RemovePreview = reconciliation.RemovePreview,
             HasCommandEventEvidence = reconciliation.HasCommandEventEvidence,
-            IsSubmissionAmbiguous = restoreAmbiguity,
+            IsSubmissionAmbiguous = deliveryAmbiguity,
             SafeMessage = null,
-            SafeMessageKey = restoreAmbiguity
+            SafeMessageKey = deliveryAmbiguity
                 ? reconciliation.SafeMessageKey
-                    ?? "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"
+                    ?? (IsRestoreAccessAction
+                        ? "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"
+                        : "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")
                 : reconciliation.SafeMessageKey,
-            SafeRecoveryKey = restoreAmbiguity
+            SafeRecoveryKey = deliveryAmbiguity
                 ? reconciliation.SafeRecoveryKey
-                    ?? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
+                    ?? (IsRestoreAccessAction
+                        ? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
+                        : "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery")
                 : reconciliation.SafeRecoveryKey,
             RejectionCode = null,
-            AuditState = restoreAmbiguity
+            AuditState = deliveryAmbiguity
                 ? TenantCommandAuditState.AuditDelayed
                 : TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness = restoreAmbiguity
+            LiveRegionPoliteness = deliveryAmbiguity
                 ? TenantCommandLiveRegionPoliteness.Assertive
                 : TenantCommandLiveRegionPoliteness.Polite,
         };
@@ -103,7 +109,10 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 && (GrantPreview?.IsComplete != true
                     || (string.IsNullOrWhiteSpace(CorrelationId)
                         && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous))))
-            || (!isGrant && string.IsNullOrWhiteSpace(CorrelationId)))
+            || (!isGrant
+                && (RemovePreview?.IsComplete != true
+                    || (string.IsNullOrWhiteSpace(CorrelationId)
+                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous)))))
         {
             return null;
         }
@@ -118,7 +127,32 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             HasCommandEventEvidence,
             IsSubmissionAmbiguous,
             SafeMessageKey,
-            SafeRecoveryKey);
+            SafeRecoveryKey,
+            RemovePreview);
+    }
+
+    /// <summary>Attaches one complete BFF-composed removal preview before dispatch.</summary>
+    /// <param name="preview">Removal preview evidence.</param>
+    /// <returns>The updated correction snapshot.</returns>
+    public GlobalAdministratorCorrectionSnapshot WithRemovePreview(GlobalAdministratorRemovePreview preview)
+    {
+        ArgumentNullException.ThrowIfNull(preview);
+        return this with
+        {
+            RemovePreview = preview,
+            SafeMessage = null,
+            SafeMessageKey = preview.IsComplete ? null : preview.UnavailableReasonKey,
+            SafeRecoveryKey = preview.IsComplete ? null : preview.RecoveryKey,
+            LifecycleState = preview.IsComplete
+                ? TenantCommandLifecycleState.Previewed
+                : TenantCommandLifecycleState.UnableToVerify,
+            FocusTarget = preview.IsComplete
+                ? TenantCommandFocusTarget.Submit
+                : TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = preview.IsComplete
+                ? TenantCommandLiveRegionPoliteness.Polite
+                : TenantCommandLiveRegionPoliteness.Assertive,
+        };
     }
 
     public static GlobalAdministratorCorrectionSnapshot FromIntent(
@@ -193,6 +227,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             GrantPreview = CommandType is TenantCorrectionCommandType.SetGlobalAdministrator && !present
                 ? GlobalAdministratorGrantPreview.Create(TargetUserId, projection, isAuthorized: true)
                 : null,
+            RemovePreview = null,
         };
 
         // Keep the explicit HasMore guard even though the shared loader also stamps IsCompleteEvidence.
@@ -248,11 +283,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         return withEvidence;
     }
 
-    // A new attempt takes exactly the identity its caller owns: the restore path passes its freshly minted
-    // ULID, and the untracked revoke path passes none, so the id it gets is the one the gateway mints on
-    // acceptance. Retaining a previous attempt's id here paired a stale message id with the new attempt's
-    // correlation id, and the resulting handle could never verify against command status.
-    public GlobalAdministratorCorrectionSnapshot RequestSent(string? messageId = null)
+    // Both fixed-scope actions take the exact caller-owned canonical ULID before dispatch.
+    public GlobalAdministratorCorrectionSnapshot RequestSent(string messageId)
         => this with {
             LifecycleState = TenantCommandLifecycleState.RequestSent,
             MessageId = messageId,
@@ -270,9 +302,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     public GlobalAdministratorCorrectionSnapshot Accepted(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
-        if (IsRestoreAccessAction
-            && (!string.Equals(MessageId, result.MessageId, StringComparison.Ordinal)
-                || string.IsNullOrWhiteSpace(result.CorrelationId)))
+        if (!string.Equals(MessageId, result.MessageId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(result.CorrelationId))
         {
             return AmbiguousTrackingFailure();
         }
@@ -295,26 +326,13 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     public GlobalAdministratorCorrectionSnapshot ApplySubmissionFailure(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
+        if (!IsRestoreAccessAction)
+        {
+            return FromRemovalSnapshot(ToRemovalSnapshot().ApplySubmission(result));
+        }
+
         if (result.IsAmbiguousFailure)
         {
-            if (!IsRestoreAccessAction)
-            {
-                return this with
-                {
-                    LifecycleState = TenantCommandLifecycleState.Failed,
-                    MessageId = MessageId ?? result.MessageId,
-                    CorrelationId = null,
-                    SafeMessage = null,
-                    SafeMessageKey = "Tenants.Correction.State.Failed",
-                    SafeRecoveryKey = null,
-                    RejectionCode = null,
-                    IsSubmissionAmbiguous = false,
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Lifecycle,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                };
-            }
-
             return string.IsNullOrWhiteSpace(result.MessageId)
                 || MessageId is not null
                     && !string.Equals(MessageId, result.MessageId, StringComparison.Ordinal)
@@ -326,7 +344,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                     CorrelationId = null,
                     SafeMessage = null,
                     SafeMessageKey = result.SafeMessageKey,
-                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
+                    SafeRecoveryKey = IsRestoreAccessAction
+                        ? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
+                        : "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
                     RejectionCode = null,
                     IsSubmissionAmbiguous = true,
                     AuditState = TenantCommandAuditState.AuditDelayed,
@@ -352,6 +372,12 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
     public GlobalAdministratorCorrectionSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
+
+        if (!IsRestoreAccessAction)
+        {
+            GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ApplyStatus(status);
+            return FromRemovalSnapshot(removal);
+        }
 
         if (status.Status is null) {
             return this with {
@@ -453,6 +479,34 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     }
 
     public GlobalAdministratorCorrectionSnapshot ConfirmProjection(GlobalAdministratorsSnapshot? projection) {
+        if (!IsRestoreAccessAction)
+        {
+            if (projection is null)
+            {
+                return this with
+                {
+                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify",
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+            }
+
+            GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ConfirmProjection(projection);
+            GlobalAdministratorCorrectionSnapshot updated = FromRemovalSnapshot(removal);
+            return projection is null
+                ? updated
+                : updated with
+                {
+                    LastConfirmedProjectionEvidence = projection,
+                    CurrentAdministratorCount = DistinctAdministratorCount(projection),
+                    TargetCurrentlyPresent = TargetPresent(projection),
+                };
+        }
+
         // Confirmation may only come from an authoritative, current, genuinely-readable projection.
         // An Empty/auth-scoped-empty or Stale projection is never proof of a successful correction:
         // a successful revoke can never empty the fixed projection (the last administrator is blocked
@@ -552,14 +606,20 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
     private GlobalAdministratorCorrectionSnapshot AmbiguousTrackingFailure()
         => string.IsNullOrWhiteSpace(MessageId)
-            ? UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch")
+            ? UnableToVerify(IsRestoreAccessAction
+                ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                : "Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch")
             : this with
             {
                 LifecycleState = TenantCommandLifecycleState.RequestSent,
                 CorrelationId = null,
                 SafeMessage = null,
-                SafeMessageKey = "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch",
-                SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
+                SafeMessageKey = IsRestoreAccessAction
+                    ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                    : "Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch",
+                SafeRecoveryKey = IsRestoreAccessAction
+                    ? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
+                    : "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
                 RejectionCode = null,
                 IsSubmissionAmbiguous = true,
                 AuditState = TenantCommandAuditState.AuditDelayed,
@@ -587,11 +647,49 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             LifecycleState = TenantCommandLifecycleState.UnableToVerify,
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
-            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
+            SafeRecoveryKey = IsRestoreAccessAction
+                ? "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh"
+                : "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
             IsSubmissionAmbiguous = false,
             AuditState = TenantCommandAuditState.AuditDelayed,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+
+    private GlobalAdministratorRemoveCommandSnapshot ToRemovalSnapshot()
+        => new(
+            LifecycleState,
+            new Hexalith.Tenants.Contracts.Commands.RemoveGlobalAdministrator(TargetUserId),
+            MessageId: MessageId,
+            CorrelationId: CorrelationId,
+            SafeMessage: SafeMessage,
+            RejectionCode: RejectionCode,
+            AuditState: AuditState,
+            FocusTarget: FocusTarget,
+            LiveRegionPoliteness: LiveRegionPoliteness,
+            PreviewEvidence: RemovePreview,
+            HasCommandEventEvidence: HasCommandEventEvidence,
+            IsSubmissionAmbiguous: IsSubmissionAmbiguous,
+            SafeMessageKey: SafeMessageKey,
+            SafeRecoveryKey: SafeRecoveryKey);
+
+    private GlobalAdministratorCorrectionSnapshot FromRemovalSnapshot(
+        GlobalAdministratorRemoveCommandSnapshot removal)
+        => this with
+        {
+            LifecycleState = removal.State,
+            MessageId = removal.MessageId,
+            CorrelationId = removal.CorrelationId,
+            SafeMessage = removal.SafeMessage,
+            SafeMessageKey = removal.SafeMessageKey,
+            SafeRecoveryKey = removal.SafeRecoveryKey,
+            RejectionCode = removal.RejectionCode,
+            AuditState = removal.AuditState,
+            FocusTarget = removal.FocusTarget,
+            LiveRegionPoliteness = removal.LiveRegionPoliteness,
+            RemovePreview = removal.PreviewEvidence,
+            HasCommandEventEvidence = removal.HasCommandEventEvidence,
+            IsSubmissionAmbiguous = removal.IsSubmissionAmbiguous,
         };
 
     private bool TargetPresent(GlobalAdministratorsSnapshot projection)

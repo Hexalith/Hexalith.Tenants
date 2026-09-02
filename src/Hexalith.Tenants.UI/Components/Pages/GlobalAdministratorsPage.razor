@@ -56,8 +56,8 @@
                  VerticalGap="20px"
                  Class="global-admins"
                  data-testid="tenants-global-admins-area"
-                 inert="@(IsGrantPreviewOpen ? string.Empty : null)"
-                 aria-hidden="@(IsGrantPreviewOpen ? "true" : null)"
+                 inert="@(IsAnyPreviewOpen ? string.Empty : null)"
+                 aria-hidden="@(IsAnyPreviewOpen ? "true" : null)"
                  aria-labelledby="global-admins-heading">
     <FcPageHeader PageTitle="@PageTitleText"
                   Heading="@PageTitleText"
@@ -66,10 +66,10 @@
                   Description="@Localizer["Tenants.GlobalAdministrators.Description"]"
                   TestId="tenants-global-admins-page-header" />
 
-    <FluentAnchorButton Href="@(IsGrantPreviewOpen ? null : SafeReturnUrl)"
+    <FluentAnchorButton Href="@(IsAnyPreviewOpen ? null : SafeReturnUrl)"
                         Appearance="ButtonAppearance.Outline"
-                        aria-disabled="@(IsGrantPreviewOpen ? "true" : null)"
-                        tabindex="@(IsGrantPreviewOpen ? "-1" : null)"
+                        aria-disabled="@(IsAnyPreviewOpen ? "true" : null)"
+                        tabindex="@(IsAnyPreviewOpen ? "-1" : null)"
                         data-testid="tenants-global-admins-return">
         @Localizer["Tenants.GlobalAdministrators.Return"]
     </FluentAnchorButton>
@@ -353,119 +353,6 @@
             <p>@Localizer["Tenants.GlobalAdministrators.Remove.Description"]</p>
         </FluentStack>
 
-        @if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed
-            or TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.ProjectionPending)
-        {
-            <section class="global-admins__remove-preview"
-                     role="dialog"
-                     aria-modal="true"
-                     aria-labelledby="global-admins-remove-preview-heading"
-                     data-testid="tenants-global-admin-remove-preview"
-                     @onkeydown="HandleRemovePreviewKeyDownAsync">
-                <span class="global-admins__remove-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-remove-focus-start"
-                      @onfocus="FocusRemoveCancelAsync"></span>
-                <h3 id="global-admins-remove-preview-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Title"]</h3>
-                <dl class="global-admins__remove-preview-grid">
-                    <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"]</dd>
-                    </div>
-                    <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target"]</dt>
-                        <dd data-testid="tenants-global-admin-remove-target">@_removeSnapshot.Intent?.UserId</dd>
-                    </div>
-                    <div>
-                        @* PreviewRows is one PageSize-bounded page, not the platform total. Labelling a
-                           paged count "Current administrator count" overstated the evidence on exactly the
-                           incomplete-evidence path Remove stays enabled for (HasMore alone), so the label
-                           follows IsCompleteEvidence -- the flag that distinguishes the two.
-                           Read from the preview snapshot, not the live one: the count beside it is
-                           _removeSnapshot.PreviewRows, captured at preview time, so selecting the label from
-                           _snapshot paired "Current administrator count" with a page-one count whenever a
-                           notification refresh landed between preview and render. *@
-                        <dt data-testid="tenants-global-admin-remove-count-label">@(_removeSnapshot.PreviewIsCompleteEvidence
-                            ? Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count"]
-                            : Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count.VisiblePage"])</dt>
-                        <dd data-testid="tenants-global-admin-remove-count">@(_removeSnapshot.PreviewRows?.Count ?? 0)</dd>
-                    </div>
-                    <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Freshness"]</dt>
-                        <dd>@_removeSnapshot.PreviewFreshness</dd>
-                    </div>
-                    <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value"]</dd>
-                    </div>
-                    <div>
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value"]</dd>
-                    </div>
-                    <div data-testid="tenants-global-admin-remove-known-consequences">
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value"]</dd>
-                    </div>
-                    <div data-testid="tenants-global-admin-remove-known-unknowns">
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value"]</dd>
-                    </div>
-                    <div data-testid="tenants-global-admin-remove-audit-expectation">
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit.Value"]</dd>
-                    </div>
-                    <div data-testid="tenants-global-admin-remove-recovery">
-                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery"]</dt>
-                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"]</dd>
-                    </div>
-                </dl>
-                @if (RemoveIntentUnavailableReason is { Length: > 0 } previewUnavailableReason)
-                {
-                    <FluentText id="tenants-global-admin-remove-preview-unavailable-reason"
-                                role="alert"
-                                data-testid="tenants-global-admin-remove-preview-unavailable-reason">
-                        @previewUnavailableReason
-                    </FluentText>
-                    <FluentText id="tenants-global-admin-remove-preview-unavailable-recovery"
-                                data-testid="tenants-global-admin-remove-preview-unavailable-recovery">
-                        @RemoveIntentRecovery
-                    </FluentText>
-                }
-                <div class="global-admins__remove-actions">
-                    <span class="global-admins__remove-submit-focus global-admins__mutation-initiation" tabindex="-1" @ref="_removeSubmitElement">
-                        <FluentButton Appearance="ButtonAppearance.Primary"
-                                      data-testid="tenants-global-admin-remove-submit"
-                                      aria-describedby="@(RemoveIntentUnavailableReason is null ? null : "tenants-global-admin-remove-preview-unavailable-reason tenants-global-admin-remove-preview-unavailable-recovery")"
-                                      Disabled="@IsRemoveSubmitDisabled"
-                                      OnClick="SubmitRemoveAsync">
-                            @Localizer["Tenants.GlobalAdministrators.Remove.Submit"]
-                        </FluentButton>
-                    </span>
-                    <span class="global-admins__remove-cancel-focus global-admins__mutation-initiation" tabindex="-1" @ref="_removeCancelElement">
-                        <FluentButton Appearance="ButtonAppearance.Outline"
-                                      data-testid="tenants-global-admin-remove-cancel"
-                                      Disabled="@IsGrantPreviewOpen"
-                                      OnClick="CancelRemoveAsync">
-                            @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
-                        </FluentButton>
-                    </span>
-                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                  Class="global-admins__mutation-initiation"
-                                  data-testid="tenants-global-admin-remove-refresh"
-                                  Disabled="@(!CanRefreshRemoveStatus || IsGrantPreviewOpen)"
-                                  OnClick="RefreshRemoveStatusAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Remove.Refresh"]
-                    </FluentButton>
-                </div>
-                <span class="global-admins__remove-focus-sentinel"
-                      tabindex="0"
-                      data-testid="tenants-global-admin-remove-focus-end"
-                      @onfocus="FocusRemoveSubmitAsync"></span>
-            </section>
-        }
-
         <section class="global-admins__remove-lifecycle global-admins__remove-lifecycle--@RemoveStateCss"
                  @ref="_removeLifecycleElement"
                  tabindex="-1"
@@ -477,9 +364,13 @@
                 <FluentText Class="global-admins__remove-state-symbol" aria-hidden="true">@RemoveStateSymbol</FluentText>
                 <FluentText>@RemoveStateText</FluentText>
             </p>
-            @if (!string.IsNullOrWhiteSpace(_removeSnapshot.SafeMessage))
+            @if (!string.IsNullOrWhiteSpace(RemoveSafeMessage))
             {
-                <p data-testid="tenants-global-admin-remove-safe-message">@ResolveSafeMessage(_removeSnapshot.SafeMessage)</p>
+                <p data-testid="tenants-global-admin-remove-safe-message">@RemoveSafeMessage</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(RemoveSafeRecovery))
+            {
+                <p data-testid="tenants-global-admin-remove-safe-recovery">@RemoveSafeRecovery</p>
             }
             <p data-testid="tenants-global-admin-remove-audit-state">@RemoveAuditText</p>
             <p class="global-admins__remove-live"
@@ -586,14 +477,11 @@
                                       data-testid="tenants-global-admins-remove-reason">
                                     @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
                                 </span>
-                                <FluentButton Appearance="ButtonAppearance.Outline"
-                                              Class="global-admins__mutation-initiation"
-                                              data-testid="tenants-global-admin-remove"
-                                              Disabled="@IsGrantPreviewOpen"
-                                              aria-describedby="@RemoveDescribedBy(context)"
-                                              OnClick="() => PreviewRemove(context.UserId)">
-                                    @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
-                                </FluentButton>
+                                <GlobalAdministratorRemoveLauncher UserId="@context.UserId"
+                                                                   Label="@Localizer["Tenants.GlobalAdministrators.Remove.Launch"]"
+                                                                   Disabled="@IsAnyPreviewOpen"
+                                                                   AriaDescribedBy="@RemoveDescribedBy(context)"
+                                                                   OnPreview="PreviewRemoveAsync" />
                             }
                         </FluentStack>
                     </TemplateColumn>
@@ -615,6 +503,75 @@
         }
     </FluentAccordion>
     </FluentStack>
+    @if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed
+        && _removeSnapshot.PreviewEvidence is { IsComplete: true } removePreview)
+    {
+        <section class="global-admins__remove-preview"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="global-admins-remove-preview-heading"
+                 data-testid="tenants-global-admin-remove-preview"
+                 @onkeydown="HandleRemovePreviewKeyDownAsync">
+            <fluent-button appearance="outline"
+                           class="global-admins__remove-focus-sentinel"
+                           @ref="_removeCancelElement"
+                           data-testid="tenants-global-admin-remove-focus-start"
+                           @onclick="CancelRemoveAsync">
+                @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
+            </fluent-button>
+            <h3 id="global-admins-remove-preview-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Title"]</h3>
+            <dl class="global-admins__remove-preview-grid">
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope"]</dt>
+                <dd>@Localizer[removePreview.ScopeFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target"]</dt>
+                <dd class="global-admins__literal-identity" data-testid="tenants-global-admin-remove-target">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target.Value", removePreview.TargetUserId]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Counts"]</dt>
+                <dd data-testid="tenants-global-admin-remove-count">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Counts.Value", removePreview.CurrentAdministratorCount, removePreview.ResultingAdministratorCount]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange"]</dt>
+                <dd>@Localizer[removePreview.AuthorityChangeFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Freshness"]</dt>
+                <dd>@Localizer[removePreview.FreshnessFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery"]</dt>
+                <dd>@Localizer[removePreview.RecoveryFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit"]</dt>
+                <dd>@Localizer[removePreview.AuditFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext"]</dt>
+                <dd>@Localizer[removePreview.CallerTargetContextFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"]</dt>
+                <dd>@Localizer[removePreview.KnownConsequencesFactKey!]</dd>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"]</dt>
+                <dd>@Localizer[removePreview.KnownUnknownsFactKey!]</dd>
+            </dl>
+            @if (RemoveIntentUnavailableReason is { Length: > 0 } previewUnavailableReason)
+            {
+                <p id="tenants-global-admin-remove-preview-unavailable-reason" role="alert">@previewUnavailableReason</p>
+                <p id="tenants-global-admin-remove-preview-unavailable-recovery">@RemoveIntentRecovery</p>
+            }
+            <FluentTextInput @ref="_removeAcknowledgementElement"
+                             Label="@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge", removePreview.TargetUserId]"
+                             Value="@_removeAcknowledgement"
+                             ValueChanged="OnRemoveAcknowledgementChanged"
+                             data-testid="tenants-global-admin-remove-acknowledge" />
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.75rem" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-global-admin-remove-submit"
+                              aria-describedby="@(RemoveIntentUnavailableReason is null ? null : "tenants-global-admin-remove-preview-unavailable-reason tenants-global-admin-remove-preview-unavailable-recovery")"
+                              Disabled="@IsRemoveSubmitDisabled"
+                              OnClick="SubmitRemoveAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Remove.Preview.Confirm"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-global-admin-remove-cancel"
+                              OnClick="CancelRemoveAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
+                </FluentButton>
+            </FluentStack>
+            <span class="global-admins__remove-focus-sentinel"
+                  tabindex="0"
+                  data-testid="tenants-global-admin-remove-focus-end"
+                  @onfocus="FocusRemoveAcknowledgementAsync"></span>
+        </section>
+    }
     @if (_grantSnapshot.State is TenantCommandLifecycleState.Previewed
         && _grantSnapshot.PreviewEvidence is { IsComplete: true } grantPreview)
     {
@@ -743,14 +700,16 @@
     private ElementReference _grantLauncherElement;
     private ElementReference _grantPreviewCancelElement;
     private ElementReference _grantLifecycleElement;
-    private ElementReference _removeSubmitElement;
     private ElementReference _removeCancelElement;
     private ElementReference _removeLifecycleElement;
+    private FluentTextInput _removeAcknowledgementElement = default!;
+    private GlobalAdministratorRemoveLauncher? _removeLauncher;
     private bool _focusGrantUserIdPending;
     private bool _focusGrantLauncherPending;
     private bool _focusGrantLifecyclePending;
     private bool _focusGrantPreviewCancelPending;
-    private bool _focusRemoveSubmitPending;
+    private bool _focusRemoveAcknowledgementPending;
+    private bool _focusRemoveLauncherPending;
     private bool _focusRemoveLifecyclePending;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
     private AuthenticationStateProvider? _authenticationStateProvider;
@@ -763,6 +722,9 @@
     private int _grantPreviewInFlight;
     private int _grantConfirmationInFlight;
     private long _grantPreviewGeneration;
+    private int _removePreviewInFlight;
+    private int _removeSubmissionInFlight;
+    private string? _removeAcknowledgement;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "returnUrl")]
@@ -969,6 +931,7 @@
         {
             IsGrantPreviewReady = BffComposition.IsGlobalAdministratorGrantPreviewReady,
             SupportsTrackedGrantDispatch = CommandGateway.SupportsTrackedGlobalAdministratorDispatch,
+            SupportsTrackedRemoveDispatch = CommandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch,
         };
 
     private string RemoveReasonId(GlobalAdministratorRow row)
@@ -1004,6 +967,12 @@
     private bool IsGrantPreviewOpen
         => _grantSnapshot.State is TenantCommandLifecycleState.Previewed
             && _grantSnapshot.PreviewEvidence?.IsComplete == true;
+
+    private bool IsRemovePreviewOpen
+        => _removeSnapshot.State is TenantCommandLifecycleState.Previewed
+            && _removeSnapshot.PreviewEvidence?.IsComplete == true;
+
+    private bool IsAnyPreviewOpen => IsGrantPreviewOpen || IsRemovePreviewOpen;
 
     private bool IsGrantConfirmDisabled
         => !_grantAcknowledged
@@ -1077,25 +1046,20 @@
                 : Localizer["Tenants.GlobalAdministrators.Evidence.Admission.Available"].Value;
 
     private bool PreviewEvidenceMatchesCurrent
-        => _removeSnapshot.PreviewIsCompleteEvidence
-            && _removeSnapshot.PreviewFreshness is ReadModelFreshnessState.Current
-            && _removeSnapshot.PreviewLifecycle is ProjectionLifecycleState.Current
-            && !string.IsNullOrWhiteSpace(_removeSnapshot.PreviewProjectionVersion)
-            && string.Equals(
-                _removeSnapshot.PreviewProjectionVersion,
-                _completeSnapshot.ProjectionVersion,
-                StringComparison.Ordinal)
-            && _removeSnapshot.PreviewRows is not null
-            && _removeSnapshot.PreviewRows.Select(static row => row.UserId).Order(StringComparer.Ordinal).SequenceEqual(
-                _completeSnapshot.Rows.Select(static row => row.UserId).Order(StringComparer.Ordinal),
-                StringComparer.Ordinal);
+        => _removeSnapshot.PreviewEvidence is { IsComplete: true } preview
+            && preview.Matches(_completeSnapshot);
 
     private bool IsRemoveSubmitDisabled
         => _removeSnapshot.State is not TenantCommandLifecycleState.Previewed
-        || IsGrantPreviewOpen
+        || !string.Equals(
+            _removeAcknowledgement,
+            _removeSnapshot.PreviewEvidence?.TargetUserId,
+            StringComparison.Ordinal)
         || IsGrantInFlight
         || IsRemoveInFlight
         || _removeSnapshot.Intent is null
+        || _removeAdmissionLease is null
+        || _removeAdmissionLease.IsDispatchMarked
         || !string.IsNullOrWhiteSpace(RemoveIntentUnavailableReason);
 
     private bool CanCancelGrant
@@ -1171,8 +1135,9 @@
 
     private bool CanRefreshRemoveStatus
         => _removeSnapshot.MessageId is not null
-        && _removeSnapshot.CorrelationId is not null
-        && _removeSnapshot.State is TenantCommandLifecycleState.Accepted
+        && (_removeSnapshot.IsSubmissionAmbiguous || _removeSnapshot.CorrelationId is not null)
+        && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
@@ -1182,6 +1147,16 @@
 
     private string RemoveStateText
         => Localizer[$"Tenants.GlobalAdministrators.Remove.State.{_removeSnapshot.State}"];
+
+    private string? RemoveSafeMessage
+        => !string.IsNullOrWhiteSpace(_removeSnapshot.SafeMessageKey)
+            ? Localizer[_removeSnapshot.SafeMessageKey].Value
+            : ResolveSafeMessage(_removeSnapshot.SafeMessage);
+
+    private string? RemoveSafeRecovery
+        => string.IsNullOrWhiteSpace(_removeSnapshot.SafeRecoveryKey)
+            ? null
+            : Localizer[_removeSnapshot.SafeRecoveryKey].Value;
 
     private string RemoveAuditText
         => Localizer[$"Tenants.GlobalAdministrators.Remove.Audit.{_removeSnapshot.AuditState}"];
@@ -1294,10 +1269,22 @@
             await FocusSafelyAsync(_grantPreviewCancelElement).ConfigureAwait(false);
         }
 
-        if (_focusRemoveSubmitPending)
+        if (_focusRemoveAcknowledgementPending)
         {
-            _focusRemoveSubmitPending = false;
-            await FocusSafelyAsync(_removeSubmitElement).ConfigureAwait(false);
+            _focusRemoveAcknowledgementPending = false;
+            await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
+        }
+
+        if (_focusRemoveLauncherPending)
+        {
+            _focusRemoveLauncherPending = false;
+            GlobalAdministratorRemoveLauncher? launcher = _removeLauncher;
+            _removeLauncher = null;
+            if (launcher is null || !await launcher.TryFocusAsync().ConfigureAwait(false))
+            {
+                _focusRemoveLifecyclePending = true;
+                StateHasChanged();
+            }
         }
 
         if (_focusRemoveLifecyclePending)
@@ -2293,8 +2280,9 @@
             _focusGrantLauncherPending = false;
             _focusGrantLifecyclePending = false;
             _focusGrantPreviewCancelPending = false;
-            _focusRemoveSubmitPending = false;
+            _focusRemoveAcknowledgementPending = false;
             _focusRemoveLifecyclePending = false;
+            _removeAcknowledgement = null;
             StateHasChanged();
         }).ConfigureAwait(false);
 
@@ -3200,100 +3188,235 @@
         }).ConfigureAwait(false);
     }
 
-    private void PreviewRemove(string userId)
+    private async Task PreviewRemoveAsync(GlobalAdministratorRemoveLauncher launcher)
     {
-        GlobalAdministratorRow? row = _snapshot.Rows.FirstOrDefault(candidate => string.Equals(candidate.UserId, userId, StringComparison.Ordinal));
-        if (RemoveUnavailableReason(row) is { Length: > 0 } unavailableReason)
+        string userId = launcher.UserId;
+        if (Interlocked.CompareExchange(ref _removePreviewInFlight, 1, 0) != 0)
         {
-            SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Blocked(unavailableReason, TenantCommandFocusTarget.Lifecycle));
             return;
         }
 
-        var request = new RemoveGlobalAdministrator(userId);
-        SetRemoveSnapshot(_removeSnapshot.Preview(request, _completeSnapshot));
+        try
+        {
+            if (!await ReauthorizeAsync().ConfigureAwait(false))
+            {
+                return;
+            }
+
+            GlobalAdministratorRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                string.Equals(candidate.UserId, userId, StringComparison.Ordinal));
+            if (RemoveUnavailableReason(row) is { Length: > 0 } unavailableReason)
+            {
+                await InvokeAsync(() => SetRemoveSnapshot(
+                    GlobalAdministratorRemoveCommandSnapshot.Blocked(
+                        unavailableReason,
+                        TenantCommandFocusTarget.Lifecycle))).ConfigureAwait(false);
+                return;
+            }
+
+            using PendingOperation operation = BeginRemoveMutation();
+            long generation = operation.Generation;
+            CancellationToken cancellationToken = operation.CancellationToken;
+            GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
+                .ConfigureAwait(false);
+            GlobalAdministratorRemovePreview preview;
+            try
+            {
+                preview = await BffComposition.ComposeGlobalAdministratorRemovePreviewAsync(
+                    userId,
+                    current,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch
+            {
+                preview = GlobalAdministratorRemovePreview.Unavailable(userId);
+            }
+
+            if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized
+                || string.Equals(
+                    preview.UnavailableReasonKey,
+                    "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+                    StringComparison.Ordinal))
+            {
+                bool canCollapse = false;
+                await InvokeAsync(() => canCollapse = CanApplyRemoveMutation(generation)).ConfigureAwait(false);
+                if (canCollapse)
+                {
+                    await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                        .ConfigureAwait(false);
+                }
+
+                return;
+            }
+
+            await InvokeAsync(() =>
+            {
+                if (!CanApplyRemoveMutation(generation))
+                {
+                    return;
+                }
+
+                _completeSnapshot = current;
+                if (!preview.IsComplete
+                    || !RemoveAvailability(userId).IsAvailable)
+                {
+                    SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.UnavailablePreview(preview));
+                    return;
+                }
+
+                if (_aggregateAdmissionGate is null
+                    || !_aggregateAdmissionGate.TryAcquireLease(
+                        TenantCommandAggregateLock.ForGlobalAdministrators(),
+                        _fixedAggregateOwner,
+                        out TenantAggregateCommandLease? lease)
+                    || lease is null)
+                {
+                    SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Blocked(
+                        "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+                        TenantCommandFocusTarget.Lifecycle));
+                    return;
+                }
+
+                string messageId = NUlid.Ulid.NewUlid().ToString();
+                _removeAdmissionLease = lease;
+                _removeLauncher = launcher;
+                _removeAcknowledgement = null;
+                SetRemoveSnapshot(_removeSnapshot.Preview(preview, messageId));
+                _focusRemoveAcknowledgementPending = true;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _removePreviewInFlight, 0);
+        }
     }
 
     private async Task SubmitRemoveAsync()
     {
-        if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || _removeSnapshot.Intent is null)
+        if (Interlocked.CompareExchange(ref _removeSubmissionInFlight, 1, 0) != 0)
         {
             return;
         }
 
-        // Re-check the previewed intent against the current snapshot. The preview may have been taken before
-        // a notification refresh replaced _snapshot, so this is where the last-administrator hard stop,
-        // freshness and completeness gates actually bind. Report the reason instead of failing silently.
-        if (RemoveIntentUnavailableReason is { Length: > 0 } blockedReason)
-        {
-            await InvokeAsync(() => SetRemoveSnapshot(
-                GlobalAdministratorRemoveCommandSnapshot.Blocked(blockedReason, TenantCommandFocusTarget.Lifecycle)))
-                .ConfigureAwait(false);
-            return;
-        }
-
-        // Captured in the same read the guard validates. Re-reading _removeSnapshot.Intent afterwards let a
-        // CancelRemoveAsync running on the dispatcher replace the snapshot with Idle() in between -- this body
-        // runs off-dispatcher after the hoisted re-authorization -- making request null and raising an
-        // ArgumentNullException that the OperationCanceledException filter below does not match. An unhandled
-        // exception from an event callback tears down the circuit.
-        if (IsRemoveSubmitDisabled || _removeSnapshot.Intent is not { } request)
-        {
-            return;
-        }
-        if (_aggregateAdmissionGate is null
-            || !_aggregateAdmissionGate.TryAcquireLease(
-                TenantCommandAggregateLock.ForGlobalAdministrators(),
-                _fixedAggregateOwner,
-                out TenantAggregateCommandLease? acquiredLease)
-            || acquiredLease is null)
-        {
-            await InvokeAsync(() => SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Blocked(
-                Localizer["Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy"],
-                TenantCommandFocusTarget.Lifecycle))).ConfigureAwait(false);
-            return;
-        }
-
-        using PendingOperation operation = BeginRemoveMutation();
-        long generation = operation.Generation;
-        CancellationToken cancellationToken = operation.CancellationToken;
-        bool removeRequestArmed = false;
-        GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
-        TenantAggregateCommandLease? submissionLease = null;
-        await InvokeAsync(() =>
-        {
-            if (!CanApplyRemoveMutation(generation))
-            {
-                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
-                return;
-            }
-
-            if (!acquiredLease.TryMarkDispatched(_fixedAggregateOwner))
-            {
-                _ = acquiredLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
-                return;
-            }
-
-            _removeAdmissionLease = acquiredLease;
-            SetRemoveSnapshot(_removeSnapshot.RequestSent());
-            requestSentSnapshot = _removeSnapshot;
-            submissionLease = acquiredLease;
-            _isRemoveSubmitting = true;
-            removeRequestArmed = true;
-        }).ConfigureAwait(false);
-        if (!removeRequestArmed || requestSentSnapshot is null || submissionLease is null)
-        {
-            return;
-        }
-
-        // Same reason as the grant submit: the hoisted re-authorization consumed the automatic render, so the
-        // in-flight state needs an explicit marshalled one.
-        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-
+        GlobalAdministratorRemoveCommandSnapshot expectedSnapshot = _removeSnapshot;
+        GlobalAdministratorRemovePreview? expectedPreview = expectedSnapshot.PreviewEvidence;
+        TenantAggregateCommandLease? submissionLease = _removeAdmissionLease;
         try
         {
+            if (expectedSnapshot.State is not TenantCommandLifecycleState.Previewed
+                || expectedSnapshot.Intent is not { } request
+                || expectedPreview is not { IsComplete: true }
+                || expectedSnapshot.MessageId is not { Length: > 0 } messageId
+                || submissionLease is null
+                || submissionLease.IsDispatchMarked
+                || !string.Equals(_removeAcknowledgement, request.UserId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            using PendingOperation operation = BeginRemoveMutation();
+            long generation = operation.Generation;
+            CancellationToken cancellationToken = operation.CancellationToken;
+            if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
+                .ConfigureAwait(false);
+            GlobalAdministratorRemovePreview rebuilt;
+            try
+            {
+                rebuilt = await BffComposition.ComposeGlobalAdministratorRemovePreviewAsync(
+                    request.UserId,
+                    current,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch
+            {
+                rebuilt = GlobalAdministratorRemovePreview.Unavailable(request.UserId);
+            }
+
+            if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized
+                || string.Equals(
+                    rebuilt.UnavailableReasonKey,
+                    "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+                    StringComparison.Ordinal))
+            {
+                bool canCollapse = false;
+                await InvokeAsync(() => canCollapse = CanApplyRemoveMutation(generation)
+                    && ReferenceEquals(_removeSnapshot, expectedSnapshot)
+                    && ReferenceEquals(_removeAdmissionLease, submissionLease)).ConfigureAwait(false);
+                if (canCollapse)
+                {
+                    await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                        .ConfigureAwait(false);
+                }
+
+                return;
+            }
+
+            bool armed = false;
+            GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
+            await InvokeAsync(() =>
+            {
+                if (!CanApplyRemoveMutation(generation)
+                    || !ReferenceEquals(_removeSnapshot, expectedSnapshot)
+                    || !ReferenceEquals(_removeAdmissionLease, submissionLease))
+                {
+                    return;
+                }
+
+                _completeSnapshot = current;
+                GlobalAdministratorActionAvailability availability = RemoveAvailability(request.UserId);
+                if (!rebuilt.IsComplete
+                    || !expectedPreview.Matches(current)
+                    || !rebuilt.Matches(current)
+                    || !string.Equals(expectedPreview.TargetUserId, rebuilt.TargetUserId, StringComparison.Ordinal)
+                    || !availability.IsAvailable)
+                {
+                    _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                    _removeAdmissionLease = null;
+                    SetRemoveSnapshot(expectedSnapshot.InvalidatePreview(
+                        rebuilt.UnavailableReasonKey ?? availability.ReasonKey,
+                        rebuilt.RecoveryKey ?? availability.RecoveryKey));
+                    StateHasChanged();
+                    return;
+                }
+
+                if (!submissionLease.TryMarkDispatched(_fixedAggregateOwner))
+                {
+                    _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                    _removeAdmissionLease = null;
+                    SetRemoveSnapshot(expectedSnapshot.InvalidatePreview(
+                        "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+                        "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"));
+                    return;
+                }
+
+                SetRemoveSnapshot(expectedSnapshot.RequestSent());
+                requestSentSnapshot = _removeSnapshot;
+                _isRemoveSubmitting = true;
+                _removeAcknowledgement = null;
+                armed = true;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            if (!armed || requestSentSnapshot is null)
+            {
+                return;
+            }
+
             TenantCommandSubmissionResult result = await CommandGateway
-                .RemoveGlobalAdministratorAsync(request, cancellationToken)
+                .RemoveGlobalAdministratorTrackedAsync(request, messageId, cancellationToken)
                 .ConfigureAwait(false);
             GlobalAdministratorRemoveCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
             bool submissionApplied = false;
@@ -3320,25 +3443,36 @@
             {
                 await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
             }
+            return;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
-            await ApplyRemoveSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
+            if (submissionLease?.IsDispatchMarked == true
+                && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent)
+            {
+                SetRemoveSnapshot(_removeSnapshot.ApplySubmission(TenantCommandSubmissionResult.Ambiguous(
+                    _removeSnapshot.MessageId!,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")));
+            }
         }
         catch
         {
-            await ApplyRemoveSubmissionExceptionAsync(generation, requestSentSnapshot, submissionLease).ConfigureAwait(false);
+            if (submissionLease?.IsDispatchMarked == true
+                && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent)
+            {
+                SetRemoveSnapshot(_removeSnapshot.ApplySubmission(TenantCommandSubmissionResult.Ambiguous(
+                    _removeSnapshot.MessageId!,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")));
+            }
         }
         finally
         {
+            Interlocked.Exchange(ref _removeSubmissionInFlight, 0);
             if (!_disposed)
             {
                 await InvokeAsync(() =>
                 {
-                    if (CanApplyRemoveMutation(generation))
-                    {
-                        _isRemoveSubmitting = false;
-                    }
+                    _isRemoveSubmitting = false;
                 }).ConfigureAwait(false);
             }
         }
@@ -3346,9 +3480,49 @@
 
     private async Task RefreshRemoveStatusAsync()
     {
-        if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || _removeSnapshot.MessageId is null
-            || _removeSnapshot.CorrelationId is null)
+        if (Interlocked.CompareExchange(ref _removeSubmissionInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            GlobalAdministratorRemoveCommandSnapshot expected = _removeSnapshot;
+            if (expected.IsSubmissionAmbiguous && expected.CorrelationId is null)
+            {
+                await RetryAmbiguousRemoveDeliveryAsync(expected).ConfigureAwait(false);
+                return;
+            }
+
+            if (expected.MessageId is null
+                || expected.CorrelationId is null)
+            {
+                return;
+            }
+
+            using PendingOperation operation = BeginRemoveMutation();
+            if (!await ReauthorizeAsync(operation.CancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            await RefreshRemoveStatusCoreAsync(
+                operation.Generation,
+                operation.CancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _removeSubmissionInFlight, 0);
+        }
+    }
+
+    private async Task RetryAmbiguousRemoveDeliveryAsync(
+        GlobalAdministratorRemoveCommandSnapshot expected)
+    {
+        if (expected.Intent is not { } request
+            || expected.PreviewEvidence is not { IsComplete: true } retainedPreview
+            || expected.MessageId is not { Length: > 0 } messageId
+            || _removeAdmissionLease is not { IsDispatchMarked: true } lease)
         {
             return;
         }
@@ -3356,7 +3530,119 @@
         using PendingOperation operation = BeginRemoveMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+        if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
+            .ConfigureAwait(false);
+        GlobalAdministratorRemovePreview rebuilt;
+        try
+        {
+            rebuilt = await BffComposition.ComposeGlobalAdministratorRemovePreviewAsync(
+                request.UserId,
+                current,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            rebuilt = GlobalAdministratorRemovePreview.Unavailable(request.UserId);
+        }
+
+        if (current.Kind is GlobalAdministratorsSurfaceKind.Unauthorized
+            || string.Equals(
+                rebuilt.UnavailableReasonKey,
+                "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+                StringComparison.Ordinal))
+        {
+            bool canCollapse = false;
+            await InvokeAsync(() => canCollapse = CanApplyRemoveMutation(generation)
+                && ReferenceEquals(_removeSnapshot, expected)
+                && ReferenceEquals(_removeAdmissionLease, lease)).ConfigureAwait(false);
+            if (canCollapse)
+            {
+                await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                    .ConfigureAwait(false);
+            }
+
+            return;
+        }
+
+        bool retry = false;
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyRemoveMutation(generation)
+                || !ReferenceEquals(_removeSnapshot, expected)
+                || !ReferenceEquals(_removeAdmissionLease, lease))
+            {
+                return;
+            }
+
+            _completeSnapshot = current;
+            GlobalAdministratorActionAvailability availability = RemoveAvailability(request.UserId);
+            if (!retainedPreview.Matches(current)
+                || !rebuilt.IsComplete
+                || !rebuilt.Matches(current)
+                || !availability.IsAvailable)
+            {
+                SetRemoveSnapshot(expected.RetainAmbiguousPreflight(
+                    rebuilt.UnavailableReasonKey ?? availability.ReasonKey,
+                    rebuilt.RecoveryKey ?? availability.RecoveryKey));
+                StateHasChanged();
+                return;
+            }
+
+            retry = true;
+            _isRemoveSubmitting = true;
+        }).ConfigureAwait(false);
+        if (!retry)
+        {
+            return;
+        }
+
+        TenantCommandSubmissionResult result;
+        try
+        {
+            result = await CommandGateway.RemoveGlobalAdministratorTrackedAsync(
+                request,
+                messageId,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            result = TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        }
+        catch
+        {
+            result = TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        }
+
+        GlobalAdministratorRemoveCommandSnapshot applied = expected.ApplySubmission(result);
+        await InvokeAsync(() =>
+        {
+            if (CanApplyRemoveMutation(generation)
+                && ReferenceEquals(_removeSnapshot, expected)
+                && ReferenceEquals(_removeAdmissionLease, lease))
+            {
+                SetRemoveSnapshot(applied);
+                _isRemoveSubmitting = false;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+
+        if (applied.State is TenantCommandLifecycleState.Accepted)
+        {
+            await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task RefreshRemoveStatusCoreAsync(long generation, CancellationToken cancellationToken)
@@ -3415,8 +3701,7 @@
 
         if (statusApplied
             && statusSnapshot.Intent is not null
-            && statusSnapshot.State is TenantCommandLifecycleState.Accepted
-                or TenantCommandLifecycleState.ProjectionPending)
+            && statusSnapshot.State is TenantCommandLifecycleState.ProjectionPending)
         {
             await RequeryRemoveProjectionAsync(generation).ConfigureAwait(false);
         }
@@ -3429,59 +3714,55 @@
             return;
         }
 
-        await InvokeAsync(() =>
-        {
-            if (!CanApplyRemoveMutation(generation))
-            {
-                return;
-            }
-
-            // The re-query below deliberately renders page one; reset the cursor state that describes the
-            // view so Previous is not offered on page one and a later Next cannot push a stale cursor.
-            _cursorHistory.Clear();
-            _pagingHistoryTruncated = false;
-            _pagingJumpedToFirstPage = false;
-            _authorizationPagingReset = false;
-            _currentCursor = null;
-        }).ConfigureAwait(false);
-        if (!CanApplyRemoveMutation(generation))
+        GlobalAdministratorRemoveCommandSnapshot projectionBasis = _removeSnapshot;
+        TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
+        GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
+            .ConfigureAwait(false);
+        if (!CanApplyRemoveMutation(generation)
+            || !ReferenceEquals(_removeSnapshot, projectionBasis))
         {
             return;
         }
 
-        GlobalAdministratorRemoveCommandSnapshot projectionBasis = _removeSnapshot;
-        TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
-        GlobalAdministratorsSnapshot? snapshot = await LoadAsync(
-            reuseETag: false,
-            retainConfirmed: true,
-            requestedCursor: null,
-            useRequestedCursor: true).ConfigureAwait(false);
-        // Same reference check as the grant requery: a superseded load must not prove a removal.
-        if (snapshot is not null)
+        if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
         {
-            GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
-            bool resumeAdopted = false;
-            await InvokeAsync(() =>
-            {
-                if (!CanApplyRemoveMutation(generation)
-                    || !ReferenceEquals(_snapshot, snapshot)
-                    || !ReferenceEquals(_removeSnapshot, projectionBasis))
-                {
-                    if (projectionLease is not null)
-                    {
-                        resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease);
-                    }
+            await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                .ConfigureAwait(false);
+            return;
+        }
 
-                    return;
+        GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+        bool resumeAdopted = false;
+        bool confirmed = false;
+        await InvokeAsync(() =>
+        {
+            if (!CanApplyRemoveMutation(generation)
+                || !ReferenceEquals(_removeSnapshot, projectionBasis))
+            {
+                if (projectionLease is not null)
+                {
+                    resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease);
                 }
 
-                SetRemoveSnapshot(projectionSnapshot);
-                StateHasChanged();
-            }).ConfigureAwait(false);
-            if (resumeAdopted)
-            {
-                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                return;
             }
+
+            _completeSnapshot = snapshot;
+            SetRemoveSnapshot(projectionSnapshot);
+            confirmed = projectionSnapshot.State is TenantCommandLifecycleState.Confirmed;
+            StateHasChanged();
+        }).ConfigureAwait(false);
+        if (resumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+        }
+        else if (confirmed)
+        {
+            _ = await LoadAsync(
+                reuseETag: false,
+                retainConfirmed: true,
+                requestedCursor: _currentCursor,
+                useRequestedCursor: true).ConfigureAwait(false);
         }
     }
 
@@ -3495,8 +3776,9 @@
         InvalidateRemoveMutation();
         _ = _removeAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
         _removeAdmissionLease = null;
+        _removeAcknowledgement = null;
         SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Idle());
-        _focusRemoveLifecyclePending = true;
+        _focusRemoveLauncherPending = true;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
@@ -3508,8 +3790,11 @@
         }
     }
 
-    private async Task FocusRemoveSubmitAsync(FocusEventArgs args)
-        => await _removeSubmitElement.FocusAsync().ConfigureAwait(false);
+    private void OnRemoveAcknowledgementChanged(string? value)
+        => _removeAcknowledgement = value;
+
+    private async Task FocusRemoveAcknowledgementAsync(FocusEventArgs args)
+        => await _removeAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
 
     private async Task FocusRemoveCancelAsync(FocusEventArgs args)
         => await _removeCancelElement.FocusAsync().ConfigureAwait(false);
@@ -3525,9 +3810,10 @@
         {
             _removeAdmissionLease = null;
         }
-        if (_removeSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
+        if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed
+            && _removeSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
         {
-            _focusRemoveSubmitPending = true;
+            _focusRemoveAcknowledgementPending = true;
         }
         else if (_removeSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || _removeSnapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle
@@ -3626,8 +3912,15 @@
                 new RemoveGlobalAdministrator(reconciliation.TargetUserId),
                 MessageId: reconciliation.MessageId,
                 CorrelationId: reconciliation.CorrelationId,
-                AuditState: TenantCommandAuditState.AuditPending,
-                FocusTarget: TenantCommandFocusTarget.Refresh);
+                AuditState: reconciliation.IsSubmissionAmbiguous
+                    ? TenantCommandAuditState.AuditDelayed
+                    : TenantCommandAuditState.AuditPending,
+                FocusTarget: TenantCommandFocusTarget.Refresh,
+                PreviewEvidence: reconciliation.RemovePreview,
+                HasCommandEventEvidence: reconciliation.HasCommandEventEvidence,
+                IsSubmissionAmbiguous: reconciliation.IsSubmissionAmbiguous,
+                SafeMessageKey: reconciliation.SafeMessageKey,
+                SafeRecoveryKey: reconciliation.SafeRecoveryKey);
         }
     }
 
@@ -3693,9 +3986,13 @@
     private static GlobalAdministratorReconciliationState? CreateReconciliation(
         GlobalAdministratorRemoveCommandSnapshot snapshot)
         => snapshot.Intent is not null
+            && snapshot.PreviewEvidence?.IsComplete == true
             && snapshot.MessageId is { Length: > 0 } messageId
-            && snapshot.CorrelationId is { Length: > 0 } correlationId
-            && snapshot.State is TenantCommandLifecycleState.Accepted
+            && (snapshot.CorrelationId is { Length: > 0 }
+                || snapshot.State is TenantCommandLifecycleState.RequestSent
+                    && snapshot.IsSubmissionAmbiguous)
+            && snapshot.State is TenantCommandLifecycleState.RequestSent
+                or TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.ProjectionPending
                 or TenantCommandLifecycleState.Degraded
                 or TenantCommandLifecycleState.UnableToVerify
@@ -3703,8 +4000,13 @@
                 GlobalAdministratorActionKind.Remove,
                 snapshot.Intent.UserId,
                 messageId,
-                correlationId,
-                snapshot.State)
+                snapshot.CorrelationId,
+                snapshot.State,
+                HasCommandEventEvidence: snapshot.HasCommandEventEvidence,
+                IsSubmissionAmbiguous: snapshot.IsSubmissionAmbiguous,
+                SafeMessageKey: snapshot.SafeMessageKey,
+                SafeRecoveryKey: snapshot.SafeRecoveryKey,
+                RemovePreview: snapshot.PreviewEvidence)
             : null;
 
     private sealed class PendingOperation : IDisposable

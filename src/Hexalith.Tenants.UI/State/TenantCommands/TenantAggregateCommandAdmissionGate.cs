@@ -456,7 +456,10 @@ public sealed class TenantAggregateCommandAdmissionGate
                         || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
                             && reconciliation.IsSubmissionAmbiguous),
             GlobalAdministratorActionKind.Remove
-                => !string.IsNullOrWhiteSpace(reconciliation.CorrelationId),
+                => reconciliation.RemovePreview?.IsComplete == true
+                    && (!string.IsNullOrWhiteSpace(reconciliation.CorrelationId)
+                        || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
+                            && reconciliation.IsSubmissionAmbiguous),
             _ => false,
         };
     }
@@ -469,7 +472,8 @@ public sealed class TenantAggregateCommandAdmissionGate
             && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
             && (current.CorrelationId is null
                 || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
-            && Equals(current.GrantPreview, next.GrantPreview);
+            && Equals(current.GrantPreview, next.GrantPreview)
+            && Equals(current.RemovePreview, next.RemovePreview);
 
     private static bool IsLifecycleRegression(
         TenantCommandLifecycleState current,

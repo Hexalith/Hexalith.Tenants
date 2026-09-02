@@ -63,6 +63,20 @@ public interface ITenantsBffComposition {
         return ValueTask.FromResult(GlobalAdministratorGrantPreview.Unavailable(targetUserId));
     }
 
+    /// <summary>Composes the complete, fixed-scope consequence preview for one literal removal target.</summary>
+    /// <param name="targetUserId">Literal target identifier; no normalization is permitted.</param>
+    /// <param name="completeSnapshot">Complete current fixed-scope projection evidence.</param>
+    /// <param name="cancellationToken">Cancellation token for current authority resolution.</param>
+    /// <returns>A complete preview, or a fail-closed preview with support-safe recovery keys.</returns>
+    ValueTask<GlobalAdministratorRemovePreview> ComposeGlobalAdministratorRemovePreviewAsync(
+        string targetUserId,
+        GlobalAdministratorsSnapshot completeSnapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(completeSnapshot);
+        return ValueTask.FromResult(GlobalAdministratorRemovePreview.Unavailable(targetUserId));
+    }
+
     /// <summary>
     /// Resolves tenant-lifecycle authorization from the current authoritative circuit principal.
     /// </summary>

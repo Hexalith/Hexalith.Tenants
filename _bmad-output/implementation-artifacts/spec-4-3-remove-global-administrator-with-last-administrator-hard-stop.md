@@ -5,7 +5,7 @@ created: '2026-09-01'
 status: 'in-progress'
 baseline_revision: 'ed0c0d681ae15913bc999908bc9e25bfd622536c'
 baseline_commit: 'ed0c0d681ae15913bc999908bc9e25bfd622536c'
-review_loop_iteration: 1
+review_loop_iteration: 2
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -81,6 +81,17 @@ deferred: []
 - Dispatch composition -- shared connectivity represents the base command surface only; tracked grant and tracked removal capability remain independent action-specific gates.
 - Executable coverage -- add negative case/partial exact-acknowledgement tests; removal modal inertness, initial/sentinel focus, exact-launcher restoration, and responsive safe-exit tests; page-level multi-page reconciliation; page and correction same-ID ambiguous retry; exact removal status handle; notification non-redispatch; correlationless replacement adoption; version regression/malformed-token refusal; and preserve the existing aggregate last-administrator rejection test in the full server lane.
 
+**Review repair constraints (iteration 2):**
+- Polling and submission states -- only start projection reconciliation after exact positive command-event evidence; `Received` and `Processing` remain accepted and never become unable-to-verify merely because no event exists yet. Treat every unsupported submission lifecycle, including `AlreadyApplied` or `Confirmed`, as unable-to-verify without releasing the lease or claiming success.
+- Ambiguous retry ownership -- acquire the page retry single-flight guard before reauthorization or generation invalidation. If a fresh retry preflight changes or fails, keep the correlationless dispatched attempt in a retainable/adoptable ambiguous `RequestSent` shape with the same message id, preview, lock, localized reason, and recovery; apply the same rule in correction.
+- Authorization and staleness -- collapse privileged page/correction state when BFF preview composition proves missing permission during preview, submit, or retry. Re-check operation generation after every awaited complete read before applying authorization collapse, and turn a null correction projection into an explicit localized unable-to-verify recovery state.
+- Associated failure evidence -- when final page or correction availability changes, carry the exact current localized reason and recovery instead of generic preview-changed copy. Make all removal correction tracking, status, rejection, failure, timeout, and retry messages removal-specific resource keys; never render raw gateway prose.
+- Localization contract -- removal readiness covers every success and fail-closed key used by preview and lifecycle paths in both EN and FR, and verifies required `{0}` placeholders for exact-target display and acknowledgement. Render literal correction identifiers with preserved whitespace.
+- Focus contract -- record a remove launcher only after winning the preview single-flight gate; restore focus to the exact interactive row button, fall back to the visible lifecycle region when that launcher disappeared, and make the end sentinel cycle to the acknowledgement input while the start sentinel cycles to Cancel.
+- Uniform identity contract -- apply the 256-character and control-character rules consistently in availability, preview, gateway, validator, and both command discriminators so an advertised action cannot later reject the same visible identifier.
+- Correction recovery -- live parent projection refreshes can recover every removal-preview projection block, including evidence, target-missing, and last-administrator states, without recreating the panel.
+- Executable coverage -- add tests for 256/257-character identities at server and gateway boundaries; tracked-remove capability absence; safety changing while preview composition awaits; retry preflight invalidation without a second dispatch or lost lease; correlationless page replacement adoption; correction composition exception and null projection; operation-time authorization denial; `Received`/`Processing`, `PublishFailed`, and `TimedOut`; unsupported submission states; exact interactive focus/fallback; complete localized key and placeholder readiness; and unchanged aggregate hard-stop execution in the full server lane.
+
 **KEEP during re-derivation:** Preserve exact fixed-envelope/payload validation, literal case-sensitive UserId transport, immutable complete BFF preview facts and self-removal copy, caller-owned canonical ULID dispatch, verified status identity/event-count gates, complete-population absence proof, no optimistic row deletion, retained aggregate exclusivity, whole-string EN/FR resources, the isolated responsive dialog shape, and unchanged aggregate/event/controller/AppHost/dependency/submodule surfaces.
 
 **Acceptance Criteria:**
@@ -100,6 +111,13 @@ deferred: []
 - Amended: added the iteration-1 repair constraints covering reconciliation validity/identity, ordered causal versions, nudge-only notification behavior, single-flight fresh retry preflight, authoritative permission collapse, localized failure/recovery, correction BFF readiness/exception containment, independent dispatch capability, literal whitespace usability, and named executable tests.
 - Known-bad state avoided: do not retain the first implementation's correlation-required removal reconciliation, any-unequal version confirmation, SignalR redispatch, stale retry preflight, detached-dialog focus, silent safety disablement, or incomplete verification suite.
 - KEEP: preserve the fixed validator, immutable BFF preview, tracked ULID gateway, verified event evidence, complete projection loader, modal foundation, localization parity, and invariant/domain surfaces enumerated above.
+
+### 2026-09-01 — Review repair iteration 2
+
+- Trigger: the second independent review found that the re-derived consumers still reconciled accepted-without-event status, allowed an overlapping retry to cancel the active single-flight operation, and could make a correlationless ambiguous preflight failure non-retainable; it also exposed incomplete authorization collapse, removal-specific localization, focus, and boundary verification.
+- Amended: added explicit polling-state, retry-ownership, retained-preflight, authorization-generation, associated-reason, localization-placeholder, interactive-focus, uniform-identity, correction-recovery, and executable-test constraints.
+- Known-bad state avoided: do not requery projection from `Received`/`Processing`, invalidate the active retry before winning single-flight, convert a dispatched correlationless attempt into a non-retainable state, retain privileged rows after authoritative denial, render grant/raw-English recovery for removal, focus wrapper spans, or advertise overlong targets.
+- KEEP: preserve exact fixed-envelope/payload validation, the immutable ten-fact BFF preview, caller-owned ULID dispatch, ordered causal confirmation, complete multi-page projection loading, nudge-only notifications, independent action capabilities, EN/FR resource parity, inert responsive modal behavior, and the unchanged aggregate/domain/AppHost/dependency/submodule surfaces.
 
 ## Review Triage Log
 
@@ -135,6 +153,48 @@ deferred: []
   - `[medium]` `[bad_spec]` Same-ID ambiguous removal retry lacked page and correction execution — snapshots retained the ID but no consumer test proved the resend reused it; both consumers are now named verification targets.
   - `[medium]` `[bad_spec]` Page status lookup did not assert the fixed aggregate handle — its stub fabricated verified identity for any handle; the exact message/correlation/aggregate tuple is now required.
   - `[false]` `[reject]` Intent audit said the authoritative hard stop was unverified — unchanged `GlobalAdministratorsAggregateTests` already execute the one-administrator `LastGlobalAdministratorRejection`, and the independently run full server lane passed all 759 tests including it.
+
+### 2026-09-01 — Review pass
+- verdicts: 38 findings — high 8, medium 29, low 0, false 1, maybe-false 0
+- findings:
+  - `[medium]` `[bad_spec]` Page retry acquired single-flight after reauthorization and generation invalidation — an overlapping click could cancel the active retry and then reject itself; iteration-2 retry-ownership constraints require winning single-flight first.
+  - `[medium]` `[bad_spec]` An ignored second preview click changed the stored launcher target — target assignment preceded the preview gate, so focus could restore to the wrong row; iteration 2 moves capture after gate acquisition.
+  - `[medium]` `[bad_spec]` Removal cancellation focused a wrapper span rather than the exact interactive launcher — the stored `ElementReference` belonged to `span tabindex=-1`; iteration 2 requires the actual button.
+  - `[medium]` `[bad_spec]` The end sentinel focused the submit wrapper and skipped the acknowledgement input — the implemented loop did not cycle through the first interactive control; iteration 2 names both sentinel destinations.
+  - `[high]` `[bad_spec]` Page ambiguous retry invalidation stranded a dispatched aggregate lease — `UnableToVerify` with no correlation was neither retainable nor terminal; iteration 2 preserves the correlationless ambiguous `RequestSent` shape.
+  - `[high]` `[bad_spec]` Submit and retry ignored authorization-unavailable BFF preview evidence — a permission transition between reauthorization and composition could leave privileged rows visible; iteration 2 requires collapse at every composition boundary.
+  - `[medium]` `[bad_spec]` Final page preflight discarded the live availability reason — a complete rebuilt preview plus unsafe viewport/capability rendered generic invalidation copy; iteration 2 requires the associated reason and recovery.
+  - `[high]` `[bad_spec]` Correction preview composition could prove missing permission without collapsing the panel — the result was treated as ordinary unavailable evidence; iteration 2 extends authoritative collapse to correction.
+  - `[medium]` `[bad_spec]` A null correction projection silently left the preview re-armed — repeated Confirm clicks could no-op without explanation; iteration 2 requires an explicit localized unable-to-verify state.
+  - `[medium]` `[bad_spec]` New removal-preview block keys were absent from correction live recovery — later parent projection refreshes could not recover target/evidence/last-administrator blocks; iteration 2 enumerates them.
+  - `[medium]` `[bad_spec]` Correction target rendering collapsed significant whitespace — ordinal identifiers with leading/trailing spaces were not visibly distinguishable; iteration 2 requires literal whitespace preservation.
+  - `[medium]` `[bad_spec]` Correction ambiguous tracking mismatch used grant message keys — removal displayed the wrong lifecycle explanation; iteration 2 requires action-specific keys.
+  - `[medium]` `[bad_spec]` Correction unable-to-verify hard-coded grant recovery — removal verification failures offered the wrong recovery path; iteration 2 requires removal-specific recovery.
+  - `[medium]` `[bad_spec]` Correction rendered raw status/submission prose — configured French UI could expose English gateway strings; iteration 2 requires resource keys only.
+  - `[medium]` `[bad_spec]` Removal localization readiness omitted reachable fail-closed keys — readiness could be true while an unavailable path rendered an unresolved key; iteration 2 expands the complete key contract.
+  - `[medium]` `[bad_spec]` Exact-target and acknowledgement resources were not checked for `{0}` — localized copy could omit the literal value the operator must type; iteration 2 requires placeholder validation.
+  - `[high]` `[bad_spec]` Removal submission copied unsupported lifecycle states such as `AlreadyApplied` or `Confirmed` — an alternate gateway could release the lease and claim a forbidden outcome; iteration 2 fail-closes every unsupported state.
+  - `[medium]` `[bad_spec]` Availability accepted identifiers longer than the downstream 256-character contract — a live launcher could lead only to preview rejection; iteration 2 makes the identity rule uniform.
+  - `[medium]` `[bad_spec]` Page status polling re-queried projection for `Received`/`Processing` — `ConfirmProjection` then converted normal pre-event acceptance into unable-to-verify; iteration 2 permits requery only after positive event evidence.
+  - `[medium]` `[bad_spec]` Edge tracing independently confirmed the retry single-flight cancellation race — the second generation superseded the first before losing the atomic gate; covered by the iteration-2 ownership amendment.
+  - `[high]` `[bad_spec]` Edge tracing independently confirmed page correlationless preflight lease loss — the invalidated state could not be retained during disposal; covered by the iteration-2 ambiguous-shape amendment.
+  - `[high]` `[bad_spec]` Correction ambiguous preflight invalidation likewise stranded its dispatched lease — `ToReconciliation` rejected the correlationless `UnableToVerify` state; iteration 2 applies the same retained shape to correction.
+  - `[medium]` `[bad_spec]` An obsolete removal projection read could collapse a newer authorized surface — requery did not re-check its generation after the awaited complete read; iteration 2 requires a post-await generation guard.
+  - `[medium]` `[bad_spec]` Launcher disappearance had no focus fallback — notification-driven row replacement could leave cancellation without a focus target; iteration 2 requires lifecycle fallback.
+  - `[medium]` `[bad_spec]` Edge tracing independently confirmed generic final-preflight recovery — stored invalidation copy did not identify the current unsafe gate; covered by the associated-failure amendment.
+  - `[high]` `[bad_spec]` Edge tracing independently confirmed unsupported page submission states could bypass causal proof — arbitrary state copying allowed terminal success semantics; covered by fail-closed submission-state constraints.
+  - `[high]` `[bad_spec]` Correction submission failure also copied arbitrary lifecycle states — a custom result could confirm or release without projection proof; iteration 2 applies fail-closed state handling to both consumers.
+  - `[medium]` `[bad_spec]` Edge tracing independently confirmed grant recovery keys on removal correction — tracking mismatch and zero-event paths selected the wrong action resources; covered by removal-specific localization constraints.
+  - `[medium]` `[bad_spec]` Edge tracing independently confirmed raw English correction lifecycle text — rejection, publish failure, timeout, and unavailable status retained gateway prose; covered by resource-key-only presentation.
+  - `[medium]` `[bad_spec]` The 256-character removal boundary lacked 256/257 executable cases — deleting either validator or gateway limit would leave existing tests green; iteration 2 names both boundaries and discriminators.
+  - `[medium]` `[bad_spec]` Tracked-remove capability absence lacked negative availability and page tests — the new independent gate could regress without detection; iteration 2 requires both observations.
+  - `[medium]` `[bad_spec]` Preview safety changing during asynchronous composition was untested — existing viewport coverage changed only after the dialog opened; iteration 2 requires a suspended-composition race.
+  - `[medium]` `[bad_spec]` Ambiguous retry tests never changed retained preview evidence — both page and correction could lose their no-redispatch guard unnoticed; iteration 2 requires unsafe rebuilt-preview cases.
+  - `[medium]` `[bad_spec]` Page correlationless replacement adoption was untested — gate and correction tests did not execute the page restore seam; iteration 2 requires same-id/preview/lock recovery with no automatic dispatch.
+  - `[medium]` `[bad_spec]` Correction removal composition exception containment was untested — removing the catch would not fail current tests; iteration 2 requires exception, localization, and no-dispatch assertions.
+  - `[medium]` `[bad_spec]` Operation-time authoritative denial was untested across removal preview/submit/retry/requery — simple returns could preserve privileged markup; iteration 2 requires collapse and lease assertions.
+  - `[medium]` `[bad_spec]` Removal `PublishFailed` and `TimedOut` mappings lacked state/recovery execution — grant tests did not protect removal-specific behavior; iteration 2 requires snapshot and rendered recovery assertions.
+  - `[false]` `[reject]` Intent alignment reported no new aggregate hard-stop test — the aggregate is intentionally unchanged and the independently executed 758-test server lane includes the existing one-administrator `LastGlobalAdministratorRejection`, so authoritative behavior is already exercised.
 
 ## Design Notes
 

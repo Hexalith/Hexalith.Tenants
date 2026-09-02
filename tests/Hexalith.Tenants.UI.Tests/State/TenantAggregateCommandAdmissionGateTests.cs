@@ -110,7 +110,8 @@ public sealed class TenantAggregateCommandAdmissionGateTests
             "admin-user",
             "message-safe",
             "correlation-safe",
-            TenantCommandLifecycleState.Accepted);
+            TenantCommandLifecycleState.Accepted,
+            RemovePreview: RemovePreview());
 
         gate.TryAcquireLease(key, originalOwner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull();
@@ -141,7 +142,8 @@ public sealed class TenantAggregateCommandAdmissionGateTests
             "admin-user",
             "message-safe",
             "correlation-safe",
-            TenantCommandLifecycleState.Accepted);
+            TenantCommandLifecycleState.Accepted,
+            RemovePreview: RemovePreview());
         gate.TryAcquireLease(key, originalOwner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull();
         lease.TryMarkDispatched(originalOwner).ShouldBeTrue();
@@ -261,4 +263,11 @@ public sealed class TenantAggregateCommandAdmissionGateTests
             ProjectionVersion = projectionVersion,
             IsCompleteEvidence = true,
         };
+
+    private static GlobalAdministratorRemovePreview RemovePreview()
+        => GlobalAdministratorRemovePreview.Create(
+            "admin-user",
+            "operator-user",
+            Complete("projection-v1", "admin-user", "other-admin"),
+            isAuthorized: true);
 }

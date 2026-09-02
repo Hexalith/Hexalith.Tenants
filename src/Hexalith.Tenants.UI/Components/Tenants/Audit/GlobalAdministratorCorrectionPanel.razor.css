@@ -47,6 +47,11 @@
     overflow-wrap: anywhere;
 }
 
+.ga-correction-panel__literal-identity {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 /* fc-css-exception: left-accent inset padding on the correction-reason region; preserves the
    border-accent treatment Fluent has no primitive for. */
 .ga-correction-panel__reason {

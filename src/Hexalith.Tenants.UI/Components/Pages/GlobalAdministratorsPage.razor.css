@@ -104,6 +104,11 @@
     margin: 0;
 }
 
+.global-admins__literal-identity {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
 /* fc-css-exception: status region on a semantic <section> with a content-sized icon/copy grid
    (auto + 1fr); FluentGrid is a 12-column responsive system and cannot express these columns. */
 .global-admins__state {

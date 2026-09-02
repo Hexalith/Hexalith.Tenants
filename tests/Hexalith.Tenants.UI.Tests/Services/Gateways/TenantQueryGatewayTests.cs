@@ -3020,13 +3020,27 @@ public sealed class TenantQueryGatewayTests
         GlobalAdministratorRemoveCommandSnapshot pending = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
             .Preview(
-                new RemoveGlobalAdministrator("target-admin"),
-                [
-                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
-                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
-                ])
+                GlobalAdministratorRemovePreview.Create(
+                    "target-admin",
+                    "operator-admin",
+                    GlobalAdministratorsSnapshot.Ready(
+                        [
+                            new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                            new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                        ],
+                        null,
+                        false,
+                        "\"baseline\"",
+                        ReadModelFreshnessState.Current) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "projection-v9",
+                        IsCompleteEvidence = true,
+                    },
+                    isAuthorized: true),
+                "01J00000000000000000000000")
             .RequestSent()
-            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .Accepted(TenantCommandSubmissionResult.Accepted("01J00000000000000000000000", "correlation-1"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
 
         GlobalAdministratorRemoveCommandSnapshot confirmation = pending.ConfirmProjection(page);

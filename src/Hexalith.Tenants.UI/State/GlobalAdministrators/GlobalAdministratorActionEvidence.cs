@@ -61,8 +61,11 @@ public sealed record GlobalAdministratorActionEvidence(
     /// <summary>Gets whether grant dispatch accepts a caller-owned stable message identifier.</summary>
     public bool SupportsTrackedGrantDispatch { get; init; }
 
+    /// <summary>Gets whether removal dispatch accepts a caller-owned stable message identifier.</summary>
+    public bool SupportsTrackedRemoveDispatch { get; init; }
+
     /// <summary>Returns a support-safe description that omits identities and projection metadata.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()
-        => $"{nameof(GlobalAdministratorActionEvidence)} {{ IsAuthorized = {IsAuthorized}, VisibleKind = {VisibleKind}, CompleteKind = {CompleteKind}, HasCompletePopulation = {HasCompletePopulation}, SupportsDispatch = {SupportsDispatch}, SupportsStatus = {SupportsStatus}, SupportsRequery = {SupportsRequery}, IsAdmissionAvailable = {IsAdmissionAvailable}, IsGrantPreviewReady = {IsGrantPreviewReady}, IsRemovePreviewReady = {IsRemovePreviewReady}, Viewport = {Viewport}, HasViewportMeasurement = {HasViewportMeasurement} }}";
+        => $"{nameof(GlobalAdministratorActionEvidence)} {{ IsAuthorized = {IsAuthorized}, VisibleKind = {VisibleKind}, CompleteKind = {CompleteKind}, HasCompletePopulation = {HasCompletePopulation}, SupportsDispatch = {SupportsDispatch}, SupportsStatus = {SupportsStatus}, SupportsRequery = {SupportsRequery}, IsAdmissionAvailable = {IsAdmissionAvailable}, IsGrantPreviewReady = {IsGrantPreviewReady}, IsRemovePreviewReady = {IsRemovePreviewReady}, SupportsTrackedGrantDispatch = {SupportsTrackedGrantDispatch}, SupportsTrackedRemoveDispatch = {SupportsTrackedRemoveDispatch}, Viewport = {Viewport}, HasViewportMeasurement = {HasViewportMeasurement} }}";
 }

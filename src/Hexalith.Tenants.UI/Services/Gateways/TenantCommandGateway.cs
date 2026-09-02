@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -26,6 +27,8 @@ internal sealed class TenantCommandGateway(
     public bool SupportsGlobalAdministratorDispatch => true;
 
     public bool SupportsTrackedGlobalAdministratorDispatch => true;
+
+    public bool SupportsTrackedGlobalAdministratorRemoveDispatch => true;
 
     public bool SupportsCommandStatusLookup => true;
 
@@ -343,8 +346,9 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.UserId)) {
-            return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
+        if (!GlobalAdministratorRemovePreview.IsSupportedIdentity(request.UserId)) {
+            return TenantCommandSubmissionResult.FailedWithKey(
+                "Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid");
         }
 
         if (!TryValidateCallerMessageId(messageId)) {
@@ -394,16 +398,26 @@ internal sealed class TenantCommandGateway(
         }
     }
 
-    public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
+    public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
+        CancellationToken cancellationToken = default)
+        => RemoveGlobalAdministratorTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
+
+    public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorTrackedAsync(
+        RemoveGlobalAdministrator request,
+        string messageId,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.UserId)) {
-            return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
+        if (!GlobalAdministratorRemovePreview.IsSupportedIdentity(request.UserId)) {
+            return TenantCommandSubmissionResult.FailedWithKey(
+                "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target");
         }
 
-        string messageId = ulidFactory.NewUlid();
+        if (!TryValidateCallerMessageId(messageId)) {
+            return TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference");
+        }
+
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
@@ -420,7 +434,30 @@ internal sealed class TenantCommandGateway(
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
         catch (EventStoreGatewayException ex) {
-            return MapRemoveGlobalAdministratorGatewayException(ex);
+            if (ex.Retryable == true
+                || ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
+                || ex.StatusCode >= 500) {
+                return TenantCommandSubmissionResult.Ambiguous(
+                    messageId,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+            }
+
+            return MapRemoveGlobalAdministratorGatewayException(ex) with { MessageId = messageId };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        }
+        catch (HttpRequestException) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        }
+        catch (TimeoutException) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
         }
     }
 
