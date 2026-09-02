@@ -286,5 +286,14 @@
     "key": "2",
     "label": "Deprecate compatibly",
     "resolution": ""
+  },
+  "DW-340": {
+    "answered_at": "2026-09-02",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Human-approve an amendment that rebases the frozen dependency intent on current 3.101.0 facts, reconciles remaining work, and closes or completes the spec safely.",
+    "key": "1",
+    "label": "Amend and finish spec",
+    "resolution": ""
   }
 }

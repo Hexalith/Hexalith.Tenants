@@ -2690,6 +2690,7 @@ location: _bmad-output/implementation-artifacts/spec-refresh-dependencies.md
 source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
 reason: The dependency-refresh spec remained `in-progress` and instructed an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; the source story forbade resuming it but neither closed nor retargeted that work, leaving the recorded EventStore `3.100.0` planning facts at risk of overwrite.
 status: open
+decision: 2026-09-02 Amend and finish spec — Human-approve an amendment that rebases the frozen dependency intent on current 3.101.0 facts, reconciles remaining work, and closes or completes the spec safely.
 
 ### DW-329: Global-administrator command retries do not retain a caller-owned message id across ambiguous transport failures.
 origin: spec-deferred 9acd809c21e3
