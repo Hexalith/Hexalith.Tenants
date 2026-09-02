@@ -1190,6 +1190,7 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.
 reason: The legacy ledger defers this issue: Member evidence gate collapses lifecycle and permission reasons into "stale data". Original context is preserved in legacy-detail.
 legacy-detail: - **Member evidence gate collapses lifecycle and permission reasons into "stale data"** — `MemberAccessReview.ResolveFailClosedReasons` gained a `!ActionsAreEvidenceBacked -> [UnavailableReason.StaleData]` arm inserted above the pre-existing `Detail.Status is Disabled or Unknown -> MissingLifecycleSupport` and `role is TenantRole.Unknown -> MissingPermission` arms. Because `ActionsAreEvidenceBacked` requires detail `Ready` + `Current` + `Current`, members `Ready|Empty` + `Current` + `Current`, and equal non-blank projection versions, a disabled tenant or an unknown-role member reports "stale data" whenever any clause is short — including the common `Unknown` freshness case. `PrimaryUnavailableReason` feeds the same value into the authorization-safe empty message, so that copy loses its permission wording too. Reason for deferral: defensible as written. Without current, version-consistent evidence the code genuinely cannot assert a lifecycle or permission conclusion, so failing to the weakest claim is the fail-closed reading. Recorded as a design choice, not a defect. Revisit if: operators report the reason as unhelpful, or AC6's distinctness requirement is ever extended from surface kinds to the action-unavailable reason enum. [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:496-499]
 status: done 2026-09-02
+decision: 2026-09-02 Retain weakest claim — Keep the current fail-closed reason until the recorded operator-feedback or acceptance-criteria trigger occurs.
 resolution: closed by human decision: Keep the current fail-closed reason until the recorded operator-feedback or acceptance-criteria trigger occurs.
 decision: 2026-09-02 Retain weakest claim — Keep the current fail-closed reason until the recorded operator-feedback or acceptance-criteria trigger occurs.
 
@@ -1502,6 +1503,7 @@ reason: The legacy ledger defers this issue: Coarse `StaleData` category for eve
 legacy-detail: - Coarse `StaleData` category for every non-Current projection lifecycle — deferred, pre-existing; message key is specific (`ProjectionLifecycle`) but category chip stays StaleData [`src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs:64`]
 status: open
 decision: 2026-09-02 Add lifecycle category — Add a dedicated projection-lifecycle category and migrate mappings, chips, resources, and tests compatibly.
+decision: 2026-09-02 Add lifecycle category — Add a dedicated projection-lifecycle category and migrate mappings, chips, resources, and tests compatibly.
 
 ### DW-187: Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing command-flow pattern beyond this story's badge split
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-12-projection-lifecycle-badges.md (2026-08-08)"), 2026-08-25
@@ -1728,6 +1730,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-la
 reason: The legacy ledger defers this issue: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. evidence: FrontComposer-owned contract; Tenants callers currently supply localized titles, but the primitive still admits an empty DocumentTitle path.
 status: open
+decision: 2026-09-02 Reject blank titles — Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.
 decision: 2026-09-02 Reject blank titles — Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.
 
 ### DW-213: Make FocusHeadingAsync fail closed when the heading element is not yet rendered instead of focusing a default ElementReference
@@ -2690,6 +2693,7 @@ location: _bmad-output/implementation-artifacts/spec-refresh-dependencies.md
 source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
 reason: The dependency-refresh spec remained `in-progress` and instructed an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; the source story forbade resuming it but neither closed nor retargeted that work, leaving the recorded EventStore `3.100.0` planning facts at risk of overwrite.
 status: open
+decision: 2026-09-02 Amend and finish spec — Human-approve an amendment that rebases the frozen dependency intent on current 3.101.0 facts, reconciles remaining work, and closes or completes the spec safely.
 decision: 2026-09-02 Amend and finish spec — Human-approve an amendment that rebases the frozen dependency intent on current 3.101.0 facts, reconciles remaining work, and closes or completes the spec safely.
 
 ### DW-329: Global-administrator command retries do not retain a caller-owned message id across ambiguous transport failures.
