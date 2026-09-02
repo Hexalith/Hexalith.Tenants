@@ -2,7 +2,7 @@
 title: 'Derive Package Boundaries from Restore Evidence'
 type: 'refactor'
 created: '2026-09-02'
-status: 'done'
+status: 'in-review'
 baseline_revision: 'bbb0b11ad98d6b5462f05c2e303220b870a73711'
 baseline_commit: 'bbb0b11ad98d6b5462f05c2e303220b870a73711'
 review_loop_iteration: 0
@@ -129,62 +129,3 @@ The validator loads all declared projects and restore assets before inspecting p
 - The package-mode solution restore, five Release project builds, fresh five-package pack, and default-manifest validator completed successfully; all five derived dependency sets exactly matched their nuspec metadata.
 - `git diff --check` completed with no findings after the review patches.
 
-## Auto Run Result
-
-Status: done
-
-### Summary
-
-Replaced both hard-coded package/dependency inventories in the NuGet validator with the authoritative release manifest and NuGet package-mode restore assets. The validator now derives direct plus centrally promoted transitive dependencies, validates restore attribution and structure, compares NuGet IDs case-insensitively, and retains an independent case-insensitive forbidden-project boundary. Its fixtures author package metadata and restore evidence independently, including positive, missing, unexpected, malformed, attribution, casing, and forbidden cases.
-
-### Files Changed
-
-- `scripts/validate-nuget-packages.py` — derives package inventory and dependency boundaries from `tools/release-packages.json` plus each declared project's `obj/project.assets.json`.
-- `tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs` — removes the allowlist mirror and adds independent CLI package/evidence fixtures with positive and negative coverage.
-- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` — replaces obsolete literal-source assertions with manifest/assets governance assertions.
-- `_bmad-output/implementation-artifacts/spec-package-boundary-source.md` — records the plan, implementation evidence, review triage, and terminal result.
-
-### Review Findings
-
-Patches applied: 10 finding rows across four root-cause entries — high 2, medium 1, low 1. The patched entries repaired stale governance tests, added restore-attribution coverage, aligned synthetic evidence with schema v4, and normalized NuGet/forbidden ID matching. Items deferred: 0.
-
-Rejected findings, each with its recorded reason:
-
-- Correlated source-and-package growth was rejected because DW-98 requests dynamic restore-derived validation; reviewed source growth is not a restore/package mismatch.
-- The duplicate correlated-growth finding was rejected for the same DW-98 dynamic-source evidence.
-- Missing `centralTransitiveDependencyGroups` was rejected because all five centrally pinned release projects emit it.
-- Multi-target framework-key mismatch was rejected because every release package is single-target `net10.0` and the generated maps agree.
-- Cross-framework dependency flattening was rejected because the current release inventory has no second framework.
-- Future `PrivateAssets` handling was rejected as a low, hypothetical expansion absent from every release project.
-- Custom nuspec/suppressed-dependency behavior was rejected because no release project uses it.
-- Stale/source-mode evidence was rejected because the production gate restores package mode and builds immediately before validation.
-- Restore-error evidence was rejected because the fail-fast restore precedes the validator and current assets contain no errors.
-- Missing real end-to-end automation was rejected because the blocking CI package gate itself performs real restore, build, pack, and default-manifest validation.
-- Editing the spec's focused verification command was rejected by the workflow's spec-fix rule; the full assembly was nevertheless run and passed 132/132.
-- Exhaustive malformed-manifest branch tests were rejected as low-value expansion beyond the covered failure surfaces.
-- Missing multi-package unit fixtures were rejected because the retained branch predates this change and the real five-package gate exercises it.
-- Missing readme negative coverage was rejected because readme validation is unchanged by this bundle.
-- A durable static snapshot interpretation was rejected because it would retain the recurring allowlist maintenance DW-98 explicitly asks to eliminate.
-- Requiring unit fixtures themselves to restore/pack was rejected because CI supplies that end-to-end surface while unit fixtures independently discriminate the comparator.
-- The second `PrivateAssets` finding was rejected because the state is absent and its fix would add disproportionate future-state complexity.
-- Source-reference evidence was rejected because production explicitly restores with package references.
-- Mutually stale package/assets were rejected because the CI sequence regenerates both before validation.
-- Direct/central-transitive overlap was rejected because NuGet does not classify an already-direct dependency as centrally transitive and no real asset does so.
-- Duplicate original target frameworks were rejected because NuGet generates the list and duplication would not change the boundary.
-- Custom manifests under `tools` were rejected because that root inference intentionally models production; isolated manifests live at their project root.
-- Non-object framework payloads were rejected because only their keys are consumed and the payload cannot change the derived dependency set.
-
-Follow-up review recommendation: true — patched entries by highest verdict were high 2, medium 1, low 1.
-
-### Verification
-
-- Python bytecode compilation passed with no output.
-- Package-mode Contracts restore and Release build passed with 0 warnings and 0 errors.
-- Focused `CiQualityGateScriptTests` passed 15/15 with no skips or tests not run.
-- Full `Hexalith.Tenants.Contracts.Tests` passed 132/132 with no skips or tests not run.
-- Package-mode solution restore, five individual Release project builds, pack, and production validator passed for all five NuGet packages.
-- `git diff --check` passed for all reviewed files.
-
-### Residual Risks
-
-The pre-change broad Release solution build remains blocked outside this bundle at `src/Hexalith.Tenants.AppHost/Program.cs:132` by CS1503 (the fourth argument's Dapr resource builder no longer matches the expected string). Focused package projects, the full owning Contracts test project, and the production package gate all pass. The test runner also reports that `-parallel` is deprecated in favor of `-parallelMode`; execution is unaffected.

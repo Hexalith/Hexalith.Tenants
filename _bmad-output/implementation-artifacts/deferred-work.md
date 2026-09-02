@@ -776,14 +776,18 @@ origin: migrated from legacy ledger ("Deferred from: code review of run-all-test
 location: scripts/validate-nuget-packages.py; tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs
 reason: The legacy ledger defers this issue: `EXPECTED_DEPENDENCIES` is hand-duplicated between `scripts/validate-nuget-packages.py` and its test mirror in `CiQualityGateScriptTests.cs`. Original context is preserved in legacy-detail.
 legacy-detail: - **`EXPECTED_DEPENDENCIES` is hand-duplicated between `scripts/validate-nuget-packages.py` and its test mirror in `CiQualityGateScriptTests.cs`**, with no single source of truth — the test file's own comment already acknowledges this ("Mirrors EXPECTED_DEPENDENCIES ... so synthetic fixtures satisfy the dependency-boundary validation"). Every future dependency-boundary change (like this session's) requires editing both files in lockstep by hand; a missed edit in one file would silently pass its own regression tests since both copies are asserted against each other, not against real restore output. Consider extracting a shared data file/fixture, or having the test import the script's dict directly, plus adding a negative-path test that asserts the boundary check actually fails when a real project gains an unexpected dependency. Pre-existing design, not introduced by this session's fix. (`scripts/validate-nuget-packages.py`, `tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs`)
-status: open
+status: done 2026-09-02
+resolution: resolved by sweep bundle dw-package-boundary-source
+resolution-undo: 3446eef21b1b160c45f226f960c64918cc4cf6db292ace5f1d0586f9c9e868d0 2026-09-02 7374617475733a206f70656e
 
 ### DW-98: Dependency-boundary validation is a hardcoded per-package allowlist rather than derived from actual restore/lock output
 origin: migrated from legacy ledger ("Deferred from: code review of run-all-tests-and-fix-failures-2 (2026-07-20)"), 2026-08-25
 location: scripts/validate-nuget-packages.py
 reason: The legacy ledger defers this issue: Dependency-boundary validation is a hardcoded per-package allowlist rather than derived from actual restore/lock output. Original context is preserved in legacy-detail.
 legacy-detail: - **Dependency-boundary validation is a hardcoded per-package allowlist rather than derived from actual restore/lock output** (e.g. `dotnet list package --include-transitive`) — inherently high-maintenance; this is the second time in this file's history a submodule/package version bump has required a manual allowlist update (see the CI Restore NU1107 memory for the sibling pattern). A more dynamic validation approach would eliminate this class of recurring CI break. Architectural, out of scope for a narrowly-scoped test-fix session. (`scripts/validate-nuget-packages.py`)
-status: open
+status: done 2026-09-02
+resolution: resolved by sweep bundle dw-package-boundary-source
+resolution-undo: 3446eef21b1b160c45f226f960c64918cc4cf6db292ace5f1d0586f9c9e868d0 2026-09-02 7374617475733a206f70656e
 
 ### DW-99: `NextPageAsync` unguarded `NextCursor==null`
 origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-list-triage-and-cursor-foundation (2026-07-20)"), 2026-08-25
@@ -963,7 +967,9 @@ location: scripts/validate-nuget-packages.py:64; CiQualityGateScriptTests.cs:309
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The CI package-boundary gate asserts the fixture it generates from its own allowlist. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The CI package-boundary gate asserts the fixture it generates from its own allowlist. evidence: `CiQualityGateScriptTests.cs:309` mirrors `scripts/validate-nuget-packages.py:64`; `ExpectedDependencies` is used to synthesise the `.nupkg` fixtures fed to the script, so the test verifies only that two copies of the same literal agree, never that `Microsoft.Extensions.Http.Resilience` is genuinely upstream-owned. Widening the allowlist to silence a real leak would pass. status: open
-status: open
+status: done 2026-09-02
+resolution: resolved by sweep bundle dw-package-boundary-source
+resolution-undo: 3446eef21b1b160c45f226f960c64918cc4cf6db292ace5f1d0586f9c9e868d0 2026-09-02 7374617475733a206f70656e
 
 ### DW-121: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
