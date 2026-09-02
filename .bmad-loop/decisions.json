@@ -98,6 +98,15 @@
     "label": "Bound authentication wait",
     "resolution": ""
   },
+  "DW-186": {
+    "answered_at": "2026-09-02",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add a dedicated projection-lifecycle category and migrate mappings, chips, resources, and tests compatibly.",
+    "key": "1",
+    "label": "Add lifecycle category",
+    "resolution": ""
+  },
   "DW-194": {
     "answered_at": "2026-08-26",
     "bundle_name": "",
