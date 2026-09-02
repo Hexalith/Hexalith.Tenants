@@ -1728,6 +1728,7 @@ source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-la
 reason: The legacy ledger defers this issue: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. evidence: FrontComposer-owned contract; Tenants callers currently supply localized titles, but the primitive still admits an empty DocumentTitle path.
 status: open
+decision: 2026-09-02 Reject blank titles — Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.
 
 ### DW-213: Make FocusHeadingAsync fail closed when the heading element is not yet rendered instead of focusing a default ElementReference
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

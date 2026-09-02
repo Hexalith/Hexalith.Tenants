@@ -134,6 +134,15 @@
     "label": "Role-aware BFF reflection",
     "resolution": ""
   },
+  "DW-212": {
+    "answered_at": "2026-09-02",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.",
+    "key": "1",
+    "label": "Reject blank titles",
+    "resolution": ""
+  },
   "DW-220": {
     "answered_at": "2026-08-28",
     "bundle_name": "",
