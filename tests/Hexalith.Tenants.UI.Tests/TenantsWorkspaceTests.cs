@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Globalization;
+using System.Resources;
 using System.Security.Claims;
 
 using AngleSharp.Dom;
@@ -796,6 +798,40 @@ public sealed class TenantsWorkspaceTests : BunitContext
             .TextContent.ShouldContain("awaiting its first projection write");
     }
 
+    [Fact]
+    public void Workspace_localizer_uses_the_active_production_bundle_and_fails_closed_for_unknown_keys()
+    {
+        CultureInfo previousCulture = CultureInfo.CurrentCulture;
+        CultureInfo previousUiCulture = CultureInfo.CurrentUICulture;
+        CultureInfo activeCulture = CultureInfo.GetCultureInfo("fr-FR");
+        try
+        {
+            CultureInfo.CurrentCulture = activeCulture;
+            CultureInfo.CurrentUICulture = activeCulture;
+            var resources = new ResourceManager(typeof(TenantsResources));
+            var localizer = new StubTenantsLocalizer();
+
+            string shippedTitle = resources.GetString("Tenants.List.Title", activeCulture).ShouldNotBeNull();
+            string shippedPageSizeFormat = resources.GetString("Tenants.List.PageSizeOption", activeCulture).ShouldNotBeNull();
+
+            localizer["Tenants.List.Title"].Value.ShouldBe(shippedTitle);
+            localizer["Tenants.List.PageSizeOption", 1234].Value
+                .ShouldBe(string.Format(activeCulture, shippedPageSizeFormat, 1234));
+            localizer.GetAllStrings(includeParentCultures: false)
+                .Single(value => value.Name == "Tenants.List.Title")
+                .Value
+                .ShouldBe(shippedTitle);
+
+            Should.Throw<KeyNotFoundException>(() => _ = localizer["Tenants.Unknown.Key"]);
+            Should.Throw<KeyNotFoundException>(() => _ = localizer["Tenants.Unknown.Key", 1234]);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
+    }
+
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)
         => new(tenantId, name, TenantStatus.Active, role, ReadModelFreshnessState.Current);
 
@@ -809,166 +845,44 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
-        private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
-        {
-            ["Tenants.Workspace.Eyebrow"] = "Tenant workspace",
-            ["Tenants.Workspace.StatusBadge"] = "Not connected",
-            ["Tenants.Workspace.StatusFocusLink"] = "Review status details",
-            ["Tenants.Workspace.Title"] = "Tenants",
-            ["Tenants.Workspace.Scope.All"] = "All tenants",
-            ["Tenants.Workspace.Scope.Label"] = "Tenant view",
-            ["Tenants.Workspace.Scope.Mine"] = "My tenants",
-            ["Tenants.Workspace.Tabs.Label"] = "Tenant workspace sections",
-            ["Tenants.Workspace.Tabs.Tenants"] = "Tenants",
-            ["Tenants.Workspace.Tabs.Users"] = "Users",
-            ["Tenants.Navigation.GlobalAdministrators"] = "Global Administrators",
-            ["Tenants.Workspace.UnavailableHeading"] = "Tenant read surfaces are not connected yet",
-            ["Tenants.Workspace.UnavailableMessage"] = "The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.",
-            ["Tenants.List.Column.Freshness"] = "Freshness",
-            ["Tenants.List.Column.Members"] = "Members",
-            ["Tenants.List.Column.Owners"] = "Owners",
-            ["Tenants.List.Column.Pending"] = "Pending",
-            ["Tenants.List.Column.Status"] = "Status",
-            ["Tenants.List.Column.Tenant"] = "Tenant",
-            ["Tenants.List.ControlsLabel"] = "Tenant list controls",
-            ["Tenants.List.Count.Unknown"] = "Unknown",
-            ["Tenants.List.DetailLinkLabel"] = "Open tenant details for {0}",
-            ["Tenants.List.Freshness.Unknown"] = "Unknown",
-            ["Tenants.List.Next"] = "Next",
-            ["Tenants.List.PaginationLabel"] = "Tenant list pages",
-            ["Tenants.List.Pending.None"] = "No pending changes",
-            ["Tenants.List.Pending.Unknown"] = "Pending state unknown",
-            ["Tenants.List.Previous"] = "Previous",
-            ["Tenants.List.Refresh"] = "Refresh",
-            ["Tenants.List.Reset"] = "Reset filters",
-            ["Tenants.List.ReturnContext"] = "Returned from tenant {0}. Filters, sort, and selection were restored on the authorized first page.",
-            ["Tenants.List.Reason.GatewayUnavailable"] = "The authorized tenant list could not be loaded. Try again later.",
-            ["Tenants.List.SearchLabel"] = "Search tenants",
-            ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
-            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator. This is an authorized empty result, not a failure.",
-            ["Tenants.List.State.Empty.Title"] = "No visible tenants",
-            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded. The list is unavailable until the server-side query gateway is reachable.",
-            ["Tenants.List.State.Error.Title"] = "Tenants unavailable",
-            ["Tenants.List.StatusFilter.Active"] = "Active",
-            ["Tenants.List.StatusFilter.All"] = "All statuses",
-            ["Tenants.List.StatusFilter.Disabled"] = "Disabled",
-            ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
-            ["Tenants.List.StatusFilterLabel"] = "Status on current page",
-            ["Tenants.List.Title"] = "Tenants",
-            ["Tenants.MyTenants.Column.Freshness"] = "Freshness",
-            ["Tenants.MyTenants.Column.Role"] = "Role",
-            ["Tenants.MyTenants.Column.Status"] = "Status",
-            ["Tenants.MyTenants.Column.Tenant"] = "Tenant",
-            ["Tenants.MyTenants.ControlsLabel"] = "My Tenants controls",
-            ["Tenants.MyTenants.Description"] = "Read-only view of tenants visible to your signed-in account.",
-            ["Tenants.MyTenants.DetailLinkLabel"] = "Open tenant details for {0}",
-            ["Tenants.MyTenants.Freshness.Current"] = "Current",
-            ["Tenants.MyTenants.Freshness.Stale"] = "Stale",
-            ["Tenants.MyTenants.Freshness.Unknown"] = "Unknown",
-            ["Tenants.MyTenants.Link"] = "My tenants",
-            ["Tenants.MyTenants.Next"] = "Next",
-            ["Tenants.MyTenants.PaginationLabel"] = "My Tenants pages",
-            ["Tenants.MyTenants.Previous"] = "Previous",
-            ["Tenants.MyTenants.Refresh"] = "Refresh",
-            ["Tenants.MyTenants.ReturnContext"] = "Returned from tenant {0}. Your My Tenants view was restored on the authorized first page.",
-            ["Tenants.MyTenants.Role.TenantOwner"] = "Tenant owner",
-            ["Tenants.MyTenants.Role.TenantReader"] = "Tenant reader",
-            ["Tenants.MyTenants.Role.Unknown"] = "Unknown role",
-            ["Tenants.MyTenants.RoleAccessible"] = "Role: {0}",
-            ["Tenants.MyTenants.State.Loading.Message"] = "Your tenant memberships are loading from the server-side query gateway.",
-            ["Tenants.MyTenants.State.Loading.Title"] = "Loading my tenants",
-            ["Tenants.MyTenants.Status.Active"] = "Active",
-            ["Tenants.MyTenants.Status.Unknown"] = "Unknown status",
-            ["Tenants.MyTenants.StatusAccessible"] = "Status: {0}",
-            ["Tenants.MyTenants.Summary"] = "Tenants shown: {0}",
-            ["Tenants.MyTenants.Title"] = "My Tenants",
-            ["Tenants.UserLookup.Announcement.Loading"] = "Looking up visible memberships for {0}.",
-            ["Tenants.UserLookup.Announcement.Ready"] = "{0} visible memberships loaded for {1}.",
-            ["Tenants.UserLookup.Clear"] = "Clear",
-            ["Tenants.UserLookup.Column.Freshness"] = "Freshness",
-            ["Tenants.UserLookup.Column.Role"] = "Role",
-            ["Tenants.UserLookup.Column.Status"] = "Status",
-            ["Tenants.UserLookup.Column.Tenant"] = "Tenant",
-            ["Tenants.UserLookup.Description"] = "Read-only membership lookup for a caller-supplied user identifier. Results only include memberships visible to the signed-in operator.",
-            ["Tenants.UserLookup.FormLabel"] = "User membership lookup controls",
-            ["Tenants.UserLookup.Freshness.Current"] = "Current",
-            ["Tenants.UserLookup.Freshness.Stale"] = "Stale",
-            ["Tenants.UserLookup.Freshness.Unknown"] = "Unknown",
-            ["Tenants.UserLookup.Initial.Message"] = "Enter a user identifier to run an authorization-scoped membership lookup.",
-            ["Tenants.UserLookup.Initial.Title"] = "User membership lookup ready",
-            ["Tenants.UserLookup.InputHelp"] = "Use the exact caller-supplied user identifier. The value is not parsed as a GUID or ULID.",
-            ["Tenants.UserLookup.InputLabel"] = "User identifier",
-            ["Tenants.UserLookup.Link"] = "User lookup",
-            ["Tenants.UserLookup.Next"] = "Next",
-            ["Tenants.UserLookup.PaginationLabel"] = "User membership result pages",
-            ["Tenants.UserLookup.Previous"] = "Previous",
-            ["Tenants.UserLookup.Refresh"] = "Refresh",
-            ["Tenants.UserLookup.Role.TenantOwner"] = "Tenant owner",
-            ["Tenants.UserLookup.Role.TenantReader"] = "Tenant reader",
-            ["Tenants.UserLookup.Role.Unknown"] = "Unknown role",
-            ["Tenants.UserLookup.RoleAccessible"] = "Role: {0}",
-            ["Tenants.UserLookup.Sort.Name"] = "Name",
-            ["Tenants.UserLookup.Sort.Role"] = "Role",
-            ["Tenants.UserLookup.Sort.Status"] = "Status",
-            ["Tenants.UserLookup.Sort.Tenant"] = "Tenant identifier",
-            ["Tenants.UserLookup.SortLabel"] = "Sort results",
-            ["Tenants.UserLookup.State.Ready.Title"] = "Visible memberships loaded",
-            ["Tenants.UserLookup.Status.Active"] = "Active",
-            ["Tenants.UserLookup.Status.Unknown"] = "Unknown status",
-            ["Tenants.UserLookup.StatusAccessible"] = "Status: {0}",
-            ["Tenants.UserLookup.Submit"] = "Look up",
-            ["Tenants.UserLookup.TargetContext"] = "Lookup target: {0}",
-            ["Tenants.UserLookup.Title"] = "User membership lookup",
-            ["Tenants.Create.Title"] = "Create tenant",
-            ["Tenants.Create.Description"] = "Submit a tenant creation command and wait for projection confirmation before treating it as visible.",
-            ["Tenants.Create.TenantId.Label"] = "Tenant id",
-            ["Tenants.Create.TenantId.Help"] = "Use the exact caller-supplied tenant id.",
-            ["Tenants.Create.Name.Label"] = "Name",
-            ["Tenants.Create.Description.Label"] = "Description",
-            ["Tenants.Create.Submit"] = "Create tenant",
-            ["Tenants.Create.Refresh"] = "Refresh status",
-            ["Tenants.Create.Lifecycle.Title"] = "Command lifecycle",
-            ["Tenants.Create.Validation.TenantIdRequired"] = "Tenant id is required.",
-            ["Tenants.Create.Validation.NameRequired"] = "Name is required.",
-            ["Tenants.Create.Unavailable.Authorization"] = "You are not authorized to create tenants.",
-            ["Tenants.Create.Unavailable.Freshness"] = "Refresh tenant data before submitting a command.",
-            ["Tenants.Create.Availability.FirstTenantUnknown"] = "Creation is available because the authorized tenant list is empty and awaiting its first projection write.",
-            ["Tenants.Create.Availability.Stale"] = "Tenant creation is unavailable because the authorized tenant list is stale or cannot prove an empty first-tenant state.",
-            ["Tenants.Create.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
-            ["Tenants.Create.Unavailable.InFlight"] = "A tenant command is already in progress.",
-            ["Tenants.Create.State.Idle"] = "No command submitted.",
-            ["Tenants.Create.State.RequestSent"] = "Request sent.",
-            ["Tenants.Create.State.Accepted"] = "Accepted by EventStore; waiting for processing.",
-            ["Tenants.Create.State.ProjectionPending"] = "Projection pending; tenant is not confirmed visible yet.",
-            ["Tenants.Create.State.Confirmed"] = "Projection confirmed the tenant exists.",
-            ["Tenants.Create.State.Rejected"] = "Command rejected.",
-            ["Tenants.Create.State.Failed"] = "Command submission failed.",
-            ["Tenants.Create.State.Degraded"] = "Command result is degraded and needs review.",
-            ["Tenants.Create.State.UnableToVerify"] = "Unable to verify command result.",
-            ["Tenants.Create.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.Create.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.Create.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.Create.Audit.MissingSupport"] = "Audit support is missing for this flow.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
-            ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
-            ["Tenants.MyTenants.AuditAccessibleLabel"] = "Open audit evidence for tenant {0}",
-            ["Tenants.UserLookup.AuditAccessibleLabel"] = "Open audit evidence for user {0} in tenant {1}",
-            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
-            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
-        };
+        private static readonly ResourceManager _resourceManager = new(typeof(TenantsResources));
 
         public LocalizedString this[string name]
-            => new(name, Values.TryGetValue(name, out string? value) ? value : name);
+            => new(name, Resolve(name), resourceNotFound: false);
 
         public LocalizedString this[string name, params object[] arguments]
             => new(name, string.Format(
                 CultureInfo.CurrentCulture,
-                Values.TryGetValue(name, out string? value) ? value : name,
-                arguments));
+                Resolve(name),
+                arguments),
+                resourceNotFound: false);
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
-            => Values.Select(v => new LocalizedString(v.Key, v.Value));
+        {
+            // Both shipped bundles have key parity, so the resolved production set is the complete key
+            // space whether or not the caller asks to include parent cultures. Values still flow through
+            // the same lookup as the indexers so enumeration cannot drift from active-culture resolution.
+            ResourceSet resourceSet = _resourceManager.GetResourceSet(
+                CultureInfo.CurrentUICulture,
+                createIfNotExists: true,
+                tryParents: true)
+                ?? throw new MissingManifestResourceException("The Tenants production resource set was not found.");
+
+            foreach (DictionaryEntry entry in resourceSet)
+            {
+                if (entry.Key is string name && entry.Value is string)
+                {
+                    yield return this[name];
+                }
+            }
+        }
+
+        private static string Resolve(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            return _resourceManager.GetString(name, CultureInfo.CurrentUICulture)
+                ?? throw new KeyNotFoundException($"The Tenants resource key '{name}' is not shipped.");
+        }
     }
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway

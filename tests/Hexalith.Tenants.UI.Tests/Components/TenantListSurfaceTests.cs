@@ -1927,23 +1927,55 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Tenant_row_surface_has_no_cursor_etag_logging_or_telemetry_channel()
+    public void Tenant_row_links_preserve_safe_page_one_return_context_without_cursor_or_etag_disclosure()
+    {
+        const string cursorSentinel = "opaque-protected-cursor-sentinel";
+        const string eTagSentinel = "protected-etag-sentinel";
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]) with
+        {
+            ETag = eTagSentinel,
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            $"/tenants?status=Active&sort=name&desc=True&cursor={cursorSentinel}");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        string detailHref = cut.Find("[data-testid='tenants-list-detail-link']")
+            .GetAttribute("href")
+            .ShouldNotBeNull();
+        string auditHref = cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement
+            .ShouldNotBeNull()
+            .GetAttribute("href")
+            .ShouldNotBeNull();
+
+        foreach (string returnUrl in new[]
+        {
+            RequiredQueryValue(detailHref, "returnUrl"),
+            RequiredQueryValue(auditHref, "returnUrl"),
+        })
+        {
+            returnUrl.ShouldStartWith("/tenants?");
+            returnUrl.ShouldContain("status=Active");
+            returnUrl.ShouldContain("sort=name");
+            returnUrl.ShouldContain("desc=True");
+            returnUrl.ShouldContain("selected=tenant.alpha");
+            returnUrl.ShouldContain("anchor=tenant-row-tenant.alpha");
+            returnUrl.ShouldNotContain("cursor=", Case.Insensitive);
+            returnUrl.ShouldNotContain(cursorSentinel, Case.Insensitive);
+            returnUrl.ShouldNotContain(eTagSentinel, Case.Insensitive);
+        }
+
+        cut.Markup.ShouldNotContain(cursorSentinel, Case.Insensitive);
+        cut.Markup.ShouldNotContain(eTagSentinel, Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_query_gateway_has_no_ambient_activity_tagging_channel()
     {
         string projectRoot = ProjectRoot();
-        string grid = File.ReadAllText(Path.Combine(
-            projectRoot,
-            "src",
-            "Hexalith.Tenants.UI",
-            "Components",
-            "Tenants",
-            "TenantDataGrid.razor"));
-        string navigation = File.ReadAllText(Path.Combine(
-            projectRoot,
-            "src",
-            "Hexalith.Tenants.UI",
-            "State",
-            "TenantList",
-            "TenantListNavigationContext.cs"));
         string gateway = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -1952,9 +1984,6 @@ public sealed class TenantListSurfaceTests : BunitContext
             "Gateways",
             "TenantQueryGateway.cs"));
 
-        grid.ShouldNotContain("Cursor", Case.Insensitive);
-        grid.ShouldNotContain("ETag", Case.Insensitive);
-        navigation.Split("Cursor = null", StringSplitOptions.None).Length.ShouldBe(3);
         gateway.ShouldNotContain("Activity.Current");
         gateway.ShouldNotContain("SetTag(");
 
@@ -2125,17 +2154,43 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Renderer_lifecycle_and_event_awaits_stay_on_the_blazor_dispatcher()
+    public async Task Page_one_recovery_completed_off_thread_applies_on_the_blazor_dispatcher()
     {
-        string workspace = File.ReadAllText(Path.Combine(
-            ProjectRoot(),
-            "src",
-            "Hexalith.Tenants.UI",
-            "Components",
-            "Pages",
-            "TenantsWorkspace.razor"));
+        const string expiredCursor = "expired-protected-cursor";
+        TaskCompletionSource<TenantListSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        RegisterServices(_ => pending.Task);
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo($"/tenants?cursor={expiredCursor}");
+        TaskCompletionSource<bool> recoveryNavigationAccess = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        navigation.LocationChanged += (_, args) =>
+        {
+            if (string.Equals(args.Location, "http://localhost/tenants", StringComparison.Ordinal))
+            {
+                recoveryNavigationAccess.TrySetResult(Renderer.Dispatcher.CheckAccess());
+            }
+        };
 
-        workspace.ShouldNotContain("ConfigureAwait(false)");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        bool completionHadRendererAccess = await Task.Run(() =>
+        {
+            bool hadAccess = Renderer.Dispatcher.CheckAccess();
+            pending.SetResult(ReadySnapshot(
+                [Row("tenant.recovered", "Recovered", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]) with
+            {
+                Notice = TenantListReason.ListRefreshed,
+            });
+            return hadAccess;
+        });
+
+        completionHadRendererAccess.ShouldBeFalse();
+        (await recoveryNavigationAccess.Task.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBeTrue();
+        cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.recovered"));
+        navigation.Uri.ShouldBe("http://localhost/tenants");
+        cut.Markup.ShouldNotContain(expiredCursor, Case.Insensitive);
+
+        Renderer.UnhandledException.IsCompleted.ShouldBeFalse();
     }
 
     [Fact]
@@ -2625,6 +2680,30 @@ public sealed class TenantListSurfaceTests : BunitContext
             PendingState = pendingState,
             Freshness = freshness,
         };
+
+    private static string RequiredQueryValue(string url, string name)
+    {
+        int queryIndex = url.IndexOf('?', StringComparison.Ordinal);
+        if (queryIndex < 0)
+        {
+            throw new InvalidOperationException($"Expected a query string in '{url}'.");
+        }
+
+        foreach (string parameter in url[(queryIndex + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int separatorIndex = parameter.IndexOf('=', StringComparison.Ordinal);
+            string encodedName = separatorIndex < 0 ? parameter : parameter[..separatorIndex];
+            if (!string.Equals(Uri.UnescapeDataString(encodedName), name, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string encodedValue = separatorIndex < 0 ? string.Empty : parameter[(separatorIndex + 1)..];
+            return Uri.UnescapeDataString(encodedValue);
+        }
+
+        throw new InvalidOperationException($"Expected query parameter '{name}' in '{url}'.");
+    }
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
