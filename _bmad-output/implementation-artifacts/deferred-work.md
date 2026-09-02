@@ -566,7 +566,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-2
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:28-30
 reason: The legacy ledger defers this issue: Page-local tabs render empty tabpanels. Original context is preserved in legacy-detail.
 legacy-detail: - **Page-local tabs render empty tabpanels** — the new `FluentTabs` carry `Id`/`Header` only; active content renders in sibling `FcAggregateListPage` slots (`Body`/`Filters`/`States`), so the Fluent tab→tabpanel ARIA relationship points at empty regions. `aria-selected` is correct and tabs are keyboard reachable. This is an `FcAggregateListPage`-slot architectural nuance best owned upstream. Follow-up: FrontComposer/UX decision on associating `FcAggregateListPage` content with `FcPageToolbar`/tab tabpanels. (`src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:28-30`)
-status: open
+status: done 2026-09-02
+resolution: already resolved: commit 8bdf7d62; TenantsWorkspace.razor:33-46 now uses FcPageTabs with real panel content, and TenantsWorkspaceTests.cs:91-120 proves reciprocal non-empty tab panels.
 decision: 2026-08-25 Add FrontComposer contract — Introduce a shared explicit tab-to-panel association API in FrontComposer and migrate Tenants.
 
 ### DW-72: Page-local tabs a11y — empty tabpanels + missing Tenants-owned bUnit assertion
@@ -574,7 +575,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of cc-2026-06-2
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:22-30
 reason: The legacy ledger defers this issue: Page-local tabs a11y — empty tabpanels + missing Tenants-owned bUnit assertion. Original context is preserved in legacy-detail.
 legacy-detail: - **Page-local tabs a11y — empty tabpanels + missing Tenants-owned bUnit assertion** — extends the 2026-06-27 Group-1 "empty tabpanels" defer above. AC12/AC13 keyboard/active-tab guarantees ride entirely on the Fluent `FluentTabs` primitive with no Tenants-owned `aria-selected`/keyboard-switch bUnit assertion; the added tests assert tab presence/text and routing only. Follow-up: pair the upstream FrontComposer/UX tabpanel-association decision with a focused active-tab/keyboard bUnit test once the structure is settled. (`src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:22-30`)
-status: open
+status: done 2026-09-02
+resolution: already resolved: commit 8bdf7d62; TenantListSurfaceTests.cs:371-378,413-467 and TenantsWorkspaceTests.cs:91-120 cover selection changes, reciprocal tab/panel IDs, and retained content.
 decision: 2026-08-25 Full workspace contract — Test initial and changed selection, tab-to-panel association, and supported keyboard transitions with the structural fix.
 
 ### DW-73: Global-administrator projection pagination ignored (>20 admins)
@@ -1371,14 +1373,16 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:178
 reason: The legacy ledger defers this issue: Multi-page populations can permanently land grant/remove confirmation in page-scoped `UnableToVerify`. Original context is preserved in legacy-detail.
 legacy-detail: - Multi-page populations can permanently land grant/remove confirmation in page-scoped `UnableToVerify` because requery always loads page one. Page-scoped SafeMessages document the honesty limit; adding search-by-id or deep-link verification would widen the story past its fixed-scope review boundary. [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:178]
-status: open
+status: done 2026-09-02
+resolution: already resolved: commit 03566fb1; GlobalAdministratorsPage.razor:1442-1466,3008-3019,3710-3734 performs bounded complete-population loading before grant and removal confirmation.
 
 ### DW-171: UnableToVerify copy mentions confirming via the tenant audit trail without an in-page navigation link
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-08, loop 5 chunk 2)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:184
 reason: The legacy ledger defers this issue: UnableToVerify copy mentions confirming via the tenant audit trail without an in-page navigation link. Original context is preserved in legacy-detail.
 legacy-detail: - UnableToVerify copy mentions confirming via the tenant audit trail without an in-page navigation link. Audit navigation is outside this story's File List and acceptance criteria. [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:184]
-status: open
+status: done 2026-09-02
+resolution: already resolved: commit 03566fb1; GlobalAdministratorGrantCommandSnapshot.cs:337-350 accepts only complete evidence, and the legacy PageScoped audit-trail copy remains only as unreferenced resource keys.
 
 ### DW-172: A `Ready` snapshot reporting `HasMore == true` with a blank `NextCursor` is a silent dead end. Loop 2 correctly
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01, loop 3)"), 2026-08-25
@@ -1876,7 +1880,8 @@ location: Grant_requery_does_not_confirm_from_a_superseded_snapshot
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Pre-existing flaky false-success in the global-administrator grant re-query. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Pre-existing flaky false-success in the global-administrator grant re-query. evidence: `Grant_requery_does_not_confirm_from_a_superseded_snapshot` fails in 3 of 4 clean-HEAD Release runs, rendering "Projection confirmed the target user" from a superseded snapshot. Introduced by `d0f74a48` (Story 1.11), not by Story 2.1. This is a live non-collapse violation of the same class Epic 2 exists to prevent.
-status: open
+status: done 2026-09-02
+resolution: already resolved: commit 24e3a41d; GlobalAdministratorsPage.razor:2950-3005 rejects superseded status results and lines 3015-3039 reject superseded projection results.
 
 ### DW-231: Global-administrator command surface is not covered by the new AggregateIdentity admission gate
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
@@ -2671,7 +2676,8 @@ origin: migrated from legacy ledger (""), 2026-09-02
 location: references/Hexalith.Builds/Tools/package-version-audit.json
 source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
 reason: At deferral time, the Builds audit still contained EventStore `selectedVersion` `3.99.0` after Builds `e1026cb` set `HexalithEventStoreVersion` to `3.100.0`; regenerating the Builds-owned audit was Ask First for the source story.
-status: open
+status: done 2026-09-02
+resolution: already resolved: references/Hexalith.Builds commit 7e84ff1; package-version-audit.json:91301-91303 and Props/Directory.Packages.props:8 now align current EventStore evidence and catalog at 3.101.0.
 
 ### DW-340: In-progress `spec-refresh-dependencies.md` can overwrite the new EventStore `3.100.0` planning facts.
 
@@ -2687,7 +2693,8 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:329
 source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
 severity: high
 reason: The existing gateway creates the message id inside SetGlobalAdministratorAsync/RemoveGlobalAdministratorAsync and catches only EventStoreGatewayException, so timeout/HttpRequestException retry semantics belong to the downstream command-lifecycle stories rather than this availability-only story.
-status: open
+status: done 2026-09-02
+resolution: already resolved: TenantCommandGateway.cs:343-398 and 406-461 now accept caller-owned message IDs and classify ambiguous grant/removal delivery without minting a replacement identity.
 
 ### DW-330: Existing grant/remove projection confirmation does not require baseline projection-version advancement or command-specific audit provenance.
 origin: spec-deferred b69ce19c6d80
@@ -2695,7 +2702,8 @@ location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministrator
 source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
 severity: high
 reason: The historical downstream command snapshots can accept qualifying target presence/absence without comparing the pre-command projection version; Story 4.1 dispatches no command and owns availability, so confirmation hardening remains follow-up work for the grant/remove lifecycle owners.
-status: open
+status: done 2026-09-02
+resolution: already resolved: commits 24e3a41d and 2eba0b50; GlobalAdministratorGrantCommandSnapshot.cs:337-379 and GlobalAdministratorRemoveCommandSnapshot.cs:393-447 require exact command-event evidence plus projection-version advancement.
 
 ### DW-331: A contradictory complete-read authorization-scope flag is not revalidated by the pure removal evaluator.
 origin: spec-deferred b78a2689221d
