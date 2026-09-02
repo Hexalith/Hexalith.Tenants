@@ -2665,13 +2665,21 @@ severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260827-234608-260c; this entry preserves the lingering recommendation for a deliberate later review.
 status: open
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
-  summary: Builds `package-version-audit.json` still records EventStore `3.99.0` while the catalog pin is `3.100.0`.
-  evidence: `references/Hexalith.Builds/Tools/package-version-audit.json` still has EventStore `selectedVersion` `3.99.0` (for example line 84274) after Builds `e1026cb` set `HexalithEventStoreVersion` to `3.100.0`. Regenerating the audit is a Builds-owned submodule edit and was Ask First for this story.
+### DW-339: Builds `package-version-audit.json` still records EventStore `3.99.0` while the catalog pin is `3.100.0`.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
-  summary: In-progress `spec-refresh-dependencies.md` can overwrite the new EventStore `3.100.0` planning facts.
-  evidence: That spec remains `in-progress` and still tells an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; this story forbade resuming it but did not close or retarget that work.
+origin: migrated from legacy ledger (""), 2026-09-02
+location: references/Hexalith.Builds/Tools/package-version-audit.json
+source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
+reason: At deferral time, the Builds audit still contained EventStore `selectedVersion` `3.99.0` after Builds `e1026cb` set `HexalithEventStoreVersion` to `3.100.0`; regenerating the Builds-owned audit was Ask First for the source story.
+status: open
+
+### DW-340: In-progress `spec-refresh-dependencies.md` can overwrite the new EventStore `3.100.0` planning facts.
+
+origin: migrated from legacy ledger (""), 2026-09-02
+location: _bmad-output/implementation-artifacts/spec-refresh-dependencies.md
+source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-100-0.md`
+reason: The dependency-refresh spec remained `in-progress` and instructed an agent to reconcile `_bmad-output/project-context.md` after a broader refresh; the source story forbade resuming it but neither closed nor retargeted that work, leaving the recorded EventStore `3.100.0` planning facts at risk of overwrite.
+status: open
 
 ### DW-329: Global-administrator command retries do not retain a caller-owned message id across ambiguous transport failures.
 origin: spec-deferred 9acd809c21e3
