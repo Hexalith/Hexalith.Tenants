@@ -2173,7 +2173,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
     [Theory]
     [InlineData("LastGlobalAdministrator", "last global administrator")]
-    [InlineData("GlobalAdministratorNotFound", "not a global administrator")]
+    [InlineData("GlobalAdministratorNotFound", "exact administrator target")]
     public void Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy(
         string rejectionCode,
         string expectedText)
@@ -3501,7 +3501,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
 
         IElement retry = cut.Find("[data-testid='tenants-global-admin-remove-refresh']");
-        retry.TextContent.Trim().ShouldBe("Retry delivery with the same tracked command");
+        retry.TextContent.Trim().ShouldBe("Retry removal delivery");
         retry.GetAttribute("data-recovery-kind").ShouldBe("delivery-retry");
         retry.HasAttribute("disabled").ShouldBeFalse();
 
@@ -3858,7 +3858,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         adopted.IsSubmissionAmbiguous.ShouldBeTrue();
         adopted.PreviewEvidence?.ProjectionVersion.ShouldBe("projection-v1");
         replacement.Find("[data-testid='tenants-global-admin-remove-refresh']")
-            .TextContent.Trim().ShouldBe("Retry delivery with the same tracked command");
+            .TextContent.Trim().ShouldBe("Retry removal delivery");
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
     }
@@ -6275,7 +6275,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope"] = "Platform authority scope",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"] = "tenant system, domain global-administrators, aggregate global-administrators",
             ["Tenants.GlobalAdministrators.Remove.Preview.Target"] = "Target user id",
-            ["Tenants.GlobalAdministrators.Remove.Preview.Target.Value"] = "Exact target: {0}",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Target.Value"] = "Exact target: “{0}”",
             ["Tenants.GlobalAdministrators.Remove.Preview.Counts"] = "Administrator counts",
             ["Tenants.GlobalAdministrators.Remove.Preview.Counts.Value"] = "{0} administrators now; {1} after confirmed removal.",
             ["Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange"] = "Authority change",
@@ -6283,15 +6283,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value"] = "Current complete fixed-scope evidence with a qualified projection version.",
             ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext"] = "Caller and target",
             ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value"] = "This removes your own global-administrator authority.",
-            ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value"] = "This removes another administrator's global authority.",
-            ["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge"] = "Type the exact target {0} to acknowledge this removal.",
-            ["Tenants.GlobalAdministrators.Remove.Preview.Confirm"] = "Confirm tracked removal",
+            ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value"] = "This removes another administrator’s global authority.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge"] = "Type the exact target “{0}” to acknowledge this removal.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Confirm"] = "Confirm removal",
             ["Tenants.GlobalAdministrators.Remove.Preview.Title"] = "Remove consequence preview",
-            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator"] = "The last global administrator cannot be removed.",
-            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound"] = "The target is not a global administrator.",
+            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator"] = "The server rejected removal of the last global administrator.",
+            ["Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound"] = "The server could not find the exact administrator target.",
             ["Tenants.GlobalAdministrators.Remove.Refresh"] = "Refresh status",
-            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry"] = "Retry delivery with the same tracked command",
-            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Retry only with the retained removal identity; do not create a new attempt.",
+            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry"] = "Retry removal delivery",
+            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Refresh evidence, then retry this same tracked removal attempt.",
             ["Tenants.GlobalAdministrators.Remove.State.Accepted"] = "Command accepted; projection confirmation is still required.",
             ["Tenants.GlobalAdministrators.Remove.State.AlreadyApplied"] = "Already-applied is not used for global administrator removal.",
             ["Tenants.GlobalAdministrators.Remove.State.Confirmed"] = "Projection confirmed removal from the fixed global-administrators scope.",

@@ -368,7 +368,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-state']").TextContent
             .ShouldNotContain("Projection confirms the intended state", Case.Insensitive);
         cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
-            .ShouldContain("review the removal rejection", Case.Insensitive);
+            .ShouldContain("review the rejection", Case.Insensitive);
     }
 
     [Fact]
@@ -599,8 +599,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         };
         string expectedRecovery = scenario switch
         {
-            "rejected" => "Refresh current evidence and review the removal rejection before a new attempt.",
-            "failed" => "Refresh current evidence before starting a new removal attempt.",
+            "rejected" => "Refresh current evidence and review the rejection before a new attempt.",
+            "failed" => "Refresh current evidence before starting a new attempt.",
             "ambiguous" => "Refresh evidence, then retry this same tracked removal attempt.",
             "tracked" => "Refresh the complete fixed-scope projection before continuing.",
             "publish-failed" => "Refresh tracked status until publication or terminal evidence is available.",
@@ -2276,13 +2276,12 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"] = "Exact command status did not prove that the grant produced an event.",
             ["Tenants.GlobalAdministrators.Remove.DeliveryRetry"] = "Retry removal delivery",
             ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Refresh evidence, then retry this same tracked removal attempt.",
-            ["Tenants.GlobalAdministrators.Remove.Recovery.Rejected"] = "Refresh current evidence and review the removal rejection before a new attempt.",
-            ["Tenants.GlobalAdministrators.Remove.Recovery.Failed"] = "Refresh current evidence before starting a new removal attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.Rejected"] = "Refresh current evidence and review the rejection before a new attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.Failed"] = "Refresh current evidence before starting a new attempt.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed"] = "Refresh tracked status until publication or terminal evidence is available.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.TimedOut"] = "Refresh the tracked attempt before considering another removal.",
-            ["Tenants.GlobalAdministrators.Remove.Recovery.Test"] = "Removal-specific recovery sentinel.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection before continuing.",
-            ["Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"] = "Removal delivery is ambiguous.",
+            ["Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"] = "Delivery is uncertain; retry only with this attempt’s retained identifier.",
             ["Tenants.GlobalAdministrators.Remove.Status.Unknown"] = "Tracked removal status is unavailable.",
         };
     }
