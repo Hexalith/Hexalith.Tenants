@@ -9,11 +9,10 @@ namespace Hexalith.Tenants.UI.Tests.State;
 /// Pins the projection-version contract membership confirmation depends on.
 /// </summary>
 /// <remarks>
-/// Confirmation requires an ordered advancement of the value the query path publishes as
-/// <c>ProjectionVersion</c>. The tenant projection publishes the aggregate-local EventStore sequence
-/// as <c>tenant-sequence:&lt;n&gt;</c>; <c>TenantQueryResult</c> falls back to the state-store ETag only for
-/// legacy read models that do not yet carry that value. A legacy store whose ETag is a hash, GUID, or
-/// other token without a stable prefix and trailing number does not satisfy the ordered contract.
+/// Confirmation requires an ordered advancement of an authoritative <c>ProjectionVersion</c>. The tenant
+/// projection persists the aggregate-local EventStore sequence as <c>tenant-sequence:&lt;n&gt;</c>, while
+/// handler-computed query responses publish no projection version and never substitute the state-store
+/// ETag. Defensive comparison of legacy tokens remains fail-closed for hashes, GUIDs, and other opaque values.
 /// </remarks>
 public sealed class TenantMembershipCommandProvenanceTests
 {

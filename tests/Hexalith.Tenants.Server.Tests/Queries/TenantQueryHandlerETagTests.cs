@@ -29,7 +29,8 @@ public sealed class TenantQueryHandlerETagTests
     [InlineData("get-tenant", "projection:tenants:tenant.alpha", "tenant-etag-1")]
     [InlineData("get-tenant-users", "projection:tenants:tenant.alpha", "tenant-etag-2")]
     [InlineData("get-tenant-audit", "audit:tenant.alpha", "audit-etag-1")]
-    public async Task Query_handlers_surface_primary_read_model_etag_as_projection_version(
+    [InlineData("get-global-administrators", "projection:global-administrators:singleton", "admin-etag-1")]
+    public async Task Query_handlers_surface_primary_read_model_etag_only_as_opaque_validator(
         string queryType,
         string expectedPrimaryKey,
         string expectedETag)
@@ -38,7 +39,10 @@ public sealed class TenantQueryHandlerETagTests
         SetupTenantIndex(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? expectedETag : "index-etag");
         SetupTenant(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "tenant-etag");
         SetupTenantAudit(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "audit-etag");
-        SetupGlobalAdministrators(store, "admin-user");
+        SetupGlobalAdministrators(
+            store,
+            expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey ? expectedETag : "admin-etag",
+            "admin-user");
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
@@ -48,10 +52,15 @@ public sealed class TenantQueryHandlerETagTests
 
         result.Success.ShouldBeTrue();
         TenantQueryResult tenantResult = result.ShouldBeOfType<TenantQueryResult>();
-        tenantResult.Metadata.ShouldNotBeNull().ETag.ShouldBe(expectedETag);
-        tenantResult.Metadata.ProjectionVersion.ShouldBe(expectedETag);
-        tenantResult.Metadata.IsStale.ShouldBe(false);
-        tenantResult.Metadata.ServedAt.ShouldBe(Now);
+        QueryResponseMetadata metadata = tenantResult.Metadata.ShouldNotBeNull();
+        metadata.ETag.ShouldBe(expectedETag);
+        metadata.IsNotModified.ShouldBe(false);
+        metadata.ProjectionVersion.ShouldBeNull();
+        metadata.IsStale.ShouldBeNull();
+        metadata.IsDegraded.ShouldBeNull();
+        metadata.ServedAt.ShouldBeNull();
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
     }
 
     private static QueryEnvelope CreateEnvelope(string queryType)
@@ -121,13 +130,30 @@ public sealed class TenantQueryHandlerETagTests
                 "tenant.alpha");
         }
 
+        if (string.Equals(queryType, GetGlobalAdministratorsQuery.QueryType, StringComparison.Ordinal))
+        {
+            return new QueryEnvelope(
+                TenantIdentity.DefaultTenantId,
+                GetGlobalAdministratorsQuery.Domain,
+                TenantIdentity.GlobalAdministratorsAggregateId,
+                GetGlobalAdministratorsQuery.QueryType,
+                JsonSerializer.SerializeToUtf8Bytes(new { cursor = (string?)null, pageSize = 20 }),
+                "correlation-1",
+                "admin-user",
+                TenantIdentity.GlobalAdministratorsAggregateId,
+                isGlobalAdmin: true);
+        }
+
         throw new ArgumentOutOfRangeException(nameof(queryType), queryType, "Unsupported query type.");
     }
 
     private static IQueryCursorCodec CreateCursorCodec()
         => new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
 
-    private static void SetupGlobalAdministrators(IReadModelStore store, params string[] administratorIds)
+    private static void SetupGlobalAdministrators(
+        IReadModelStore store,
+        string eTag,
+        params string[] administratorIds)
     {
         var model = new GlobalAdministratorReadModel
         {
@@ -139,7 +165,7 @@ public sealed class TenantQueryHandlerETagTests
                 TenantQueryHandlerBase.StateStoreName,
                 TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, "admin-etag")));
+            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, eTag)));
     }
 
     private static void SetupTenantIndex(IReadModelStore store, string eTag)

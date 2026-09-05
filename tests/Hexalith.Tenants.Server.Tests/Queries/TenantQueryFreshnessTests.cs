@@ -6,7 +6,6 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
-using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Queries.Handlers;
@@ -21,124 +20,117 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Queries;
 
-public sealed class TenantQueryFreshnessTests {
+public sealed class TenantQueryFreshnessTests
+{
     private static readonly DateTimeOffset Now = new(2026, 6, 25, 13, 0, 0, TimeSpan.Zero);
-    private static readonly ReadModelFreshnessOptions Thresholds = new() {
+    private static readonly ReadModelFreshnessOptions Thresholds = new()
+    {
         Aging = TimeSpan.FromMinutes(10),
         Stale = TimeSpan.FromMinutes(30),
     };
 
-    [Theory]
-    [InlineData(5, false)]
-    [InlineData(20, false)]
-    [InlineData(40, true)]
-    public async Task Get_tenant_classifies_projected_at_age_server_sideAsync(int projectedAgeMinutes, bool expectedIsStale) {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenant(store, "tenant-etag-1", Now - TimeSpan.FromMinutes(projectedAgeMinutes));
-        SetupGlobalAdministrators(store, "admin-user");
+    public static IEnumerable<object?[]> HandlerFreshnessCases()
+    {
+        (string QueryType, string PrimaryKey, string ETag)[] routes =
+        [
+            (ListTenantsQuery.QueryType, TenantQueryHandlerBase.TenantIndexProjectionKey, "index-etag-1"),
+            (GetUserTenantsQuery.QueryType, TenantQueryHandlerBase.TenantIndexProjectionKey, "index-etag-1"),
+            (GetTenantQuery.QueryType, TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha", "tenant-etag-1"),
+            (GetTenantUsersQuery.QueryType, TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha", "tenant-etag-1"),
+            (GetTenantAuditQuery.QueryType, TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha", "audit-etag-1"),
+            (GetGlobalAdministratorsQuery.QueryType, TenantQueryHandlerBase.GlobalAdminProjectionKey, "admin-etag-1"),
+        ];
 
-        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            CreateEnvelope(GetTenantQuery.QueryType),
-            freshnessOptions: Thresholds,
-            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
-
-        result.Metadata.ShouldNotBeNull().IsStale.ShouldBe(expectedIsStale);
-        result.Metadata.ServedAt.ShouldBe(Now);
-        result.Metadata.ProjectionVersion.ShouldBe("tenant-etag-1");
-    }
-
-    [Fact]
-    public async Task Get_tenant_without_projected_at_reports_unknown_freshnessAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenant(store, "tenant-etag-1", projectedAt: null);
-        SetupGlobalAdministrators(store, "admin-user");
-
-        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            CreateEnvelope(GetTenantQuery.QueryType),
-            freshnessOptions: Thresholds,
-            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
-
-        result.Metadata.ShouldNotBeNull().IsStale.ShouldBeNull();
-        result.Metadata.ServedAt.ShouldBe(Now);
-    }
-
-    [Fact]
-    public async Task Get_tenant_with_projected_at_and_no_etag_still_classifies_freshnessAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenant(store, " ", Now - TimeSpan.FromMinutes(40));
-        SetupGlobalAdministrators(store, "admin-user");
-
-        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            CreateEnvelope(GetTenantQuery.QueryType),
-            freshnessOptions: Thresholds,
-            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
-
-        result.Metadata.ShouldNotBeNull().ETag.ShouldBeNull();
-        result.Metadata.IsStale.ShouldBe(true);
-        result.Metadata.ServedAt.ShouldBe(Now);
-        result.Metadata.ProjectionVersion.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task Get_tenant_prefers_persisted_projection_version_over_etagAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenant(
-            store,
-            "opaque-store-etag",
-            Now - TimeSpan.FromMinutes(5),
-            projectionVersion: TenantProjectionVersionFormat.SequencePrefix + "10");
-        SetupGlobalAdministrators(store, "admin-user");
-
-        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            CreateEnvelope(GetTenantQuery.QueryType),
-            freshnessOptions: Thresholds,
-            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
-
-        result.Metadata.ShouldNotBeNull().ETag.ShouldBe("opaque-store-etag");
-        result.Metadata.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
+        int?[] projectedAges = [5, 40, null];
+        foreach ((string queryType, string primaryKey, string eTag) in routes)
+        {
+            foreach (int? projectedAge in projectedAges)
+            {
+                yield return [queryType, primaryKey, eTag, projectedAge];
+            }
+        }
     }
 
     [Theory]
-    [InlineData("list-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
-    [InlineData("get-user-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
-    [InlineData("get-tenant", "projection:tenants:tenant.alpha", "tenant-etag-1", false)]
-    [InlineData("get-tenant-users", "projection:tenants:tenant.alpha", "tenant-etag-1", false)]
-    [InlineData("get-tenant-audit", "audit:tenant.alpha", "audit-etag-1", true)]
-    [InlineData("get-global-administrators", "projection:global-administrators:singleton", "admin-etag-1", false)]
-    public async Task Query_handlers_classify_from_primary_read_model_projected_atAsync(
+    [MemberData(nameof(HandlerFreshnessCases))]
+    public async Task Query_handlers_ignore_primary_read_model_timestamp_and_sequence_authorityAsync(
         string queryType,
         string expectedPrimaryKey,
         string expectedETag,
-        bool expectedIsStale) {
+        int? projectedAgeMinutes)
+    {
+        DateTimeOffset? primaryProjectedAt = projectedAgeMinutes.HasValue
+            ? Now - TimeSpan.FromMinutes(projectedAgeMinutes.Value)
+            : null;
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenantIndex(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? Now.AddMinutes(-5) : Now.AddMinutes(-40));
-        SetupTenant(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "tenant-etag-2", Now.AddMinutes(-5));
-        SetupTenantAudit(store, expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? Now.AddMinutes(-40) : Now.AddMinutes(-5));
-        SetupGlobalAdministrators(store, "admin-user", projectedAt: Now.AddMinutes(-5));
+        SetupTenantIndex(
+            store,
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? expectedETag : "index-etag-2",
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? primaryProjectedAt : Now);
+        SetupTenant(
+            store,
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "tenant-etag-2",
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? primaryProjectedAt : Now);
+        SetupTenantAudit(
+            store,
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "audit-etag-2",
+            expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? primaryProjectedAt : Now);
+        SetupGlobalAdministrators(
+            store,
+            expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey ? expectedETag : "admin-etag-2",
+            expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey ? primaryProjectedAt : Now,
+            "admin-user");
 
-        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
             CreateEnvelope(queryType),
             freshnessOptions: Thresholds,
-            timeProvider: new FixedTimeProvider(Now));
+            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
-        TenantQueryResult tenantResult = result.ShouldBeOfType<TenantQueryResult>();
-        tenantResult.Metadata.ShouldNotBeNull().ETag.ShouldBe(expectedETag);
-        tenantResult.Metadata.IsStale.ShouldBe(expectedIsStale);
-        tenantResult.Metadata.ServedAt.ShouldBe(Now);
+        AssertValidatorOnly(result, expectedETag);
     }
 
-    private static QueryEnvelope CreateEnvelope(string queryType) {
-        if (string.Equals(queryType, ListTenantsQuery.QueryType, StringComparison.Ordinal)) {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\"\"")]
+    [InlineData("  \" \"  ")]
+    public async Task Query_handler_omits_metadata_for_degenerate_etagAsync(string? eTag)
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenant(store, eTag, Now - TimeSpan.FromMinutes(40));
+        SetupGlobalAdministrators(store, "admin-etag", Now, "admin-user");
+
+        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            CreateEnvelope(GetTenantQuery.QueryType),
+            freshnessOptions: Thresholds,
+            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
+
+        result.Metadata.ShouldBeNull();
+    }
+
+    private static void AssertValidatorOnly(TenantQueryResult result, string expectedETag)
+    {
+        result.Success.ShouldBeTrue();
+        QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
+        metadata.ETag.ShouldBe(expectedETag);
+        metadata.IsNotModified.ShouldBe(false);
+        metadata.ProjectionVersion.ShouldBeNull();
+        metadata.IsStale.ShouldBeNull();
+        metadata.IsDegraded.ShouldBeNull();
+        metadata.ServedAt.ShouldBeNull();
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+    }
+
+    private static QueryEnvelope CreateEnvelope(string queryType)
+    {
+        if (string.Equals(queryType, ListTenantsQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 ListTenantsQuery.Domain,
@@ -150,7 +142,8 @@ public sealed class TenantQueryFreshnessTests {
                 "admin-user");
         }
 
-        if (string.Equals(queryType, GetUserTenantsQuery.QueryType, StringComparison.Ordinal)) {
+        if (string.Equals(queryType, GetUserTenantsQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 GetUserTenantsQuery.Domain,
@@ -162,7 +155,8 @@ public sealed class TenantQueryFreshnessTests {
                 "target-user");
         }
 
-        if (string.Equals(queryType, GetTenantQuery.QueryType, StringComparison.Ordinal)) {
+        if (string.Equals(queryType, GetTenantQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 GetTenantQuery.Domain,
@@ -174,7 +168,8 @@ public sealed class TenantQueryFreshnessTests {
                 "tenant.alpha");
         }
 
-        if (string.Equals(queryType, GetTenantUsersQuery.QueryType, StringComparison.Ordinal)) {
+        if (string.Equals(queryType, GetTenantUsersQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 GetTenantUsersQuery.Domain,
@@ -186,7 +181,8 @@ public sealed class TenantQueryFreshnessTests {
                 "tenant.alpha");
         }
 
-        if (string.Equals(queryType, GetTenantAuditQuery.QueryType, StringComparison.Ordinal)) {
+        if (string.Equals(queryType, GetTenantAuditQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 GetTenantAuditQuery.Domain,
@@ -198,7 +194,8 @@ public sealed class TenantQueryFreshnessTests {
                 "tenant.alpha");
         }
 
-        if (string.Equals(queryType, GetGlobalAdministratorsQuery.QueryType, StringComparison.Ordinal)) {
+        if (string.Equals(queryType, GetGlobalAdministratorsQuery.QueryType, StringComparison.Ordinal))
+        {
             return new QueryEnvelope(
                 TenantIdentity.DefaultTenantId,
                 GetGlobalAdministratorsQuery.Domain,
@@ -219,28 +216,41 @@ public sealed class TenantQueryFreshnessTests {
 
     private static void SetupGlobalAdministrators(
         IReadModelStore store,
-        string administratorId,
-        DateTimeOffset? projectedAt = null) {
-        var model = new GlobalAdministratorReadModel {
-            Administrators = [administratorId],
+        string eTag,
+        DateTimeOffset? projectedAt,
+        params string[] administratorIds)
+    {
+        var model = new GlobalAdministratorReadModel
+        {
+            Administrators = administratorIds.ToHashSet(StringComparer.Ordinal),
             ProjectedAt = projectedAt,
+            ProjectionVersion = "tenant-sequence:42",
         };
 
         _ = store.GetAsync<GlobalAdministratorReadModel>(
                 TenantQueryHandlerBase.StateStoreName,
                 TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, "admin-etag-1")));
+            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, eTag)));
     }
 
-    private static void SetupTenantIndex(IReadModelStore store, DateTimeOffset? projectedAt) {
-        var model = new TenantIndexReadModel {
+    private static void SetupTenantIndex(
+        IReadModelStore store,
+        string eTag,
+        DateTimeOffset? projectedAt)
+    {
+        var model = new TenantIndexReadModel
+        {
             ProjectedAt = projectedAt,
-            Tenants = {
+            ProjectionVersion = "tenant-sequence:42",
+            Tenants =
+            {
                 ["tenant.alpha"] = new TenantIndexEntry("Tenant Alpha", TenantStatus.Active),
             },
-            UserTenants = {
-                ["target-user"] = new Dictionary<string, TenantRole>(StringComparer.Ordinal) {
+            UserTenants =
+            {
+                ["target-user"] = new Dictionary<string, TenantRole>(StringComparer.Ordinal)
+                {
                     ["tenant.alpha"] = TenantRole.TenantReader,
                 },
                 ["admin-user"] = new Dictionary<string, TenantRole>(StringComparer.Ordinal),
@@ -251,22 +261,24 @@ public sealed class TenantQueryFreshnessTests {
                 TenantQueryHandlerBase.StateStoreName,
                 TenantQueryHandlerBase.TenantIndexProjectionKey,
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<TenantIndexReadModel>(model, "index-etag-1")));
+            .Returns(Task.FromResult(new ReadModelEntry<TenantIndexReadModel>(model, eTag)));
     }
 
     private static void SetupTenant(
         IReadModelStore store,
-        string eTag,
-        DateTimeOffset? projectedAt,
-        string? projectionVersion = null) {
-        var model = new TenantReadModel {
+        string? eTag,
+        DateTimeOffset? projectedAt)
+    {
+        var model = new TenantReadModel
+        {
             TenantId = "tenant.alpha",
             Name = "Tenant Alpha",
             Status = TenantStatus.Active,
             CreatedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             ProjectedAt = projectedAt,
-            ProjectionVersion = projectionVersion,
-            Members = {
+            ProjectionVersion = "tenant-sequence:42",
+            Members =
+            {
                 ["test-user"] = TenantRole.TenantReader,
             },
         };
@@ -278,10 +290,17 @@ public sealed class TenantQueryFreshnessTests {
             .Returns(Task.FromResult(new ReadModelEntry<TenantReadModel>(model, eTag)));
     }
 
-    private static void SetupTenantAudit(IReadModelStore store, DateTimeOffset? projectedAt) {
-        var model = new TenantAuditReadModel {
+    private static void SetupTenantAudit(
+        IReadModelStore store,
+        string eTag,
+        DateTimeOffset? projectedAt)
+    {
+        var model = new TenantAuditReadModel
+        {
             ProjectedAt = projectedAt,
-            Entries = [
+            ProjectionVersion = "tenant-sequence:42",
+            Entries =
+            [
                 new TenantAuditEntry(
                     "event-1",
                     "TenantCreated",
@@ -297,10 +316,11 @@ public sealed class TenantQueryFreshnessTests {
                 TenantQueryHandlerBase.StateStoreName,
                 TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha",
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<TenantAuditReadModel>(model, "audit-etag-1")));
+            .Returns(Task.FromResult(new ReadModelEntry<TenantAuditReadModel>(model, eTag)));
     }
 
-    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider {
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
         public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

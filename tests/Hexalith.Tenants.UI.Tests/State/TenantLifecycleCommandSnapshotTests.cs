@@ -329,9 +329,9 @@ public sealed class TenantLifecycleCommandSnapshotTests
     [Fact]
     public void Opaque_tokens_sharing_a_prefix_and_ending_in_increasing_digits_do_not_confirm()
     {
-        // TenantQueryResult falls back to the state-store ETag when no read model carries a projection
-        // version. Two such markers can share a textual prefix and end in increasing digits without those
-        // digits expressing causal order, so only the aggregate sequence token may satisfy the ordered gate.
+        // Opaque validators are not projection versions. Two such markers can share a textual prefix and end
+        // in increasing digits without those digits expressing causal order, so only an aggregate sequence
+        // token supplied by an authoritative projection-backed route may satisfy the ordered gate.
         TenantLifecycleCommandSnapshot pending = Pending(
             TenantLifecycleOperation.DisableTenant,
             TenantStatus.Active,

@@ -114,6 +114,52 @@ public sealed class TenantsApiGeneratedControllerTests
     }
 
     [Fact]
+    public async Task Generated_query_route_suppresses_projection_headers_for_handler_computed_result()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(
+            new TenantDetail(
+                "tenant.alpha",
+                "Alpha",
+                "Tenant Alpha",
+                TenantStatus.Active,
+                [],
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                DateTimeOffset.Parse("2026-07-03T05:20:00Z", CultureInfo.InvariantCulture)),
+            eTag: "opaque-store-etag",
+            metadata: new QueryResponseMetadata(
+                ETag: "opaque-store-etag",
+                IsNotModified: false,
+                IsStale: false,
+                ProjectionVersion: "tenant-sequence:42")
+            {
+                Provenance = QueryResponseProvenance.HandlerComputed,
+                Lifecycle = ProjectionLifecycleState.Current,
+            });
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/tenant.alpha");
+        request.Headers.IfNoneMatch.ParseAdd("\"conflicting-validator\"");
+
+        using HttpResponseMessage response = await client.SendAsync(
+            request,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.GetValues("X-Hexalith-Query-Provenance").ShouldHaveSingleItem().ShouldBe("HandlerComputed");
+        response.Headers.ETag.ShouldBeNull();
+        response.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        response.Headers.Contains("X-Hexalith-Is-Stale").ShouldBeFalse();
+        response.Headers.Contains(ProjectionLifecyclePolicy.HeaderName).ShouldBeFalse();
+
+        TenantDetail? detail = await response.Content.ReadFromJsonAsync<TenantDetail>(
+            JsonOptions,
+            TestContext.Current.CancellationToken);
+        detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        gateway.SubmittedQueries.ShouldHaveSingleItem().IfNoneMatch.ShouldBe("\"conflicting-validator\"");
+    }
+
+    [Fact]
     public async Task UserTenants_generated_absolute_route_submits_index_query_for_target_user_entity()
     {
         CapturingEventStoreGatewayClient gateway = new();

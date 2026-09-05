@@ -25,8 +25,7 @@ internal sealed record TenantQueryResult : QueryResult {
             ? null
             : new QueryResponseMetadata(
                 ETag: normalizedETag,
-                IsNotModified: false,
-                ProjectionVersion: normalizedETag);
+                IsNotModified: false);
 
         return new TenantQueryResult(
             true,
@@ -41,24 +40,8 @@ internal sealed record TenantQueryResult : QueryResult {
         IReadModelFreshness? readModel,
         ReadModelFreshnessThresholds thresholds,
         DateTimeOffset now,
-        string? eTag) {
-        if (payload.ValueKind == JsonValueKind.Undefined) {
-            throw new ArgumentException("Payload element must not be Undefined.", nameof(payload));
-        }
-
-        string? normalizedETag = NormalizeETag(eTag);
-        QueryResponseMetadata metadata = readModel
-            .ToQueryResponseMetadata(thresholds, now, normalizedETag) with {
-                IsNotModified = false,
-                ProjectionVersion = readModel?.ProjectionVersion ?? normalizedETag,
-            };
-
-        return new TenantQueryResult(
-            true,
-            JsonSerializer.SerializeToUtf8Bytes(payload),
-            projectionType: projectionType,
-            metadata: metadata);
-    }
+        string? eTag)
+        => FromPayload(payload, projectionType, eTag);
 
     private static string? NormalizeETag(string? eTag) {
         if (string.IsNullOrWhiteSpace(eTag)) {
