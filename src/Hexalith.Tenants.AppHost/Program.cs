@@ -117,19 +117,14 @@ IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenant
 string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
 string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
 
-// Hexalith.Memories.Aspire Story 29.2: the library no longer builds its own secret-store component --
-// the consumer now provisions and owns it, mirroring the existing stateStore/pubSub pattern. This keeps
-// the existing local-file dev component unchanged; migrating this AppHost to an OpenBao-backed secret
-// store is a separate, unscoped change.
-IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
-    "memories-secretstore",
-    "secretstores.local.file",
-    new DaprComponentOptions { LocalPath = memoriesSecretStorePath });
-
+// Published Hexalith.Memories.Aspire 2.22.1 still takes secretStoreComponentPath (string) and builds
+// the local-file secret-store component itself. Story 29.2's IResourceBuilder secretStore overload
+// is in Memories source but not yet published; keep the NuGet-compatible path call site so
+// UseNuGetDeps Standalone builds (FrontComposer dependency-governance) succeed.
 HexalithMemoriesSearchIndexServerResources memories = builder.AddHexalithMemoriesSearchIndexServer(
     eventStoreResources.StateStore,
     eventStoreResources.PubSub,
-    memoriesSecretStore,
+    memoriesSecretStorePath,
     memoriesLlmConfigPath,
     serverName: "memories",
     daprPlacementHostAddress: daprPlacementHostAddress,
