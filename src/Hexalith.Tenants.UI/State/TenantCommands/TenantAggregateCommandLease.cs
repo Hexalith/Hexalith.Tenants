@@ -39,6 +39,17 @@ public sealed class TenantAggregateCommandLease
     internal bool IsReconciliationDispatchInFlight
         => _gate.IsReconciliationDispatchInFlight(this);
 
+    /// <summary>Atomically marks and persists the first delivery before gateway I/O begins.</summary>
+    /// <param name="owner">Current command-surface owner.</param>
+    /// <param name="expected">Exact correlationless request-sent reconciliation.</param>
+    /// <param name="completionToken">Opaque token that authorizes the matching completion.</param>
+    /// <returns><see langword="true"/> when the undispatched lease was durably armed.</returns>
+    internal bool TryBeginInitialReconciliationDispatch(
+        object owner,
+        GlobalAdministratorReconciliationState expected,
+        out long completionToken)
+        => _gate.TryBeginInitialReconciliationDispatch(this, owner, expected, out completionToken);
+
     /// <summary>Marks the single dispatch associated with this lease.</summary>
     /// <returns><see langword="true"/> only for the first mark while the lease is active.</returns>
     public bool TryMarkDispatched(object owner)
@@ -75,6 +86,12 @@ public sealed class TenantAggregateCommandLease
         long completionToken,
         GlobalAdministratorReconciliationState completion)
         => _gate.TryCompleteReconciliationDispatch(this, completionToken, completion);
+
+    /// <summary>Aborts only the matching active delivery token while retaining its recovery basis.</summary>
+    /// <param name="completionToken">Token returned when the delivery began.</param>
+    /// <returns><see langword="true"/> when the exact active token was cleared.</returns>
+    internal bool TryAbortReconciliationDispatch(long completionToken)
+        => _gate.TryAbortReconciliationDispatch(this, completionToken);
 
     /// <summary>Reads the latest durable reconciliation when the supplied surface still owns this lease.</summary>
     /// <param name="owner">Current command-surface owner.</param>

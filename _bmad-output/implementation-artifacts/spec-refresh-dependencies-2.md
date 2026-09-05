@@ -19,6 +19,8 @@ context:
 
 **Approach:** Re-resolve every root submodule against its live remote default-branch tip, fast-forward changed gitlinks, and align Tenants-consumed `Hexalith.*` package families to the latest published versions admitted by the repository's .NET 10, release-channel, audit, and family-alignment policies.
 
+**Decision (2026-09-05):** “Latest” for packages means the latest stable published version. Do not adopt a proof or prerelease package identity; hold any submodule tip that would force one until a stable upstream replacement exists.
+
 ## Boundaries & Constraints
 
 **Always:** Preserve the existing unrelated spec and Razor edits; work in the repository that owns each changed file; update only submodules declared by the root `.gitmodules`; use exact verified remote tips; keep Hexalith package families aligned through the Builds-owned central catalog and refreshed audit evidence; preserve Debug source-reference and Release package-reference behavior.
@@ -49,7 +51,7 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `references/Hexalith.Builds` -- fast-forward from `e0e0694` to verified live `main` and refresh its Hexalith EventStore audit evidence if the new catalog pin requires it -- local `0a54e63a` remains behind live `fe6002d7`; the tip advanced during implementation and further remote operations were prohibited.
+- [x] `references/Hexalith.Builds` -- evaluate the verified live `main` tip and retain the latest stable-compatible pointer -- local `0a54e63a` keeps EventStore `3.102.0`; live `fe6002d7` is held because it replaces that stable family with `999.1.20-proof.fa2d1c9910f8`.
 - [ ] `references/Hexalith.FrontComposer` -- fast-forward from `1a7edded` to verified live `main` -- local `58197d7c` remains behind live `d71790bb` after the same live-tip race.
 - [ ] `references/Hexalith.{AI.Tools,Commons,EventStore,Memories,PolymorphicSerializations}` -- recheck live default-branch equality and retain verified no-ops -- AI.Tools `5f93d2ec`, Commons `6da79aed`, EventStore `5583e207`, and PolymorphicSerializations `8aeed1d2` are exact; Memories local `3a7a7025` remains behind live `396f8381`.
 - [x] `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` and `Program.cs` -- compile against the consumer-owned secret-store resource in Debug source mode and the component-path signature in Release package mode -- preserves both dependency channels while the latest published Memories package trails its source tip.
@@ -65,6 +67,7 @@ context:
 
 - Concurrent `/pushall` work advanced the baseline commit and root pointers beyond the planning snapshot before implementation began. Those newer clean pointers were preserved; no gitlink was downgraded.
 - The current Builds catalog and live temporary audit agree that all 13 EventStore packages select the listed latest stable `3.102.0`. The later live Builds tip `fe6002d7` re-pins that family to `999.1.20-proof.fa2d1c9910f8`; it was not adopted because the tip arrived during the run and further remote operations were prohibited.
+- The human selected latest-stable package policy on 2026-09-05, making the Builds hold intentional rather than merely procedural.
 - Published `Hexalith.Memories.Aspire` `2.22.1` accepts `secretStoreComponentPath`, while the clean Memories source tip accepts `IResourceBuilder<IDaprComponentResource>`. `HEXALITH_MEMORIES_FROM_SOURCE` now selects the matching call at compile time; the resolved YAML path and resulting DAPR resource behavior are unchanged.
 - `StackExchange.Redis` `3.1.31` exposes a colliding `CommandStatus`; the integration test now aliases the intended EventStore enum.
 

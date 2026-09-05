@@ -707,6 +707,7 @@
     // PendingOperation calls when its operation finishes. A prior version also tracked superseded sources in
     // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
     private readonly Lock _cancellationLock = new();
+    private readonly Lock _focusModuleLock = new();
     private FluentTextInput _grantUserIdElement = default!;
     private FluentCheckbox _grantAcknowledgementElement = default!;
     private ElementReference _grantLauncherElement;
@@ -1289,7 +1290,7 @@
         TenantLifecycleAuthorizationReflectionState reflection =
             await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
         bool shouldLoad = false;
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyAuthorizationTransition(version))
             {
@@ -1410,13 +1411,47 @@
             return;
         }
 
+        bool useFallback = false;
+        IJSObjectReference? importedModule = null;
         try
         {
-            IJSObjectReference module = _focusModule
-                ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
-            if (IsCurrentRemovePreview(expectedPreview))
+            IJSObjectReference? module;
+            lock (_focusModuleLock)
             {
-                _ = await module.InvokeAsync<bool>("focusElementById", elementId).ConfigureAwait(false);
+                module = _focusModule;
+            }
+
+            if (module is null)
+            {
+                importedModule = await JS
+                    .InvokeAsync<IJSObjectReference>("import", FocusModulePath)
+                    .ConfigureAwait(false);
+                lock (_focusModuleLock)
+                {
+                    if (IsCurrentRemovePreview(expectedPreview) && _focusModule is null)
+                    {
+                        _focusModule = importedModule;
+                        module = importedModule;
+                        importedModule = null;
+                    }
+                    else
+                    {
+                        module = _focusModule;
+                    }
+                }
+            }
+
+            if (importedModule is not null)
+            {
+                await DisposeFocusModuleSafelyAsync(importedModule).ConfigureAwait(false);
+                importedModule = null;
+            }
+
+            if (module is not null && IsCurrentRemovePreview(expectedPreview))
+            {
+                useFallback = !await module
+                    .InvokeAsync<bool>("focusElementById", elementId)
+                    .ConfigureAwait(false);
             }
         }
         catch (JSDisconnectedException)
@@ -1430,6 +1465,51 @@
         catch (JSException)
         {
             // A newer render detached the exact focus target before JavaScript observed it.
+            useFallback = true;
+        }
+        finally
+        {
+            if (importedModule is not null)
+            {
+                await DisposeFocusModuleSafelyAsync(importedModule).ConfigureAwait(false);
+            }
+        }
+
+        if (useFallback)
+        {
+            await FocusRemoveFallbackAsync(expectedPreview).ConfigureAwait(false);
+        }
+    }
+
+    private async Task FocusRemoveFallbackAsync(GlobalAdministratorRemovePreview expectedPreview)
+    {
+        if (IsCurrentRemovePreview(expectedPreview))
+        {
+            await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
+        }
+        else if (!_disposed)
+        {
+            await FocusSafelyAsync(_removeLifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task DisposeFocusModuleSafelyAsync(IJSObjectReference module)
+    {
+        try
+        {
+            await module.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone and the orphaned module is no longer observable.
+        }
+        catch (ObjectDisposedException)
+        {
+            // A concurrent teardown already disposed the module.
+        }
+        catch (JSException)
+        {
+            // Browser teardown can reject disposal after navigation; containment is sufficient.
         }
     }
 
@@ -2094,20 +2174,16 @@
             await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
         }
 
-        if (_focusModule is not null)
+        IJSObjectReference? focusModule;
+        lock (_focusModuleLock)
         {
-            try
-            {
-                await _focusModule.DisposeAsync().ConfigureAwait(false);
-            }
-            catch (JSDisconnectedException)
-            {
-                // The circuit is already gone; focus teardown is no longer observable.
-            }
-            catch (ObjectDisposedException)
-            {
-                // A concurrent renderer teardown already disposed the imported module.
-            }
+            focusModule = _focusModule;
+            _focusModule = null;
+        }
+
+        if (focusModule is not null)
+        {
+            await DisposeFocusModuleSafelyAsync(focusModule).ConfigureAwait(false);
         }
 
         _ = _grantAdmissionLease?.TryAbandonBeforeDispatch(_fixedAggregateOwner);
@@ -2152,6 +2228,36 @@
 
     private void OnViewportObservationChanged(object? sender, EventArgs args)
         => _ = RenderIfAliveAsync();
+
+    private async Task<bool> InvokeRendererSafelyAsync(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        if (_disposed)
+        {
+            return false;
+        }
+
+        bool invoked = false;
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                callback();
+                invoked = true;
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Navigation can tear down the renderer between the alive check and dispatch.
+        }
+
+        return invoked;
+    }
 
     private async Task RenderIfAliveAsync()
     {
@@ -2436,7 +2542,7 @@
         // privileged surface persisted with nothing left to correct it. The post-hoc check below cannot undo a
         // write that has already rendered. ReauthorizeAsync guards the same field the same way.
         bool applied = false;
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyAuthorizationTransition(version))
             {
@@ -2462,7 +2568,7 @@
             return;
         }
 
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (CanApplyAuthorizationTransition(version) && IsAuthorized)
             {
@@ -2506,7 +2612,7 @@
                 return false;
             }
 
-            await InvokeAsync(() =>
+            _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (CanApplyAuthorizationTransition(version))
                 {
@@ -2543,8 +2649,13 @@
         bool invalidateTransition = true)
     {
         IAsyncDisposable? lease = null;
-        await InvokeAsync(() => lease = CollapseAuthorizationState(reflection, invalidateTransition))
-            .ConfigureAwait(false);
+        if (!await InvokeRendererSafelyAsync(
+                () => lease = CollapseAuthorizationState(reflection, invalidateTransition))
+            .ConfigureAwait(false))
+        {
+            return;
+        }
+
         await CompleteAuthorizationCollapseAsync(lease).ConfigureAwait(false);
     }
 
@@ -2553,7 +2664,7 @@
         Func<bool> canCollapse)
     {
         IAsyncDisposable? lease = null;
-        await InvokeAsync(() =>
+        if (!await InvokeRendererSafelyAsync(() =>
         {
             // The generation/reference predicate and every state mutation that hides the privileged
             // surface execute in the same renderer work item. A newer operation therefore cannot land
@@ -2562,7 +2673,11 @@
             {
                 lease = CollapseAuthorizationState(reflection, invalidateTransition: true);
             }
-        }).ConfigureAwait(false);
+        }).ConfigureAwait(false))
+        {
+            return;
+        }
+
         await CompleteAuthorizationCollapseAsync(lease).ConfigureAwait(false);
     }
 
@@ -2650,10 +2765,7 @@
         }
         finally
         {
-            if (!_disposed)
-            {
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
-            }
+            _ = await InvokeRendererSafelyAsync(StateHasChanged).ConfigureAwait(false);
         }
     }
 
@@ -3714,7 +3826,8 @@
 
             bool armed = false;
             GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
-            await InvokeAsync(() =>
+            long completionToken = 0;
+            _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (!CanApplyRemoveMutation(generation)
                     || !ReferenceEquals(_removeSnapshot, expectedSnapshot)
@@ -3740,7 +3853,12 @@
                     return;
                 }
 
-                if (!submissionLease.TryMarkDispatched(_fixedAggregateOwner))
+                GlobalAdministratorRemoveCommandSnapshot requestSent = expectedSnapshot.RequestSent();
+                if (CreateReconciliation(requestSent) is not { } dispatchBasis
+                    || !submissionLease.TryBeginInitialReconciliationDispatch(
+                        _fixedAggregateOwner,
+                        dispatchBasis,
+                        out completionToken))
                 {
                     _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                     _removeAdmissionLease = null;
@@ -3750,7 +3868,7 @@
                     return;
                 }
 
-                SetRemoveSnapshot(expectedSnapshot.RequestSent());
+                SetRemoveSnapshot(requestSent);
                 requestSentSnapshot = _removeSnapshot;
                 _isRemoveSubmitting = true;
                 _removeAcknowledgement = null;
@@ -3762,55 +3880,47 @@
                 return;
             }
 
-            TenantCommandSubmissionResult result = await CommandGateway
-                .RemoveGlobalAdministratorTrackedAsync(request, messageId, cancellationToken)
-                .ConfigureAwait(false);
-            GlobalAdministratorRemoveCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
-            bool submissionApplied = false;
-            bool resumeAdopted = false;
-            await InvokeAsync(() =>
+            TenantCommandSubmissionResult result;
+            try
             {
-                if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, requestSentSnapshot))
-                {
-                    resumeAdopted = RetainOrReleaseRemoveCompletion(submissionSnapshot, submissionLease);
-                    return;
-                }
+                result = await CommandGateway
+                    .RemoveGlobalAdministratorTrackedAsync(request, messageId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                result = TenantCommandSubmissionResult.Ambiguous(
+                    messageId,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+            }
+            catch
+            {
+                result = TenantCommandSubmissionResult.Ambiguous(
+                    messageId,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+            }
 
-                SetRemoveSnapshot(submissionSnapshot);
-                submissionApplied = true;
-                StateHasChanged();
-            }).ConfigureAwait(false);
-            if (resumeAdopted)
+            GlobalAdministratorRemoveCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
+            if (CreateCompletionReconciliation(submissionSnapshot) is not { } durableCompletion
+                || !submissionLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
             {
-                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
                 return;
             }
 
-            if (submissionApplied && result.State is TenantCommandLifecycleState.Accepted)
-            {
-                await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
-            }
-            return;
+            // The gate notification is the single wake-up path for both the current renderer and a
+            // replacement owner. It synchronizes durable evidence before any status lookup and avoids a
+            // second lookup racing the queued notification drain.
         }
         catch (OperationCanceledException)
         {
-            if (submissionLease?.IsDispatchMarked == true
-                && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent)
-            {
-                SetRemoveSnapshot(_removeSnapshot.ApplySubmission(TenantCommandSubmissionResult.Ambiguous(
-                    _removeSnapshot.MessageId!,
-                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")));
-            }
+            // Cancellation before delivery is fail-closed; cancellation during delivery is converted into a
+            // durable ambiguous result in the gateway block above.
         }
         catch
         {
-            if (submissionLease?.IsDispatchMarked == true
-                && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent)
-            {
-                SetRemoveSnapshot(_removeSnapshot.ApplySubmission(TenantCommandSubmissionResult.Ambiguous(
-                    _removeSnapshot.MessageId!,
-                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")));
-            }
+            // Every post-admission delivery exception is contained above and durably published. Remaining
+            // preflight failures leave the undispatched preview fail closed.
         }
         finally
         {
@@ -3926,7 +4036,7 @@
         }
 
         bool retry = false;
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation)
                 || !ReferenceEquals(_removeSnapshot, expected)
@@ -3994,28 +4104,13 @@
         if (CreateCompletionReconciliation(applied) is not { } durableCompletion
             || !lease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
         {
+            _ = lease.TryAbortReconciliationDispatch(completionToken);
             return;
         }
 
-        bool retryApplied = false;
-        await InvokeAsync(() =>
-        {
-            if (SynchronizeOwnedRemoveReconciliation()
-                && ReferenceEquals(_removeAdmissionLease, lease)
-                && string.Equals(_removeSnapshot.MessageId, applied.MessageId, StringComparison.Ordinal)
-                && _removeSnapshot.State == applied.State)
-            {
-                retryApplied = true;
-                StateHasChanged();
-            }
-        }).ConfigureAwait(false);
-
-        if (retryApplied
-            && CanApplyRemoveMutation(generation)
-            && applied.State is TenantCommandLifecycleState.Accepted)
-        {
-            await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
-        }
+        // Completion publication raises the only renderer-independent wake-up. The current or replacement
+        // owner synchronizes through ApplyFixedAggregateAdmissionChangeAsync; this origin never reaches back
+        // into a renderer that may have been disposed while delivery was in flight.
     }
 
     private async Task RefreshRemoveStatusCoreAsync(
@@ -4363,7 +4458,13 @@
             return false;
         }
 
-        SetRemoveSnapshot(CreateRemoveSnapshot(reconciliation));
+        GlobalAdministratorRemoveCommandSnapshot synchronized = CreateRemoveSnapshot(reconciliation);
+        if (Equals(_removeSnapshot, synchronized))
+        {
+            return false;
+        }
+
+        SetRemoveSnapshot(synchronized);
         return true;
     }
 
@@ -4372,20 +4473,40 @@
     {
         bool terminalFailure = reconciliation.LifecycleState is TenantCommandLifecycleState.Failed
             or TenantCommandLifecycleState.Rejected;
+        TenantCommandAuditState auditState = reconciliation.LifecycleState switch
+        {
+            TenantCommandLifecycleState.RequestSent when reconciliation.IsSubmissionAmbiguous
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.RequestSent => TenantCommandAuditState.NotStarted,
+            TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending
+                => TenantCommandAuditState.AuditPending,
+            TenantCommandLifecycleState.Degraded => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify when reconciliation.IsSubmissionAmbiguous
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify
+                when string.Equals(
+                    reconciliation.SafeRecoveryKey,
+                    "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+                    StringComparison.Ordinal)
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify => TenantCommandAuditState.AuditUnavailable,
+            _ when terminalFailure => TenantCommandAuditState.AuditUnavailable,
+            _ => TenantCommandAuditState.AuditPending,
+        };
+        bool assertive = terminalFailure
+            || reconciliation.IsSubmissionAmbiguous
+            || reconciliation.LifecycleState is TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify;
         return new(
             reconciliation.LifecycleState,
             new RemoveGlobalAdministrator(reconciliation.TargetUserId),
             MessageId: reconciliation.MessageId,
             CorrelationId: reconciliation.CorrelationId,
-            AuditState: reconciliation.IsSubmissionAmbiguous
-                ? TenantCommandAuditState.AuditDelayed
-                : terminalFailure
-                    ? TenantCommandAuditState.AuditUnavailable
-                    : TenantCommandAuditState.AuditPending,
+            AuditState: auditState,
             FocusTarget: terminalFailure
                 ? TenantCommandFocusTarget.Lifecycle
                 : TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness: terminalFailure || reconciliation.IsSubmissionAmbiguous
+            LiveRegionPoliteness: assertive
                 ? TenantCommandLiveRegionPoliteness.Assertive
                 : TenantCommandLiveRegionPoliteness.Polite,
             PreviewEvidence: reconciliation.RemovePreview,
@@ -4447,7 +4568,7 @@
             && snapshot.MessageId is { Length: > 0 } messageId
             && (snapshot.CorrelationId is { Length: > 0 }
                 || snapshot.State is TenantCommandLifecycleState.RequestSent
-                    or TenantCommandLifecycleState.UnableToVerify
+                || snapshot.State is TenantCommandLifecycleState.UnableToVerify
                     && snapshot.IsSubmissionAmbiguous)
             && snapshot.State is TenantCommandLifecycleState.RequestSent
                 or TenantCommandLifecycleState.Accepted

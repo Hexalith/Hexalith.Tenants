@@ -462,6 +462,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     [InlineData("tracked")]
     [InlineData("publish-failed")]
     [InlineData("timed-out")]
+    [InlineData("unable")]
     public void RemovalCorrectionLifecycleUsesItsSnapshotSpecificRecovery(string scenario)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -492,6 +493,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "timed-out" => accepted.ApplyStatus(new TenantCommandStatusResult(
                 CommandStatus.TimedOut,
                 HasVerifiedCommandIdentity: true)),
+            "unable" => accepted.ApplyStatus(TenantCommandStatusResult.Unknown("unknown")),
             _ => throw new InvalidOperationException($"Unknown scenario '{scenario}'."),
         };
         string expectedRecovery = scenario switch
@@ -502,6 +504,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "tracked" => "Refresh the complete fixed-scope projection before continuing.",
             "publish-failed" => "Refresh tracked status until publication or terminal evidence is available.",
             "timed-out" => "Refresh the tracked attempt before considering another removal.",
+            "unable" => "Refresh the complete fixed-scope projection before continuing.",
             _ => throw new InvalidOperationException(),
         };
         TenantAggregateCommandAdmissionGate admissionGate =
@@ -678,10 +681,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
         commandGateway.StatusHandles.Count.ShouldBe(1);
-        commandGateway.StatusHandles.ShouldAllBe(handle => handle.ShouldBe(new TenantCommandTrackingHandle(
-            "message-safe",
+        string callerOwnedMessageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
+        commandGateway.StatusHandles.ShouldAllBe(handle => handle == new TenantCommandTrackingHandle(
+            callerOwnedMessageId,
             "tracking-safe",
-            GlobalAdministratorGrantPreview.FixedAggregateId)));
+            GlobalAdministratorGrantPreview.FixedAggregateId));
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
         var replacementOwner = new object();
@@ -897,10 +901,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
         commandGateway.StatusHandles.Count.ShouldBe(2);
-        commandGateway.StatusHandles.ShouldAllBe(handle => handle.ShouldBe(new TenantCommandTrackingHandle(
-            "message-safe",
+        string callerOwnedMessageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
+        commandGateway.StatusHandles.ShouldAllBe(handle => handle == new TenantCommandTrackingHandle(
+            callerOwnedMessageId,
             "tracking-safe",
-            GlobalAdministratorGrantPreview.FixedAggregateId)));
+            GlobalAdministratorGrantPreview.FixedAggregateId));
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }

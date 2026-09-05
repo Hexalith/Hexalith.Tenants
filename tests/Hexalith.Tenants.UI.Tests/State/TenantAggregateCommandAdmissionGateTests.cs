@@ -301,6 +301,86 @@ public sealed class TenantAggregateCommandAdmissionGateTests
         adopted.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Failed).ShouldBeTrue();
     }
 
+    [Fact]
+    public void InitialDispatchTokenPersistsIdentityBeforeIoAndPublishesAcceptedEvidenceToReplacement()
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        var gate = new TenantAggregateCommandAdmissionGate();
+        object originalOwner = new();
+        GlobalAdministratorRemovePreview preview = RemovePreview();
+        var requestSent = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove,
+            preview.TargetUserId,
+            messageId,
+            CorrelationId: null,
+            TenantCommandLifecycleState.RequestSent,
+            IsSubmissionAmbiguous: false,
+            RemovePreview: preview);
+        gate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            originalOwner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+
+        lease!.TryBeginInitialReconciliationDispatch(originalOwner, requestSent, out long completionToken)
+            .ShouldBeTrue();
+        lease.IsDispatchMarked.ShouldBeTrue();
+        lease.IsReconciliationDispatchInFlight.ShouldBeTrue();
+        lease.TryRetainReconciliation(originalOwner, requestSent).ShouldBeTrue();
+        object replacementOwner = new();
+        gate.TryAdoptRetainedLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            replacementOwner,
+            out TenantAggregateCommandLease? adopted,
+            out GlobalAdministratorReconciliationState? retained).ShouldBeTrue();
+        retained.ShouldBe(requestSent);
+        adopted!.TryBeginReconciliationDispatch(replacementOwner, requestSent, out _).ShouldBeFalse();
+
+        GlobalAdministratorReconciliationState accepted = requestSent with
+        {
+            CorrelationId = "correlation-safe",
+            LifecycleState = TenantCommandLifecycleState.Accepted,
+        };
+        lease.TryCompleteReconciliationDispatch(completionToken, accepted).ShouldBeTrue();
+        adopted.TryReadReconciliation(replacementOwner, out GlobalAdministratorReconciliationState? visible)
+            .ShouldBeTrue();
+        visible.ShouldBe(accepted);
+        adopted.IsReconciliationDispatchInFlight.ShouldBeFalse();
+        adopted.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Failed).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void TerminalInitialCompletionBeforeAdoptionReleasesTheFixedAggregate()
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        var gate = new TenantAggregateCommandAdmissionGate();
+        object originalOwner = new();
+        GlobalAdministratorRemovePreview preview = RemovePreview();
+        var requestSent = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove,
+            preview.TargetUserId,
+            messageId,
+            CorrelationId: null,
+            TenantCommandLifecycleState.RequestSent,
+            RemovePreview: preview);
+        string aggregateKey = TenantCommandAggregateLock.ForGlobalAdministrators();
+        gate.TryAcquireLease(aggregateKey, originalOwner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryBeginInitialReconciliationDispatch(originalOwner, requestSent, out long completionToken)
+            .ShouldBeTrue();
+        lease.TryRetainReconciliation(originalOwner, requestSent).ShouldBeTrue();
+
+        GlobalAdministratorReconciliationState rejected = requestSent with
+        {
+            LifecycleState = TenantCommandLifecycleState.Rejected,
+            SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Status.Rejected",
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.Rejected",
+        };
+        lease.TryCompleteReconciliationDispatch(completionToken, rejected).ShouldBeTrue();
+
+        gate.IsLocked(aggregateKey).ShouldBeFalse();
+        gate.TryAdoptRetainedLease(aggregateKey, new object(), out _, out _).ShouldBeFalse();
+        lease.IsReconciliationDispatchInFlight.ShouldBeFalse();
+    }
+
     private static GlobalAdministratorsSnapshot Complete(string projectionVersion, params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
             userIds.Select(static userId => new GlobalAdministratorRow(

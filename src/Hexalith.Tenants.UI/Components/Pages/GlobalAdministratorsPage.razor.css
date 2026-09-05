@@ -198,6 +198,7 @@
    section is retained because Fluent V5 does not expose the focus-sentinel contract this flow requires. */
 .global-admins__remove-preview {
     background: var(--colorNeutralBackground1);
+    box-sizing: border-box;
     box-shadow: var(--shadow16);
     inline-size: min(48rem, calc(100vw - 2rem));
     inset-block-start: 50%;

@@ -250,7 +250,13 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
                     ? AmbiguousTrackingFailure()
                     : this with
                     {
-                        State = TenantCommandLifecycleState.RequestSent,
+                        // An unsupported delivery result is already an UnableToVerify state. A later
+                        // ambiguous same-id retry must remain monotonic so the lease-backed completion
+                        // token can be cleared without regressing to RequestSent and stranding recovery.
+                        State = State is TenantCommandLifecycleState.UnableToVerify
+                                && IsSubmissionAmbiguous
+                            ? TenantCommandLifecycleState.UnableToVerify
+                            : TenantCommandLifecycleState.RequestSent,
                         CorrelationId = null,
                         SafeMessage = null,
                         SafeMessageKey = result.SafeMessageKey

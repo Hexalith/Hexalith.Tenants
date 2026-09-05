@@ -272,6 +272,37 @@ public sealed class TenantAggregateCommandAdmissionGate
         }
     }
 
+    internal bool TryBeginInitialReconciliationDispatch(
+        TenantAggregateCommandLease lease,
+        object owner,
+        GlobalAdministratorReconciliationState expected,
+        out long completionToken)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(expected);
+
+        lock (_sync)
+        {
+            if (!IsOwnedActiveLeaseCore(lease, owner)
+                || lease.DispatchMarked
+                || lease.ActiveReconciliationDispatchToken != 0
+                || !IsValidReconciliation(expected)
+                || expected.LifecycleState is not TenantCommandLifecycleState.RequestSent
+                || !string.IsNullOrWhiteSpace(expected.CorrelationId))
+            {
+                completionToken = 0;
+                return false;
+            }
+
+            lease.DispatchMarked = true;
+            lease.Reconciliation = expected;
+            completionToken = NextReconciliationDispatchTokenCore();
+            lease.ActiveReconciliationDispatchToken = completionToken;
+            return true;
+        }
+    }
+
     internal bool TryBeginReconciliationDispatch(
         TenantAggregateCommandLease lease,
         object owner,
@@ -300,12 +331,7 @@ public sealed class TenantAggregateCommandAdmissionGate
             // correlationless RequestSent lease whose first renderer update raced retention.
             lease.Reconciliation = expected;
 
-            completionToken = ++_nextReconciliationDispatchToken;
-            if (completionToken == 0)
-            {
-                completionToken = ++_nextReconciliationDispatchToken;
-            }
-
+            completionToken = NextReconciliationDispatchTokenCore();
             lease.ActiveReconciliationDispatchToken = completionToken;
             return true;
         }
@@ -335,6 +361,15 @@ public sealed class TenantAggregateCommandAdmissionGate
 
             lease.ActiveReconciliationDispatchToken = 0;
             lease.Reconciliation = completion;
+            if (IsTerminal(completion.LifecycleState)
+                && lease.CurrentOwner is null
+                && _ownerByKey.Remove(lease.AggregateLockKey))
+            {
+                lease.IsReleased = true;
+                lease.IsRetainedForAdoption = false;
+                lease.Reconciliation = null;
+            }
+
             completed = true;
         }
 
@@ -344,6 +379,32 @@ public sealed class TenantAggregateCommandAdmissionGate
         }
 
         return completed;
+    }
+
+    internal bool TryAbortReconciliationDispatch(
+        TenantAggregateCommandLease lease,
+        long completionToken)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+
+        bool aborted = false;
+        lock (_sync)
+        {
+            if (completionToken != 0
+                && IsActiveLeaseCore(lease)
+                && lease.ActiveReconciliationDispatchToken == completionToken)
+            {
+                lease.ActiveReconciliationDispatchToken = 0;
+                aborted = true;
+            }
+        }
+
+        if (aborted)
+        {
+            NotifyStateChanged();
+        }
+
+        return aborted;
     }
 
     internal bool TryReadReconciliation(
@@ -566,7 +627,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 => reconciliation.RemovePreview?.IsComplete == true
                     && (!string.IsNullOrWhiteSpace(reconciliation.CorrelationId)
                         || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
-                            or TenantCommandLifecycleState.UnableToVerify
+                        || reconciliation.LifecycleState is TenantCommandLifecycleState.UnableToVerify
                             && reconciliation.IsSubmissionAmbiguous),
             _ => false,
         };
@@ -608,6 +669,17 @@ public sealed class TenantAggregateCommandAdmissionGate
             && current is not TenantCommandLifecycleState.RequestSent
             || next is TenantCommandLifecycleState.Accepted
                 && current is TenantCommandLifecycleState.ProjectionPending;
+
+    private long NextReconciliationDispatchTokenCore()
+    {
+        long token = ++_nextReconciliationDispatchToken;
+        if (token == 0)
+        {
+            token = ++_nextReconciliationDispatchToken;
+        }
+
+        return token;
+    }
 
     private static bool IsTerminal(TenantCommandLifecycleState state)
         => state is TenantCommandLifecycleState.Confirmed

@@ -73,6 +73,17 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         unsupported.IsSubmissionAmbiguous.ShouldBeTrue();
         unsupported.SafeRecoveryKey.ShouldBe(
             "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery");
+
+        GlobalAdministratorRemoveCommandSnapshot repeatedAmbiguity = unsupported.ApplySubmission(
+            TenantCommandSubmissionResult.Ambiguous(
+                MessageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"));
+        repeatedAmbiguity.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        repeatedAmbiguity.IsSubmissionAmbiguous.ShouldBeTrue();
+        repeatedAmbiguity.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        repeatedAmbiguity.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        repeatedAmbiguity.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery");
     }
 
     [Fact]
