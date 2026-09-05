@@ -155,6 +155,30 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Remove.Preview.Target.Value");
         TenantsBffComposition.RequiredRemoveFactKeys.ShouldContain(
             "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge");
+
+        CultureInfo priorUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            IStringLocalizer<TenantsResources> localizer = provider
+                .GetRequiredService<IStringLocalizer<TenantsResources>>();
+            foreach (string cultureName in new[] { "en", "fr" })
+            {
+                CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(cultureName);
+                IReadOnlyDictionary<string, LocalizedString> shipped = localizer
+                    .GetAllStrings(includeParentCultures: true)
+                    .ToDictionary(static resource => resource.Name, StringComparer.Ordinal);
+                foreach (string key in TenantsBffComposition.RequiredRemoveFactKeys)
+                {
+                    shipped.ShouldContainKey(key);
+                    shipped[key].Value.ShouldNotBeNullOrWhiteSpace();
+                    shipped[key].Value.ShouldNotBe(key);
+                }
+            }
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = priorUiCulture;
+        }
     }
 
     [Fact]

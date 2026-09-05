@@ -166,7 +166,8 @@
     private long _operationGeneration;
     private long _authorizationGeneration;
     private int _refreshInFlight;
-    private bool _resumeAdoptedPending;
+    private int _resumeAdoptedPending;
+    private int _resumeAdoptedDrainInFlight;
     private bool _disposed;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection
         = TenantLifecycleAuthorizationReflectionState.Indeterminate;
@@ -219,12 +220,16 @@
 
         if (snapshot.LifecycleState is TenantCommandLifecycleState.Rejected)
         {
-            return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Rejected");
+            return DisabledDecision(snapshot, canRefresh, SnapshotRecoveryKey(
+                snapshot,
+                "Tenants.Correction.Recovery.Rejected"));
         }
 
         if (snapshot.LifecycleState is TenantCommandLifecycleState.Failed)
         {
-            return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Failed");
+            return DisabledDecision(snapshot, canRefresh, SnapshotRecoveryKey(
+                snapshot,
+                "Tenants.Correction.Recovery.Failed"));
         }
 
         if (snapshot.HasCommandTracking && TryGetTrackedLiveBlock(snapshot, out string? liveReason, out string? liveRecovery))
@@ -232,7 +237,7 @@
             return new(IsConfirmDisabled: true, CanRefresh: false, liveReason, liveRecovery);
         }
 
-        if (snapshot is { IsRestoreAccessAction: true, IsSubmissionAmbiguous: true }
+        if (snapshot.IsSubmissionAmbiguous
             && snapshot.SafeRecoveryKey is { } ambiguousRecoveryKey)
         {
             return new(
@@ -244,7 +249,9 @@
 
         if (snapshot.HasCommandTracking)
         {
-            return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Tracked");
+            return DisabledDecision(snapshot, canRefresh, SnapshotRecoveryKey(
+                snapshot,
+                "Tenants.Correction.Recovery.Tracked"));
         }
 
         if (snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
@@ -279,6 +286,14 @@
 
         return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Unavailable");
     }
+
+    private static string SnapshotRecoveryKey(
+        GlobalAdministratorCorrectionSnapshot snapshot,
+        string fallbackKey)
+        => snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
+            && !string.IsNullOrWhiteSpace(snapshot.SafeRecoveryKey)
+                ? snapshot.SafeRecoveryKey
+                : fallbackKey;
 
     private GlobalAdministratorCorrectionDecision DisabledDecision(
         GlobalAdministratorCorrectionSnapshot snapshot,
@@ -614,15 +629,14 @@
     private static bool IsProjectionDrivenBlock(string? safeMessageKey)
         => safeMessageKey is "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"
             or "Tenants.Correction.GlobalAdmin.LastAdministrator"
-            or "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists";
+            or "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists"
+            or "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence"
+            or "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing"
+            or "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_resumeAdoptedPending)
-        {
-            _resumeAdoptedPending = false;
-            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
-        }
+        await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
 
         if (_focusLifecyclePending)
         {
@@ -937,6 +951,7 @@
         finally
         {
             Volatile.Write(ref _refreshInFlight, 0);
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
     }
 
@@ -1456,7 +1471,41 @@
         _admissionLease = lease;
         _adoptedReconciliation = reconciliation;
         ApplyAdoptedReconciliation();
-        _resumeAdoptedPending = true;
+        Volatile.Write(ref _resumeAdoptedPending, 1);
+    }
+
+    private async Task DrainAdoptedReconciliationAsync()
+    {
+        if (_disposed
+            || Volatile.Read(ref _resumeAdoptedPending) == 0
+            || Interlocked.CompareExchange(ref _resumeAdoptedDrainInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            while (!_disposed
+                && Volatile.Read(ref _refreshInFlight) == 0
+                && Interlocked.Exchange(ref _resumeAdoptedPending, 0) != 0)
+            {
+                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _resumeAdoptedDrainInFlight, 0);
+        }
+
+        // Release-before-check makes a concurrent adoption observable by either this continuation or the
+        // render that queued it. A refresh that is still busy leaves the pending bit intact; its finally
+        // invokes this drain after releasing the single-flight gate.
+        if (!_disposed
+            && Volatile.Read(ref _refreshInFlight) == 0
+            && Volatile.Read(ref _resumeAdoptedPending) != 0)
+        {
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task ResumeAdoptedReconciliationAsync()

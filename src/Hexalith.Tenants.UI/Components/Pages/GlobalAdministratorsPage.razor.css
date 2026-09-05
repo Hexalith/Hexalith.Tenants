@@ -179,9 +179,24 @@
     padding: 0.75rem;
 }
 
-/* fc-css-exception: the semantic grant-preview section is the modal focus surface, and neither Fluent
+/* fc-css-exception: the semantic grant-preview section is a modal focus surface, and neither Fluent
    nor FrontComposer exposes an element-reference-capable dialog primitive for this focus-contained flow. */
 .global-admins__grant-preview {
+    background: var(--colorNeutralBackground1);
+    box-shadow: var(--shadow16);
+    inline-size: min(48rem, calc(100vw - 2rem));
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    max-block-size: 90vh;
+    overflow-y: auto;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+/* fc-css-exception: removal uses the same fixed, scroll-bounded modal isolation as grant; the semantic
+   section is retained because Fluent V5 does not expose the focus-sentinel contract this flow requires. */
+.global-admins__remove-preview {
     background: var(--colorNeutralBackground1);
     box-shadow: var(--shadow16);
     inline-size: min(48rem, calc(100vw - 2rem));
@@ -282,7 +297,8 @@
 }
 
 @media (forced-colors: active) {
-    .global-admins__grant-preview {
+    .global-admins__grant-preview,
+    .global-admins__remove-preview {
         border: 2px solid CanvasText;
     }
 

@@ -380,6 +380,17 @@
                 @RemoveStateText
             </p>
         </section>
+        @if (ShouldRenderRemoveRecovery)
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          Class="@RemoveRecoveryControlClass"
+                          data-testid="tenants-global-admin-remove-refresh"
+                          data-recovery-kind="@RemoveRecoveryKind"
+                          Disabled="@(!CanRefreshRemoveStatus)"
+                          OnClick="RefreshRemoveStatusAsync">
+                @RemoveRefreshActionText
+            </FluentButton>
+        }
             </section>
         </FluentAccordionItem>
 
@@ -512,35 +523,32 @@
                  aria-labelledby="global-admins-remove-preview-heading"
                  data-testid="tenants-global-admin-remove-preview"
                  @onkeydown="HandleRemovePreviewKeyDownAsync">
-            <fluent-button appearance="outline"
-                           class="global-admins__remove-focus-sentinel"
-                           @ref="_removeCancelElement"
-                           data-testid="tenants-global-admin-remove-focus-start"
-                           @onclick="CancelRemoveAsync">
-                @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
-            </fluent-button>
+            <span class="global-admins__remove-focus-sentinel"
+                  tabindex="0"
+                  data-testid="tenants-global-admin-remove-focus-start"
+                  @onfocus="FocusRemoveCancelAsync"></span>
             <h3 id="global-admins-remove-preview-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Title"]</h3>
             <dl class="global-admins__remove-preview-grid">
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope"]</dt>
                 <dd>@Localizer[removePreview.ScopeFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target"]</dt>
                 <dd class="global-admins__literal-identity" data-testid="tenants-global-admin-remove-target">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target.Value", removePreview.TargetUserId]</dd>
-                <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Counts"]</dt>
+                <dt data-testid="tenants-global-admin-remove-count-label">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Counts"]</dt>
                 <dd data-testid="tenants-global-admin-remove-count">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Counts.Value", removePreview.CurrentAdministratorCount, removePreview.ResultingAdministratorCount]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange"]</dt>
                 <dd>@Localizer[removePreview.AuthorityChangeFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Freshness"]</dt>
                 <dd>@Localizer[removePreview.FreshnessFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery"]</dt>
-                <dd>@Localizer[removePreview.RecoveryFactKey!]</dd>
+                <dd data-testid="tenants-global-admin-remove-recovery-path">@Localizer[removePreview.RecoveryFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit"]</dt>
-                <dd>@Localizer[removePreview.AuditFactKey!]</dd>
+                <dd data-testid="tenants-global-admin-remove-audit-expectation">@Localizer[removePreview.AuditFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext"]</dt>
-                <dd>@Localizer[removePreview.CallerTargetContextFactKey!]</dd>
+                <dd data-testid="tenants-global-admin-remove-caller-target">@Localizer[removePreview.CallerTargetContextFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"]</dt>
-                <dd>@Localizer[removePreview.KnownConsequencesFactKey!]</dd>
+                <dd data-testid="tenants-global-admin-remove-known-consequences">@Localizer[removePreview.KnownConsequencesFactKey!]</dd>
                 <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"]</dt>
-                <dd>@Localizer[removePreview.KnownUnknownsFactKey!]</dd>
+                <dd data-testid="tenants-global-admin-remove-known-unknowns">@Localizer[removePreview.KnownUnknownsFactKey!]</dd>
             </dl>
             @if (RemoveIntentUnavailableReason is { Length: > 0 } previewUnavailableReason)
             {
@@ -561,6 +569,8 @@
                     @Localizer["Tenants.GlobalAdministrators.Remove.Preview.Confirm"]
                 </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline"
+                              @key="_removeCancelFocusGeneration"
+                              AutoFocus="@_focusRemoveCancelPending"
                               data-testid="tenants-global-admin-remove-cancel"
                               OnClick="CancelRemoveAsync">
                     @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
@@ -700,7 +710,6 @@
     private ElementReference _grantLauncherElement;
     private ElementReference _grantPreviewCancelElement;
     private ElementReference _grantLifecycleElement;
-    private ElementReference _removeCancelElement;
     private ElementReference _removeLifecycleElement;
     private FluentTextInput _removeAcknowledgementElement = default!;
     private GlobalAdministratorRemoveLauncher? _removeLauncher;
@@ -709,8 +718,10 @@
     private bool _focusGrantLifecyclePending;
     private bool _focusGrantPreviewCancelPending;
     private bool _focusRemoveAcknowledgementPending;
+    private bool _focusRemoveCancelPending;
     private bool _focusRemoveLauncherPending;
     private bool _focusRemoveLifecyclePending;
+    private long _removeCancelFocusGeneration;
     private TenantLifecycleAuthorizationReflectionState _authorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
     private AuthenticationStateProvider? _authenticationStateProvider;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
@@ -724,6 +735,9 @@
     private long _grantPreviewGeneration;
     private int _removePreviewInFlight;
     private int _removeSubmissionInFlight;
+    private int _removeStatusNudgeDrainInFlight;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<GlobalAdministratorRemoveCommandSnapshot>
+        _removeStatusNudges = new();
     private string? _removeAcknowledgement;
 
     [Parameter]
@@ -893,12 +907,14 @@
             ? Localizer[availability.RecoveryKey].Value
             : null;
 
-    private GlobalAdministratorActionAvailability RemoveAvailability(string? userId)
+    private GlobalAdministratorActionAvailability RemoveAvailability(
+        string? userId,
+        bool allowOwnedRemoveReconciliation = false)
         => GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(
-            ActionEvidence(),
+            ActionEvidence(allowOwnedRemoveReconciliation),
             userId);
 
-    private GlobalAdministratorActionEvidence ActionEvidence()
+    private GlobalAdministratorActionEvidence ActionEvidence(bool allowOwnedRemoveReconciliation = false)
         => new GlobalAdministratorActionEvidence(
             IsAuthorized,
             _snapshot.Kind,
@@ -921,7 +937,9 @@
             BffComposition.IsGlobalAdministratorRequeryConnected,
             _aggregateAdmissionGate is not null
                 && !IsGrantInFlight
-                && !IsRemoveInFlight
+                && (!IsRemoveInFlight
+                    || allowOwnedRemoveReconciliation
+                        && _removeAdmissionLease?.IsDispatchMarked == true)
                 && !_aggregateAdmissionGate.IsLockedByAnother(
                         TenantCommandAggregateLock.ForGlobalAdministrators(),
                         _fixedAggregateOwner),
@@ -1133,14 +1151,57 @@
             _ => ">",
         };
 
-    private bool CanRefreshRemoveStatus
+    private bool HasRemoveRecoveryState
         => _removeSnapshot.MessageId is not null
-        && (_removeSnapshot.IsSubmissionAmbiguous || _removeSnapshot.CorrelationId is not null)
         && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
+
+    private bool IsAmbiguousRemoveDeliveryRetry
+        => HasRemoveRecoveryState
+            && _removeSnapshot.IsSubmissionAmbiguous
+            && _removeSnapshot.CorrelationId is null;
+
+    private bool IsCorrelatedRemoveStatusRefresh
+        => HasRemoveRecoveryState && _removeSnapshot.CorrelationId is not null;
+
+    private bool CanRetryAmbiguousRemoveDelivery
+        => IsAmbiguousRemoveDeliveryRetry
+            && _removeSnapshot.Intent is { } request
+            && _removeSnapshot.PreviewEvidence?.IsComplete == true
+            && _removeAdmissionLease?.IsDispatchMarked == true
+            && BffComposition.IsGlobalAdministratorRemovePreviewReady
+            && BffComposition.IsGlobalAdministratorDispatchConnected
+            && BffComposition.IsGlobalAdministratorStatusConnected
+            && BffComposition.IsGlobalAdministratorRequeryConnected
+            && CommandGateway.SupportsGlobalAdministratorDispatch
+            && CommandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch
+            && CommandGateway.SupportsCommandStatusLookup
+            && _viewportObservation?.HasMeasurement == true
+            && _viewportObservation.State is TenantHighImpactViewportState.Safe
+            && RemoveAvailability(request.UserId, allowOwnedRemoveReconciliation: true).IsAvailable;
+
+    private bool ShouldRenderRemoveRecovery
+        => IsCorrelatedRemoveStatusRefresh
+            || IsAmbiguousRemoveDeliveryRetry
+                && (CanRetryAmbiguousRemoveDelivery || Volatile.Read(ref _removeSubmissionInFlight) != 0);
+
+    private bool CanRefreshRemoveStatus
+        => Volatile.Read(ref _removeSubmissionInFlight) == 0
+            && (IsCorrelatedRemoveStatusRefresh || CanRetryAmbiguousRemoveDelivery);
+
+    private string? RemoveRecoveryControlClass
+        => IsAmbiguousRemoveDeliveryRetry ? "global-admins__mutation-initiation" : null;
+
+    private string RemoveRecoveryKind
+        => IsAmbiguousRemoveDeliveryRetry ? "delivery-retry" : "status";
+
+    private string RemoveRefreshActionText
+        => IsAmbiguousRemoveDeliveryRetry
+            ? Localizer["Tenants.GlobalAdministrators.Remove.DeliveryRetry"]
+            : Localizer["Tenants.GlobalAdministrators.Remove.Refresh"];
 
     private string RemoveStateCss
         => _removeSnapshot.State.ToString().ToLowerInvariant();
@@ -1275,6 +1336,11 @@
             await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
         }
 
+        // FluentButton's supported AutoFocus surface owns the real button element. The flag is consumed by
+        // the render that replaced the keyed Cancel component; clearing it here prevents unrelated later
+        // renders from stealing focus while another sentinel request increments the key again.
+        _focusRemoveCancelPending = false;
+
         if (_focusRemoveLauncherPending)
         {
             _focusRemoveLauncherPending = false;
@@ -1298,11 +1364,14 @@
     // abandons (navigation, tab close, dropped connection). The interop call is the first thing to notice,
     // and an unguarded throw here escapes OnAfterRenderAsync. Every sibling focus call in this project --
     // including GlobalAdministratorCorrectionPanel in this same flow -- swallows the disconnect instead.
-    private static async Task FocusSafelyAsync(ElementReference element)
+    private static Task FocusSafelyAsync(ElementReference element)
+        => ExecuteFocusSafelyAsync(async () => await element.FocusAsync().ConfigureAwait(false));
+
+    private static async Task ExecuteFocusSafelyAsync(Func<Task> focus)
     {
         try
         {
-            await element.FocusAsync().ConfigureAwait(false);
+            await focus().ConfigureAwait(false);
         }
         catch (JSDisconnectedException)
         {
@@ -1645,6 +1714,27 @@
             return;
         }
 
+
+        if (_removeAdmissionLease?.IsDispatchMarked == true
+            && _removeSnapshot.MessageId is not null
+            && _removeSnapshot.State is TenantCommandLifecycleState.RequestSent
+                or TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify)
+        {
+            GlobalAdministratorRemoveCommandSnapshot notificationAttempt = _removeSnapshot;
+            if (notificationAttempt.CorrelationId is not null)
+            {
+                await QueueRemoveStatusNudgeAsync(notificationAttempt).ConfigureAwait(false);
+            }
+
+            // A correlationless attempt has no read-only status handle. A notification must never route it
+            // through the operator recovery method because that method deliberately performs same-id delivery
+            // retry. Leave the retained attempt unchanged and wait for explicit operator action.
+            return;
+        }
+
         _isNotificationRefreshing = true;
         StateHasChanged();
         try
@@ -1670,6 +1760,85 @@
                     // _isNotificationRefreshing set and the surface announcing "refreshing" for good.
                 }
             }
+        }
+    }
+
+    private async Task QueueRemoveStatusNudgeAsync(GlobalAdministratorRemoveCommandSnapshot exactAttempt)
+    {
+        _removeStatusNudges.Enqueue(exactAttempt);
+        await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+    }
+
+    private async Task DrainRemoveStatusNudgesAsync()
+    {
+        if (_disposed || Interlocked.CompareExchange(ref _removeStatusNudgeDrainInFlight, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            while (!_disposed && Volatile.Read(ref _removeSubmissionInFlight) == 0)
+            {
+                if (!_removeStatusNudges.TryDequeue(out GlobalAdministratorRemoveCommandSnapshot? exactAttempt))
+                {
+                    break;
+                }
+
+                await RefreshRemoveStatusFromNotificationAsync(exactAttempt).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _removeStatusNudgeDrainInFlight, 0);
+        }
+
+        // Closing the drain gate before this check prevents the classic lost-wakeup interleaving: an enqueue
+        // either observes the released gate and becomes the next drainer, or is observed here and re-acquired.
+        if (!_disposed
+            && Volatile.Read(ref _removeSubmissionInFlight) == 0
+            && !_removeStatusNudges.IsEmpty)
+        {
+            await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task RefreshRemoveStatusFromNotificationAsync(
+        GlobalAdministratorRemoveCommandSnapshot exactAttempt)
+    {
+        if (exactAttempt.CorrelationId is null
+            || Interlocked.CompareExchange(ref _removeSubmissionInFlight, 1, 0) != 0)
+        {
+            if (exactAttempt.CorrelationId is not null)
+            {
+                _removeStatusNudges.Enqueue(exactAttempt);
+            }
+
+            return;
+        }
+
+        try
+        {
+            if (!HasSameRemoveAttempt(_removeSnapshot, exactAttempt))
+            {
+                return;
+            }
+
+            using PendingOperation operation = BeginRemoveMutation();
+            if (!await ReauthorizeAsync(operation.CancellationToken).ConfigureAwait(false)
+                || !HasSameRemoveAttempt(_removeSnapshot, exactAttempt))
+            {
+                return;
+            }
+
+            await RefreshRemoveStatusCoreAsync(
+                operation.Generation,
+                operation.CancellationToken,
+                exactAttempt).ConfigureAwait(false);
+        }
+        finally
+        {
+            Volatile.Write(ref _removeSubmissionInFlight, 0);
         }
     }
 
@@ -3467,13 +3636,15 @@
         }
         finally
         {
-            Interlocked.Exchange(ref _removeSubmissionInFlight, 0);
+            Volatile.Write(ref _removeSubmissionInFlight, 0);
             if (!_disposed)
             {
                 await InvokeAsync(() =>
                 {
                     _isRemoveSubmitting = false;
+                    StateHasChanged();
                 }).ConfigureAwait(false);
+                await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
             }
         }
     }
@@ -3512,7 +3683,16 @@
         }
         finally
         {
-            Interlocked.Exchange(ref _removeSubmissionInFlight, 0);
+            Volatile.Write(ref _removeSubmissionInFlight, 0);
+            if (!_disposed)
+            {
+                await InvokeAsync(() =>
+                {
+                    _isRemoveSubmitting = false;
+                    StateHasChanged();
+                }).ConfigureAwait(false);
+                await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -3584,7 +3764,9 @@
             }
 
             _completeSnapshot = current;
-            GlobalAdministratorActionAvailability availability = RemoveAvailability(request.UserId);
+            GlobalAdministratorActionAvailability availability = RemoveAvailability(
+                request.UserId,
+                allowOwnedRemoveReconciliation: true);
             if (!retainedPreview.Matches(current)
                 || !rebuilt.IsComplete
                 || !rebuilt.Matches(current)
@@ -3599,6 +3781,7 @@
 
             retry = true;
             _isRemoveSubmitting = true;
+            StateHasChanged();
         }).ConfigureAwait(false);
         if (!retry)
         {
@@ -3627,6 +3810,8 @@
         }
 
         GlobalAdministratorRemoveCommandSnapshot applied = expected.ApplySubmission(result);
+        bool retryApplied = false;
+        bool resumeAdopted = false;
         await InvokeAsync(() =>
         {
             if (CanApplyRemoveMutation(generation)
@@ -3634,20 +3819,33 @@
                 && ReferenceEquals(_removeAdmissionLease, lease))
             {
                 SetRemoveSnapshot(applied);
-                _isRemoveSubmitting = false;
+                retryApplied = true;
                 StateHasChanged();
+                return;
             }
+
+            resumeAdopted = RetainOrReleaseRemoveCompletion(applied, lease);
         }).ConfigureAwait(false);
 
-        if (applied.State is TenantCommandLifecycleState.Accepted)
+        if (resumeAdopted)
+        {
+            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (retryApplied && applied.State is TenantCommandLifecycleState.Accepted)
         {
             await RefreshRemoveStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RefreshRemoveStatusCoreAsync(long generation, CancellationToken cancellationToken)
+    private async Task RefreshRemoveStatusCoreAsync(
+        long generation,
+        CancellationToken cancellationToken,
+        GlobalAdministratorRemoveCommandSnapshot? exactAttempt = null)
     {
         if (!CanApplyRemoveMutation(generation)
+            || exactAttempt is not null && !HasSameRemoveAttempt(_removeSnapshot, exactAttempt)
             || _removeSnapshot.MessageId is not { } messageId
             || _removeSnapshot.CorrelationId is not { } correlationId)
         {
@@ -3661,7 +3859,12 @@
         try
         {
             status = await CommandGateway
-                .GetStatusAsync(new TenantCommandTrackingHandle(messageId, correlationId), cancellationToken)
+                .GetStatusAsync(
+                    new TenantCommandTrackingHandle(
+                        messageId,
+                        correlationId,
+                        GlobalAdministratorRemovePreview.FixedAggregateId),
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -3718,22 +3921,10 @@
         TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
         GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
             .ConfigureAwait(false);
-        if (!CanApplyRemoveMutation(generation)
-            || !ReferenceEquals(_removeSnapshot, projectionBasis))
-        {
-            return;
-        }
-
-        if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
-        {
-            await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
-                .ConfigureAwait(false);
-            return;
-        }
-
         GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
         bool resumeAdopted = false;
         bool confirmed = false;
+        bool collapseAuthorization = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation)
@@ -3747,12 +3938,23 @@
                 return;
             }
 
+            if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
+            {
+                collapseAuthorization = true;
+                return;
+            }
+
             _completeSnapshot = snapshot;
             SetRemoveSnapshot(projectionSnapshot);
             confirmed = projectionSnapshot.State is TenantCommandLifecycleState.Confirmed;
             StateHasChanged();
         }).ConfigureAwait(false);
-        if (resumeAdopted)
+        if (collapseAuthorization)
+        {
+            await CollapseAuthorizationAsync(TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                .ConfigureAwait(false);
+        }
+        else if (resumeAdopted)
         {
             await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
         }
@@ -3794,10 +3996,18 @@
         => _removeAcknowledgement = value;
 
     private async Task FocusRemoveAcknowledgementAsync(FocusEventArgs args)
-        => await _removeAcknowledgementElement.Element.FocusAsync().ConfigureAwait(false);
+        => await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
 
     private async Task FocusRemoveCancelAsync(FocusEventArgs args)
-        => await _removeCancelElement.FocusAsync().ConfigureAwait(false);
+        => await ExecuteFocusSafelyAsync(async () =>
+        {
+            await InvokeAsync(() =>
+            {
+                _focusRemoveCancelPending = true;
+                Interlocked.Increment(ref _removeCancelFocusGeneration);
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }).ConfigureAwait(false);
 
     private void SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot snapshot)
     {
@@ -3935,9 +4145,11 @@
         {
             await RefreshGrantStatusAsync().ConfigureAwait(false);
         }
-        else if (_removeAdmissionLease?.IsDispatchMarked == true && _removeSnapshot.MessageId is not null)
+        else if (_removeAdmissionLease?.IsDispatchMarked == true
+            && _removeSnapshot.MessageId is not null
+            && _removeSnapshot.CorrelationId is not null)
         {
-            await RefreshRemoveStatusAsync().ConfigureAwait(false);
+            await QueueRemoveStatusNudgeAsync(_removeSnapshot).ConfigureAwait(false);
         }
     }
 
@@ -4008,6 +4220,14 @@
                 SafeRecoveryKey: snapshot.SafeRecoveryKey,
                 RemovePreview: snapshot.PreviewEvidence)
             : null;
+
+    private static bool HasSameRemoveAttempt(
+        GlobalAdministratorRemoveCommandSnapshot current,
+        GlobalAdministratorRemoveCommandSnapshot expected)
+        => string.Equals(current.MessageId, expected.MessageId, StringComparison.Ordinal)
+            && string.Equals(current.CorrelationId, expected.CorrelationId, StringComparison.Ordinal)
+            && string.Equals(current.Intent?.UserId, expected.Intent?.UserId, StringComparison.Ordinal)
+            && Equals(current.PreviewEvidence, expected.PreviewEvidence);
 
     private sealed class PendingOperation : IDisposable
     {
