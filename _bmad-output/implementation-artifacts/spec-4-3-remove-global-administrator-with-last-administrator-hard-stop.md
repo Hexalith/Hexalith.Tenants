@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-review'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -378,6 +378,33 @@ deferred: []
   - `[false]` `[reject]` Intent alignment's strict self-contained-diff reading does not apply to this resumed repair — the cumulative baseline implementation and unchanged authoritative tests are explicit inputs and were independently executed.
   - `[false]` `[reject]` Intent alignment's strict raw-control reading treated focus sentinels as operator controls — iteration 4 already resolved the same claim: the spans are non-actionable focus plumbing with all actions rendered as Fluent components; safe exact routing remains the enforceable contract.
 
+### 2026-09-05 — Review pass (iteration 5 repair)
+- verdicts: 23 findings — high 0, medium 8, low 2, false 12, maybe-false 1
+- findings:
+  - `[false]` `[reject]` Sprint-status still shows epic-4 done while this spec is in-review — orchestrator bookkeeping is excluded from story evidence; the row does not change operator-visible removal behavior.
+  - `[false]` `[reject]` A deferred-work row uses an absolute machine path — that ledger line belongs to `spec-refresh-dependencies-2.md`, not this removal story; the path does not affect the shipped command.
+  - `[false]` `[reject]` KEEP versus later gitlink/AppHost/Aspire files in the baseline range — the current File List declares the shipped pointers; AppHost is a comment-only later deps alignment; omitting unrelated refresh files from this story's File List is correct. A KEEP wording edit would only change this spec.
+  - `[medium]` `[defer]` `spec-refresh-dependencies-2.md` File List omits EventStore/FrontComposer/Memories gitlinks and Aspire topology test edits — those files are in the same baseline range but are not this story's removal work.
+  - `[false]` `[reject]` Correction initial remove dispatch uses `CancellationToken.None` and holds the completion token while the gateway is in flight — that is the iteration-5 in-flight contract; a hung transport is not a missing panel cancel, and retry must stay hidden while the token is active.
+  - `[false]` `[reject]` Page delivery maps gateway exceptions to ambiguous same-id retry instead of `ApplyRemoveSubmissionExceptionAsync` — unknown delivery after the request may have reached the server is the specified ambiguous path, not a definite failed lease release.
+  - `[medium]` `[patch]` Page status lookup and projection confirmation still use unguarded `InvokeAsync` — disposal between the alive check and renderer dispatch can throw `ObjectDisposedException` and drop durable status or confirmation evidence.
+  - `[low]` `[patch]` Page `CreateReconciliation` / `CreateCompletionReconciliation` / `CreateRemoveSnapshot` omit `RejectionCode` — correction adoption can lose the structured last-admin/not-found code even though localized keys remain.
+  - `[false]` `[reject]` Audit/live-region reconstruction is duplicated between page and correction helpers — both already implement the same timeout/degraded/unable mapping; duplication alone does not change operator-visible state.
+  - `[false]` `[reject]` Remove focus sentinels lack visually-hidden CSS and can be announced as blank tab stops — they sit outside the preview `<dl>` so they cannot add fact rows, and they must remain tab-reachable for the wrap trap.
+  - `[maybe-false]` `[defer]` `focusElementById` returns true only when `document.activeElement === target` — if FluentButton focuses an inner native control, a successful Cancel wrap could report false; a real-browser `activeElement` trace after host `.focus()` would settle it.
+  - `[false]` `[reject]` Grant preview still uses content-box sizing — iteration 5 required border-box on the removal modal; grant chrome is Story 4.2 and outside this intent.
+  - `[medium]` `[defer]` `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties — that test was added by later dependency work, not this removal story.
+  - `[medium]` `[patch]` `RetainAmbiguousPreflight` always writes `RequestSent` — an unsupported ambiguous `UnableToVerify` attempt that fails a later retry preflight regresses lifecycle and then fails `HasSameReconciliation` on the next same-id retry.
+  - `[medium]` `[patch]` Page retry preflight applies that same `RetainAmbiguousPreflight` regression — carried: same `UnableToVerify` → `RequestSent` identity break at `GlobalAdministratorsPage.razor` retry invalidation.
+  - `[medium]` `[patch]` Start-sentinel module import can finish after the preview is gone and then return without fallback — focus stays on the sentinel instead of the visible lifecycle.
+  - `[false]` `[reject]` Cancel-false fallback does not chain to lifecycle when acknowledgement `FocusAsync` fails while the preview is still current — lifecycle fallback is the disappeared-preview path; chaining it while the acknowledgement input is rendered would steal the typing target.
+  - `[medium]` `[patch]` Notification/status drain uses the same unguarded `InvokeAsync` as status lookup — carried: same renderer-disposal gap at `RefreshRemoveStatusAsync`.
+  - `[medium]` `[patch]` Correction ambiguous retry reads `canRetryDelivery` through unguarded `InvokeAsync` — navigation can throw `ObjectDisposedException` before the later contained `StateHasChanged`.
+  - `[false]` `[reject]` Declared KEEP is false because gitlinks moved — carried: the File List now states the shipped SHAs; fixing KEEP wording would only edit this spec.
+  - `[medium]` `[patch]` Timeout reconstruction has no `UnableToVerify` + `Remove.Recovery.TimedOut` → `AuditDelayed` row — deleting the TimedOut arms would relabel adopted timeout evidence as unavailable while existing reconstruction theories stayed green.
+  - `[medium]` `[patch]` Correction adoption drain while `_refreshInFlight != 0` is untested — dropping the in-flight guard would skip deferred status lookup and no current panel test would fail.
+  - `[medium]` `[patch]` Start-sentinel success only asserts the JS mock was invoked — forcing fallback after a true `focusElementById` result would still pass, so a regression that also focuses acknowledgement would ship.
+
 ## Design Notes
 
 Removal is intentionally a causal proof pipeline rather than an absence check:
@@ -420,14 +447,14 @@ Source and tests changed by this story:
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs`
 
-Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced `references/Hexalith.Builds` again to the SHA this tree now ships:
+Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced Builds, EventStore, and FrontComposer again to the SHAs this tree now ships:
 
 - `references/Hexalith.Builds`
-  - `references/Hexalith.Builds` e0e0694 -> 0fbbc73 -- story implementation commits moved Builds; `f5ed833a` `build(deps): update Hexalith dependencies` then advanced it to the shipped pointer.
+  - `references/Hexalith.Builds` e0e0694 -> 8db7459 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
 - `references/Hexalith.EventStore`
-  - `references/Hexalith.EventStore` c08cb34 -> 6d436b3 -- landed in story commit `de5784ca`.
+  - `references/Hexalith.EventStore` c08cb34 -> 070a4b6 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.FrontComposer`
-  - `references/Hexalith.FrontComposer` 1a7edde -> 780dd5e -- landed in story commit `de5784ca`.
+  - `references/Hexalith.FrontComposer` 1a7edde -> 0922400 -- story commit `de5784ca` moved FrontComposer; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.Memories`
   - `references/Hexalith.Memories` 3a7a702 -> f7fef9f -- landed in story commit `de5784ca`.
 
@@ -438,4 +465,4 @@ Root submodule pointers that moved between this story's `baseline_commit` `91d23
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
 
-Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. `references/Hexalith.Builds` currently ships `0fbbc73` after the later `f5ed833a` dependency refresh; EventStore, FrontComposer, and Memories still ship the `de5784ca` pointers. No submodule was reverted.
+Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `8db7459`, EventStore `070a4b6`, FrontComposer `0922400`, and Memories `f7fef9f`. No submodule was reverted.

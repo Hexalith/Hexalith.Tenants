@@ -1475,7 +1475,7 @@
             }
         }
 
-        if (useFallback)
+        if (useFallback || !IsCurrentRemovePreview(expectedPreview))
         {
             await FocusRemoveFallbackAsync(expectedPreview).ConfigureAwait(false);
         }
@@ -4156,7 +4156,7 @@
         GlobalAdministratorRemoveCommandSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
         bool statusApplied = false;
         bool resumeAdopted = false;
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, statusBasis))
             {
@@ -4210,7 +4210,7 @@
 
         bool resumeAdopted = false;
         bool confirmed = false;
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyRemoveMutation(generation)
                 || !ReferenceEquals(_removeSnapshot, projectionBasis))
@@ -4513,7 +4513,8 @@
             HasCommandEventEvidence: reconciliation.HasCommandEventEvidence,
             IsSubmissionAmbiguous: reconciliation.IsSubmissionAmbiguous,
             SafeMessageKey: reconciliation.SafeMessageKey,
-            SafeRecoveryKey: reconciliation.SafeRecoveryKey);
+            SafeRecoveryKey: reconciliation.SafeRecoveryKey,
+            RejectionCode: reconciliation.RejectionCode);
     }
 
     private static GlobalAdministratorReconciliationState? CreateReconciliation(
@@ -4540,7 +4541,8 @@
                     || snapshot.State is TenantCommandLifecycleState.RequestSent
                         && string.IsNullOrWhiteSpace(snapshot.CorrelationId),
                 snapshot.SafeMessageKey,
-                snapshot.SafeRecoveryKey)
+                snapshot.SafeRecoveryKey,
+                RejectionCode: snapshot.RejectionCode)
             : null;
 
     private static GlobalAdministratorReconciliationState? CreateCompletionReconciliation(
@@ -4554,11 +4556,12 @@
                 messageId,
                 snapshot.CorrelationId,
                 snapshot.State,
-                HasCommandEventEvidence: snapshot.HasCommandEventEvidence,
-                IsSubmissionAmbiguous: snapshot.IsSubmissionAmbiguous,
-                SafeMessageKey: snapshot.SafeMessageKey,
-                SafeRecoveryKey: snapshot.SafeRecoveryKey,
-                RemovePreview: snapshot.PreviewEvidence)
+            HasCommandEventEvidence: snapshot.HasCommandEventEvidence,
+            IsSubmissionAmbiguous: snapshot.IsSubmissionAmbiguous,
+            SafeMessageKey: snapshot.SafeMessageKey,
+            SafeRecoveryKey: snapshot.SafeRecoveryKey,
+            RemovePreview: snapshot.PreviewEvidence,
+            RejectionCode: snapshot.RejectionCode)
             : null;
 
     private static GlobalAdministratorReconciliationState? CreateReconciliation(
@@ -4585,7 +4588,8 @@
                 IsSubmissionAmbiguous: snapshot.IsSubmissionAmbiguous,
                 SafeMessageKey: snapshot.SafeMessageKey,
                 SafeRecoveryKey: snapshot.SafeRecoveryKey,
-                RemovePreview: snapshot.PreviewEvidence)
+                RemovePreview: snapshot.PreviewEvidence,
+                RejectionCode: snapshot.RejectionCode)
             : null;
 
     private bool HasSameRemoveAttempt(

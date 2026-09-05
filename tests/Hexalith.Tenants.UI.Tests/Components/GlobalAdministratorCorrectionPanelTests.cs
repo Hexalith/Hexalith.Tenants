@@ -1502,6 +1502,64 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task AdoptedCorrelatedReconciliationDefersStatusLookupUntilHeldRefreshReleases()
+    {
+        var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway
+        {
+            StatusResultTask = pendingStatus.Task,
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("proof", "GlobalAdministratorSet")));
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        SeedRetainedAttempt(gate, GlobalAdministratorActionKind.Grant, "admin-user");
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin"))
+            .Add(
+                component => component.ProjectionRefreshProvider,
+                () => Task.FromResult<GlobalAdministratorsSnapshot?>(Projection("other-admin"))));
+
+        await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        commandGateway.StatusHandles.ShouldHaveSingleItem();
+
+        TenantAggregateCommandLease lease = PrivateField<TenantAggregateCommandLease>(cut.Instance, "_admissionLease");
+        object owner = PrivateField<object>(cut.Instance, "_admissionOwner");
+        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
+            "admin-user",
+            Projection("other-admin"),
+            isAuthorized: true);
+        lease.TryAdvanceReconciliation(
+            owner,
+            new(
+                GlobalAdministratorActionKind.Grant,
+                "admin-user",
+                "message-safe",
+                "tracking-safe",
+                TenantCommandLifecycleState.ProjectionPending,
+                preview,
+                HasCommandEventEvidence: true)).ShouldBeTrue();
+        Task notify = (Task)typeof(GlobalAdministratorCorrectionPanel)
+            .GetMethod(
+                "RenderAvailabilityChangeAsync",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, null)!;
+        await notify.WaitAsync(TimeSpan.FromSeconds(5));
+        commandGateway.StatusHandles.ShouldHaveSingleItem();
+
+        pendingStatus.SetResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+        await WaitUntilAsync(() => commandGateway.StatusHandles.Count >= 2, TimeSpan.FromSeconds(5));
+        commandGateway.StatusHandles.Count.ShouldBe(2);
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData("null")]
     [InlineData("changed")]

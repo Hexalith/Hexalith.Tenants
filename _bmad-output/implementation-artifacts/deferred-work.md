@@ -2797,3 +2797,15 @@ status: open
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md`
   summary: Sprint tracking marks Story 4.3 in progress while Epic 4 remains done.
   evidence: The concurrent unstaged edit at `_bmad-output/implementation-artifacts/sprint-status.yaml:121-125` changes Story 4.3 from backlog to in-progress without reopening Epic 4, so status consumers can report a completed epic with active work; the Story 4.3 workflow owns the correction.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: The dependency-refresh spec File List omits EventStore, FrontComposer, and Memories gitlinks plus Aspire topology test edits that sit in the same baseline range.
+  evidence: Those files changed after Story 4.3's baseline in later `build(deps)` / topology work, not in the removal command surface; a dedicated refresh-spec File List update would settle the ledger without touching removal behavior.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties, so a default source-reference run may not prove the NuGet graph.
+  evidence: The test was added by later dependency work (`MemoriesSecretStoreResourceGraphTests.cs` in the baseline range) and is outside this story's removal intent.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id.
+  evidence: Unverified medium: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether wrap fallback incorrectly skips Cancel.

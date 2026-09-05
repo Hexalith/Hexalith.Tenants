@@ -3409,11 +3409,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         focusCancel.SetResult(true);
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
         OpenRemovePreview(cut);
+        IReadOnlyList<string> focusedBeforeStart = FocusedElementIds();
 
         cut.Find("[data-testid='tenants-global-admin-remove-focus-start']")
             .TriggerEvent("onfocus", new FocusEventArgs());
         focusCancel.Invocations.ShouldHaveSingleItem().Arguments.ShouldBe(
             ["tenants-global-admin-remove-cancel-button"]);
+        FocusedElementIds().ShouldBe(focusedBeforeStart);
 
         int acknowledgementFocusCount = FocusedElementIds().Count;
         cut.Find("[data-testid='tenants-global-admin-remove-focus-end']")
@@ -4025,6 +4027,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         TenantCommandLifecycleState.UnableToVerify,
         "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
         TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(
+        TenantCommandLifecycleState.UnableToVerify,
+        "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+        TenantCommandAuditState.AuditDelayed)]
     public void RetainedRemoveReconstructionPreservesAuditTruthAndAssertiveUrgency(
         TenantCommandLifecycleState lifecycleState,
         string recoveryKey,

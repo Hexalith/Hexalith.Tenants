@@ -178,7 +178,9 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
         string recoveryKey)
         => this with
         {
-            State = TenantCommandLifecycleState.RequestSent,
+            State = State is TenantCommandLifecycleState.UnableToVerify && IsSubmissionAmbiguous
+                ? TenantCommandLifecycleState.UnableToVerify
+                : TenantCommandLifecycleState.RequestSent,
             CorrelationId = null,
             SafeMessage = null,
             SafeMessageKey = reasonKey,

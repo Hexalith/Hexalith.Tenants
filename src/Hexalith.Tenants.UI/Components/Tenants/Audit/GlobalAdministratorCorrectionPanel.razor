@@ -1160,17 +1160,24 @@
         }
 
         bool canRetryDelivery = false;
-        await InvokeAsync(() =>
+        try
         {
-            canRetryDelivery = CanApplyOperation(generation)
-                && ReferenceEquals(_snapshot, deliveryBasis)
-                && _snapshot is not null
-                && CanRefreshSnapshot(_snapshot)
-                && _admissionLease?.IsDispatchMarked == true
-                && (deliveryBasis.IsRestoreAccessAction
-                    ? CommandGateway?.SupportsTrackedGlobalAdministratorDispatch == true
-                    : CommandGateway?.SupportsTrackedGlobalAdministratorRemoveDispatch == true);
-        }).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                canRetryDelivery = CanApplyOperation(generation)
+                    && ReferenceEquals(_snapshot, deliveryBasis)
+                    && _snapshot is not null
+                    && CanRefreshSnapshot(_snapshot)
+                    && _admissionLease?.IsDispatchMarked == true
+                    && (deliveryBasis.IsRestoreAccessAction
+                        ? CommandGateway?.SupportsTrackedGlobalAdministratorDispatch == true
+                        : CommandGateway?.SupportsTrackedGlobalAdministratorRemoveDispatch == true);
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Delivery retry admission raced panel disposal; retain for a replacement owner.
+        }
         if (!canRetryDelivery)
         {
             RetainReconciliationForReplacement();

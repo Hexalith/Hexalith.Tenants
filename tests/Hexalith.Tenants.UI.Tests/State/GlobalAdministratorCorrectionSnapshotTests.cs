@@ -542,6 +542,10 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         TenantCommandLifecycleState.UnableToVerify,
         "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
         TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(
+        TenantCommandLifecycleState.UnableToVerify,
+        "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+        TenantCommandAuditState.AuditDelayed)]
     public void RetainedRemoveReconciliationPreservesAuditTruthAndAssertiveUrgency(
         TenantCommandLifecycleState lifecycleState,
         string recoveryKey,
