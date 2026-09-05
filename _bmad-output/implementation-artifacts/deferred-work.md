@@ -2794,18 +2794,34 @@ severity: low
 reason: `scripts/publish-partial-release.sh:6` assigns `manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"` and no later line references `$manifest`; `grep -n manifest scripts/publish-partial-release.sh` returns line 6 only. The variable was already dead at `bbb0b11a` (the file is untouched by this change), and `scripts/pack-release-packages.py` accepts no manifest argument either, so threading the new `--manifest` flag alone would not make the override effective. Pre-existing, not caused by this story.
 status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md`
-  summary: Sprint tracking marks Story 4.3 in progress while Epic 4 remains done.
-  evidence: The concurrent unstaged edit at `_bmad-output/implementation-artifacts/sprint-status.yaml:121-125` changes Story 4.3 from backlog to in-progress without reopening Epic 4, so status consumers can report a completed epic with active work; the Story 4.3 workflow owns the correction.
+### DW-342: Sprint tracking marks Story 4.3 in progress while Epic 4 remains done.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: The dependency-refresh spec File List omits EventStore, FrontComposer, and Memories gitlinks plus Aspire topology test edits that sit in the same baseline range.
-  evidence: Those files changed after Story 4.3's baseline in later `build(deps)` / topology work, not in the removal command surface; a dedicated refresh-spec File List update would settle the ledger without touching removal behavior.
+origin: migrated from legacy ledger (""), 2026-09-05
+location: _bmad-output/implementation-artifacts/sprint-status.yaml:121-125
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md`
+reason: The concurrent unstaged edit changes Story 4.3 from backlog to in-progress without reopening Epic 4, so status consumers can report a completed epic with active work; the Story 4.3 workflow owns the correction.
+status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties, so a default source-reference run may not prove the NuGet graph.
-  evidence: The test was added by later dependency work (`MemoriesSecretStoreResourceGraphTests.cs` in the baseline range) and is outside this story's removal intent.
+### DW-343: The dependency-refresh spec File List omits EventStore, FrontComposer, and Memories gitlinks plus Aspire topology test edits that sit in the same baseline range.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id.
-  evidence: Unverified medium: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether wrap fallback incorrectly skips Cancel.
+origin: migrated from legacy ledger (""), 2026-09-05
+location: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md; references/Hexalith.EventStore; references/Hexalith.FrontComposer; references/Hexalith.Memories; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: These files changed after Story 4.3's baseline in later dependency and topology work rather than in the removal command surface; a dedicated refresh-spec File List update would settle the ledger without changing removal behavior.
+status: open
+
+### DW-344: `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties, so a default source-reference run may not prove the NuGet graph.
+
+origin: migrated from legacy ledger (""), 2026-09-05
+location: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: The test was added by later dependency work in the baseline range and is outside Story 4.3's removal intent; it does not pin the package-mode properties needed to distinguish the NuGet resource graph from a default source-reference run.
+status: open
+
+### DW-345: `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id.
+
+origin: migrated from legacy ledger (""), 2026-09-05
+location: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23-35
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether a successful inner-control focus is reported as false and wrap fallback incorrectly skips Cancel.
+status: open
