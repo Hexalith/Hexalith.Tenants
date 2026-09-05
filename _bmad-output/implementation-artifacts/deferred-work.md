@@ -811,7 +811,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-l
 location: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs
 reason: The legacy ledger defers this issue: Brittle source-text "guard" tests + stale resource stub. Original context is preserved in legacy-detail.
 legacy-detail: - **Brittle source-text "guard" tests + stale resource stub** — several tests grep rendered/source text rather than assert behavior: `grid.ShouldNotContain("Cursor", Case.Insensitive)` (a common CSS/identifier word), `navigation.Split("Cursor = null").Length.ShouldBe(3)` (exact occurrence count), and `workspace.ShouldNotContain("ConfigureAwait(false)")` (source scan, not dispatcher-affinity proof) — they break on unrelated edits and can pass even if behavior regresses via a differently-named channel. Separately, the `TenantsWorkspaceTests` resource stub still defines the old `Tenants.List.ReturnContext` copy (containing "cursor") and removed `Tenants.List.Sort.*` keys, diverging from the corrected production resources. Test tech-debt. (`tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`, `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`)
-status: open
+status: done 2026-09-05
+resolution: already resolved: commit d2b7ede359830c27934ac9f577e3073955c3e2c2 replaced source-text guards with behavioral tests; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:802-827 now reads the active production resource bundle and fails closed for unknown keys.
 
 ### DW-102: Duplicated tab/scope literal constants across two files
 origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-list-triage-and-cursor-foundation (2026-07-20)"), 2026-08-25
@@ -927,7 +928,8 @@ location: TenantQueryGateway.HasUsableMembers
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The tenant-detail read path does not adopt the shared null-member guard, so a malformed member element crashes the detail page while both list surfaces degrade safely. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The tenant-detail read path does not adopt the shared null-member guard, so a malformed member element crashes the detail page while both list surfaces degrade safely. evidence: `TenantQueryGateway.HasUsableMembers` is applied to search hydration and ordinary-list enrichment but not to `GetTenantAsync`, which feeds the identical `TenantDetail` payload to `TenantDetailPage.OwnerCount` and `MemberAccessReview.OwnerCount`; both dereference member elements during render, so a `Members` array containing a null element throws `NullReferenceException` and tears down the circuit. `TenantConfigurationSafeComposer.SanitizeDetail` copies the collection and preserves the null element. The detail-page dereference predates Story 1.9; this story only made the asymmetry visible by guarding the two list paths.
-status: open
+status: done 2026-09-05
+resolution: already resolved: commit 0891897533227cd63b0f6a84bd9694a17725e65b; src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:302-310,456-460 rejects a detail containing a null member as InvalidPayload before Razor, covered at TenantsRestQueryClientTests.cs:666-691.
 
 ### DW-116: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
@@ -2781,7 +2783,8 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:575
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: low
 reason: Every status assertion is fed by a stub. This pass corrected one concrete assumption -- that EventsStored/EventsPublished carry an EventCount -- only by reading AggregateActor and CommandStatusRecord in the submodule. A contract or integration test over a real command-status response would settle the remaining assumptions the same way.
-status: open
+status: done 2026-09-05
+resolution: already resolved: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:403-508 submits real commands and polls /api/v1/commands/status/{correlationId}, deserializing CommandStatusResponse and asserting real terminal statuses at lines 126-149 and 311-364.
 
 ### DW-341: `scripts/publish-partial-release.sh` reads `HEXALITH_RELEASE_PACKAGE_MANIFEST` into a `manifest` variable that no command ever consumes, so an operator override is silently ignored.
 origin: spec-deferred 6dcaa0451f25
@@ -2790,3 +2793,7 @@ source_spec: `spec-package-boundary-source.md`
 severity: low
 reason: `scripts/publish-partial-release.sh:6` assigns `manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"` and no later line references `$manifest`; `grep -n manifest scripts/publish-partial-release.sh` returns line 6 only. The variable was already dead at `bbb0b11a` (the file is untouched by this change), and `scripts/pack-release-packages.py` accepts no manifest argument either, so threading the new `--manifest` flag alone would not make the override effective. Pre-existing, not caused by this story.
 status: open
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md`
+  summary: Sprint tracking marks Story 4.3 in progress while Epic 4 remains done.
+  evidence: The concurrent unstaged edit at `_bmad-output/implementation-artifacts/sprint-status.yaml:121-125` changes Story 4.3 from backlog to in-progress without reopening Epic 4, so status consumers can report a completed epic with active work; the Story 4.3 workflow owns the correction.

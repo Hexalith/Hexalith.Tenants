@@ -200,7 +200,8 @@
         }
 
         GlobalAdministratorActionAvailability availability = EvaluateCorrectionAvailability(snapshot);
-        bool canRefresh = CanRefreshSnapshot(snapshot);
+        bool canRefresh = CanRefreshSnapshot(snapshot)
+            && Volatile.Read(ref _refreshInFlight) == 0;
         if (!_isSubmitting
             && snapshot.CanSubmit
             && availability.IsAvailable)
@@ -344,6 +345,7 @@
     private bool CanRefreshSnapshot(GlobalAdministratorCorrectionSnapshot snapshot)
         => snapshot.HasCommandTracking
             && _admissionLease?.IsDispatchMarked == true
+            && _admissionLease.IsReconciliationDispatchInFlight != true
             && HasReconciliationSupport
             && HasMeasuredSafeViewport
             && _authenticationStateProvider is not null
@@ -777,24 +779,42 @@
         string messageId = NUlid.Ulid.NewUlid().ToString();
         GlobalAdministratorCorrectionSnapshot? requestSentSnapshot = null;
         TenantAggregateCommandLease? submissionLease = null;
+        long completionToken = 0;
+        bool removeInitialDispatch = false;
         await InvokeAsync(() =>
         {
             if (!CanApplyOperation(generation)
+                || _snapshot is not { } current
                 || CreateCorrectionDecision().IsConfirmDisabled)
             {
                 _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
                 return;
             }
 
-            if (!acquiredLease.TryMarkDispatched(_admissionOwner))
+            GlobalAdministratorCorrectionSnapshot requestSent = current.RequestSent(messageId);
+            if (requestSent.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator)
+            {
+                if (requestSent.ToReconciliation() is not { } dispatchBasis
+                    || !acquiredLease.TryBeginInitialReconciliationDispatch(
+                        _admissionOwner,
+                        dispatchBasis,
+                        out completionToken))
+                {
+                    _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
+                    return;
+                }
+
+                removeInitialDispatch = true;
+            }
+            else if (!acquiredLease.TryMarkDispatched(_admissionOwner))
             {
                 _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
                 return;
             }
 
             _admissionLease = acquiredLease;
-            _snapshot = _snapshot.RequestSent(messageId);
-            requestSentSnapshot = _snapshot;
+            _snapshot = requestSent;
+            requestSentSnapshot = requestSent;
             submissionLease = acquiredLease;
             _isSubmitting = true;
             StateHasChanged();
@@ -808,6 +828,79 @@
         GlobalAdministratorCorrectionSnapshot? completedIoSnapshot = null;
         try
         {
+            if (removeInitialDispatch)
+            {
+                TenantCommandSubmissionResult removeResult;
+                ITenantCommandGateway? removeGateway = CommandGateway;
+                if (removeGateway is null)
+                {
+                    removeResult = TenantCommandSubmissionResult.Failed(
+                        Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"]);
+                }
+                else
+                {
+                    try
+                    {
+                        removeResult = await removeGateway
+                            .RemoveGlobalAdministratorTrackedAsync(
+                                new RemoveGlobalAdministrator(requestSentSnapshot.TargetUserId),
+                                requestSentSnapshot.MessageId!,
+                                CancellationToken.None)
+                            .ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        removeResult = TenantCommandSubmissionResult.Ambiguous(
+                            requestSentSnapshot.MessageId!,
+                            "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+                    }
+                }
+
+                GlobalAdministratorCorrectionSnapshot removeCompletion = removeResult.State
+                    is TenantCommandLifecycleState.Accepted
+                    ? requestSentSnapshot.Accepted(removeResult)
+                    : requestSentSnapshot.ApplySubmissionFailure(removeResult);
+                if (removeCompletion.ToCompletionReconciliation() is not { } durableCompletion
+                    || !submissionLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
+                {
+                    _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                    return;
+                }
+
+                try
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+
+                    bool removeApplied = false;
+                    await InvokeAsync(() =>
+                    {
+                        if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
+                        {
+                            SynchronizeOwnedReconciliation();
+                            return;
+                        }
+
+                        SetSnapshot(removeCompletion, focusTerminalState: true);
+                        removeApplied = true;
+                        StateHasChanged();
+                    }).ConfigureAwait(false);
+                    if (removeApplied
+                        && removeCompletion.LifecycleState is TenantCommandLifecycleState.Accepted)
+                    {
+                        await RefreshStatusCoreAsync(generation).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Delivery already published on the lease for the current owner.
+                }
+
+                return;
+            }
+
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
@@ -884,6 +977,28 @@
         }
         catch
         {
+            if (removeInitialDispatch)
+            {
+                if (requestSentSnapshot.MessageId is { Length: > 0 } trackedRemoveId)
+                {
+                    GlobalAdministratorCorrectionSnapshot aborted = requestSentSnapshot.ApplySubmissionFailure(
+                        TenantCommandSubmissionResult.Ambiguous(
+                            trackedRemoveId,
+                            "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"));
+                    if (aborted.ToCompletionReconciliation() is not { } abortedCompletion
+                        || !submissionLease.TryCompleteReconciliationDispatch(completionToken, abortedCompletion))
+                    {
+                        _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                    }
+                }
+                else
+                {
+                    _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                }
+
+                return;
+            }
+
             if (completedIoSnapshot is not null)
             {
                 _ = RetainOrReleaseCompletion(completedIoSnapshot, submissionLease);
@@ -914,10 +1029,17 @@
         {
             if (!_disposed)
             {
-                await InvokeAsync(() =>
+                try
                 {
-                    _isSubmitting = false;
-                }).ConfigureAwait(false);
+                    await InvokeAsync(() =>
+                    {
+                        _isSubmitting = false;
+                    }).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Navigation can dispose the renderer between the alive check and dispatch.
+                }
             }
         }
     }
@@ -934,7 +1056,8 @@
         {
             await InvokeAsync(StateHasChanged).ConfigureAwait(false);
             if (!await ReauthorizeAsync(generation).ConfigureAwait(false)
-                || !CreateCorrectionDecision().CanRefresh)
+                || _snapshot is null
+                || !CanRefreshSnapshot(_snapshot))
             {
                 RetainReconciliationForReplacement();
                 return;
@@ -1041,7 +1164,8 @@
         {
             canRetryDelivery = CanApplyOperation(generation)
                 && ReferenceEquals(_snapshot, deliveryBasis)
-                && CreateCorrectionDecision().CanRefresh
+                && _snapshot is not null
+                && CanRefreshSnapshot(_snapshot)
                 && _admissionLease?.IsDispatchMarked == true
                 && (deliveryBasis.IsRestoreAccessAction
                     ? CommandGateway?.SupportsTrackedGlobalAdministratorDispatch == true
@@ -1062,6 +1186,15 @@
         {
             SynchronizeOwnedReconciliation();
             return;
+        }
+
+        try
+        {
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Delivery is already tokenized; a replacement owner observes the in-flight token.
         }
 
         TenantCommandSubmissionResult result;
@@ -1094,34 +1227,47 @@
         if (deliverySnapshot.ToCompletionReconciliation() is not { } completion
             || !submissionLease.TryCompleteReconciliationDispatch(completionToken, completion))
         {
+            _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
             SynchronizeOwnedReconciliation();
             return;
         }
 
-        bool deliveryApplied = false;
-        bool resumeAdopted = false;
-        await InvokeAsync(() =>
+        try
         {
-            if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, deliveryBasis))
+            if (_disposed)
             {
-                resumeAdopted = RetainOrReleaseCompletion(deliverySnapshot, submissionLease);
                 return;
             }
 
-            SetSnapshot(deliverySnapshot, focusTerminalState: true);
-            deliveryApplied = true;
-            StateHasChanged();
-        }).ConfigureAwait(false);
-        if (resumeAdopted)
-        {
-            TryAdoptEligibleReconciliation();
-            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
-            return;
-        }
+            bool deliveryApplied = false;
+            bool resumeAdopted = false;
+            await InvokeAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, deliveryBasis))
+                {
+                    resumeAdopted = RetainOrReleaseCompletion(deliverySnapshot, submissionLease);
+                    return;
+                }
 
-        if (deliveryApplied && deliverySnapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
+                SetSnapshot(deliverySnapshot, focusTerminalState: true);
+                deliveryApplied = true;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            if (resumeAdopted)
+            {
+                TryAdoptEligibleReconciliation();
+                await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
+                return;
+            }
+
+            if (deliveryApplied && deliverySnapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
+            {
+                await RefreshStatusCoreAsync(generation).ConfigureAwait(false);
+            }
+        }
+        catch (ObjectDisposedException)
         {
-            await RefreshStatusCoreAsync(generation).ConfigureAwait(false);
+            // The lease already holds the exact delivery result for the replacement owner.
         }
     }
 
@@ -1138,7 +1284,8 @@
         {
             canStartStatus = CanApplyOperation(generation)
                 && _snapshot?.TryGetTrackingHandle(out _) == true
-                && CreateCorrectionDecision().CanRefresh;
+                && _snapshot is { } statusSnapshot
+                && CanRefreshSnapshot(statusSnapshot);
         }).ConfigureAwait(false);
         if (!canStartStatus)
         {
@@ -1244,7 +1391,8 @@
         {
             canStartProjection = CanApplyOperation(generation)
                 && HasSameOperationSnapshot(_snapshot, statusSnapshot)
-                && CreateCorrectionDecision().CanRefresh;
+                && _snapshot is { } current
+                && CanRefreshSnapshot(current);
         }).ConfigureAwait(false);
         if (!canStartProjection)
         {

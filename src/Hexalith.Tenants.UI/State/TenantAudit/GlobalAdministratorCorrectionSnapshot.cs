@@ -64,6 +64,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         bool deliveryAmbiguity = reconciliation.IsSubmissionAmbiguous;
         bool terminalFailure = reconciliation.LifecycleState is TenantCommandLifecycleState.Failed
             or TenantCommandLifecycleState.Rejected;
+        bool reconstructRemoval = reconciliation.ActionKind is GlobalAdministratorActionKind.Remove
+            && !IsRestoreAccessAction;
         return this with {
             LifecycleState = reconciliation.LifecycleState,
             MessageId = reconciliation.MessageId,
@@ -85,18 +87,22 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                         ? "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"
                         : "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery")
                 : reconciliation.SafeRecoveryKey,
-            RejectionCode = null,
-            AuditState = deliveryAmbiguity
-                ? TenantCommandAuditState.AuditDelayed
-                : terminalFailure
-                    ? TenantCommandAuditState.AuditUnavailable
-                    : TenantCommandAuditState.AuditPending,
+            RejectionCode = reconstructRemoval ? reconciliation.RejectionCode : null,
+            AuditState = reconstructRemoval
+                ? RemovalAuditState(reconciliation, deliveryAmbiguity, terminalFailure)
+                : deliveryAmbiguity
+                    ? TenantCommandAuditState.AuditDelayed
+                    : terminalFailure
+                        ? TenantCommandAuditState.AuditUnavailable
+                        : TenantCommandAuditState.AuditPending,
             FocusTarget = terminalFailure
                 ? TenantCommandFocusTarget.Lifecycle
                 : TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness = deliveryAmbiguity || terminalFailure
-                ? TenantCommandLiveRegionPoliteness.Assertive
-                : TenantCommandLiveRegionPoliteness.Polite,
+            LiveRegionPoliteness = reconstructRemoval
+                ? RemovalLiveRegionPoliteness(reconciliation, deliveryAmbiguity, terminalFailure)
+                : deliveryAmbiguity || terminalFailure
+                    ? TenantCommandLiveRegionPoliteness.Assertive
+                    : TenantCommandLiveRegionPoliteness.Polite,
         };
     }
 
@@ -111,17 +117,22 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         }
 
         bool isGrant = CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
-        if ((isGrant
-                && (GrantPreview?.IsComplete != true
-                    || (string.IsNullOrWhiteSpace(CorrelationId)
-                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous))))
-            || (!isGrant
-                && (RemovePreview?.IsComplete != true
-                    || (string.IsNullOrWhiteSpace(CorrelationId)
-                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent
-                            or TenantCommandLifecycleState.UnableToVerify
-                            && IsSubmissionAmbiguous)))))
+        if (isGrant)
         {
+            if (GrantPreview?.IsComplete != true
+                || (string.IsNullOrWhiteSpace(CorrelationId)
+                    && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous)))
+            {
+                return null;
+            }
+        }
+        else if (RemovePreview?.IsComplete != true
+            || (string.IsNullOrWhiteSpace(CorrelationId)
+                && LifecycleState is not TenantCommandLifecycleState.RequestSent
+                && !(LifecycleState is TenantCommandLifecycleState.UnableToVerify && IsSubmissionAmbiguous)))
+        {
+            // Correlationless RequestSent is the exact initial-dispatch identity. Ordinary
+            // UnableToVerify stays retainable only when the same-id delivery is still ambiguous.
             return null;
         }
 
@@ -136,7 +147,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             IsSubmissionAmbiguous,
             SafeMessageKey,
             SafeRecoveryKey,
-            RemovePreview);
+            RemovePreview,
+            RejectionCode);
     }
 
     /// <summary>Creates exact command evidence for a lease-backed delivery completion.</summary>
@@ -164,7 +176,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             IsSubmissionAmbiguous,
             SafeMessageKey,
             SafeRecoveryKey,
-            RemovePreview);
+            RemovePreview,
+            RejectionCode);
     }
 
     /// <summary>Attaches one complete BFF-composed removal preview before dispatch.</summary>
@@ -691,6 +704,42 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
+
+    private static TenantCommandAuditState RemovalAuditState(
+        GlobalAdministratorReconciliationState reconciliation,
+        bool deliveryAmbiguity,
+        bool terminalFailure)
+        => reconciliation.LifecycleState switch
+        {
+            TenantCommandLifecycleState.RequestSent when deliveryAmbiguity
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.RequestSent => TenantCommandAuditState.NotStarted,
+            TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending
+                => TenantCommandAuditState.AuditPending,
+            TenantCommandLifecycleState.Degraded => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify when deliveryAmbiguity
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify
+                when string.Equals(
+                    reconciliation.SafeRecoveryKey,
+                    "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+                    StringComparison.Ordinal)
+                => TenantCommandAuditState.AuditDelayed,
+            TenantCommandLifecycleState.UnableToVerify => TenantCommandAuditState.AuditUnavailable,
+            _ when terminalFailure => TenantCommandAuditState.AuditUnavailable,
+            _ => TenantCommandAuditState.AuditPending,
+        };
+
+    private static TenantCommandLiveRegionPoliteness RemovalLiveRegionPoliteness(
+        GlobalAdministratorReconciliationState reconciliation,
+        bool deliveryAmbiguity,
+        bool terminalFailure)
+        => terminalFailure
+            || deliveryAmbiguity
+            || reconciliation.LifecycleState is TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify
+            ? TenantCommandLiveRegionPoliteness.Assertive
+            : TenantCommandLiveRegionPoliteness.Polite;
 
     private GlobalAdministratorRemoveCommandSnapshot ToRemovalSnapshot()
         => new(

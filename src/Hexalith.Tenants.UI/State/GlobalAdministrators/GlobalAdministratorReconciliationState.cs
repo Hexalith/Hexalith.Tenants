@@ -14,6 +14,7 @@ namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 /// <param name="SafeMessageKey">Support-safe localized lifecycle explanation retained across renderer replacement.</param>
 /// <param name="SafeRecoveryKey">Support-safe localized recovery retained across renderer replacement.</param>
 /// <param name="RemovePreview">Complete retained removal preview.</param>
+/// <param name="RejectionCode">Structured rejection code retained with terminal rejection evidence.</param>
 internal sealed record GlobalAdministratorReconciliationState(
     GlobalAdministratorActionKind ActionKind,
     string TargetUserId,
@@ -25,7 +26,8 @@ internal sealed record GlobalAdministratorReconciliationState(
     bool IsSubmissionAmbiguous = false,
     string? SafeMessageKey = null,
     string? SafeRecoveryKey = null,
-    GlobalAdministratorRemovePreview? RemovePreview = null)
+    GlobalAdministratorRemovePreview? RemovePreview = null,
+    string? RejectionCode = null)
 {
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>

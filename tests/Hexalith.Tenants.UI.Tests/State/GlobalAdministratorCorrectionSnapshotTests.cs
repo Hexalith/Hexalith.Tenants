@@ -515,6 +515,58 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         failed.ToReconciliation().ShouldNotBeNull();
     }
 
+    [Fact]
+    public void CorrelationlessRemoveRequestSentProducesRetainableInitialDispatchIdentity()
+    {
+        GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .WithRemovePreview(RemovePreview())
+            .RequestSent("message-safe");
+
+        GlobalAdministratorReconciliationState reconciliation = requestSent.ToReconciliation().ShouldNotBeNull();
+
+        reconciliation.ActionKind.ShouldBe(GlobalAdministratorActionKind.Remove);
+        reconciliation.MessageId.ShouldBe("message-safe");
+        reconciliation.CorrelationId.ShouldBeNull();
+        reconciliation.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        reconciliation.IsSubmissionAmbiguous.ShouldBeFalse();
+        reconciliation.RemovePreview.ShouldNotBeNull().IsComplete.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(
+        TenantCommandLifecycleState.Degraded,
+        "Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed",
+        TenantCommandAuditState.AuditDelayed)]
+    [InlineData(
+        TenantCommandLifecycleState.UnableToVerify,
+        "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+        TenantCommandAuditState.AuditUnavailable)]
+    public void RetainedRemoveReconciliationPreservesAuditTruthAndAssertiveUrgency(
+        TenantCommandLifecycleState lifecycleState,
+        string recoveryKey,
+        TenantCommandAuditState expectedAuditState)
+    {
+        GlobalAdministratorCorrectionSnapshot basis = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .WithRemovePreview(RemovePreview());
+        var reconciliation = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove,
+            "admin-user",
+            "message-safe",
+            "correlation-safe",
+            lifecycleState,
+            SafeMessageKey: "Tenants.GlobalAdministrators.Remove.Status.Unknown",
+            SafeRecoveryKey: recoveryKey,
+            RemovePreview: RemovePreview());
+
+        GlobalAdministratorCorrectionSnapshot adopted = basis.WithReconciliation(reconciliation);
+
+        adopted.AuditState.ShouldBe(expectedAuditState);
+        adopted.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        adopted.SafeRecoveryKey.ShouldBe(recoveryKey);
+    }
+
     private static TenantCorrectionStartIntent RestoreIntent(bool hasCommandSupport = true)
         => TenantCorrectionStartIntent.Evaluate(Context("GlobalAdministratorRemoved", hasCommandSupport));
 

@@ -2,7 +2,7 @@
 title: 'Refresh root submodules and Hexalith package dependencies'
 type: 'chore'
 created: '2026-09-05'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'de5784ca751f51a4cfe282f67e11b13dd1ed4b45'
@@ -78,6 +78,20 @@ context:
 
 ## Review Triage Log
 
+| ID | Verdict | Route | Evidence |
+|---|---|---|---|
+| BH-1 | false | reject | The parent and both Builds commits remain local by explicit instruction, so the trigger condition (publishing the parent before Builds) does not occur. `origin/main` is an ancestor of the local Builds tip; any later publication must push Builds first. |
+| BH-2 | false | reject | The audit does not claim an `accepted` family decision, but its selected/audited versions exactly match the catalog and all deterministic validators pass. Builds owns no direct FrontComposer or Memories consumers, so empty owned-consumer rows are expected; Tenants compatibility evidence is recorded and executed in this spec. |
+| BH-3 | low | reject | The frozen acceptance wording says exact remote-tip equality while Builds is a scoped two-commit descendant of the fetched tip. This is a documentation-only inconsistency whose fix would edit this build's spec; the review workflow requires rejecting spec-only fixes. |
+| BH-4 | false | reject | The alias entered history in `a3321266` during this same dependency implementation before the concurrent rebase forced the mid-story baseline to move to `de5784ca`; absence from the corrected baseline diff does not make it pre-existing story work. |
+| BH-5 | medium | patch | No executable Tenants test inspects the Memories secret-store resource handoff, and another `IDaprComponentResource` could be passed in the third slot while every compile remains green. A focused Docker-free model assertion is warranted. |
+| BH-6 | false | reject | The result says 2774 of 2775 tests passed and immediately identifies the sole failure. That parity test compares local stub/resource strings, and the dependency run observed the failure before the later concurrent UI edits appeared. |
+| BH-7 | false | reject | `sprint-status.yaml` is an unrelated, unstaged concurrent working-tree edit and is absent from commit `f5ed833a`; it therefore does not belong in this change's File List. |
+| BH-8 | medium | defer | The current concurrent status edit marks Story 4.3 `in-progress` while Epic 4 remains `done`, which can mislead sprint automation. This dependency story neither caused nor owns that tracking change. |
+| EH-1 | false | reject | Same remote-reachability claim as BH-1: no publication occurs in this task, and the local parent can resolve its local Builds descendant. |
+| EH-2 | low | reject | Same documentation-only remote-tip parity inconsistency as BH-3; the fetched upstream tip is preserved as an ancestor, but the scoped local Builds commits necessarily put the final gitlink ahead while pushes remain prohibited. |
+| VG-1 | medium | patch | Pre-verified gap: Tenants has no package-mode model test proving exactly one `memories-secretstore` resource and the expected Memories project/sidecar references. A same-typed wrong component would compile and break secret-backed runtime operations. |
+
 ## Design Notes
 
 “Latest” is evaluated independently for source and package channels: a submodule advances to its live default-branch tip, while a NuGet family advances only to a published, policy-admissible version. A source tip may legitimately contain commits beyond its latest package release.
@@ -112,4 +126,4 @@ The Builds pointer advances from the fetched upstream tip to the two local, scop
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release --no-restore` passed 132/132 tests.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false` passed 2774/2775 tests. The sole failure is the pre-existing concurrent `LocalizerDoubleParityTests` mismatch: 13 administrator-removal stub strings differ from the shipped resources; those unrelated files were not changed.
 - `pwsh -NoProfile -File ./Tools/test-package-version-audit-validator.ps1` was stopped after 40 seconds with no output at the orchestrator's request; no result is claimed for that optional fixture lane.
-- The parent gitlink/spec validator passes for the declared Builds move, whitespace validation passes, every root worktree matches its recorded gitlink except the intentionally pending Builds parent pointer, and all declared nested submodules remain uninitialized.
+- The parent gitlink/spec validator passes for the declared Builds move, whitespace validation passes, every root worktree matches its recorded gitlink, and all declared nested submodules remain uninitialized.
