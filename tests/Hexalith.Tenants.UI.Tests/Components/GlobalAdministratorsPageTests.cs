@@ -3332,6 +3332,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         modalRule.ShouldContain("overflow-y: auto");
         modalRule.ShouldContain("position: fixed");
         modalRule.ShouldContain("transform: translate(-50%, -50%)");
+        int removeRuleStart = styles.IndexOf(".global-admins__remove-preview {", StringComparison.Ordinal);
+        removeRuleStart.ShouldBeGreaterThan(-1);
+        int removeRuleEnd = styles.IndexOf('}', removeRuleStart);
+        removeRuleEnd.ShouldBeGreaterThan(removeRuleStart);
+        string removeModalRule = styles[removeRuleStart..removeRuleEnd];
+        removeModalRule.ShouldContain("background: var(--colorNeutralBackground1)");
+        removeModalRule.ShouldContain("box-shadow: var(--shadow16)");
+        removeModalRule.ShouldContain("inset-block-start: 50%");
+        removeModalRule.ShouldContain("inset-inline-start: 50%");
+        removeModalRule.ShouldContain("max-block-size: 90vh");
+        removeModalRule.ShouldContain("overflow-y: auto");
+        removeModalRule.ShouldContain("position: fixed");
+        removeModalRule.ShouldContain("transform: translate(-50%, -50%)");
+        removeModalRule.ShouldContain("z-index: 1000");
         styles.ShouldContain("border: 2px solid CanvasText");
     }
 
@@ -3359,6 +3373,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 StringComparison.Ordinal));
         cut.Find("[data-testid='tenants-global-admin-remove-focus-start']").GetAttribute("tabindex").ShouldBe("0");
         cut.Find("[data-testid='tenants-global-admin-remove-focus-end']").GetAttribute("tabindex").ShouldBe("0");
+        string source = ReadGlobalAdministratorsPageSource();
+        int removeModalStart = source.IndexOf(
+            "@if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed",
+            StringComparison.Ordinal);
+        int grantModalStart = source.IndexOf(
+            "@if (_grantSnapshot.State is TenantCommandLifecycleState.Previewed",
+            removeModalStart,
+            StringComparison.Ordinal);
+        string removeModalSource = source[removeModalStart..grantModalStart];
+        removeModalSource.ShouldContain("<FluentButton");
+        removeModalSource.ShouldNotContain("<fluent-button");
 
         dialog.KeyDown(new KeyboardEventArgs { Key = "Escape" });
 
@@ -3591,6 +3616,69 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .TextContent.Trim().ShouldBe("Retry delivery with the same tracked command");
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("accepted")]
+    [InlineData("rejected")]
+    public async Task SupersededAmbiguousRemoveRetryRetainsOrReleasesItsExactLease(string outcome)
+    {
+        var commandGateway = new StubTenantCommandGateway
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        string messageId = commandGateway.RemoveMessageIds.ShouldHaveSingleItem();
+
+        commandGateway.RemoveSubmission = outcome == "accepted"
+            ? TenantCommandSubmissionResult.Accepted("ignored", "correlation-retry")
+            : TenantCommandSubmissionResult.Rejected("rejected", "LastGlobalAdministrator");
+        var retryGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        commandGateway.RemoveSubmissionGate = retryGate;
+        Task retry = cut.Find("[data-testid='tenants-global-admin-remove-refresh']")
+            .ClickAsync(new MouseEventArgs());
+        await commandGateway.RemoveSubmissionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        typeof(GlobalAdministratorsPage)
+            .GetMethod("InvalidateRemoveMutation", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, null);
+        retryGate.SetResult();
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+
+        PrivateField<bool>(cut.Instance, "_isRemoveSubmitting").ShouldBeFalse();
+        commandGateway.RemoveMessageIds.ShouldAllBe(id => id == messageId);
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        if (outcome == "accepted")
+        {
+            admissionGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+            GlobalAdministratorRemoveCommandSnapshot retained =
+                PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot");
+            retained.MessageId.ShouldBe(messageId);
+            retained.CorrelationId.ShouldBe("correlation-retry");
+        }
+        else
+        {
+            var replacementOwner = new object();
+            admissionGate.TryAcquireLease(
+                TenantCommandAggregateLock.ForGlobalAdministrators(),
+                replacementOwner,
+                out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+            replacementLease!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
+        }
     }
 
     [Fact]

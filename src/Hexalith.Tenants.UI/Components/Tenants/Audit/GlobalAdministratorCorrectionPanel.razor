@@ -419,8 +419,10 @@
         => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];
 
     private string RefreshActionText
-        => _snapshot is { IsRestoreAccessAction: true, IsSubmissionAmbiguous: true, CorrelationId: null }
-            ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
+        => _snapshot is { IsSubmissionAmbiguous: true, CorrelationId: null } ambiguous
+            ? ambiguous.IsRestoreAccessAction
+                ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
+                : Localizer["Tenants.GlobalAdministrators.Remove.DeliveryRetry"]
             : Localizer["Tenants.Correction.Confirm.Refresh"];
 
     private string LiveRegionMode

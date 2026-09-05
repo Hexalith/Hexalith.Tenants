@@ -2,9 +2,10 @@
 title: 'Refresh root submodules and Hexalith package dependencies'
 type: 'chore'
 created: '2026-09-05'
-status: 'draft'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: '403c3f259cbca8bfa928163c42944e663c45998e'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md'
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-20.md'
@@ -36,7 +37,7 @@ context:
 
 ## Code Map
 
-- `.gitmodules` and `references/*` -- exhaustive allowed root-submodule set and parent-owned gitlinks; investigation found only Builds and FrontComposer behind live `main`.
+- `.gitmodules` and `references/*` -- exhaustive allowed root-submodule set and parent-owned gitlinks; investigation found Builds targeting `b7493539e4c6ede44d895524f4420f1c0ff51d40` and FrontComposer targeting `20d62abd1cf7d2f4bd06b9d6cd743c5abb204ffb`, with all other live `main` tips unchanged.
 - `references/Hexalith.Builds/Props/Directory.Packages.props` -- authoritative central catalog; live Builds tip changes `HexalithEventStoreVersion` from `3.101.0` to `3.102.0`.
 - `references/Hexalith.Builds/Tools/audit-central-package-versions.ps1` -- supported official-feed audit generator; it records evidence but does not edit the catalog.
 - `references/Hexalith.Builds/Tools/package-version-audit.json` and `package-version-exceptions.json` -- selected-version evidence and policy holds that must remain consistent with the catalog.

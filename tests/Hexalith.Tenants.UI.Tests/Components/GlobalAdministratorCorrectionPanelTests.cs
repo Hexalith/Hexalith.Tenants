@@ -367,6 +367,136 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-correction-state']").TextContent
             .ShouldNotContain("Projection confirms the intended state", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
+            .ShouldContain("review the removal rejection", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task AmbiguousRemoveCorrectionRetriesTheSameIdentityAndReleasesAfterProjectionProof()
+    {
+        int projectionReads = 0;
+        var commandGateway = new StubTenantCommandGateway
+        {
+            RemoveResultTask = Task.FromResult(TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")),
+        };
+        var queryGateway = new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("proof", "GlobalAdministratorRemoved"))
+        {
+            GlobalAdministratorProvider = _ => ++projectionReads >= 3
+                ? Projection("other-admin") with { ProjectionVersion = "ga-v2" }
+                : Projection("admin-user", "other-admin"),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, RevokeIntent())
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        string messageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
+        cut.Instance.Snapshot!.IsSubmissionAmbiguous.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-refresh']").TextContent
+            .ShouldContain("Retry removal delivery", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
+            .ShouldContain("same tracked removal", Case.Insensitive);
+
+        commandGateway.RemoveResultTask = Task.FromResult(
+            TenantCommandSubmissionResult.Accepted("ignored", "correlation-remove"));
+        await cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState
+            .ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commandGateway.TrackedMessageIds.ShouldBe([messageId, messageId]);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence")]
+    [InlineData("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing")]
+    [InlineData("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator")]
+    public void EveryRemovalPreviewProjectionBlockRecoversFromLiveParentEvidence(string blockKey)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+        GlobalAdministratorCorrectionSnapshot blocked = cut.Instance.Snapshot! with
+        {
+            LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessageKey = blockKey,
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+        };
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, blocked);
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("rejected")]
+    [InlineData("failed")]
+    [InlineData("ambiguous")]
+    [InlineData("tracked")]
+    [InlineData("publish-failed")]
+    [InlineData("timed-out")]
+    public void RemovalCorrectionLifecycleUsesItsSnapshotSpecificRecovery(string scenario)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+        TenantCommandLifecycleState state = scenario switch
+        {
+            "rejected" => TenantCommandLifecycleState.Rejected,
+            "failed" => TenantCommandLifecycleState.Failed,
+            "publish-failed" => TenantCommandLifecycleState.Degraded,
+            "timed-out" => TenantCommandLifecycleState.UnableToVerify,
+            _ => TenantCommandLifecycleState.RequestSent,
+        };
+        bool ambiguous = scenario == "ambiguous";
+        GlobalAdministratorCorrectionSnapshot snapshot = cut.Instance.Snapshot! with
+        {
+            LifecycleState = state,
+            MessageId = state is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed
+                ? null
+                : "message-remove",
+            CorrelationId = ambiguous || state is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed
+                ? null
+                : "correlation-remove",
+            IsSubmissionAmbiguous = ambiguous,
+            SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Status.Unknown",
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.Test",
+        };
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, snapshot);
+
+        cut.Render();
+
+        cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
+            .ShouldContain("Removal-specific recovery sentinel");
     }
 
     [Fact]
@@ -1673,7 +1803,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public bool ReturnConfiguredTrackedIdentity { get; init; }
 
-        public Task<TenantCommandSubmissionResult>? RemoveResultTask { get; init; }
+        public Task<TenantCommandSubmissionResult>? RemoveResultTask { get; set; }
 
         public TenantCommandStatusResult Status { get; set; }
             = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
@@ -1970,6 +2100,14 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"] = "Retry only with the retained command identity; do not create a new grant attempt.",
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"] = "Command status did not match the exact retained grant identity.",
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"] = "Exact command status did not prove that the grant produced an event.",
+            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry"] = "Retry removal delivery",
+            ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Refresh evidence, then retry this same tracked removal attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.Rejected"] = "Refresh current evidence and review the removal rejection before a new attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.Failed"] = "Refresh current evidence before starting a new removal attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.Test"] = "Removal-specific recovery sentinel.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection before continuing.",
+            ["Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"] = "Removal delivery is ambiguous.",
+            ["Tenants.GlobalAdministrators.Remove.Status.Unknown"] = "Tracked removal status is unavailable.",
         };
     }
 }
