@@ -3,7 +3,7 @@ title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
 status: 'in-progress'
-baseline_revision: 'ed0c0d681ae15913bc999908bc9e25bfd622536c'
+baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: 'ed0c0d681ae15913bc999908bc9e25bfd622536c'
 review_loop_iteration: 2
 followup_review_recommended: false
