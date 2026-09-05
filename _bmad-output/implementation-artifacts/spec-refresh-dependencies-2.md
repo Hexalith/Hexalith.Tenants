@@ -2,7 +2,7 @@
 title: 'Refresh root submodules and Hexalith package dependencies'
 type: 'chore'
 created: '2026-09-05'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'de5784ca751f51a4cfe282f67e11b13dd1ed4b45'
