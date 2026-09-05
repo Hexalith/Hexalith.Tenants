@@ -117,7 +117,7 @@ IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenant
 string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
 string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
 
-// Hexalith.Memories.Aspire 2.24.1 and current source builds require the consumer-owned secret-store resource.
+// Hexalith.Memories.Aspire 2.25.0 and current source builds require the consumer-owned secret-store resource.
 IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
     "memories-secretstore",
     "secretstores.local.file",

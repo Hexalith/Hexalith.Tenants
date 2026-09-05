@@ -627,6 +627,7 @@ public class PackageGovernanceTests {
         string releaseJob = GetYamlJobBlock(workflow, "release");
         releaseJob.ShouldContain("needs: verify-source");
         releaseJob.ShouldContain("environment-name: production");
+        releaseJob.ShouldContain("require-publication-authority: false");
         releaseJob.ShouldContain("expected-package-count: " + ExpectedPackageIds.Length.ToString(CultureInfo.InvariantCulture));
         releaseJob.ShouldContain("package-manifest: tools/release-packages.json");
         workflow.ShouldContain("cancel-in-progress: false");
