@@ -121,7 +121,7 @@ development_status:
   epic-4: done
   4-1-fixed-scope-global-administrator-action-availability: done
   4-2-grant-global-administrator-with-projection-confirmation: done
-  4-3-remove-global-administrator-with-last-administrator-hard-stop: in-progress
+  4-3-remove-global-administrator-with-last-administrator-hard-stop: review
   epic-4-retrospective: done
 
   # --- Epic 5: Audit Evidence and Corrective Recovery ---
