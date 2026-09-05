@@ -292,13 +292,6 @@ jobs:
       # CI (the verify-source gate above) already tested this exact head; leave
       # test-projects empty so the release path does not duplicate the test compute.
       test-projects: ''
-      # Publication is gated by the protected `production` environment approval on the
-      # release job. The dispatch-reserved version and one-use GitHub issue-comment
-      # authority are a corrective-release gate, not a release precondition. Declaring
-      # the opt-out keeps that machinery unused. Turning it back on means setting this
-      # true and supplying reserved-version, release-authority-issue-url, and
-      # release-authority-owner.
-      require-publication-authority: false
       container-projects: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
     secrets:
