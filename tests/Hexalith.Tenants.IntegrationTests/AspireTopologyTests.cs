@@ -183,9 +183,10 @@ public class AspireTopologyTests : IDisposable {
             WebJsonOptions,
             timeout.Token)).ShouldNotBeNull();
         eventStoreResult.Success.ShouldBeTrue();
-        GetStringProperty(eventStoreResult.Payload, "tenantId").ShouldBe(persisted.TenantId);
-        GetStringProperty(eventStoreResult.Payload, "name").ShouldBe(persisted.Name);
-        GetStringProperty(eventStoreResult.Payload, "description").ShouldBe(persisted.Description);
+        TenantDetail eventStorePayload = eventStoreResult.Payload
+            .Deserialize<TenantDetail>(WebJsonOptions)
+            .ShouldNotBeNull();
+        AssertTenantDetailMatchesPersisted(eventStorePayload, persisted);
         QueryResponseMetadata eventStoreMetadata = eventStoreResult.Metadata.ShouldNotBeNull();
         eventStoreMetadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
         eventStoreMetadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
@@ -213,9 +214,8 @@ public class AspireTopologyTests : IDisposable {
 
         using JsonDocument rawDocument = JsonDocument.Parse(rawContent);
         JsonElement rawPayload = rawDocument.RootElement;
-        GetStringProperty(rawPayload, "tenantId").ShouldBe(persisted.TenantId);
-        GetStringProperty(rawPayload, "name").ShouldBe(persisted.Name);
-        GetStringProperty(rawPayload, "description").ShouldBe(persisted.Description);
+        TenantDetail rawTenant = rawPayload.Deserialize<TenantDetail>(WebJsonOptions).ShouldNotBeNull();
+        AssertTenantDetailMatchesPersisted(rawTenant, persisted);
         rawPayload.TryGetProperty("metadata", out _).ShouldBeFalse();
         rawPayload.TryGetProperty("projectionVersion", out _).ShouldBeFalse();
         rawPayload.TryGetProperty("projectedAt", out _).ShouldBeFalse();
@@ -232,9 +232,7 @@ public class AspireTopologyTests : IDisposable {
 
             typed.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
             typed.StatusCode.ShouldBe((int)HttpStatusCode.OK);
-            typed.Payload.ShouldNotBeNull().TenantId.ShouldBe(persisted.TenantId);
-            typed.Payload.Name.ShouldBe(persisted.Name);
-            typed.Payload.Description.ShouldBe(persisted.Description);
+            AssertTenantDetailMatchesPersisted(typed.Payload.ShouldNotBeNull(), persisted);
             typed.Metadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
             typed.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
             typed.Metadata.ETag.ShouldBeNull();
@@ -245,6 +243,27 @@ public class AspireTopologyTests : IDisposable {
         }
         finally {
             _fixture.TenantsApiClient.DefaultRequestHeaders.Authorization = previousAuthorization;
+        }
+    }
+
+    private static void AssertTenantDetailMatchesPersisted(
+        TenantDetail actual,
+        TenantReadModel persisted) {
+        actual.TenantId.ShouldBe(persisted.TenantId);
+        actual.Name.ShouldBe(persisted.Name);
+        actual.Description.ShouldBe(persisted.Description);
+        actual.Status.ShouldBe(persisted.Status);
+        actual.CreatedAt.ShouldBe(persisted.CreatedAt);
+        actual.Members.Count.ShouldBe(persisted.Members.Count);
+        foreach (KeyValuePair<string, TenantRole> member in persisted.Members) {
+            actual.Members.ShouldContain(candidate =>
+                candidate.UserId == member.Key && candidate.Role == member.Value);
+        }
+
+        actual.Configuration.Count.ShouldBe(persisted.Configuration.Count);
+        foreach (KeyValuePair<string, string> setting in persisted.Configuration) {
+            actual.Configuration.TryGetValue(setting.Key, out string? value).ShouldBeTrue();
+            value.ShouldBe(setting.Value);
         }
     }
 
