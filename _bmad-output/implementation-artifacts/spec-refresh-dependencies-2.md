@@ -75,6 +75,7 @@ context:
 
 - 2026-09-05: Recorded the concurrent live-tip race, implemented package/source compatibility for the Memories AppHost helper, disambiguated EventStore `CommandStatus`, and captured validation evidence and remaining source-graph blockers.
 - 2026-09-05: Reconciled all root submodules to freshly fetched tips, accepted stable FrontComposer `4.3.0` and aligned Memories `2.24.1`, removed the obsolete package/source signature split, and qualified both dependency modes.
+- 2026-09-05: Review added a Docker-free package-mode resource-graph test proving the exact Memories secret-store component, path, project/sidecar references, and wait relationship.
 
 ## Review Triage Log
 
@@ -107,6 +108,7 @@ The Builds pointer advances from the fetched upstream tip to the two local, scop
 - references/Hexalith.Builds
 - src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
 - src/Hexalith.Tenants.AppHost/Program.cs
+- tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
 - _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md
 
 ## Verification
@@ -117,6 +119,7 @@ The Builds pointer advances from the fetched upstream tip to the two local, scop
 - `dotnet build Hexalith.Tenants.Standalone.slnx -c Release -warnaserror -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false` -- expected: package-only Release build succeeds with zero warnings and errors.
 - `dotnet build src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj -c Debug -warnaserror -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false -m:1` -- expected: explicit source-mode build succeeds with zero warnings and errors.
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release` -- expected: package governance tests pass.
+- `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter 'FullyQualifiedName~MemoriesSecretStoreResourceGraphTests'` -- expected: the Docker-free package-mode resource-graph assertion passes.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md && git diff --check && git submodule status` -- expected: changed gitlinks are declared, whitespace is clean, and all root worktrees match their gitlinks.
 
 **Results:**
@@ -124,6 +127,7 @@ The Builds pointer advances from the fetched upstream tip to the two local, scop
 - Central catalog validation passed 286 entries; audit validation passed 286 packages across 141 families and one source; exception validation passed 15 allowlisted exceptions; consumer package authority passed for all 17 Tenants projects.
 - The package-mode AppHost and full `Hexalith.Tenants.Standalone.slnx` Release build passed with 0 warnings and 0 errors. The explicit Debug source-mode AppHost build passed with 0 warnings and 0 errors using `-m:1`; an initial parallel attempt hit two transient EventStore DLL copy locks before the single-node retry succeeded.
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release --no-restore` passed 132/132 tests.
+- The post-review `MemoriesSecretStoreResourceGraphTests` package-mode run passed 1/1. Its model is built but never started, so the test verifies component ownership, YAML path, exact project/sidecar references, and the wait relationship without Docker or Dapr processes.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false` passed 2774/2775 tests. The sole failure is the pre-existing concurrent `LocalizerDoubleParityTests` mismatch: 13 administrator-removal stub strings differ from the shipped resources; those unrelated files were not changed.
 - `pwsh -NoProfile -File ./Tools/test-package-version-audit-validator.ps1` was stopped after 40 seconds with no output at the orchestrator's request; no result is claimed for that optional fixture lane.
 - The parent gitlink/spec validator passes for the declared Builds move, whitespace validation passes, every root worktree matches its recorded gitlink, and all declared nested submodules remain uninitialized.
