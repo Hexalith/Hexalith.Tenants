@@ -62,6 +62,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     internal GlobalAdministratorCorrectionSnapshot WithReconciliation(GlobalAdministratorReconciliationState reconciliation) {
         ArgumentNullException.ThrowIfNull(reconciliation);
         bool deliveryAmbiguity = reconciliation.IsSubmissionAmbiguous;
+        bool terminalFailure = reconciliation.LifecycleState is TenantCommandLifecycleState.Failed
+            or TenantCommandLifecycleState.Rejected;
         return this with {
             LifecycleState = reconciliation.LifecycleState,
             MessageId = reconciliation.MessageId,
@@ -86,9 +88,13 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             RejectionCode = null,
             AuditState = deliveryAmbiguity
                 ? TenantCommandAuditState.AuditDelayed
-                : TenantCommandAuditState.AuditPending,
-            FocusTarget = TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness = deliveryAmbiguity
+                : terminalFailure
+                    ? TenantCommandAuditState.AuditUnavailable
+                    : TenantCommandAuditState.AuditPending,
+            FocusTarget = terminalFailure
+                ? TenantCommandFocusTarget.Lifecycle
+                : TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = deliveryAmbiguity || terminalFailure
                 ? TenantCommandLiveRegionPoliteness.Assertive
                 : TenantCommandLiveRegionPoliteness.Polite,
         };
@@ -112,7 +118,37 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             || (!isGrant
                 && (RemovePreview?.IsComplete != true
                     || (string.IsNullOrWhiteSpace(CorrelationId)
-                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous)))))
+                        && !(LifecycleState is TenantCommandLifecycleState.RequestSent
+                            or TenantCommandLifecycleState.UnableToVerify
+                            && IsSubmissionAmbiguous)))))
+        {
+            return null;
+        }
+
+        return new(
+            isGrant ? GlobalAdministratorActionKind.Grant : GlobalAdministratorActionKind.Remove,
+            TargetUserId,
+            messageId,
+            CorrelationId,
+            LifecycleState,
+            GrantPreview,
+            HasCommandEventEvidence,
+            IsSubmissionAmbiguous,
+            SafeMessageKey,
+            SafeRecoveryKey,
+            RemovePreview);
+    }
+
+    /// <summary>Creates exact command evidence for a lease-backed delivery completion.</summary>
+    /// <returns>Completion evidence, or <see langword="null"/> when command identity is incomplete.</returns>
+    internal GlobalAdministratorReconciliationState? ToCompletionReconciliation() {
+        if (MessageId is not { Length: > 0 } messageId)
+        {
+            return null;
+        }
+
+        bool isGrant = CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
+        if (isGrant ? GrantPreview?.IsComplete != true : RemovePreview?.IsComplete != true)
         {
             return null;
         }

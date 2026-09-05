@@ -33,6 +33,12 @@ public sealed class TenantAggregateCommandLease
 
     internal GlobalAdministratorReconciliationState? Reconciliation { get; set; }
 
+    internal long ActiveReconciliationDispatchToken { get; set; }
+
+    /// <summary>Gets whether an exact same-command recovery dispatch is awaiting its delivery result.</summary>
+    internal bool IsReconciliationDispatchInFlight
+        => _gate.IsReconciliationDispatchInFlight(this);
+
     /// <summary>Marks the single dispatch associated with this lease.</summary>
     /// <returns><see langword="true"/> only for the first mark while the lease is active.</returns>
     public bool TryMarkDispatched(object owner)
@@ -49,6 +55,35 @@ public sealed class TenantAggregateCommandLease
         object owner,
         GlobalAdministratorReconciliationState reconciliation)
         => _gate.TryRetainReconciliation(this, owner, reconciliation);
+
+    /// <summary>Starts one lease-backed same-command delivery operation.</summary>
+    /// <param name="owner">Current command-surface owner.</param>
+    /// <param name="expected">Exact reconciliation being delivered.</param>
+    /// <param name="completionToken">Opaque token that authorizes the matching completion.</param>
+    /// <returns><see langword="true"/> when no delivery operation is already active.</returns>
+    internal bool TryBeginReconciliationDispatch(
+        object owner,
+        GlobalAdministratorReconciliationState expected,
+        out long completionToken)
+        => _gate.TryBeginReconciliationDispatch(this, owner, expected, out completionToken);
+
+    /// <summary>Publishes the exact delivery result for adoption by whichever surface now owns the lease.</summary>
+    /// <param name="completionToken">Token returned when the delivery began.</param>
+    /// <param name="completion">Monotonic result for the same command identity.</param>
+    /// <returns><see langword="true"/> when the result became durable on the lease.</returns>
+    internal bool TryCompleteReconciliationDispatch(
+        long completionToken,
+        GlobalAdministratorReconciliationState completion)
+        => _gate.TryCompleteReconciliationDispatch(this, completionToken, completion);
+
+    /// <summary>Reads the latest durable reconciliation when the supplied surface still owns this lease.</summary>
+    /// <param name="owner">Current command-surface owner.</param>
+    /// <param name="reconciliation">Latest durable evidence.</param>
+    /// <returns><see langword="true"/> when the lease is active and owned by <paramref name="owner"/>.</returns>
+    internal bool TryReadReconciliation(
+        object owner,
+        out GlobalAdministratorReconciliationState? reconciliation)
+        => _gate.TryReadReconciliation(this, owner, out reconciliation);
 
     /// <summary>Abandons an admitted attempt before any command dispatch.</summary>
     /// <returns><see langword="true"/> when the active pre-dispatch lease was released.</returns>

@@ -386,7 +386,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             Audit("proof", "GlobalAdministratorRemoved"))
         {
             GlobalAdministratorProvider = _ => ++projectionReads >= 3
-                ? Projection("other-admin") with { ProjectionVersion = "ga-v2" }
+                ? Projection("other-admin") with { ProjectionVersion = "ga-v3" }
                 : Projection("admin-user", "other-admin"),
         };
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -415,6 +415,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState
             .ShouldBe(TenantCommandLifecycleState.Confirmed));
         commandGateway.TrackedMessageIds.ShouldBe([messageId, messageId]);
+        commandGateway.StatusHandles.ShouldHaveSingleItem().ShouldBe(new TenantCommandTrackingHandle(
+            messageId,
+            "correlation-remove",
+            GlobalAdministratorRemovePreview.FixedAggregateId));
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
@@ -467,28 +471,56 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
                 .Add(component => component.Intent, intent)
                 .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
-        TenantCommandLifecycleState state = scenario switch
+        string messageId = NUlid.Ulid.NewUlid().ToString();
+        GlobalAdministratorCorrectionSnapshot requestSent = cut.Instance.Snapshot!.RequestSent(messageId);
+        GlobalAdministratorCorrectionSnapshot accepted = requestSent.Accepted(
+            TenantCommandSubmissionResult.Accepted(messageId, "correlation-remove"));
+        GlobalAdministratorCorrectionSnapshot snapshot = scenario switch
         {
-            "rejected" => TenantCommandLifecycleState.Rejected,
-            "failed" => TenantCommandLifecycleState.Failed,
-            "publish-failed" => TenantCommandLifecycleState.Degraded,
-            "timed-out" => TenantCommandLifecycleState.UnableToVerify,
-            _ => TenantCommandLifecycleState.RequestSent,
+            "rejected" => requestSent.ApplySubmissionFailure(
+                TenantCommandSubmissionResult.Rejected("rejected", "LastGlobalAdministrator")),
+            "failed" => requestSent.ApplySubmissionFailure(
+                TenantCommandSubmissionResult.Failed("failed")),
+            "ambiguous" => requestSent.ApplySubmissionFailure(
+                TenantCommandSubmissionResult.Ambiguous(
+                    messageId,
+                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")),
+            "tracked" => accepted,
+            "publish-failed" => accepted.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                HasVerifiedCommandIdentity: true)),
+            "timed-out" => accepted.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.TimedOut,
+                HasVerifiedCommandIdentity: true)),
+            _ => throw new InvalidOperationException($"Unknown scenario '{scenario}'."),
         };
-        bool ambiguous = scenario == "ambiguous";
-        GlobalAdministratorCorrectionSnapshot snapshot = cut.Instance.Snapshot! with
+        string expectedRecovery = scenario switch
         {
-            LifecycleState = state,
-            MessageId = state is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed
-                ? null
-                : "message-remove",
-            CorrelationId = ambiguous || state is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed
-                ? null
-                : "correlation-remove",
-            IsSubmissionAmbiguous = ambiguous,
-            SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Status.Unknown",
-            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Recovery.Test",
+            "rejected" => "Refresh current evidence and review the removal rejection before a new attempt.",
+            "failed" => "Refresh current evidence before starting a new removal attempt.",
+            "ambiguous" => "Refresh evidence, then retry this same tracked removal attempt.",
+            "tracked" => "Refresh the complete fixed-scope projection before continuing.",
+            "publish-failed" => "Refresh tracked status until publication or terminal evidence is available.",
+            "timed-out" => "Refresh the tracked attempt before considering another removal.",
+            _ => throw new InvalidOperationException(),
         };
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        object owner = typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionOwner", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!;
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        if (snapshot.ToReconciliation() is { } reconciliation)
+        {
+            lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
+        }
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionLease", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, lease);
         typeof(GlobalAdministratorCorrectionPanel)
             .GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .SetValue(cut.Instance, snapshot);
@@ -496,7 +528,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Render();
 
         cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
-            .ShouldContain("Removal-specific recovery sentinel");
+            .ShouldBe(expectedRecovery);
     }
 
     [Fact]
@@ -645,6 +677,13 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        commandGateway.StatusHandles.Count.ShouldBe(1);
+        commandGateway.StatusHandles.ShouldAllBe(handle => handle.ShouldBe(new TenantCommandTrackingHandle(
+            "message-safe",
+            "tracking-safe",
+            GlobalAdministratorGrantPreview.FixedAggregateId)));
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
         var replacementOwner = new object();
         TenantAggregateCommandAdmissionGate admissionGate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
         admissionGate.TryAcquireLease(
@@ -857,6 +896,13 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        commandGateway.StatusHandles.Count.ShouldBe(2);
+        commandGateway.StatusHandles.ShouldAllBe(handle => handle.ShouldBe(new TenantCommandTrackingHandle(
+            "message-safe",
+            "tracking-safe",
+            GlobalAdministratorGrantPreview.FixedAggregateId)));
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
 
     [Fact]
@@ -2104,6 +2150,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Refresh evidence, then retry this same tracked removal attempt.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.Rejected"] = "Refresh current evidence and review the removal rejection before a new attempt.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.Failed"] = "Refresh current evidence before starting a new removal attempt.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed"] = "Refresh tracked status until publication or terminal evidence is available.",
+            ["Tenants.GlobalAdministrators.Remove.Recovery.TimedOut"] = "Refresh the tracked attempt before considering another removal.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.Test"] = "Removal-specific recovery sentinel.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection before continuing.",
             ["Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"] = "Removal delivery is ambiguous.",

@@ -289,7 +289,12 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             };
         }
 
-        return UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission");
+        return UnableToVerify("Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission") with
+        {
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
+            IsSubmissionAmbiguous = true,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+        };
     }
 
     /// <summary>Applies exact command-status evidence.</summary>

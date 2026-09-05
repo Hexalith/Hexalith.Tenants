@@ -15,6 +15,7 @@ public sealed class TenantAggregateCommandAdmissionGate
 {
     private readonly object _sync = new();
     private readonly Dictionary<string, object> _ownerByKey = new(StringComparer.Ordinal);
+    private long _nextReconciliationDispatchToken;
 
     /// <summary>Raised after an aggregate admission changes.</summary>
     public event EventHandler? StateChanged;
@@ -262,6 +263,110 @@ public sealed class TenantAggregateCommandAdmissionGate
         }
     }
 
+    internal bool IsReconciliationDispatchInFlight(TenantAggregateCommandLease lease)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        lock (_sync)
+        {
+            return IsActiveLeaseCore(lease) && lease.ActiveReconciliationDispatchToken != 0;
+        }
+    }
+
+    internal bool TryBeginReconciliationDispatch(
+        TenantAggregateCommandLease lease,
+        object owner,
+        GlobalAdministratorReconciliationState expected,
+        out long completionToken)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(expected);
+
+        lock (_sync)
+        {
+            if (!IsOwnedActiveLeaseCore(lease, owner)
+                || !lease.DispatchMarked
+                || lease.ActiveReconciliationDispatchToken != 0
+                || !IsValidReconciliation(expected)
+                || IsTerminal(expected.LifecycleState)
+                || lease.Reconciliation is { } current
+                    && !HasSameReconciliation(current, expected))
+            {
+                completionToken = 0;
+                return false;
+            }
+
+            // Persist the exact delivery basis before any gateway call. This also repairs an older
+            // correlationless RequestSent lease whose first renderer update raced retention.
+            lease.Reconciliation = expected;
+
+            completionToken = ++_nextReconciliationDispatchToken;
+            if (completionToken == 0)
+            {
+                completionToken = ++_nextReconciliationDispatchToken;
+            }
+
+            lease.ActiveReconciliationDispatchToken = completionToken;
+            return true;
+        }
+    }
+
+    internal bool TryCompleteReconciliationDispatch(
+        TenantAggregateCommandLease lease,
+        long completionToken,
+        GlobalAdministratorReconciliationState completion)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(completion);
+
+        bool completed = false;
+        lock (_sync)
+        {
+            if (completionToken == 0
+                || !IsActiveLeaseCore(lease)
+                || lease.ActiveReconciliationDispatchToken != completionToken
+                || lease.Reconciliation is not { } current
+                || !IsValidCompletion(completion)
+                || !HasSameCommandIdentity(current, completion)
+                || IsLifecycleRegression(current.LifecycleState, completion.LifecycleState))
+            {
+                return false;
+            }
+
+            lease.ActiveReconciliationDispatchToken = 0;
+            lease.Reconciliation = completion;
+            completed = true;
+        }
+
+        if (completed)
+        {
+            NotifyStateChanged();
+        }
+
+        return completed;
+    }
+
+    internal bool TryReadReconciliation(
+        TenantAggregateCommandLease lease,
+        object owner,
+        out GlobalAdministratorReconciliationState? reconciliation)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(owner);
+
+        lock (_sync)
+        {
+            if (IsOwnedActiveLeaseCore(lease, owner) && lease.Reconciliation is { } current)
+            {
+                reconciliation = current;
+                return true;
+            }
+
+            reconciliation = null;
+            return false;
+        }
+    }
+
     internal bool TryMarkDispatched(TenantAggregateCommandLease lease, object owner)
     {
         ArgumentNullException.ThrowIfNull(lease);
@@ -352,6 +457,7 @@ public sealed class TenantAggregateCommandAdmissionGate
             {
                 lease.IsReleased = true;
                 lease.CurrentOwner = null;
+                lease.ActiveReconciliationDispatchToken = 0;
             }
         }
 
@@ -383,6 +489,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 lease.IsRetainedForAdoption = false;
                 lease.CurrentOwner = null;
                 lease.Reconciliation = null;
+                lease.ActiveReconciliationDispatchToken = 0;
             }
         }
 
@@ -459,10 +566,29 @@ public sealed class TenantAggregateCommandAdmissionGate
                 => reconciliation.RemovePreview?.IsComplete == true
                     && (!string.IsNullOrWhiteSpace(reconciliation.CorrelationId)
                         || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
+                            or TenantCommandLifecycleState.UnableToVerify
                             && reconciliation.IsSubmissionAmbiguous),
             _ => false,
         };
     }
+
+    private static bool IsValidCompletion(GlobalAdministratorReconciliationState reconciliation)
+        => !string.IsNullOrWhiteSpace(reconciliation.TargetUserId)
+            && !string.IsNullOrWhiteSpace(reconciliation.MessageId)
+            && (reconciliation.ActionKind switch
+            {
+                GlobalAdministratorActionKind.Grant => reconciliation.GrantPreview?.IsComplete == true,
+                GlobalAdministratorActionKind.Remove => reconciliation.RemovePreview?.IsComplete == true,
+                _ => false,
+            });
+
+    private static bool HasSameReconciliation(
+        GlobalAdministratorReconciliationState current,
+        GlobalAdministratorReconciliationState expected)
+        => HasSameCommandIdentity(current, expected)
+            && current.LifecycleState == expected.LifecycleState
+            && current.HasCommandEventEvidence == expected.HasCommandEventEvidence
+            && current.IsSubmissionAmbiguous == expected.IsSubmissionAmbiguous;
 
     private static bool HasSameCommandIdentity(
         GlobalAdministratorReconciliationState current,

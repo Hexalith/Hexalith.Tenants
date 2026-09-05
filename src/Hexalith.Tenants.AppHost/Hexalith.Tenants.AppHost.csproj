@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
     <UserSecretsId>hexalith-tenants</UserSecretsId>
+    <DefineConstants Condition="'$(HexalithMemoriesFromSource)' == 'true'">$(DefineConstants);HEXALITH_MEMORIES_FROM_SOURCE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

@@ -40,6 +40,8 @@ using RedisConnectionMultiplexer = StackExchange.Redis.IConnectionMultiplexer;
 using RedisDatabase = StackExchange.Redis.IDatabase;
 using RedisValue = StackExchange.Redis.RedisValue;
 
+using CommandStatus = Hexalith.EventStore.Contracts.Commands.CommandStatus;
+
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>

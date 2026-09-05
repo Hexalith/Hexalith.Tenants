@@ -129,6 +129,72 @@ public sealed class TenantsBffCompositionTests
     [Fact]
     public async Task RemovalPreviewReadinessAndSelfRemovalHoldAgainstShippedEnglishAndFrenchResources()
     {
+        string[] canonicalRemoveKeys =
+        [
+            "Tenants.GlobalAdministrators.Remove.Launch",
+            "Tenants.GlobalAdministrators.Remove.Preview.Title",
+            "Tenants.GlobalAdministrators.Remove.Preview.Scope",
+            "Tenants.GlobalAdministrators.Remove.Preview.Scope.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Target",
+            "Tenants.GlobalAdministrators.Remove.Preview.Target.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Counts",
+            "Tenants.GlobalAdministrators.Remove.Preview.Counts.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange",
+            "Tenants.GlobalAdministrators.Remove.Preview.AuthorityChange.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Freshness",
+            "Tenants.GlobalAdministrators.Remove.Preview.Freshness.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Audit",
+            "Tenants.GlobalAdministrators.Remove.Preview.Audit.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext",
+            "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Other.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences",
+            "Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns",
+            "Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value",
+            "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge",
+            "Tenants.GlobalAdministrators.Remove.Preview.Confirm",
+            "Tenants.GlobalAdministrators.Remove.Cancel",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Authorization",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator",
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Authorization",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Target",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.TargetMissing",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.LastAdministrator",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization",
+            "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+            "Tenants.GlobalAdministrators.Remove.DeliveryRetry",
+            "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery",
+            "Tenants.GlobalAdministrators.Remove.UnableToVerify.TrackingMismatch",
+            "Tenants.GlobalAdministrators.Remove.UnableToVerify.EventEvidence",
+            "Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout",
+            "Tenants.GlobalAdministrators.Remove.UnableToVerify.UnsupportedSubmission",
+            "Tenants.GlobalAdministrators.Remove.Status.Pending",
+            "Tenants.GlobalAdministrators.Remove.Status.Unknown",
+            "Tenants.GlobalAdministrators.Remove.Status.PublishFailed",
+            "Tenants.GlobalAdministrators.Remove.Status.Rejected",
+            "Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator",
+            "Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound",
+            "Tenants.GlobalAdministrators.Remove.Status.Rejected.Permission",
+            "Tenants.GlobalAdministrators.Remove.Status.TimedOut",
+            "Tenants.GlobalAdministrators.Remove.Status.Failed",
+            "Tenants.GlobalAdministrators.Remove.Recovery.Rejected",
+            "Tenants.GlobalAdministrators.Remove.Recovery.Failed",
+            "Tenants.GlobalAdministrators.Remove.Recovery.PublishFailed",
+            "Tenants.GlobalAdministrators.Remove.Recovery.TimedOut",
+            "Tenants.GlobalAdministrators.Remove.Confirm.EvidenceRequired",
+            "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent",
+            "Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced",
+            "Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify",
+        ];
+        TenantsBffComposition.RequiredRemoveFactKeys.ShouldBe(canonicalRemoveKeys);
         ServiceProvider provider = new ServiceCollection()
             .AddLogging()
             .AddLocalization()
@@ -151,11 +217,6 @@ public sealed class TenantsBffCompositionTests
         preview.CurrentAdministratorCount.ShouldBe(2);
         preview.ResultingAdministratorCount.ShouldBe(1);
         preview.TargetUserId.ShouldBe("  Target.Admin  ");
-        TenantsBffComposition.RequiredRemoveFactKeys.ShouldContain(
-            "Tenants.GlobalAdministrators.Remove.Preview.Target.Value");
-        TenantsBffComposition.RequiredRemoveFactKeys.ShouldContain(
-            "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge");
-
         CultureInfo priorUiCulture = CultureInfo.CurrentUICulture;
         try
         {
@@ -167,7 +228,7 @@ public sealed class TenantsBffCompositionTests
                 IReadOnlyDictionary<string, LocalizedString> shipped = localizer
                     .GetAllStrings(includeParentCultures: true)
                     .ToDictionary(static resource => resource.Name, StringComparer.Ordinal);
-                foreach (string key in TenantsBffComposition.RequiredRemoveFactKeys)
+                foreach (string key in canonicalRemoveKeys)
                 {
                     shipped.ShouldContainKey(key);
                     shipped[key].Value.ShouldNotBeNullOrWhiteSpace();

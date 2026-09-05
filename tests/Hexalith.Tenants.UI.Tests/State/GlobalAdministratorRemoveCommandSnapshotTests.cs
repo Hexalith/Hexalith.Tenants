@@ -61,11 +61,18 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
                 EventCount: 0,
                 HasVerifiedCommandIdentity: true))
             .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        sent.ApplySubmission(new TenantCommandSubmissionResult(
+        GlobalAdministratorRemoveCommandSnapshot unsupported = sent.ApplySubmission(
+            new TenantCommandSubmissionResult(
                 TenantCommandLifecycleState.AlreadyApplied,
                 MessageId,
-                "correlation-1"))
-            .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+                "correlation-1"));
+        unsupported.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        unsupported.MessageId.ShouldBe(MessageId);
+        unsupported.CorrelationId.ShouldBeNull();
+        unsupported.PreviewEvidence.ShouldBeSameAs(sent.PreviewEvidence);
+        unsupported.IsSubmissionAmbiguous.ShouldBeTrue();
+        unsupported.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery");
     }
 
     [Fact]

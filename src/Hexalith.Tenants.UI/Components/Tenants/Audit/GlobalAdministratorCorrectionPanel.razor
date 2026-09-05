@@ -291,9 +291,9 @@
         GlobalAdministratorCorrectionSnapshot snapshot,
         string fallbackKey)
         => snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
-            && !string.IsNullOrWhiteSpace(snapshot.SafeRecoveryKey)
-                ? snapshot.SafeRecoveryKey
-                : fallbackKey;
+            ? snapshot.SafeRecoveryKey
+                ?? "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"
+            : fallbackKey;
 
     private GlobalAdministratorCorrectionDecision DisabledDecision(
         GlobalAdministratorCorrectionSnapshot snapshot,
@@ -543,6 +543,7 @@
         {
             await InvokeAsync(() =>
             {
+                SynchronizeOwnedReconciliation();
                 if (!CanOwnReconciliation())
                 {
                     RetainReconciliationForReplacement();
@@ -554,10 +555,7 @@
 
                 StateHasChanged();
             }).ConfigureAwait(false);
-            if (_admissionLease?.IsDispatchMarked == true && CanOwnReconciliation())
-            {
-                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
-            }
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -874,7 +872,7 @@
             if (resumeAdopted)
             {
                 TryAdoptEligibleReconciliation();
-                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -934,6 +932,7 @@
         long generation = Interlocked.Increment(ref _operationGeneration);
         try
         {
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
             if (!await ReauthorizeAsync(generation).ConfigureAwait(false)
                 || !CreateCorrectionDecision().CanRefresh)
             {
@@ -953,6 +952,18 @@
         finally
         {
             Volatile.Write(ref _refreshInFlight, 0);
+            if (!_disposed)
+            {
+                try
+                {
+                    await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The refresh completed after this panel was replaced.
+                }
+            }
+
             await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
     }
@@ -1043,6 +1054,16 @@
         }
 
         TenantAggregateCommandLease submissionLease = _admissionLease!;
+        if (deliveryBasis.ToReconciliation() is not { } deliveryReconciliation
+            || !submissionLease.TryBeginReconciliationDispatch(
+                _admissionOwner,
+                deliveryReconciliation,
+                out long completionToken))
+        {
+            SynchronizeOwnedReconciliation();
+            return;
+        }
+
         TenantCommandSubmissionResult result;
         try
         {
@@ -1070,9 +1091,11 @@
         GlobalAdministratorCorrectionSnapshot deliverySnapshot = result.State is TenantCommandLifecycleState.Accepted
             ? deliveryBasis.Accepted(result)
             : deliveryBasis.ApplySubmissionFailure(result);
-        if (deliverySnapshot.ToReconciliation() is { } durableReconciliation)
+        if (deliverySnapshot.ToCompletionReconciliation() is not { } completion
+            || !submissionLease.TryCompleteReconciliationDispatch(completionToken, completion))
         {
-            _ = submissionLease.TryAdvanceReconciliation(_admissionOwner, durableReconciliation);
+            SynchronizeOwnedReconciliation();
+            return;
         }
 
         bool deliveryApplied = false;
@@ -1092,7 +1115,7 @@
         if (resumeAdopted)
         {
             TryAdoptEligibleReconciliation();
-            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
             return;
         }
 
@@ -1149,7 +1172,7 @@
             if (resumeAdopted)
             {
                 TryAdoptEligibleReconciliation();
-                await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+                await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
             }
 
             return;
@@ -1206,7 +1229,7 @@
         if (statusResumeAdopted)
         {
             TryAdoptEligibleReconciliation();
-            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
             return;
         }
 
@@ -1287,7 +1310,7 @@
         if (projectionResumeAdopted)
         {
             TryAdoptEligibleReconciliation();
-            await ResumeAdoptedReconciliationAsync().ConfigureAwait(false);
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
     }
 
@@ -1449,7 +1472,7 @@
             return;
         }
 
-        _snapshot = _snapshot.WithReconciliation(reconciliation);
+        SetSnapshot(_snapshot.WithReconciliation(reconciliation), focusTerminalState: true);
     }
 
     private void TryAdoptEligibleReconciliation()
@@ -1465,7 +1488,9 @@
                     : GlobalAdministratorActionKind.Grant,
                 snapshot.TargetUserId,
                 out TenantAggregateCommandLease? lease,
-                out GlobalAdministratorReconciliationState? reconciliation) is not true)
+                out GlobalAdministratorReconciliationState? reconciliation) is not true
+            || lease is null
+            || reconciliation is null)
         {
             return;
         }
@@ -1473,7 +1498,36 @@
         _admissionLease = lease;
         _adoptedReconciliation = reconciliation;
         ApplyAdoptedReconciliation();
-        Volatile.Write(ref _resumeAdoptedPending, 1);
+        if (reconciliation.CorrelationId is not null
+            || reconciliation.ActionKind is GlobalAdministratorActionKind.Grant)
+        {
+            Volatile.Write(ref _resumeAdoptedPending, 1);
+        }
+    }
+
+    private void SynchronizeOwnedReconciliation()
+    {
+        if (_admissionLease?.TryReadReconciliation(
+                _admissionOwner,
+                out GlobalAdministratorReconciliationState? reconciliation) is not true
+            || reconciliation is null
+            || _snapshot is null
+            || !MatchesSnapshot(reconciliation, _snapshot)
+            || Equals(reconciliation, _adoptedReconciliation))
+        {
+            return;
+        }
+
+        _adoptedReconciliation = reconciliation;
+        ApplyAdoptedReconciliation();
+        if (reconciliation.CorrelationId is not null
+            && reconciliation.LifecycleState is TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify)
+        {
+            Volatile.Write(ref _resumeAdoptedPending, 1);
+        }
     }
 
     private async Task DrainAdoptedReconciliationAsync()
@@ -1526,6 +1580,7 @@
 
     private void RetainReconciliationForReplacement()
     {
+        SynchronizeOwnedReconciliation();
         GlobalAdministratorReconciliationState? reconciliation = _snapshot?.ToReconciliation();
         reconciliation ??= _adoptedReconciliation;
         if (reconciliation is not null

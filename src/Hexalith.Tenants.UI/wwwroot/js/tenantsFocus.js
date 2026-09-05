@@ -19,3 +19,17 @@ export function focusCorrectionLauncher(auditReference) {
 
   return false;
 }
+
+export function focusElementById(elementId) {
+  if (!elementId) {
+    return false;
+  }
+
+  const target = document.getElementById(elementId);
+  if (!target) {
+    return false;
+  }
+
+  target.focus({ preventScroll: false });
+  return document.activeElement === target;
+}

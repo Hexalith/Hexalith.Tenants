@@ -138,8 +138,14 @@ public sealed class GlobalAdministratorsSnapshotTests
                     "operator.admin",
                     GlobalAdministratorsSnapshot.Ready(
                         [
-                            new GlobalAdministratorRow("admin.secret", ReadModelFreshnessState.Current),
-                            new GlobalAdministratorRow("admin.other", ReadModelFreshnessState.Current),
+                            new GlobalAdministratorRow(
+                                "admin.secret",
+                                ReadModelFreshnessState.Current,
+                                ProjectionLifecycleState.Current),
+                            new GlobalAdministratorRow(
+                                "admin.other",
+                                ReadModelFreshnessState.Current,
+                                ProjectionLifecycleState.Current),
                         ],
                         null,
                         false,
