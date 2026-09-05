@@ -23,6 +23,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -32,6 +33,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 using Shouldly;
+
+using StackExchange.Redis;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
@@ -101,6 +104,103 @@ public class AspireTopologyTests : IDisposable {
         using HttpResponseMessage response = await _fixture.SampleClient.GetAsync("/alive");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [DaprFact]
+    [Trait("Tier", "3")]
+    public async Task Generated_tenants_api_get_tenant_reads_verified_redis_state_without_projection_authority() {
+        _fixture.SkipIfUnavailable();
+
+        string token = CreateDemoJwt();
+        string tenantId = $"provenance-{Guid.NewGuid():N}";
+        string tenantName = $"Provenance {Guid.NewGuid():N}";
+        const string tenantDescription = "Created by the Story 4.7 persisted-route proof";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
+        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "global-administrators",
+                "global-administrators",
+                nameof(BootstrapGlobalAdmin),
+                new BootstrapGlobalAdmin("admin-user")),
+            token,
+            timeout.Token,
+            allowAlreadyBootstrappedConflict: true);
+        (bootstrapStatus.Status == "Completed"
+            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+
+        CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "tenants",
+                tenantId,
+                nameof(CreateTenant),
+                new CreateTenant(tenantId, tenantName, tenantDescription)),
+            token,
+            timeout.Token);
+        createStatus.Status.ShouldBe("Completed");
+
+        TenantReadModel persisted = await WaitForPersistedTenantAsync(tenantId, timeout.Token);
+        persisted.TenantId.ShouldBe(tenantId);
+        persisted.Name.ShouldBe(tenantName);
+        persisted.Description.ShouldBe(tenantDescription);
+        persisted.Status.ShouldBe(TenantStatus.Active);
+        persisted.ProjectedAt.ShouldNotBeNull();
+        persisted.ProjectionVersion.ShouldNotBeNull().ShouldStartWith("tenant-sequence:");
+
+        using var rawRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/tenants/{tenantId}");
+        rawRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        rawRequest.Headers.IfNoneMatch.ParseAdd("\"conflicting-validator\"");
+        using HttpResponseMessage rawResponse = await _fixture.TenantsApiClient.SendAsync(
+            rawRequest,
+            timeout.Token);
+        string rawContent = await rawResponse.Content.ReadAsStringAsync(timeout.Token);
+
+        rawResponse.StatusCode.ShouldBe(HttpStatusCode.OK, rawContent);
+        rawResponse.Headers.GetValues("X-Hexalith-Query-Provenance").ShouldHaveSingleItem().ShouldBe("HandlerComputed");
+        rawResponse.Headers.ETag.ShouldBeNull();
+        rawResponse.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        rawResponse.Headers.Contains("X-Hexalith-Is-Stale").ShouldBeFalse();
+        rawResponse.Headers.Contains("X-Hexalith-Is-Degraded").ShouldBeFalse();
+        rawResponse.Headers.Contains(ProjectionLifecyclePolicy.HeaderName).ShouldBeFalse();
+
+        using JsonDocument rawDocument = JsonDocument.Parse(rawContent);
+        JsonElement rawPayload = rawDocument.RootElement;
+        GetStringProperty(rawPayload, "tenantId").ShouldBe(persisted.TenantId);
+        GetStringProperty(rawPayload, "name").ShouldBe(persisted.Name);
+        GetStringProperty(rawPayload, "description").ShouldBe(persisted.Description);
+        rawPayload.TryGetProperty("metadata", out _).ShouldBeFalse();
+        rawPayload.TryGetProperty("projectionVersion", out _).ShouldBeFalse();
+        rawPayload.TryGetProperty("projectedAt", out _).ShouldBeFalse();
+
+        AuthenticationHeaderValue? previousAuthorization = _fixture.TenantsApiClient.DefaultRequestHeaders.Authorization;
+        try {
+            _fixture.TenantsApiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var client = new TenantsRestQueryClient(_fixture.TenantsApiClient);
+
+            TenantsRestQueryResponse<TenantDetail> typed = await client.GetTenantAsync(
+                new GetTenantQuery { TenantId = tenantId },
+                "conflicting-validator",
+                timeout.Token);
+
+            typed.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
+            typed.StatusCode.ShouldBe((int)HttpStatusCode.OK);
+            typed.Payload.ShouldNotBeNull().TenantId.ShouldBe(persisted.TenantId);
+            typed.Payload.Name.ShouldBe(persisted.Name);
+            typed.Payload.Description.ShouldBe(persisted.Description);
+            typed.Metadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
+            typed.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+            typed.Metadata.ETag.ShouldBeNull();
+            typed.Metadata.IsNotModified.ShouldBe(false);
+            typed.Metadata.ProjectionVersion.ShouldBeNull();
+            typed.Metadata.IsStale.ShouldBeNull();
+            typed.Metadata.IsDegraded.ShouldBeNull();
+        }
+        finally {
+            _fixture.TenantsApiClient.DefaultRequestHeaders.Authorization = previousAuthorization;
+        }
     }
 
     [DaprFact]
@@ -268,6 +368,44 @@ public class AspireTopologyTests : IDisposable {
         accepted.CorrelationId.ShouldNotBeNullOrWhiteSpace();
 
         return await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, cancellationToken);
+    }
+
+    private static async Task<TenantReadModel> WaitForPersistedTenantAsync(
+        string tenantId,
+        CancellationToken cancellationToken) {
+        string redisEndpoint = $"localhost:{DaprDiagnostics.ResolveRedisPort()}";
+        string persistedKey = $"tenants||projection:tenants:{tenantId}";
+        using IConnectionMultiplexer redis = await ConnectionMultiplexer.ConnectAsync(new ConfigurationOptions {
+            EndPoints = { redisEndpoint },
+            ConnectTimeout = 5_000,
+            SyncTimeout = 5_000,
+            AbortOnConnectFail = false,
+            AllowAdmin = false,
+        });
+        IDatabase database = redis.GetDatabase();
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(SampleProjectionTimeout);
+        string? lastPayload = null;
+
+        while (DateTimeOffset.UtcNow <= deadline) {
+            cancellationToken.ThrowIfCancellationRequested();
+            RedisValue value = await database
+                .HashGetAsync(persistedKey, "data")
+                .WaitAsync(cancellationToken);
+            if (value.HasValue) {
+                lastPayload = value.ToString();
+                TenantReadModel? model = JsonSerializer.Deserialize<TenantReadModel>(lastPayload, WebJsonOptions);
+                if (model is not null
+                    && string.Equals(model.TenantId, tenantId, StringComparison.Ordinal)) {
+                    return model;
+                }
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+        }
+
+        throw new TimeoutException(
+            $"Redis key '{persistedKey}' did not contain the expected tenant read model within {SampleProjectionTimeout}. "
+            + $"Last payload present: {lastPayload is not null}.");
     }
 
     private static async Task<CommandStatusResponse> WaitForTerminalStatusAsync(
