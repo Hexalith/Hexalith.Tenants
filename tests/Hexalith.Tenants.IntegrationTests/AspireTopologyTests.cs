@@ -34,7 +34,11 @@ using Microsoft.IdentityModel.Tokens;
 
 using Shouldly;
 
-using StackExchange.Redis;
+using RedisConfigurationOptions = StackExchange.Redis.ConfigurationOptions;
+using RedisConnection = StackExchange.Redis.ConnectionMultiplexer;
+using RedisConnectionMultiplexer = StackExchange.Redis.IConnectionMultiplexer;
+using RedisDatabase = StackExchange.Redis.IDatabase;
+using RedisValue = StackExchange.Redis.RedisValue;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
@@ -149,6 +153,47 @@ public class AspireTopologyTests : IDisposable {
         persisted.Status.ShouldBe(TenantStatus.Active);
         persisted.ProjectedAt.ShouldNotBeNull();
         persisted.ProjectionVersion.ShouldNotBeNull().ShouldStartWith("tenant-sequence:");
+
+        var eventStoreQuery = new SubmitQueryRequest(
+            "system",
+            GetTenantQuery.Domain,
+            tenantId,
+            GetTenantQuery.QueryType,
+            GetTenantQuery.ProjectionType,
+            EntityId: tenantId);
+        using var eventStoreRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/queries") {
+            Content = JsonContent.Create(eventStoreQuery, options: WebJsonOptions),
+        };
+        eventStoreRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        eventStoreRequest.Headers.IfNoneMatch.ParseAdd("\"conflicting-validator\"");
+        using HttpResponseMessage eventStoreResponse = await _fixture.CommandApiClient.SendAsync(
+            eventStoreRequest,
+            timeout.Token);
+
+        eventStoreResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        eventStoreResponse.Headers.GetValues("X-Hexalith-Query-Provenance")
+            .ShouldHaveSingleItem()
+            .ShouldBe("HandlerComputed");
+        eventStoreResponse.Headers.ETag.ShouldBeNull();
+        eventStoreResponse.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        eventStoreResponse.Headers.Contains("X-Hexalith-Is-Stale").ShouldBeFalse();
+        eventStoreResponse.Headers.Contains("X-Hexalith-Is-Degraded").ShouldBeFalse();
+        eventStoreResponse.Headers.Contains(ProjectionLifecyclePolicy.HeaderName).ShouldBeFalse();
+        SubmitQueryResponse eventStoreResult = (await eventStoreResponse.Content.ReadFromJsonAsync<SubmitQueryResponse>(
+            WebJsonOptions,
+            timeout.Token)).ShouldNotBeNull();
+        eventStoreResult.Success.ShouldBeTrue();
+        GetStringProperty(eventStoreResult.Payload, "tenantId").ShouldBe(persisted.TenantId);
+        GetStringProperty(eventStoreResult.Payload, "name").ShouldBe(persisted.Name);
+        GetStringProperty(eventStoreResult.Payload, "description").ShouldBe(persisted.Description);
+        QueryResponseMetadata eventStoreMetadata = eventStoreResult.Metadata.ShouldNotBeNull();
+        eventStoreMetadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
+        eventStoreMetadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        eventStoreMetadata.ETag.ShouldBeNull();
+        eventStoreMetadata.IsNotModified.ShouldBeNull();
+        eventStoreMetadata.ProjectionVersion.ShouldBeNull();
+        eventStoreMetadata.IsStale.ShouldBeNull();
+        eventStoreMetadata.IsDegraded.ShouldBeNull();
 
         using var rawRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/tenants/{tenantId}");
         rawRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -373,16 +418,16 @@ public class AspireTopologyTests : IDisposable {
     private static async Task<TenantReadModel> WaitForPersistedTenantAsync(
         string tenantId,
         CancellationToken cancellationToken) {
-        string redisEndpoint = $"localhost:{DaprDiagnostics.ResolveRedisPort()}";
+        string redisEndpoint = $"localhost:{DaprDiagnostics.DefaultRedisPort}";
         string persistedKey = $"tenants||projection:tenants:{tenantId}";
-        using IConnectionMultiplexer redis = await ConnectionMultiplexer.ConnectAsync(new ConfigurationOptions {
+        using RedisConnectionMultiplexer redis = await RedisConnection.ConnectAsync(new RedisConfigurationOptions {
             EndPoints = { redisEndpoint },
             ConnectTimeout = 5_000,
             SyncTimeout = 5_000,
             AbortOnConnectFail = false,
             AllowAdmin = false,
         });
-        IDatabase database = redis.GetDatabase();
+        RedisDatabase database = redis.GetDatabase();
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(SampleProjectionTimeout);
         string? lastPayload = null;
 
