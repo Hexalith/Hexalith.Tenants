@@ -287,6 +287,15 @@
     "label": "Deprecate compatibly",
     "resolution": ""
   },
+  "DW-337": {
+    "answered_at": "2026-09-06",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.",
+    "key": "1",
+    "label": "Unify ambiguity semantics",
+    "resolution": ""
+  },
   "DW-340": {
     "answered_at": "2026-09-02",
     "bundle_name": "",

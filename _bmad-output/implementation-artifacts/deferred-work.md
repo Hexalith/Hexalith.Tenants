@@ -2779,6 +2779,7 @@ severity: low
 reason: `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
 status: open
 decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
+decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
 
 ### DW-338: Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
 origin: spec-deferred 0ab333618257
