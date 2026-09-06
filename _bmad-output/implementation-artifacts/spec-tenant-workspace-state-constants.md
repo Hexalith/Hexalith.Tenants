@@ -22,7 +22,7 @@ deferred:
 
 ## Intent
 
-**Problem:** `TenantsWorkspace` duplicates the `tenants`/`users` tab identifiers and `all`/`mine` scope identifiers already owned by `TenantWorkspaceState`. Equal values currently hide the split ownership, so changing either copy can silently disconnect normalized URL state from the rendered tab or scope.
+**Problem:** At the story's original pre-change baseline, `TenantsWorkspace` duplicated the `tenants`/`users` tab identifiers and `all`/`mine` scope identifiers already owned by `TenantWorkspaceState`. Equal values hid the split ownership, so changing either copy could silently disconnect normalized URL state from the rendered tab or scope.
 
 **Approach:** Remove the Razor-local identifier constants and consume the public `TenantWorkspaceState` constants throughout the workspace. Add focused state-contract and bUnit routing coverage that jointly pins the canonical identifier vocabulary and proves each normalized identifier activates its intended surface.
 
@@ -32,7 +32,7 @@ deferred:
 
 **Never:** Do not edit the deferred-work ledger or bundle intent, change route shapes or public identifier values, add aliases, alter unrelated workspace behavior, weaken existing tests, or modify FrontComposer/submodule code.
 
-**Re-drive authority:** This `<intent-contract>` block is authoritative for every fresh development drive. Checked execution tasks and Review Triage Log entries are historical evidence only; they do not prove that the current `HEAD` working tree contains the implementation. Inspect the current `HEAD` working tree, preserve any conforming work already present, complete any missing work, and verify every acceptance criterion before reporting completion.
+**Re-drive authority:** This `<intent-contract>` block is authoritative for every fresh development drive. Checked execution tasks and Review Triage Log entries are historical evidence only; they do not prove that the current `HEAD` working tree contains the implementation. Inspect the current `HEAD` working tree, preserve any conforming work already present, complete any missing work, and verify every acceptance criterion before reporting completion. When that inspection confirms the recorded baseline already satisfies every criterion, the re-drive is verification/finalization-only and must not manufacture an additional code diff.
 
 **Verification responsibility:** Verify `TenantWorkspaceState`'s sole production ownership of the four canonical identifier literals through focused production-source inspection. Automated tests must pin the four values and route behavior, but they are not required to parse source or fail solely because an equal-value duplicate is introduced under a different symbol name.
 
@@ -45,6 +45,7 @@ deferred:
 | Users | `tab=users&scope=all` using state-owned identifiers | Users tab and membership lookup surface render | Inapplicable scope remains normalized to `all` |
 | Users with inapplicable scope | `tab=users&scope=mine` using state-owned identifiers | Normalize to `tab=users&scope=all`; users tab and membership lookup surface render | Treat `mine` as inapplicable to users, not as a retained ignored value |
 | Identifier contract | State constants are evaluated | Values remain `tenants`, `users`, `all`, and `mine` | Test fails on route-vocabulary drift |
+| Already-satisfied re-drive baseline | Recorded baseline contains the production and test changes and satisfies source inspection | Verify the existing implementation and proceed to finalization without requiring an additional code diff | Block only when inspection or required verification identifies an unmet acceptance criterion |
 | Concurrent repository changes | After a clean baseline, working-tree changes remain outside this bundle and every such path is explicitly attributable to another workflow | Leave those paths untouched and complete this bundle only after its owned paths are committed and clean and required verification passes | Record ownership as residual risk; do not stage, commit, revert, or edit those paths; unattributed or bundle-owned dirt remains blocking |
 
 </intent-contract>
@@ -52,7 +53,7 @@ deferred:
 ## Code Map
 
 - `src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:48` -- Existing public constants `TenantsTab`, `UsersTab`, `AllScope`, and `MyScope` already drive normalization, transitions, and canonical URL serialization; this remains the single production owner.
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:43` -- Tab IDs, scope option values, retained state, routing comparisons, normalization, and `ApplyWorkspaceState` currently consume four private duplicate constants declared near line 285; replace every duplicate reference with `TenantWorkspaceState` constants and delete the private declarations.
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:43` -- The recorded baseline consumes `TenantWorkspaceState` constants for tab IDs, scope option values, retained state, routing comparisons, normalization, and `ApplyWorkspaceState`; no Razor-local duplicate declarations remain.
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs:8` -- Focused xUnit/Shouldly state coverage; add a contract test pinning all four public identifiers to architecture AD-2's canonical values.
 - `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:93` -- Existing bUnit route/surface tests and shared gateway stubs; add parameterized routing coverage constructed from the state-owned identifiers and assert the active FrontComposer tab plus all/mine/users outer surface.
 - `_bmad-output/planning-artifacts/architecture.md:82` -- Read-only source of truth: AD-2 defines canonical tab/scope values and AD-11 requires focused bUnit/conformance guards.
@@ -69,7 +70,7 @@ deferred:
 - Given the production UI source, when tab and scope identifiers are inspected, then only `TenantWorkspaceState` declares the four canonical literal values and `TenantsWorkspace` consumes those constants everywhere.
 - Given canonical all-tenants, my-tenants, and users query state, when `TenantsWorkspace` renders, then the FrontComposer active tab and visible domain surface match the normalized state-owned identifiers.
 - Given `tab=users&scope=mine`, when workspace state is normalized, then the result is `tab=users&scope=all`, and the users tab and membership lookup surface render.
-- Given the state identifier contract, when any tab or scope constant drifts from `tenants`, `users`, `all`, or `mine`, then focused state coverage fails; when workspace routing stops consuming/matching those constants, then focused bUnit routing coverage fails.
+- Given the state identifier contract, when any tab or scope constant drifts from `tenants`, `users`, `all`, or `mine`, then focused state coverage fails; when workspace routing behavior diverges from those state-owned identifiers, then focused bUnit routing coverage fails. Direct single ownership remains a source-inspection criterion rather than a source-parsing test requirement.
 - Given the completed change, when the focused UI test project is built and the relevant state/routing tests run, then all existing and new checks pass with warnings treated as errors.
 - Given finalization finds remaining working-tree changes, when this bundle's owned paths are committed and clean, required verification has passed, and every remaining dirty path is explicitly attributed to concurrent work and recorded as untouched and out of scope, then repository-wide dirtiness is reported as residual risk and does not block this bundle's completion; any unattributed or bundle-owned dirt does block completion.
 
