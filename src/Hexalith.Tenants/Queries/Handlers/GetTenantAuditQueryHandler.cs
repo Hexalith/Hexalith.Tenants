@@ -40,7 +40,12 @@ public sealed class GetTenantAuditQueryHandler(
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
         }
 
-        string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
+        string scope = TenantQueryCursorScopes.GetTenantAudit(
+            envelope.UserId,
+            envelope.AggregateId,
+            query.From,
+            query.To,
+            query.Category);
         if (!CursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
         }

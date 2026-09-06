@@ -107,7 +107,7 @@ public sealed record TenantCorrectionStartIntent(
 
         TenantCorrectionCommandDomain? domain = null;
         TenantCorrectionCommandType? commandType = null;
-        string targetUserId = ReferenceValue(context.Row, "userId") ?? context.Row.Target;
+        string targetUserId = context.Row.Narrative?.UserId ?? context.Row.Target;
         string tenantScope = context.Row.Scope;
 
         switch (context.Row.EventType) {
@@ -260,12 +260,4 @@ public sealed record TenantCorrectionStartIntent(
         }
     }
 
-    private static string? ReferenceValue(TenantAuditRow row, string key) {
-        string marker = key + ": ";
-        string? segment = row.ReferenceContext
-            .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(value => value.StartsWith(marker, StringComparison.Ordinal));
-
-        return segment?.Length > marker.Length ? segment[marker.Length..] : null;
-    }
 }

@@ -4187,4 +4187,26 @@
   <data name="Tenants.GlobalAdministrators.Remove.Recovery.TimedOut" xml:space="preserve"><value>Actualisez la tentative suivie avant d’envisager une autre suppression.</value></data>
   <data name="Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced" xml:space="preserve"><value>La projection complète n’a pas avancé au-delà de l’aperçu de suppression.</value></data>
   <data name="Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify" xml:space="preserve"><value>La projection complète après commande n’a pas pu être vérifiée.</value></data>
+  <data name="Tenants.Audit.Filter.FromUtc" xml:space="preserve"><value>Début (UTC)</value></data>
+  <data name="Tenants.Audit.Filter.ToUtc" xml:space="preserve"><value>Fin (UTC)</value></data>
+  <data name="Tenants.Audit.Filter.Validation.FromUtc" xml:space="preserve"><value>Saisissez la date et l’heure de début au format UTC indiqué par le contrôle.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.ToUtc" xml:space="preserve"><value>Saisissez la date et l’heure de fin au format UTC indiqué par le contrôle.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.Range" xml:space="preserve"><value>La date et l’heure de début ne doivent pas être postérieures à la date et l’heure de fin.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.Category" xml:space="preserve"><value>Sélectionnez Accès, Administration ou toutes les catégories.</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Reset" xml:space="preserve"><value>Réinitialiser les filtres</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Refresh" xml:space="preserve"><value>Actualiser l’audit</value></data>
+  <data name="Tenants.Audit.Recovery.Action.ContinueReadOnly" xml:space="preserve"><value>Continuer avec les dernières lignes confirmées</value></data>
+  <data name="Tenants.Audit.Recovery.Action.RequestPermission" xml:space="preserve"><value>Demander l’autorisation d’audit</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Escalate" xml:space="preserve"><value>Escalader sans diagnostics</value></data>
+  <data name="Tenants.Audit.Recovery.Empty" xml:space="preserve"><value>Actualisez pour vérifier si des preuves d’audit autorisées sont désormais disponibles.</value></data>
+  <data name="Tenants.Audit.Recovery.FilteredEmpty" xml:space="preserve"><value>Réinitialisez les filtres ou actualisez cette portée exacte de locataire et de filtres.</value></data>
+  <data name="Tenants.Audit.Recovery.Stale" xml:space="preserve"><value>Actualisez avant de considérer les preuves comme actuelles, ou continuez en lecture seule avec la limite affichée.</value></data>
+  <data name="Tenants.Audit.Recovery.Degraded" xml:space="preserve"><value>Actualisez la même portée, ou continuez en lecture seule avec les dernières lignes confirmées.</value></data>
+  <data name="Tenants.Audit.Recovery.Unauthorized" xml:space="preserve"><value>Demandez l’autorisation d’audit requise ; les preuves masquées restent indisponibles.</value></data>
+  <data name="Tenants.Audit.Recovery.InvalidCursor" xml:space="preserve"><value>Actualisez pour reprendre en toute sécurité à la première page.</value></data>
+  <data name="Tenants.Audit.Recovery.ListRefreshed" xml:space="preserve"><value>Continuez en lecture seule depuis la première page actualisée ou actualisez à nouveau.</value></data>
+  <data name="Tenants.Audit.Recovery.Unavailable" xml:space="preserve"><value>Réessayez la lecture d’audit, ou escaladez sans inclure de charges utiles, de jetons ni de diagnostics.</value></data>
+  <data name="Tenants.Audit.Recovery.Error" xml:space="preserve"><value>Réessayez la lecture d’audit, ou escaladez uniquement avec un contexte sûr pour le support.</value></data>
+  <data name="Tenants.Audit.Viewport.Pending" xml:space="preserve"><value>Les commandes de correction restent en lecture seule jusqu’à la mesure de la fenêtre du navigateur.</value></data>
+  <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>Cette correction prise en charge est en lecture seule sur téléphone. Utilisez une fenêtre de tablette ou d’ordinateur mesurée pour continuer.</value></data>
 </root>

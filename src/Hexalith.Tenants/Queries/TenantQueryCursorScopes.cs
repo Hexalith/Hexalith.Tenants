@@ -35,12 +35,15 @@ internal static class TenantQueryCursorScopes {
     }
 
     public static string GetTenantAudit(
+        string requesterUserId,
         string tenantId,
         DateTimeOffset? from,
         DateTimeOffset? to,
         AuditEventCategory? category) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(requesterUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         return QueryCursorScope.Create()
+            .Add("requester", requesterUserId)
             .Add("tenant", tenantId)
             .Add("from", from)
             .Add("to", to)

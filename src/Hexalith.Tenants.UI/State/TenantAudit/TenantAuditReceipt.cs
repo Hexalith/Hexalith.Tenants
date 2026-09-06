@@ -138,13 +138,11 @@ public sealed record TenantAuditReceipt(
         => TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));
 
     private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row) {
-        string userMarker = $"userId: {row.Target}";
-        if (row.ReferenceContext.Contains(userMarker, StringComparison.Ordinal)) {
+        if (!string.IsNullOrWhiteSpace(row.Narrative?.UserId)) {
             return SupportSafeCopyValueKind.UserId;
         }
 
-        string keyMarker = $"key: {row.Target}";
-        return row.ReferenceContext.Contains(keyMarker, StringComparison.Ordinal)
+        return !string.IsNullOrWhiteSpace(row.Narrative?.ConfigurationKey)
             ? SupportSafeCopyValueKind.ConfigurationKey
             : SupportSafeCopyValueKind.TenantId;
     }

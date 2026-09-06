@@ -31,6 +31,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
 
         IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, true)
+            .Add(component => component.IsCorrectionViewportSafe, true)
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader)))
             .Add(component => component.OnStartCorrection, value => startedIntent = value));
 
@@ -54,6 +56,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
 
         IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, true)
+            .Add(component => component.IsCorrectionViewportSafe, true)
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value))));
 
         cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldContain("Choose the intended role");
@@ -73,6 +77,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
 
         IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, true)
+            .Add(component => component.IsCorrectionViewportSafe, true)
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader))));
 
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
@@ -94,6 +100,31 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-mobile-read-only']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-viewport-pending']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false, "tenants-correction-viewport-pending")]
+    [InlineData(true, "tenants-correction-mobile-read-only")]
+    public void Audit_grid_distinguishes_unmeasured_and_phone_suppression_for_supported_rows(
+        bool hasMeasurement,
+        string expectedSelector)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantAuditRow row = Row("UserRemovedFromTenant");
+
+        IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, hasMeasurement)
+            .Add(component => component.IsCorrectionViewportSafe, false)
+            .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader))));
+
+        cut.Find($"[data-testid='{expectedSelector}']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-row-timestamp']").TextContent.ShouldContain("UTC");
     }
 
     private static TenantCorrectionStartContext Context(TenantAuditRow row, TenantRole? intendedRole = null)
@@ -119,7 +150,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             eventType is "TenantConfigurationSet" ? "key: billing.mode" : "userId: target-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "target-user"));
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
@@ -146,7 +178,9 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             ["Tenants.Audit.Column.Timestamp"] = "Timestamp",
             ["Tenants.Audit.Copy.EventReference"] = "Copy audit event reference {0}",
             ["Tenants.Audit.Freshness.Current"] = "Current",
+            ["Tenants.Audit.Mobile.ReadOnly"] = "This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue.",
             ["Tenants.Audit.Receipt.Open"] = "View receipt",
+            ["Tenants.Audit.Viewport.Pending"] = "Correction controls remain read-only until the browser viewport is measured.",
             ["Tenants.Correction.Action.RestoreAccess"] = "restore intended access",
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Action.Start"] = "start correction",

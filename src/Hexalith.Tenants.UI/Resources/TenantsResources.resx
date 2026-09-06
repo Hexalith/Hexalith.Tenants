@@ -4187,4 +4187,26 @@
   <data name="Tenants.GlobalAdministrators.Remove.Recovery.TimedOut" xml:space="preserve"><value>Refresh the tracked attempt before considering another removal.</value></data>
   <data name="Tenants.GlobalAdministrators.Remove.Confirm.VersionNotAdvanced" xml:space="preserve"><value>The complete projection has not advanced beyond the removal preview.</value></data>
   <data name="Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify" xml:space="preserve"><value>The complete post-command projection could not be verified.</value></data>
+  <data name="Tenants.Audit.Filter.FromUtc" xml:space="preserve"><value>From (UTC)</value></data>
+  <data name="Tenants.Audit.Filter.ToUtc" xml:space="preserve"><value>To (UTC)</value></data>
+  <data name="Tenants.Audit.Filter.Validation.FromUtc" xml:space="preserve"><value>Enter the From date and time in the UTC format shown by the control.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.ToUtc" xml:space="preserve"><value>Enter the To date and time in the UTC format shown by the control.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.Range" xml:space="preserve"><value>The From date and time must not be after the To date and time.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.Category" xml:space="preserve"><value>Select Access, Administrative, or all categories.</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Reset" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Refresh" xml:space="preserve"><value>Refresh audit</value></data>
+  <data name="Tenants.Audit.Recovery.Action.ContinueReadOnly" xml:space="preserve"><value>Continue with last-confirmed rows</value></data>
+  <data name="Tenants.Audit.Recovery.Action.RequestPermission" xml:space="preserve"><value>Request audit permission</value></data>
+  <data name="Tenants.Audit.Recovery.Action.Escalate" xml:space="preserve"><value>Escalate without diagnostics</value></data>
+  <data name="Tenants.Audit.Recovery.Empty" xml:space="preserve"><value>Refresh to check whether authorized audit evidence is now available.</value></data>
+  <data name="Tenants.Audit.Recovery.FilteredEmpty" xml:space="preserve"><value>Reset the filters or refresh this exact tenant and filter scope.</value></data>
+  <data name="Tenants.Audit.Recovery.Stale" xml:space="preserve"><value>Refresh before treating the evidence as current, or continue read-only with the visible limitation.</value></data>
+  <data name="Tenants.Audit.Recovery.Degraded" xml:space="preserve"><value>Refresh the same scope, or continue read-only with the last-confirmed rows.</value></data>
+  <data name="Tenants.Audit.Recovery.Unauthorized" xml:space="preserve"><value>Request the required audit permission; hidden evidence remains unavailable.</value></data>
+  <data name="Tenants.Audit.Recovery.InvalidCursor" xml:space="preserve"><value>Refresh to restart safely from page one.</value></data>
+  <data name="Tenants.Audit.Recovery.ListRefreshed" xml:space="preserve"><value>Continue read-only from the refreshed first page or refresh again.</value></data>
+  <data name="Tenants.Audit.Recovery.Unavailable" xml:space="preserve"><value>Retry the audit read, or escalate without including payloads, tokens, or diagnostics.</value></data>
+  <data name="Tenants.Audit.Recovery.Error" xml:space="preserve"><value>Retry the audit read, or escalate with support-safe context only.</value></data>
+  <data name="Tenants.Audit.Viewport.Pending" xml:space="preserve"><value>Correction controls remain read-only until the browser viewport is measured.</value></data>
+  <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue.</value></data>
 </root>

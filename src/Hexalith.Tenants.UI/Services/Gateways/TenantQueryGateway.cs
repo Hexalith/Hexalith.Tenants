@@ -1,6 +1,7 @@
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -1023,7 +1024,8 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+        string? authenticatedUserId = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return TenantAuditSnapshot.Unauthorized(request);
         }
 
@@ -1031,55 +1033,93 @@ internal sealed class TenantQueryGateway(
             return TenantAuditSnapshot.Error(request, TenantAuditReason.MissingTenantId);
         }
 
+        string callerScope = AuditCallerScope(authenticatedUserId);
+        if (!IsValidAuditRequest(request)) {
+            return BindAuditCaller(
+                TenantAuditSnapshot.Error(request, TenantAuditReason.InvalidFilters),
+                callerScope);
+        }
+
         try {
-            return await GetTenantAuditCoreAsync(request, previous, isListRefreshed: false, cancellationToken)
+            return await GetTenantAuditCoreAsync(
+                request,
+                previous,
+                authenticatedUserId,
+                callerScope,
+                isListRefreshed: false,
+                cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (EventStoreGatewayException ex) when (
             IsInvalidAuditCursor(ex)
             && !string.IsNullOrWhiteSpace(request.Cursor)) {
+            TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
+            if (identityFailure is not null) {
+                return identityFailure;
+            }
+
             TenantAuditRequest firstPageRequest = request with {
                 Cursor = null,
                 ETag = null,
             };
 
             try {
-                return await GetTenantAuditCoreAsync(firstPageRequest, null, isListRefreshed: true, cancellationToken)
+                return await GetTenantAuditCoreAsync(
+                    firstPageRequest,
+                    null,
+                    authenticatedUserId,
+                    callerScope,
+                    isListRefreshed: true,
+                    cancellationToken)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             }
             catch (EventStoreGatewayException retryException) {
-                return MapTenantAuditException(firstPageRequest, retryException);
+                return AuditIdentityFailure(authenticatedUserId, firstPageRequest)
+                    ?? BindAuditCaller(MapTenantAuditException(firstPageRequest, retryException), callerScope);
             }
             catch (Exception) {
                 SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.Unavailable);
-                return TenantAuditSnapshot.Unavailable(firstPageRequest);
+                return AuditIdentityFailure(authenticatedUserId, firstPageRequest)
+                    ?? BindAuditCaller(TenantAuditSnapshot.Unavailable(firstPageRequest), callerScope);
             }
         }
         catch (EventStoreGatewayException ex) {
-            return CanRetainTenantAudit(previous, request, ex)
+            TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
+            if (identityFailure is not null) {
+                return identityFailure;
+            }
+
+            return CanRetainTenantAudit(previous, request, callerScope, ex)
                 ? RetainTenantAudit(previous!, TenantAuditReason.GatewayFailure)
-                : MapTenantAuditException(request, ex);
+                : BindAuditCaller(MapTenantAuditException(request, ex), callerScope);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
         catch (Exception) {
             SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.Unavailable);
+            TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
+            if (identityFailure is not null) {
+                return identityFailure;
+            }
+
             return previous is not null
                 && IsRetainableTenantAudit(previous)
-                && previous.MatchesScope(request)
+                && previous.MatchesScope(request, callerScope)
                 && MatchesRetainedValidator(request.ETag, previous.ETag)
                     ? RetainTenantAudit(previous, TenantAuditReason.GatewayFailure)
-                    : TenantAuditSnapshot.Unavailable(request);
+                    : BindAuditCaller(TenantAuditSnapshot.Unavailable(request), callerScope);
         }
     }
 
     private async Task<TenantAuditSnapshot> GetTenantAuditCoreAsync(
         TenantAuditRequest request,
         TenantAuditSnapshot? previous,
+        string authenticatedUserId,
+        string callerScope,
         bool isListRefreshed,
         CancellationToken cancellationToken) {
         var query = new GetTenantAuditQuery {
@@ -1090,21 +1130,33 @@ internal sealed class TenantQueryGateway(
             Cursor = request.Cursor,
             PageSize = NormalizePageSize(request.PageSize),
         };
-        EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = ToEventStoreResult(await queryClient
+        TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> response = await queryClient
             .GetTenantAuditAsync(
                 query,
                 request.ETag,
                 cancellationToken)
-            .ConfigureAwait(false), TenantAuditReadName);
+            .ConfigureAwait(false);
+        TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
+        if (identityFailure is not null) {
+            return identityFailure;
+        }
+
+        EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = ToEventStoreResult(response, TenantAuditReadName);
 
         bool hasMatchingPrevious = previous is not null
             && IsRetainableTenantAudit(previous)
-            && previous.MatchesScope(request)
+            && previous.MatchesScope(request, callerScope)
             && MatchesRetainedValidator(request.ETag, previous.ETag);
         if (result.IsNotModified && !hasMatchingPrevious) {
-            result = ToEventStoreResult(await queryClient
+            response = await queryClient
                 .GetTenantAuditAsync(query, eTag: null, cancellationToken)
-                .ConfigureAwait(false), TenantAuditReadName);
+                .ConfigureAwait(false);
+            identityFailure = AuditIdentityFailure(authenticatedUserId, request);
+            if (identityFailure is not null) {
+                return identityFailure;
+            }
+
+            result = ToEventStoreResult(response, TenantAuditReadName);
         }
 
         if (result.IsNotModified) {
@@ -1113,7 +1165,9 @@ internal sealed class TenantQueryGateway(
                 // outage nor degraded evidence. NotModifiedWithoutSnapshot names exactly that, and its
                 // EN/FR copy shipped with no producer -- so the state read as live in tests while the
                 // operator could never reach it.
-                return TenantAuditSnapshot.Error(request, TenantAuditReason.NotModifiedWithoutSnapshot);
+                return BindAuditCaller(
+                    TenantAuditSnapshot.Error(request, TenantAuditReason.NotModifiedWithoutSnapshot),
+                    callerScope);
             }
 
             if (!HasSupportedProjectionVersion(result.Metadata)) {
@@ -1137,6 +1191,7 @@ internal sealed class TenantQueryGateway(
                     .ToArray(),
                 Reason = ResolveTenantAuditReasonForFreshness(previous, notModifiedFreshness),
                 ProjectionVersion = previous.ProjectionVersion,
+                CallerScope = callerScope,
             };
         }
 
@@ -1158,12 +1213,12 @@ internal sealed class TenantQueryGateway(
                         })
                         .ToArray(),
                 }
-                : TenantAuditSnapshot.Error(request);
+                : BindAuditCaller(TenantAuditSnapshot.Error(request), callerScope);
         }
 
-        if (payload.Items.Any(entry => !string.Equals(entry.TenantId, request.TenantId, StringComparison.Ordinal))) {
+        if (!IsValidTenantAuditPayload(payload, request, query.PageSize)) {
             SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.InvalidPayload);
-            return TenantAuditSnapshot.Error(request);
+            return BindAuditCaller(TenantAuditSnapshot.Error(request), callerScope);
         }
 
         ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
@@ -1178,35 +1233,35 @@ internal sealed class TenantQueryGateway(
 
         if (result.Metadata?.IsDegraded == true) {
             rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
-            return TenantAuditSnapshot.Degraded(
+            return BindAuditCaller(TenantAuditSnapshot.Degraded(
                 rows,
                 TenantAuditReason.ProjectionDegraded,
                 request,
                 result.ETag,
                 payload.Cursor,
-                payload.HasMore) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+                payload.HasMore) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
         }
 
         if (freshness is ReadModelFreshnessState.Stale) {
             rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+            return BindAuditCaller(TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
         }
 
         if (isListRefreshed) {
-            return TenantAuditSnapshot.ListRefreshed(
+            return BindAuditCaller(TenantAuditSnapshot.ListRefreshed(
                 rows,
                 payload.Cursor,
                 payload.HasMore,
                 result.ETag,
                 freshness,
-                request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+                request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
         }
 
         if (rows.Count == 0) {
-            return TenantAuditSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+            return BindAuditCaller(TenantAuditSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
         }
 
-        return TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion };
+        return BindAuditCaller(TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
     }
 
     public async Task<TenantListSnapshot> ListTenantsAsync(
@@ -2619,14 +2674,90 @@ internal sealed class TenantQueryGateway(
             or UserTenantMembershipSurfaceKind.Stale
             or UserTenantMembershipSurfaceKind.Degraded;
 
+    internal static string AuditCallerScope(string userId)
+        => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(userId)));
+
+    private static TenantAuditSnapshot BindAuditCaller(TenantAuditSnapshot snapshot, string callerScope)
+        => snapshot with { CallerScope = callerScope };
+
+    private TenantAuditSnapshot? AuditIdentityFailure(string expectedUserId, TenantAuditRequest request)
+    {
+        string? currentUserId = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return TenantAuditSnapshot.Unauthorized(request);
+        }
+
+        return string.Equals(currentUserId, expectedUserId, StringComparison.Ordinal)
+            ? null
+            : BindAuditCaller(TenantAuditSnapshot.Unavailable(request), AuditCallerScope(currentUserId));
+    }
+
+    private static bool IsValidAuditRequest(TenantAuditRequest request)
+        => (request.From is null || (request.From.Value != default(DateTimeOffset) && request.From.Value.Offset == TimeSpan.Zero))
+            && (request.To is null || (request.To.Value != default(DateTimeOffset) && request.To.Value.Offset == TimeSpan.Zero))
+            && (request.From is null || request.To is null || request.From <= request.To)
+            && (request.Category is null || Enum.IsDefined(request.Category.Value));
+
+    private static bool IsValidTenantAuditPayload(
+        PaginatedResult<TenantAuditEntry> payload,
+        TenantAuditRequest request,
+        int normalizedPageSize)
+    {
+        if (payload.Items.Count > normalizedPageSize)
+        {
+            return false;
+        }
+
+        HashSet<string> references = new(StringComparer.Ordinal);
+        foreach (TenantAuditEntry entry in payload.Items)
+        {
+            string? reference = TenantAuditSupportSafety.SafeApprovedReference(entry.EventId);
+            if (reference is null
+                || !references.Add(reference)
+                || entry.Timestamp == default
+                || entry.Timestamp.Offset != TimeSpan.Zero
+                || !string.Equals(entry.TenantId, request.TenantId, StringComparison.Ordinal)
+                || (request.From is not null && entry.Timestamp < request.From.Value)
+                || (request.To is not null && entry.Timestamp > request.To.Value)
+                || (request.Category is not null && entry.Category != request.Category.Value)
+                || !IsSupportedAuditEvent(entry.EventType, entry.Category))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSupportedAuditEvent(string? eventType, AuditEventCategory category)
+        => eventType switch
+        {
+            "UserAddedToTenant"
+                or "UserRemovedFromTenant"
+                or "UserRoleChanged"
+                or "GlobalAdministratorSet"
+                or "GlobalAdministratorRemoved"
+                    => category is AuditEventCategory.Access,
+            "TenantCreated"
+                or "TenantUpdated"
+                or "TenantDisabled"
+                or "TenantEnabled"
+                or "TenantConfigurationSet"
+                or "TenantConfigurationRemoved"
+                    => category is AuditEventCategory.Administrative,
+            _ => false,
+        };
+
     private static bool CanRetainTenantAudit(
         TenantAuditSnapshot? previous,
         TenantAuditRequest request,
+        string callerScope,
         EventStoreGatewayException exception)
         => previous is not null
             && IsRetainableTenantAudit(previous)
             && IsRetainableReadFailure(exception)
-            && previous.MatchesScope(request)
+            && previous.MatchesScope(request, callerScope)
             && MatchesRetainedValidator(request.ETag, previous.ETag);
 
     private static TenantAuditSnapshot RetainTenantAudit(

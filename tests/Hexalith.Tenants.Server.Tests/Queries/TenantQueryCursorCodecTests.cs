@@ -19,8 +19,8 @@ public class TenantQueryCursorCodecTests {
         TenantQueryCursorScopes.GetTenantUsers("tenant-1").ShouldBe("tenant:tenant-1");
         TenantQueryCursorScopes.GetUserTenants("user-1", "user-2").ShouldBe("requester:user-1|target-user:user-2");
         TenantQueryCursorScopes
-            .GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative)
-            .ShouldBe("tenant:tenant-1|from:2026-05-14T10:00:00.0000000Z|to:2026-05-14T11:00:00.0000000Z|category:Administrative");
+            .GetTenantAudit("user-1", "tenant-1", from, to, AuditEventCategory.Administrative)
+            .ShouldBe("requester:user-1|tenant:tenant-1|from:2026-05-14T10:00:00.0000000Z|to:2026-05-14T11:00:00.0000000Z|category:Administrative");
     }
 
     [Fact]
@@ -61,6 +61,7 @@ public class TenantQueryCursorCodecTests {
     public void Encode_does_not_expose_raw_scope_segments_or_audit_position() {
         IQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.GetTenantAudit(
+            "user-secret",
             "tenant-secret",
             new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero),
             null,
@@ -69,6 +70,7 @@ public class TenantQueryCursorCodecTests {
         string cursor = codec.Encode(GetTenantAuditQuery.QueryType, scope, "0635788912000000000:evt-secret");
 
         cursor.ShouldNotContain(GetTenantAuditQuery.QueryType);
+        cursor.ShouldNotContain("user-secret");
         cursor.ShouldNotContain("tenant-secret");
         cursor.ShouldNotContain("evt-secret");
         cursor.ShouldNotContain("Access");
@@ -137,7 +139,7 @@ public class TenantQueryCursorCodecTests {
     [Fact]
     public void TryDecode_rejects_tampered_cursor() {
         IQueryCursorCodec codec = CreateCodec();
-        string scope = TenantQueryCursorScopes.GetTenantAudit("tenant-1", null, null, null);
+        string scope = TenantQueryCursorScopes.GetTenantAudit("user-1", "tenant-1", null, null, null);
         string cursor = codec.Encode("get-tenant-audit", scope, "00000000000000000001:evt-1");
 
         // Mutate a byte mid-payload so the change lands in ciphertext rather than base64 padding —
@@ -153,6 +155,21 @@ public class TenantQueryCursorCodecTests {
         position.ShouldBeNull();
         // Either the protector rejects the MAC (tamper-or-key-rotation) or the decoded JSON is unparseable (malformed).
         failureReason.ShouldBeOneOf("tamper-or-key-rotation", "malformed");
+    }
+
+    [Fact]
+    public void TryDecode_rejects_tenant_audit_cursor_for_a_different_caller()
+    {
+        IQueryCursorCodec codec = CreateCodec();
+        string originalScope = TenantQueryCursorScopes.GetTenantAudit("user-1", "tenant-1", null, null, AuditEventCategory.Access);
+        string replayScope = TenantQueryCursorScopes.GetTenantAudit("user-2", "tenant-1", null, null, AuditEventCategory.Access);
+        string cursor = codec.Encode(GetTenantAuditQuery.QueryType, originalScope, "00000000000000000001:evt-1");
+
+        bool decoded = codec.TryDecode(cursor, GetTenantAuditQuery.QueryType, replayScope, out string? position, out string? failureReason);
+
+        decoded.ShouldBeFalse();
+        position.ShouldBeNull();
+        failureReason.ShouldBe("wrong-scope");
     }
 
     [Fact]

@@ -618,6 +618,39 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void Malformed_to_filter_is_field_associated_and_does_not_query()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-filter-to']").Change("not-a-utc-date");
+
+        gateway.Requests.Count.ShouldBe(1);
+        IElement to = cut.Find("[data-testid='tenants-audit-filter-to']");
+        to.GetAttribute("aria-invalid").ShouldBe("true");
+        to.GetAttribute("aria-describedby").ShouldBe("tenants-audit-filter-to-error");
+        cut.Find("#tenants-audit-filter-to-error").GetAttribute("role").ShouldBe("alert");
+        cut.Find("[data-testid='tenants-audit-filter-from']").GetAttribute("aria-invalid").ShouldBe("false");
+        cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Audit_date_filters_explicitly_label_the_absolute_utc_contract()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-filter-from']").GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("UTC");
+        cut.Find("[data-testid='tenants-audit-filter-to']").GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("UTC");
+    }
+
+    [Fact]
     public void Cursor_paging_passes_opaque_cursor_and_previous_history()
     {
         StubTenantQueryGateway gateway = RegisterServices(
@@ -666,7 +699,7 @@ public sealed class TenantAuditPageTests : BunitContext
         // Reaching into `_cursorHistory` by reflection reproduced the same state, but pinned a private field
         // name rather than the behaviour, and mutated it from the test thread -- the very cross-thread access
         // the production code is being asserted to survive.
-        cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-01-01");
+        cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-01-01T00:00");
 
         previousPage.SetResult(ReadySnapshot(
             [Row("event-1-returned", AuditEventCategory.Access)],
@@ -729,6 +762,147 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-audit-live-region']").TextContent.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Empty, "refresh")]
+    [InlineData(TenantAuditSurfaceKind.FilteredEmpty, "reset,refresh")]
+    [InlineData(TenantAuditSurfaceKind.Stale, "refresh,continue")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "refresh,continue")]
+    [InlineData(TenantAuditSurfaceKind.Unauthorized, "permission")]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, "refresh")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "refresh,continue")]
+    [InlineData(TenantAuditSurfaceKind.Unavailable, "refresh,escalate")]
+    [InlineData(TenantAuditSurfaceKind.Error, "refresh,escalate")]
+    public void Tenant_audit_states_render_exact_recovery_actions_and_refresh_requeries(
+        TenantAuditSurfaceKind kind,
+        string expectedActions)
+    {
+        ArgumentNullException.ThrowIfNull(expectedActions);
+        TenantAuditSnapshot state = SnapshotFor(kind);
+        StubTenantQueryGateway gateway = RegisterServices(state, state);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-recovery']");
+        string[] candidates = ["reset", "refresh", "continue", "permission", "escalate"];
+        string[] actual = candidates
+            .Where(action => cut.FindAll($"[data-testid='tenants-audit-recovery-{action}']").Count > 0)
+            .ToArray();
+
+        actual.ShouldBe(expectedActions.Split(','));
+        cut.Find("[data-testid='tenants-audit-recovery-description']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        if (actual.Contains("refresh", StringComparer.Ordinal))
+        {
+            cut.Find("[data-testid='tenants-audit-recovery-refresh']").Click();
+            cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        }
+    }
+
+    [Theory]
+    [InlineData("%252F%252Fevil.example", "/tenants/tenant.alpha")]
+    [InlineData("%2568%2574%2574%2570%2573%253A%252F%252Fevil.example", "/tenants/tenant.alpha")]
+    [InlineData("%252Ftenants%252F..%252Fadmin", "/tenants/tenant.alpha")]
+    [InlineData("/tenants/%2561ccess_token", "/tenants/tenant.alpha")]
+    [InlineData("/tenants/tenant.beta?filter=%2561uthorization", "/tenants/tenant.alpha")]
+    [InlineData("%2Ftenants%2Ftenant.beta%3Fkey%3D%2573ecret", "/tenants/tenant.alpha")]
+    [InlineData("%252Ftenants%252Ftenant.beta%253Ftab%253Daudit", "/tenants/tenant.beta?tab=audit")]
+    public void Tenant_audit_return_navigation_canonicalizes_safe_paths_and_rejects_encoded_unsafe_urls(
+        string returnUrl,
+        string expectedHref)
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo(navigation.GetUriWithQueryParameter("returnUrl", returnUrl));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldBe(expectedHref);
+    }
+
+    [Fact]
+    public void Invalid_cursor_recovery_after_page_two_clears_history_and_disables_previous()
+    {
+        TenantAuditRequest refreshedRequest = new("tenant.alpha");
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-page-one", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            TenantAuditSnapshot.ListRefreshed(
+                [Row("event-refreshed", AuditEventCategory.Access)],
+                null,
+                false,
+                "etag-refreshed",
+                ReadModelFreshnessState.Current,
+                refreshedRequest));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-audit-list-refreshed']");
+        gateway.Requests.Select(static request => request.Cursor).ShouldBe([null, "opaque-next"]);
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-refreshed");
+    }
+
+    [Fact]
+    public void User_role_changed_correction_uses_typed_old_role_instead_of_display_parsing()
+    {
+        TenantAuditEntry entry = new(
+            "event-role-change",
+            "UserRoleChanged",
+            AuditEventCategory.Access,
+            "actor-user",
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+            "tenant.alpha",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["userId"] = "target-user",
+                ["oldRole"] = "TenantReader",
+                ["newRole"] = "TenantContributor",
+            });
+        TenantAuditRow row = TenantAuditRow.FromEntry(entry, ReadModelFreshnessState.Current) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+            Provenance = QueryResponseProvenance.ProjectionBacked,
+        };
+        RegisterServices(ReadySnapshot([row]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-correction-start']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Phone_transition_suppresses_corrections_and_viewport_observation_after_disposal_is_ignored()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        RegisterServices(
+            viewport,
+            ReadySnapshot([Row(
+                "event-role-change",
+                AuditEventCategory.Access,
+                "userId: target-user; oldRole: TenantReader",
+                eventType: "UserRoleChanged")]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        cut.Find("[data-testid='tenants-correction-start']").TextContent.ShouldNotBeNullOrWhiteSpace();
+
+        viewport.Observe(ViewportTier.Phone);
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty());
+        cut.Find("[data-testid='tenants-correction-mobile-read-only']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+
+        cut.Dispose();
+
+        Should.NotThrow(() => viewport.Observe(ViewportTier.Desktop));
     }
 
     [Fact]
@@ -924,8 +1098,18 @@ public sealed class TenantAuditPageTests : BunitContext
 
     private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
     {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        return RegisterServices(viewport, snapshots);
+    }
+
+    private StubTenantQueryGateway RegisterServices(
+        TenantHighImpactViewportObservation viewport,
+        params TenantAuditSnapshot[] snapshots)
+    {
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantQueryGateway gateway = new(snapshots);
+        Services.AddSingleton(viewport);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -974,7 +1158,7 @@ public sealed class TenantAuditPageTests : BunitContext
                 new TenantAuditRow(
                     "event-global-admin",
                     eventType,
-                    AuditEventCategory.Administrative,
+                    AuditEventCategory.Access,
                     "actor-user",
                     DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
                     "system",
@@ -984,7 +1168,8 @@ public sealed class TenantAuditPageTests : BunitContext
                     $"userId: {targetUserId}",
                     ReadModelFreshnessState.Current,
                     ProjectionLifecycleState.Current,
-                    QueryResponseProvenance.ProjectionBacked),
+                    QueryResponseProvenance.ProjectionBacked,
+                    new TenantAuditNarrative(UserId: targetUserId)),
             ],
             nextCursor: null,
             hasMore: false,
@@ -1049,6 +1234,11 @@ public sealed class TenantAuditPageTests : BunitContext
         ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
     {
         string outcome = eventType ?? (category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet");
+        TenantAuditNarrative narrative = new(
+            UserId: referenceContext.Contains("userId: target-user", StringComparison.Ordinal) ? "target-user" : null,
+            Role: referenceContext.Contains("role: TenantReader", StringComparison.Ordinal) ? TenantRole.TenantReader : null,
+            OldRole: referenceContext.Contains("oldRole: TenantReader", StringComparison.Ordinal) ? TenantRole.TenantReader : null,
+            PreviousRole: referenceContext.Contains("previousRole: TenantReader", StringComparison.Ordinal) ? TenantRole.TenantReader : null);
 
         return new(
             eventReference,
@@ -1063,7 +1253,8 @@ public sealed class TenantAuditPageTests : BunitContext
             referenceContext,
             freshness,
             lifecycle,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            narrative);
     }
 
     private static HashSet<string> ResourceKeys(string path)

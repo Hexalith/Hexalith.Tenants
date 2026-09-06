@@ -751,7 +751,7 @@ public class TenantsProjectionActorTests {
 
         // Round-trip: the protected cursor must decode through the codec back to the audit-cursor
         // inner format (Ticks:D20:EventId), proving opacity is cryptographic and not just substring-coincidence.
-        string expectedScope = TenantQueryCursorScopes.GetTenantAudit("tenant-1", null, null, AuditEventCategory.Administrative);
+        string expectedScope = TenantQueryCursorScopes.GetTenantAudit("admin-1", "tenant-1", null, null, AuditEventCategory.Administrative);
         cursorCodec.TryDecode(firstPage.Cursor, GetTenantAuditQuery.QueryType, expectedScope, out string? decodedAuditPosition, out _).ShouldBeTrue();
         _ = decodedAuditPosition.ShouldNotBeNull();
         decodedAuditPosition.ShouldEndWith(":evt-a");
@@ -902,6 +902,7 @@ public class TenantsProjectionActorTests {
     [InlineData("tenant")]
     [InlineData("date-range")]
     [InlineData("category")]
+    [InlineData("caller")]
     public async Task GetTenantAudit_rejects_cursor_scope_mismatch_before_audit_state_readAsync(string mismatchKind) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
@@ -909,9 +910,10 @@ public class TenantsProjectionActorTests {
         DateTimeOffset to = from.AddHours(1);
         IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string foreignScope = mismatchKind switch {
-            "tenant" => TenantQueryCursorScopes.GetTenantAudit("tenant-2", from, to, AuditEventCategory.Administrative),
-            "date-range" => TenantQueryCursorScopes.GetTenantAudit("tenant-1", from.AddMinutes(1), to, AuditEventCategory.Administrative),
-            "category" => TenantQueryCursorScopes.GetTenantAudit("tenant-1", from, to, AuditEventCategory.Access),
+            "tenant" => TenantQueryCursorScopes.GetTenantAudit("admin-1", "tenant-2", from, to, AuditEventCategory.Administrative),
+            "date-range" => TenantQueryCursorScopes.GetTenantAudit("admin-1", "tenant-1", from.AddMinutes(1), to, AuditEventCategory.Administrative),
+            "category" => TenantQueryCursorScopes.GetTenantAudit("admin-1", "tenant-1", from, to, AuditEventCategory.Access),
+            "caller" => TenantQueryCursorScopes.GetTenantAudit("admin-2", "tenant-1", from, to, AuditEventCategory.Administrative),
             _ => throw new ArgumentOutOfRangeException(nameof(mismatchKind), mismatchKind, "Unknown cursor mismatch case."),
         };
         string cursor = cursorCodec.Encode(GetTenantAuditQuery.QueryType, foreignScope, "00000000000000000001:evt-1");

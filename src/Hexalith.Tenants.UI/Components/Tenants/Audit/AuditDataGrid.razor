@@ -98,7 +98,16 @@
                     ? null
                     : CorrectionIntentFor(context);
             }
-            @if (correctionIntent?.IsAvailable is true)
+            @if (IsSupportedCorrection(correctionIntent) && !IsCorrectionViewportSafe)
+            {
+                <span class="audit-data-grid__correction-reason"
+                      data-testid="@(HasViewportMeasurement ? "tenants-correction-mobile-read-only" : "tenants-correction-viewport-pending")">
+                    @(HasViewportMeasurement
+                        ? Localizer["Tenants.Audit.Mobile.ReadOnly"]
+                        : Localizer["Tenants.Audit.Viewport.Pending"])
+                </span>
+            }
+            else if (correctionIntent?.IsAvailable is true)
             {
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               Class="audit-data-grid__correction-start"
@@ -146,6 +155,12 @@
 @code {
     [Parameter]
     public IReadOnlyList<TenantAuditRow> Rows { get; set; } = [];
+
+    [Parameter]
+    public bool HasViewportMeasurement { get; set; }
+
+    [Parameter]
+    public bool IsCorrectionViewportSafe { get; set; }
 
     [Parameter]
     public EventCallback<TenantAuditRow> OnOpenReceipt { get; set; }
@@ -215,6 +230,11 @@
 
     private static bool ShouldRenderUnavailableReason(TenantCorrectionStartIntent? intent)
         => intent?.UnavailableReasons.Count > 0
+            && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+
+    private static bool IsSupportedCorrection(TenantCorrectionStartIntent? intent)
+        => intent?.IntendedCommandDomain is not null
+            && intent.IntendedCommandType is not null
             && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
 
     private static bool RequiresRoleSelection(TenantCorrectionStartIntent intent)

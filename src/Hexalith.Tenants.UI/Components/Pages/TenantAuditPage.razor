@@ -60,18 +60,34 @@
                            stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
                         <FluentTextInput Value="@_fromText"
                                          ValueChanged="OnFromChanged"
-                                         Label="@Localizer["Tenants.Audit.Filter.From"]"
+                                         Label="@Localizer["Tenants.Audit.Filter.FromUtc"]"
                                          type="datetime-local"
                                          data-testid="tenants-audit-filter-from"
-                                         aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
+                                         aria-label="@Localizer["Tenants.Audit.Filter.FromUtc"]"
+                                         aria-invalid="@(_fromValidationKey is null ? "false" : "true")"
+                                         aria-describedby="@(_fromValidationKey is null ? null : "tenants-audit-filter-from-error")" />
+                        @if (_fromValidationKey is not null)
+                        {
+                            <p id="tenants-audit-filter-from-error" role="alert" data-testid="tenants-audit-filter-from-error">
+                                @Localizer[_fromValidationKey]
+                            </p>
+                        }
                     </FluentGridItem>
                     <FluentGridItem Xs="12" Md="6" Lg="3">
                         <FluentTextInput Value="@_toText"
                                          ValueChanged="OnToChanged"
-                                         Label="@Localizer["Tenants.Audit.Filter.To"]"
+                                         Label="@Localizer["Tenants.Audit.Filter.ToUtc"]"
                                          type="datetime-local"
                                          data-testid="tenants-audit-filter-to"
-                                         aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
+                                         aria-label="@Localizer["Tenants.Audit.Filter.ToUtc"]"
+                                         aria-invalid="@(_toValidationKey is null ? "false" : "true")"
+                                         aria-describedby="@(_toValidationKey is null ? null : "tenants-audit-filter-to-error")" />
+                        @if (_toValidationKey is not null)
+                        {
+                            <p id="tenants-audit-filter-to-error" role="alert" data-testid="tenants-audit-filter-to-error">
+                                @Localizer[_toValidationKey]
+                            </p>
+                        }
                     </FluentGridItem>
                     <FluentGridItem Xs="12" Md="6" Lg="3">
                         <FluentSelect TOption="string" TValue="string"
@@ -79,11 +95,19 @@
                                       ValueChanged="OnCategoryChanged"
                                       Label="@Localizer["Tenants.Audit.Filter.Category"]"
                                       data-testid="tenants-audit-filter-category"
-                                      aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
+                                      aria-label="@Localizer["Tenants.Audit.Filter.Category"]"
+                                      aria-invalid="@(_categoryValidationKey is null ? "false" : "true")"
+                                      aria-describedby="@(_categoryValidationKey is null ? null : "tenants-audit-filter-category-error")">
                             <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
                             <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
                             <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
                         </FluentSelect>
+                        @if (_categoryValidationKey is not null)
+                        {
+                            <p id="tenants-audit-filter-category-error" role="alert" data-testid="tenants-audit-filter-category-error">
+                                @Localizer[_categoryValidationKey]
+                            </p>
+                        }
                     </FluentGridItem>
                     <FluentGridItem Xs="12" Md="6" Lg="3">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" VerticalGap="12px" Wrap="true">
@@ -118,6 +142,52 @@
             <ProjectionLifecycleStatus Lifecycle="@_snapshot.Lifecycle"
                                        TestId="tenants-audit-projection-lifecycle-status"
                                        BadgeTestId="tenants-audit-projection-lifecycle-status-badge" />
+            @if (HasStateRecovery)
+            {
+                <FluentStack Orientation="Orientation.Vertical"
+                             VerticalGap="0.5rem"
+                             data-testid="tenants-audit-recovery">
+                    <p data-testid="tenants-audit-recovery-description">
+                        @Localizer[$"Tenants.Audit.Recovery.{ResourceState}"]
+                    </p>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true">
+                        @if (CanResetForState)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-audit-recovery-reset"
+                                          OnClick="ResetFiltersAsync">
+                                @Localizer["Tenants.Audit.Recovery.Action.Reset"]
+                            </FluentButton>
+                        }
+                        @if (CanRefreshForState)
+                        {
+                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-audit-recovery-refresh"
+                                          OnClick="RefreshAsync">
+                                @Localizer["Tenants.Audit.Recovery.Action.Refresh"]
+                            </FluentButton>
+                        }
+                        @if (CanContinueReadOnlyForState)
+                        {
+                            <a href="#tenant-audit-grid-heading" data-testid="tenants-audit-recovery-continue">
+                                @Localizer["Tenants.Audit.Recovery.Action.ContinueReadOnly"]
+                            </a>
+                        }
+                        @if (_snapshot.Kind is TenantAuditSurfaceKind.Unauthorized)
+                        {
+                            <a href="@BackHref" data-testid="tenants-audit-recovery-permission">
+                                @Localizer["Tenants.Audit.Recovery.Action.RequestPermission"]
+                            </a>
+                        }
+                        @if (_snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error)
+                        {
+                            <a href="@BackHref" data-testid="tenants-audit-recovery-escalate">
+                                @Localizer["Tenants.Audit.Recovery.Action.Escalate"]
+                            </a>
+                        }
+                    </FluentStack>
+                </FluentStack>
+            }
             @* Rendered as a sibling of the state section, not a child. StatusRole/StatusLive resolve to
                alert/assertive for the non-Ready states, and inserting or removing a child mutates that
                region's own subtree -- so every projection nudge re-announced the whole state block
@@ -137,6 +207,8 @@
         <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading">
             <h2 id="tenant-audit-grid-heading">@Localizer["Tenants.Audit.GridTitle"]</h2>
             <AuditDataGrid Rows="@_snapshot.Rows"
+                           HasViewportMeasurement="@(_viewportObservation?.HasMeasurement == true)"
+                           IsCorrectionViewportSafe="@HasMeasuredSafeViewport"
                            OnOpenReceipt="OpenReceiptAsync"
                            CorrectionIntentProvider="CreateCorrectionIntent"
                            OnRoleSelected="SelectCorrectionRoleAsync"
@@ -206,6 +278,9 @@
     private string? _fromText;
     private string? _toText;
     private string? _categoryText;
+    private string? _fromValidationKey;
+    private string? _toValidationKey;
+    private string? _categoryValidationKey;
     private TenantAuditReceipt? _selectedReceipt;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
@@ -236,6 +311,7 @@
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
     private string? _pendingCorrectionFocusReference;
+    private TenantHighImpactViewportObservation? _viewportObservation;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -265,7 +341,7 @@
     public string? ReceiptReference { get; set; }
 
     private string BackHref
-        => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : $"/tenants/{Uri.EscapeDataString(TenantId)}";
+        => SafeReturnUrl(ReturnUrl) ?? $"/tenants/{Uri.EscapeDataString(TenantId)}";
 
     // A blank/whitespace TenantId would render a dangling "Audit trail for " heading. Substitute a
     // localized fallback so the page header always reads as a complete phrase (cosmetic, not a crash fix).
@@ -306,7 +382,46 @@
             or TenantAuditSurfaceKind.Stale
             or TenantAuditSurfaceKind.Degraded
             or TenantAuditSurfaceKind.ListRefreshed)
-            && _snapshot.Rows.Count > 0;
+            && _snapshot.Rows.Count > 0
+            && !HasFilterValidation;
+
+    private bool HasFilterValidation
+        => _fromValidationKey is not null
+            || _toValidationKey is not null
+            || _categoryValidationKey is not null;
+
+    private bool HasMeasuredSafeViewport
+        => _viewportObservation is { HasMeasurement: true, State: TenantHighImpactViewportState.Safe };
+
+    private bool HasStateRecovery
+        => _snapshot.Kind is TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.Unauthorized
+            or TenantAuditSurfaceKind.InvalidCursor
+            or TenantAuditSurfaceKind.ListRefreshed
+            or TenantAuditSurfaceKind.Unavailable
+            or TenantAuditSurfaceKind.Error;
+
+    private bool CanResetForState
+        => _snapshot.Kind is TenantAuditSurfaceKind.FilteredEmpty;
+
+    private bool CanRefreshForState
+        => _snapshot.Kind is TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.InvalidCursor
+            or TenantAuditSurfaceKind.ListRefreshed
+            or TenantAuditSurfaceKind.Unavailable
+            or TenantAuditSurfaceKind.Error;
+
+    private bool CanContinueReadOnlyForState
+        => _snapshot.Rows.Count > 0
+            && _snapshot.Kind is TenantAuditSurfaceKind.Stale
+                or TenantAuditSurfaceKind.Degraded
+                or TenantAuditSurfaceKind.ListRefreshed;
 
     private string ResourceState => _snapshot.Kind switch
     {
@@ -350,6 +465,50 @@
         TenantAuditSurfaceKind.InvalidCursor => "!",
         _ => "?",
     };
+
+    protected override void OnInitialized()
+    {
+        _viewportObservation = Services.GetService<TenantHighImpactViewportObservation>();
+        if (_viewportObservation is not null)
+        {
+            _viewportObservation.StateChanged += OnViewportObservationChanged;
+        }
+    }
+
+    private void OnViewportObservationChanged(object? sender, EventArgs args)
+        => _ = RenderViewportChangeAsync();
+
+    private async Task RenderViewportChangeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                if (!HasMeasuredSafeViewport)
+                {
+                    _activeCorrectionIntent = null;
+                    _activeCorrectionFocusReference = null;
+                }
+
+                ResolveReceiptSelection();
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Navigation disposed the renderer between the alive check and queued callback.
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -433,10 +592,19 @@
         bool useRequestedCursor = false)
     {
         string tenantId = requestedTenantId ?? TenantId;
+        TenantAuditSnapshot previous = _snapshot;
+        if (!TryCreateRequest(
+            tenantId,
+            useRequestedCursor ? requestedCursor : _currentCursor,
+            reuseETag ? previous.ETag : null,
+            out TenantAuditRequest? request))
+        {
+            return null;
+        }
+
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        TenantAuditSnapshot previous = _snapshot;
         if (!retainConfirmed)
         {
             // Marshalled and generation-guarded like every other _snapshot write in this file. Callers reach
@@ -453,15 +621,11 @@
             }).ConfigureAwait(false);
         }
 
-        TenantAuditRequest request = CreateRequest(
-            tenantId,
-            useRequestedCursor ? requestedCursor : _currentCursor,
-            reuseETag ? previous.ETag : null);
         TenantAuditSnapshot result;
         try
         {
             result = await QueryGateway
-                .GetTenantAuditAsync(request, previous, cancellationToken)
+                .GetTenantAuditAsync(request!, previous, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -723,6 +887,9 @@
         _fromText = null;
         _toText = null;
         _categoryText = null;
+        _fromValidationKey = null;
+        _toValidationKey = null;
+        _categoryValidationKey = null;
         ClearPaging();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
@@ -854,15 +1021,53 @@
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    private TenantAuditRequest CreateRequest(string tenantId, string? cursor, string? eTag)
-        => new(
+    private bool TryCreateRequest(
+        string tenantId,
+        string? cursor,
+        string? eTag,
+        out TenantAuditRequest? request)
+    {
+        bool fromValid = TryParseDate(_fromText, out DateTimeOffset? from);
+        bool toValid = TryParseDate(_toText, out DateTimeOffset? to);
+        AuditEventCategory parsedCategory = default;
+        bool categoryValid = string.IsNullOrEmpty(_categoryText)
+            || (Enum.TryParse(_categoryText, ignoreCase: false, out parsedCategory)
+                && Enum.IsDefined(parsedCategory));
+        AuditEventCategory? category = categoryValid && !string.IsNullOrEmpty(_categoryText)
+            ? parsedCategory
+            : null;
+        bool rangeValid = !fromValid || !toValid || from is null || to is null || from <= to;
+
+        _fromValidationKey = !fromValid
+            ? "Tenants.Audit.Filter.Validation.FromUtc"
+            : !rangeValid
+                ? "Tenants.Audit.Filter.Validation.Range"
+                : null;
+        _toValidationKey = !toValid
+            ? "Tenants.Audit.Filter.Validation.ToUtc"
+            : !rangeValid
+                ? "Tenants.Audit.Filter.Validation.Range"
+                : null;
+        _categoryValidationKey = categoryValid
+            ? null
+            : "Tenants.Audit.Filter.Validation.Category";
+
+        if (!fromValid || !toValid || !categoryValid || !rangeValid)
+        {
+            request = null;
+            return false;
+        }
+
+        request = new(
             tenantId,
-            From: ParseDate(_fromText),
-            To: ParseDate(_toText),
-            Category: Enum.TryParse(_categoryText, out AuditEventCategory category) ? category : null,
+            From: from,
+            To: to,
+            Category: category,
             Cursor: cursor,
             PageSize: PageSize,
             ETag: eTag);
+        return true;
+    }
 
     private void ClearPaging()
     {
@@ -893,6 +1098,11 @@
 
     private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
     {
+        if (!HasMeasuredSafeViewport || !intent.IsAvailable)
+        {
+            return;
+        }
+
         // Guard against out-of-order completion: two rapid opens each await a projection refresh, and the
         // earlier one can resolve last. Capturing a generation synchronously (before the first await, on the
         // renderer dispatcher) lets only the newest open apply its intent.
@@ -917,7 +1127,7 @@
         // context (dispatcher hygiene — this UI has documented off-dispatcher circuit-crash history).
         await InvokeAsync(() =>
         {
-            if (generation != _correctionOpenGeneration)
+            if (generation != _correctionOpenGeneration || !HasMeasuredSafeViewport)
             {
                 return; // A newer correction open superseded this one while its projection refreshed.
             }
@@ -996,7 +1206,7 @@
 
         Hexalith.Tenants.Contracts.Queries.TenantDetail? detail = _tenantDetailSnapshot?.Detail;
         TenantMember? member = detail?.Members.FirstOrDefault(member =>
-            string.Equals(member.UserId, ReferenceValue(row, "userId") ?? row.Target, StringComparison.Ordinal));
+            string.Equals(member.UserId, row.Narrative?.UserId ?? row.Target, StringComparison.Ordinal));
         TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
             ? selectedRole
             : IntendedRoleFromNarrative(row);
@@ -1013,7 +1223,8 @@
             CurrentRole: member?.Role,
             IntendedRole: intendedRole,
             HasTenantCommandSupport: true,
-            HasGlobalAdministratorCommandSupport: false));
+            HasGlobalAdministratorCommandSupport: false,
+            IsNarrowViewportSafe: HasMeasuredSafeViewport));
     }
 
     // Build the fixed-scope global-administrator correction intent. Command support is enabled only
@@ -1046,7 +1257,8 @@
                 : "global-administrators:unavailable",
             TenantStatus: TenantStatus.Active,
             HasTenantCommandSupport: false,
-            HasGlobalAdministratorCommandSupport: commandSupport));
+            HasGlobalAdministratorCommandSupport: commandSupport,
+            IsNarrowViewportSafe: HasMeasuredSafeViewport));
     }
 
     private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
@@ -1154,34 +1366,48 @@
     private static TenantRole? IntendedRoleFromNarrative(TenantAuditRow row)
         => row.EventType switch
         {
-            "UserRemovedFromTenant" => RoleFromReference(row, "previousRole") ?? RoleFromReference(row, "role"),
-            "UserRoleChanged" => RoleFromReference(row, "oldRole"),
+            "UserRemovedFromTenant" => row.Narrative?.PreviousRole ?? row.Narrative?.Role,
+            "UserRoleChanged" => row.Narrative?.OldRole,
             _ => null,
         };
-
-    private static TenantRole? RoleFromReference(TenantAuditRow row, string key)
-        => Enum.TryParse(ReferenceValue(row, key), ignoreCase: false, out TenantRole role)
-            && role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
-                ? role
-                : null;
-
-    private static string? ReferenceValue(TenantAuditRow row, string key)
-    {
-        string marker = key + ": ";
-        string? segment = row.ReferenceContext
-            .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(value => value.StartsWith(marker, StringComparison.Ordinal));
-
-        return segment?.Length > marker.Length ? segment[marker.Length..] : null;
-    }
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
     // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,
     // rather than depending on the InteractiveServer host's local timezone.
-    private static DateTimeOffset? ParseDate(string? value)
-        => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset parsed)
-            ? parsed
-            : null;
+    private static bool TryParseDate(string? value, out DateTimeOffset? parsed)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            parsed = null;
+            return true;
+        }
+
+        string[] formats =
+        [
+            "yyyy-MM-dd'T'HH:mm",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.F",
+            "yyyy-MM-dd'T'HH:mm:ss.FF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFF",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF",
+        ];
+        if (!DateTime.TryParseExact(
+            value,
+            formats,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out DateTime local))
+        {
+            parsed = null;
+            return false;
+        }
+
+        parsed = new DateTimeOffset(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), TimeSpan.Zero);
+        return true;
+    }
 
     private static string TestIdState(string resourceState)
     {
@@ -1199,16 +1425,63 @@
         return result;
     }
 
-    private static bool IsSafeReturnUrl(string? returnUrl)
-        => !string.IsNullOrWhiteSpace(returnUrl)
-            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
-            && !returnUrl.StartsWith("//", StringComparison.Ordinal);
+    private static string? SafeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl))
+        {
+            return null;
+        }
+
+        string canonical = returnUrl;
+        for (int attempt = 0; attempt < 3 && canonical.Contains('%', StringComparison.Ordinal); attempt++)
+        {
+            try
+            {
+                string decoded = Uri.UnescapeDataString(canonical);
+                if (string.Equals(decoded, canonical, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                canonical = decoded;
+            }
+            catch (UriFormatException)
+            {
+                return null;
+            }
+        }
+
+        if (canonical.Any(char.IsControl)
+            || canonical.Contains('%', StringComparison.Ordinal)
+            || canonical.Contains('\\')
+            || canonical.StartsWith("//", StringComparison.Ordinal)
+            || canonical.Contains("://", StringComparison.OrdinalIgnoreCase)
+            || TenantAuditSupportSafety.SafeApprovedReference(canonical) is null
+            || !(canonical.Equals("/tenants", StringComparison.Ordinal)
+                || canonical.StartsWith("/tenants/", StringComparison.Ordinal)
+                || canonical.StartsWith("/tenants?", StringComparison.Ordinal)))
+        {
+            return null;
+        }
+
+        string path = canonical.Split('?', '#')[0];
+        return path.Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Any(segment => segment is "." or "..")
+                ? null
+                : canonical;
+    }
 
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation();
+
+        if (_viewportObservation is not null)
+        {
+            _viewportObservation.StateChanged -= OnViewportObservationChanged;
+            _viewportObservation = null;
+        }
 
         if (_readRefreshLease is not null)
         {

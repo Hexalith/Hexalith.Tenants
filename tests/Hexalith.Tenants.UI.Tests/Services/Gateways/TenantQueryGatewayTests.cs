@@ -237,7 +237,10 @@ public sealed class TenantQueryGatewayTests
                 false,
                 retainedETag,
                 ReadModelFreshnessState.Current,
-                auditRequest with { ETag = retainedETag }),
+                auditRequest with { ETag = retainedETag }) with
+            {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+            },
             CancellationToken.None);
         TenantListSnapshot list = await gateway.ListTenantsAsync(
             new TenantListRequest(ETag: requestETag),
@@ -415,6 +418,7 @@ public sealed class TenantQueryGatewayTests
             auditRequest,
             eTag) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
             ProjectionVersion = "audit-v1",
         };
         TenantListSnapshot previousList = TenantListSnapshot.Degraded(
@@ -566,7 +570,10 @@ public sealed class TenantQueryGatewayTests
             false,
             eTag,
             ReadModelFreshnessState.Current,
-            previousAuditRequest);
+            previousAuditRequest) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
 
         TenantListSnapshot recoveredList = await gateway.ListTenantsAsync(
             new TenantListRequest(Cursor: "new-page", PageSize: 20, ETag: eTag),
@@ -3152,7 +3159,10 @@ public sealed class TenantQueryGatewayTests
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
-            [AuditEntry("event-1", AuditEventCategory.Access)],
+            [AuditEntry(
+                "event-1",
+                AuditEventCategory.Access,
+                timestamp: DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture))],
             "next-audit-cursor",
             true));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -3278,7 +3288,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            originalRequest);
+            originalRequest) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
         CapturingGatewayClient client = new();
         client.EnqueueAuditNotModified("known");
         client.EnqueueAuditNotModified("known");
@@ -3309,7 +3322,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            request);
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
         CapturingGatewayClient client = new();
         client.EnqueueAuditNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         TenantQueryGateway gateway = CreateGateway(client);
@@ -3348,7 +3364,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            request);
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
         CapturingGatewayClient client = new();
         client.EnqueueAuditNotModified("known", isStale, lifecycle, provenance, emitMetadata);
         TenantQueryGateway gateway = CreateGateway(client);
@@ -3436,7 +3455,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            request);
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
         CapturingGatewayClient client = new();
         client.EnqueueAuditNotModified("known", provenance: QueryResponseProvenance.HandlerComputed);
 
@@ -3502,7 +3524,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            request);
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+        };
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -3587,7 +3612,7 @@ public sealed class TenantQueryGatewayTests
             [
                 new TenantAuditEntry(
                     "event-safe-reference",
-                    "stack trace internal detail",
+                    "TenantConfigurationSet",
                     AuditEventCategory.Administrative,
                     "actor-user",
                     DateTimeOffset.UtcNow,
@@ -3606,15 +3631,347 @@ public sealed class TenantQueryGatewayTests
             .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
 
         TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
-        row.Target.ShouldBeEmpty();
+        row.Target.ShouldBe("billing.mode");
         row.Scope.ShouldBe("tenant.alpha");
-        row.Outcome.ShouldBeEmpty();
+        row.Outcome.ShouldBe("TenantConfigurationSet");
         row.ReferenceContext.ShouldContain("key: billing.mode");
         row.ReferenceContext.ShouldNotContain("raw payload", Case.Insensitive);
         row.ReferenceContext.ShouldNotContain("token", Case.Insensitive);
         row.Target.ShouldNotContain("raw payload", Case.Insensitive);
         row.Scope.ShouldNotContain("cursor", Case.Insensitive);
         row.Outcome.ShouldNotContain("stack trace", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("non-utc-from")]
+    [InlineData("non-utc-to")]
+    [InlineData("default-to")]
+    [InlineData("reversed")]
+    [InlineData("unknown-category")]
+    public async Task Get_tenant_audit_rejects_invalid_filter_contracts_without_a_backend_read(string scenario)
+    {
+        DateTimeOffset start = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        TenantAuditRequest request = scenario switch
+        {
+            "non-utc-from" => new("tenant.alpha", From: start.ToOffset(TimeSpan.FromHours(2))),
+            "non-utc-to" => new("tenant.alpha", To: start.ToOffset(TimeSpan.FromHours(2))),
+            "default-to" => new("tenant.alpha", To: default(DateTimeOffset)),
+            "reversed" => new("tenant.alpha", From: start.AddMinutes(1), To: start),
+            "unknown-category" => new("tenant.alpha", Category: (AuditEventCategory)999),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
+        };
+        CapturingGatewayClient client = new();
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(request, null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Reason.ShouldBe(TenantAuditReason.InvalidFilters);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("operator-user"));
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("UserAddedToTenant", AuditEventCategory.Access, true)]
+    [InlineData("UserAddedToTenant", AuditEventCategory.Administrative, false)]
+    [InlineData("UserRemovedFromTenant", AuditEventCategory.Access, true)]
+    [InlineData("UserRemovedFromTenant", AuditEventCategory.Administrative, false)]
+    [InlineData("UserRoleChanged", AuditEventCategory.Access, true)]
+    [InlineData("UserRoleChanged", AuditEventCategory.Administrative, false)]
+    [InlineData("GlobalAdministratorSet", AuditEventCategory.Access, true)]
+    [InlineData("GlobalAdministratorSet", AuditEventCategory.Administrative, false)]
+    [InlineData("GlobalAdministratorRemoved", AuditEventCategory.Access, true)]
+    [InlineData("GlobalAdministratorRemoved", AuditEventCategory.Administrative, false)]
+    [InlineData("TenantCreated", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantCreated", AuditEventCategory.Access, false)]
+    [InlineData("TenantUpdated", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantUpdated", AuditEventCategory.Access, false)]
+    [InlineData("TenantDisabled", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantDisabled", AuditEventCategory.Access, false)]
+    [InlineData("TenantEnabled", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantEnabled", AuditEventCategory.Access, false)]
+    [InlineData("TenantConfigurationSet", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantConfigurationSet", AuditEventCategory.Access, false)]
+    [InlineData("TenantConfigurationRemoved", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantConfigurationRemoved", AuditEventCategory.Access, false)]
+    [InlineData("TenantAuditExported", AuditEventCategory.Administrative, false)]
+    public async Task Get_tenant_audit_enforces_the_complete_event_category_matrix(
+        string eventType,
+        AuditEventCategory category,
+        bool expectedReady)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-matrix", category, eventType: eventType)],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedReady ? TenantAuditSurfaceKind.Ready : TenantAuditSurfaceKind.Error);
+        snapshot.Rows.Count.ShouldBe(expectedReady ? 1 : 0);
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_preserves_authoritative_response_order()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [
+                AuditEntry("event-z", AuditEventCategory.Access),
+                AuditEntry("event-a", AuditEventCategory.Access),
+            ],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Rows.Select(static row => row.EventReference).ShouldBe(["event-z", "event-a"]);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("Bearer reference")]
+    [InlineData("event-token")]
+    [InlineData("event%2Dauthorization")]
+    [InlineData("event%252Dsecret")]
+    [InlineData("event-password")]
+    [InlineData("event-credential")]
+    [InlineData("event-connection_string")]
+    [InlineData("event-%ZZ")]
+    public async Task Get_tenant_audit_rejects_missing_or_unsafe_event_references(string eventReference)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry(eventReference, AuditEventCategory.Access)],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_rejects_duplicate_event_references()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [
+                AuditEntry("event-duplicate", AuditEventCategory.Access),
+                AuditEntry("event-duplicate", AuditEventCategory.Access),
+            ],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("count")]
+    [InlineData("default-timestamp")]
+    [InlineData("non-utc-timestamp")]
+    [InlineData("before-from")]
+    [InlineData("after-to")]
+    [InlineData("category")]
+    [InlineData("tenant")]
+    public async Task Get_tenant_audit_rejects_response_scope_and_shape_violations(string scenario)
+    {
+        DateTimeOffset from = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+        TenantAuditRequest request = new(
+            "tenant.alpha",
+            From: from,
+            To: to,
+            Category: AuditEventCategory.Access,
+            PageSize: scenario is "count" ? 1 : 25);
+        IReadOnlyList<TenantAuditEntry> entries = scenario switch
+        {
+            "count" =>
+            [
+                AuditEntry("event-1", AuditEventCategory.Access, from),
+                AuditEntry("event-2", AuditEventCategory.Access, from.AddMinutes(1)),
+            ],
+            "default-timestamp" => [AuditEntry("event-1", AuditEventCategory.Access, default(DateTimeOffset))],
+            "non-utc-timestamp" => [AuditEntry("event-1", AuditEventCategory.Access, from.ToOffset(TimeSpan.FromHours(2)))],
+            "before-from" => [AuditEntry("event-1", AuditEventCategory.Access, from.AddTicks(-1))],
+            "after-to" => [AuditEntry("event-1", AuditEventCategory.Access, to.AddTicks(1))],
+            "category" => [AuditEntry("event-1", AuditEventCategory.Administrative, from, "TenantCreated")],
+            "tenant" => [AuditEntry("event-1", AuditEventCategory.Access, from, tenantId: "tenant.beta")],
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
+        };
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(entries, null, false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(request, null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_refetches_a_not_modified_response_when_retained_rows_belong_to_another_caller()
+    {
+        TenantAuditRequest request = new("tenant.alpha", ETag: "known");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            null,
+            false,
+            "known",
+            ReadModelFreshnessState.Current,
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("caller-one"),
+        };
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(
+                NotModifiedResponse<PaginatedResult<TenantAuditEntry>>("known"),
+                DirectResponse(new PaginatedResult<TenantAuditEntry>(
+                    [AuditEntry("event-new", AuditEventCategory.Access)],
+                    null,
+                    false), "new"));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client, userId: "caller-two")
+            .GetTenantAuditAsync(request, previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        snapshot.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-new");
+        snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-two"));
+        client.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantsRestQueryClient.GetTenantAuditAsync)).ShouldBe(2);
+        _ = client.Received(1).GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), "known", Arg.Any<CancellationToken>());
+        _ = client.Received(1).GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_discards_other_caller_rows_after_an_unexpected_exception()
+    {
+        TenantAuditRequest request = new("tenant.alpha", ETag: "known");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            null,
+            false,
+            "known",
+            ReadModelFreshnessState.Current,
+            request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("caller-one"),
+        };
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns<Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>>>(_ => throw new InvalidOperationException("unexpected"));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client, userId: "caller-two")
+            .GetTenantAuditAsync(request, previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Unavailable);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-two"));
+    }
+
+    [Theory]
+    [InlineData(null, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData("caller-two", TenantAuditSurfaceKind.Unavailable)]
+    public async Task Get_tenant_audit_discards_an_awaited_response_when_the_caller_changes(
+        string? nextUserId,
+        TenantAuditSurfaceKind expectedKind)
+    {
+        string? currentUserId = "caller-one";
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(_ => currentUserId);
+        userContext.TenantId.Returns("tenant.context");
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        var pending = new TaskCompletionSource<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(pending.Task);
+        TenantQueryGateway gateway = CreateGateway(client, userContextAccessor: userContext);
+
+        Task<TenantAuditSnapshot> load = gateway.GetTenantAuditAsync(
+            new("tenant.alpha"),
+            null,
+            CancellationToken.None);
+        client.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantsRestQueryClient.GetTenantAuditAsync)).ShouldBe(1);
+        currentUserId = nextUserId;
+        pending.SetResult(DirectResponse(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-old-caller", AuditEventCategory.Access)],
+            null,
+            false)));
+
+        TenantAuditSnapshot snapshot = await load;
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.CallerScope.ShouldBe(nextUserId is null ? null : TenantQueryGateway.AuditCallerScope(nextUserId));
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_maps_typed_roles_without_parsing_display_delimiters()
+    {
+        IReadOnlyDictionary<string, string> narrative = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["userId"] = "target-user; oldRole: TenantOwner",
+            ["oldRole"] = "TenantReader",
+            ["newRole"] = "TenantContributor",
+            ["role"] = "not-a-role",
+        };
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-role", AuditEventCategory.Access, eventType: "UserRoleChanged", narrative: narrative)],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Narrative.ShouldNotBeNull().UserId.ShouldBeNull();
+        row.Narrative.OldRole.ShouldBe(TenantRole.TenantReader);
+        row.Narrative.NewRole.ShouldBe(TenantRole.TenantContributor);
+        row.Narrative.Role.ShouldBeNull();
+        row.ReferenceContext.ShouldNotContain("TenantOwner", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("actor-%2561uthorization")]
+    [InlineData("actor-token")]
+    [InlineData("actor-secret")]
+    [InlineData("actor-password")]
+    [InlineData("actor-credential")]
+    [InlineData("actor-connection_string")]
+    public async Task Get_tenant_audit_blanks_unsafe_actor_identifiers_without_rejecting_safe_evidence(string actorId)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [
+                new TenantAuditEntry(
+                    "event-safe-reference",
+                    "UserAddedToTenant",
+                    AuditEventCategory.Access,
+                    actorId,
+                    DateTimeOffset.UtcNow,
+                    "tenant.alpha",
+                    new Dictionary<string, string> { ["userId"] = "target-user" }),
+            ],
+            null,
+            false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        snapshot.Rows.ShouldHaveSingleItem().ActorId.ShouldBeEmpty();
     }
 
     [Fact]
@@ -6023,11 +6380,15 @@ public sealed class TenantQueryGatewayTests
         ITenantSearchCursorCodec? searchCursorCodec = null,
         ITenantsBffComposition? bffComposition = null,
         CapturingLogger? logger = null,
-        TimeSpan? enrichmentDeadline = null)
+        TimeSpan? enrichmentDeadline = null,
+        IUserContextAccessor? userContextAccessor = null)
     {
-        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
-        userContext.UserId.Returns(userId);
-        userContext.TenantId.Returns("tenant.context");
+        IUserContextAccessor userContext = userContextAccessor ?? Substitute.For<IUserContextAccessor>();
+        if (userContextAccessor is null)
+        {
+            userContext.UserId.Returns(userId);
+            userContext.TenantId.Returns("tenant.context");
+        }
 
         return new TenantQueryGateway(
             client,
@@ -7814,15 +8175,21 @@ public sealed class TenantQueryGatewayTests
             configuration,
             DateTimeOffset.UtcNow);
 
-    private static TenantAuditEntry AuditEntry(string eventId, AuditEventCategory category)
+    private static TenantAuditEntry AuditEntry(
+        string eventId,
+        AuditEventCategory category,
+        DateTimeOffset? timestamp = null,
+        string? eventType = null,
+        string tenantId = "tenant.alpha",
+        IReadOnlyDictionary<string, string>? narrative = null)
         => new(
             eventId,
-            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            eventType ?? (category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet"),
             category,
             "actor-user",
-            DateTimeOffset.UtcNow,
-            "tenant.alpha",
-            new Dictionary<string, string>
+            timestamp ?? DateTimeOffset.UtcNow,
+            tenantId,
+            narrative ?? new Dictionary<string, string>
             {
                 ["userId"] = "target-user",
                 ["key"] = "billing.mode",

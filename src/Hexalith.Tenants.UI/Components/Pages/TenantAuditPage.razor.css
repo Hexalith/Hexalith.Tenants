@@ -17,14 +17,14 @@
 /* fc-css-exception: left-accent callout padding for the inline context message; preserves the
    border-accent treatment Fluent has no primitive for. */
 .tenant-audit__context {
-    border-inline-start: 3px solid var(--accent-stroke-rest, LinkText);
+    border-inline-start: 3px solid var(--colorBrandStroke1, LinkText);
     padding-inline-start: 0.5rem;
 }
 
 /* fc-css-exception: small caption text scale on the semantic <p> return-context; v5 FluentLabel
    size tokens (Small/Medium/Large) do not match this typography. */
 .tenant-audit__return-context {
-    color: var(--neutral-foreground-hint, GrayText);
+    color: var(--colorNeutralForeground3, GrayText);
     font-size: 0.875rem;
 }
 

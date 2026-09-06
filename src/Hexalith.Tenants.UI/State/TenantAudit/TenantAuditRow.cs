@@ -2,6 +2,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.SupportSafety;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -19,6 +20,7 @@ namespace Hexalith.Tenants.UI.State.TenantAudit;
 /// <param name="Freshness">The normalized read-model freshness.</param>
 /// <param name="Lifecycle">The normalized projection lifecycle.</param>
 /// <param name="Provenance">The declared route provenance for the query response.</param>
+/// <param name="Narrative">The typed support-safe narrative used by correction behavior.</param>
 public sealed record TenantAuditRow(
     string EventReference,
     string EventType,
@@ -32,18 +34,8 @@ public sealed record TenantAuditRow(
     string ReferenceContext,
     ReadModelFreshnessState Freshness,
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
-    QueryResponseProvenance Provenance = QueryResponseProvenance.Unknown) {
-    private static readonly string[] ApprovedNarrativeKeys =
-    [
-        "userId",
-        "key",
-        "role",
-        "oldRole",
-        "newRole",
-        "previousRole",
-        "timestamp",
-        "occurredAt",
-    ];
+    QueryResponseProvenance Provenance = QueryResponseProvenance.Unknown,
+    TenantAuditNarrative? Narrative = null) {
 
     /// <summary>Creates a UI audit row from a query-contract entry.</summary>
     /// <param name="entry">The query-contract audit entry.</param>
@@ -52,53 +44,24 @@ public sealed record TenantAuditRow(
     public static TenantAuditRow FromEntry(TenantAuditEntry entry, ReadModelFreshnessState freshness) {
         ArgumentNullException.ThrowIfNull(entry);
 
+        TenantAuditNarrative narrative = TenantAuditNarrative.FromPayload(entry.NarrativePayload);
+        string tenantId = TenantAuditSupportSafety.SafeIdentifier(entry.TenantId, SupportSafeCopyValueKind.TenantId);
+        string target = narrative.UserId
+            ?? narrative.ConfigurationKey
+            ?? tenantId;
+
         return new(
-            entry.EventId,
+            TenantAuditSupportSafety.SafeApprovedReference(entry.EventId) ?? string.Empty,
             entry.EventType,
             entry.Category,
-            entry.ActorId,
+            TenantAuditSupportSafety.SafeIdentifier(entry.ActorId, SupportSafeCopyValueKind.UserId),
             entry.Timestamp,
-            entry.TenantId,
-            SafeValue(entry.Target),
-            SafeValue(entry.Scope),
-            SafeValue(entry.Outcome),
-            BuildReferenceContext(entry.NarrativePayload),
-            freshness);
+            tenantId,
+            target,
+            tenantId,
+            entry.EventType,
+            narrative.ToDisplayString(),
+            freshness,
+            Narrative: narrative);
     }
-
-    private static string BuildReferenceContext(IReadOnlyDictionary<string, string>? narrative) {
-        if (narrative is null || narrative.Count == 0) {
-            return string.Empty;
-        }
-
-        string[] references = ApprovedNarrativeKeys
-            .Where(key => narrative.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value) && IsSafeValue(value))
-            .Select(key => $"{key}: {narrative[key]}")
-            .ToArray();
-
-        return string.Join("; ", references);
-    }
-
-    private static string SafeValue(string? value)
-        => IsSafeValue(value) ? value! : string.Empty;
-
-    private static bool IsSafeValue(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return false;
-        }
-
-        string candidate = value.Trim();
-        return !ContainsUnsafeText(candidate);
-    }
-
-    private static bool ContainsUnsafeText(string value)
-        => value.Contains("bearer ", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("access_token", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("authorization", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("stack trace", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("correlation", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("etag", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("cursor", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("raw payload", StringComparison.OrdinalIgnoreCase)
-        || value.Contains("eventstore metadata", StringComparison.OrdinalIgnoreCase);
 }

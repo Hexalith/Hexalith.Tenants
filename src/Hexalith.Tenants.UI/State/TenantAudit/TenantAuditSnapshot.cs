@@ -19,7 +19,8 @@ public sealed record TenantAuditSnapshot(
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
     string? ProjectionVersion = null,
     string? RequestCursor = null,
-    int RequestPageSize = 50) {
+    int RequestPageSize = 50,
+    string? CallerScope = null) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,
@@ -196,16 +197,29 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
+    public bool MatchesScope(TenantAuditRequest request, string callerScope) {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(callerScope);
+
+        return string.Equals(CallerScope, callerScope, StringComparison.Ordinal)
+            && MatchesQueryScope(request);
+    }
+
+    /// <summary>Checks tenant, filter, cursor, and page scope without granting caller-bound retention.</summary>
+    /// <param name="request">The audit request to compare.</param>
+    /// <returns><see langword="true"/> when the non-caller query scope matches.</returns>
     public bool MatchesScope(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
+        return MatchesQueryScope(request);
+    }
 
-        return string.Equals(TenantId, request.TenantId, StringComparison.Ordinal)
+    private bool MatchesQueryScope(TenantAuditRequest request)
+        => string.Equals(TenantId, request.TenantId, StringComparison.Ordinal)
             && From == request.From
             && To == request.To
             && string.Equals(Category, request.Category?.ToString(), StringComparison.Ordinal)
             && string.Equals(RequestCursor, request.Cursor, StringComparison.Ordinal)
             && RequestPageSize == request.PageSize;
-    }
 
     /// <summary>Returns a support-safe description that omits rows, identities, filters, cursors, validators, and versions.</summary>
     public override string ToString()

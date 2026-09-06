@@ -1,5 +1,7 @@
 using Hexalith.Tenants.UI.Services.SupportSafety;
 
+using System.Text;
+
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
 /// <summary>
@@ -10,6 +12,13 @@ internal static class TenantAuditSupportSafety
     private static readonly string[] IdentifierUnsafeFragments =
     [
         "bearer ",
+        "accesstoken",
+        "authorization",
+        "secret",
+        "password",
+        "token",
+        "credential",
+        "connectionstring",
         "jwt",
         "eyj",
         "metadata",
@@ -30,6 +39,8 @@ internal static class TenantAuditSupportSafety
         "token",
         "credential",
         "connectionstring",
+        "authorization",
+        "accesstoken",
         "bearer ",
         "metadata",
         "correlation",
@@ -76,9 +87,72 @@ internal static class TenantAuditSupportSafety
             return false;
         }
 
+        if (value.Any(char.IsControl))
+        {
+            return false;
+        }
+
         string[] fragments = kind is SupportSafeCopyValueKind.TenantId or SupportSafeCopyValueKind.UserId
             ? IdentifierUnsafeFragments
             : StrictUnsafeFragments;
-        return !fragments.Any(fragment => value.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+        string candidate = CanonicalizeForInspection(value);
+        if (candidate.Contains('%', StringComparison.Ordinal)
+            || (kind is SupportSafeCopyValueKind.TenantId
+                or SupportSafeCopyValueKind.UserId
+                or SupportSafeCopyValueKind.ConfigurationKey
+                && candidate.Contains(';', StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        string normalized = new(candidate
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant)
+            .ToArray());
+        return !fragments.Any(fragment =>
+        {
+            string normalizedFragment = Normalize(fragment);
+            return candidate.Contains(fragment, StringComparison.OrdinalIgnoreCase)
+                || (normalizedFragment.Length > 0
+                    && normalized.Contains(normalizedFragment, StringComparison.Ordinal));
+        });
+    }
+
+    private static string CanonicalizeForInspection(string value)
+    {
+        string candidate = value;
+        for (int attempt = 0; attempt < 3 && candidate.Contains('%', StringComparison.Ordinal); attempt++)
+        {
+            try
+            {
+                string decoded = Uri.UnescapeDataString(candidate);
+                if (string.Equals(decoded, candidate, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                candidate = decoded;
+            }
+            catch (UriFormatException)
+            {
+                return value;
+            }
+        }
+
+        return candidate;
+    }
+
+    private static string Normalize(string value)
+    {
+        var result = new StringBuilder(value.Length);
+        foreach (char character in value)
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                result.Append(char.ToLowerInvariant(character));
+            }
+        }
+
+        return result.ToString();
     }
 }
