@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-progress'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -490,6 +490,29 @@ Rejected:
   - `[medium]` `[patch]` Last-admin and target-missing refresh tests never invoke `SubmitRemoveAsync` after the preview remains open — deleting the submit re-check would leave those tests green because they only assert the disabled attribute.
   - `[medium]` `[defer]` Reversed From/To on the audit page has no field-associated Range test — Story 5.1 filter validation, not this removal command.
   - `[false]` `[reject]` Sprint-status key truncation prevents matching the full story id — carried: the same orchestrator file is not removal evidence; this build resolved 4.3 by the numeric `4-3-` prefix.
+
+### 2026-09-06 — Review pass (end-sentinel coverage)
+- verdicts: 19 findings — high 0, medium 5, low 1, false 12, maybe-false 1
+- findings:
+  - `[false]` `[reject]` Unsupported `ApplySubmission` was said to introduce an already-applied removal path — leftover states become `UnableToVerify` and keep the same message id; `DeliveryRetry.Recovery` is the iteration-5 monotonic ambiguous recovery, and `Completed_zero_and_unsupported_submission_fail_closed` asserts that shape.
+  - `[medium]` `[defer]` Restore-access `ToReconciliation` still requires correlationless grant to be `RequestSent`, so a restore snapshot that is already ambiguous `UnableToVerify` cannot be placed on the lease — the last-administrator intent is removal; the correction panel calls `RetainAmbiguousPreflight` only on revoke, and restore retry is Story 4.2 grant territory.
+  - `[false]` `[reject]` Grant initial dispatch still uses `TryMarkDispatched` and restyles the grant overlay — carried: grant still arms through `TryMarkDispatched` by KEEP; this story tokenizes removal only. Overlay restyle in the review diff was concurrent uncommitted grant work, not the removal dialog.
+  - `[false]` `[reject]` `HasCompleteGrantPreviewLocalization` defaults to `true` — that member is not in the 4.3 HEAD interface; the review diff included concurrent grant-localization edits. Removal readiness remains `IsGlobalAdministratorRemovePreviewReady` defaulting false.
+  - `[false]` `[reject]` The shipped-resource walk uses `includeParentCultures: true` — production `HasCompleteLocalization` already uses `includeParentCultures: false`, and `IsGlobalAdministratorRemovePreviewReady` is asserted before that walk, so a missing French key still fails readiness.
+  - `[maybe-false]` `[defer]` `focusElementById` may treat a successful Fluent Cancel wrap as failure — carried: maybe-false pending a real-browser `activeElement` trace; already DW-345.
+  - `[false]` `[reject]` File List gitlink SHAs and AppHost Aspire SDK moved in the baseline range — carried: the File List declares the shipped pointers; later `build(deps)` and AppHost comment/SDK alignment are not this removal command. Updating KEEP would only edit this spec.
+  - `[false]` `[reject]` The baseline-range patch touches audit/AppHost/`pushall` files omitted from the File List — carried: omitting unrelated later work from this File List is correct; DW-347 belongs with the dependency-refresh story.
+  - `[false]` `[reject]` `sprint-status.yaml` truncates the 4.3 key and disagrees with spec `in-review` — carried: orchestrator bookkeeping is excluded from story evidence.
+  - `[medium]` `[defer]` Audit unauthorized/unavailable recovery still uses raw `BackHref` anchors — carried: Story 5.1 recovery matrix; already DW-352.
+  - `[false]` `[reject]` Rejected lease completion tests omit `RejectionCode` and `Reconciliation.ToString` omits it — page `CreateReconciliation` / `CreateCompletionReconciliation` already copy `snapshot.RejectionCode`; ToString is a support diagnostic previously rejected as not met in everyday operator use.
+  - `[medium]` `[defer]` Identical `pushall` skill copies commit with `git add -A` and a `build:` subject — those files arrived in the baseline range from later tooling work, not last-administrator removal.
+  - `[low]` `[reject]` `deferred-work.md` duplicates DW-337/DW-352 decision lines and `.bmad-loop/decisions.json` lacks a trailing newline — ledger hygiene is not an operator-visible removal defect, and cleaning the whole ledger is more than a direct correction.
+  - `[false]` `[reject]` Last-admin and target-missing refresh tests never invoke submit, and dispose-safety tests only grep `InvokeRendererSafelyAsync` — `Remove_submission_is_blocked_when_a_refresh_makes_the_target_the_last_administrator` and `Remove_submission_is_blocked_when_a_refresh_removes_the_previewed_target_from_the_page` both call `ClickRemoveSubmitEvenIfDisabledAsync` and assert zero dispatch. Source greps are not an operator-visible last-administrator hole.
+  - `[maybe-false]` `[defer]` Fluent Cancel wrap may report `focusElementById` false when focus moves to an inner native control — carried: same DW-345 `activeElement` trace.
+  - `[medium]` `[defer]` `GetTenantAudit` cursor scope now binds requester and UTC filters — carried: Story 5.1 query-contract work, not last-administrator removal. Intent forbids this story from changing that contract; the baseline-range audit commits are later work.
+  - `[false]` `[reject]` AppHost SDK and submodule gitlinks moved — carried: later deps work; File List declares the shipped pointers.
+  - `[false]` `[reject]` This change writes `sprint-status.yaml` — carried: orchestrator bookkeeping is excluded from story evidence.
+  - `[medium]` `[defer]` Reversed audit From/To has no page-level Range test — carried: Story 5.1 filter validation; already DW-356.
 
 ## Design Notes
 

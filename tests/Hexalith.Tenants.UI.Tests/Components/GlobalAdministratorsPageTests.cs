@@ -3521,6 +3521,32 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(cut.Instance, "_removeLifecycleElement"));
     }
 
+    [Fact]
+    public async Task RemoveEndSentinelFallsBackToLifecycleWhenPreviewHasDisappeared()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        GlobalAdministratorRemovePreview stalePreview = PrivateField<GlobalAdministratorRemoveCommandSnapshot>(
+                cut.Instance,
+                "_removeSnapshot")
+            .PreviewEvidence.ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-global-admin-remove-cancel']").Click();
+        cut.FindAll("[data-testid='tenants-global-admin-remove-preview']").ShouldBeEmpty();
+
+        Task focus = (Task)typeof(GlobalAdministratorsPage)
+            .GetMethod("FocusRemoveAcknowledgementAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, [new FocusEventArgs(), stalePreview])!;
+        await focus;
+
+        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(cut.Instance, "_removeLifecycleElement"));
+    }
+
     public static TheoryData<Exception> RemoveFocusExceptions
         => new()
         {

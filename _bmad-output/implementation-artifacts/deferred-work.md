@@ -2939,3 +2939,11 @@ Chunk 1 (state / gateway / admission) restated two open items; no new ledger row
 
 - `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id. Already DW-345; a real-browser `document.activeElement` trace after focusing the rendered Cancel host would settle it.
 - Story 4.3 File List gitlink SHAs still do not match the current tree. Already DW-347; `validate-story-gitlinks.py` now reports Builds `6daad3d`, EventStore `9a20c05`, FrontComposer `f0c3b6f` versus File List `39debe9` / `7b7f876` / `0a4c4ad`. Updating the record edits this spec; restoring the tree reverts later `build(deps)` work.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Restore-access correction cannot retain an ambiguous UnableToVerify grant on the aggregate lease.
+  evidence: GlobalAdministratorCorrectionSnapshot.ToReconciliation allows correlationless grant only in RequestSent, so a restore snapshot that is already UnableToVerify and ambiguous returns null and cannot be adopted the way removal can. The correction panel never calls RetainAmbiguousPreflight on restore; this is Story 4.2 grant territory, not last-administrator removal.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: The pushall skill copies in the baseline range stage everything and commit with a build subject.
+  evidence: Identical .agents/.claude/.github pushall skills arrived with later tooling commits in this story's baseline range. They are not the last-administrator removal command; leaving them in this File List would mix unrelated work.
