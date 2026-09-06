@@ -648,7 +648,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 5-8-correcti
 location: CorrectionStartPanel.razor:202; TenantAuditPage.razor:550
 reason: The legacy ledger defers this issue: EventCallback→Func drops the parent re-render after confirm refresh (intentional, benign). Original context is preserved in legacy-detail.
 legacy-detail: - **EventCallback→Func drops the parent re-render after confirm refresh (intentional, benign)** — watch-item only: the new `ProjectionRefreshProvider` Func updates the parent field without re-rendering the parent; benign today because those fields feed only the panel. Restore a parent render (or document) if other parent UI later binds the refreshed snapshots. 5.8-introduced. (`CorrectionStartPanel.razor:202`, `TenantAuditPage.razor:550`)
-status: open
+status: done 2026-09-06
+resolution: already resolved: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1283 assigns refreshed parent state inside InvokeAsync, ensuring the parent render is scheduled.
 
 ### DW-82: `CorrectionStartPanel` terminal-state focus parity (story 5.6) — RESOLVED 2026-06-30 (CC deferred-work, Edit C)
 origin: migrated from legacy ledger ("Deferred from: code review of 5-7-global-administrator-correction-verification — committed bundle re-review (2026-06-30)"), 2026-08-25
@@ -819,7 +820,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-l
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:219-222; src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs
 reason: The legacy ledger defers this issue: Duplicated tab/scope literal constants across two files. Original context is preserved in legacy-detail.
 legacy-detail: - **Duplicated tab/scope literal constants across two files** — `TenantsWorkspace.razor` declares `TenantsTabId`/`UsersTabId`/`AllTenantsScope`/`MyTenantsScope` and `TenantWorkspaceState.cs` declares `TenantsTab`/`UsersTab`/`AllScope`/`MyScope` with the same `"tenants"/"users"/"all"/"mine"` values; `ApplyWorkspaceState` compares `state.Tab` (sourced from the state file's consts) against the razor file's consts. Value-equal today, but nothing enforces it — changing one string silently breaks tab/scope routing with no compile error. DRY nit. (`src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:219-222`, `src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs`)
-status: open
+status: done 2026-09-06
+resolution: already resolved: Commit 6e52036e centralizes workspace tab and scope identifiers in TenantWorkspaceState.
 
 ### DW-103: Redundant double a11y labeling on badges
 origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-list-triage-and-cursor-foundation (2026-07-20)"), 2026-08-25
@@ -2265,7 +2267,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: HasSameTenantDetail
 reason: The legacy ledger defers this issue: `HasSameTenantDetail` newly compares `ConfigurationManagement.TenantId`. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `HasSameTenantDetail` newly compares `ConfigurationManagement.TenantId`. evidence: `:2166-2170` — a default-constructed `ConfigurationManagement` with a mismatched `TenantId` now makes the comparison false, so retention paths degrade instead of retaining.
-status: open
+status: done 2026-09-06
+resolution: already resolved: src/Hexalith.Tenants.UI/State/TenantDetail/TenantDetailSnapshot.cs:179-196 constructs sanitized detail and configuration management context atomically; the former HasSameTenantDetail comparison no longer exists.
 
 ### DW-276: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2804,7 +2807,8 @@ origin: migrated from legacy ledger (""), 2026-09-05
 location: _bmad-output/implementation-artifacts/sprint-status.yaml:121-125
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md`
 reason: The concurrent unstaged edit changes Story 4.3 from backlog to in-progress without reopening Epic 4, so status consumers can report a completed epic with active work; the Story 4.3 workflow owns the correction.
-status: open
+status: done 2026-09-06
+resolution: already resolved: _bmad-output/implementation-artifacts/sprint-status.yaml:69-73 marks Epic 4 in-progress while Story 4.3 is review, removing the completed-epic/active-story contradiction.
 
 ### DW-343: The dependency-refresh spec File List omits EventStore, FrontComposer, and Memories gitlinks plus Aspire topology test edits that sit in the same baseline range.
 
