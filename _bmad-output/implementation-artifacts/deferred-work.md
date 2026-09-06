@@ -2925,3 +2925,8 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: TryCreateRequest rejects From greater than To with Tenants.Audit.Filter.Validation.Range, but TenantAuditPageTests never sets From later than To; gateway tests do not cover the page's field errors or its skipped query.
 status: open
+
+## Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-06)
+
+- Focus containment remains interop-ID proof (`FocusedElementIds` / captured `ElementReference` ids), not `document.activeElement`, a real Tab/Shift+Tab cycle, or browser `inert`. Already DW-336; an authenticated browser trace of grant-preview open, Tab, Shift+Tab, Escape, and launcher restoration would settle it.
+- Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass.

@@ -686,3 +686,37 @@ Completed every repository-owned part of Story 4.2 and closed the five implement
 - Real-browser focus containment, launcher restoration, inactive-tab visibility, and short-viewport scrolling remain unproven by bUnit interop assertions.
 - Aspire health against the published Memories secret-store topology remains unverified.
 - The preserved frontmatter `deferred` list records additional lower-severity cross-process retention, sibling transport consistency, EventStore contract, and test-coverage risks with settlement evidence.
+
+### Review Findings — 2026-09-06 grant-core chunk
+
+Independent review of the grant-core file group (`7e88a571..d0c534ff`, 14 files). Correction-path, workspace/AppHost/gitlink, and later mainline commits were out of this pass.
+
+- [ ] [Review][Decision] Grant preview opens with Cancel focused — Opening sets `_focusGrantPreviewCancelPending` and tests pin the first focused control to `_grantPreviewCancelElement`. Enter therefore dismisses the high-impact preview before acknowledgement. Removal focuses acknowledgement first. Whether cancel-first (safe dismiss) or acknowledgement-first (match remove, typical dialog) is the intended contract is not specified.
+- [ ] [Review][Decision] Localization failure never shows its associated recovery on the grant surface — `ComposeGlobalAdministratorGrantPreviewAsync` can return `Grant.Preview.Unavailable.Localization` / `Recovery.Localization`, but the page maps `IsGlobalAdministratorGrantPreviewReady == false` to `MissingConsequencePreview` and `SubmitGrantAsync` returns before compose whenever `GrantUnavailableReason` is set. AC2 asks for visible associated recovery when a required fact is absent. Wiring a dedicated availability reason adds surface; keeping the generic copy leaves the localization strings as gate-only checks.
+
+- [ ] [Review][Patch] `FocusSafelyAsync` does not catch `InvalidOperationException`, and cancel/invalidate leave `_focusGrantPreviewCancelPending` set [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1385`]
+- [ ] [Review][Patch] `RequiredGrantFactKeys` omits `Grant.DeliveryRetry` and `Grant.DeliveryRetry.Recovery` that the live retry control renders [`src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25`]
+- [ ] [Review][Patch] Grant modal CSS lacks `box-sizing: border-box` that the sibling remove modal and its style test already pin [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:198`]
+- [ ] [Review][Patch] Grant focus sentinels are not in the visually-hidden sentinel rule that only targets `.global-admins__remove-focus-sentinel` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:115`]
+- [ ] [Review][Patch] Modal-isolation test never asserts the grant dialog is outside the inert `tenants-global-admins-area` subtree [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2359`]
+- [ ] [Review][Patch] Ambiguous grant `SafeRecoveryKey` is not asserted on the grant snapshot or page recovery paragraph [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:212`]
+- [ ] [Review][Patch] Grant launcher and preview-cancel use raw `fluent-button`; tests submit the form and never activate the launcher control [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:289`]
+- [ ] [Review][Patch] Ambiguous delivery redispatch returns silently when live prerequisites drop after the retry click [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3266`]
+- [ ] [Review][Patch] `SupportsTrackedGrantDispatch` fail-closed default is never observed by an omitting-property construction [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionEvidence.cs:62`]
+- [ ] [Review][Patch] When ambiguous delivery retry is withdrawn, the disabled refresh control keeps the retry label and has no accessible reason [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:305`]
+
+- [x] [Review][Defer] Focus containment is still interop-ID proof, not `document.activeElement` or a real Tab cycle [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2384`] — deferred: maybe-false / medium if true; already recorded as DW-336; an authenticated browser trace of open, Tab, Shift+Tab, Escape, and launcher restoration would settle it.
+- [x] [Review][Defer] Package-reference Memories secret-store AC is not in this grant-core chunk [`src/Hexalith.Tenants.AppHost/Program.cs:132`] — deferred: pre-existing operator-owned gate (AC9 / DW-334); AppHost is group 3 of this review, not this pass.
+
+Rejected:
+- `false` Hand-rolled `section role="dialog"` instead of `FluentDialog` — Tenants has no `FluentDialog` usage; remove preview uses the same pattern; sentinels need a page-owned host.
+- `false` `HasCompleteLocalization` leaks `CurrentUICulture` across requests — the setter is AsyncLocal; the grant property caches after the first walk; restore in `finally` is correct for that execution context.
+- `false` French completeness disables English operators — intended EN/FR fail-closed gate; no third culture is served.
+- `false` `AmbiguousTrackingFailure` recovery disagrees with status tracking-mismatch recovery — those are different states (same-id delivery retry vs verified identity mismatch → refresh).
+- `false` `aria-hidden` on the grant area silences lifecycle live regions while preview is open — no grant lifecycle transition can occur in `Previewed`; invalidation leaves that state in the same render that clears `aria-hidden`.
+- `false` `ConfirmGrantAsync` swallowing every `OperationCanceledException` leaves an undispatched preview as if confirm never ran — `ReauthorizeAsync` / compose rethrow only when the confirmation token is cancelled; `DispatchGrantAsync` handles its own OCE; leftover preview is the recoverable undispatched state.
+- `false` Remove preview leaves the page background interactive — `IsAnyPreviewOpen` includes remove; `RemovePreviewUsesFluentControlsAndIsolatesTheBackground` asserts `inert` / `aria-hidden`.
+- `false` `Retryable == false` with HTTP 5xx still invites ambiguous retry — 5xx is classified as maybe-stored by design; the non-retryable terminal tests cover 4xx.
+- `false` Completeness ignores the current UI culture satellite — only invariant English and `fr` are served; a third culture needs a satellite and localization config together.
+- `false` `EventsStored` / `EventsPublished` treated as positive evidence with no `EventCount` — platform contract (`CommandStatusRecord.EventCount` is Completed-only); changing the safeguard wording would edit this spec.
+- `low` FrontComposer shell chrome stays mouse-operable behind the modal — keyboard is page-trapped; navigation abandons an undispatched lease; a shell overlay is not a direct correction.
