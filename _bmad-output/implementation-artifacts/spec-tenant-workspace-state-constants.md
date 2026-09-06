@@ -28,9 +28,13 @@ deferred:
 
 ## Boundaries & Constraints
 
-**Always:** Preserve canonical `/tenants` behavior from architecture AD-2: tabs are `tenants|users`, scopes are `all|mine`, invalid inputs remain fail-safe, and existing cursor/state transitions are unchanged. Keep `TenantWorkspaceState` as the only production owner of all four identifiers and retain FrontComposer `FcPageTabs`/`FcPageTab` composition. Assess finalization cleanliness only over this bundle's owned paths: unrelated concurrent changes that are attributable to another workflow, identified explicitly, and left untouched do not block this bundle once its own changes are committed and verified.
+**Always:** Preserve canonical `/tenants` behavior from architecture AD-2: tabs are `tenants|users`, scopes are `all|mine`, invalid inputs remain fail-safe, and existing cursor/state transitions are unchanged. Keep `TenantWorkspaceState` as the only production owner of all four identifiers and retain FrontComposer `FcPageTabs`/`FcPageTab` composition. Assess finalization cleanliness only over this bundle's owned paths: unrelated concurrent changes that are attributable to another workflow, identified explicitly, and left untouched do not block this bundle once its own changes are committed and verified; any unattributed or bundle-owned dirt remains blocking.
 
 **Never:** Do not edit the deferred-work ledger or bundle intent, change route shapes or public identifier values, add aliases, alter unrelated workspace behavior, weaken existing tests, or modify FrontComposer/submodule code.
+
+**Re-drive authority:** This `<intent-contract>` block is authoritative for every fresh development drive. Checked execution tasks and Review Triage Log entries are historical evidence only; they do not prove that the current `HEAD` working tree contains the implementation. Inspect the current `HEAD` working tree, preserve any conforming work already present, complete any missing work, and verify every acceptance criterion before reporting completion.
+
+**Verification responsibility:** Verify `TenantWorkspaceState`'s sole production ownership of the four canonical identifier literals through focused production-source inspection. Automated tests must pin the four values and route behavior, but they are not required to parse source or fail solely because an equal-value duplicate is introduced under a different symbol name.
 
 ## I/O & Edge-Case Matrix
 
@@ -39,8 +43,9 @@ deferred:
 | Default tenants | `tab=tenants&scope=all` using state-owned identifiers | Tenants tab and all-tenants list surface render | No error expected |
 | My tenants | `tab=tenants&scope=mine` using state-owned identifiers | Tenants tab and self-audit surface render | No error expected |
 | Users | `tab=users&scope=all` using state-owned identifiers | Users tab and membership lookup surface render | Inapplicable scope remains normalized to `all` |
+| Users with inapplicable scope | `tab=users&scope=mine` using state-owned identifiers | Normalize to `tab=users&scope=all`; users tab and membership lookup surface render | Treat `mine` as inapplicable to users, not as a retained ignored value |
 | Identifier contract | State constants are evaluated | Values remain `tenants`, `users`, `all`, and `mine` | Test fails on route-vocabulary drift |
-| Concurrent repository changes | Unrelated paths change after the clean baseline and are attributable to another workflow | Preserve those paths untouched and allow this bundle to complete when its owned changes are committed and verified | Record the paths and ownership as residual risk; do not stage, commit, revert, or edit them |
+| Concurrent repository changes | After a clean baseline, working-tree changes remain outside this bundle and every such path is explicitly attributable to another workflow | Leave those paths untouched and complete this bundle only after its owned paths are committed and clean and required verification passes | Record ownership as residual risk; do not stage, commit, revert, or edit those paths; unattributed or bundle-owned dirt remains blocking |
 
 </intent-contract>
 
@@ -63,11 +68,14 @@ deferred:
 **Acceptance Criteria:**
 - Given the production UI source, when tab and scope identifiers are inspected, then only `TenantWorkspaceState` declares the four canonical literal values and `TenantsWorkspace` consumes those constants everywhere.
 - Given canonical all-tenants, my-tenants, and users query state, when `TenantsWorkspace` renders, then the FrontComposer active tab and visible domain surface match the normalized state-owned identifiers.
+- Given `tab=users&scope=mine`, when workspace state is normalized, then the result is `tab=users&scope=all`, and the users tab and membership lookup surface render.
 - Given the state identifier contract, when any tab or scope constant drifts from `tenants`, `users`, `all`, or `mine`, then focused state coverage fails; when workspace routing stops consuming/matching those constants, then focused bUnit routing coverage fails.
 - Given the completed change, when the focused UI test project is built and the relevant state/routing tests run, then all existing and new checks pass with warnings treated as errors.
-- Given unrelated concurrent changes attributable to another workflow, when this bundle's owned paths are committed and verified and the unrelated paths remain untouched, then repository-wide dirtiness is reported as residual risk and does not block this bundle's completion.
+- Given finalization finds remaining working-tree changes, when this bundle's owned paths are committed and clean, required verification has passed, and every remaining dirty path is explicitly attributed to concurrent work and recorded as untouched and out of scope, then repository-wide dirtiness is reported as residual risk and does not block this bundle's completion; any unattributed or bundle-owned dirt does block completion.
 
 ## Spec Change Log
+
+- 2026-09-06: Resolved re-drive ambiguity by making the intent contract authoritative over historical task/review records, defining `users&mine` normalization, and separating focused source ownership inspection from automated value/behavior coverage.
 
 ## Review Triage Log
 
@@ -95,4 +103,3 @@ deferred:
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore --warnaserror` -- expected: build succeeds with zero warnings.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-build --no-restore` -- expected: the complete UI test project passes, including new identifier state and routing guards.
 - `rg -n 'TenantsTabId|UsersTabId|AllTenantsScope|MyTenantsScope' src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- expected: no matches.
-
