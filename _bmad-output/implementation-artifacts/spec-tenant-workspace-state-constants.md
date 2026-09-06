@@ -3,7 +3,7 @@ title: 'Centralize tenant workspace state identifiers'
 type: 'refactor'
 created: '2026-09-06'
 status: ready-for-dev
-baseline_revision: db5dfc49caf538128a2a04e6047f67b131644b80
+baseline_revision: e1667e694acf6a2b35e21f90b7da73380d75f4ca
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
