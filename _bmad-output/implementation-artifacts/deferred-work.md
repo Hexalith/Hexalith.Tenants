@@ -2295,7 +2295,9 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: AddTenantMemberFlow.razor:441-447; ChangeTenantMemberRoleFlow.razor:499-505
 reason: The legacy ledger defers this issue: Add and change-role `retryMessageId` exclude the `Rejected` state. Original context is preserved in legacy-detail.
 legacy-detail: - summary: Add and change-role `retryMessageId` exclude the `Rejected` state. evidence: `AddTenantMemberFlow.razor:441-447`, `ChangeTenantMemberRoleFlow.razor:499-505` reuse the id only when `State is Failed`, so a `Rejected` attempt for the same intent re-dispatches under a fresh ULID.
-status: open
+status: done 2026-09-06
+resolution: closed by human decision: Treat rejection as conclusive and retain the current behavior in which a later deliberate submission mints a new identity.
+decision: 2026-09-06 New attempt after rejection — Treat rejection as conclusive and retain the current behavior in which a later deliberate submission mints a new identity.
 
 ### DW-280: `MemberAccessReview` sets child lease ownership after the await
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2776,6 +2778,7 @@ source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.m
 severity: low
 reason: `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
 status: open
+decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
 
 ### DW-338: Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
 origin: spec-deferred 0ab333618257
