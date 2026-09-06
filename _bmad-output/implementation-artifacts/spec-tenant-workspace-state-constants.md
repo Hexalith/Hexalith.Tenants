@@ -2,8 +2,8 @@
 title: 'Centralize tenant workspace state identifiers'
 type: 'refactor'
 created: '2026-09-06'
-status: 'done'
-baseline_revision: '7dc9482f517de8bccd6619311c4914a29923275d'
+status: ready-for-dev
+baseline_revision: db5dfc49caf538128a2a04e6047f67b131644b80
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
@@ -28,7 +28,7 @@ deferred:
 
 ## Boundaries & Constraints
 
-**Always:** Preserve canonical `/tenants` behavior from architecture AD-2: tabs are `tenants|users`, scopes are `all|mine`, invalid inputs remain fail-safe, and existing cursor/state transitions are unchanged. Keep `TenantWorkspaceState` as the only production owner of all four identifiers and retain FrontComposer `FcPageTabs`/`FcPageTab` composition.
+**Always:** Preserve canonical `/tenants` behavior from architecture AD-2: tabs are `tenants|users`, scopes are `all|mine`, invalid inputs remain fail-safe, and existing cursor/state transitions are unchanged. Keep `TenantWorkspaceState` as the only production owner of all four identifiers and retain FrontComposer `FcPageTabs`/`FcPageTab` composition. Assess finalization cleanliness only over this bundle's owned paths: unrelated concurrent changes that are attributable to another workflow, identified explicitly, and left untouched do not block this bundle once its own changes are committed and verified.
 
 **Never:** Do not edit the deferred-work ledger or bundle intent, change route shapes or public identifier values, add aliases, alter unrelated workspace behavior, weaken existing tests, or modify FrontComposer/submodule code.
 
@@ -40,6 +40,7 @@ deferred:
 | My tenants | `tab=tenants&scope=mine` using state-owned identifiers | Tenants tab and self-audit surface render | No error expected |
 | Users | `tab=users&scope=all` using state-owned identifiers | Users tab and membership lookup surface render | Inapplicable scope remains normalized to `all` |
 | Identifier contract | State constants are evaluated | Values remain `tenants`, `users`, `all`, and `mine` | Test fails on route-vocabulary drift |
+| Concurrent repository changes | Unrelated paths change after the clean baseline and are attributable to another workflow | Preserve those paths untouched and allow this bundle to complete when its owned changes are committed and verified | Record the paths and ownership as residual risk; do not stage, commit, revert, or edit them |
 
 </intent-contract>
 
@@ -64,6 +65,7 @@ deferred:
 - Given canonical all-tenants, my-tenants, and users query state, when `TenantsWorkspace` renders, then the FrontComposer active tab and visible domain surface match the normalized state-owned identifiers.
 - Given the state identifier contract, when any tab or scope constant drifts from `tenants`, `users`, `all`, or `mine`, then focused state coverage fails; when workspace routing stops consuming/matching those constants, then focused bUnit routing coverage fails.
 - Given the completed change, when the focused UI test project is built and the relevant state/routing tests run, then all existing and new checks pass with warnings treated as errors.
+- Given unrelated concurrent changes attributable to another workflow, when this bundle's owned paths are committed and verified and the unrelated paths remain untouched, then repository-wide dirtiness is reported as residual risk and does not block this bundle's completion.
 
 ## Spec Change Log
 
@@ -94,30 +96,3 @@ deferred:
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-build --no-restore` -- expected: the complete UI test project passes, including new identifier state and routing guards.
 - `rg -n 'TenantsTabId|UsersTabId|AllTenantsScope|MyTenantsScope' src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- expected: no matches.
 
-## Auto Run Result
-
-Status: done
-
-Summary: `TenantWorkspaceState` is now the sole production owner of the `tenants`/`users` tab identifiers and `all`/`mine` scope identifiers. `TenantsWorkspace` consumes those constants across rendered tab and option IDs, defaults, state comparisons, normalization, state application, and canonical navigation. Focused state and bUnit coverage pins the public vocabulary and exercises initial plus interactive routing.
-
-Files changed:
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- removed four duplicate local constants and replaced every use with the state-owned constants.
-- `tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs` -- added the exact canonical identifier-vocabulary contract.
-- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` -- added all/mine/users route coverage, rendered scope-option assertions, and interactive scope round trips.
-- `_bmad-output/implementation-artifacts/spec-tenant-workspace-state-constants.md` -- recorded the plan, review triage, verification, and final result.
-
-Review findings breakdown:
-- Patches applied: high 0, medium 1, low 1. The medium patch added rendered scope-value and interactive scope-routing assertions; the low patch renamed the two new tests to PascalCase.
-- Items deferred: one grouped concurrent-work item covers five review observations about Story 4.3 and ledger edits created by another workflow after this run's clean baseline. Those files were left untouched.
-- Rejected: the request to close DW-102 in the ledger was rejected because the caller explicitly assigns that write to the orchestrator; the missing-results claim was rejected because finalization records them here; the missing-restore claim was rejected because verification ran successfully in the already restored workspace; three variants demanding a source-text ownership guard were rejected because current inspection proves one owner, the behavioral contract is identifier divergence, and a brittle guard against hypothetical equal-value duplication is disproportionate.
-
-Follow-up review recommendation: false. This first pass patched high 0, medium 1, and low 1 entries, below the follow-up threshold; no specific unverified bundle risk remains.
-
-Verification performed:
-- Release UI test-project build with `--no-restore --warnaserror`: passed with 0 warnings and 0 errors.
-- Full UI test project: passed 2,870/2,870 with 0 failed and 0 skipped.
-- Focused matrix run: passed 4/4 identifier/routing cases with 0 failed, skipped, or not run.
-- Duplicate-name search: returned no matches for the four removed Razor-local identifiers.
-- `git diff --check` over this bundle's files: passed.
-
-Residual risks: the shared working tree contains concurrent, separately owned Story 4.3 spec and deferred-work ledger edits. They are excluded from this bundle and may keep the repository dirty until their owning workflow finalizes.

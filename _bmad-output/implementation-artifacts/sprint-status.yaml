@@ -1,54 +1,40 @@
-# generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-09-05
-# project: tenants
-# project_key: NOKEY
-# tracking_system: file-system
-# story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts
-
 # STATUS DEFINITIONS:
 # ==================
 # Epic Status:
 #   - backlog: Epic not yet started
 #   - in-progress: Epic actively being worked on
 #   - done: All stories in epic completed
-#
-# Epic Status Transitions:
-#   - backlog → in-progress: Automatically when first story is created (via create-story)
-#   - in-progress → done: Manually when all stories reach 'done' status
-#
+
 # Story Status:
 #   - backlog: Story only exists in epic file
-#   - ready-for-dev: Story file created in stories folder
+#   - ready-for-dev: Story file created, ready for development
 #   - in-progress: Developer actively working on implementation
-#   - review: Ready for code review (via Dev's code-review workflow)
+#   - review: Implementation complete, ready for review
 #   - done: Story completed
-#
+
 # Retrospective Status:
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
-#
+
 # Action Item Status:
 #   - open: Committed during a retrospective, not yet addressed
 #   - in-progress: Actively being worked on
 #   - done: Completed
-#
+
 # WORKFLOW NOTES:
 # ===============
-# - Epic transitions to 'in-progress' automatically when first story is created
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
 # - Stories can be worked in parallel if team capacity allows
-# - Developer typically creates next story after previous one is 'done' to incorporate learnings
-# - Dev moves story to review, then runs code-review (fresh context, different LLM recommended)
-# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
-
-generated: 2026-07-19T16:57:33+02:00
-last_updated: '2026-09-05'
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 07-19-2026 16:57
+last_updated: 09-06-2026 14:16
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
 story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts
-
 development_status:
-  # --- Epic 1: Trustworthy Tenant Discovery and Access Review ---
   epic-1: done
   1-0-reverify-frontcomposer-shell-and-fluent-contracts: done
   1-1-reverify-ui-host-bootstrap-and-canonical-workspace: done
@@ -61,72 +47,33 @@ development_status:
   1-8-support-safe-identifier-copy-and-read-experience-evidence: done
   1-9-authoritative-memories-search-with-protected-paging: done
   1-10-direct-tenants-reads-and-authoritative-freshness: done
-  # Its implementation landed inside the 1.10 commit range (7d7b701, 536596f) rather than under its own
-  # key. Code review of 1.10 (2026-07-28) split the scope forward: those commits are published on main, so
-  # the work is attributed here and must clear its own review loop instead of closing silently under 1.10.
   1-11-authorized-global-administrator-review: done
-  # Split out of Story 1.10 by code-review loop 9 (2026-07-31), decision D4. Commit 33abe27
-  # "feat(ui): add projection lifecycle badges" (39 files) is declared by no story: it adds
-  # ProjectionLifecycleBadge.razor and ProjectionLifecycleStatus.razor, rewrites TruthStateBadge, adds
-  # lifecycle gates to four command flows, and renames the shipped EN/FR string
-  # Tenants.List.Column.Freshness. Neither spec-1-10 nor spec-1-11 mentions it and no 1.10 acceptance
-  # criterion covers it. It is published on main, so it is attributed here and must clear its own review
-  # loop rather than closing silently under 1.10.
-  # Spec authored 2026-07-31 by code-review loop 10 of Story 1.10, decision D-E:
-  # spec-1-12-projection-lifecycle-badges.md now carries a full File List, split into files it declares
-  # alone and files it shares with Stories 1.10 and 1.11. It still owes its own first review pass.
-  1-12-projection-lifecycle-badges: done
   epic-1-retrospective: done
 
-  # --- Epic 2: Safe Tenant Membership Management ---
   epic-2: done
   2-1-reverify-projection-confirmed-membership-command-foundation: done
   2-2-add-user-to-tenant-with-explicit-role: done
   2-3-change-tenant-member-role: done
-  # 2026-08-08: 2.4a + 2.4b implemented (eligibility/preview/dialog + WP-2A proof /
-  # audit_available, MissingAuditProof fail-closed, provenance refine). Awaiting review gate.
-  # 2026-08-21: code-review loop 3 (chunk A) applied 12 patches; (chunk B) resolved 3 decisions and
-  # closed 20 patch findings (17 applied, 3 no-change-needed), deferring 19. Remaining: the 4 chunk-A
-  # decision items and review chunk C (tests/docs). Blocked for CI until the references/Hexalith.Builds
-  # xunit.v3 4.0.0 pointer is made coherent (NU1107 on test restore).
-  # 2026-08-22: code review pass 2 (spec-2-4b) closed 7 patch findings (all applied) and deferred 5;
-  # 0 decision-needed, 0 unresolved high/medium. Both 2.4a and 2.4b pass -> advancing to done.
   2-4-remove-tenant-member-with-complete-preview-and-proof: done
   epic-2-retrospective: done
 
-  # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---
   epic-3: done
-  # 2026-08-21: code review loop 1 -- 5 decisions resolved, 23 patches applied, 5 deferred.
   3-1-create-tenant-with-projection-confirmation: done
   3-2-edit-tenant-metadata-with-recorded-updates: done
   3-3-lifecycle-and-configuration-availability-guardrail: done
-  # 2026-08-25: code review loop 3 resolved both decisions and all 26 patch findings. A full follow-up
-  # review hardened last-chance proof, immutable tracker evidence, deadline/race handling, localization,
-  # remount gate release, and disconnected focus; all 2404 UI tests and the story gitlink guard pass.
-  # 2026-08-26: code review loop 5 (chunk A = production src/). Both decisions resolved and implemented
-  # (launcher-side same-route lease reclamation + launcher abandon affordance), mutation-verified. Loop 5
-  # production patches closed; follow-up review patches applied in this pass. 8 deferred to deferred-work.md.
   3-4-disable-or-enable-tenant-with-complete-preview: done
-  # 2026-08-27: code review loop 7 closed all 13 Loop 6 findings (1 decision + 12 patches), plus its own
-  # 1 decision (declared references/Hexalith.Commons pointer drift). 10 patches fixed with code+tests; 1
-  # test-only; 2 sub-findings re-verified against the codebase and dismissed as false premises (no ILogger<T>
-  # injection convention exists here; ForUnavailableReason's silent fallback matches its sibling idiom).
-  # Release build -warnaserror 0/0; 2456 UI tests pass, 0 failed, 0 skipped (7 new); 2 fixes mutation-
-  # verified; gitlink guard PASS (6 declared pointers); diff --check clean.
   3-5-set-namespaced-configuration-with-complete-preview: done
   3-6-remove-configuration-key-with-complete-preview: done
   epic-3-retrospective: done
 
-  # --- Epic 4: Global Administrator Control ---
-  epic-4: done
+  epic-4: in-progress
   4-1-fixed-scope-global-administrator-action-availability: done
-  4-2-grant-global-administrator-with-projection-confirmation: done
-  4-3-remove-global-administrator-with-last-administrator-hard-stop: review
+  4-2-grant-global-administrator-with-projection-confirmation: review
+  4-3-remove-global-administrator-with-last-administrator-hard-sto: in-progress
   epic-4-retrospective: done
 
-  # --- Epic 5: Audit Evidence and Corrective Recovery ---
-  epic-5: done
-  5-1-browse-tenant-audit-trail: backlog
+  epic-5: in-progress
+  5-1-browse-tenant-audit-trail: review
   5-2-reach-scoped-audit-evidence-from-context: backlog
   5-3-view-a-support-safe-audit-evidence-receipt: backlog
   5-4-understand-audit-availability-and-recovery: backlog
@@ -135,198 +82,267 @@ development_status:
   5-7-correct-global-administrator-authority-from-audit-evidence: backlog
   epic-5-retrospective: done
 
-  # --- Cross-cutting FrontComposer/Fluent conformance ---
-  # Restored 2026-08-09: key was dropped when sprint-status was regenerated from epics only.
-  cc-2026-06-17-frontcomposer-fluent-v5-page-component-conformance-sweep: done
-  cc-2026-06-18-frontcomposer-fluent-control-and-css-conformance-sweep: done
-  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: done
-  cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep: done
-
+# Action items committed during retrospectives (section created by the retrospective workflow)
 action_items:
   - id: code-review-2026-07-27-submodule-bump-in-story-commits
     epic: 1
-    action: "Guard against undeclared submodule-pointer bumps riding along in story commits. Second occurrence: story 1.6 commit ec7ec8c bumped references/Hexalith.EventStore (c6b72ca -> 440ff4c) while its Completion Notes claimed no references/ content changed, repeating story 1.4 commit 41e047e. Add a story-completion check that diffs gitlinks against the story baseline and either declares or reverts them."
+    action: "Guard against undeclared submodule-pointer bumps riding along in story
+      commits. Second occurrence: story 1.6 commit ec7ec8c bumped references/Hexalith.EventStore
+      (c6b72ca -> 440ff4c) while its Completion Notes claimed no references/ content
+      changed, repeating story 1.4 commit 41e047e. Add a story-completion check that
+      diffs gitlinks against the story baseline and either declares or reverts them."
     owner: "Amelia (Developer) and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/1-6-read-only-tenant-configuration.md"
-    resolution: "Closed 2026-07-28 by sprint-change-proposal-2026-07-28-story-gitlink-declaration-guard.md. Added scripts/validate-story-gitlinks.py, which diffs references/ gitlinks between the story's baseline_commit and HEAD and fails unless each moved pointer is declared as a File List entry or reverted. Wired into the dev-story Definition of Done, _bmad/custom/bmad-dev-story.toml (persistent_facts + on_complete), and _bmad/custom/bmad-code-review.toml. Verified against both occurrences: story 1.6 at ec7ec8c and story 1.4 at 41e047e each FAIL with their historical story files; the corrected 1.6 file PASSES."
+    resolution: "Closed 2026-07-28 by sprint-change-proposal-2026-07-28-story-gitlink-declaration-guard.md.
+      Added scripts/validate-story-gitlinks.py, which diffs references/ gitlinks between
+      the story's baseline_commit and HEAD and fails unless each moved pointer is
+      declared as a File List entry or reverted. Wired into the dev-story Definition
+      of Done, _bmad/custom/bmad-dev-story.toml (persistent_facts + on_complete),
+      and _bmad/custom/bmad-code-review.toml. Verified against both occurrences: story
+      1.6 at ec7ec8c and story 1.4 at 41e047e each FAIL with their historical story
+      files; the corrected 1.6 file PASSES."
   - id: epic-5-retro-2026-06-29-global-admin-correction-verification
     epic: 5
-    action: "Create a focused global-administrator correction verification story before enabling global-administrator correction."
+    action: "Create a focused global-administrator correction verification story before
+      enabling global-administrator correction."
     owner: "Winston (System Architect) and Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-terminal-focus
     epic: 5
-    action: "Add tested terminal-state focus handling for correction confirmed/failed lifecycle states."
+    action: "Add tested terminal-state focus handling for correction confirmed/failed
+      lifecycle states."
     owner: "Murat (Test Architect) and Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-projection-refresh
     epic: 5
-    action: "Remove redundant correction projection refresh while preserving projection-confirmed success and proof lookup."
+    action: "Remove redundant correction projection refresh while preserving projection-confirmed
+      success and proof lookup."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-doc-drift
     epic: 5
-    action: "Audit historical audit/recovery and UI evidence specs for stale blocked/readiness or identifier wording."
+    action: "Audit historical audit/recovery and UI evidence specs for stale blocked/readiness
+      or identifier wording."
     owner: "Paige (Technical Writer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-support-safety
     epic: 5
-    action: "Keep support-safety and prohibited recovery terminology guards on every audit or correction change."
+    action: "Keep support-safety and prohibited recovery terminology guards on every
+      audit or correction change."
     owner: "Murat (Test Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-story-35-tracking
     epic: 3
-    action: "Reconcile Epic 3 story tracking with the completed Story 3.5 defect-fix artifact."
+    action: "Reconcile Epic 3 story tracking with the completed Story 3.5 defect-fix
+      artifact."
     owner: "Amelia (Developer) and Paige (Technical Writer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-command-lock-retention
     epic: 3
-    action: "Promote command-lock retention through accepted/projection-pending states into a shared command-flow guard."
+    action: "Promote command-lock retention through accepted/projection-pending states
+      into a shared command-flow guard."
     owner: "Amelia (Developer) and Murat (Test Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-focus-containment
     epic: 3
-    action: "Promote tested focus containment, Escape/cancel no-commit behavior, and launcher focus return into the high-impact/destructive-flow checklist."
+    action: "Promote tested focus containment, Escape/cancel no-commit behavior, and
+      launcher focus return into the high-impact/destructive-flow checklist."
     owner: "Sally (UX Designer), Murat (Test Architect), and Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-reason-honesty
     epic: 3
-    action: "Add reason-honesty regression checks for degraded/unavailable/unknown projection states on command surfaces."
+    action: "Add reason-honesty regression checks for degraded/unavailable/unknown
+      projection states on command surfaces."
     owner: "Murat (Test Architect) and Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-config-preview-scope
     epic: 3
-    action: "Resolve and document whether all configuration edits require consequence preview or only a defined high-risk subset."
+    action: "Resolve and document whether all configuration edits require consequence
+      preview or only a defined high-risk subset."
     owner: "John (Product Manager), Sally (UX Designer), and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-configuration-preview-scope-closure.md"
   - id: epic-3-retro-2026-06-29-doc-drift
     epic: 3
-    action: "Audit Epic 3 planning and evidence docs for retired projection-actor and FR15 hard-delete drift."
+    action: "Audit Epic 3 planning and evidence docs for retired projection-actor
+      and FR15 hard-delete drift."
     owner: "Paige (Technical Writer) and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: implementation-readiness-2026-06-30-document-control
     epic: cross-cutting
-    action: "Apply approved implementation-readiness document-control edits for Story 3.5 evidence links and completed Story 5.7 gate wording."
-    owner: "Paige (Technical Writer), Amelia (Developer), Murat (Test Architect), and Winston (System Architect)"
+    action: "Apply approved implementation-readiness document-control edits for Story
+      3.5 evidence links and completed Story 5.7 gate wording."
+    owner: "Paige (Technical Writer), Amelia (Developer), Murat (Test Architect),
+      and Winston (System Architect)"
     status: done
     source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-implementation-readiness-conditions.md"
   - id: epic-1-retro-2026-06-06-doc-drift
     epic: 1
-    action: "Update verified documentation drift from Epic 1 implementation so architecture, README, and UI planning specs no longer contradict InteractiveServer, contextual Users, literal IDs, or resolved FC-LYT/FC-TBL decisions."
+    action: "Update verified documentation drift from Epic 1 implementation so architecture,
+      README, and UI planning specs no longer contradict InteractiveServer, contextual
+      Users, literal IDs, or resolved FC-LYT/FC-TBL decisions."
     owner: "Paige (Technical Writer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-epic-1-retro-follow-through.md"
   - id: epic-1-retro-2026-06-06-command-foundation-readiness
     epic: 1
-    action: "Add an Epic 2 command-foundation readiness check before Story 2.1 (command gateway, lifecycle states, one-at-a-time admission, projection re-query confirmation, safe rejection mapping, audit handoff)."
+    action: "Add an Epic 2 command-foundation readiness check before Story 2.1 (command
+      gateway, lifecycle states, one-at-a-time admission, projection re-query confirmation,
+      safe rejection mapping, audit handoff)."
     owner: "Amelia (Developer) and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
   - id: epic-1-retro-2026-06-06-ui-pre-review-checklist
     epic: 1
-    action: "Promote repeated review findings into a pre-review checklist for UI stories (row headers, aria-describedby, resource parity, surface-specific selectors, false-success fallthroughs, support-safe source checks, File List vs git reality)."
+    action: "Promote repeated review findings into a pre-review checklist for UI stories
+      (row headers, aria-describedby, resource parity, surface-specific selectors,
+      false-success fallthroughs, support-safe source checks, File List vs git reality)."
     owner: "Murat (Test Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
   - id: epic-1-retro-2026-06-06-test-env-blockers
     epic: 1
-    action: "Track pre-existing test-environment blockers separately from Epic 1 UI quality (.NET 10 MTP/VSTest behavior, NuGet audit network access, AppHost DAPR component evidence, Server/Integration prerequisite failures)."
+    action: "Track pre-existing test-environment blockers separately from Epic 1 UI
+      quality (.NET 10 MTP/VSTest behavior, NuGet audit network access, AppHost DAPR
+      component evidence, Server/Integration prerequisite failures)."
     owner: "Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
   - id: epic-1-retro-2026-06-06-support-safe-copy-reuse
     epic: 1
-    action: "Keep support-safe copy and redaction patterns (classifier-first) available for Epic 2 command/audit references."
+    action: "Keep support-safe copy and redaction patterns (classifier-first) available
+      for Epic 2 command/audit references."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
   - id: epic-2-retro-2026-06-06-doc-drift
     epic: 2
-    action: "Update verified documentation drift from Epic 2 implementation so docs no longer claim Story 2.4's inline consequence fallback is deferred, and local test guidance documents the xUnit v3 executable fallback."
+    action: "Update verified documentation drift from Epic 2 implementation so docs
+      no longer claim Story 2.4's inline consequence fallback is deferred, and local
+      test guidance documents the xUnit v3 executable fallback."
     owner: "Paige (Technical Writer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-epic-2-retro-follow-through.md"
   - id: epic-2-retro-2026-06-06-epic-3-command-readiness-guardrail
     epic: 2
-    action: "Add an Epic 3 command-readiness guardrail before Story 3.1 so lifecycle/configuration stories name how authorization reflection, command-surface availability, consequence-preview policy, and one-at-a-time locking are wired before implementation."
+    action: "Add an Epic 3 command-readiness guardrail before Story 3.1 so lifecycle/configuration
+      stories name how authorization reflection, command-surface availability, consequence-preview
+      policy, and one-at-a-time locking are wired before implementation."
     owner: "Amelia (Developer) and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "_bmad-output/implementation-artifacts/3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail.md"
   - id: epic-2-retro-2026-06-06-command-neutral-status
     epic: 2
-    action: "Keep shared command status mapping command-neutral; new command stories add regression tests proving shared status lookup does not surface another command's copy."
+    action: "Keep shared command status mapping command-neutral; new command stories
+      add regression tests proving shared status lookup does not surface another command's
+      copy."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs"
   - id: epic-2-retro-2026-06-06-durable-lifecycle-feedback
     epic: 2
-    action: "Decide durable lifecycle feedback behavior for row-removal happy paths; Epic 3 story files either preserve row-disappears-on-confirm intentionally or specify a stable post-confirmation feedback area."
+    action: "Decide durable lifecycle feedback behavior for row-removal happy paths;
+      Epic 3 story files either preserve row-disappears-on-confirm intentionally or
+      specify a stable post-confirmation feedback area."
     owner: "Alice (Product Owner) and Sally (UX Designer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "_bmad-output/implementation-artifacts/3-4-remove-tenant-configuration-key-with-consequence-preview.md"
   - id: epic-2-retro-2026-06-06-command-locking-symmetry
     epic: 2
-    action: "Track command-locking symmetry as a shared UI follow-up so member/metadata/lifecycle/configuration flows can drive a common availability signal, or each story records why one-direction locking is sufficient."
+    action: "Track command-locking symmetry as a shared UI follow-up so member/metadata/lifecycle/configuration
+      flows can drive a common availability signal, or each story records why one-direction
+      locking is sufficient."
     owner: "Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-command-lock-retention-guard-closure.md"
   - id: epic-4-retro-2026-06-07-fr19-planning-sync
     epic: 4
-    action: "Synchronize FR19 planning status with implementation evidence so architecture, PRD/addendum, and backlog docs no longer say FR19 is blocked/deferred as current state after Stories 4.3 and 4.4."
+    action: "Synchronize FR19 planning status with implementation evidence so architecture,
+      PRD/addendum, and backlog docs no longer say FR19 is blocked/deferred as current
+      state after Stories 4.3 and 4.4."
     owner: "Paige (Technical Writer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
     resolution_source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-4-retro-2026-06-07-global-admin-correction-gate
     epic: 4
-    action: "Keep global-admin correction blocked until a story verifies the new command dependency; any enabled global-admin correction path must cite Story 4.3 and 4.4 command support and test fixed-scope command selection."
+    action: "Keep global-admin correction blocked until a story verifies the new command
+      dependency; any enabled global-admin correction path must cite Story 4.3 and
+      4.4 command support and test fixed-scope command selection."
     owner: "Winston (System Architect) and Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
     resolution_source: "_bmad-output/implementation-artifacts/5-7-global-administrator-correction-verification.md"
   - id: epic-4-retro-2026-06-07-platform-rejection-copy
     epic: 4
-    action: "Preserve platform-governance-specific rejection copy; command/status tests prove GlobalAdministratorAlreadyExists, LastGlobalAdministrator, and GlobalAdministratorNotFound do not use tenant-membership wording."
+    action: "Preserve platform-governance-specific rejection copy; command/status
+      tests prove GlobalAdministratorAlreadyExists, LastGlobalAdministrator, and GlobalAdministratorNotFound
+      do not use tenant-membership wording."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
     resolution_source: "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs"
   - id: epic-4-retro-2026-06-07-validation-env-blockers
     epic: 4
-    action: "Track validation environment blockers separately from story acceptance; future stories keep focused acceptance evidence distinct from pre-existing Server/AppHost/DAPR failures."
+    action: "Track validation environment blockers separately from story acceptance;
+      future stories keep focused acceptance evidence distinct from pre-existing Server/AppHost/DAPR
+      failures."
     owner: "Murat (Test Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
     resolution_source: "_bmad-output/project-context.md"
   - id: deferred-work-2026-06-30-tenants-owned-actionable
     epic: 5
-    action: "Bring the tenant-domain correction path (5.6/5.8) and audit-page lifecycle to parity with the shipped global-administrator hardening: JSDisconnectedException focus guards on both correction panels, page-load global-admin enrichment guard, tenant terminal-state focus parity, concurrent-open generation guard, tenant confirm fail-closed on non-Current freshness, and tenant corrective-proof time-tie-back + invariant culture. Closed the 5.7 gateway-routing-test item (already covered) and the create freshness-gate item (restored to Current-or-Unknown). UI.Tests 871/871; Debug TreatWarningsAsErrors 0/0; Release -warnaserror blocked locally by NU1102 (unpublished pinned package). Pagination >20, EventCallback->Func watch-item, ETag special-char, IA-blocked trio, and cross-submodule handoffs kept deferred."
+    action: "Bring the tenant-domain correction path (5.6/5.8) and audit-page lifecycle
+      to parity with the shipped global-administrator hardening: JSDisconnectedException
+      focus guards on both correction panels, page-load global-admin enrichment guard,
+      tenant terminal-state focus parity, concurrent-open generation guard, tenant
+      confirm fail-closed on non-Current freshness, and tenant corrective-proof time-tie-back
+      + invariant culture. Closed the 5.7 gateway-routing-test item (already covered)
+      and the create freshness-gate item (restored to Current-or-Unknown). UI.Tests
+      871/871; Debug TreatWarningsAsErrors 0/0; Release -warnaserror blocked locally
+      by NU1102 (unpublished pinned package). Pagination >20, EventCallback->Func
+      watch-item, ETag special-char, IA-blocked trio, and cross-submodule handoffs
+      kept deferred."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/deferred-work.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-deferred-work-tenants-owned.md"
   - id: deferred-work-2026-07-01-pagination-and-submodule-docs
     epic: 5
-    action: "Close the global-administrator correction pagination fail-OPEN (>20 admins): GlobalAdministratorCorrectionSnapshot now treats absence as conclusive only when the fixed projection is fully loaded (!HasMore) — ConfirmProjection proves a revoke on !present && !HasMore (killing the page-2 false-Confirmed), and EvaluateCurrentProjection fails closed to UnableToVerify for an incomplete-page restore/revoke; +3 tests + PagedProjectionReady helper. Landed the three cross-submodule doc handoffs (FrontComposer FcContentLabel dispose-clobber + first-paint XML remarks + FcPageHeader.FocusHeadingAsync no-op->throw remarks; EventStore StorageTreemap SVG tabindex browser-matrix Razor comment). UI.Tests 874/874; all Tenants library + Tier-1/Tier-2 test projects, FrontComposer Shell, and EventStore Admin.UI build 0/0. Kept deferred: full projection paging (dedicated story), the IA/Product-blocked trio, and the benign EventCallback->Func / latent ETag watch-items. Pre-existing/environmental: AppHost + IntegrationTests Debug build blocked by drifted Hexalith.Commons submodule (external git pull, not this change); Release -warnaserror blocked by NU1102. UNCOMMITTED (Tenants + FrontComposer + EventStore submodules)."
+    action: "Close the global-administrator correction pagination fail-OPEN (>20 admins):
+      GlobalAdministratorCorrectionSnapshot now treats absence as conclusive only
+      when the fixed projection is fully loaded (!HasMore) — ConfirmProjection proves
+      a revoke on !present && !HasMore (killing the page-2 false-Confirmed), and EvaluateCurrentProjection
+      fails closed to UnableToVerify for an incomplete-page restore/revoke; +3 tests
+      + PagedProjectionReady helper. Landed the three cross-submodule doc handoffs
+      (FrontComposer FcContentLabel dispose-clobber + first-paint XML remarks + FcPageHeader.FocusHeadingAsync
+      no-op->throw remarks; EventStore StorageTreemap SVG tabindex browser-matrix
+      Razor comment). UI.Tests 874/874; all Tenants library + Tier-1/Tier-2 test projects,
+      FrontComposer Shell, and EventStore Admin.UI build 0/0. Kept deferred: full
+      projection paging (dedicated story), the IA/Product-blocked trio, and the benign
+      EventCallback->Func / latent ETag watch-items. Pre-existing/environmental: AppHost
+      + IntegrationTests Debug build blocked by drifted Hexalith.Commons submodule
+      (external git pull, not this change); Release -warnaserror blocked by NU1102.
+      UNCOMMITTED (Tenants + FrontComposer + EventStore submodules)."
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/deferred-work.md"

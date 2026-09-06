@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'done'
+status: 'in-progress'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -125,6 +125,38 @@ deferred: []
 - Given status, SignalR, or projection changes, when reconciliation evaluates them, then only exact verified command-event evidence plus bounded complete target absence and projection-version advancement confirms; pre-existing/page-only absence, status/SignalR alone, unrelated change, mismatch, or zero-event completion never succeeds.
 - Given last-admin, not-found, permission, transport, degraded, or unable-to-verify outcomes, when the lifecycle renders, then last-confirmed truth remains unchanged, safe EN/FR state-specific recovery is shown, audit availability is not fabricated, and no sensitive diagnostic or tenant-scope implication is observable.
 - Given server, UI, localization, accessibility, responsive, reconnect, and fixed-routing verification runs, when the story is assessed, then the existing aggregate invariant remains intact and all focused/full gates pass without modifying orchestrator-owned status, dependencies, submodules, or unrelated code.
+
+### Review Findings
+
+Chunk A (declared production source), 2026-09-06. 0 decision-needed, 10 patch, 3 defer.
+
+- [ ] [Review][Patch] Failed delivery completion can leave a non-recoverable RequestSent lease [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3904]
+- [ ] [Review][Patch] Correction and page renderer dispatch still throws or mutates after dispose [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1057]
+- [ ] [Review][Patch] Correction recovery still uses one viewport-gated polymorphic control [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:345]
+- [ ] [Review][Patch] Correction correlated refresh and ordinary unable-to-verify still use generic correction copy [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:258]
+- [ ] [Review][Patch] Correction retry preflight regresses UnableToVerify to RequestSent [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1143]
+- [ ] [Review][Patch] Remove focus helper skips lifecycle fallback on stale preview, null module, or ObjectDisposedException [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1409]
+- [ ] [Review][Patch] No test pins correlationless notification or correction adoption against automatic same-id retry [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:3827]
+- [ ] [Review][Patch] Rendered remove preview is not asserted to carry the overlay class [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:521]
+- [ ] [Review][Patch] Remove focus sentinels have no visually-hidden layout [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:527]
+- [ ] [Review][Patch] Correction submit keeps an unreachable second RemoveGlobalAdministratorTrackedAsync arm [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:934]
+- [x] [Review][Defer] focusElementById may treat a successful Fluent Cancel wrap as failure [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23] — deferred: maybe-false pending a real-browser activeElement trace; already DW-345
+- [x] [Review][Defer] Grant preview Cancel remains a raw fluent-button [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:633] — deferred: pre-existing grant KEEP; this story required Fluent only on the removal dialog
+- [x] [Review][Defer] Story gitlink File List SHAs do not match the current tree [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:450] — deferred: later build(deps) advanced Builds/EventStore/FrontComposer/Memories after the recorded SHAs; updating the record edits this spec, restoring the tree reverts later work (chunk C)
+
+Rejected:
+- `false` Start-sentinel success test does not prove Cancel focus — on JS success the C# path does not also focus acknowledgement while the preview is current.
+- `false` Remove preview has no backdrop — isolation is inert plus the elevated fixed card, matching grant and the iteration-3 contract.
+- `false` Duplicated grant/remove overlay rules / grant missing border-box — remove has the spec'd box-sizing; merging would change the KEEP grant chrome.
+- `low` Notification omits SignalRNudge focus retarget — correlated status still runs; everyday operators are not left without recovery.
+- `false` Correlationless notification skips LoadAsync — that return is the anti-redispatch guard; last-confirmed rows stay until operator retry preflight walks the population.
+- `false` FocusTarget.Refresh maps onto the lifecycle region — same grant mapping; recovery is the next tab stop and the live region already announces.
+- `false` Ownerless Failed/Rejected completion releases the lease — iteration-5 requires releasing terminal evidence when completion precedes adoption rather than leaving the aggregate locked.
+- `false` Grant WithReconciliation clears RejectionCode — Rejected is not in the retainable lifecycle set, so structured rejection is not adopted from the lease.
+- `false` CreateCompletionReconciliation has no retain allow-list — terminal Failed/Rejected must be publishable; the looser completion validator is required.
+- `low` Reconciliation ToString omits RejectionCode — support-only diagnostic; not met in everyday operator use.
+- `low` Uncaught TaskCanceledException in focus import — circuit teardown; sibling disconnect catches already cover the observable dispose path.
+- `false` Edge-case claim that terminal ownerless completion must remain adoptable — contradicts the iteration-5 release contract verified in TenantAggregateCommandAdmissionGate.TryCompleteReconciliationDispatch.
 
 ## Spec Change Log
 

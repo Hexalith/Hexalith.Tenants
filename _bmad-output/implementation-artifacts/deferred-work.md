@@ -2828,3 +2828,25 @@ location: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23-35
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether a successful inner-control focus is reported as false and wrap fallback incorrectly skips Cancel.
 status: open
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)
+
+### DW-346: Grant preview Cancel remains a raw lowercase fluent-button.
+
+origin: code review chunk A 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:633
+source_spec: `_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+severity: low
+reason: Story 4.3 required Fluent V5 actions on the removal dialog. The grant preview Cancel control is pre-existing KEEP grant chrome (`<fluent-button appearance="outline" @ref>`), not introduced by this removal pass.
+status: open
+
+### DW-347: Story 4.3 File List gitlink SHAs do not match the current tree.
+
+origin: code review chunk A 2026-09-06
+location: _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:450
+source_spec: `_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+severity: medium
+reason: `python3 scripts/validate-story-gitlinks.py` FAIL: tree is Builds d004983, EventStore acf5c4e, FrontComposer 5cbc558, Memories fa8f531, but the File List still states 8db7459 / 070a4b6 / 0922400 / f7fef9f. Later build(deps) advanced the pointers; updating the record edits this spec, restoring the tree reverts later work. Chunk C.
+status: open
+
+Chunk A also restated DW-345 (`focusElementById` host vs inner activeElement) as maybe-false; no new ledger row.
