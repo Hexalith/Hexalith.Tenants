@@ -60,7 +60,6 @@
                 <FluentBadge Appearance="BadgeAppearance.Tint"
                              Color="@StatusBadgeColor(context.Status)"
                              IconStart="@StatusIcon(context.Status)"
-                             IconLabel="@StatusLabel(context.Status)"
                              Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")"
                              aria-label="@StatusLabel(context.Status)"
                              data-testid="tenants-list-status">
@@ -93,7 +92,6 @@
             <FluentBadge Appearance="BadgeAppearance.Tint"
                          Color="@PendingBadgeColor(context.PendingState)"
                          IconStart="@PendingIcon(context.PendingState)"
-                         IconLabel="@PendingLabel(context.PendingState)"
                          Class="tenant-data-grid__pending"
                          aria-label="@PendingLabel(context.PendingState)"
                          data-testid="tenants-list-pending">

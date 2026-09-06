@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using AngleSharp.Dom;
+
 using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
@@ -36,8 +38,13 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         badge.Color.ShouldBe(expectedColor);
         badge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIconType);
         badge.IconStart.Size.ShouldBe(IconSize.Size20);
-        badge.IconLabel.ShouldBe(cut.Find("[data-testid='tenants-list-truth-state']").TextContent.Trim());
-        cut.Find("[data-testid='tenants-list-truth-state']").GetAttribute("role").ShouldBeNull();
+        badge.IconLabel.ShouldBeNull();
+        var badgeElement = cut.Find("[data-testid='tenants-list-truth-state']");
+        string? accessibleName = badgeElement.GetAttribute("aria-label");
+        accessibleName.ShouldNotBeNullOrWhiteSpace();
+        accessibleName.ShouldBe(badgeElement.TextContent.Trim());
+        AssertDecorativeIcon(badgeElement);
+        badgeElement.GetAttribute("role").ShouldBeNull();
     }
 
     [Fact]
@@ -58,7 +65,11 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         fluentBadge.Color.ShouldBe(BadgeColor.Informative);
         fluentBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("ArrowClockwise");
         fluentBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        fluentBadge.IconLabel.ShouldBe("Refreshing");
+        fluentBadge.IconLabel.ShouldBeNull();
+        string? accessibleName = badge.GetAttribute("aria-label");
+        accessibleName.ShouldNotBeNullOrWhiteSpace();
+        accessibleName.ShouldBe(badge.TextContent.Trim());
+        AssertDecorativeIcon(badge);
         badge.GetAttribute("role").ShouldBe("status");
     }
 
@@ -106,6 +117,14 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         freshness.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Warning);
         lifecycle.Find("[data-testid='tenants-projection-lifecycle']").TextContent.Trim().ShouldBe("Stale");
         lifecycle.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Severe);
+    }
+
+    private static void AssertDecorativeIcon(IElement badge)
+    {
+        IElement icon = badge.QuerySelectorAll("svg").ShouldHaveSingleItem();
+        icon.GetAttribute("aria-hidden").ShouldBe("true");
+        icon.HasAttribute("aria-label").ShouldBeFalse();
+        icon.QuerySelector("title").ShouldBeNull();
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>

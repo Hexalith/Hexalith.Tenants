@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using AngleSharp.Dom;
+
 using Bunit;
 
 using Hexalith.FrontComposer.Contracts.Rendering;
@@ -97,7 +99,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         statusBadge.Color.ShouldBe(BadgeColor.Severe);
         statusBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("Power");
         statusBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        statusBadge.IconLabel.ShouldBe("Disabled");
+        AssertDecorativeBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), "Disabled");
 
         FluentBadge pendingBadge = cut.FindComponents<FluentBadge>()
             .Select(component => component.Instance)
@@ -105,10 +107,38 @@ public sealed class TenantListSurfaceTests : BunitContext
         pendingBadge.Color.ShouldBe(BadgeColor.Important);
         pendingBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("QuestionCircle");
         pendingBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        pendingBadge.IconLabel.ShouldBe("Pending state unknown");
-        cut.Find("[data-testid='tenants-list-status']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
-        cut.Find("[data-testid='tenants-list-pending']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
+        AssertDecorativeBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), "Pending state unknown");
         cut.FindAll("[data-testid='tenants-list-audit-entrypoint']").Count.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(TenantStatus.Unknown, TenantPendingState.None, "Unknown", "No pending changes")]
+    [InlineData(TenantStatus.Unknown, TenantPendingState.Unknown, "Unknown", "Pending state unknown")]
+    [InlineData(TenantStatus.Active, TenantPendingState.None, "Active", "No pending changes")]
+    [InlineData(TenantStatus.Active, TenantPendingState.Unknown, "Active", "Pending state unknown")]
+    [InlineData(TenantStatus.Disabled, TenantPendingState.None, "Disabled", "No pending changes")]
+    [InlineData(TenantStatus.Disabled, TenantPendingState.Unknown, "Disabled", "Pending state unknown")]
+    public void Grid_badges_use_exact_localized_host_names_and_decorative_icons(
+        TenantStatus status,
+        TenantPendingState pendingState,
+        string expectedStatus,
+        string expectedPendingState)
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", status, ReadModelFreshnessState.Current, pendingState)]));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        FluentBadge statusBadge = cut.FindComponents<FluentBadge>()
+            .Select(component => component.Instance)
+            .Single(badge => badge.Class?.Contains("tenant-data-grid__status", StringComparison.Ordinal) == true);
+        AssertDecorativeBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), expectedStatus);
+
+        FluentBadge pendingBadge = cut.FindComponents<FluentBadge>()
+            .Select(component => component.Instance)
+            .Single(badge => badge.Class?.Contains("tenant-data-grid__pending", StringComparison.Ordinal) == true);
+        AssertDecorativeBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), expectedPendingState);
     }
 
     [Fact]
@@ -2581,6 +2611,17 @@ public sealed class TenantListSurfaceTests : BunitContext
 
     private void RegisterServices(TenantListSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
+
+    private static void AssertDecorativeBadge(FluentBadge fluentBadge, IElement badge, string expectedLabel)
+    {
+        fluentBadge.IconLabel.ShouldBeNull();
+        badge.TextContent.Trim().ShouldBe(expectedLabel);
+        badge.GetAttribute("aria-label").ShouldBe(expectedLabel);
+        IElement icon = badge.QuerySelectorAll("svg").ShouldHaveSingleItem();
+        icon.GetAttribute("aria-hidden").ShouldBe("true");
+        icon.HasAttribute("aria-label").ShouldBeFalse();
+        icon.QuerySelector("title").ShouldBeNull();
+    }
 
     private void RegisterServices(Func<NSubstitute.Core.CallInfo, Task<TenantListSnapshot>> resultFactory)
     {
