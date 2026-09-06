@@ -419,6 +419,35 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         };
     }
 
+    /// <summary>Retains an ambiguous dispatched attempt when a retry preflight fails closed.</summary>
+    /// <param name="reasonKey">Current localized preflight reason.</param>
+    /// <param name="recoveryKey">Current localized preflight recovery.</param>
+    /// <returns>The same retainable ambiguous attempt without regressing UnableToVerify.</returns>
+    public GlobalAdministratorCorrectionSnapshot RetainAmbiguousPreflight(
+        string reasonKey,
+        string recoveryKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reasonKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(recoveryKey);
+        if (!IsRestoreAccessAction)
+        {
+            return FromRemovalSnapshot(ToRemovalSnapshot().RetainAmbiguousPreflight(reasonKey, recoveryKey));
+        }
+
+        return this with
+        {
+            LifecycleState = TenantCommandLifecycleState.RequestSent,
+            CorrelationId = null,
+            SafeMessage = null,
+            SafeMessageKey = reasonKey,
+            SafeRecoveryKey = recoveryKey,
+            IsSubmissionAmbiguous = true,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+    }
+
     public GlobalAdministratorCorrectionSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 

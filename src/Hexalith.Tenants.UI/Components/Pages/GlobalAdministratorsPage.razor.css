@@ -109,6 +109,20 @@
     white-space: pre-wrap;
 }
 
+/* fc-css-exception: visually-hidden focus sentinels for the aria-modal trap; no Fluent primitive wraps
+   this off-screen tab-cycle technique, and the spans must remain tab-reachable without adding visible
+   fact rows to the preview. */
+.global-admins__remove-focus-sentinel {
+    block-size: 1px;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+}
+
 /* fc-css-exception: status region on a semantic <section> with a content-sized icon/copy grid
    (auto + 1fr); FluentGrid is a 12-column responsive system and cannot express these columns. */
 .global-admins__state {

@@ -172,7 +172,7 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
     /// <summary>Retains an ambiguous dispatched attempt when a retry preflight fails closed.</summary>
     /// <param name="reasonKey">Current localized preflight reason.</param>
     /// <param name="recoveryKey">Current localized preflight recovery.</param>
-    /// <returns>The same retainable request-sent attempt.</returns>
+    /// <returns>The same retainable ambiguous attempt without regressing UnableToVerify.</returns>
     public GlobalAdministratorRemoveCommandSnapshot RetainAmbiguousPreflight(
         string reasonKey,
         string recoveryKey)

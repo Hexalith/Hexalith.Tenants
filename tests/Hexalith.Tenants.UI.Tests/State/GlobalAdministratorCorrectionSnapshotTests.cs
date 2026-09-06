@@ -516,6 +516,34 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void RemovalRetryPreflightPreservesUnableToVerifyAmbiguity()
+    {
+        GlobalAdministratorCorrectionSnapshot unable = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .WithRemovePreview(RemovePreview())
+            .RequestSent("message-safe")
+            .ApplySubmissionFailure(new TenantCommandSubmissionResult(
+                TenantCommandLifecycleState.AlreadyApplied,
+                "message-safe",
+                "unsupported-correlation"));
+
+        unable.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        unable.IsSubmissionAmbiguous.ShouldBeTrue();
+
+        GlobalAdministratorCorrectionSnapshot retained = unable.RetainAmbiguousPreflight(
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence",
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh");
+
+        retained.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        retained.IsSubmissionAmbiguous.ShouldBeTrue();
+        retained.MessageId.ShouldBe("message-safe");
+        retained.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence");
+        retained.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh");
+        retained.ToReconciliation().ShouldNotBeNull().LifecycleState
+            .ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+    }
+
+    [Fact]
     public void CorrelationlessRemoveRequestSentProducesRetainableInitialDispatchIdentity()
     {
         GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot

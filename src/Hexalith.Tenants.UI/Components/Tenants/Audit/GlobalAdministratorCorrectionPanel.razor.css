@@ -72,6 +72,12 @@
     .ga-correction-panel__preview dl {
         grid-template-columns: 1fr;
     }
+
+    /* fc-css-exception: withdraw the destructive same-id retry on a narrow viewport while leaving
+       correlated read-only status recovery visible; Fluent has no mutation-safety visibility token. */
+    .ga-correction-panel__mutation-initiation {
+        display: none;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

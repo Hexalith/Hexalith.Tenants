@@ -1408,6 +1408,7 @@
     {
         if (!IsCurrentRemovePreview(expectedPreview))
         {
+            await FocusRemoveFallbackAsync(expectedPreview).ConfigureAwait(false);
             return;
         }
 
@@ -1453,14 +1454,20 @@
                     .InvokeAsync<bool>("focusElementById", elementId)
                     .ConfigureAwait(false);
             }
+            else
+            {
+                useFallback = true;
+            }
         }
         catch (JSDisconnectedException)
         {
             // The circuit disappeared while the semantic sentinel routed focus to the Fluent action.
+            useFallback = true;
         }
         catch (ObjectDisposedException)
         {
             // The renderer or imported module was disposed during focus routing.
+            useFallback = true;
         }
         catch (JSException)
         {
@@ -2195,15 +2202,8 @@
 
     private async Task ApplyFixedAggregateAdmissionChangeAsync()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
         GlobalAdministratorRemoveCommandSnapshot? resume = null;
-        try
-        {
-            await InvokeAsync(() =>
+        if (!await InvokeRendererSafelyAsync(() =>
             {
                 if (SynchronizeOwnedRemoveReconciliation()
                     && _removeSnapshot.CorrelationId is not null
@@ -2213,9 +2213,7 @@
                 }
 
                 StateHasChanged();
-            }).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
+            }).ConfigureAwait(false))
         {
             return;
         }
@@ -3905,12 +3903,16 @@
                 || !submissionLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
             {
                 _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
-                return;
+                await PublishRemoveDeliveryCompletionAsync(
+                    requestSentSnapshot,
+                    submissionSnapshot,
+                    submissionLease,
+                    generation).ConfigureAwait(false);
             }
 
-            // The gate notification is the single wake-up path for both the current renderer and a
-            // replacement owner. It synchronizes durable evidence before any status lookup and avoids a
-            // second lookup racing the queued notification drain.
+            // Successful completion publishes through the gate notification so the current renderer and a
+            // replacement owner share one wake-up. Abort above still applies Failed/unsupported evidence so
+            // the lease cannot remain a non-recoverable RequestSent identity.
         }
         catch (OperationCanceledException)
         {
@@ -4105,12 +4107,11 @@
             || !lease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
         {
             _ = lease.TryAbortReconciliationDispatch(completionToken);
-            return;
+            await PublishRemoveDeliveryCompletionAsync(expected, applied, lease, generation).ConfigureAwait(false);
         }
 
-        // Completion publication raises the only renderer-independent wake-up. The current or replacement
-        // owner synchronizes through ApplyFixedAggregateAdmissionChangeAsync; this origin never reaches back
-        // into a renderer that may have been disposed while delivery was in flight.
+        // Successful completion publishes through the gate notification. Abort still applies the exact
+        // result so a Failed delivery cannot leave a non-recoverable RequestSent lease.
     }
 
     private async Task RefreshRemoveStatusCoreAsync(
@@ -4344,17 +4345,37 @@
     {
         GlobalAdministratorRemoveCommandSnapshot failedSnapshot = requestSentSnapshot.ApplySubmission(
             TenantCommandSubmissionResult.Failed(Localizer["Tenants.GlobalAdministrators.Remove.State.Failed"]));
-        await InvokeAsync(() =>
-        {
-            if (!CanApplyRemoveMutation(generation) || !ReferenceEquals(_removeSnapshot, requestSentSnapshot))
-            {
-                _ = RetainOrReleaseRemoveCompletion(failedSnapshot, submissionLease);
-                return;
-            }
+        await PublishRemoveDeliveryCompletionAsync(
+            requestSentSnapshot,
+            failedSnapshot,
+            submissionLease,
+            generation).ConfigureAwait(false);
+    }
 
-            SetRemoveSnapshot(failedSnapshot);
-            StateHasChanged();
-        }).ConfigureAwait(false);
+    private async Task PublishRemoveDeliveryCompletionAsync(
+        GlobalAdministratorRemoveCommandSnapshot requestSentSnapshot,
+        GlobalAdministratorRemoveCommandSnapshot completionSnapshot,
+        TenantAggregateCommandLease submissionLease,
+        long generation)
+    {
+        if (await InvokeRendererSafelyAsync(() =>
+            {
+                if (!CanApplyRemoveMutation(generation)
+                    || !ReferenceEquals(_removeSnapshot, requestSentSnapshot)
+                    || !ReferenceEquals(_removeAdmissionLease, submissionLease))
+                {
+                    _ = RetainOrReleaseRemoveCompletion(completionSnapshot, submissionLease);
+                    return;
+                }
+
+                SetRemoveSnapshot(completionSnapshot);
+                StateHasChanged();
+            }).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        _ = RetainOrReleaseRemoveCompletion(completionSnapshot, submissionLease);
     }
 
     private void AdoptRetainedReconciliation()

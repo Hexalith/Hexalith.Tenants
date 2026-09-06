@@ -130,16 +130,16 @@ deferred: []
 
 Chunk A (declared production source), 2026-09-06. 0 decision-needed, 10 patch, 3 defer.
 
-- [ ] [Review][Patch] Failed delivery completion can leave a non-recoverable RequestSent lease [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3904]
-- [ ] [Review][Patch] Correction and page renderer dispatch still throws or mutates after dispose [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1057]
-- [ ] [Review][Patch] Correction recovery still uses one viewport-gated polymorphic control [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:345]
-- [ ] [Review][Patch] Correction correlated refresh and ordinary unable-to-verify still use generic correction copy [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:258]
-- [ ] [Review][Patch] Correction retry preflight regresses UnableToVerify to RequestSent [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1143]
-- [ ] [Review][Patch] Remove focus helper skips lifecycle fallback on stale preview, null module, or ObjectDisposedException [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1409]
-- [ ] [Review][Patch] No test pins correlationless notification or correction adoption against automatic same-id retry [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:3827]
-- [ ] [Review][Patch] Rendered remove preview is not asserted to carry the overlay class [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:521]
-- [ ] [Review][Patch] Remove focus sentinels have no visually-hidden layout [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:527]
-- [ ] [Review][Patch] Correction submit keeps an unreachable second RemoveGlobalAdministratorTrackedAsync arm [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:934]
+- [x] [Review][Patch] Failed delivery completion can leave a non-recoverable RequestSent lease [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3904]
+- [x] [Review][Patch] Correction and page renderer dispatch still throws or mutates after dispose [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1057]
+- [x] [Review][Patch] Correction recovery still uses one viewport-gated polymorphic control [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:345]
+- [x] [Review][Patch] Correction correlated refresh and ordinary unable-to-verify still use generic correction copy [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:258]
+- [x] [Review][Patch] Correction retry preflight regresses UnableToVerify to RequestSent [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1143]
+- [x] [Review][Patch] Remove focus helper skips lifecycle fallback on stale preview, null module, or ObjectDisposedException [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1409]
+- [x] [Review][Patch] No test pins correlationless notification or correction adoption against automatic same-id retry [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:3827]
+- [x] [Review][Patch] Rendered remove preview is not asserted to carry the overlay class [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:521]
+- [x] [Review][Patch] Remove focus sentinels have no visually-hidden layout [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:527]
+- [x] [Review][Patch] Correction submit keeps an unreachable second RemoveGlobalAdministratorTrackedAsync arm [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:934]
 - [x] [Review][Defer] focusElementById may treat a successful Fluent Cancel wrap as failure [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23] — deferred: maybe-false pending a real-browser activeElement trace; already DW-345
 - [x] [Review][Defer] Grant preview Cancel remains a raw fluent-button [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:633] — deferred: pre-existing grant KEEP; this story required Fluent only on the removal dialog
 - [x] [Review][Defer] Story gitlink File List SHAs do not match the current tree [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:450] — deferred: later build(deps) advanced Builds/EventStore/FrontComposer/Memories after the recorded SHAs; updating the record edits this spec, restoring the tree reverts later work (chunk C)
@@ -464,6 +464,7 @@ Source and tests changed by this story:
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor`
+- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.css`
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs`
@@ -482,13 +483,13 @@ Source and tests changed by this story:
 Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced Builds, EventStore, and FrontComposer again to the SHAs this tree now ships:
 
 - `references/Hexalith.Builds`
-  - `references/Hexalith.Builds` e0e0694 -> 8db7459 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
+  - `references/Hexalith.Builds` e0e0694 -> aee36f4 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
 - `references/Hexalith.EventStore`
-  - `references/Hexalith.EventStore` c08cb34 -> 070a4b6 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
+  - `references/Hexalith.EventStore` c08cb34 -> b869bc2 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.FrontComposer`
-  - `references/Hexalith.FrontComposer` 1a7edde -> 0922400 -- story commit `de5784ca` moved FrontComposer; later dependency refresh advanced it to the shipped pointer.
+  - `references/Hexalith.FrontComposer` 1a7edde -> 0a4c4ad -- story commit `de5784ca` moved FrontComposer; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.Memories`
-  - `references/Hexalith.Memories` 3a7a702 -> f7fef9f -- landed in story commit `de5784ca`.
+  - `references/Hexalith.Memories` 3a7a702 -> 69be63a -- landed in story commit `de5784ca`.
 
 ## Completion Notes List
 
@@ -497,4 +498,4 @@ Root submodule pointers that moved between this story's `baseline_commit` `91d23
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
 
-Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `8db7459`, EventStore `070a4b6`, FrontComposer `0922400`, and Memories `f7fef9f`. No submodule was reverted.
+Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `aee36f4`, EventStore `b869bc2`, FrontComposer `0a4c4ad`, and Memories `69be63a`. No submodule was reverted.
