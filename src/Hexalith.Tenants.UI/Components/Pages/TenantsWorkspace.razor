@@ -40,7 +40,7 @@
                     ActiveTabIdChanged="OnActiveTabChanged"
                     AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
                     TestId="tenants-workspace-tabs">
-            <FcPageTab Id="@TenantsTabId"
+            <FcPageTab Id="@TenantWorkspaceState.TenantsTab"
                        Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]"
                        DeferredLoading="true">
                 <div data-testid="tenants-workspace-tenants-panel">
@@ -60,8 +60,8 @@
                                       Label="@Localizer["Tenants.Workspace.Scope.Label"]"
                                       data-testid="tenants-workspace-scope"
                                       aria-label="@Localizer["Tenants.Workspace.Scope.Label"]">
-                            <FluentOption TValue="string" Value="@AllTenantsScope">@Localizer["Tenants.Workspace.Scope.All"]</FluentOption>
-                            <FluentOption TValue="string" Value="@MyTenantsScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantWorkspaceState.AllScope">@Localizer["Tenants.Workspace.Scope.All"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantWorkspaceState.MyScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
                         </FluentSelect>
 
                         @if (IsRetainedTenantListView)
@@ -266,7 +266,7 @@
                 </FluentStack>
                 </div>
             </FcPageTab>
-            <FcPageTab Id="@UsersTabId"
+            <FcPageTab Id="@TenantWorkspaceState.UsersTab"
                        Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
                        DeferredLoading="true">
                 <div data-testid="tenants-workspace-users-panel">
@@ -282,10 +282,6 @@
 </FcAggregateListPage>
 
 @code {
-    private const string TenantsTabId = "tenants";
-    private const string UsersTabId = "users";
-    private const string AllTenantsScope = "all";
-    private const string MyTenantsScope = "mine";
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
     private TenantListSnapshot? _lastConfirmedSnapshot;
@@ -312,7 +308,7 @@
         selectedTenantId: null,
         anchor: null);
     private TenantWorkspaceState _usersWorkspaceState = TenantWorkspaceState.FromQuery(
-        tab: UsersTabId,
+        tab: TenantWorkspaceState.UsersTab,
         scope: null,
         userId: null,
         search: null,
@@ -332,8 +328,8 @@
     private bool _sortDescending;
     private string? _selectedTenantId;
     private string? _returnAnchor;
-    private string _activeTabId = TenantsTabId;
-    private string _tenantScope = AllTenantsScope;
+    private string _activeTabId = TenantWorkspaceState.TenantsTab;
+    private string _tenantScope = TenantWorkspaceState.AllScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
     private bool _initialized;
@@ -397,22 +393,22 @@
     private HttpContext? HttpContext { get; set; }
 
     private bool IsTenantsTab
-        => string.Equals(_activeTabId, TenantsTabId, StringComparison.Ordinal);
+        => string.Equals(_activeTabId, TenantWorkspaceState.TenantsTab, StringComparison.Ordinal);
 
     private bool IsUsersTab
-        => string.Equals(_activeTabId, UsersTabId, StringComparison.Ordinal);
+        => string.Equals(_activeTabId, TenantWorkspaceState.UsersTab, StringComparison.Ordinal);
 
     private bool IsTenantListView
-        => IsTenantsTab && string.Equals(_tenantScope, AllTenantsScope, StringComparison.Ordinal);
+        => IsTenantsTab && string.Equals(_tenantScope, TenantWorkspaceState.AllScope, StringComparison.Ordinal);
 
     private bool IsMyTenantsView
-        => IsTenantsTab && string.Equals(_tenantScope, MyTenantsScope, StringComparison.Ordinal);
+        => IsTenantsTab && string.Equals(_tenantScope, TenantWorkspaceState.MyScope, StringComparison.Ordinal);
 
     private bool IsRetainedTenantListView
-        => string.Equals(_tenantWorkspaceState.Scope, AllTenantsScope, StringComparison.Ordinal);
+        => string.Equals(_tenantWorkspaceState.Scope, TenantWorkspaceState.AllScope, StringComparison.Ordinal);
 
     private bool IsRetainedMyTenantsView
-        => string.Equals(_tenantWorkspaceState.Scope, MyTenantsScope, StringComparison.Ordinal);
+        => string.Equals(_tenantWorkspaceState.Scope, TenantWorkspaceState.MyScope, StringComparison.Ordinal);
 
     private bool HasPageLocalFilter
         => !_snapshot.IsAuthoritativeSearch && !string.IsNullOrWhiteSpace(_statusFilter);
@@ -1007,8 +1003,8 @@
         // Clearing the search term must reload the full cursor list from the server, not re-filter the
         // (now stale) search snapshot still held in _snapshot.
         ApplyWorkspaceState(TenantWorkspaceState.FromQuery(
-            tab: TenantsTabId,
-            scope: AllTenantsScope,
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
             userId: null,
             search: null,
             status: null,
@@ -1208,12 +1204,12 @@
 
         // Preserve the complete state owned by the panel being left. Each retained panel stays mounted, and
         // its parameters must remain that panel's last normalized state while the other tab owns the URL.
-        if (string.Equals(previousTab, UsersTabId, StringComparison.Ordinal))
+        if (string.Equals(previousTab, TenantWorkspaceState.UsersTab, StringComparison.Ordinal))
         {
             _usersWorkspaceState = _workspaceState;
         }
 
-        if (string.Equals(NormalizeTab(activeTabId), UsersTabId, StringComparison.Ordinal))
+        if (string.Equals(NormalizeTab(activeTabId), TenantWorkspaceState.UsersTab, StringComparison.Ordinal))
         {
             TenantWorkspaceState usersState = _usersWorkspaceState;
             ApplyWorkspaceState(usersState, clearCursorHistory: true);
@@ -1242,7 +1238,9 @@
     }
 
     private static string NormalizeTab(string? value)
-        => string.Equals(value, UsersTabId, StringComparison.OrdinalIgnoreCase) ? UsersTabId : TenantsTabId;
+        => string.Equals(value, TenantWorkspaceState.UsersTab, StringComparison.OrdinalIgnoreCase)
+            ? TenantWorkspaceState.UsersTab
+            : TenantWorkspaceState.TenantsTab;
 
     private async Task OnTenantSortChanged(DataGridSortEventArgs<TenantListRow> args)
     {
@@ -1286,13 +1284,13 @@
             // PendingRecoveryScope whenever the search scope actually changes. Clearing it on a transition
             // that keeps the same scope would destroy copy the operator is still owed.
             _cursorHistory.Clear();
-            if (state.Tab == TenantsTabId && !string.IsNullOrWhiteSpace(state.Cursor))
+            if (state.Tab == TenantWorkspaceState.TenantsTab && !string.IsNullOrWhiteSpace(state.Cursor))
             {
                 _cursorHistory.Push(null);
             }
         }
 
-        if (state.Tab == UsersTabId)
+        if (state.Tab == TenantWorkspaceState.UsersTab)
         {
             _usersWorkspaceState = state;
             return;
@@ -1312,7 +1310,7 @@
     private void NavigateToCanonicalWorkspace()
     {
         _workspaceState = CurrentWorkspaceState();
-        if (_workspaceState.Tab == TenantsTabId)
+        if (_workspaceState.Tab == TenantWorkspaceState.TenantsTab)
         {
             _tenantWorkspaceState = _workspaceState;
         }

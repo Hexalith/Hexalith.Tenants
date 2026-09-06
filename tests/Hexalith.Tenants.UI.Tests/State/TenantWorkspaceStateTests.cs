@@ -8,6 +8,15 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantWorkspaceStateTests
 {
     [Fact]
+    public void IdentifierVocabularyMatchesTheCanonicalWorkspaceRouteContract()
+    {
+        TenantWorkspaceState.TenantsTab.ShouldBe("tenants");
+        TenantWorkspaceState.UsersTab.ShouldBe("users");
+        TenantWorkspaceState.AllScope.ShouldBe("all");
+        TenantWorkspaceState.MyScope.ShouldBe("mine");
+    }
+
+    [Fact]
     public void Query_state_normalizes_to_the_active_surface_and_drops_foreign_values()
     {
         TenantWorkspaceState state = TenantWorkspaceState.FromQuery(

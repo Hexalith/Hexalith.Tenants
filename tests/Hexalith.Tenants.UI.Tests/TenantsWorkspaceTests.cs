@@ -18,6 +18,7 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.UI.Tests.Components;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -129,6 +130,75 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
         cut.Find("[data-testid='tenants-workspace-scope']").NodeName.ShouldBe("FLUENT-DROPDOWN");
         cut.FindAll("[data-testid='tenants-user-lookup-input']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(
+        TenantWorkspaceState.TenantsTab,
+        TenantWorkspaceState.AllScope,
+        "[data-testid='tenants-list-refresh']")]
+    [InlineData(
+        TenantWorkspaceState.TenantsTab,
+        TenantWorkspaceState.MyScope,
+        "[data-testid='tenants-my-list']")]
+    [InlineData(
+        TenantWorkspaceState.UsersTab,
+        TenantWorkspaceState.AllScope,
+        "[data-testid='tenants-user-lookup-input']")]
+    public void WorkspaceCanonicalStateIdentifiersActivateTheMatchingTabAndSurface(
+        string tab,
+        string scope,
+        string expectedSurfaceSelector)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [MembershipRow("tenant.alpha", "Alpha", TenantRole.TenantOwner)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo($"/tenants?tab={tab}&scope={scope}");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement(expectedSurfaceSelector);
+
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(tab);
+        cut.Find(expectedSurfaceSelector).ShouldNotBeNull();
+        TenantWorkspaceState normalizedState = PrivateField<TenantWorkspaceState>(cut.Instance, "_workspaceState");
+        normalizedState.Tab.ShouldBe(tab);
+        normalizedState.Scope.ShouldBe(scope);
+
+        if (tab == TenantWorkspaceState.TenantsTab)
+        {
+            cut.FindAll("[data-testid='tenants-workspace-scope'] fluent-option")
+                .Select(option => option.GetAttribute("value"))
+                .ShouldBe([TenantWorkspaceState.AllScope, TenantWorkspaceState.MyScope]);
+
+            string nextScope = scope == TenantWorkspaceState.AllScope
+                ? TenantWorkspaceState.MyScope
+                : TenantWorkspaceState.AllScope;
+            string expectedUrl = nextScope == TenantWorkspaceState.MyScope
+                ? $"http://localhost/tenants?tab={TenantWorkspaceState.TenantsTab}&scope={TenantWorkspaceState.MyScope}"
+                : "http://localhost/tenants";
+            string nextSurfaceSelector = nextScope == TenantWorkspaceState.MyScope
+                ? "[data-testid='tenants-my-list']"
+                : "[data-testid='tenants-list-refresh']";
+
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-workspace-scope", nextScope);
+
+            cut.WaitForElement(nextSurfaceSelector);
+            Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(expectedUrl);
+            PrivateField<TenantWorkspaceState>(cut.Instance, "_workspaceState").Scope.ShouldBe(nextScope);
+        }
     }
 
     [Fact]
