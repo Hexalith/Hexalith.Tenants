@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-progress'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -437,6 +437,36 @@ Rejected:
   - `[medium]` `[patch]` Correction adoption drain while `_refreshInFlight != 0` is untested — dropping the in-flight guard would skip deferred status lookup and no current panel test would fail.
   - `[medium]` `[patch]` Start-sentinel success only asserts the JS mock was invoked — forcing fallback after a true `focusElementById` result would still pass, so a regression that also focuses acknowledgement would ship.
 
+### 2026-09-06 — Review pass (iteration 5 chunk-A repair)
+- verdicts: 26 findings — high 0, medium 5, low 1, false 11, maybe-false 1
+- findings:
+  - `[false]` `[reject]` `sprint-status.yaml` truncates the 4.3 key, drops other keys, and moves 4.2 to review — orchestrator bookkeeping is excluded from story evidence and does not change operator-visible removal behavior.
+  - `[false]` `[reject]` KEEP versus later gitlink/AppHost/Aspire files in the baseline range — carried: the File List declares the shipped pointers; AppHost and later refresh files are not this story's removal work. A KEEP wording edit would only change this spec.
+  - `[false]` `[reject]` Spec 4.3 File List omits audit/AppHost/`pushall` files and DW-347 cites other gitlink SHAs — omitting unrelated later work from this File List is correct; DW-347 belongs to `spec-refresh-dependencies-2.md`.
+  - `[medium]` `[defer]` Spec 5.1 remains in-review with its last operator-handoff task unchecked — that is Story 5.1 tracking, not this removal command.
+  - `[medium]` `[defer]` `TenantAuditPage.TryCreateRequest` mutates filter-validation fields before `InvokeAsync` — audit filter rendering is Story 5.1, not this removal flow.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` rejects list returns that contain `cursor` — audit navigation is Story 5.1.
+  - `[medium]` `[defer]` `TenantDetailPage` still uses caller-free `MatchesScope(request)` — tenant-detail capability matching is not this removal intent.
+  - `[low]` `[reject]` Remaining correction `OnInitialized`/auth `InvokeAsync` paths and `OpenCorrectionAsync` are uncontained — submit/retry/status dispatch already uses `InvokeRendererSafelyAsync`; wrapping first-paint and audit-open paths is extra complexity for a dispose race operators do not meet in everyday use.
+  - `[maybe-false]` `[defer]` `focusElementById` may treat a successful Fluent Cancel wrap as failure — carried: maybe-false pending a real-browser `activeElement` trace; already DW-345.
+  - `[medium]` `[patch]` Grant-path `RetainAmbiguousPreflight` always writes `RequestSent` — a restore-access correction that is already ambiguous `UnableToVerify` regresses lifecycle on retry preflight, the same identity break already fixed for removal.
+  - `[medium]` `[defer]` `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties — carried: later dependency work, not this removal story.
+  - `[medium]` `[defer]` Audit unauthorized and unavailable recovery both navigate to `BackHref` — Story 5.1 recovery matrix, not last-administrator removal.
+  - `[medium]` `[defer]` `TenantAuditNarrative.SafeTimestamp` accepts only round-trip `"O"` timestamps — audit display parsing is Story 5.1.
+  - `[medium]` `[defer]` `TenantAuditRow.FromEntry` maps a rejected `EventId` to `string.Empty` — audit receipt identity is Story 5.1.
+  - `[medium]` `[patch]` End-sentinel `FocusRemoveAcknowledgementAsync` returns without fallback when the preview is gone — a queued wrap after close leaves keyboard focus nowhere, unlike the start sentinel which now calls `FocusRemoveFallbackAsync`.
+  - `[false]` `[reject]` Status apply drops fetched status when `InvokeRendererSafelyAsync` returns false — a disposed page cannot render, and a replacement owner adopts the prior correlated lease and queues another status lookup through `ApplyFixedAggregateAdmissionChangeAsync`.
+  - `[false]` `[reject]` Projection apply drops causal proof when `InvokeRendererSafelyAsync` returns false — the same replacement owner requeries correlated status and then projection; confirmation is not permanently lost.
+  - `[false]` `[reject]` Retry `TryBeginReconciliationDispatch` failure after arming strands submitting state — `RefreshRemoveStatusAsync`'s `finally` always runs `CompleteRemoveSingleFlightAsync`, which clears `_isRemoveSubmitting`; a post-preflight `TryBegin` miss was not shown as reachable on the same expected lease.
+  - `[false]` `[reject]` Drain-loop exception loses coalesced status nudges — `RefreshRemoveStatusFromNotificationAsync` already contains lookup and renderer failures; an uncaught throw that drops the dequeued slot was not demonstrated.
+  - `[medium]` `[defer]` Numeric category filter text `"0"` is coerced to `Access` — audit filter parsing is Story 5.1.
+  - `[medium]` `[patch]` End sentinel does not share the start sentinel's disappeared-preview lifecycle fallback — same verified wrap-after-close defect as the end-sentinel handler row.
+  - `[false]` `[reject]` This change writes `sprint-status.yaml` — carried: orchestrator bookkeeping is excluded from story evidence.
+  - `[false]` `[reject]` This change moves AppHost SDK and submodule gitlinks — carried: later deps work; File List declares the shipped pointers.
+  - `[medium]` `[patch]` Last-admin and target-missing refresh tests never invoke `SubmitRemoveAsync` after the preview remains open — deleting the submit re-check would leave those tests green because they only assert the disabled attribute.
+  - `[medium]` `[defer]` Reversed From/To on the audit page has no field-associated Range test — Story 5.1 filter validation, not this removal command.
+  - `[false]` `[reject]` Sprint-status key truncation prevents matching the full story id — carried: the same orchestrator file is not removal evidence; this build resolved 4.3 by the numeric `4-3-` prefix.
+
 ## Design Notes
 
 Removal is intentionally a causal proof pipeline rather than an absence check:
@@ -483,13 +513,13 @@ Source and tests changed by this story:
 Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced Builds, EventStore, and FrontComposer again to the SHAs this tree now ships:
 
 - `references/Hexalith.Builds`
-  - `references/Hexalith.Builds` e0e0694 -> aee36f4 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
+  - `references/Hexalith.Builds` e0e0694 -> 39debe9 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
 - `references/Hexalith.EventStore`
-  - `references/Hexalith.EventStore` c08cb34 -> b869bc2 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
+  - `references/Hexalith.EventStore` c08cb34 -> 7b7f876 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.FrontComposer`
   - `references/Hexalith.FrontComposer` 1a7edde -> 0a4c4ad -- story commit `de5784ca` moved FrontComposer; later dependency refresh advanced it to the shipped pointer.
 - `references/Hexalith.Memories`
-  - `references/Hexalith.Memories` 3a7a702 -> 69be63a -- landed in story commit `de5784ca`.
+  - `references/Hexalith.Memories` 3a7a702 -> f174f9c -- landed in story commit `de5784ca`.
 
 ## Completion Notes List
 
@@ -498,4 +528,4 @@ Root submodule pointers that moved between this story's `baseline_commit` `91d23
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
 
-Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `aee36f4`, EventStore `b869bc2`, FrontComposer `0a4c4ad`, and Memories `69be63a`. No submodule was reverted.
+Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `39debe9`, EventStore `7b7f876`, FrontComposer `0a4c4ad`, and Memories `f174f9c`. No submodule was reverted.

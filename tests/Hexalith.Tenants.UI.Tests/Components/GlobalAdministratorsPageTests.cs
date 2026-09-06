@@ -1998,7 +1998,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         cut.WaitForAssertion(() =>
             cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeTrue());
+        await ClickRemoveSubmitEvenIfDisabledAsync(cut);
         commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveMessageIds.ShouldBeEmpty();
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admin-remove-safe-recovery']").TextContent
+                .ShouldContain("Grant another global administrator", Case.Insensitive));
     }
 
     [Fact]
@@ -5516,6 +5521,25 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 .HasAttribute("disabled").ShouldBeFalse());
     }
 
+    private static async Task ClickRemoveSubmitEvenIfDisabledAsync(
+        IRenderedComponent<GlobalAdministratorsPage> cut)
+    {
+        IElement submit = cut.Find("[data-testid='tenants-global-admin-remove-submit']");
+        await submit.ClickAsync(new MouseEventArgs());
+        if (cut.FindAll("[data-testid='tenants-global-admin-remove-submit']").Count == 0)
+        {
+            return;
+        }
+
+        EventCallback<MouseEventArgs> onClick = cut.FindComponents<FluentButton>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-global-admin-remove-submit", StringComparison.Ordinal))
+            .OnClick;
+        await cut.InvokeAsync(() => onClick.InvokeAsync(new MouseEventArgs()));
+    }
+
     private static void AcknowledgeGrantPreview(IRenderedComponent<GlobalAdministratorsPage> cut)
     {
         cut.Find("[data-testid='tenants-global-admin-grant-acknowledge']").Change(true);
@@ -6402,6 +6426,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value"] = "The target is not the last visible global administrator in the current projection.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery"] = "Recovery path",
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"] = "Refresh projection truth, inspect audit evidence, or grant global administrator authority again through the fixed platform-governance flow.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.LastAdministrator"] = "Grant another global administrator before removing this authority.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.TargetMissing"] = "Refresh and select an administrator currently present.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator"] = "The last global administrator cannot be removed.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing"] = "The exact target is not present in the complete projection.",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope"] = "Platform authority scope",
             ["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"] = "tenant system, domain global-administrators, aggregate global-administrators",
             ["Tenants.GlobalAdministrators.Remove.Preview.Target"] = "Target user id",
@@ -6681,7 +6709,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         cut.WaitForAssertion(() =>
             cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeTrue());
+        await ClickRemoveSubmitEvenIfDisabledAsync(cut);
         commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveMessageIds.ShouldBeEmpty();
+        cut.WaitForAssertion(() =>
+            cut.Find("[data-testid='tenants-global-admin-remove-safe-recovery']").TextContent
+                .ShouldContain("currently present", Case.Insensitive));
     }
 
     [Fact]

@@ -4277,7 +4277,10 @@
         if (IsCurrentRemovePreview(expectedPreview))
         {
             await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
+            return;
         }
+
+        await FocusRemoveFallbackAsync(expectedPreview).ConfigureAwait(false);
     }
 
     private async Task FocusRemoveCancelAsync(

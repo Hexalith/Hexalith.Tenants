@@ -436,7 +436,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
         return this with
         {
-            LifecycleState = TenantCommandLifecycleState.RequestSent,
+            LifecycleState = LifecycleState is TenantCommandLifecycleState.UnableToVerify && IsSubmissionAmbiguous
+                ? TenantCommandLifecycleState.UnableToVerify
+                : TenantCommandLifecycleState.RequestSent,
             CorrelationId = null,
             SafeMessage = null,
             SafeMessageKey = reasonKey,
