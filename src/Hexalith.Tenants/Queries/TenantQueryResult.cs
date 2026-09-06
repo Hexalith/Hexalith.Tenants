@@ -48,7 +48,11 @@ internal sealed record TenantQueryResult : QueryResult {
             return null;
         }
 
-        string normalized = eTag.Trim().Trim('"');
+        string normalized = eTag.Trim();
+        while (normalized.Length >= 2 && normalized[0] == '"' && normalized[^1] == '"') {
+            normalized = normalized[1..^1].Trim();
+        }
+
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 }

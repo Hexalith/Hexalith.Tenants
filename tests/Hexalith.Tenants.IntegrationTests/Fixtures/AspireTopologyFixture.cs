@@ -23,9 +23,12 @@ public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.H
     [
         new("eventstore", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
         new("tenants", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
-        new("tenants-api", "https", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: true, TenantsApiHealthTimeout),
         new("tenants-ui", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
         new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
+        // HTTPS is required because tenants-api redirects HTTP. Aliveness is polled by the Story 4.7
+        // proof with that test's timeout so a slow or unhealthy generated API does not stall the
+        // shared fixture's 6-minute startup budget or the other topology tests.
+        new("tenants-api", "https", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
     ];
 
     /// <inheritdoc/>

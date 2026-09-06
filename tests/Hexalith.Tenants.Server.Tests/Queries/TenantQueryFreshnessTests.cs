@@ -6,6 +6,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Queries.Handlers;
@@ -23,6 +24,7 @@ namespace Hexalith.Tenants.Server.Tests.Queries;
 public sealed class TenantQueryFreshnessTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 25, 13, 0, 0, TimeSpan.Zero);
+    private const string GenuineSequenceVersion = TenantProjectionVersionFormat.SequencePrefix + "42";
     private static readonly ReadModelFreshnessOptions Thresholds = new()
     {
         Aging = TimeSpan.FromMinutes(10),
@@ -63,23 +65,31 @@ public sealed class TenantQueryFreshnessTests
             ? Now - TimeSpan.FromMinutes(projectedAgeMinutes.Value)
             : null;
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        SetupTenantIndex(
+        TenantIndexReadModel index = SetupTenantIndex(
             store,
             expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? expectedETag : "index-etag-2",
             expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey ? primaryProjectedAt : Now);
-        SetupTenant(
+        TenantReadModel tenant = SetupTenant(
             store,
             expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "tenant-etag-2",
             expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha" ? primaryProjectedAt : Now);
-        SetupTenantAudit(
+        TenantAuditReadModel audit = SetupTenantAudit(
             store,
             expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? expectedETag : "audit-etag-2",
             expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha" ? primaryProjectedAt : Now);
-        SetupGlobalAdministrators(
+        GlobalAdministratorReadModel administrators = SetupGlobalAdministrators(
             store,
             expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey ? expectedETag : "admin-etag-2",
             expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey ? primaryProjectedAt : Now,
             "admin-user");
+
+        AssertPrimaryReadModelInputsExist(
+            expectedPrimaryKey,
+            primaryProjectedAt,
+            index,
+            tenant,
+            audit,
+            administrators);
 
         TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
             store,
@@ -88,6 +98,7 @@ public sealed class TenantQueryFreshnessTests
             freshnessOptions: Thresholds,
             timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
+        await AssertPrimaryReadModelWasReadAsync(store, expectedPrimaryKey);
         AssertValidatorOnly(result, expectedETag);
     }
 
@@ -125,6 +136,81 @@ public sealed class TenantQueryFreshnessTests
         metadata.ServedAt.ShouldBeNull();
         metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
         metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+    }
+
+    private static void AssertPrimaryReadModelInputsExist(
+        string expectedPrimaryKey,
+        DateTimeOffset? primaryProjectedAt,
+        TenantIndexReadModel index,
+        TenantReadModel tenant,
+        TenantAuditReadModel audit,
+        GlobalAdministratorReadModel administrators)
+    {
+        IReadModelFreshness freshness;
+        if (expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey)
+        {
+            freshness = index;
+        }
+        else if (expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha")
+        {
+            freshness = tenant;
+        }
+        else if (expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha")
+        {
+            freshness = audit;
+        }
+        else if (expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey)
+        {
+            freshness = administrators;
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(expectedPrimaryKey), expectedPrimaryKey, "Unsupported primary key.");
+        }
+
+        freshness.ProjectedAt.ShouldBe(primaryProjectedAt);
+        freshness.ProjectionVersion.ShouldBe(GenuineSequenceVersion);
+    }
+
+    private static async Task AssertPrimaryReadModelWasReadAsync(IReadModelStore store, string expectedPrimaryKey)
+    {
+        if (expectedPrimaryKey == TenantQueryHandlerBase.TenantIndexProjectionKey)
+        {
+            _ = await store.Received().GetAsync<TenantIndexReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                expectedPrimaryKey,
+                Arg.Any<CancellationToken>());
+            return;
+        }
+
+        if (expectedPrimaryKey == TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha")
+        {
+            _ = await store.Received().GetAsync<TenantReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                expectedPrimaryKey,
+                Arg.Any<CancellationToken>());
+            return;
+        }
+
+        if (expectedPrimaryKey == TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha")
+        {
+            _ = await store.Received().GetAsync<TenantAuditReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                expectedPrimaryKey,
+                Arg.Any<CancellationToken>());
+            return;
+        }
+
+        if (expectedPrimaryKey == TenantQueryHandlerBase.GlobalAdminProjectionKey)
+        {
+            _ = await store.Received().GetAsync<GlobalAdministratorReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                expectedPrimaryKey,
+                Arg.Any<CancellationToken>());
+            return;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(expectedPrimaryKey), expectedPrimaryKey, "Unsupported primary key.");
     }
 
     private static QueryEnvelope CreateEnvelope(string queryType)
@@ -214,7 +300,7 @@ public sealed class TenantQueryFreshnessTests
     private static IQueryCursorCodec CreateCursorCodec()
         => new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
 
-    private static void SetupGlobalAdministrators(
+    private static GlobalAdministratorReadModel SetupGlobalAdministrators(
         IReadModelStore store,
         string eTag,
         DateTimeOffset? projectedAt,
@@ -224,7 +310,7 @@ public sealed class TenantQueryFreshnessTests
         {
             Administrators = administratorIds.ToHashSet(StringComparer.Ordinal),
             ProjectedAt = projectedAt,
-            ProjectionVersion = "tenant-sequence:42",
+            ProjectionVersion = GenuineSequenceVersion,
         };
 
         _ = store.GetAsync<GlobalAdministratorReadModel>(
@@ -232,9 +318,10 @@ public sealed class TenantQueryFreshnessTests
                 TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, eTag)));
+        return model;
     }
 
-    private static void SetupTenantIndex(
+    private static TenantIndexReadModel SetupTenantIndex(
         IReadModelStore store,
         string eTag,
         DateTimeOffset? projectedAt)
@@ -242,7 +329,7 @@ public sealed class TenantQueryFreshnessTests
         var model = new TenantIndexReadModel
         {
             ProjectedAt = projectedAt,
-            ProjectionVersion = "tenant-sequence:42",
+            ProjectionVersion = GenuineSequenceVersion,
             Tenants =
             {
                 ["tenant.alpha"] = new TenantIndexEntry("Tenant Alpha", TenantStatus.Active),
@@ -262,9 +349,10 @@ public sealed class TenantQueryFreshnessTests
                 TenantQueryHandlerBase.TenantIndexProjectionKey,
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadModelEntry<TenantIndexReadModel>(model, eTag)));
+        return model;
     }
 
-    private static void SetupTenant(
+    private static TenantReadModel SetupTenant(
         IReadModelStore store,
         string? eTag,
         DateTimeOffset? projectedAt)
@@ -276,7 +364,7 @@ public sealed class TenantQueryFreshnessTests
             Status = TenantStatus.Active,
             CreatedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             ProjectedAt = projectedAt,
-            ProjectionVersion = "tenant-sequence:42",
+            ProjectionVersion = GenuineSequenceVersion,
             Members =
             {
                 ["test-user"] = TenantRole.TenantReader,
@@ -288,9 +376,10 @@ public sealed class TenantQueryFreshnessTests
                 TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadModelEntry<TenantReadModel>(model, eTag)));
+        return model;
     }
 
-    private static void SetupTenantAudit(
+    private static TenantAuditReadModel SetupTenantAudit(
         IReadModelStore store,
         string eTag,
         DateTimeOffset? projectedAt)
@@ -298,7 +387,7 @@ public sealed class TenantQueryFreshnessTests
         var model = new TenantAuditReadModel
         {
             ProjectedAt = projectedAt,
-            ProjectionVersion = "tenant-sequence:42",
+            ProjectionVersion = GenuineSequenceVersion,
             Entries =
             [
                 new TenantAuditEntry(
@@ -317,6 +406,7 @@ public sealed class TenantQueryFreshnessTests
                 TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadModelEntry<TenantAuditReadModel>(model, eTag)));
+        return model;
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
