@@ -304,5 +304,14 @@
     "key": "1",
     "label": "Amend and finish spec",
     "resolution": ""
+  },
+  "DW-352": {
+    "answered_at": "2026-09-06",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Add explicit support-safe permission and escalation destinations through the UI composition contract, fail closed when absent, and test both navigation paths.",
+    "key": "1",
+    "label": "Configurable destinations",
+    "resolution": ""
   }
 }

@@ -2893,6 +2893,7 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: RequestPermission and Escalate both use the tenant or return link, so unauthorized and unavailable audit recovery have no distinct permission-request or support-safe escalation destination.
 status: open
+decision: 2026-09-06 Configurable destinations — Add explicit support-safe permission and escalation destinations through the UI composition contract, fail closed when absent, and test both navigation paths.
 
 ### DW-353: Audit timestamps that omit fractional seconds or use Z without seven digits are dropped from display.
 
