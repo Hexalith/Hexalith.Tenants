@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'done'
+status: 'in-progress'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -157,6 +157,30 @@ Rejected:
 - `low` Reconciliation ToString omits RejectionCode — support-only diagnostic; not met in everyday operator use.
 - `low` Uncaught TaskCanceledException in focus import — circuit teardown; sibling disconnect catches already cover the observable dispose path.
 - `false` Edge-case claim that terminal ownerless completion must remain adoptable — contradicts the iteration-5 release contract verified in TenantAggregateCommandAdmissionGate.TryCompleteReconciliationDispatch.
+
+Chunk 1 (state / gateway / admission), 2026-09-06. 0 decision-needed, 5 patch, 2 defer.
+
+- [x] [Review][Patch] Ambiguous tracking-mismatch and non-ambiguous UnableToVerify still regress to RequestSent [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs:258]
+- [x] [Review][Patch] Lease-token tests omit unsupported/ambiguous initial-delivery matrix [tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs:304]
+- [x] [Review][Patch] Removal EN/FR readiness walk accepts parent-culture fallback [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs:248]
+- [x] [Review][Patch] Rejected lease completion does not pin RejectionCode on the replacement snapshot [tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs:371]
+- [x] [Review][Patch] Unsupported ApplySubmission audit assignment is not what the snapshot test checks [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs:64]
+- [x] [Review][Defer] focusElementById may treat a successful Fluent Cancel wrap as failure [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23] — deferred: maybe-false pending a real-browser activeElement trace; already DW-345
+- [x] [Review][Defer] Story gitlink File List SHAs do not match the current tree [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:513] — deferred: later build(deps) advanced Builds/EventStore/FrontComposer after the recorded SHAs; updating the record edits this spec, restoring the tree reverts later work; already DW-347
+
+Rejected:
+- `false` Grant cannot use TryBeginInitialReconciliationDispatch — Grant still arms through TryMarkDispatched; this story is remove-only; a clean RequestSent grant fails closed rather than dispatching.
+- `false` IsValidCompletion is weaker than IsValidReconciliation — terminal Failed/Rejected must be publishable; production CreateCompletionReconciliation copies snapshot flags, and the looser completion validator is required.
+- `false` TryAdvance/TryRetain ignore an in-flight token — retain-during-flight is the adoption design proven by RetryCompletionTokenPublishesExactAcceptedEvidenceToReplacementOwner.
+- `false` Ownerless terminal completion deletes Reconciliation — iteration 5 requires releasing terminal evidence when completion precedes adoption.
+- `false` HasSameReconciliation ignores CorrelationId and recovery text — CorrelationId is compared in HasSameCommandIdentity; retryable states have null RejectionCode; localized reason changes must not block the same command retry.
+- `low` Reconciliation ToString omits RejectionCode — support-only diagnostic; not met in everyday operator use.
+- `false` RequiredGrantFactKeys was not expanded with remove chrome — grant localization is KEEP/out of scope for this removal story.
+- `false` NextReconciliationDispatchTokenCore can reissue in-use tokens — a long counter wrapping in one circuit is not a reachable outcome.
+- `false` TryBeginInitial does not raise StateChanged — the owning renderer already calls StateHasChanged, and retain/complete notify observers.
+- `false` IsReconciliationDispatchInFlight is documented as recovery-only — callers correctly hide retry during the initial token, matching iteration 5.
+- `false` Unsupported ApplySubmission keeps a prior CorrelationId — production ApplySubmission runs from RequestSent (null correlation) and the overlay does not copy result.CorrelationId.
+- `false` Whitespace CorrelationId is stored as a real id — TryBeginInitial rejects whitespace correlation, and Accepted() maps it to AmbiguousTrackingFailure.
 
 ## Spec Change Log
 

@@ -2932,3 +2932,10 @@ status: open
 
 - Focus containment remains interop-ID proof (`FocusedElementIds` / captured `ElementReference` ids), not `document.activeElement`, a real Tab/Shift+Tab cycle, or browser `inert`. Already DW-336; an authenticated browser trace of grant-preview open, Tab, Shift+Tab, Escape, and launcher restoration would settle it.
 - Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass.
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)
+
+Chunk 1 (state / gateway / admission) restated two open items; no new ledger rows.
+
+- `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id. Already DW-345; a real-browser `document.activeElement` trace after focusing the rendered Cancel host would settle it.
+- Story 4.3 File List gitlink SHAs still do not match the current tree. Already DW-347; `validate-story-gitlinks.py` now reports Builds `6daad3d`, EventStore `9a20c05`, FrontComposer `f0c3b6f` versus File List `39debe9` / `7b7f876` / `0a4c4ad`. Updating the record edits this spec; restoring the tree reverts later `build(deps)` work.
