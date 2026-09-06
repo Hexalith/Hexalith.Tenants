@@ -2830,8 +2830,6 @@ source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/impleme
 reason: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether a successful inner-control focus is reported as false and wrap fallback incorrectly skips Cancel.
 status: open
 
-## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)
-
 ### DW-346: Grant preview Cancel remains a raw lowercase fluent-button.
 
 origin: code review chunk A 2026-09-06
@@ -2852,38 +2850,74 @@ status: open
 
 Chunk A also restated DW-345 (`focusElementById` host vs inner activeElement) as maybe-false; no new ledger row.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Spec 5.1 remains in-review with its last operator-handoff task unchecked.
-  evidence: The baseline-range spec-5-1 file still treats the awaiting-operator performance contract as the remaining Product/Operations action; that tracking is Story 5.1, not last-administrator removal.
+### DW-348: Spec 5.1 remains in-review with its last operator-handoff task unchecked.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Tenant audit filter validation can be written off the renderer and never painted.
-  evidence: `TenantAuditPage.TryCreateRequest` mutates `_fromValidationKey` / `_toValidationKey` / `_categoryValidationKey` before `InvokeAsync`, including from notification `LoadAsync` continuations that already `ConfigureAwait(false)`.
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: _bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: The Story 5.1 spec remains in review because its final operator-handoff task for the awaiting-operator performance contract is unchecked; this tracking belongs to Story 5.1 rather than last-administrator removal.
+status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Audit list return URLs that contain a cursor are rejected and replaced with the tenant path.
-  evidence: `TenantAuditPage.SafeReturnUrl` runs the whole return URL through `TenantAuditSupportSafety.SafeApprovedReference`, whose strict fragments include `cursor`.
+### DW-349: Tenant audit filter validation can be written off the renderer and never painted.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Tenant detail still matches audit/capability scope without the caller binding used by Story 5.1 reads.
-  evidence: `TenantDetailPage` uses the caller-free `MatchesScope(request)` overload while `TenantQueryGateway` binds retained evidence with `MatchesScope(request, callerScope)`.
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantAuditPage.TryCreateRequest mutates _fromValidationKey, _toValidationKey, and _categoryValidationKey before InvokeAsync, including from notification LoadAsync continuations that already use ConfigureAwait(false), so validation state can be written off the renderer and never painted.
+status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Audit unauthorized and unavailable recovery both navigate to the same BackHref.
-  evidence: `RequestPermission` and `Escalate` use the tenant/return link, so there is no distinct permission-request or support-safe escalation path.
+### DW-350: Audit list return URLs that contain a cursor are rejected and replaced with the tenant path.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Audit timestamps that omit fractional seconds or use Z without seven digits are dropped from display.
-  evidence: `TenantAuditNarrative.SafeTimestamp` accepts only round-trip `"O"` (`yyyy-MM-ddTHH:mm:ss.fffffffK`).
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantAuditPage.SafeReturnUrl validates the whole return URL through TenantAuditSupportSafety.SafeApprovedReference, whose strict fragments include cursor, so legitimate audit-list return URLs containing a cursor are replaced with the tenant path.
+status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: A rejected audit EventId becomes an empty receipt/grid identity instead of failing closed.
-  evidence: `TenantAuditRow.FromEntry` maps an unsafe EventId to `string.Empty`, and `TenantAuditReceipt.FromEntry` uses that mapper.
+### DW-351: Tenant detail still matches audit/capability scope without the caller binding used by Story 5.1 reads.
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: Numeric audit category text "0" is coerced to Access without a field error.
-  evidence: `TenantAuditPage` treats category text with `!int.TryParse` plus `Enum.IsDefined`, so enum value zero is accepted as Access.
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantDetailPage uses the caller-free MatchesScope(request) overload while TenantQueryGateway binds retained evidence with MatchesScope(request, callerScope), leaving tenant-detail matching without the caller binding used by Story 5.1 reads.
+status: open
 
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-  summary: A reversed audit From/To range has no page test for field-associated Range validation.
-  evidence: `TryCreateRequest` rejects `From > To` with `Tenants.Audit.Filter.Validation.Range`, but `TenantAuditPageTests` never sets From later than To; gateway tests do not cover the page's field errors or skipped query.
+### DW-352: Audit unauthorized and unavailable recovery both navigate to the same BackHref.
+
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: RequestPermission and Escalate both use the tenant or return link, so unauthorized and unavailable audit recovery have no distinct permission-request or support-safe escalation destination.
+status: open
+
+### DW-353: Audit timestamps that omit fractional seconds or use Z without seven digits are dropped from display.
+
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantAuditNarrative.SafeTimestamp accepts only the round-trip O format with seven fractional digits, so otherwise valid timestamps that omit fractional seconds or use Z without seven digits are dropped from display.
+status: open
+
+### DW-354: A rejected audit EventId becomes an empty receipt/grid identity instead of failing closed.
+
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantAuditRow.FromEntry maps an unsafe EventId to string.Empty, and TenantAuditReceipt.FromEntry uses that mapper, producing an empty receipt or grid identity instead of failing closed.
+status: open
+
+### DW-355: Numeric audit category text "0" is coerced to Access without a field error.
+
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TenantAuditPage combines int.TryParse with Enum.IsDefined when parsing category text, so numeric enum value zero is accepted as Access instead of producing a field validation error.
+status: open
+
+### DW-356: A reversed audit From/To range has no page test for field-associated Range validation.
+
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: TryCreateRequest rejects From greater than To with Tenants.Audit.Filter.Validation.Range, but TenantAuditPageTests never sets From later than To; gateway tests do not cover the page's field errors or its skipped query.
+status: open
