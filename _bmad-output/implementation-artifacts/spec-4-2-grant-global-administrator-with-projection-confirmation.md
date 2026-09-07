@@ -2,7 +2,7 @@
 title: '4.2 Grant Global Administrator with Projection Confirmation'
 type: 'feature'
 created: '2026-08-31'
-status: awaiting-operator
+status: in-progress
 baseline_revision: 7f564930055a89251f512bafb62ee61491891a8f
 baseline_commit: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
 review_loop_iteration: 0
@@ -638,7 +638,7 @@ Root submodule pointers this story's commit `8da765ad` moved. They were undeclar
 
 ## Auto Run Result
 
-Status: awaiting-operator
+Status: in-progress
 
 ### Summary
 
@@ -719,4 +719,40 @@ Rejected:
 - `false` `Retryable == false` with HTTP 5xx still invites ambiguous retry — 5xx is classified as maybe-stored by design; the non-retryable terminal tests cover 4xx.
 - `false` Completeness ignores the current UI culture satellite — only invariant English and `fr` are served; a third culture needs a satellite and localization config together.
 - `false` `EventsStored` / `EventsPublished` treated as positive evidence with no `EventCount` — platform contract (`CommandStatusRecord.EventCount` is Completed-only); changing the safeguard wording would edit this spec.
+- `low` FrontComposer shell chrome stays mouse-operable behind the modal — keyboard is page-trapped; navigation abandons an undispatched lease; a shell overlay is not a direct correction.
+
+### Review Findings — 2026-09-07 grant-core chunk
+
+Independent follow-up of the same grant-core file group (`7e88a571..d0c534ff`, 14 files). The 2026-09-06 patch list was checked off in this spec, but the product tree still exhibits those defects. Correction-path, workspace/AppHost/gitlink, and later mainline commits remain out of this pass.
+
+- [ ] [Review][Patch] Localization failure never shows its associated recovery on the grant surface — `IsGlobalAdministratorGrantPreviewReady == false` maps through `EvaluateGrant` to `MissingConsequencePreview`; `SubmitGrantAsync` returns before compose, so operators get "safety flow is not ready" instead of `Grant.Preview.Unavailable.Localization` / `Recovery.Localization`. 2026-09-06 decision: show localization copy when readiness fails on localization. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:165`]
+- [ ] [Review][Patch] Grant preview opens with Cancel focused — opening still sets `_focusGrantPreviewCancelPending`; tests still pin `_grantPreviewCancelElement`. 2026-09-06 decision: acknowledgement first (match removal). [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2999`]
+- [ ] [Review][Patch] Grant focus sentinels are not in the visually-hidden sentinel rule that only targets `.global-admins__remove-focus-sentinel` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:115`]
+- [ ] [Review][Patch] Grant modal CSS lacks `box-sizing: border-box` that the sibling remove modal and its style test already pin [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:198`]
+- [ ] [Review][Patch] `FocusSafelyAsync` does not catch `InvalidOperationException`, and cancel/invalidate leave `_focusGrantPreviewCancelPending` set [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1385`]
+- [ ] [Review][Patch] `RequiredGrantFactKeys` omits `Grant.DeliveryRetry` and `Grant.DeliveryRetry.Recovery` that the live retry control renders [`src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25`]
+- [ ] [Review][Patch] Tests submit the grant form and never activate the launcher control [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:5524`]
+- [ ] [Review][Patch] Modal-isolation test never asserts the grant dialog is outside the inert `tenants-global-admins-area` subtree [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2359`]
+- [ ] [Review][Patch] When ambiguous delivery retry is withdrawn, the disabled refresh control keeps the retry label and has no accessible reason [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:305`]
+- [ ] [Review][Patch] Ambiguous delivery redispatch returns silently when live prerequisites drop after the retry click [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3266`]
+- [ ] [Review][Patch] Ambiguous grant `SafeRecoveryKey` is not asserted on the grant snapshot or page recovery paragraph [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:212`]
+- [ ] [Review][Patch] Renderer replacement of an ambiguous grant does not pin `AuditDelayed` [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2803`]
+- [ ] [Review][Patch] `SupportsTrackedGrantDispatch` fail-closed default is never observed by an omitting-property construction [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionEvidence.cs:62`]
+
+- [x] [Review][Defer] Focus containment is still interop-ID proof, not `document.activeElement` or a real Tab cycle [`tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:2384`] — deferred: maybe-false / medium if true; already recorded as DW-336; an authenticated browser trace of open, Tab, Shift+Tab, Escape from Fluent shadow DOM, and launcher restoration would settle it.
+- [x] [Review][Defer] `validate-story-gitlinks.py` FAILs against HEAD because later mainline moved `references/` pointers after `d0c534ff` [`scripts/validate-story-gitlinks.py`] — deferred: not caused by this 14-file grant-core chunk; UNDECLARED `Hexalith.AI.Tools` / `Hexalith.Memories` and MISSTATED Builds/Commons/EventStore/FrontComposer SHAs belong to group 3 / later `build(deps)` work.
+- [x] [Review][Defer] Opening preview while `_focusGrantLauncherPending` is still set can focus the inert launcher [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1335`] — deferred: maybe-false / medium if true; settle with a same-turn cancel-then-reopen test that leaves both focus flags set before `OnAfterRenderAsync`.
+
+Rejected:
+- `false` Raw `<fluent-button>` for grant launch/cancel — `FluentButton` exposes no `ElementReference`; `GlobalAdministratorRemoveLauncher` uses the same host; preview cancel sits outside `EditForm`.
+- `false` `HasCompleteLocalization` leaks `CurrentUICulture` across circuits — the setter is AsyncLocal; restore in `finally` is correct.
+- `false` French completeness disables English operators — intended EN/FR fail-closed gate; no third culture is served.
+- `false` `AmbiguousTrackingFailure` recovery disagrees with status tracking-mismatch recovery — different states (same-id delivery retry vs verified identity mismatch → refresh); the retry control keys off `IsSubmissionAmbiguous`, which status mismatch does not set.
+- `false` `ConfirmGrantAsync` swallowing every `OperationCanceledException` leaves an undispatched preview — `ReauthorizeAsync` / load / compose rethrow only when the confirmation token is cancelled; those cancels already run `InvalidateGrantMutation`.
+- `false` Target field can change after an undispatched preview exists — the input is `Disabled` while `Previewed` or in-flight; the handler invalidates if `ValueChanged` still fires.
+- `false` `EventsStored` / `EventsPublished` with `EventCount` 0 still advance — platform contract (`CommandStatusRecord.EventCount` is Completed-only); advisory writes leave the count null.
+- `false` Authority-change copy understates the privilege being granted — the 2026-09-01 safeguard requires observed-evidence wording without promising downstream enforcement timing.
+- `false` Page tests stub `IsGlobalAdministratorGrantPreviewReady` so the EN/FR kill switch is untested — `GrantPreviewReadinessHoldsAgainstTheShippedEnglishAndFrenchResources` walks the production composition.
+- `false` Remove preview was left as an in-flow section — current HEAD already presents removal as the same fixed, elevated modal.
+- `false` Preview readiness must also list `Grant.Preview.Invalidated` and `Grant.SubmissionEvidence.Ambiguous` — those are post-dispatch lifecycle strings, not preview-dialog facts.
 - `low` FrontComposer shell chrome stays mouse-operable behind the modal — keyboard is page-trapped; navigation abandons an undispatched lease; a shell overlay is not a direct correction.

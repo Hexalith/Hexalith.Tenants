@@ -2933,6 +2933,14 @@ status: open
 - Focus containment remains interop-ID proof (`FocusedElementIds` / captured `ElementReference` ids), not `document.activeElement`, a real Tab/Shift+Tab cycle, or browser `inert`. Already DW-336; an authenticated browser trace of grant-preview open, Tab, Shift+Tab, Escape, and launcher restoration would settle it.
 - Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass.
 
+## Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-07)
+
+Grant-core follow-up (`7e88a571..d0c534ff`, 14 files). No new DW ids; later-mainline gitlinks and same-turn focus race stay out of this chunk.
+
+- Focus containment remains interop-ID proof, including Escape from Fluent/FAST shadow DOM. Already DW-336; an authenticated browser trace of open, Tab, Shift+Tab, Escape, and launcher restoration would settle it.
+- `validate-story-gitlinks.py` FAILs against HEAD because later mainline moved `references/` after grant completion `d0c534ff` (UNDECLARED `Hexalith.AI.Tools` / `Hexalith.Memories`; MISSTATED Builds/Commons/EventStore/FrontComposer vs the File List). Not caused by this 14-file chunk; belongs to group 3 / later `build(deps)`.
+- Opening preview while `_focusGrantLauncherPending` is still set can focus the inert launcher. Unverified medium: settle with a same-turn cancel-then-reopen test that leaves both focus flags set before `OnAfterRenderAsync`. [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1335`]
+
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)
 
 Chunk 1 (state / gateway / admission) restated two open items; no new ledger rows.
@@ -2947,3 +2955,9 @@ Chunk 1 (state / gateway / admission) restated two open items; no new ledger row
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: The pushall skill copies in the baseline range stage everything and commit with a build subject.
   evidence: Identical .agents/.claude/.github pushall skills arrived with later tooling commits in this story's baseline range. They are not the last-administrator removal command; leaving them in this File List would mix unrelated work.
+
+## Deferred from: code review of spec-5-1-browse-tenant-audit-trail.md (2026-09-06)
+
+- Tenant detail still uses caller-free `MatchesScope(request)` for audit/capability evidence while Story 5.1 binds retained audit reads with `MatchesScope(request, callerScope)`. Already DW-351; TenantDetailPage is outside this story's File List.
+- `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed.
+- After projection refresh, `OpenCorrectionAsync` may assign a re-derived intent without re-checking `IsAvailable`. Unverified medium: settle by showing whether `CorrectionStartPanel` / `GlobalAdministratorCorrectionPanel` can submit when the parent intent is unavailable after refresh.

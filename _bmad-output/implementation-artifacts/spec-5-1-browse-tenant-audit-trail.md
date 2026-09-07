@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'in-review'
+status: 'in-progress'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -80,6 +80,33 @@ operator_actions:
 - Given desktop, tablet, phone, keyboard, screen-reader, forced-color, high-contrast, or reduced-motion use, when the surface renders, then critical columns, table semantics, focus, paging, references, and return navigation remain usable while phones expose no high-impact correction controls.
 - Given English or French culture, when all audit states and actions render, then resource keys remain in parity and stable selectors do not depend on localized text or color.
 - Given no approved audit-performance decision, when repository work completes, then no numeric claim or inferred fallback is recorded and the story finishes `awaiting-operator` with the specified action.
+
+### Review Findings
+
+- [ ] [Review][Patch] Add support-safe permission and escalation destinations on the UI composition contract, fail closed when absent, and stop wiring both recoveries to BackHref [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:178]
+- [ ] [Review][Patch] Access/GA rows with a missing or unsafe typed userId fall back to configuration key or tenant id and can arm a correction against that fallback [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:49]
+- [ ] [Review][Patch] Local filter validation hides the grid but keeps the prior Ready/Stale/Degraded success chrome and can apply an in-flight Ready snapshot because validation failure does not bump load generation [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:596]
+- [ ] [Review][Patch] ListRefreshed paging recovery is not exercised after Ready page-two history exists [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:825]
+- [ ] [Review][Patch] InvalidCursor does not clear paging history or `_currentCursor`, so recovery Refresh can resubmit the expired page-two cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:691]
+- [ ] [Review][Patch] Next is enabled on HasMore alone while NextPageAsync no-ops on a blank cursor, and payload validation does not require HasMore to agree with Cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:252]
+- [ ] [Review][Patch] Post-await caller revalidation is only tested on the first successful read, not the 304 refetch or unexpected-exception retain path [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1139]
+- [ ] [Review][Patch] FromEntry still maps a rejected EventId to an empty grid/receipt key instead of failing closed [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:54]
+- [ ] [Review][Patch] SafeReturnUrl runs the whole return URL through the event-id classifier, so legitimate `/tenants` returns that contain `cursor` (and similar fragments) are discarded [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1459]
+- [ ] [Review][Patch] Malformed From and reversed From/To have no page-level field-associated no-query tests [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:621]
+- [ ] [Review][Patch] UserRoleChanged with a missing or non-enumerable oldRole has no page test that the row stays non-submitting and requires the role picker [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:850]
+- [ ] [Review][Patch] French category validation copy does not match the select option labels [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:4195]
+- [ ] [Review][Patch] TryParseDate rejects a pasted ISO-8601 UTC instant with `Z` or an explicit offset even though the control is labeled UTC [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1377]
+- [x] [Review][Defer] Tenant detail still matches audit scope without caller binding [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1785] — deferred: pre-existing other surface; already DW-351
+- [x] [Review][Defer] UserRemovedFromTenant cannot produce typed PreviousRole/Role because the event/projection emit only userId [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1366] — deferred: pre-existing event shape; restore-access role picking is later correction-story work
+- [x] [Review][Defer] After projection refresh, OpenCorrectionAsync can still assign a re-derived intent without re-checking IsAvailable [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1140] — deferred: maybe-false medium; settle by showing whether CorrectionStartPanel/GlobalAdministratorCorrectionPanel can submit when the parent intent is unavailable after refresh
+
+#### Rejected
+
+- `false` Spec still in-progress / verification only records the superseded run — the reviewed product commit is `281e3c3c`; HEAD already marks the spec `in-review` and records current verification. Spec-edit findings are rejected.
+- `false` New MatchesScope/AuditCallerScope/GetTenantAudit APIs lack XML docs — the story's Release build passed with TreatWarningsAsErrors; CS1591 did not fire on these members.
+- `false` validate-story-gitlinks reported undeclared `references/` pointer moves — `git diff 0ca32a5 281e3c3c -- references/` is empty; the four pointer moves are in later HEAD commits, not this story's diff.
+- `low` Filter `aria-invalid` may sit on the FluentTextInput host rather than the native textbox — would need Fluent v5 inner-input forwarding proof; everyday bUnit already asserts the host attributes the spec named, and a fix would be component-library work rather than a direct audit-page correction.
+- `low` Viewport Unknown after measurement is labeled as phone read-only — `ViewportTier` only has Phone/Tablet/CompactDesktop/Desktop, all mapped; Unknown+HasMeasurement requires an invalid enum cast that everyday FrontComposer measurement does not send.
 
 ## Spec Change Log
 
