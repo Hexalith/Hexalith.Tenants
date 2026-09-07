@@ -2,8 +2,8 @@
 title: 'Remove duplicate accessible names from tenant badges'
 type: 'bugfix'
 created: '2026-09-06'
-status: 'done'
-baseline_revision: 'f75cdacc8eca458778c7109fd3f713f8907bed02'
+status: ready-for-dev
+baseline_revision: 2d3d5f0f4042f1271debba054985cfc24a0c39d7
 baseline_commit: 'f75cdacc8eca458778c7109fd3f713f8907bed02'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -26,6 +26,8 @@ deferred: []
 **Always:** Preserve the existing localized state-only label, visible text, `aria-label`, roles, icons, colors, appearances, CSS classes, test IDs, and state selection logic. Prove on the rendered Fluent component that `IconLabel` is absent and that the non-empty host `aria-label` exactly equals trimmed visible text.
 
 **Never:** Do not change `ProjectionLifecycleBadge` or any other badge type, localization resources, state vocabulary, styling, component dependencies, or the deferred-work ledger. Do not replace Fluent UI components or add custom markup/CSS/JavaScript.
+
+**Finalization:** Treat completion cleanliness as bundle-scoped. Pre-existing or concurrent changes outside the four implementation/test paths listed under Execution must remain untouched and do not block completion once this bundle's commit exists and required verification passes.
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
@@ -59,6 +61,7 @@ deferred: []
 - Given any in-scope status, pending, freshness, or refreshing path, when the change is rendered, then the existing state-only string, role, icon, color, appearance, CSS class, and test ID remain unchanged.
 - Given `ProjectionLifecycleBadge` and all other badge types, when the bundle is complete, then their implementation and established behavior remain unchanged.
 - Given the deferred-work ledger, when the bundle is complete, then no ledger content has been edited.
+- Given pre-existing or concurrent changes outside the four implementation/test paths listed under Execution, when bundle completion is assessed, then those changes remain untouched and do not block completion after this bundle's commit and required verification succeed.
 
 ## Spec Change Log
 
@@ -93,32 +96,3 @@ deferred: []
 - `dotnet tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll -class Hexalith.Tenants.UI.Tests.Components.TenantListSurfaceTests` -- expected: tenant-grid component tests pass, including the status and pending badge accessibility assertions.
 - `git diff --check` -- expected: no whitespace errors.
 
-## Auto Run Result
-
-Status: done
-
-Summary: Removed redundant `IconLabel` values from the tenant-grid status and pending badges and the shared truth-state badge. Their existing localized visible text and identical host `aria-label` remain authoritative, while regression tests now verify the rendered icon is hidden and unnamed.
-
-Files changed:
-- `src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor` -- removed icon labels from the status and pending badges only.
-- `src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor` -- removed the truth-state icon label only.
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` -- added exhaustive status/pending name coverage and rendered decorative-icon assertions.
-- `tests/Hexalith.Tenants.UI.Tests/Components/TruthStateBadgeTests.cs` -- asserted authoritative host/text equality and decorative rendered SVGs for durable and refreshing states.
-- `_bmad-output/implementation-artifacts/spec-badge-a11y-names.md` -- recorded the plan, verification, review triage, and result.
-
-Review findings:
-- Patches applied: 2 grouped entries — high 0, medium 2, low 0, maybe-false 0. Restored exact/exhaustive status-pending name coverage and added rendered-SVG decoration checks.
-- Items deferred: 0.
-- Rejected: `ProjectionLifecycleBadge` expansion because the intent explicitly excludes it; alternate-prefix and cross-locale matrices because unchanged resource selection plus existing resource/surface coverage make them disproportionate; exhaustive reassertion of unchanged appearance/classes/test IDs and a full-suite run because the deletion changes no related API or branch; global-default concerns because Fluent's nullable `IconLabel` has no configured default; blank/padded-resource concerns because tracked values are valid and unchanged; invalid freshness/status concerns because production mappings and converters normalize to closed known values.
-
-Follow-up review recommendation: true. Two medium review entries were patched; a follow-up should independently verify that the new state matrix and rendered-SVG assertions faithfully exercise the final accessibility surface.
-
-Verification performed:
-- Release build succeeded with 0 warnings and 0 errors.
-- `TruthStateBadgeTests`: 13 passed, 0 failed/skipped/not-run.
-- `TenantListSurfaceTests`: 108 passed, 0 failed/skipped/not-run.
-- Matrix audit: all tenant status/pending combinations plus every durable truth state and transient refreshing state ran and passed.
-- `git diff --check` and `git diff --cached --check` passed.
-- Package inspection confirmed non-focusable Fluent badge icons render `aria-hidden="true"` and omit `<title>` when `IconLabel` is null.
-
-Residual risks: No known implementation defect remains. The follow-up recommendation covers the review-driven test changes themselves.
