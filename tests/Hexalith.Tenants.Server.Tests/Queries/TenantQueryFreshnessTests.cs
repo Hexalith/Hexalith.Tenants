@@ -107,6 +107,8 @@ public sealed class TenantQueryFreshnessTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\"\"")]
+    [InlineData("\"")]
+    [InlineData("\"\"\"")]
     [InlineData("  \" \"  ")]
     public async Task Query_handler_omits_metadata_for_degenerate_etagAsync(string? eTag)
     {

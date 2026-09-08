@@ -37,6 +37,8 @@ public sealed class TenantQueryResultTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\"\"")]
+    [InlineData("\"")]
+    [InlineData("\"\"\"")]
     [InlineData("  \" \"  ")]
     public void Validator_only_factory_omits_metadata_for_degenerate_etag(string? eTag)
     {
@@ -76,6 +78,8 @@ public sealed class TenantQueryResultTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\"\"")]
+    [InlineData("\"")]
+    [InlineData("\"\"\"")]
     [InlineData("  \" \"  ")]
     public void Freshness_overload_omits_metadata_for_degenerate_etag(string? eTag)
     {

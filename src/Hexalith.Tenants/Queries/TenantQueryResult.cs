@@ -53,6 +53,8 @@ internal sealed record TenantQueryResult : QueryResult {
             normalized = normalized[1..^1].Trim();
         }
 
-        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        return string.IsNullOrWhiteSpace(normalized) || normalized.All(static c => c == '"')
+            ? null
+            : normalized;
     }
 }
