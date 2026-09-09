@@ -594,7 +594,10 @@ public class EventPublicationConfigurationTests {
         JsonElement adminUser = document.RootElement
             .GetProperty("users")
             .EnumerateArray()
-            .Single(user => user.GetProperty("username").GetString() == "admin-user");
+            .Single(user => user.GetProperty("username").GetString()
+                == "${HEXALITH_EVENTSTORE_CLIENT_USERNAME}");
+        adminUser.GetProperty("credentials")[0].GetProperty("value").GetString().ShouldBe(
+            "${HEXALITH_EVENTSTORE_CLIENT_PASSWORD}");
 
         JsonElement attributes = adminUser.GetProperty("attributes");
         attributes.GetProperty("tenants").EnumerateArray().Select(value => value.GetString()).OfType<string>().ShouldContain("system");

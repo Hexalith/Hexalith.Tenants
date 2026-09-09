@@ -83,7 +83,8 @@ IResourceBuilder<ProjectResource> tenants = builder.AddHexalithTenantsServer(
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress)
     // Must be the Keycloak user's stable subject (sub) GUID — the global-admin projection is keyed by
-    // the JWT sub, so a username here would never match. admin-user's id is pinned in the realm import.
+    // the JWT sub, so a username here would never match. The realm keeps this id stable while Aspire
+    // injects a fresh user name and password into the import for every non-persistent run.
     .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "11111111-1111-1111-1111-111111111111");
 
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
