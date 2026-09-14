@@ -291,7 +291,9 @@
                                    @ref="_grantLauncherElement"
                                    data-testid="tenants-global-admin-grant-submit"
                                    aria-describedby="@(GrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
-                                   disabled="@IsGrantSubmitDisabled">
+                                   disabled="@IsGrantSubmitDisabled"
+                                   @onclick="SubmitGrantAsync"
+                                   @onclick:preventDefault="true">
                         @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Launch"]
                     </fluent-button>
                 </span>
@@ -305,6 +307,7 @@
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               Class="global-admins__mutation-initiation"
                               data-testid="tenants-global-admin-grant-refresh"
+                              aria-describedby="@GrantRefreshDescribedBy"
                               Disabled="@(!CanRefreshGrantStatus)"
                               OnClick="RefreshGrantStatusAsync">
                     @GrantRefreshActionText
@@ -329,7 +332,8 @@
             }
             @if (!string.IsNullOrWhiteSpace(GrantSafeRecovery))
             {
-                <p data-testid="tenants-global-admin-grant-safe-recovery">@GrantSafeRecovery</p>
+                <p id="tenants-global-admin-grant-safe-recovery"
+                   data-testid="tenants-global-admin-grant-safe-recovery">@GrantSafeRecovery</p>
             }
             <p data-testid="tenants-global-admin-grant-audit-state">@GrantAuditText</p>
             <p class="global-admins__grant-live"
@@ -720,7 +724,7 @@
     private bool _focusGrantUserIdPending;
     private bool _focusGrantLauncherPending;
     private bool _focusGrantLifecyclePending;
-    private bool _focusGrantPreviewCancelPending;
+    private bool _focusGrantAcknowledgementPending;
     private bool _focusRemoveAcknowledgementPending;
     private bool _focusRemoveLauncherPending;
     private bool _focusRemoveLifecyclePending;
@@ -888,10 +892,40 @@
         => GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(ActionEvidence());
 
     private string? GrantUnavailableReason
-        => GrantAvailability.IsAvailable ? null : Localizer[GrantAvailability.ReasonKey].Value;
+    {
+        get
+        {
+            GlobalAdministratorActionAvailability availability = GrantAvailability;
+            if (availability.IsAvailable)
+            {
+                return null;
+            }
+
+            string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+                && BffComposition.GlobalAdministratorGrantPreviewUnavailableReasonKey is { Length: > 0 } localizationKey
+                    ? localizationKey
+                    : availability.ReasonKey;
+            return Localizer[key].Value;
+        }
+    }
 
     private string? GrantRecovery
-        => GrantAvailability.IsAvailable ? null : Localizer[GrantAvailability.RecoveryKey].Value;
+    {
+        get
+        {
+            GlobalAdministratorActionAvailability availability = GrantAvailability;
+            if (availability.IsAvailable)
+            {
+                return null;
+            }
+
+            string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+                && BffComposition.GlobalAdministratorGrantPreviewRecoveryKey is { Length: > 0 } localizationKey
+                    ? localizationKey
+                    : availability.RecoveryKey;
+            return Localizer[key].Value;
+        }
+    }
 
     private string? RemoveUnavailableReason(GlobalAdministratorRow? row)
         => RemoveUnavailableReasonForUser(row?.UserId);
@@ -1113,6 +1147,11 @@
         => IsAmbiguousGrantDeliveryRetry
             ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
             : Localizer["Tenants.GlobalAdministrators.Grant.Refresh"];
+
+    private string? GrantRefreshDescribedBy
+        => IsAmbiguousGrantDeliveryRetry && !CanRetryAmbiguousGrantDelivery
+            ? "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery tenants-global-admin-grant-safe-recovery"
+            : null;
 
     private string GrantSafeMessage
         => !string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessageKey)
@@ -1344,10 +1383,10 @@
             await FocusSafelyAsync(_grantLifecycleElement).ConfigureAwait(false);
         }
 
-        if (_focusGrantPreviewCancelPending)
+        if (_focusGrantAcknowledgementPending)
         {
-            _focusGrantPreviewCancelPending = false;
-            await FocusSafelyAsync(_grantPreviewCancelElement).ConfigureAwait(false);
+            _focusGrantAcknowledgementPending = false;
+            await FocusSafelyAsync(_grantAcknowledgementElement.Element).ConfigureAwait(false);
         }
 
         if (_focusRemoveAcknowledgementPending)
@@ -1399,6 +1438,10 @@
         catch (JSException)
         {
             // A rerender detached the captured element before focus reached the browser.
+        }
+        catch (InvalidOperationException)
+        {
+            // The renderer rejected focus after the component or its runtime left an interactive state.
         }
     }
 
@@ -2446,6 +2489,7 @@
         CancelActiveCancellation(ref _grantMutationCancellation);
 
         _isGrantSubmitting = false;
+        _focusGrantAcknowledgementPending = false;
     }
 
     private void InvalidateRemoveMutation()
@@ -2744,7 +2788,7 @@
         _focusGrantUserIdPending = false;
         _focusGrantLauncherPending = false;
         _focusGrantLifecyclePending = false;
-        _focusGrantPreviewCancelPending = false;
+        _focusGrantAcknowledgementPending = false;
         _focusRemoveAcknowledgementPending = false;
         _focusRemoveLifecyclePending = false;
         _removeAcknowledgement = null;
@@ -2996,7 +3040,9 @@
                 _grantAdmissionLease = acquiredLease;
                 _grantAcknowledged = false;
                 SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle().Preview(preview, messageId));
-                _focusGrantPreviewCancelPending = true;
+                _focusGrantLauncherPending = false;
+                _focusGrantLifecyclePending = false;
+                _focusGrantAcknowledgementPending = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
         }
@@ -3267,6 +3313,7 @@
             {
                 if (!livePrerequisites || !expectedLease.IsDispatchMarked)
                 {
+                    SurfaceAmbiguousGrantRetryUnavailable(expectedSnapshot, expectedLease);
                     return;
                 }
             }
@@ -3364,7 +3411,6 @@
             long previewGeneration = Volatile.Read(ref _grantPreviewGeneration);
             if (expectedPreview?.IsComplete == true
                 && expectedLease?.IsDispatchMarked == true
-                && AreGrantDispatchCapabilitiesCurrent()
                 && MatchesGrantPreviewAttempt(
                     expectedSnapshot,
                     expectedPreview,
@@ -3372,6 +3418,14 @@
                     expectedMessageId,
                     previewGeneration))
             {
+                if (!AreGrantDispatchCapabilitiesCurrent())
+                {
+                    await InvokeAsync(() => SurfaceAmbiguousGrantRetryUnavailable(
+                        expectedSnapshot,
+                        expectedLease)).ConfigureAwait(false);
+                    return;
+                }
+
                 // This is delivery recovery, not a new authorization decision. Rebuilding the preview here
                 // would reject a safe same-id retry precisely when the first delivery already advanced the
                 // projection but lost its response. The retained preview, baseline, lock, and ULID remain the
@@ -3570,6 +3624,7 @@
         }
 
         _grantAcknowledged = false;
+        _focusGrantAcknowledgementPending = false;
         if (expectedLease.TryAbandonBeforeDispatch(_fixedAggregateOwner)
             && ReferenceEquals(_grantAdmissionLease, expectedLease))
         {
@@ -3578,6 +3633,28 @@
 
         Interlocked.Increment(ref _grantPreviewGeneration);
         SetGrantSnapshot(expectedSnapshot.InvalidatePreview(reasonKey));
+    }
+
+    private void SurfaceAmbiguousGrantRetryUnavailable(
+        GlobalAdministratorGrantCommandSnapshot expectedSnapshot,
+        TenantAggregateCommandLease expectedLease)
+    {
+        if (!ReferenceEquals(_grantSnapshot, expectedSnapshot)
+            || !ReferenceEquals(_grantAdmissionLease, expectedLease)
+            || !expectedSnapshot.IsSubmissionAmbiguous)
+        {
+            return;
+        }
+
+        SetGrantSnapshot(expectedSnapshot with
+        {
+            SafeMessage = null,
+            SafeMessageKey = "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        });
+        StateHasChanged();
     }
 
     private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot)

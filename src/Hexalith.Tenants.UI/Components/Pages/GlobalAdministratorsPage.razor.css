@@ -112,6 +112,7 @@
 /* fc-css-exception: visually-hidden focus sentinels for the aria-modal trap; no Fluent primitive wraps
    this off-screen tab-cycle technique, and the spans must remain tab-reachable without adding visible
    fact rows to the preview. */
+.global-admins__grant-focus-sentinel,
 .global-admins__remove-focus-sentinel {
     block-size: 1px;
     clip: rect(0 0 0 0);
@@ -197,6 +198,7 @@
    nor FrontComposer exposes an element-reference-capable dialog primitive for this focus-contained flow. */
 .global-admins__grant-preview {
     background: var(--colorNeutralBackground1);
+    box-sizing: border-box;
     box-shadow: var(--shadow16);
     inline-size: min(48rem, calc(100vw - 2rem));
     inset-block-start: 50%;

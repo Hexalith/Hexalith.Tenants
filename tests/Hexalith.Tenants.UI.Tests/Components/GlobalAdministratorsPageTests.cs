@@ -2382,7 +2382,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-grant-preview-counts']").TextContent.ShouldContain("2");
         cut.Find("[data-testid='tenants-global-admin-grant-preview-counts']").TextContent.ShouldContain("3");
         cut.WaitForAssertion(() => FocusedElementIds()[^1].ShouldBe(
-            CapturedElementReferenceId(cut.Instance, "_grantPreviewCancelElement")));
+            CapturedChildElementReferenceId(cut.Instance, "_grantAcknowledgementElement")));
         string[] factSelectors =
         [
             "scope",
@@ -2404,6 +2404,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admins-return']").GetAttribute("aria-disabled").ShouldBe("true");
         cut.Find("[data-testid='tenants-global-admins-area']").HasAttribute("inert").ShouldBeTrue();
         cut.Find("[data-testid='tenants-global-admins-area']").GetAttribute("aria-hidden").ShouldBe("true");
+        preview.Closest("[data-testid='tenants-global-admins-area']").ShouldBeNull();
         cut.Find("[data-testid='tenants-global-admins-list']").HasAttribute("inert").ShouldBeTrue();
         cut.FindAll("[data-testid='tenants-global-admin-remove']")
             .ShouldAllBe(static button => button.HasAttribute("disabled"));
@@ -2434,6 +2435,34 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             cut.Instance,
             "_grantLauncherElement"));
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GrantLocalizationReadinessFailureShowsItsSpecificReasonAndRecovery()
+    {
+        var composition = new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            isGrantPreviewReady: false)
+        {
+            GlobalAdministratorGrantPreviewUnavailableReasonKey =
+                "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization",
+            GlobalAdministratorGrantPreviewRecoveryKey =
+                "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization",
+        };
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a")));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent
+            .ShouldContain("Localized consequence facts are incomplete", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-grant-recovery']").TextContent
+            .ShouldContain("Restore the complete localized consequence resources", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']")
+            .HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]
@@ -2805,6 +2834,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         adopted.MessageId.ShouldBe(messageId);
         adopted.IsSubmissionAmbiguous.ShouldBeTrue();
         adopted.BaselineProjectionVersion.ShouldBe("projection-v1");
+        adopted.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        adopted.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+        replacement.Find("[data-testid='tenants-global-admin-grant-safe-recovery']").TextContent
+            .ShouldContain("retained command identity", Case.Insensitive);
         IElement retry = replacement.Find("[data-testid='tenants-global-admin-grant-refresh']");
         retry.TextContent.ShouldContain("Retry delivery", Case.Insensitive);
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
@@ -2854,6 +2887,57 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-grant-refresh']")
             .HasAttribute("disabled").ShouldBeTrue());
+        IElement withdrawnRetry = cut.Find("[data-testid='tenants-global-admin-grant-refresh']");
+        withdrawnRetry.GetAttribute("aria-describedby").ShouldBe(
+            "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery tenants-global-admin-grant-safe-recovery");
+        foreach (string describedId in withdrawnRetry.GetAttribute("aria-describedby")!.Split(' '))
+        {
+            cut.Find($"#{describedId}").TextContent.ShouldNotBeNullOrWhiteSpace();
+        }
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task AmbiguousGrantDeliveryRetryPrerequisiteRaceSurfacesRecovery()
+    {
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+        var composition = new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized);
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        PreviewAcknowledgeAndConfirmGrant(cut);
+        GlobalAdministratorGrantCommandSnapshot before =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        var resolutionGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        composition.ResolutionGate = resolutionGate;
+
+        Task click = cut.Find("[data-testid='tenants-global-admin-grant-refresh']")
+            .ClickAsync(new MouseEventArgs());
+        await composition.ResolutionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        resolutionGate.SetResult();
+        await click.WaitAsync(TimeSpan.FromSeconds(5));
+
+        GlobalAdministratorGrantCommandSnapshot after =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        after.ShouldNotBeSameAs(before);
+        after.MessageId.ShouldBe(before.MessageId);
+        after.IsSubmissionAmbiguous.ShouldBeTrue();
+        after.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+        after.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
     }
 
@@ -3330,6 +3414,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         string modalRule = styles[ruleStart..ruleEnd];
 
         modalRule.ShouldContain("background: var(--colorNeutralBackground1)");
+        modalRule.ShouldContain("box-sizing: border-box");
         modalRule.ShouldContain("box-shadow: var(--shadow16)");
         modalRule.ShouldContain("inset-block-start: 50%");
         modalRule.ShouldContain("inset-inline-start: 50%");
@@ -3353,7 +3438,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         removeModalRule.ShouldContain("transform: translate(-50%, -50%)");
         removeModalRule.ShouldContain("z-index: 1000");
         styles.ShouldContain("border: 2px solid CanvasText");
-        int sentinelRuleStart = styles.IndexOf(".global-admins__remove-focus-sentinel {", StringComparison.Ordinal);
+        int sentinelRuleStart = styles.IndexOf(
+            ".global-admins__grant-focus-sentinel,",
+            StringComparison.Ordinal);
         sentinelRuleStart.ShouldBeGreaterThan(-1);
         int sentinelRuleEnd = styles.IndexOf('}', sentinelRuleStart);
         sentinelRuleEnd.ShouldBeGreaterThan(sentinelRuleStart);
@@ -3362,6 +3449,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         sentinelRule.ShouldContain("clip-path: inset(50%)");
         sentinelRule.ShouldContain("overflow: hidden");
         sentinelRule.ShouldContain("position: absolute");
+        sentinelRule.ShouldContain(".global-admins__remove-focus-sentinel");
     }
 
     [Fact]
@@ -4310,6 +4398,27 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
         JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
             .SetException(new JSException("Focus target detached."));
+        MethodInfo helper = typeof(GlobalAdministratorsPage).GetMethod(
+            "FocusSafelyAsync",
+            BindingFlags.Static | BindingFlags.NonPublic).ShouldNotBeNull();
+        ElementReference launcher = PrivateField<ElementReference>(cut.Instance, "_grantLauncherElement");
+
+        Task invocation = (Task)helper.Invoke(null, [launcher])!;
+        await invocation;
+    }
+
+    [Fact]
+    public async Task GrantFocusHelperSwallowsRendererInvalidOperationException()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a")));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
+            .SetException(new InvalidOperationException("Renderer is no longer interactive."));
         MethodInfo helper = typeof(GlobalAdministratorsPage).GetMethod(
             "FocusSafelyAsync",
             BindingFlags.Static | BindingFlags.NonPublic).ShouldNotBeNull();
@@ -5523,7 +5632,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     /// </summary>
     private static void OpenGrantPreview(IRenderedComponent<GlobalAdministratorsPage> cut)
     {
-        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").Click();
         cut.WaitForElement("[data-testid='tenants-global-admin-grant-preview']");
     }
 
@@ -5655,6 +5764,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         public bool IsGlobalAdministratorRequeryConnected => isReadSurfaceConnected;
 
         public bool IsGlobalAdministratorGrantPreviewReady { get; set; } = isGrantPreviewReady;
+
+        public string? GlobalAdministratorGrantPreviewUnavailableReasonKey { get; set; }
+
+        public string? GlobalAdministratorGrantPreviewRecoveryKey { get; set; }
 
         public bool IsGlobalAdministratorRemovePreviewReady => isRemovePreviewReady;
 
@@ -6388,10 +6501,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Target"] = "The literal target identifier is unsupported.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Evidence"] = "Complete, current, versioned fixed-scope evidence is required for the grant preview.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists"] = "The exact target is already present in the complete global-administrator projection, so no grant was dispatched.",
+            ["Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization"] = "Localized consequence facts are incomplete, so the grant preview cannot be reviewed safely.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Authorization"] = "Refresh authorization or ask a platform administrator to verify your authority.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Target"] = "Enter a supported literal user id without changing its casing or whitespace.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection and rebuild the preview.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.TargetExists"] = "Keep the confirmed rows unchanged and choose a target absent from the complete projection.",
+            ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization"] = "Restore the complete localized consequence resources, then rebuild and review the preview.",
             ["Tenants.GlobalAdministrators.Grant.Preview.Invalidated"] = "The grant preview changed before dispatch. Refresh and review a new preview.",
             ["Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"] = "Grant delivery is ambiguous. Refresh or retry with the same retained command identity.",
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry"] = "Retry delivery with the same tracked command",

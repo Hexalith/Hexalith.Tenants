@@ -106,6 +106,43 @@ public sealed class GlobalAdministratorActionAvailabilityTests
     }
 
     [Fact]
+    public void OmittedTrackedGrantDispatchCapabilityFailsClosed()
+    {
+        GlobalAdministratorActionEvidence evidence = new(
+            IsAuthorized: true,
+            GlobalAdministratorsSurfaceKind.Ready,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "v1",
+            VisibleIsAuthorizationScopedEmpty: false,
+            [Row("admin-a"), Row("admin-b")],
+            GlobalAdministratorsSurfaceKind.Ready,
+            ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current,
+            "v1",
+            CompleteIsAuthorizationScopedEmpty: false,
+            [Row("admin-a"), Row("admin-b")],
+            HasCompletePopulation: true,
+            SupportsDispatch: true,
+            SupportsStatus: true,
+            SupportsRequery: true,
+            IsAdmissionAvailable: true,
+            IsRemovePreviewReady: true,
+            TenantHighImpactViewportState.Safe,
+            HasViewportMeasurement: true)
+        {
+            IsGrantPreviewReady = true,
+            SupportsTrackedRemoveDispatch = true,
+        };
+
+        evidence.SupportsTrackedGrantDispatch.ShouldBeFalse();
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).UnavailableReason
+            .ShouldBe(GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport);
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a").IsAvailable
+            .ShouldBeTrue();
+    }
+
+    [Fact]
     public void TrackedRemoveDispatchCapabilityBlocksRemovalWithoutBlockingGrant()
     {
         GlobalAdministratorActionEvidence evidence = ReadyEvidence() with

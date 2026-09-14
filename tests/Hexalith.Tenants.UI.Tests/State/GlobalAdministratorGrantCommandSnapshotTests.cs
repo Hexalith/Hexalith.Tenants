@@ -212,6 +212,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
         result.IsSubmissionAmbiguous.ShouldBeTrue();
         result.MessageId.ShouldBe(MessageId);
+        result.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
         result.PreviewEvidence.ShouldBeSameAs(requestSent.PreviewEvidence);
     }
 
@@ -227,6 +228,23 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         result.IsSubmissionAmbiguous.ShouldBeTrue();
         result.MessageId.ShouldBe(MessageId);
         result.BaselineProjectionVersion.ShouldBe("projection-v1");
+        result.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+    }
+
+    [Fact]
+    public void AmbiguousSubmissionRetainsSameIdentityRecovery()
+    {
+        GlobalAdministratorGrantCommandSnapshot requestSent = PreviewedAttempt().RequestSent();
+
+        GlobalAdministratorGrantCommandSnapshot result = requestSent.ApplySubmission(
+            TenantCommandSubmissionResult.Ambiguous(
+                MessageId,
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        result.IsSubmissionAmbiguous.ShouldBeTrue();
+        result.MessageId.ShouldBe(MessageId);
+        result.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
     }
 
     [Fact]

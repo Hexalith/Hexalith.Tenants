@@ -50,6 +50,8 @@ internal sealed class TenantsBffComposition(
         "Tenants.GlobalAdministrators.Grant.Cancel",
         "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization",
         "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization",
+        "Tenants.GlobalAdministrators.Grant.DeliveryRetry",
+        "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
     ];
 
     /// <summary>Gets every localized string required to render or safely fail the removal interaction.</summary>
@@ -162,9 +164,22 @@ internal sealed class TenantsBffComposition(
     private bool? _hasCompleteFixedGrantLocalization;
     private bool? _hasCompleteFixedRemoveLocalization;
 
+    private bool HasCompleteFixedGrantLocalization
+        => _hasCompleteFixedGrantLocalization ??= HasCompleteLocalization(RequiredGrantFactKeys);
+
     public bool IsGlobalAdministratorGrantPreviewReady
         => principalResolver is not null
-            && (_hasCompleteFixedGrantLocalization ??= HasCompleteLocalization(RequiredGrantFactKeys));
+            && HasCompleteFixedGrantLocalization;
+
+    public string? GlobalAdministratorGrantPreviewUnavailableReasonKey
+        => principalResolver is not null && !HasCompleteFixedGrantLocalization
+            ? "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization"
+            : null;
+
+    public string? GlobalAdministratorGrantPreviewRecoveryKey
+        => principalResolver is not null && !HasCompleteFixedGrantLocalization
+            ? "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization"
+            : null;
 
     public bool IsGlobalAdministratorRemovePreviewReady
         => principalResolver is not null
@@ -215,7 +230,7 @@ internal sealed class TenantsBffComposition(
             return preview;
         }
 
-        return HasCompleteLocalization(RequiredGrantFactKeys)
+        return HasCompleteFixedGrantLocalization
             ? preview
             : GlobalAdministratorGrantPreview.Unavailable(
                 targetUserId,

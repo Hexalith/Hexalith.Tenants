@@ -301,8 +301,8 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.Cancel",
         ];
 
-        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(26);
-        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(26);
+        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(28);
+        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(28);
         foreach (string key in renderedFactKeys.Concat(renderedChromeKeys))
         {
             key.ShouldNotBeNullOrWhiteSpace();
@@ -313,6 +313,10 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
         TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
             "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
     }
 
     [Fact]
@@ -330,6 +334,10 @@ public sealed class TenantsBffCompositionTests
                 CompleteGlobalAdministrators("projection-v1", "existing-admin"));
 
         composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        composition.GlobalAdministratorGrantPreviewUnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
+        composition.GlobalAdministratorGrantPreviewRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
         preview.IsComplete.ShouldBeFalse();
         preview.UnavailableReasonKey.ShouldBe(
             "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");

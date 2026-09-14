@@ -26,6 +26,12 @@ public interface ITenantsBffComposition {
     /// <summary>Gets whether the downstream grant consequence preview is ready.</summary>
     bool IsGlobalAdministratorGrantPreviewReady => false;
 
+    /// <summary>Gets the specific support-safe reason when grant-preview localization is incomplete.</summary>
+    string? GlobalAdministratorGrantPreviewUnavailableReasonKey => null;
+
+    /// <summary>Gets the recovery paired with an incomplete grant-preview localization reason.</summary>
+    string? GlobalAdministratorGrantPreviewRecoveryKey => null;
+
     /// <summary>Gets whether the downstream removal consequence preview is ready.</summary>
     bool IsGlobalAdministratorRemovePreviewReady => false;
 
