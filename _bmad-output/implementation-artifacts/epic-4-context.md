@@ -1,6 +1,6 @@
 # Epic 4 Context: Global Administrator Control
 
-<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
+<!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
 
 ## Goal
 
@@ -39,4 +39,4 @@ Grant and removal use anchored high-impact flows with structured previews and fo
 
 ## Cross-Story Dependencies
 
-Story 4.1 owns the fixed-scope availability guardrail consumed by grant and removal and depends on Story 1.11's authorized review/direct read. Stories 4.2–4.3 share aggregate locking, lifecycle, authoritative re-query, support-safety, localization, and accessibility foundations; removal additionally requires a complete count. Epic 5 consumes these commands for audit-linked forward correction. Epic 4 exposes only evidence actually available and never fabricates audit completion.
+Story 4.1 owns the fixed-scope availability guardrail consumed by grant and removal and depends on Story 1.11's authorized review plus the direct-read freshness and split query/command reference foundations. Stories 4.2–4.3 share aggregate locking, lifecycle, authoritative re-query, support-safety, localization, and accessibility foundations; removal additionally requires a complete count. Epic 5 consumes these commands for audit-linked forward correction. Epic 4 exposes only evidence actually available and never fabricates audit completion.
