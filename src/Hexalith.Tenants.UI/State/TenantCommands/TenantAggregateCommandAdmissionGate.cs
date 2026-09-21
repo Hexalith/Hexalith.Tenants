@@ -622,6 +622,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 => reconciliation.GrantPreview?.IsComplete == true
                     && (!string.IsNullOrWhiteSpace(reconciliation.CorrelationId)
                         || reconciliation.LifecycleState is TenantCommandLifecycleState.RequestSent
+                        || reconciliation.LifecycleState is TenantCommandLifecycleState.UnableToVerify
                             && reconciliation.IsSubmissionAmbiguous),
             GlobalAdministratorActionKind.Remove
                 => reconciliation.RemovePreview?.IsComplete == true

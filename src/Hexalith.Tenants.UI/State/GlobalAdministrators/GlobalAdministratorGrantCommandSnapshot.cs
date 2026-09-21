@@ -20,7 +20,8 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
     bool HasCommandEventEvidence = false,
     bool IsSubmissionAmbiguous = false,
     string? SafeMessageKey = null,
-    string? SafeRecoveryKey = null)
+    string? SafeRecoveryKey = null,
+    bool IsDeliveryRetryWithdrawn = false)
 {
     /// <summary>Gets the complete projection version captured before dispatch.</summary>
     public string? BaselineProjectionVersion => PreviewEvidence?.ProjectionVersion;
@@ -35,7 +36,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
     /// <summary>Returns a support-safe description that omits identities and tracking values.</summary>
     /// <returns>A bounded support-safe command-snapshot description.</returns>
     public override string ToString()
-        => $"{nameof(GlobalAdministratorGrantCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, HasTrackedPreview = {HasTrackedPreview}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
+        => $"{nameof(GlobalAdministratorGrantCommandSnapshot)} {{ State = {State}, HasIntent = {Intent is not null}, HasTrackedPreview = {HasTrackedPreview}, HasCommandEventEvidence = {HasCommandEventEvidence}, IsSubmissionAmbiguous = {IsSubmissionAmbiguous}, IsDeliveryRetryWithdrawn = {IsDeliveryRetryWithdrawn}, AuditState = {AuditState}, RejectionCode = {RejectionCode}, FocusTarget = {FocusTarget}, LiveRegionPoliteness = {LiveRegionPoliteness} }}";
 
     public static GlobalAdministratorGrantCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
@@ -111,6 +112,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             RejectionCode = null,
             HasCommandEventEvidence = false,
             IsSubmissionAmbiguous = false,
+            IsDeliveryRetryWithdrawn = false,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Submit,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -145,6 +147,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 SafeRecoveryKey = null,
                 RejectionCode = null,
                 IsSubmissionAmbiguous = false,
+                IsDeliveryRetryWithdrawn = false,
                 AuditState = TenantCommandAuditState.NotStarted,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -161,6 +164,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             SafeMessageKey = null,
             SafeRecoveryKey = null,
             RejectionCode = null,
+            IsDeliveryRetryWithdrawn = false,
             AuditState = TenantCommandAuditState.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -188,6 +192,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             SafeRecoveryKey = null,
             RejectionCode = null,
             IsSubmissionAmbiguous = false,
+            IsDeliveryRetryWithdrawn = false,
             AuditState = TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -205,22 +210,31 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 ? AmbiguousTrackingFailure()
                 : this with
                 {
-                    State = TenantCommandLifecycleState.RequestSent,
+                    State = State is TenantCommandLifecycleState.UnableToVerify
+                            && IsSubmissionAmbiguous
+                        ? TenantCommandLifecycleState.UnableToVerify
+                        : TenantCommandLifecycleState.RequestSent,
                     SafeMessage = null,
                     SafeMessageKey = result.SafeMessageKey
                         ?? "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
                     SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
                     RejectionCode = null,
                     IsSubmissionAmbiguous = true,
+                    IsDeliveryRetryWithdrawn = false,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 };
         }
 
-        return result.State is TenantCommandLifecycleState.Accepted
-            ? Accepted(result)
-            : this with
+        if (result.State is TenantCommandLifecycleState.Accepted)
+        {
+            return Accepted(result);
+        }
+
+        if (result.State is TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed)
+        {
+            return this with
             {
                 State = result.State,
                 SafeMessage = result.SafeMessage,
@@ -228,11 +242,51 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 SafeRecoveryKey = null,
                 RejectionCode = result.RejectionCode,
                 IsSubmissionAmbiguous = false,
+                IsDeliveryRetryWithdrawn = false,
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
+        }
+
+        return UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.UnsupportedSubmission") with
+        {
+            SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
+            IsSubmissionAmbiguous = true,
+            IsDeliveryRetryWithdrawn = false,
+            AuditState = TenantCommandAuditState.AuditDelayed,
+        };
     }
+
+    /// <summary>
+    /// Marks the retained same-identity delivery retry as temporarily withdrawn without replacing its original
+    /// diagnostic or recovery evidence.
+    /// </summary>
+    /// <returns>The distinct withdrawal state, or this snapshot when it is not a retryable ambiguous delivery.</returns>
+    public GlobalAdministratorGrantCommandSnapshot WithdrawDeliveryRetry()
+        => !IsSubmissionAmbiguous
+            || CorrelationId is not null
+            || !IsValidMessageId(MessageId)
+            || IsDeliveryRetryWithdrawn
+            ? this
+            : this with
+            {
+                IsDeliveryRetryWithdrawn = true,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+
+    /// <summary>Re-arms the retained delivery retry after all live prerequisites recover.</summary>
+    /// <returns>The same retained attempt with its retry withdrawal cleared.</returns>
+    public GlobalAdministratorGrantCommandSnapshot RearmDeliveryRetry()
+        => !IsDeliveryRetryWithdrawn
+            ? this
+            : this with
+            {
+                IsDeliveryRetryWithdrawn = false,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
 
     public GlobalAdministratorGrantCommandSnapshot ApplyStatus(TenantCommandStatusResult status)
     {
@@ -240,14 +294,15 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
 
         if (status.Status is null)
         {
-            return UnableToVerify(status.IsPending
+            return UnableToVerify(status.SafeMessageKey ?? (status.IsPending
                 ? "Tenants.GlobalAdministrators.Grant.Status.Pending"
-                : "Tenants.GlobalAdministrators.Grant.Status.Unknown");
+                : "Tenants.GlobalAdministrators.Grant.Status.Unknown"));
         }
 
         if (PreviewEvidence is not null && !status.HasVerifiedCommandIdentity)
         {
-            return UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+            return UnableToVerify(status.SafeMessageKey
+                ?? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
         }
 
         return status.Status.Value switch
@@ -259,8 +314,8 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                         || State is TenantCommandLifecycleState.ProjectionPending
                         ? TenantCommandLifecycleState.ProjectionPending
                         : TenantCommandLifecycleState.Accepted,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                    SafeMessageKey = status.SafeMessageKey,
                     SafeRecoveryKey = null,
                     IsSubmissionAmbiguous = false,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -283,8 +338,9 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 => this with
                 {
                     State = TenantCommandLifecycleState.Rejected,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                    SafeMessageKey = status.SafeMessageKey
+                        ?? "Tenants.GlobalAdministrators.Grant.Status.Rejected",
                     SafeRecoveryKey = null,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditState.AuditUnavailable,
@@ -295,20 +351,22 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                 => this with
                 {
                     State = TenantCommandLifecycleState.Degraded,
-                    SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                    SafeMessageKey = status.SafeMessageKey
+                        ?? "Tenants.GlobalAdministrators.Grant.Status.PublishFailed",
                     SafeRecoveryKey = null,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
             CommandStatus.TimedOut
-                => UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout") with
+                => UnableToVerify(status.SafeMessageKey
+                    ?? "Tenants.GlobalAdministrators.Grant.Status.TimedOut") with
                 {
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
                     AuditState = TenantCommandAuditState.AuditDelayed,
                 },
-            _ => this,
+            _ => UnableToVerify("Tenants.GlobalAdministrators.Grant.UnableToVerify.UnsupportedSubmission"),
         };
     }
 
@@ -420,6 +478,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             SafeMessageKey = "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch",
             SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery",
             IsSubmissionAmbiguous = true,
+            IsDeliveryRetryWithdrawn = false,
             AuditState = TenantCommandAuditState.AuditDelayed,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

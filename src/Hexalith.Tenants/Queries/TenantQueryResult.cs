@@ -41,7 +41,29 @@ internal sealed record TenantQueryResult : QueryResult {
         ReadModelFreshnessThresholds thresholds,
         DateTimeOffset now,
         string? eTag)
-        => FromPayload(payload, projectionType, eTag);
+    {
+        if (payload.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException("Payload element must not be Undefined.", nameof(payload));
+        }
+
+        string? normalizedETag = NormalizeETag(eTag);
+        QueryResponseMetadata? metadata = normalizedETag is null
+            ? null
+            : readModel
+                .ToQueryResponseMetadata(thresholds, now, normalizedETag)
+                with
+                {
+                    IsNotModified = false,
+                    Provenance = QueryResponseProvenance.ProjectionBacked,
+                };
+
+        return new TenantQueryResult(
+            true,
+            JsonSerializer.SerializeToUtf8Bytes(payload),
+            projectionType: projectionType,
+            metadata: metadata);
+    }
 
     private static string? NormalizeETag(string? eTag) {
         if (string.IsNullOrWhiteSpace(eTag)) {

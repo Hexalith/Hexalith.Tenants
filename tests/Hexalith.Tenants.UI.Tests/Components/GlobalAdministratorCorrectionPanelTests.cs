@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Security.Claims;
 
 using Bunit;
@@ -91,6 +92,61 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
         cut.VisibleText().ShouldNotContain("tenant role", Case.Insensitive);
         cut.VisibleText().ShouldNotContain("member", Case.Insensitive);
+    }
+
+    [Fact]
+    public void RestorePreviewEscapesFormatIdentityButSubmitsOriginalValue()
+    {
+        const string target = "admin\u200Duser";
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent baseline = RestoreIntent();
+        var previewInputs = new Dictionary<string, string>(baseline.RequiredPreviewInputs, StringComparer.Ordinal)
+        {
+            ["userId"] = target,
+        };
+        TenantCorrectionStartIntent intent = baseline with
+        {
+            TargetUserId = target,
+            RequiredPreviewInputs = previewInputs,
+        };
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-target-user']")
+            .TextContent.ShouldContain(@"admin\{U+200D}user");
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => commandGateway.SetRequests.ShouldHaveSingleItem());
+        commandGateway.SetRequests[0].UserId.ShouldBe(target);
+    }
+
+    [Fact]
+    public void RestorePreviewTokenizesControlsDefaultIgnorablesAndLiteralEscapeLookingText()
+    {
+        const string target = "  admin\u0001\u034F\uFE0F\\{U+200D}  ";
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent baseline = RestoreIntent();
+        var previewInputs = new Dictionary<string, string>(baseline.RequiredPreviewInputs, StringComparer.Ordinal)
+        {
+            ["userId"] = target,
+        };
+        TenantCorrectionStartIntent intent = baseline with
+        {
+            TargetUserId = target,
+            RequiredPreviewInputs = previewInputs,
+        };
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-target-user']").TextContent.ShouldContain(
+            @"  admin\{U+0001}\{U+034F}\{U+FE0F}\\{U+200D}  ");
     }
 
     [Fact]
@@ -470,6 +526,51 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task RestoreUnableToVerifyIsRetainedAndAdoptedByReplacementPanel()
+    {
+        var commandGateway = new StubTenantCommandGateway
+        {
+            SetResultTask = Task.FromResult(
+                TenantCommandSubmissionResult.Accepted("ignored", "correlation-safe")),
+            Status = TenantCommandStatusResult.Unknown("Status unavailable."),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("other-admin"),
+            Audit("proof", "GlobalAdministratorSet")));
+        TenantCorrectionStartIntent intent = RestoreIntent();
+        GlobalAdministratorsSnapshot projection = Projection("other-admin");
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> first =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, projection));
+        await first.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        first.WaitForAssertion(() => first.Instance.Snapshot!.LifecycleState
+            .ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        string messageId = first.Instance.Snapshot!.MessageId.ShouldNotBeNull();
+        first.Instance.Snapshot.CorrelationId.ShouldBe("correlation-safe");
+        first.Instance.Dispose();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> replacement =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, projection));
+
+        replacement.WaitForAssertion(() =>
+        {
+            replacement.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            replacement.Instance.Snapshot.MessageId.ShouldBe(messageId);
+            replacement.Instance.Snapshot.CorrelationId.ShouldBe("correlation-safe");
+            replacement.Instance.Snapshot.IsSubmissionAmbiguous.ShouldBeFalse();
+        });
+        commandGateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+        commandGateway.StatusHandles.ShouldAllBe(handle => handle.MessageId == messageId);
+    }
+
+    [Fact]
     public async Task CorrelatedRemoveStatusRefreshStaysAvailableOnUnsafeViewport()
     {
         var commandGateway = new StubTenantCommandGateway
@@ -819,6 +920,122 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
             .ShouldBe(expectedRecovery);
+    }
+
+    [Theory]
+    [InlineData("pending", "Tracked grant status is pending; keep the same command identity and refresh.")]
+    [InlineData("unknown", "Tracked grant status is unavailable; keep the same command identity and retry verification.")]
+    [InlineData("rejected", "The tracked grant was rejected. Refresh platform authority before trying another action.")]
+    [InlineData("publish-failed", "The grant event could not be published. Keep the same tracked command and retry verification.")]
+    [InlineData("timed-out", "The tracked grant timed out before its result could be verified.")]
+    public void RestoreAccessStatusRendersStableLocalizedGrantCopy(string scenario, string expectedCopy)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RestoreIntent();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, Projection("other-admin")));
+        string messageId = NUlid.Ulid.NewUlid().ToString();
+        GlobalAdministratorCorrectionSnapshot accepted = cut.Instance.Snapshot!
+            .RequestSent(messageId)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, "correlation-safe"));
+        TenantCommandStatusResult status = scenario switch
+        {
+            "pending" => TenantCommandStatusResult.Pending("gateway pending text"),
+            "unknown" => TenantCommandStatusResult.Unknown("gateway unknown text"),
+            "rejected" => new TenantCommandStatusResult(
+                CommandStatus.Rejected,
+                SafeMessage: "gateway rejected text",
+                RejectionCode: "RejectedForTest",
+                HasVerifiedCommandIdentity: true),
+            "publish-failed" => new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                SafeMessage: "gateway publish text",
+                HasVerifiedCommandIdentity: true),
+            "timed-out" => new TenantCommandStatusResult(
+                CommandStatus.TimedOut,
+                SafeMessage: "gateway timeout text",
+                HasVerifiedCommandIdentity: true),
+            _ => throw new InvalidOperationException($"Unknown scenario '{scenario}'."),
+        };
+        GlobalAdministratorCorrectionSnapshot snapshot = accepted.ApplyStatus(status);
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        object owner = typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionOwner", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!;
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease.ShouldNotBeNull().TryMarkDispatched(owner).ShouldBeTrue();
+        if (snapshot.ToReconciliation() is { } reconciliation)
+        {
+            lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
+        }
+
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionLease", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, lease);
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, snapshot);
+
+        cut.Render();
+
+        cut.Find("[data-testid='tenants-correction-safe-message']").TextContent.ShouldBe(expectedCopy);
+        cut.Markup.ShouldNotContain("gateway ", Case.Insensitive);
+    }
+
+    [Fact]
+    public void RemovalStatusWithGrantGatewayKeyRendersRemovalSpecificCopy()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+        string messageId = NUlid.Ulid.NewUlid().ToString();
+        GlobalAdministratorCorrectionSnapshot snapshot = cut.Instance.Snapshot!
+            .RequestSent(messageId)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, "correlation-remove"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                SafeMessage: "gateway grant publish text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: "Tenants.GlobalAdministrators.Grant.Status.PublishFailed"));
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        object owner = typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionOwner", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!;
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease.ShouldNotBeNull().TryMarkDispatched(owner).ShouldBeTrue();
+        if (snapshot.ToReconciliation() is { } reconciliation)
+        {
+            lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
+        }
+
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_admissionLease", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, lease);
+        typeof(GlobalAdministratorCorrectionPanel)
+            .GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, snapshot);
+
+        cut.Render();
+
+        cut.Find("[data-testid='tenants-correction-safe-message']").TextContent
+            .ShouldBe("The removal event could not be published.");
+        cut.Markup.ShouldNotContain("grant event", Case.Insensitive);
+        cut.Markup.ShouldNotContain("gateway grant", Case.Insensitive);
     }
 
     [Fact]
@@ -2519,6 +2736,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"] = "Retry only with the retained command identity; do not create a new grant attempt.",
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"] = "Command status did not match the exact retained grant identity.",
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"] = "Exact command status did not prove that the grant produced an event.",
+            ["Tenants.GlobalAdministrators.Grant.Status.Pending"] = "Tracked grant status is pending; keep the same command identity and refresh.",
+            ["Tenants.GlobalAdministrators.Grant.Status.Unknown"] = "Tracked grant status is unavailable; keep the same command identity and retry verification.",
+            ["Tenants.GlobalAdministrators.Grant.Status.Rejected"] = "The tracked grant was rejected. Refresh platform authority before trying another action.",
+            ["Tenants.GlobalAdministrators.Grant.Status.PublishFailed"] = "The grant event could not be published. Keep the same tracked command and retry verification.",
+            ["Tenants.GlobalAdministrators.Grant.Status.TimedOut"] = "The tracked grant timed out before its result could be verified.",
             ["Tenants.GlobalAdministrators.Remove.DeliveryRetry"] = "Retry removal delivery",
             ["Tenants.GlobalAdministrators.Remove.DeliveryRetry.Recovery"] = "Refresh evidence, then retry this same tracked removal attempt.",
             ["Tenants.GlobalAdministrators.Remove.Recovery.Rejected"] = "Refresh current evidence and review the rejection before a new attempt.",
@@ -2528,6 +2750,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection before continuing.",
             ["Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"] = "Delivery is uncertain; retry only with this attempt’s retained identifier.",
             ["Tenants.GlobalAdministrators.Remove.Status.Unknown"] = "Tracked removal status is unavailable.",
+            ["Tenants.GlobalAdministrators.Remove.Status.PublishFailed"] = "The removal event could not be published.",
         };
     }
 }

@@ -17,6 +17,11 @@
          this project supplies only the Tenants subclasses. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing.Integration\Hexalith.EventStore.Testing.Integration.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Testing.Integration" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <!-- Keep the router implementation explicit in the source-reference lane. Package mode compiles
+         the same proof against the published Gateway package reached through Hexalith.Tenants. -->
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj"
+                      AdditionalProperties="Version=$(HexalithEventStoreVersion)"
+                      Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
   </ItemGroup>
 
   <ItemGroup>

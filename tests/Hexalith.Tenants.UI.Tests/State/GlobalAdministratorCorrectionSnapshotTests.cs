@@ -418,6 +418,25 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void RestoreUnableToVerifyReconciliationRetainsTheExactGrantAttempt()
+    {
+        GlobalAdministratorCorrectionSnapshot unable = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(TenantCommandStatusResult.Unknown("Status unavailable."));
+
+        GlobalAdministratorReconciliationState reconciliation = unable.ToReconciliation().ShouldNotBeNull();
+        reconciliation.ActionKind.ShouldBe(GlobalAdministratorActionKind.Grant);
+        reconciliation.TargetUserId.ShouldBe(unable.TargetUserId);
+        reconciliation.MessageId.ShouldBe("message-safe");
+        reconciliation.CorrelationId.ShouldBe("tracking-safe");
+        reconciliation.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        reconciliation.GrantPreview.ShouldBeSameAs(unable.GrantPreview);
+        reconciliation.IsSubmissionAmbiguous.ShouldBeFalse();
+    }
+
+    [Fact]
     public void MismatchedGrantAcceptanceRetainsTheCallerOwnedIdentityForDeliveryRetry()
     {
         GlobalAdministratorCorrectionSnapshot requestSent = GlobalAdministratorCorrectionSnapshot
@@ -494,6 +513,106 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         progressed.SafeRecoveryKey.ShouldBeNull();
         progressed.RejectionCode.ShouldBeNull();
         progressed.IsSubmissionAmbiguous.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("pending", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Grant.Status.Pending", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("unknown", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Grant.Status.Unknown", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("rejected", TenantCommandLifecycleState.Rejected, "Tenants.GlobalAdministrators.Grant.Status.Rejected", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("publish-failed", TenantCommandLifecycleState.Degraded, "Tenants.GlobalAdministrators.Grant.Status.PublishFailed", TenantCommandAuditState.AuditDelayed)]
+    [InlineData("timed-out", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Grant.Status.TimedOut", TenantCommandAuditState.AuditDelayed)]
+    public void RestoreCorrectionRetainsStableGrantStatusResourceKeys(
+        string outcome,
+        TenantCommandLifecycleState expectedState,
+        string expectedKey,
+        TenantCommandAuditState expectedAuditState)
+    {
+        GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
+        TenantCommandStatusResult status = outcome switch
+        {
+            "pending" => TenantCommandStatusResult.Pending("gateway text") with { SafeMessageKey = expectedKey },
+            "unknown" => TenantCommandStatusResult.Unknown("gateway text") with { SafeMessageKey = expectedKey },
+            "rejected" => new TenantCommandStatusResult(
+                CommandStatus.Rejected,
+                "gateway text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: expectedKey),
+            "publish-failed" => new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                "gateway text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: expectedKey),
+            "timed-out" => new TenantCommandStatusResult(
+                CommandStatus.TimedOut,
+                "gateway text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: expectedKey),
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Unsupported status outcome."),
+        };
+
+        GlobalAdministratorCorrectionSnapshot result = accepted.ApplyStatus(status);
+
+        result.LifecycleState.ShouldBe(expectedState);
+        result.SafeMessage.ShouldBeNull();
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        result.AuditState.ShouldBe(expectedAuditState);
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    [Theory]
+    [InlineData("pending", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Remove.Status.Pending")]
+    [InlineData("unknown", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Remove.Status.Unknown")]
+    [InlineData("rejected", TenantCommandLifecycleState.Rejected, "Tenants.GlobalAdministrators.Remove.Status.Rejected")]
+    [InlineData("publish-failed", TenantCommandLifecycleState.Degraded, "Tenants.GlobalAdministrators.Remove.Status.PublishFailed")]
+    [InlineData("timed-out", TenantCommandLifecycleState.UnableToVerify, "Tenants.GlobalAdministrators.Remove.UnableToVerify.StatusTimeout")]
+    public void RemovalCorrectionIgnoresGrantStatusResourceKey(
+        string outcome,
+        TenantCommandLifecycleState expectedState,
+        string expectedKey)
+    {
+        GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .WithRemovePreview(RemovePreview())
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
+        TenantCommandStatusResult status = outcome switch
+        {
+            "pending" => TenantCommandStatusResult.Pending("gateway grant text") with
+            {
+                SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Status.Pending",
+            },
+            "unknown" => TenantCommandStatusResult.Unknown("gateway grant text") with
+            {
+                SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Status.Unknown",
+            },
+            "rejected" => new TenantCommandStatusResult(
+                CommandStatus.Rejected,
+                "gateway grant text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: "Tenants.GlobalAdministrators.Grant.Status.Rejected"),
+            "publish-failed" => new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                "gateway grant text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: "Tenants.GlobalAdministrators.Grant.Status.PublishFailed"),
+            "timed-out" => new TenantCommandStatusResult(
+                CommandStatus.TimedOut,
+                "gateway grant text",
+                HasVerifiedCommandIdentity: true,
+                SafeMessageKey: "Tenants.GlobalAdministrators.Grant.Status.TimedOut"),
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Unsupported status outcome."),
+        };
+
+        GlobalAdministratorCorrectionSnapshot result = accepted.ApplyStatus(status);
+
+        result.IsRestoreAccessAction.ShouldBeFalse();
+        result.LifecycleState.ShouldBe(expectedState);
+        result.SafeMessage.ShouldBeNull();
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        result.SafeMessageKey.ShouldNotStartWith("Tenants.GlobalAdministrators.Grant.");
     }
 
     [Fact]

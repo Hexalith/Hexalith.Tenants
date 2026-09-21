@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -62,7 +63,7 @@ public sealed record GlobalAdministratorRemovePreview(
     public const string FixedAggregateId = "global-administrators";
 
     /// <summary>Gets the maximum supported literal user identifier length.</summary>
-    public const int MaximumUserIdLength = 256;
+    public const int MaximumUserIdLength = GlobalAdministratorUserId.MaximumLength;
 
     /// <summary>Gets whether every required preview fact is present and internally consistent.</summary>
     public bool IsComplete
@@ -275,9 +276,7 @@ public sealed record GlobalAdministratorRemovePreview(
     /// <param name="userId">Literal identity.</param>
     /// <returns><see langword="true"/> when supported without normalization.</returns>
     public static bool IsSupportedIdentity(string? userId)
-        => !string.IsNullOrWhiteSpace(userId)
-            && userId.Length <= MaximumUserIdLength
-            && !userId.Any(char.IsControl);
+        => GlobalAdministratorUserId.IsSupported(userId);
 
     /// <summary>Returns a support-safe description that omits identities and projection metadata.</summary>
     /// <returns>A bounded diagnostic description.</returns>

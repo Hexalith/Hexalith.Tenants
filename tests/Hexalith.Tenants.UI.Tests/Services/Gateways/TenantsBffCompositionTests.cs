@@ -301,8 +301,8 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.Cancel",
         ];
 
-        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(28);
-        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(28);
+        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(89);
+        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(89);
         foreach (string key in renderedFactKeys.Concat(renderedChromeKeys))
         {
             key.ShouldNotBeNullOrWhiteSpace();
@@ -317,6 +317,22 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.DeliveryRetry");
         TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
             "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Label");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Reason");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Recovery");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(
+            "Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldNotContain(
+            "Tenants.GlobalAdministrators.Grant.State.AlreadyApplied");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldNotContain(
+            "Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented");
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldNotContain(
+            "Tenants.GlobalAdministrators.Grant.Submit");
     }
 
     [Fact]
@@ -371,6 +387,8 @@ public sealed class TenantsBffCompositionTests
     [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Title")]
     [InlineData("Tenants.GlobalAdministrators.Grant.Cancel")]
     [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired")]
+    [InlineData("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid")]
     public async Task GrantPreviewFailsClosedWhenARequiredLocalizedStringIsUnresolved(string unresolvedKey)
     {
         IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(

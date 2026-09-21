@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -154,9 +155,7 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
         foreach (GlobalAdministratorRow? row in rows)
         {
             if (row is null
-                || string.IsNullOrWhiteSpace(row.UserId)
-                || row.UserId.Length > GlobalAdministratorRemovePreview.MaximumUserIdLength
-                || row.UserId.Any(char.IsControl)
+                || !GlobalAdministratorUserId.IsSupported(row.UserId)
                 || row.Freshness is not ReadModelFreshnessState.Current
                 || row.Lifecycle is not ProjectionLifecycleState.Current
                 || !identities.Add(row.UserId))

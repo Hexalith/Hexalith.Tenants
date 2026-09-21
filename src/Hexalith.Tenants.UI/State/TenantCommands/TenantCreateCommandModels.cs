@@ -87,6 +87,18 @@ public sealed record TenantCommandSubmissionResult(
     public static TenantCommandSubmissionResult Rejected(string safeMessage, string? rejectionCode = null)
         => new(TenantCommandLifecycleState.Rejected, SafeMessage: safeMessage, RejectionCode: rejectionCode);
 
+    /// <summary>Rejects with a localized Tenants resource key and a stable diagnostic code.</summary>
+    /// <param name="safeMessageKey">Tenants resource key describing the rejection.</param>
+    /// <param name="rejectionCode">Optional structured diagnostic code.</param>
+    /// <returns>A rejected submission result carrying no gateway-authored visible text.</returns>
+    public static TenantCommandSubmissionResult RejectedWithKey(
+        string safeMessageKey,
+        string? rejectionCode = null)
+        => new(
+            TenantCommandLifecycleState.Rejected,
+            RejectionCode: rejectionCode,
+            SafeMessageKey: safeMessageKey);
+
     public static TenantCommandSubmissionResult Failed(string safeMessage)
         => new(TenantCommandLifecycleState.Failed, SafeMessage: safeMessage);
 
@@ -122,7 +134,8 @@ public sealed record TenantCommandStatusResult(
     int? EventCount = null,
     bool IsPending = false,
     bool IsRetryableFailure = false,
-    bool HasVerifiedCommandIdentity = false)
+    bool HasVerifiedCommandIdentity = false,
+    string? SafeMessageKey = null)
 {
     public static TenantCommandStatusResult Unknown(string safeMessage)
         => new(null, safeMessage);

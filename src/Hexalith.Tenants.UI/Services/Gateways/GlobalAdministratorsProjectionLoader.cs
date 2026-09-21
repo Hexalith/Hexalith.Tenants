@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -129,8 +130,7 @@ internal static class GlobalAdministratorsProjectionLoader
                 : string.IsNullOrWhiteSpace(page.NextCursor))
             && page.Rows.All(static row =>
                 row is not null
-                && !string.IsNullOrWhiteSpace(row.UserId)
-                && !row.UserId.Any(char.IsControl)
+                && GlobalAdministratorUserId.IsSupported(row.UserId)
                 && row.Freshness is ReadModelFreshnessState.Current
                 && row.Lifecycle is ProjectionLifecycleState.Current);
 

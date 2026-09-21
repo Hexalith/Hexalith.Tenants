@@ -55,7 +55,7 @@ public sealed class TenantQueryFreshnessTests
 
     [Theory]
     [MemberData(nameof(HandlerFreshnessCases))]
-    public async Task Query_handlers_ignore_primary_read_model_timestamp_and_sequence_authorityAsync(
+    public async Task Query_handlers_return_primary_read_model_freshness_and_sequence_authorityAsync(
         string queryType,
         string expectedPrimaryKey,
         string expectedETag,
@@ -99,7 +99,7 @@ public sealed class TenantQueryFreshnessTests
             timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
         await AssertPrimaryReadModelWasReadAsync(store, expectedPrimaryKey);
-        AssertValidatorOnly(result, expectedETag);
+        AssertProjectionBacked(result, expectedETag, projectedAgeMinutes);
     }
 
     [Theory]
@@ -126,18 +126,31 @@ public sealed class TenantQueryFreshnessTests
         result.Metadata.ShouldBeNull();
     }
 
-    private static void AssertValidatorOnly(TenantQueryResult result, string expectedETag)
+    private static void AssertProjectionBacked(
+        TenantQueryResult result,
+        string expectedETag,
+        int? projectedAgeMinutes)
     {
         result.Success.ShouldBeTrue();
         QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
         metadata.ETag.ShouldBe(expectedETag);
         metadata.IsNotModified.ShouldBe(false);
-        metadata.ProjectionVersion.ShouldBeNull();
-        metadata.IsStale.ShouldBeNull();
+        metadata.ProjectionVersion.ShouldBe(GenuineSequenceVersion);
+        metadata.IsStale.ShouldBe(projectedAgeMinutes switch
+        {
+            null => null,
+            > 30 => true,
+            _ => false,
+        });
         metadata.IsDegraded.ShouldBeNull();
-        metadata.ServedAt.ShouldBeNull();
-        metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
-        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        metadata.ServedAt.ShouldBe(Now);
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.Lifecycle.ShouldBe(projectedAgeMinutes switch
+        {
+            null => ProjectionLifecycleState.Unknown,
+            > 30 => ProjectionLifecycleState.Stale,
+            _ => ProjectionLifecycleState.Current,
+        });
     }
 
     private static void AssertPrimaryReadModelInputsExist(

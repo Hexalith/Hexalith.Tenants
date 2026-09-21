@@ -91,6 +91,22 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
     }
 
+    [Fact]
+    public void UndefinedFutureStatusFailsClosedWithUnsupportedSubmissionCopy()
+    {
+        GlobalAdministratorGrantCommandSnapshot result = AcceptedAttempt().ApplyStatus(
+            new TenantCommandStatusResult(
+                (CommandStatus)int.MaxValue,
+                HasVerifiedCommandIdentity: true));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.UnableToVerify.UnsupportedSubmission");
+        result.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
     [Theory]
     [InlineData(CommandStatus.Received)]
     [InlineData(CommandStatus.Processing)]
@@ -245,6 +261,66 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         result.IsSubmissionAmbiguous.ShouldBeTrue();
         result.MessageId.ShouldBe(MessageId);
         result.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+    }
+
+    [Fact]
+    public void DeliveryRetryWithdrawalPreservesOriginalDiagnosticAndRearmsSameAttempt()
+    {
+        GlobalAdministratorGrantCommandSnapshot ambiguous = PreviewedAttempt()
+            .RequestSent()
+            .ApplySubmission(TenantCommandSubmissionResult.Ambiguous(
+                MessageId,
+                "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch")) with
+        {
+            SafeMessage = "Original support-safe diagnostic.",
+        };
+
+        GlobalAdministratorGrantCommandSnapshot withdrawn = ambiguous.WithdrawDeliveryRetry();
+
+        withdrawn.IsDeliveryRetryWithdrawn.ShouldBeTrue();
+        withdrawn.MessageId.ShouldBe(MessageId);
+        withdrawn.Intent.ShouldBeSameAs(ambiguous.Intent);
+        withdrawn.PreviewEvidence.ShouldBeSameAs(ambiguous.PreviewEvidence);
+        withdrawn.SafeMessage.ShouldBe("Original support-safe diagnostic.");
+        withdrawn.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+        withdrawn.SafeRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+
+        GlobalAdministratorGrantCommandSnapshot rearmed = withdrawn.RearmDeliveryRetry();
+
+        rearmed.IsDeliveryRetryWithdrawn.ShouldBeFalse();
+        rearmed.MessageId.ShouldBe(MessageId);
+        rearmed.Intent.ShouldBeSameAs(ambiguous.Intent);
+        rearmed.PreviewEvidence.ShouldBeSameAs(ambiguous.PreviewEvidence);
+        rearmed.SafeMessage.ShouldBe(ambiguous.SafeMessage);
+        rearmed.SafeMessageKey.ShouldBe(ambiguous.SafeMessageKey);
+        rearmed.SafeRecoveryKey.ShouldBe(ambiguous.SafeRecoveryKey);
+    }
+
+    [Fact]
+    public void UnsupportedSubmissionFailsClosedAndRetainsSameIdentityRecovery()
+    {
+        GlobalAdministratorGrantCommandSnapshot result = PreviewedAttempt()
+            .RequestSent()
+            .ApplySubmission(new TenantCommandSubmissionResult(
+                TenantCommandLifecycleState.AlreadyApplied,
+                MessageId,
+                "unsupported-correlation"));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.IsSubmissionAmbiguous.ShouldBeTrue();
+        result.MessageId.ShouldBe(MessageId);
+        result.CorrelationId.ShouldBeNull();
+        result.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.UnableToVerify.UnsupportedSubmission");
+        result.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery");
+
+        GlobalAdministratorGrantCommandSnapshot retry = result.ApplySubmission(
+            TenantCommandSubmissionResult.Ambiguous(
+                MessageId,
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+        retry.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        retry.IsSubmissionAmbiguous.ShouldBeTrue();
     }
 
     [Fact]

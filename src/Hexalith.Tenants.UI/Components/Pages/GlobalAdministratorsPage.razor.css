@@ -263,7 +263,7 @@
     max-width: 24rem;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: pre-wrap;
 }
 
 /* fc-css-exception: inline width-constrained wrapper for the reason <span>; no gap to express, so a

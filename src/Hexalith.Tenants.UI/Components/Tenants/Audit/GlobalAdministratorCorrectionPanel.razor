@@ -68,7 +68,7 @@
 
                 <dt>@Localizer["Tenants.Correction.PreviewInput.userId"]</dt>
                 <dd class="ga-correction-panel__literal-identity"
-                    data-testid="tenants-correction-target-user">@FieldValue(_snapshot.TargetUserId)</dd>
+                    data-testid="tenants-correction-target-user">@GlobalAdministratorIdentityDisplay.Encode(_snapshot.TargetUserId)</dd>
 
                 <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AdminCount"]</dt>
                 <dd data-testid="tenants-correction-admin-count">@AdminCountLabel</dd>

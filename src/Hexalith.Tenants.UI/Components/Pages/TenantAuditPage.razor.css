@@ -19,6 +19,7 @@
 .tenant-audit__context {
     border-inline-start: 3px solid var(--colorBrandStroke1, LinkText);
     padding-inline-start: 0.5rem;
+    white-space: pre-wrap;
 }
 
 /* fc-css-exception: small caption text scale on the semantic <p> return-context; v5 FluentLabel

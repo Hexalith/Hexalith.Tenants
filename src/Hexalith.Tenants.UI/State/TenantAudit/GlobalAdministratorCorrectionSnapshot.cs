@@ -121,7 +121,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         {
             if (GrantPreview?.IsComplete != true
                 || (string.IsNullOrWhiteSpace(CorrelationId)
-                    && !(LifecycleState is TenantCommandLifecycleState.RequestSent && IsSubmissionAmbiguous)))
+                    && !((LifecycleState is TenantCommandLifecycleState.RequestSent
+                            or TenantCommandLifecycleState.UnableToVerify)
+                        && IsSubmissionAmbiguous)))
             {
                 return null;
             }
@@ -455,15 +457,22 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
         if (!IsRestoreAccessAction)
         {
-            GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ApplyStatus(status);
+            // The shared fixed aggregate makes the gateway classify both grant and removal handles as
+            // global-administrator traffic. Grant lifecycle keys are valid only for restore-access; removal
+            // keeps its dedicated mapping and copy even when the gateway supplied a Grant.* key.
+            GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ApplyStatus(
+                status with { SafeMessageKey = null });
             return FromRemovalSnapshot(removal);
         }
 
         if (status.Status is null) {
             return this with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                SafeMessageKey = status.SafeMessageKey
+                    ?? (status.IsPending
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Pending"
+                        : "Tenants.GlobalAdministrators.Grant.Status.Unknown"),
                 AuditState = TenantCommandAuditState.AuditUnavailable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -473,7 +482,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         if (!status.HasVerifiedCommandIdentity)
         {
             return UnableToVerify(IsRestoreAccessAction
-                ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                ? status.SafeMessageKey
+                    ?? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
                 : "Tenants.Correction.GlobalAdmin.State.UnableToVerify");
         }
 
@@ -522,8 +532,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Rejected
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.Rejected,
-                        SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                        SafeMessageKey = status.SafeMessageKey
+                            ?? "Tenants.GlobalAdministrators.Grant.Status.Rejected",
                         RejectionCode = status.RejectionCode,
                         AuditState = TenantCommandAuditState.AuditUnavailable,
                         FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -532,8 +543,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             Hexalith.EventStore.Contracts.Commands.CommandStatus.PublishFailed
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.Degraded,
-                        SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                        SafeMessageKey = status.SafeMessageKey
+                            ?? "Tenants.GlobalAdministrators.Grant.Status.PublishFailed",
                         AuditState = TenantCommandAuditState.AuditDelayed,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -541,8 +553,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             Hexalith.EventStore.Contracts.Commands.CommandStatus.TimedOut
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                        SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessage = status.SafeMessageKey is null ? status.SafeMessage : null,
+                        SafeMessageKey = status.SafeMessageKey
+                            ?? "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
                         AuditState = TenantCommandAuditState.AuditDelayed,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

@@ -14,28 +14,50 @@ using System.Text.Json.Serialization;
 
 using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Client.Gateway;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
+using Hexalith.EventStore.Controllers;
+using Hexalith.EventStore.DomainService;
+using Hexalith.EventStore.Queries;
+using Hexalith.EventStore.Server.Pipeline.Queries;
+using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
+using Hexalith.Tenants.Configuration;
+using Hexalith.Tenants.Queries.Handlers;
+using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.Services.Gateways;
 
+using MediatR;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -252,6 +274,78 @@ public sealed class TenantsApiGeneratedControllerTests
         query.Request.EntityId.ShouldBe("global-administrators");
         query.Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetGlobalAdministratorsQuery.ProjectionType);
+    }
+
+    [Theory]
+    [InlineData(1, "projection-v1", "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, true)]
+    [InlineData(30, "projection-v1", "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Stale, GlobalAdministratorsSurfaceKind.Stale, false)]
+    [InlineData(1, null, "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, false)]
+    [InlineData(1, "projection-v1", null, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Unknown, false)]
+    public async Task GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway(
+        int projectedAgeMinutes,
+        string? projectionVersion,
+        string? eTag,
+        QueryResponseProvenance expectedProvenance,
+        ProjectionLifecycleState expectedLifecycle,
+        GlobalAdministratorsSurfaceKind expectedKind,
+        bool expectedCompleteEvidence)
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-09-21T12:00:00Z", CultureInfo.InvariantCulture);
+        var model = new GlobalAdministratorReadModel
+        {
+            Administrators = ["admin.current", "target.user"],
+            ProjectedAt = now.AddMinutes(-projectedAgeMinutes),
+            ProjectionVersion = projectionVersion,
+        };
+        using var gateway = new HandlerRoutedEventStoreGatewayClient(model, eTag, now);
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient serviceClient = CreateAuthenticatedClient(factory);
+
+        using HttpResponseMessage response = await serviceClient.GetAsync(
+            "/api/global-administrators?pageSize=20",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.GetValues("X-Hexalith-Query-Provenance")
+            .ShouldHaveSingleItem()
+            .ShouldBe(expectedProvenance.ToString());
+        response.Headers.TryGetValues("X-Hexalith-Projection-Lifecycle", out IEnumerable<string>? lifecycleHeaders)
+            .ShouldBe(expectedLifecycle is not ProjectionLifecycleState.Unknown);
+        if (expectedLifecycle is not ProjectionLifecycleState.Unknown)
+        {
+            lifecycleHeaders.ShouldNotBeNull().ShouldHaveSingleItem().ShouldBe(expectedLifecycle.ToString());
+        }
+
+        response.Headers.Contains("X-Hexalith-Projection-Version")
+            .ShouldBe(expectedProvenance is QueryResponseProvenance.ProjectionBacked && !string.IsNullOrWhiteSpace(projectionVersion));
+        response.Headers.ETag.ShouldBe(expectedProvenance is QueryResponseProvenance.ProjectionBacked ? eTag is null ? null : new EntityTagHeaderValue($"\"{eTag}\"") : null);
+
+        using var replayClient = new HttpClient(new ReplayHandler(response))
+        {
+            BaseAddress = new Uri("https://tenants.invalid"),
+        };
+        var restClient = new TenantsRestQueryClient(replayClient);
+        var memoriesClient = new MemoriesClient(
+            new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
+            Options.Create(new MemoriesClientOptions()),
+            NullLogger<MemoriesClient>.Instance);
+        var uiGateway = new TenantQueryGateway(
+            restClient,
+            new FixedUserContextAccessor("admin.current"),
+            memoriesClient,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
+
+        GlobalAdministratorsSnapshot snapshot = await uiGateway.GetGlobalAdministratorsAsync(
+            new GlobalAdministratorsRequest(PageSize: 20),
+            previous: null,
+            TestContext.Current.CancellationToken);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Lifecycle.ShouldBe(expectedLifecycle);
+        snapshot.ProjectionVersion.ShouldBe(
+            expectedProvenance is QueryResponseProvenance.ProjectionBacked ? projectionVersion : null);
+        snapshot.IsCompleteEvidence.ShouldBe(expectedCompleteEvidence);
+        snapshot.Rows.Select(static row => row.UserId).ShouldBe(["admin.current", "target.user"]);
     }
 
     [Fact]
@@ -1115,7 +1209,7 @@ public sealed class TenantsApiGeneratedControllerTests
         ];
 
     private sealed class TenantsApiWebApplicationFactory(
-        CapturingEventStoreGatewayClient gateway,
+        IEventStoreGatewayClient gateway,
         IReadOnlyDictionary<string, string?>? authenticationConfiguration = null,
         Action<IServiceCollection>? configureServices = null)
         : WebApplicationFactory<TenantsApi::Program>
@@ -1142,6 +1236,216 @@ public sealed class TenantsApiGeneratedControllerTests
                 configureServices?.Invoke(services);
             });
         }
+    }
+
+    private sealed class HandlerRoutedEventStoreGatewayClient : IEventStoreGatewayClient, IDisposable
+    {
+        private readonly EventStoreDomainDiagnostics _diagnostics = new("tenants");
+        private readonly HandlerAwareQueryRouter _router;
+
+        public HandlerRoutedEventStoreGatewayClient(
+            GlobalAdministratorReadModel model,
+            string? eTag,
+            DateTimeOffset now)
+        {
+            var handler = new GetGlobalAdministratorsQueryHandler(
+                new SingleGlobalAdministratorReadModelStore(model, eTag),
+                new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.Integration.QueryCursor.v1"),
+                new TenantTelemetry(_diagnostics),
+                NullLogger<GetGlobalAdministratorsQueryHandler>.Instance,
+                Options.Create(new ReadModelFreshnessOptions
+                {
+                    Aging = TimeSpan.FromMinutes(5),
+                    Stale = TimeSpan.FromMinutes(10),
+                }),
+                new FixedTimeProvider(now));
+            _router = new HandlerAwareQueryRouter(
+                new UnexpectedInnerQueryRouter(),
+                new AlwaysSupportedDomainQueryHandlerRegistry(),
+                new DirectDomainQueryInvoker(handler),
+                NullLogger<HandlerAwareQueryRouter>.Instance);
+        }
+
+        public async Task<EventStoreQueryResult> SubmitQueryAsync(
+            SubmitQueryRequest request,
+            string? ifNoneMatch = null,
+            CancellationToken cancellationToken = default)
+        {
+            const string correlationId = "real-handler-correlation";
+            byte[] payload = request.Payload is JsonElement element
+                ? JsonSerializer.SerializeToUtf8Bytes(element, JsonOptions)
+                : [];
+            QueryRouterResult routed = await _router.RouteQueryAsync(
+                new SubmitQuery(
+                    request.Tenant,
+                    request.Domain,
+                    request.AggregateId,
+                    request.QueryType,
+                    payload,
+                    correlationId,
+                    "admin.current",
+                    request.EntityId,
+                    request.ProjectionType,
+                    request.ProjectionActorType,
+                    IsGlobalAdmin: true),
+                cancellationToken);
+
+            routed.Success.ShouldBeTrue(routed.ErrorMessage);
+            JsonElement routedPayload = routed.Payload.ShouldNotBeNull();
+            IMediator mediator = Substitute.For<IMediator>();
+            _ = mediator.Send(Arg.Any<SubmitQuery>(), Arg.Any<CancellationToken>())
+                .Returns(new SubmitQueryResult(
+                    correlationId,
+                    routedPayload,
+                    routed.ProjectionType,
+                    routed.Metadata));
+            IETagService eTagService = Substitute.For<IETagService>();
+            _ = eTagService.GetCurrentETagAsync(
+                    Arg.Any<string>(),
+                    request.Tenant,
+                    Arg.Any<CancellationToken>())
+                .Returns("later-projection-validator");
+            ITenantValidator tenantValidator = Substitute.For<ITenantValidator>();
+            _ = tenantValidator.ValidateAsync(
+                    Arg.Any<ClaimsPrincipal>(),
+                    request.Tenant,
+                    Arg.Any<CancellationToken>(),
+                    request.AggregateId)
+                .Returns(TenantValidationResult.Allowed);
+            IRbacValidator rbacValidator = Substitute.For<IRbacValidator>();
+            _ = rbacValidator.ValidateAsync(
+                    Arg.Any<ClaimsPrincipal>(),
+                    Arg.Any<string>(),
+                    Arg.Any<string>(),
+                    Arg.Any<string>(),
+                    Arg.Any<string>(),
+                    Arg.Any<CancellationToken>(),
+                    Arg.Any<string?>())
+                .Returns(RbacValidationResult.Allowed);
+            var controller = new QueriesController(
+                mediator,
+                eTagService,
+                tenantValidator,
+                rbacValidator,
+                NullLogger<QueriesController>.Instance)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext
+                    {
+                        User = new ClaimsPrincipal(new ClaimsIdentity(
+                            [new Claim("sub", "admin.current"), new Claim("role", "global-administrator")],
+                            "test")),
+                    },
+                },
+            };
+            controller.HttpContext.Items["CorrelationId"] = correlationId;
+
+            IActionResult action = await controller.Submit(request, ifNoneMatch, cancellationToken);
+            OkObjectResult ok = action.ShouldBeOfType<OkObjectResult>();
+            SubmitQueryResponse body = ok.Value.ShouldBeOfType<SubmitQueryResponse>();
+            string? responseETag = controller.Response.Headers.ETag.Count == 0
+                ? null
+                : controller.Response.Headers.ETag.ToString().Trim('"');
+            return new EventStoreQueryResult(
+                body.CorrelationId,
+                body.Payload,
+                IsNotModified: false,
+                responseETag)
+            {
+                Metadata = body.Metadata,
+            };
+        }
+
+        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
+            SubmitQueryRequest request,
+            string? ifNoneMatch = null,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<SubmitCommandResponse> SubmitCommandAsync(
+            SubmitCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<StreamReadPage> ReadStreamAsync(
+            StreamReadRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public void Dispose() => _diagnostics.Dispose();
+    }
+
+    private sealed class SingleGlobalAdministratorReadModelStore(
+        GlobalAdministratorReadModel model,
+        string? eTag) : IReadModelStore
+    {
+        public Task<ReadModelEntry<TValue>> GetAsync<TValue>(
+            string storeName,
+            string key,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (typeof(TValue) != typeof(GlobalAdministratorReadModel))
+            {
+                throw new InvalidOperationException($"Unexpected read model type {typeof(TValue).Name}.");
+            }
+
+            return Task.FromResult(new ReadModelEntry<TValue>((TValue)(object)model, eTag));
+        }
+
+        public Task SaveAsync<TValue>(
+            string storeName,
+            string key,
+            TValue value,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+            => throw new NotSupportedException();
+
+        public Task<bool> TrySaveAsync<TValue>(
+            string storeName,
+            string key,
+            TValue value,
+            string eTag,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+            => throw new NotSupportedException();
+    }
+
+    private sealed class AlwaysSupportedDomainQueryHandlerRegistry : IDomainQueryHandlerRegistry
+    {
+        public Task<bool> SupportsQueryAsync(
+            string domain,
+            string queryType,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+    }
+
+    private sealed class DirectDomainQueryInvoker(IDomainQueryHandler handler) : IDomainQueryInvoker
+    {
+        public Task<QueryResult> InvokeAsync(QueryEnvelope query, CancellationToken cancellationToken = default)
+            => handler.ExecuteAsync(query, cancellationToken);
+    }
+
+    private sealed class UnexpectedInnerQueryRouter : IQueryRouter
+    {
+        public Task<QueryRouterResult> RouteQueryAsync(
+            SubmitQuery query,
+            CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("The handler-aware route unexpectedly delegated to the projection actor router.");
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class FixedUserContextAccessor(string userId) : IUserContextAccessor
+    {
+        public string? TenantId => TenantIdentity.DefaultTenantId;
+
+        public string? UserId => userId;
     }
 
     private sealed class CapturingEventStoreGatewayClient : IEventStoreGatewayClient

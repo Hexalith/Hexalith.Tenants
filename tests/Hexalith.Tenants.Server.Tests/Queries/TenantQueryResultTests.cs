@@ -48,12 +48,14 @@ public sealed class TenantQueryResultTests
     }
 
     [Theory]
-    [InlineData("2026-06-25T13:00:00Z", TenantProjectionVersionFormat.SequencePrefix + "42")]
-    [InlineData("2026-06-25T12:00:00Z", null)]
-    [InlineData(null, TenantProjectionVersionFormat.SequencePrefix + "42")]
-    public void Freshness_overload_ignores_timestamp_and_sequence_authority(
+    [InlineData("2026-06-25T13:00:00Z", TenantProjectionVersionFormat.SequencePrefix + "42", ProjectionLifecycleState.Current, false)]
+    [InlineData("2026-06-25T12:00:00Z", null, ProjectionLifecycleState.Stale, true)]
+    [InlineData(null, TenantProjectionVersionFormat.SequencePrefix + "42", ProjectionLifecycleState.Unknown, null)]
+    public void Freshness_overload_restores_projection_metadata(
         string? projectedAt,
-        string? projectionVersion)
+        string? projectionVersion,
+        ProjectionLifecycleState expectedLifecycle,
+        bool? expectedIsStale)
     {
         var readModel = new TenantReadModel
         {
@@ -70,7 +72,35 @@ public sealed class TenantQueryResultTests
             DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             "\"opaque-store-etag\"");
 
-        AssertValidatorOnly(result, "opaque-store-etag");
+        result.Success.ShouldBeTrue();
+        result.ProjectionType.ShouldBe("tenants");
+        QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
+        metadata.ETag.ShouldBe("opaque-store-etag");
+        metadata.ProjectionVersion.ShouldBe(projectionVersion);
+        metadata.Lifecycle.ShouldBe(expectedLifecycle);
+        metadata.IsStale.ShouldBe(expectedIsStale);
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.ServedAt.ShouldBe(DateTimeOffset.Parse(
+            "2026-06-25T13:00:00Z",
+            System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void Freshness_overload_with_absent_read_model_fails_closed_as_unknown_projection_evidence()
+    {
+        TenantQueryResult result = TenantQueryResult.FromPayload(
+            Payload,
+            "tenants",
+            readModel: null,
+            Thresholds,
+            DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            "opaque-store-etag");
+
+        QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        metadata.IsStale.ShouldBeNull();
+        metadata.ProjectionVersion.ShouldBeNull();
     }
 
     [Theory]

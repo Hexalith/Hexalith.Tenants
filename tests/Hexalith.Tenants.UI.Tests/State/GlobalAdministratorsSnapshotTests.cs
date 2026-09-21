@@ -163,6 +163,7 @@ public sealed class GlobalAdministratorsSnapshotTests
         grant.ToString().ShouldBe(
             "GlobalAdministratorGrantCommandSnapshot { State = RequestSent, HasIntent = True, "
             + "HasTrackedPreview = False, HasCommandEventEvidence = False, IsSubmissionAmbiguous = False, "
+            + "IsDeliveryRetryWithdrawn = False, "
             + "AuditState = NotStarted, RejectionCode = , FocusTarget = Lifecycle, LiveRegionPoliteness = Polite }");
         remove.ToString().ShouldBe(
             "GlobalAdministratorRemoveCommandSnapshot { State = Previewed, HasIntent = True, "

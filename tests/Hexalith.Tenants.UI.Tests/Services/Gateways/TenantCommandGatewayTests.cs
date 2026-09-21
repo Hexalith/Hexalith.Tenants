@@ -10,6 +10,7 @@ using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -371,12 +372,11 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
-    [InlineData("GlobalAdministratorAlreadyExistsRejection", "GlobalAdministratorAlreadyExists", "already a global administrator")]
-    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "platform governance")]
-    public async Task Set_global_administrator_maps_safe_rejection_text(
+    [InlineData("GlobalAdministratorAlreadyExistsRejection", "GlobalAdministratorAlreadyExists")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions")]
+    public async Task Set_global_administrator_maps_rejection_to_stable_resource_key(
         string reason,
-        string expectedCode,
-        string expectedText)
+        string expectedCode)
     {
         CapturingGatewayClient client = new(new EventStoreGatewayException(
             (int)HttpStatusCode.Conflict,
@@ -393,12 +393,8 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
-        string safeMessage = result.SafeMessage.ShouldNotBeNull();
-        safeMessage.ShouldContain(expectedText, Case.Insensitive);
-        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
-        safeMessage.ShouldNotContain("token", Case.Insensitive);
-        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
-        safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
+        result.SafeMessage.ShouldBeNull();
+        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Submission.Rejected");
     }
 
     [Fact]
@@ -2016,6 +2012,95 @@ public sealed class TenantCommandGatewayTests
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldBe("Command status is not available yet.");
         safeMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, "Tenants.GlobalAdministrators.Grant.Status.Pending")]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "Tenants.GlobalAdministrators.Grant.Status.Unknown")]
+    public async Task FixedGlobalAdministratorUnavailableStatusUsesExactGrantKey(
+        HttpStatusCode statusCode,
+        string expectedKey)
+    {
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}", statusCode))
+            {
+                BaseAddress = new Uri("https://eventstore.example/"),
+            });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(
+                "message-global",
+                "correlation-global",
+                GlobalAdministratorGrantPreview.FixedAggregateId),
+            CancellationToken.None);
+
+        result.SafeMessageKey.ShouldBe(expectedKey);
+    }
+
+    [Fact]
+    public async Task FixedGlobalAdministratorTrackingMismatchUsesExactGrantKey()
+    {
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-global",
+              "status": "Completed",
+              "statusCode": 4,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "global-administrators",
+              "eventCount": 1,
+              "messageId": "different-message"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(
+                "message-global",
+                "correlation-global",
+                GlobalAdministratorGrantPreview.FixedAggregateId),
+            CancellationToken.None);
+
+        result.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch");
+    }
+
+    [Theory]
+    [InlineData("Rejected", "Tenants.GlobalAdministrators.Grant.Status.Rejected")]
+    [InlineData("PublishFailed", "Tenants.GlobalAdministrators.Grant.Status.PublishFailed")]
+    [InlineData("TimedOut", "Tenants.GlobalAdministrators.Grant.Status.TimedOut")]
+    public async Task FixedGlobalAdministratorTerminalStatusUsesExactGrantKey(
+        string status,
+        string expectedKey)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-global",
+              "status": "{{status}}",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "global-administrators",
+              "eventCount": 0,
+              "messageId": "message-global"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(
+                "message-global",
+                "correlation-global",
+                GlobalAdministratorGrantPreview.FixedAggregateId),
+            CancellationToken.None);
+
+        result.SafeMessageKey.ShouldBe(expectedKey);
     }
 
     [Fact]

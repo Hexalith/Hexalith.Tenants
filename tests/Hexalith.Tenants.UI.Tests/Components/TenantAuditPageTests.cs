@@ -291,6 +291,22 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void RestoredAuditContextEscapesFormatIdentity()
+    {
+        RegisterServices(ReadySnapshot([Row("event-safe-reference", AuditEventCategory.Access)]));
+        const string target = "  target\u034F\uFE0F\\{U+200D}  ";
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo(navigation.GetUriWithQueryParameter("targetUserId", target));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(component => component.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-context']")
+            .TextContent.ShouldContain(@"  target\{U+034F}\{U+FE0F}\\{U+200D}  ");
+    }
+
+    [Fact]
     public void Tenant_audit_page_omits_grid_copy_for_an_unsafe_raw_event_reference()
     {
         RegisterServices(ReadySnapshot([Row("Bearer raw-token", AuditEventCategory.Access)]));
@@ -995,6 +1011,7 @@ public sealed class TenantAuditPageTests : BunitContext
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
         pageStyles.ShouldContain(":focus-visible");
         pageStyles.ShouldContain("@media (forced-colors: active)");
+        pageStyles.ShouldContain("white-space: pre-wrap");
 
         string receiptStyles = File.ReadAllText(Path.Combine(
             projectRoot,

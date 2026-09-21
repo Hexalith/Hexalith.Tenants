@@ -269,6 +269,19 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Theory]
+    [InlineData(nameof(SetGlobalAdministrator))]
+    [InlineData(nameof(RemoveGlobalAdministrator))]
+    public void Global_administrator_typed_validator_rejects_unpaired_utf16_before_serialization(string commandType) {
+        string userId = new(['\uD800']);
+        FluentValidation.Results.ValidationResult result = commandType == nameof(SetGlobalAdministrator)
+            ? new SetGlobalAdministratorValidator().Validate(new SetGlobalAdministrator(userId))
+            : new RemoveGlobalAdministratorValidator().Validate(new RemoveGlobalAdministrator(userId));
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(error => error.PropertyName == nameof(SetGlobalAdministrator.UserId));
+    }
+
+    [Theory]
     [InlineData(nameof(SetGlobalAdministrator), "System", "global-administrators", "global-administrators", nameof(SubmitCommand.Tenant))]
     [InlineData(nameof(RemoveGlobalAdministrator), "system", "Global-Administrators", "global-administrators", nameof(SubmitCommand.Domain))]
     [InlineData(nameof(SetGlobalAdministrator), "system", "global-administrators", "Global-Administrators", nameof(SubmitCommand.AggregateId))]

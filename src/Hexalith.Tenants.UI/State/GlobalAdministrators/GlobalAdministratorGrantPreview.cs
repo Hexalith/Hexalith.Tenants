@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -264,7 +265,5 @@ public sealed record GlobalAdministratorGrantPreview(
     }
 
     private static bool IsSupportedTarget(string? targetUserId)
-        => !string.IsNullOrWhiteSpace(targetUserId)
-            && targetUserId.Length <= 256
-            && !targetUserId.Any(char.IsControl);
+        => GlobalAdministratorUserId.IsSupported(targetUserId);
 }

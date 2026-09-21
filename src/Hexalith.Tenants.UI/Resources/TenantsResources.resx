@@ -3020,13 +3020,23 @@
   <data name="Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization" xml:space="preserve"><value>Restore the complete localized consequence resources, then rebuild and review the preview.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Preview.Invalidated" xml:space="preserve"><value>The grant preview changed before dispatch. Refresh and review a new preview.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous" xml:space="preserve"><value>Grant delivery is ambiguous. Refresh or retry with the same retained command identity.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Submission.Rejected" xml:space="preserve"><value>The global administrator grant was rejected. Refresh platform governance authority before trying again.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Submission.Invalid" xml:space="preserve"><value>The global administrator grant request was not accepted. Review the literal user id and try again.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Submission.Unavailable" xml:space="preserve"><value>The global administrator command gateway is unavailable. Keep the current evidence and retry later.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry" xml:space="preserve"><value>Retry delivery with the same tracked command</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery" xml:space="preserve"><value>Retry only with the retained command identity; do not create a new grant attempt.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Label" xml:space="preserve"><value>Delivery retry unavailable</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Reason" xml:space="preserve"><value>Delivery retry is temporarily withdrawn because its current safety prerequisites are not satisfied.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.DeliveryRetry.Withdrawn.Recovery" xml:space="preserve"><value>Restore the live safety prerequisites, then retry this same retained command; do not create a new grant attempt.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch" xml:space="preserve"><value>Command status did not match the exact retained grant identity.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence" xml:space="preserve"><value>Exact command status did not prove that the grant produced an event.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.StatusTimeout" xml:space="preserve"><value>Grant status timed out before the tracked result could be verified.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.UnableToVerify.UnsupportedSubmission" xml:space="preserve"><value>The grant submission returned an unsupported lifecycle state.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Status.Pending" xml:space="preserve"><value>Tracked grant status is pending; keep the same command identity and refresh.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Status.Unknown" xml:space="preserve"><value>Tracked grant status is unavailable; keep the same command identity and retry verification.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.Rejected" xml:space="preserve"><value>The tracked grant was rejected. Refresh platform authority before trying another action.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.PublishFailed" xml:space="preserve"><value>The grant event could not be published. Keep the same tracked command and retry verification.</value></data>
+  <data name="Tenants.GlobalAdministrators.Grant.Status.TimedOut" xml:space="preserve"><value>The tracked grant timed out before its result could be verified.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch" xml:space="preserve"><value>Caller-owned tracked grant dispatch is unavailable.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Confirm.VersionNotAdvanced" xml:space="preserve"><value>The complete projection has not advanced beyond the grant preview baseline.</value></data>
   <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">

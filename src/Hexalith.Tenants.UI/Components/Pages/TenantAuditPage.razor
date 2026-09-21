@@ -2,6 +2,7 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State
+@using Hexalith.Tenants.UI.State.GlobalAdministrators
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.EventStore.Client.Gateway
 @using Microsoft.JSInterop
@@ -359,7 +360,7 @@
 
     private string ContextText
         => !string.IsNullOrWhiteSpace(TargetUserId)
-            ? Localizer["Tenants.Audit.Context.User", TargetUserId]
+            ? Localizer["Tenants.Audit.Context.User", GlobalAdministratorIdentityDisplay.Encode(TargetUserId)]
             : !string.IsNullOrWhiteSpace(SupportSafeCommandReference)
                 ? Localizer["Tenants.Audit.Context.Command", SupportSafeCommandReference]
                 : Localizer["Tenants.Audit.Context.Source", SourceLabel];

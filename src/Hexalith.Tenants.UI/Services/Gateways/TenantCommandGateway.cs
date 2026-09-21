@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -346,7 +347,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!GlobalAdministratorRemovePreview.IsSupportedIdentity(request.UserId)) {
+        if (!GlobalAdministratorUserId.IsSupported(request.UserId)) {
             return TenantCommandSubmissionResult.FailedWithKey(
                 "Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid");
         }
@@ -409,7 +410,7 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!GlobalAdministratorRemovePreview.IsSupportedIdentity(request.UserId)) {
+        if (!GlobalAdministratorUserId.IsSupported(request.UserId)) {
             return TenantCommandSubmissionResult.FailedWithKey(
                 "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target");
         }
@@ -582,6 +583,10 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(handle);
+        bool globalAdministratorStatus = string.Equals(
+            handle.AggregateId,
+            GlobalAdministratorsAggregateId,
+            StringComparison.Ordinal);
 
         try
         {
@@ -591,14 +596,24 @@ internal sealed class TenantCommandGateway(
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return TenantCommandStatusResult.Pending("Command status is not available yet.");
+                return TenantCommandStatusResult.Pending("Command status is not available yet.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Pending"
+                        : null,
+                };
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                return IsRetryableStatusCode(response.StatusCode)
+                return (IsRetryableStatusCode(response.StatusCode)
                     ? TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.")
-                    : TenantCommandStatusResult.Unknown("Command status request was rejected.");
+                    : TenantCommandStatusResult.Unknown("Command status request was rejected.")) with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                        : null,
+                };
             }
 
             TenantCommandStatusResponse? status = await response.Content
@@ -607,23 +622,43 @@ internal sealed class TenantCommandGateway(
 
             if (status is null)
             {
-                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                        : null,
+                };
             }
 
             if (string.IsNullOrWhiteSpace(status.CorrelationId)
                 || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal))
             {
-                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.");
+                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                        : null,
+                };
             }
 
             if (!Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus))
             {
-                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+                return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                        : null,
+                };
             }
 
             if (!Enum.IsDefined(parsedStatus))
             {
-                return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
+                return TenantCommandStatusResult.Unknown("Command status response was unavailable.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                        : null,
+                };
             }
 
             bool hasVerifiedCommandIdentity = !string.IsNullOrWhiteSpace(status.MessageId)
@@ -636,7 +671,10 @@ internal sealed class TenantCommandGateway(
                     parsedStatus,
                     "Command status response did not match the tracked lifecycle command.",
                     EventCount: status.EventCount,
-                    HasVerifiedCommandIdentity: false);
+                    HasVerifiedCommandIdentity: false,
+                    SafeMessageKey: globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                        : null);
             }
 
             return new TenantCommandStatusResult(
@@ -644,19 +682,43 @@ internal sealed class TenantCommandGateway(
                 SafeMessageForStatus(parsedStatus, status.RejectionEventType, status.FailureReason),
                 SafeRejectionCode(status.RejectionEventType),
                 status.EventCount,
-                HasVerifiedCommandIdentity: hasVerifiedCommandIdentity);
+                HasVerifiedCommandIdentity: hasVerifiedCommandIdentity,
+                SafeMessageKey: globalAdministratorStatus
+                    ? parsedStatus switch
+                    {
+                        CommandStatus.Rejected => "Tenants.GlobalAdministrators.Grant.Status.Rejected",
+                        CommandStatus.PublishFailed => "Tenants.GlobalAdministrators.Grant.Status.PublishFailed",
+                        CommandStatus.TimedOut => "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
+                        _ => null,
+                    }
+                    : null);
         }
         catch (JsonException)
         {
-            return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.");
+            return TenantCommandStatusResult.RetryableFailure("Command status response was unavailable.") with
+            {
+                SafeMessageKey = globalAdministratorStatus
+                    ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                    : null,
+            };
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
+            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.") with
+            {
+                SafeMessageKey = globalAdministratorStatus
+                    ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                    : null,
+            };
         }
         catch (HttpRequestException)
         {
-            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.");
+            return TenantCommandStatusResult.RetryableFailure("Command status could not be verified yet.") with
+            {
+                SafeMessageKey = globalAdministratorStatus
+                    ? "Tenants.GlobalAdministrators.Grant.Status.Unknown"
+                    : null,
+            };
         }
     }
 
@@ -811,17 +873,24 @@ internal sealed class TenantCommandGateway(
     private static TenantCommandSubmissionResult MapSetGlobalAdministratorGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeGlobalAdministratorRejection(exception);
         if (rejection is not null) {
-            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+            return TenantCommandSubmissionResult.RejectedWithKey(
+                "Tenants.GlobalAdministrators.Grant.Submission.Rejected",
+                rejection.Value.Code);
         }
 
         return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
-                => TenantCommandSubmissionResult.Rejected("You are not authorized to change platform governance.", "InsufficientPermissions"),
+                => TenantCommandSubmissionResult.RejectedWithKey(
+                    "Tenants.GlobalAdministrators.Grant.Submission.Rejected",
+                    "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
-                => TenantCommandSubmissionResult.Failed("The global administrator grant request was not accepted. Check the visible user id and try again."),
+                => TenantCommandSubmissionResult.FailedWithKey(
+                    "Tenants.GlobalAdministrators.Grant.Submission.Invalid"),
             (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."),
-            _ => TenantCommandSubmissionResult.Failed("Global administrator command submission failed before it could be verified."),
+                => TenantCommandSubmissionResult.FailedWithKey(
+                    "Tenants.GlobalAdministrators.Grant.Submission.Unavailable"),
+            _ => TenantCommandSubmissionResult.FailedWithKey(
+                "Tenants.GlobalAdministrators.Grant.Submission.Unavailable"),
         };
     }
 
