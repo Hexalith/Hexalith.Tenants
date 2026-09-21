@@ -200,6 +200,71 @@ public class PackageGovernanceTests {
             "EventStore host dependencies must arrive as complementary source/package pairs.");
     }
 
+    [Fact]
+    public void AppHost_EventStore_source_edges_preserve_dependency_owned_versions() {
+        const string AppHostProjectPath = "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj";
+
+        string repoRoot = FindRepoRoot();
+        XDocument appHostProject = XDocument.Load(Path.Combine(repoRoot, AppHostProjectPath));
+        List<(string PackageId, XElement Element)> projectEdges =
+            EventStoreReferences(appHostProject, "ProjectReference");
+
+        List<string> violations = [];
+        HashSet<string> projectIds = [.. projectEdges.Select(edge => edge.PackageId)];
+        string[] requiredProjectIds =
+        [
+            "Hexalith.EventStore.Aspire",
+            "Hexalith.EventStore",
+            "Hexalith.EventStore.Admin.Server.Host",
+            "Hexalith.EventStore.Admin.UI",
+        ];
+
+        foreach (string missingProjectId in requiredProjectIds.Except(projectIds, StringComparer.Ordinal)) {
+            violations.Add($"{AppHostProjectPath}: required EventStore source edge {missingProjectId} is missing.");
+        }
+
+        foreach (IGrouping<string, (string PackageId, XElement Element)> duplicate in projectEdges
+            .GroupBy(edge => edge.PackageId, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)) {
+            violations.Add($"{AppHostProjectPath}: {duplicate.Key} is referenced as a project {duplicate.Count()} times.");
+        }
+
+        foreach ((string packageId, XElement projectReference) in projectEdges) {
+            string[] removedGlobalProperties = ItemMetadataValue(projectReference, "GlobalPropertiesToRemove")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (!removedGlobalProperties.Contains("Version", StringComparer.OrdinalIgnoreCase)) {
+                violations.Add(
+                    $"{AppHostProjectPath}: {packageId} ProjectReference must remove the parent Version global property.");
+            }
+
+            string additionalProperties = ItemMetadataValue(projectReference, "AdditionalProperties");
+            if (additionalProperties.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Any(property => string.Equals(
+                    property[..Math.Max(property.IndexOf('='), 0)].Trim(),
+                    "Version",
+                    StringComparison.OrdinalIgnoreCase))) {
+                violations.Add(
+                    $"{AppHostProjectPath}: {packageId} ProjectReference must not export a Version global property.");
+            }
+        }
+
+        projectEdges.ShouldNotBeEmpty("The AppHost must declare its EventStore source dependencies.");
+        violations.ShouldBeEmpty(
+            "Cross-repository source builds must let EventStore select its own centrally pinned version without exporting it back into Tenants projects.");
+    }
+
+    [Fact]
+    public void Source_reference_workflow_executes_real_handler_projection_provenance() {
+        string repoRoot = FindRepoRoot();
+        string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/source-reference.yml"));
+
+        workflow.ShouldContain("git -c submodule.recurse=false submodule update --init");
+        workflow.ShouldContain("-p:UseHexalithProjectReferences=true");
+        workflow.ShouldContain("-warnaserror");
+        workflow.ShouldContain(
+            "-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway");
+    }
+
     /// <summary>
     /// Rejects any EventStore <c>ProjectReference</c> that could still be live when the graph
     /// resolves from packages. AC3 forbids an EventStore project edge in Release/package mode
@@ -365,6 +430,17 @@ public class PackageGovernanceTests {
         }
 
         return references;
+    }
+
+    private static string ItemMetadataValue(XElement item, string metadataName) {
+        IEnumerable<string> attributeValues = item.Attributes()
+            .Where(attribute => string.Equals(attribute.Name.LocalName, metadataName, StringComparison.OrdinalIgnoreCase))
+            .Select(attribute => attribute.Value);
+        IEnumerable<string> elementValues = item.Elements()
+            .Where(element => string.Equals(element.Name.LocalName, metadataName, StringComparison.OrdinalIgnoreCase))
+            .Select(element => element.Value);
+
+        return string.Join(';', attributeValues.Concat(elementValues).Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
     private static string ProjectFileToPackageId(string include) {
