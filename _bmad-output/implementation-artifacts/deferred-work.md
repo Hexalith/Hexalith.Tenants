@@ -3001,3 +3001,55 @@ Chunk A (declared production source). No new DW ids; grant KEEP and later gitlin
 
 - `focusElementById` may treat a successful Fluent button focus as failure. maybe-false, high if true. Settle with a browser trace of `document.activeElement` after focusing the remove-cancel Fluent button host. [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:34`]
 - `validate-story-gitlinks.py` FAILs against HEAD. This grant-core chunk excluded gitlinks. UNDECLARED `references/Hexalith.AI.Tools de38f78 -> 5f93d2e` and `references/Hexalith.Memories d1b95ab -> 8884933`. MISSTATED Builds `2fba349` (story says `9d77ed7`), Commons `9f4809d` (`372d715`), EventStore `66cb4ed` (`e38c125`), FrontComposer `0276424` (`c6fe14c`), PolymorphicSerializations `7e95556` (`8aeed1d`). Declare or revert in the gitlink chunk. [`scripts/validate-story-gitlinks.py`]
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Add removal availability reason and recovery keys to the removal localization-readiness manifest.
+  evidence: The removal evaluator can return keys outside `RequiredRemoveFactKeys`, so a missing translation can pass readiness; removal behavior is explicitly excluded from the grant intent.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Reuse the cached fixed removal localization result during removal preview composition.
+  evidence: `ComposeGlobalAdministratorRemovePreviewAsync` repeats the two-culture resource scan instead of using the existing per-circuit cache; this is pre-existing removal-only performance work.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Correct ambiguous removal retry preflight and its blocked-state copy.
+  evidence: A response-lost successful removal can make the target absent, causing normal preview validation to strand same-id redispatch; other mismatch branches can display affirmative availability copy as the failure reason.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Make removal projection requery cancellable across supersession and disposal.
+  evidence: `RequeryRemoveProjectionAsync` starts the bounded population walk with `CancellationToken.None`, so a replaced operation cannot stop its I/O.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Determine whether remove-dialog JS interop can surface cancellation exceptions during browser teardown.
+  evidence: This is maybe-false; reproduce `OperationCanceledException` or `TaskCanceledException` during module import, invocation, or disposal to decide whether additional containment is needed.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Verify visual distinctness for accepted identities containing non-ASCII whitespace.
+  evidence: This is maybe-false; compare accepted whitespace identities in supported browser/font combinations to determine whether literal visual rendering collides even though accessible names tokenize whitespace.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Run authenticated browser evidence for modal focus, inert background, responsive layout, and long identity visibility.
+  evidence: bUnit mocks DOM focus and does not compute CSS; a browser trace must cover both Tab directions, Escape restoration, short/mobile viewports, removal preview columns, and unclipped long identities.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Update the quickstart for generated local Keycloak credentials.
+  evidence: The realm now reads generated username/password parameters while the quickstart still submits `admin-user` and `admin-pass`, so the documented token request fails in the current local topology.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Prove whether skipped source-reference cases satisfy the minimum expected test floor.
+  evidence: This is maybe-false; force one of the four provenance cases to skip and run the current Microsoft.Testing.Platform command to determine whether `--fail-skips` is required.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Pin build-only EventStore project-reference metadata in package governance tests.
+  evidence: Current tests verify edge presence and version isolation but not `Condition`, `ReferenceOutputAssembly`, `Private`, or `IsAspireProjectResource`, allowing dependency or Aspire-resource leakage to regress unnoticed.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Validate source-reference workflow commands structurally rather than with independent substrings.
+  evidence: The current governance test can pass when required flags move to comments or unrelated steps, configurations diverge, or the YAML structure is invalid.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Cover correction-panel grant and removal behavior when tracked dispatch capability is false.
+  evidence: The pure evaluator tests false capabilities, but correction-panel stubs always return true; panel wiring can regress without disabling high-impact correction actions.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+  summary: Add real explicit-project-root tests for the BMAD customization resolver.
+  evidence: Wrapper tests only inspect mocked argv; execute the resolver from a conflicting working directory and cover explicit-root precedence, fallback precedence, and warnings in the Python guard lane.

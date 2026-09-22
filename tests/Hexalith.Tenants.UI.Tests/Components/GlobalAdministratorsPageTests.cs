@@ -2642,10 +2642,46 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         OpenRemovePreview(cut, formatIdentity);
         cut.Find("[data-testid='tenants-global-admin-remove-target']")
             .TextContent.ShouldContain(encodedFormatIdentity);
-        AcknowledgeRemovePreview(cut, formatIdentity);
+        cut.Find("[data-testid='tenants-global-admin-remove-acknowledge']").Change(formatIdentity);
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .HasAttribute("disabled").ShouldBeTrue();
+        AcknowledgeRemovePreview(cut, encodedFormatIdentity);
         await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
             .ClickAsync(new MouseEventArgs());
         commandGateway.RemoveRequests.ShouldHaveSingleItem().UserId.ShouldBe(formatIdentity);
+    }
+
+    [Fact]
+    public void OpenGrantPreviewExplainsLivePrerequisiteLoss()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        OpenGrantPreview(cut);
+        AcknowledgeGrantPreview(cut);
+
+        Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+
+        cut.WaitForAssertion(() =>
+        {
+            IElement confirm = cut.Find("[data-testid='tenants-global-admin-grant-confirm']");
+            confirm.HasAttribute("disabled").ShouldBeTrue();
+            confirm.GetAttribute("aria-describedby").ShouldBe(
+                "tenants-global-admin-grant-preview-unavailable-reason tenants-global-admin-grant-preview-unavailable-recovery");
+            cut.Find("[data-testid='tenants-global-admin-grant-preview-unavailable-reason']")
+                .TextContent.ShouldContain("safe tablet or desktop viewport", Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-grant-preview-unavailable-recovery']")
+                .TextContent.ShouldContain("measured tablet or desktop viewport", Case.Insensitive);
+        });
     }
 
     [Fact]
@@ -3828,6 +3864,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         sentinelRule.ShouldContain("overflow: hidden");
         sentinelRule.ShouldContain("position: absolute");
         sentinelRule.ShouldContain(".global-admins__remove-focus-sentinel");
+        styles.ShouldContain(".global-admins__remove-preview-grid {");
+        styles.ShouldNotContain(".global-admins__remove-preview-grid div");
+        int identityRuleStart = styles.IndexOf(".global-admins__identity-value {", StringComparison.Ordinal);
+        identityRuleStart.ShouldBeGreaterThan(-1);
+        int identityRuleEnd = styles.IndexOf('}', identityRuleStart);
+        identityRuleEnd.ShouldBeGreaterThan(identityRuleStart);
+        string identityRule = styles[identityRuleStart..identityRuleEnd];
+        identityRule.ShouldContain("overflow-wrap: anywhere");
+        identityRule.ShouldContain("white-space: pre-wrap");
+        identityRule.ShouldNotContain("text-overflow: ellipsis");
+        identityRule.ShouldNotContain("overflow: hidden");
     }
 
     [Fact]
@@ -4019,6 +4066,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             new JSDisconnectedException("Circuit disconnected."),
             new ObjectDisposedException("focus-module"),
             new JSException("Focus target detached."),
+            new InvalidOperationException("Renderer is no longer interactive."),
         };
 
     [Fact]
@@ -5305,12 +5353,263 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ExtractMethodBody(source, "private async Task RefreshRemoveStatusCoreAsync("),
             "SetRemoveSnapshot(statusSnapshot)",
             "CanApplyRemoveMutation(generation)",
-            "ReferenceEquals(_removeSnapshot, statusBasis)");
+            "ReferenceEquals(_removeSnapshot, statusBasis)",
+            "ReferenceEquals(_removeAdmissionLease, statusLease)");
         AssertGuardsInsideRendererCallback(
             ExtractMethodBody(source, "private async Task RequeryRemoveProjectionAsync(long generation)"),
             "SetRemoveSnapshot(projectionSnapshot)",
             "CanApplyRemoveMutation(generation)",
-            "ReferenceEquals(_removeSnapshot, projectionBasis)");
+            "ReferenceEquals(_removeSnapshot, projectionBasis)",
+            "ReferenceEquals(_removeAdmissionLease, projectionLease)");
+    }
+
+    [Fact]
+    public void AdmissionWakeupPinsTheCapturedGrantAttempt()
+    {
+        string source = ReadGlobalAdministratorsPageSource();
+        string admissionWakeup = ExtractMethodBody(
+            source,
+            "private async Task ApplyFixedAggregateAdmissionChangeAsync()");
+        string capturedRefresh = ExtractMethodBody(
+            source,
+            "private async Task RefreshGrantStatusAsync(\n        GlobalAdministratorGrantCommandSnapshot activationSnapshot,");
+
+        admissionWakeup.ShouldContain("resumeGrantLease = _grantAdmissionLease");
+        admissionWakeup.ShouldContain("RefreshGrantStatusAsync(resumeGrant, resumeGrantLease)");
+        capturedRefresh.ShouldContain("ReferenceEquals(_grantSnapshot, activationSnapshot)");
+        capturedRefresh.ShouldContain("ReferenceEquals(_grantAdmissionLease, activationLease)");
+    }
+
+    [Fact]
+    public async Task AdmissionWakeupCapturedForAttemptACannotQueryAttemptB()
+    {
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("ignored", "correlation-a"),
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-a");
+        PreviewAcknowledgeAndConfirmGrant(cut);
+        commandGateway.StatusHandles.Count.ShouldBe(1);
+        GlobalAdministratorGrantCommandSnapshot attemptA =
+            PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
+        TenantAggregateCommandLease leaseA =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
+        GlobalAdministratorGrantCommandSnapshot attemptB = attemptA with
+        {
+            MessageId = NUlid.Ulid.NewUlid().ToString(),
+            CorrelationId = "correlation-b",
+        };
+        object pageOwner = PrivateField<object>(cut.Instance, "_fixedAggregateOwner");
+        var replacementGate = new TenantAggregateCommandAdmissionGate();
+        replacementGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            pageOwner,
+            out TenantAggregateCommandLease? leaseB).ShouldBeTrue();
+        leaseB.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+
+        (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
+        MethodInfo applyAdmissionChange = typeof(GlobalAdministratorsPage).GetMethod(
+            "ApplyFixedAggregateAdmissionChangeAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        Task wakeup = (Task)applyAdmissionChange.Invoke(cut.Instance, null)!;
+        Task replaceAttempt = cut.InvokeAsync(() =>
+        {
+            typeof(GlobalAdministratorsPage).GetField(
+                "_grantSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, attemptB);
+            typeof(GlobalAdministratorsPage).GetField(
+                "_grantAdmissionLease",
+                BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, leaseB);
+        });
+        releaseRenderer.SetResult();
+
+        await rendererBlock.WaitAsync(TimeSpan.FromSeconds(5));
+        await replaceAttempt.WaitAsync(TimeSpan.FromSeconds(5));
+        await wakeup.WaitAsync(TimeSpan.FromSeconds(5));
+
+        commandGateway.StatusHandles.Count.ShouldBe(1);
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
+        PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot")
+            .ShouldBeSameAs(attemptB);
+        PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease")
+            .ShouldBeSameAs(leaseB);
+        replacementGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+        leaseA.ShouldNotBeSameAs(leaseB);
+    }
+
+    [Fact]
+    public async Task HeldRemoveStatusCannotMutateOrReleaseReplacementLease()
+    {
+        var statusGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway(statuses:
+        [
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(
+                CommandStatus.Rejected,
+                RejectionCode: "InsufficientPermissions",
+                HasVerifiedCommandIdentity: true),
+        ])
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-remove"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        commandGateway.StatusHandles.Count.ShouldBe(1);
+        GlobalAdministratorRemoveCommandSnapshot attempt =
+            PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot");
+        commandGateway.StatusGate = statusGate;
+        Task refresh = cut.Find("[data-testid='tenants-global-admin-remove-refresh']")
+            .ClickAsync(new MouseEventArgs());
+        await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        object pageOwner = PrivateField<object>(cut.Instance, "_fixedAggregateOwner");
+        var replacementGate = new TenantAggregateCommandAdmissionGate();
+        replacementGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            pageOwner,
+            out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+        replacementLease.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        await cut.InvokeAsync(() => typeof(GlobalAdministratorsPage).GetField(
+            "_removeAdmissionLease",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, replacementLease));
+
+        statusGate.SetResult();
+        await refresh.WaitAsync(TimeSpan.FromSeconds(5));
+
+        PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot")
+            .ShouldBeSameAs(attempt);
+        PrivateField<TenantAggregateCommandLease>(cut.Instance, "_removeAdmissionLease")
+            .ShouldBeSameAs(replacementLease);
+        replacementLease.IsDispatchMarked.ShouldBeTrue();
+        replacementGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task HeldRemoveProjectionCannotMutateOrReleaseReplacementLease()
+    {
+        GlobalAdministratorsSnapshot baseline = ComponentReady(
+            "projection-v1",
+            "target-admin",
+            "other-admin");
+        GlobalAdministratorsSnapshot confirmation = ComponentReady("projection-v2", "other-admin");
+        var heldProjection = new TaskCompletionSource<GlobalAdministratorsSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var queryGateway = new StubTenantQueryGateway(baseline);
+        var commandGateway = new StubTenantCommandGateway(statuses:
+        [
+            new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true),
+        ])
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-remove"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        GlobalAdministratorRemoveCommandSnapshot attempt =
+            PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot");
+        attempt.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        queryGateway.QueueResponse(heldProjection.Task);
+        long generation = PrivateField<long>(cut.Instance, "_removeMutationGeneration");
+        MethodInfo requery = typeof(GlobalAdministratorsPage).GetMethod(
+            "RequeryRemoveProjectionAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(long)],
+            modifiers: null).ShouldNotBeNull();
+        Task projection = (Task)requery.Invoke(cut.Instance, [generation])!;
+        await queryGateway.QueuedResponseEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        object pageOwner = PrivateField<object>(cut.Instance, "_fixedAggregateOwner");
+        var replacementGate = new TenantAggregateCommandAdmissionGate();
+        replacementGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            pageOwner,
+            out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
+        replacementLease.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        await cut.InvokeAsync(() => typeof(GlobalAdministratorsPage).GetField(
+            "_removeAdmissionLease",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, replacementLease));
+
+        heldProjection.SetResult(confirmation);
+        await projection.WaitAsync(TimeSpan.FromSeconds(5));
+
+        PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot")
+            .ShouldBeSameAs(attempt);
+        PrivateField<TenantAggregateCommandLease>(cut.Instance, "_removeAdmissionLease")
+            .ShouldBeSameAs(replacementLease);
+        replacementLease.IsDispatchMarked.ShouldBeTrue();
+        replacementGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task UnauthorizedGrantProjectionWalkCollapsesPrivilegedSurface()
+    {
+        var statusGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("ignored", "correlation-grant"),
+            new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true))
+        {
+            StatusGate = statusGate,
+        };
+        var queryGateway = new StubTenantQueryGateway(ComponentReady("projection-v1", "admin-a"));
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        OpenGrantPreview(cut);
+        AcknowledgeGrantPreview(cut);
+        Task submit = cut.Find("[data-testid='tenants-global-admin-grant-confirm']")
+            .ClickAsync(new MouseEventArgs());
+        await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        queryGateway.QueueResponse(Task.FromResult(GlobalAdministratorsSnapshot.Unauthorized()));
+        statusGate.SetResult();
+
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Find("[data-testid='tenants-global-admins-unavailable']");
+        cut.Markup.ShouldNotContain("admin-a");
+        cut.FindAll("[data-testid='tenants-global-admin-grant-form']").ShouldBeEmpty();
+        PrivateField<TenantLifecycleAuthorizationReflectionState>(cut.Instance, "_authorizationReflection")
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
     }
 
     [Fact]
@@ -7035,6 +7334,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ["Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"] = "Command status did not match the exact retained grant identity.",
             ["Tenants.GlobalAdministrators.Grant.Submission.Rejected"] = "The global administrator grant was rejected. Refresh platform governance authority before trying again.",
             ["Tenants.GlobalAdministrators.Grant.Submission.Invalid"] = "The global administrator grant request was not accepted. Review the literal user id and try again.",
+            ["Tenants.GlobalAdministrators.Grant.Submission.Failed"] = "The global administrator grant submission failed before dispatch could be verified. Keep the current evidence and review the request before trying again.",
             ["Tenants.GlobalAdministrators.Grant.Submission.Unavailable"] = "The global administrator command gateway is unavailable. Keep the current evidence and retry later.",
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry"] = "Retry delivery with the same tracked command",
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry.Recovery"] = "Retry only with the retained command identity; do not create a new grant attempt.",

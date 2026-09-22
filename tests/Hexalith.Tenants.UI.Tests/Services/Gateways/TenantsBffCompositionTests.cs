@@ -300,10 +300,27 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.Preview.Confirm",
             "Tenants.GlobalAdministrators.Grant.Cancel",
         ];
+        string[] renderedAvailabilityKeys =
+        [
+            "Tenants.GlobalAdministrators.Availability.Grant.Available",
+            "Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingConsequencePreview",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingLifecycleSupport",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingPermission",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.StaleData",
+            "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport",
+            "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy",
+            "Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport",
+            "Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission",
+            "Tenants.GlobalAdministrators.Availability.Recovery.None",
+            "Tenants.GlobalAdministrators.Availability.Recovery.StaleData",
+            "Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport",
+        ];
 
-        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(89);
-        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(89);
-        foreach (string key in renderedFactKeys.Concat(renderedChromeKeys))
+        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(104);
+        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(104);
+        foreach (string key in renderedFactKeys.Concat(renderedChromeKeys).Concat(renderedAvailabilityKeys))
         {
             key.ShouldNotBeNullOrWhiteSpace();
             TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(key);
@@ -389,6 +406,9 @@ public sealed class TenantsBffCompositionTests
     [InlineData("Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization")]
     [InlineData("Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired")]
     [InlineData("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid")]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport")]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy")]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview")]
     public async Task GrantPreviewFailsClosedWhenARequiredLocalizedStringIsUnresolved(string unresolvedKey)
     {
         IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(

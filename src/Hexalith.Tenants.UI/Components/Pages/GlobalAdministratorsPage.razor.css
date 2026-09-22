@@ -79,11 +79,18 @@
 /* fc-css-exception: content-sized label/value grid (min-content term + value) inside the <dl>;
    FluentGrid is a 12-column responsive system and cannot express these content-sized columns. */
 .global-admins__scope div,
-.global-admins__grant-scope div,
-.global-admins__remove-preview-grid div {
+.global-admins__grant-scope div {
     display: grid;
     gap: 0.25rem;
     grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+}
+
+/* fc-css-exception: the removal preview now uses flat semantic <dt>/<dd> pairs, so its definition list
+   owns the content-sized two-column layout directly rather than through layout-only wrappers. */
+.global-admins__remove-preview-grid {
+    column-gap: 0.25rem;
+    grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+    row-gap: 0.5rem;
 }
 
 /* fc-css-exception: emphasis weight on the semantic <dt> terms; FluentLabel cannot wrap a semantic
@@ -261,8 +268,7 @@
 .global-admins__identity-value {
     display: block;
     max-width: 24rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
 }
 
@@ -303,7 +309,7 @@
     .global-admins__scope div,
     .global-admins__grant-scope div,
     .global-admins__grant-preview-grid,
-    .global-admins__remove-preview-grid div,
+    .global-admins__remove-preview-grid,
     .global-admins__state {
         grid-template-columns: 1fr;
     }

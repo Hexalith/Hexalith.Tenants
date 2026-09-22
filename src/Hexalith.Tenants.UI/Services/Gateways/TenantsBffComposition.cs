@@ -24,6 +24,20 @@ internal sealed class TenantsBffComposition(
     /// <summary>Gets every localized string required to render or safely fail the grant-preview interaction.</summary>
     internal static IReadOnlyList<string> RequiredGrantFactKeys { get; } =
     [
+        "Tenants.GlobalAdministrators.Availability.Grant.Available",
+        "Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingConsequencePreview",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingLifecycleSupport",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.MissingPermission",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.StaleData",
+        "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.UnsafeViewport",
+        "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy",
+        "Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport",
+        "Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission",
+        "Tenants.GlobalAdministrators.Availability.Recovery.None",
+        "Tenants.GlobalAdministrators.Availability.Recovery.StaleData",
+        "Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport",
         "Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed",
         "Tenants.GlobalAdministrators.Grant.Audit.AuditPending",
         "Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable",
@@ -92,6 +106,7 @@ internal sealed class TenantsBffComposition(
         "Tenants.GlobalAdministrators.Grant.Status.Rejected",
         "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
         "Tenants.GlobalAdministrators.Grant.Status.Unknown",
+        "Tenants.GlobalAdministrators.Grant.Submission.Failed",
         "Tenants.GlobalAdministrators.Grant.Submission.Invalid",
         "Tenants.GlobalAdministrators.Grant.Submission.Rejected",
         "Tenants.GlobalAdministrators.Grant.Submission.Unavailable",

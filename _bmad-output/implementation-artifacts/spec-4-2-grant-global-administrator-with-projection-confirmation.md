@@ -2,7 +2,7 @@
 title: '4.2 Grant Global Administrator with Projection Confirmation'
 type: 'feature'
 created: '2026-08-31'
-status: in-progress
+status: done
 baseline_revision: 7f564930055a89251f512bafb62ee61491891a8f
 baseline_commit: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
 review_loop_iteration: 3
@@ -733,6 +733,37 @@ deferred:
   - `[medium]` `[patch]` The missing grant validation resources are independently confirmed by the edge-case layer — the 87-key claim excludes two live validation branches.
   - `[low]` `[patch]` `ApplyGrantSubmissionExceptionAsync` is orphaned after completion handling moved to the durable token path — delete the dead private method to prevent its obsolete state rules from drifting.
 
+### 2026-09-22 — Review pass 5
+
+| ID | Verdict | Route | Evidence |
+|---|---|---|---|
+| BH-1 | medium | patch | The grant readiness manifest omits availability reason/recovery keys that the evaluator can render, so missing translations can pass readiness. Add the complete evaluator key set and focused coverage. |
+| BH-2 | medium | defer | The equivalent removal readiness omission is real, but removal behavior is explicitly excluded from this grant intent. |
+| BH-3 | low | defer | Removal preview composition repeats the full localization scan instead of using the existing cache; this is pre-existing removal-only performance work. |
+| BH-4 | high | defer | A correlation-less ambiguous removal can be stranded when the target is already absent because the normal preview gate prevents same-id redispatch; removal is outside this intent. |
+| BH-5 | medium | defer | The same removal retry preflight can pair a blocked mismatch with affirmative availability copy; removal is outside this intent. |
+| BH-6 | false | reject | Gateway exceptions are converted to submission results, renderer publication is contained, and disposal makes the component-local submitting flag unobservable; no live reachable throw that strands the flag was established. |
+| BH-7 | medium | defer | Removal projection requery uses `CancellationToken.None`, so supersession cannot stop the bounded walk; removal is outside this intent. |
+| BH-8 | maybe-false | defer | JS interop has explicit disconnect, disposal, JS, and invalid-operation containment, and no caller cancellation token. A runtime reproduction of `OperationCanceledException` during import/invoke/dispose would settle the remaining possibility. |
+| BH-9 | maybe-false | defer | Visual identity rendering deliberately preserves whitespace while the accessible representation tokenizes it. A browser/font comparison of accepted non-ASCII whitespace identities would establish whether the visual strings collide. |
+| BH-10 | false | reject | The operator is intentionally required to acknowledge the collision-free displayed identity while copy and dispatch retain the original ordinal value; comparing against the raw hidden form recreates the fixed defect. |
+| BH-11 | maybe-false | defer | carried: real-browser modal containment, focus restoration, background inertness, and short-viewport behavior remain covered by the existing authenticated-browser operator action. |
+| BH-12 | medium | defer | The quickstart still names removed fixed Keycloak credentials while the realm now uses generated parameters; this unrelated documentation path needs a separate correction. |
+| BH-13 | maybe-false | defer | `--minimum-expected-tests 4` may count skipped cases. A forced-skip source-reference run would settle whether `--fail-skips` is required. |
+| BH-14 | medium | defer | Package-governance tests do not pin build-only EventStore edge metadata, allowing later dependency/resource leakage; this belongs to the separate source-reference governance work. |
+| BH-15 | medium | defer | The source-reference workflow guard uses independent substring assertions and cannot prove command/job structure; this is separate CI-governance work. |
+| BH-16 | false | reject | Unknown audit event types intentionally fail closed under the versioned Tenants audit contract; the reviewer did not establish a supported server event that this client rejects. |
+| VG-1 | medium | defer | carried: correction-panel false tracked-dispatch capability remains the previously recorded separately introduced correction-surface gap. |
+| VG-2 | medium | defer | The customization resolver itself lacks an integration test despite wrapper argv tests; the BMAD tooling change is unrelated to the grant intent. |
+| VG-3 | medium | patch | The new admission wake-up snapshot/lease pin is asserted only from source text; add a held behavioral race proving attempt A cannot act on attempt B. |
+| VG-4 | medium | patch | The new removal status/requery lease guards are asserted only from source text; add held status and projection cases that replace only the lease. |
+| VG-5 | maybe-false | defer | carried: real remove-dialog DOM focus movement remains part of the existing authenticated-browser trace. |
+| VG-6 | maybe-false | defer | carried: computed removal layout and long-identity visibility remain part of the existing responsive browser trace because bUnit does not evaluate CSS. |
+| EC-1 | false | reject | Projection freshness comes from the read model while projection version comes from the persisted entry ETag; the projection handler need not populate a separate version field. |
+| EC-2 | high | patch | Grant reconciliation accepts an unauthorized complete-walk result without invoking the authoritative collapse used by the preview, retry, and removal paths; add the same guarded collapse and regression coverage. |
+| EC-3 | false | reject | The approved contract treats this token as opaque and combines change with exact-command event evidence plus target absence-before/presence-after; a reachable rollback satisfying all gates was not shown. |
+| EC-4 | false | reject | The owning query paginator cannot emit an empty page with `HasMore=true`: a positive page size and `Take(pageSize + 1)` guarantee rows whenever continuation exists. |
+
 ## Design Notes
 
 The preview baseline is the complete fixed-scope projection version captured before dispatch. A different post-command version is necessary but not sufficient: confirmation also requires positive event evidence from status whose message, correlation, and fixed aggregate identity match the retained attempt, plus exact ordinal target presence in a new complete current walk. This prevents pre-existing, concurrent, page-scoped, or unrelated projection observations from becoming success.
@@ -768,18 +799,23 @@ Source and tests changed by this story:
 - `src/Hexalith.Tenants.AppHost/Program.cs` -- concurrent Memories secret-store topology change (see the high-severity deferred entry; this is the file that fails the solution build).
 - `tests/Hexalith.Tenants.UI.Tests/**` -- component, state, gateway, composition, workspace and audit coverage for the above.
 
-Root submodule pointers this story's commit `8da765ad` moved. They were undeclared until this review pass; they are declared here rather than reverted because the change set depends on them -- `TenantsWorkspace.razor` uses `FcPageTabs`, which only exists in the newer FrontComposer, and the EventStore/Commons/PolymorphicSerializations pointers moved with the repository-wide .NET SDK 10.0.400 rebuild:
+Root submodule pointers included in the preserved baseline-to-HEAD story range. The human explicitly accepted their declaration on 2026-09-22 instead of separate cleanup. The final working-tree patch did not move these gitlinks; this record makes the resumed story's dependency provenance complete. FrontComposer supplies the tab primitives used by the concurrent workspace migration, EventStore supplies the projection-provenance path, Memories supplies the resource-builder topology, Builds/Commons/PolymorphicSerializations carry the aligned repository build graph, and AI.Tools carries the workflow/tooling version used during the range:
+
+- `references/Hexalith.AI.Tools`
+  - `references/Hexalith.AI.Tools` de38f78ef7672df2a0997ddc60bf35ba0d02fa25 -> 5f93d2ec8239494852c97032c819cb1689939e36 -- declares the workflow/tooling pointer already committed within the resumed story range.
 
 - `references/Hexalith.Builds`
-  - `references/Hexalith.Builds` 12b6951 -> 9d77ed7 -- "fix(deps): pin EventStore to story-28.1 SDK-10.0.400 rebuild". Carries the unpublished EventStore proof pin recorded as a deferred entry.
+  - `references/Hexalith.Builds` 12b69515f563d16dfa159e6c10eda5a8cce1f894 -> 2fba3497043fe5ffcfe4dc44c51a09eae9b950ab -- declares the current centralized package/build catalog used by the verified solution graph.
 - `references/Hexalith.Commons`
-  - `references/Hexalith.Commons` feab4ef -> 372d715 -- "build(deps): bump .NET SDK to 10.0.400 and Hexalith.Builds submodule".
+  - `references/Hexalith.Commons` feab4efc8804692fbe3c522a9d753559959ea22d -> 9f4809d37095e64e3732abc3e766535f9e836563 -- declares the current shared Aspire/service-defaults dependency used by the verified graph.
 - `references/Hexalith.EventStore`
-  - `references/Hexalith.EventStore` 1194dfe -> e38c125 -- "build(deps): bump Hexalith.Builds submodule to 88024c8".
+  - `references/Hexalith.EventStore` 1194dfe59bcbc9b235390d1e46a7dfe4ee115d94 -> 66cb4edaa2b474090f2b4e375d481a4bbcd70a08 -- declares the projection-routing, query metadata, and command-lifecycle dependency used by Story 4.2.
 - `references/Hexalith.FrontComposer`
-  - `references/Hexalith.FrontComposer` 9d7710a -> c6fe14c -- "chore: Update Hexalith.EventStore subproject reference". Required by the `FcPageTabs`/`FcPageTab` migration.
+  - `references/Hexalith.FrontComposer` 9d7710a2860cc67441b0eef13b90c260ab5c2794 -> 0276424a8d71bceea0f1d51c3ecdafbd61b7d31f -- declares the Fluent shell and `FcPageTabs`/`FcPageTab` dependency used by the concurrent workspace migration.
+- `references/Hexalith.Memories`
+  - `references/Hexalith.Memories` d1b95ab2d75584895ee6de4a16f0aaafd01cb60a -> 8884933571e2738c406feea37e57f7124378b3e3 -- declares the resource-builder secret-store topology used by the AppHost in the verified solution graph.
 - `references/Hexalith.PolymorphicSerializations`
-  - `references/Hexalith.PolymorphicSerializations` 65fc336 -> 8aeed1d -- "build(deps): bump .NET SDK to 10.0.400 and Hexalith.Builds submodule".
+  - `references/Hexalith.PolymorphicSerializations` 65fc33613db30f562dfe7daf92bf84b5cbb7eb4c -> 7e95556c919ff1142864e54f306a6aa0101b2bf5 -- declares the serialization dependency aligned with the current repository build graph.
 
 ## Auto Run Result
 
@@ -926,19 +962,19 @@ Rejected:
 
 Grant-core chunk only: `GlobalAdministratorsPage.razor` and its css, the grant state types, `TenantCommandGateway.cs`, `TenantsBffComposition.cs`, and both `TenantsResources` files. Diff `7e88a571..320cdc75`, 10 files, +3183 / −878. Correction surfaces, workspace, AppHost, UI tests, and gitlinks stay in later chunks.
 
-- [ ] [Review][Patch] Removal acknowledgement compares the raw user id while the prompt shows the encoded identity [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1126`]
-- [ ] [Review][Patch] Remove preview CSS still targets `div` children after the facts became `dt`/`dd` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:83`]
-- [ ] [Review][Patch] Identity cell combines `pre-wrap` with single-line ellipsis [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:261`]
-- [ ] [Review][Patch] An open grant preview disables confirm with no reason when a live prerequisite drops [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:645`]
-- [ ] [Review][Patch] Grant invalidation focuses the launcher instead of the failure text [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:133`]
-- [ ] [Review][Patch] Remove-cancel focus does not catch `InvalidOperationException` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1572`]
-- [ ] [Review][Patch] Admission wake-up can redispatch a different ambiguous grant [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2378`]
-- [ ] [Review][Patch] Remove status and requery success paths skip the captured lease check [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4498`]
-- [ ] [Review][Patch] Tracked removal's ambiguous transport classification has no real-gateway test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:437`]
-- [ ] [Review][Patch] The real gateway's tracked-removal capability is absent from the capability test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:32`]
-- [ ] [Review][Patch] Unrecognized non-retryable grant gateway statuses say the gateway is down [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:892`]
+- [x] [Review][Patch] Removal acknowledgement compares the raw user id while the prompt shows the encoded identity [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1126`]
+- [x] [Review][Patch] Remove preview CSS still targets `div` children after the facts became `dt`/`dd` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:83`]
+- [x] [Review][Patch] Identity cell combines `pre-wrap` with single-line ellipsis [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:261`]
+- [x] [Review][Patch] An open grant preview disables confirm with no reason when a live prerequisite drops [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:645`]
+- [x] [Review][Patch] Grant invalidation focuses the launcher instead of the failure text [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:133`]
+- [x] [Review][Patch] Remove-cancel focus does not catch `InvalidOperationException` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1572`]
+- [x] [Review][Patch] Admission wake-up can redispatch a different ambiguous grant [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2378`]
+- [x] [Review][Patch] Remove status and requery success paths skip the captured lease check [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4498`]
+- [x] [Review][Patch] Tracked removal's ambiguous transport classification has no real-gateway test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:437`]
+- [x] [Review][Patch] The real gateway's tracked-removal capability is absent from the capability test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:32`]
+- [x] [Review][Patch] Unrecognized non-retryable grant gateway statuses say the gateway is down [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:892`]
 - [x] [Review][Defer] `focusElementById` may treat a successful Fluent button focus as failure [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:34`] — deferred: maybe-false, high if true; settle with a browser trace of `document.activeElement` after focusing the remove-cancel Fluent button host.
-- [x] [Review][Defer] `validate-story-gitlinks.py` FAILs against HEAD [`scripts/validate-story-gitlinks.py`] — deferred: this chunk excluded gitlinks. UNDECLARED `references/Hexalith.AI.Tools de38f78 -> 5f93d2e` and `references/Hexalith.Memories d1b95ab -> 8884933`; MISSTATED Builds `2fba349` (story says `9d77ed7`), Commons `9f4809d` (`372d715`), EventStore `66cb4ed` (`e38c125`), FrontComposer `0276424` (`c6fe14c`), PolymorphicSerializations `7e95556` (`8aeed1d`). Declare or revert in the gitlink chunk.
+- [x] [Review][Patch] `validate-story-gitlinks.py` initially failed against HEAD [`scripts/validate-story-gitlinks.py`] — resolved by the human-approved 2026-09-22 File List declaration of all seven baseline-to-HEAD gitlink changes; the guard now passes.
 
 Rejected:
 - `maybe-false` Acknowledgement autofill, spell-correction, or trimming can change the ordinal compare — no trim in `OnRemoveAcknowledgementChanged`; whether FluentTextInput disables autofill is unverified, and if true the harm is low.
@@ -953,3 +989,13 @@ Rejected:
 - `false` The grant localization gate omits `AlreadyApplied` and `DuplicatePrevented`, and removal preview swaps UI culture — the grant snapshot never enters those states, and `HasCompleteLocalization` restores `CurrentUICulture` in `finally`.
 - `false` New audit filter, recovery, and viewport resource keys are unwired — `TenantAuditPage` and `AuditDataGrid` read them.
 - `false` Confirmed removal dropped the cursor-history reset, so Previous reuses pre-removal rows — Previous loads that cursor again; it does not replay a cached row set.
+
+### Final Verification — 2026-09-22
+
+- Release UI test build: passed with 0 warnings and 0 errors.
+- Focused five-class Story 4.2 matrix: 478 passed, 0 failed, 0 skipped, 0 not run.
+- Maintained full UI lane: 2,972 passed, 0 failed, 0 skipped.
+- Full Release solution build: passed with 0 warnings and 0 errors.
+- Story gitlink declaration guard: passed with all seven baseline-to-HEAD pointer changes declared after explicit human confirmation.
+- `git diff --check`: passed.
+- Independent review: four in-scope patch groups corrected and verified; accepted unrelated and browser-only findings appended to `deferred-work.md`.

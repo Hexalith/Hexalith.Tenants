@@ -337,6 +337,17 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     }
 
     [Fact]
+    public void InvalidatedPreviewFocusesVisibleLifecycleFailure()
+    {
+        GlobalAdministratorGrantCommandSnapshot result = PreviewedAttempt()
+            .InvalidatePreview("Tenants.GlobalAdministrators.Grant.Preview.Invalidated");
+
+        result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+        result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    [Fact]
     public void AlreadyAdministratorRejectionStaysRejected()
     {
         GlobalAdministratorGrantCommandSnapshot result = PreviewedAttempt()

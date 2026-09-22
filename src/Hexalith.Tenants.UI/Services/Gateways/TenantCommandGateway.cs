@@ -890,7 +890,7 @@ internal sealed class TenantCommandGateway(
                 => TenantCommandSubmissionResult.FailedWithKey(
                     "Tenants.GlobalAdministrators.Grant.Submission.Unavailable"),
             _ => TenantCommandSubmissionResult.FailedWithKey(
-                "Tenants.GlobalAdministrators.Grant.Submission.Unavailable"),
+                "Tenants.GlobalAdministrators.Grant.Submission.Failed"),
         };
     }
 

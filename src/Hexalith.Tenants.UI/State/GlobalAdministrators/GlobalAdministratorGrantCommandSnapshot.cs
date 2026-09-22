@@ -130,7 +130,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             SafeMessageKey = reasonKey,
             SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
             AuditState = TenantCommandAuditState.MissingSupport,
-            FocusTarget = TenantCommandFocusTarget.Submit,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
 

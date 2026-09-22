@@ -28,9 +28,11 @@ public sealed class TenantCommandGatewayTests
 
         configured.SupportsGlobalAdministratorDispatch.ShouldBeTrue();
         configured.SupportsTrackedGlobalAdministratorDispatch.ShouldBeTrue();
+        configured.SupportsTrackedGlobalAdministratorRemoveDispatch.ShouldBeTrue();
         configured.SupportsCommandStatusLookup.ShouldBeTrue();
         unavailable.SupportsGlobalAdministratorDispatch.ShouldBeFalse();
         unavailable.SupportsTrackedGlobalAdministratorDispatch.ShouldBeFalse();
+        unavailable.SupportsTrackedGlobalAdministratorRemoveDispatch.ShouldBeFalse();
         unavailable.SupportsCommandStatusLookup.ShouldBeFalse();
     }
 
@@ -122,13 +124,47 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.BadRequest, TenantCommandLifecycleState.Failed)]
-    [InlineData(HttpStatusCode.Unauthorized, TenantCommandLifecycleState.Rejected)]
-    [InlineData(HttpStatusCode.Forbidden, TenantCommandLifecycleState.Rejected)]
-    [InlineData(HttpStatusCode.Conflict, TenantCommandLifecycleState.Failed)]
+    [MemberData(nameof(AmbiguousGrantExceptions))]
+    public async Task AmbiguousRemoveTransportRetainsCallerMessageId(Exception exception)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(exception);
+
+        TenantCommandSubmissionResult result = await CreateGateway(client)
+            .RemoveGlobalAdministratorTrackedAsync(
+                new RemoveGlobalAdministrator("target-admin"),
+                messageId,
+                CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+    }
+
+    [Theory]
+    [InlineData(
+        HttpStatusCode.BadRequest,
+        TenantCommandLifecycleState.Failed,
+        "Tenants.GlobalAdministrators.Grant.Submission.Invalid")]
+    [InlineData(
+        HttpStatusCode.Unauthorized,
+        TenantCommandLifecycleState.Rejected,
+        "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+    [InlineData(
+        HttpStatusCode.Forbidden,
+        TenantCommandLifecycleState.Rejected,
+        "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+    [InlineData(
+        HttpStatusCode.Conflict,
+        TenantCommandLifecycleState.Failed,
+        "Tenants.GlobalAdministrators.Grant.Submission.Failed")]
     public async Task NonRetryableGrantRejectionsStayTerminal(
         HttpStatusCode statusCode,
-        TenantCommandLifecycleState expectedState)
+        TenantCommandLifecycleState expectedState,
+        string expectedMessageKey)
     {
         const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
         CapturingGatewayClient client = new(new EventStoreGatewayException(
@@ -145,6 +181,7 @@ public sealed class TenantCommandGatewayTests
         result.State.ShouldBe(expectedState);
         result.IsAmbiguousFailure.ShouldBeFalse();
         result.MessageId.ShouldBe(messageId);
+        result.SafeMessageKey.ShouldBe(expectedMessageKey);
         client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
     }
 
