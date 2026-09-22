@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -240,6 +241,8 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     [InlineData("duplicate-identity")]
     [InlineData("blank-identity")]
     [InlineData("control-character-identity")]
+    [InlineData("oversized-identity")]
+    [InlineData("lone-surrogate-identity")]
     public async Task LoadAsyncRejectsMalformedPageShapesWithCanonicalBoundedResult(string scenario)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -279,6 +282,11 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                     },
                     "blank-identity" => valid with { Rows = [CurrentRow(" ")] },
                     "control-character-identity" => valid with { Rows = [CurrentRow("admin\u0001")] },
+                    "oversized-identity" => valid with
+                    {
+                        Rows = [CurrentRow(new string('a', GlobalAdministratorUserId.MaximumLength + 1))],
+                    },
+                    "lone-surrogate-identity" => valid with { Rows = [CurrentRow("admin\uD800")] },
                     _ => throw new InvalidOperationException($"Unknown malformed scenario '{scenario}'."),
                 });
             });

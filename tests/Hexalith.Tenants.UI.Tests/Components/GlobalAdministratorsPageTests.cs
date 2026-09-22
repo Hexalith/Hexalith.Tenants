@@ -4696,6 +4696,51 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task UnrelatedAggregateAdmissionChangesDoNotRebuildStillPresentRemoval()
+    {
+        TenantCommandStatusResult eventsStored = new(
+            CommandStatus.EventsStored,
+            EventCount: 1,
+            HasVerifiedCommandIdentity: true);
+        var commandGateway = new StubTenantCommandGateway(statuses: [eventsStored])
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-remove"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-remove-safe-message']")
+            .TextContent.ShouldContain("still shows the target"));
+        int statusLookups = commandGateway.StatusHandles.Count;
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        object unrelatedOwner = new();
+
+        admissionGate.TryAcquire(
+            TenantCommandAggregateLock.ForTenant("tenant-unrelated"),
+            unrelatedOwner).ShouldBeTrue();
+        await cut.InvokeAsync(static () => Task.CompletedTask);
+        admissionGate.Release(
+            TenantCommandAggregateLock.ForTenant("tenant-unrelated"),
+            unrelatedOwner);
+        await cut.InvokeAsync(static () => Task.CompletedTask);
+
+        commandGateway.StatusHandles.Count.ShouldBe(statusLookups);
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(1);
+        cut.Find("[data-testid='tenants-global-admin-remove-safe-message']")
+            .TextContent.ShouldContain("still shows the target");
+    }
+
+    [Fact]
     public async Task AttemptAEnqueuePausedBeforePendingSlotCannotOverwriteAttemptB()
     {
         TenantCommandStatusResult pending = new(

@@ -261,6 +261,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
 
     [Theory]
     [InlineData("invalid-row")]
+    [InlineData("lone-surrogate-row")]
     [InlineData("duplicate-row")]
     [InlineData("surface-kind")]
     [InlineData("freshness")]
@@ -273,6 +274,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
         evidence = prerequisite switch
         {
             "invalid-row" => evidence with { CompleteRows = [Row("admin-a"), Row("admin\u0001")] },
+            "lone-surrogate-row" => evidence with { CompleteRows = [Row("admin-a"), Row("admin\uD800")] },
             "duplicate-row" => evidence with { CompleteRows = [Row("admin-a"), Row("admin-a")] },
             "surface-kind" => evidence with { CompleteKind = GlobalAdministratorsSurfaceKind.Empty },
             "freshness" => evidence with { CompleteFreshness = ReadModelFreshnessState.Stale },

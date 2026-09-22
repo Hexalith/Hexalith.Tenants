@@ -5010,7 +5010,10 @@
                             reconciliation.MessageId,
                             StringComparison.Ordinal)
                     || _grantSnapshot.PreviewEvidence is not null
-                        && !Equals(_grantSnapshot.PreviewEvidence, reconciliation.GrantPreview)))
+                        && !Equals(_grantSnapshot.PreviewEvidence, reconciliation.GrantPreview))
+            // Presentation-only fields such as IsDeliveryRetryWithdrawn are not durable reconciliation;
+            // an unchanged lease must not rebuild the snapshot and discard them.
+            || Equals(CreateReconciliation(_grantSnapshot), reconciliation))
         {
             return false;
         }
@@ -5081,7 +5084,10 @@
                             reconciliation.MessageId,
                             StringComparison.Ordinal)
                     || _removeSnapshot.PreviewEvidence is not null
-                        && !Equals(_removeSnapshot.PreviewEvidence, reconciliation.RemovePreview)))
+                        && !Equals(_removeSnapshot.PreviewEvidence, reconciliation.RemovePreview))
+            // Presentation-only fields such as LastConfirmedProjection are not durable reconciliation; an
+            // unchanged lease must not rebuild the snapshot, re-focus the lifecycle, or nudge status.
+            || Equals(CreateReconciliation(_removeSnapshot), reconciliation))
         {
             return false;
         }

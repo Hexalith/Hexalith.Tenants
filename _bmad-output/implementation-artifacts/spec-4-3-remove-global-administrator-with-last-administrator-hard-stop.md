@@ -677,6 +677,45 @@ Rejected:
   - `[medium]` `[patch]` the correction panel's renderer-safe helper catches only `ObjectDisposedException`; teardown `InvalidOperationException` or `OperationCanceledException` can still fault a removal continuation — contain the same renderer teardown exceptions as the page helper.
   - `[false]` `[reject]` the completion audit would absorb unreviewed gitlink and unrelated baseline changes — the working-tree patch moves no gitlink, the baseline-range pointers are already committed on `main`, and the spec explicitly declares their separate history and current guard failure.
 
+### Review Findings — 2026-09-22 Group A (removal core source)
+
+0 decision-needed, 2 patch, 6 defer, 27 rejected raw findings (22 entries after merging duplicates). Diff: `91d2335..3a98efe` limited to `GlobalAdministratorsPage.razor(.css)`, `State/GlobalAdministrators`, `State/TenantCommands`, `Identity`, `wwwroot`, `Resources`, `Services`, and `src/Hexalith.Tenants/Validation` (21 files, +2,641/−506). Group A tests, Group B (tenant audit and correction panel), and Group C (infrastructure) remain for follow-up runs. The baseline range interleaves Story 4.2 (`cf0e420b`, `518191f9`) and Story 5.1 (`281e3c3c`) commits, so grant and audit changes in these files are not attributed to 4.3.
+
+- [x] [Review][Patch] Lease-to-snapshot sync compares whole records, so an unrelated admission change rewrites a removal "still present" snapshot, issues a fixed-removal status lookup, and pulls focus to the lifecycle region; the grant equivalent drops `IsDeliveryRetryWithdrawn`, then `OnAfterRenderAsync` re-withdraws it with an assertive announcement. Skip the rebuild when `CreateReconciliation(<current snapshot>)` already equals the lease reconciliation [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5089]
+- [x] [Review][Patch] Projection loader and availability evaluator have no test for the newly rejected row shapes (257-character identity, lone surrogate); reverting either check to the old control-character rule leaves every test green [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs:250]
+
+Patch evidence: `SynchronizeOwnedGrantReconciliation` and `SynchronizeOwnedRemoveReconciliation` now return early when `CreateReconciliation(<current snapshot>)` equals the lease reconciliation. `UnrelatedAggregateAdmissionChangesDoNotRebuildStillPresentRemoval` fails without the fix (extra status lookup) and passes with it. Loader `oversized-identity` / `lone-surrogate-identity` and evaluator `lone-surrogate-row` cases were added. `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:NuGetAudit=false` gives 0 warnings; the built assembly run gives Total 2992, Failed 0.
+- [x] [Review][Defer] Story gitlink guard fails against HEAD (`scripts/validate-story-gitlinks.py` exit 1: Commons `9f4809d` and PolymorphicSerializations `7e95556` undeclared; Builds, EventStore, FrontComposer, and Memories SHAs misstated) [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:730] — deferred: already DW-347; declaring edits this spec and reverting would undo later `build(deps)` work.
+- [x] [Review][Defer] Grant submission and status rejections collapse every code (including `GlobalAdministratorAlreadyExists` and `InsufficientPermissions`) to the generic `Grant.Submission.Rejected` / `Grant.Status.Rejected` key, and the page never renders `RejectionCode` [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:873] — deferred: introduced by Story 4.2 commit `cf0e420b`, not this removal story.
+- [x] [Review][Defer] Audit caller-change guard is tested only on the successful-response path; the faulting, invalid-cursor retry, and not-modified refetch paths could return the original caller's retained rows without a failing test [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1036] — deferred: Story 5.1 audit code (`281e3c3c`).
+- [x] [Review][Defer] The audit payload allowlist hard-codes eleven event types, so one new server event type turns the whole audit page into an `InvalidPayload` error indistinguishable from tampering [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2733] — deferred: Story 5.1 audit code (`281e3c3c`).
+- [x] [Review][Defer] Grant completion published after the grant generation is superseded may leave the page at `RequestSent` until the next gate event (unverified, would be medium) [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3650] — deferred: maybe-false. Settle it with a test that invalidates the grant generation between `TryCompleteReconciliationDispatch` and the renderer sync while `_isGrantSubmitting` is still true.
+- [x] [Review][Defer] `RequiredGrantFactKeys` (about 100 hand-maintained keys) has no guard proving rendered grant keys are listed and present in both cultures [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25] — deferred: already recorded as KEEP grant localization for Story 4.2.
+
+Rejected:
+- `false` The diff is not self-contained (missing tests and types) — the review is chunked by design; `GlobalAdministratorUserId` and the tests exist and belong to other groups.
+- `false` The shared identity rule now invalidates stored lone-surrogate identities — such strings cannot survive UTF-8 JSON serialization, so no persisted or projected identity can hold one.
+- `false` Format characters (zero-width, bidi) should be rejected at the boundary — the spec requires literal, unnormalized, ordinal user ids, and `GlobalAdministratorIdentityDisplay` tokenizes every `Format` scalar visibly.
+- `false` Removal gateway rejections are not localized — `GlobalAdministratorRemoveCommandSnapshot.ApplySubmission` maps every rejection code to a `Remove.Status.Rejected.*` key and clears `SafeMessage`.
+- `false` A withdrawn ambiguous removal retry gives no explanation — the lifecycle keeps rendering `SafeMessageKey` and `SafeRecoveryKey`; withdrawal is the spec's fail-closed contract (carried from earlier passes).
+- `false` The removal retry reports `AggregateBusy` when the dispatch basis is null — the entry guards (intent, complete preview, message id, recovery state) make `CreateReconciliation(expected)` non-null, and the gate lock makes `TryBeginReconciliationDispatch` atomic.
+- `false` Audit work is bundled into this story — `TenantQueryGateway` audit changes and the `Tenants.Audit.*` resources come from Story 5.1 commit `281e3c3c` inside the baseline range.
+- `false` Grant behaviour was re-engineered on this removal story — the grant snapshot, gateway keys, focus change, and `@onclick` come from Story 4.2 commits `cf0e420b` and `518191f9`.
+- `false` Grant modal `box-sizing` changed on this story — already deferred as KEEP grant chrome, and it came from the 4.2 commits.
+- `false` The File List does not match the diff — the mismatch is range pollution from the 4.2 and 5.1 commits plus the chunk boundary (tests and the correction panel are in other groups).
+- `false` The unkeyed SHA-256 caller scope protects nothing — it is used only for an in-memory equality check and is never logged or rendered, so no exposure was shown.
+- `false` `GetStatusAsync` repeats the `SafeMessageKey` block — no caller diverges; the only named harm is the grant-key finding rejected below.
+- `false` Duplicate `.global-admins__remove-preview-grid` rule — carried from an earlier pass; the later rule intentionally adds the column tracks and gaps.
+- `false` `type="submit"` plus `@onclick` double-submits the grant form — `@onclick:preventDefault` is set and `_grantPreviewInFlight` single-flights `SubmitGrantAsync` (carried from an earlier pass).
+- `false` An unverified status with a null preview shows a contradictory lifecycle — both snapshots check `HasVerifiedCommandIdentity` before the parsed status and return `UnableToVerify`.
+- `false` A null `payload.Items` throws in audit validation — it is handled before `IsValidTenantAuditPayload` runs.
+- `false` Cached localization completeness goes stale per culture — the check explicitly walks the invariant and French resources, independent of the current UI culture.
+- `low` Removal status results carry `Grant.Status.*` keys — no removal consumer reads the key (the removal snapshot ignores it and the correction path strips it); scoping it per action adds a parameter.
+- `low` The grant completion token can stay armed if the renderer callback throws after arming — the window is a few synchronous statements; containment would add catch branches.
+- `low` An older grant `finally` clears a newer submission's `_isGrantSubmitting` — the window is tiny, and the lease dispatch token still blocks a duplicate dispatch.
+- `low` The visible identity display does not tokenize NBSP and other non-ASCII whitespace — real Keycloak subjects never contain them, the accessible variant tokenizes them, and removal still requires an exact typed match.
+- `low` French resources mix straight and typographic apostrophes — pre-existing across the file (578 straight, 82 typographic).
+
 ## Design Notes
 
 Removal is intentionally a causal proof pipeline rather than an absence check:
@@ -717,7 +756,9 @@ Source and tests changed by this story:
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html`
 - `tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorActionAvailabilityTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`

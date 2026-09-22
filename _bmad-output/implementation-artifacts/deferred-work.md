@@ -3076,3 +3076,26 @@ Page and focus slice (`91d2335...c3a11fd0`). No new DW ids.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: Validate the Release/NuGet package graph in CI rather than relying on the Debug source-reference lane.
   evidence: `.github/workflows/source-reference.yml` explicitly builds and tests with `--configuration Debug -p:UseHexalithProjectReferences=true`, so it cannot expose packaging-only failures required by the repository CI policy; this workflow is later baseline-range integration work, not Story 4.3 removal behavior.
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A removal core)
+
+Group A removal-core source slice (`91d2335..3a98efe`). Already-recorded items are listed without new DW ids.
+
+- Story gitlink guard still fails against HEAD (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.
+- `RequiredGrantFactKeys` has no guard proving rendered grant keys are listed and present in EN/FR. Already deferred as KEEP grant localization for Story 4.2.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Preserve specific grant rejection reasons instead of collapsing every code to the generic rejected key.
+  evidence: `TenantCommandGateway.MapSetGlobalAdministratorGatewayException` maps `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, and other recognised codes to `Tenants.GlobalAdministrators.Grant.Submission.Rejected`, `GetStatusAsync` maps every rejected status to `Grant.Status.Rejected`, and the page never renders `RejectionCode`; introduced by Story 4.2 commit `cf0e420b`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Cover the tenant-audit caller-change guard on faulting, invalid-cursor retry, and not-modified refetch paths.
+  evidence: Only `Get_tenant_audit_discards_an_awaited_response_when_the_caller_changes` switches the caller mid-call, and it completes successfully with no retained snapshot; removing the `AuditIdentityFailure` check in the exception catches would return the original caller's retained rows with every test green. Story 5.1 code (`281e3c3c`).
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Decide how the tenant-audit payload allowlist handles server event types it does not know.
+  evidence: `TenantQueryGateway.IsSupportedAuditEvent` hard-codes eleven event types, so one new server event type fails `IsValidTenantAuditPayload` for the whole page and signals `InvalidPayload`, the same signal as tampering. Story 5.1 code (`281e3c3c`).
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Verify grant completion is applied when the grant generation is superseded after the lease completion is published (unverified, would be medium).
+  evidence: `DispatchGrantAsync` syncs the published completion only while `CanApplyGrantMutation(generation)` holds, and the gate handler skips grant sync while `_isGrantSubmitting` is true; settle with a test that invalidates the generation between `TryCompleteReconciliationDispatch` and the renderer sync.
