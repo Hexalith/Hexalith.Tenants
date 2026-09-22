@@ -3065,3 +3065,10 @@ Chunk A (declared production source). No new DW ids; grant KEEP and later gitlin
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: Close the global-administrator read-refresh subscription race across authorization collapse.
   evidence: Authorization can become false after the post-subscribe guard and before `_readRefreshLease` assignment; the sign-out path can then miss and leave that callback subscribed because the post-assignment guard only rechecks disposal.
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22)
+
+Page and focus slice (`91d2335...c3a11fd0`). No new DW ids.
+
+- Story gitlink guard still fails against HEAD. Already DW-347. Current tree is Builds `2fba349`, Commons `9f4809d` undeclared, EventStore `db1e9d7`, FrontComposer `00d4da4`, Memories `8884933`, PolymorphicSerializations `7e95556` undeclared, while the File List still states Builds `39debe9`, EventStore `7b7f876`, FrontComposer `0a4c4ad`, and Memories `f174f9c`. This slice does not move `references/`. Declaring edits the spec; restoring the tree reverts later `build(deps)` work.
+- Grant preview `box-sizing: border-box` is in `.global-admins__grant-preview`. Already deferred as KEEP grant chrome for Story 4.2, not last-administrator removal.

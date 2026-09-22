@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'done'
+status: 'in-progress'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 6
@@ -623,6 +623,31 @@ Rejected:
   - `[medium]` `[patch]` An older Cancel-focus continuation can observe a newer removal preview and focus the lifecycle region outside the active dialog — keep focus inside the current preview when generations change; lifecycle is only the no-preview fallback.
   - `[medium]` `[patch]` `RequiredRemoveFactKeys` omits the `Availability.Remove.*` strings that the removal surface renders, so readiness can be true while those resources resolve as raw keys — add every rendered removal availability and recovery key to the strict invariant/French completeness set and tests.
   - `[false]` `[reject]` `global.json` and root gitlinks were attributed to this removal correction — carried: later dependency work in the baseline range; the story already declares the shipped pointer history.
+
+### Review Findings — 2026-09-22 page and focus slice
+
+0 decision-needed, 7 patch, 2 defer. Diff: `91d2335...c3a11fd0` limited to the removal page, its CSS, `tenantsFocus.js`, the page tests, and the focus browser harness.
+
+- [ ] [Review][Patch] Renderer teardown can drop an armed remove completion and skip nudge drain [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4346]
+- [ ] [Review][Patch] Encoded acknowledgement still cannot confirm the raw UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
+- [ ] [Review][Patch] Ambiguous remove retry returns with no reason when dispatch cannot begin [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4502]
+- [ ] [Review][Patch] Cancel-focus continuation can leave a newer removal dialog [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1497]
+- [ ] [Review][Patch] Focus-module disposal tests only cover cancellation [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:4156]
+- [ ] [Review][Patch] Remove recovery button is not described by its message [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:403]
+- [ ] [Review][Patch] Focus harness continues after the local server never becomes ready [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:113]
+- [x] [Review][Defer] Story gitlink guard still fails against HEAD [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:647] — deferred: later build(deps); already DW-347. This page slice does not move `references/`. Current tree is Builds `2fba349`, Commons `9f4809d` undeclared, EventStore `db1e9d7`, FrontComposer `00d4da4`, Memories `8884933`, PolymorphicSerializations `7e95556` undeclared. Declaring edits this spec; restoring the tree reverts later work.
+- [x] [Review][Defer] Grant preview box-sizing changed in this removal story [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:206] — deferred: KEEP grant chrome; already recorded as Story 4.2 grant styling, not last-administrator removal.
+
+Rejected:
+- `false` Removal preview grid never sets `display: grid` — `.global-admins__remove-preview-grid` already sets `display: grid`, `gap`, and `margin: 0` with the scope lists; the later rule only adds the two column tracks.
+- `false` A superseded grant finally clears a newer submit flag and accepts another submit — `_isGrantSubmitting` is cleared, but `IsGrantInFlight` stays true through the dispatch-marked lease and `RequestSent` state set in the same callback that raises the flag.
+- `false` Withdrawing ambiguous remove recovery leaves no reason — the lifecycle still renders `SafeMessageKey` and `SafeRecoveryKey`; hiding the destructive control when retry prerequisites lapse is the fail-closed contract.
+- `false` Correlated grant refresh skips the activation snapshot after reauthorization — the status read captures the live snapshot and applies it only while that same instance is still current.
+- `false` Remove requery confirms an unauthorized population — `ConfirmProjection` runs, then an unauthorized snapshot is discarded and a superseded generation is not applied.
+- `low` A state-mismatched remove nudge is dropped — correlated recovery still offers refresh; putting the stale snapshot back would add a re-queue policy, not a direct correction.
+- `low` Remove focus sentinels are unnamed — each sentinel's focus handler immediately moves focus to Cancel or acknowledgement; an accessible name would announce a stop the trap is built to skip.
+- `false` `focusCorrectionLauncher` sends the removal trap through the acknowledgement fallback — removal calls `focusElementById`, which already requires `document.activeElement === target`.
+- `false` Grant `EditForm.OnSubmit` and the submit button both enter preview — `@onclick:preventDefault` is set, and `SubmitGrantAsync` takes `_grantPreviewInFlight` before its first await.
 
 ## Design Notes
 
