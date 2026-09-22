@@ -2973,3 +2973,16 @@ Verification pass over the uncommitted fix round that closes the 2026-09-07 patc
 ## Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation-2.md (2026-09-21)
 
 - Source-reference job may time out on a cold restore. Unverified medium: the new workflow has no NuGet cache, `timeout-minutes: 15`, and builds the full Debug source graph with `-m:1 -nr:false --no-incremental`. Settle by timing a cold CI run of that build plus the four-case execution; if it finishes under 15 minutes the timeout is adequate. [`.github/workflows/source-reference.yml:20`]
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22)
+
+Chunk A (declared production source). No new DW ids; grant KEEP and later gitlink drift stay out of this removal patch list.
+
+- Restore-access correction still arms with `TryMarkDispatched` and cannot retain correlationless grant `RequestSent` the way removal now does. KEEP grant; this story tokenizes removal only. Already recorded as Story 4.2 restore-access lease territory. [`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:913`]
+- Grant withdrawn-retry is a snapshot bit that cannot survive adoption. Grant KEEP / Story 4.2 chrome, not last-administrator removal. [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:24`]
+- Grant `EditForm OnSubmit` plus `fluent-button @onclick` can double-enter preview. Grant KEEP launcher, not the removal dialog. [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:241`]
+- Grant completion apply has no snapshot fallback when the intent/message/preview `Equals` guard fails. Grant KEEP dispatch; removal already uses `CompleteRemoveSingleFlightAsync`. [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3535`]
+- `RequiredGrantFactKeys` grew to 89 keys and grant-preview gained `box-sizing: border-box` on this removal story. KEEP grant localization/chrome; belongs with Story 4.2. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25`]
+- `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the Cancel host id. Already DW-345; a real-browser `document.activeElement` trace after host `.focus()` would settle it. [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23`]
+- Correction outer catch may overlay Ambiguous after Accepted delivery. Unverified medium: settle by showing `RefreshStatusCoreAsync` throwing after `TryCompleteReconciliationDispatch` already published Accepted. [`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1082`]
+- `validate-story-gitlinks.py` FAILs against HEAD: UNDECLARED Commons `6da79ae -> 9f4809d` and PolymorphicSerializations `8aeed1d -> 7e95556`; MISSTATED Builds/EventStore/FrontComposer/Memories vs File List `39debe9` / `7b7f876` / `0a4c4ad` / `f174f9c`. Already DW-347; updating the record edits this spec, restoring the tree reverts later `build(deps)` (Chunk C).

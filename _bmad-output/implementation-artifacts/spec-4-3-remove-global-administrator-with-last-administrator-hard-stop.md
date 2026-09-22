@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'done'
+status: 'in-progress'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 5
@@ -513,6 +513,34 @@ Rejected:
   - `[false]` `[reject]` AppHost SDK and submodule gitlinks moved — carried: later deps work; File List declares the shipped pointers.
   - `[false]` `[reject]` This change writes `sprint-status.yaml` — carried: orchestrator bookkeeping is excluded from story evidence.
   - `[medium]` `[defer]` Reversed audit From/To has no page-level Range test — carried: Story 5.1 filter validation; already DW-356.
+
+### Review Findings — 2026-09-22 Chunk A
+
+0 decision-needed, 5 patch, 8 defer.
+
+- [ ] [Review][Patch] Encoded remove acknowledgement cannot confirm the ordinal UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
+- [ ] [Review][Patch] Fail-closed retry preflight can surface Availability.Remove.Available [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4395]
+- [ ] [Review][Patch] Grant dispatch clears the submitting flag outside finally [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3552]
+- [ ] [Review][Patch] Remove focus JS import/invoke cancellation is uncaught [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1515]
+- [ ] [Review][Patch] Shipped-resource walk accepts parent-culture fallback [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs:248]
+- [x] [Review][Defer] Restore-access correction still arms with TryMarkDispatched [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:913] — deferred: KEEP grant; this story tokenizes removal only. Story 4.2 / already recorded restore-access lease gap.
+- [x] [Review][Defer] Grant withdrawn-retry bit is not durable across adoption [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:24] — deferred: grant KEEP / Story 4.2 chrome, not last-administrator removal.
+- [x] [Review][Defer] Grant EditForm OnSubmit plus fluent-button onclick can double-enter preview [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:241] — deferred: grant KEEP launcher, not the removal dialog.
+- [x] [Review][Defer] Grant completion apply has no snapshot fallback when the Equals guard fails [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3535] — deferred: grant KEEP dispatch, not removal `CompleteRemoveSingleFlightAsync`.
+- [x] [Review][Defer] RequiredGrantFactKeys and grant-preview box-sizing expanded on this removal story [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25] — deferred: KEEP grant localization/chrome; belongs with Story 4.2.
+- [x] [Review][Defer] focusElementById may treat a successful Fluent Cancel wrap as failure [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23] — deferred: maybe-false pending a real-browser activeElement trace; already DW-345.
+- [x] [Review][Defer] Correction outer catch can overlay Ambiguous after Accepted delivery [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1082] — deferred: maybe-false; settle by showing RefreshStatusCoreAsync throwing after TryCompleteReconciliationDispatch already published Accepted.
+- [x] [Review][Defer] Story gitlink File List SHAs do not match HEAD and Commons/PolymorphicSerializations are undeclared [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:560] — deferred: later build(deps); already DW-347. Declaring edits this spec; restoring the tree reverts later work (Chunk C).
+
+Rejected:
+- `false` Removal recovery has no withdrawn copy — spec requires withdrawing the destructive retry when viewport/support is unsafe; lifecycle still renders `SafeRecoveryKey`.
+- `false` CollapseAuthorizationState never clears `_pendingRemoveStatusNudge` — drain identity-checks `HasSameRemoveAttempt` before applying and no-ops an idle snapshot.
+- `false` GetStatusAsync Grant.* keys surface on removal — page `ApplyStatus` uses Remove.* keys; correction blanks `SafeMessageKey` before the remove mapper.
+- `false` FrontComposer tenantsFocus.js was not updated — the only `focusElementById` export is Tenants UI `wwwroot/js/tenantsFocus.js`, imported as `./js/tenantsFocus.js`.
+- `false` Unexpected exception after remove dispatch leaves the completion token in flight — gateway failures become Ambiguous; abort runs before publish; outer catch is leftover preflight containment.
+- `false` TryBeginReconciliationDispatch failure after retry preflight diverges lease and snapshot — caller `RefreshRemoveStatusAsync` finally always runs `CompleteRemoveSingleFlightAsync`; `CanRetryAmbiguousRemoveDelivery` already requires no in-flight token.
+- `false` Grant notification copies a null lease after `IsDispatchMarked` — `_grantAdmissionLease?.IsDispatchMarked == true` already proves the lease is non-null.
+- `false` Unsupported submission is a retryable already-applied success path — `ApplySubmission` stays `UnableToVerify` without claiming success; iteration 5 requires monotonic same-id recovery so the completion token can clear.
 
 ## Design Notes
 
