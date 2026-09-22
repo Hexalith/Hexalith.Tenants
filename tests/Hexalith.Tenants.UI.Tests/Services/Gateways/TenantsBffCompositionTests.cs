@@ -131,6 +131,26 @@ public sealed class TenantsBffCompositionTests
     {
         string[] canonicalRemoveKeys =
         [
+            "Tenants.GlobalAdministrators.Availability.Remove.Available",
+            "Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingLifecycleSupport",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingPermission",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.StaleData",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.TargetMissing",
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.UnsafeViewport",
+            "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy",
+            "Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation",
+            "Tenants.GlobalAdministrators.Availability.Recovery.LastAdministrator",
+            "Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport",
+            "Tenants.GlobalAdministrators.Availability.Recovery.MissingPermission",
+            "Tenants.GlobalAdministrators.Availability.Recovery.None",
+            "Tenants.GlobalAdministrators.Availability.Recovery.StaleData",
+            "Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing",
+            "Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport",
             "Tenants.GlobalAdministrators.Remove.Launch",
             "Tenants.GlobalAdministrators.Remove.Title",
             "Tenants.GlobalAdministrators.Remove.Description",
@@ -241,11 +261,15 @@ public sealed class TenantsBffCompositionTests
         {
             IStringLocalizer<TenantsResources> localizer = provider
                 .GetRequiredService<IStringLocalizer<TenantsResources>>();
-            foreach (string cultureName in new[] { "en", "fr" })
+            foreach (CultureInfo culture in new[]
             {
-                CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(cultureName);
+                CultureInfo.InvariantCulture,
+                CultureInfo.GetCultureInfo("fr"),
+            })
+            {
+                CultureInfo.CurrentUICulture = culture;
                 IReadOnlyDictionary<string, LocalizedString> shipped = localizer
-                    .GetAllStrings(includeParentCultures: true)
+                    .GetAllStrings(includeParentCultures: false)
                     .ToDictionary(static resource => resource.Name, StringComparer.Ordinal);
                 foreach (string key in canonicalRemoveKeys)
                 {
@@ -259,6 +283,35 @@ public sealed class TenantsBffCompositionTests
         {
             CultureInfo.CurrentUICulture = priorUiCulture;
         }
+    }
+
+    [Theory]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator")]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview")]
+    [InlineData("Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing")]
+    public async Task RemovalPreviewFailsClosedWhenAnAvailabilityResourceIsUnresolved(string unresolvedKey)
+    {
+        IStringLocalizer<TenantsResources> localizer = ResolvedRemoveLocalizer(
+            (_, candidate) => string.Equals(candidate, unresolvedKey, StringComparison.Ordinal)
+                ? candidate
+                : DefaultRemoveResourceValue(candidate));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+
+        GlobalAdministratorRemovePreview preview = await composition
+            .ComposeGlobalAdministratorRemovePreviewAsync(
+                "target-admin",
+                CompleteGlobalAdministrators("projection-v1", "target-admin", "other-admin"));
+
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeFalse();
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization");
+        preview.RecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization");
     }
 
     [Fact]
@@ -1010,6 +1063,41 @@ public sealed class TenantsBffCompositionTests
                 evidence ?? TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")),
             policyProvider: new TenantConfigurationReadPolicyProvider(Configuration(json)),
             resourceLocalizer: ResolvedGrantLocalizer());
+
+    private static IStringLocalizer<TenantsResources> ResolvedRemoveLocalizer(
+        Func<CultureInfo, string, string>? value = null)
+    {
+        Func<CultureInfo, string, string> resolve = value
+            ?? ((_, candidate) => DefaultRemoveResourceValue(candidate));
+        IStringLocalizer<TenantsResources> localizer = Substitute.For<IStringLocalizer<TenantsResources>>();
+        localizer[Arg.Any<string>()].Returns(callInfo =>
+        {
+            string key = callInfo.Arg<string>();
+            return new LocalizedString(
+                key,
+                resolve(CultureInfo.CurrentUICulture, key),
+                resourceNotFound: false);
+        });
+        localizer.GetAllStrings(includeParentCultures: false).Returns(_ =>
+            TenantsBffComposition.RequiredRemoveFactKeys
+                .Select(key => new LocalizedString(
+                    key,
+                    resolve(CultureInfo.CurrentUICulture, key),
+                    resourceNotFound: false))
+                .ToArray());
+        return localizer;
+    }
+
+    private static string DefaultRemoveResourceValue(string key)
+        => key switch
+        {
+            "Tenants.GlobalAdministrators.Remove.Preview.Counts.Value"
+                => "Current complete count: {0}; resulting count: {1}",
+            "Tenants.GlobalAdministrators.Remove.Preview.Target.Value"
+                or "Tenants.GlobalAdministrators.Remove.Preview.Acknowledge"
+                => "Target: {0}",
+            _ => $"resolved:{key}",
+        };
 
     private static IStringLocalizer<TenantsResources> ResolvedGrantLocalizer(
         Func<CultureInfo, string, string>? value = null,

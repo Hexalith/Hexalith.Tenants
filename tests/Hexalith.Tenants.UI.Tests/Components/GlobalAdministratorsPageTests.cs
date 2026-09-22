@@ -2644,8 +2644,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             .TextContent.ShouldContain(encodedFormatIdentity);
         cut.Find("[data-testid='tenants-global-admin-remove-acknowledge']").Change(formatIdentity);
         cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-global-admin-remove-acknowledge']").Change(encodedFormatIdentity);
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']")
             .HasAttribute("disabled").ShouldBeTrue();
-        AcknowledgeRemovePreview(cut, encodedFormatIdentity);
+        AcknowledgeRemovePreview(cut, formatIdentity);
         await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
             .ClickAsync(new MouseEventArgs());
         commandGateway.RemoveRequests.ShouldHaveSingleItem().UserId.ShouldBe(formatIdentity);
@@ -3959,6 +3962,37 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public void RealChromiumFocusValidatorPinsActiveElementMovementAndFallbacks()
+    {
+        string validatorRoot = Path.Combine(
+            ProjectRoot(),
+            "tests",
+            "Hexalith.Tenants.UI.Tests",
+            "Browser");
+        string harness = File.ReadAllText(Path.Combine(
+            validatorRoot,
+            "tenants-focus-browser-validation.html"));
+        string runner = File.ReadAllText(Path.Combine(
+            validatorRoot,
+            "validate-tenants-focus-browser.sh"));
+
+        harness.ShouldContain("await import(modulePath)");
+        harness.ShouldContain("await import(\"./fluent-ui.js\")");
+        harness.ShouldContain("fluentUi.beforeStart(document, \"web\")");
+        harness.ShouldContain("customElements.whenDefined(\"fluent-button\")");
+        harness.ShouldContain("start-to-exact-cancel");
+        harness.ShouldContain("document.activeElement");
+        harness.ShouldContain("existing-unfocusable-cancel-to-acknowledgement");
+        harness.ShouldContain("missing-cancel-to-acknowledgement");
+        harness.ShouldContain("missing-preview-to-lifecycle");
+        runner.ShouldContain("src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js");
+        runner.ShouldContain("microsoft.fluentui.aspnetcore.components");
+        runner.ShouldContain("tenantsFocus-return-true.js");
+        runner.ShouldContain("data-validation-status=\"passed\"");
+        runner.ShouldContain("data-validation-status=\"failed\"");
+    }
+
+    [Fact]
     public void RemoveStartSentinelFallsBackToAcknowledgementWhenRenderedCancelCannotBeFocused()
     {
         Services.AddSingleton<ITenantsBffComposition>(
@@ -3975,6 +4009,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
         OpenRemovePreview(cut);
 
+        cut.Find("[data-testid='tenants-global-admin-remove-cancel']")
+            .LocalName.ShouldBe("fluent-button");
         cut.Find("[data-testid='tenants-global-admin-remove-cancel']")
             .GetAttribute("id").ShouldBe("tenants-global-admin-remove-cancel-button");
         cut.Find("[data-testid='tenants-global-admin-remove-focus-start']")
@@ -4035,6 +4071,52 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task StaleCancelFocusContinuationFallsBackInsideTheNewerPreview()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        var focusCancel = module.Setup<bool>(
+            "focusElementById",
+            "tenants-global-admin-remove-cancel-button");
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        GlobalAdministratorRemovePreview stalePreview = PrivateField<GlobalAdministratorRemoveCommandSnapshot>(
+                cut.Instance,
+                "_removeSnapshot")
+            .PreviewEvidence.ShouldNotBeNull();
+        MethodInfo focusMethod = typeof(GlobalAdministratorsPage).GetMethod(
+            "FocusElementByIdSafelyAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        Task staleFocus = (Task)focusMethod.Invoke(
+            cut.Instance,
+            ["tenants-global-admin-remove-cancel-button", stalePreview])!;
+        await WaitUntilAsync(() => focusCancel.Invocations.Count == 1, TimeSpan.FromSeconds(5));
+
+        cut.Find("[data-testid='tenants-global-admin-remove-cancel']").Click();
+        OpenRemovePreview(cut, "other-admin");
+        GlobalAdministratorRemovePreview currentPreview = PrivateField<GlobalAdministratorRemoveCommandSnapshot>(
+                cut.Instance,
+                "_removeSnapshot")
+            .PreviewEvidence.ShouldNotBeNull();
+        currentPreview.ShouldNotBeSameAs(stalePreview);
+        string acknowledgementId = CapturedChildElementReferenceId(
+            cut.Instance,
+            "_removeAcknowledgementElement");
+        string lifecycleId = CapturedElementReferenceId(cut.Instance, "_removeLifecycleElement");
+
+        focusCancel.SetResult(false);
+        await staleFocus.WaitAsync(TimeSpan.FromSeconds(5));
+
+        FocusedElementIds()[^1].ShouldBe(acknowledgementId);
+        FocusedElementIds()[^1].ShouldNotBe(lifecycleId);
+    }
+
+    [Fact]
     public async Task RemoveEndSentinelFallsBackToLifecycleWhenPreviewHasDisappeared()
     {
         Services.AddSingleton<ITenantsBffComposition>(
@@ -4066,8 +4148,26 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             new JSDisconnectedException("Circuit disconnected."),
             new ObjectDisposedException("focus-module"),
             new JSException("Focus target detached."),
+            new TaskCanceledException("Focus interop canceled during circuit teardown."),
             new InvalidOperationException("Renderer is no longer interactive."),
         };
+
+    [Fact]
+    public async Task RemoveFocusModuleDisposalContainsCircuitCancellation()
+    {
+        IJSObjectReference module = Substitute.For<IJSObjectReference>();
+        module.DisposeAsync().Returns(ValueTask.FromException(
+            new TaskCanceledException("Focus module disposal canceled during circuit teardown.")));
+        MethodInfo dispose = typeof(GlobalAdministratorsPage).GetMethod(
+            "DisposeFocusModuleSafelyAsync",
+            BindingFlags.Static | BindingFlags.NonPublic).ShouldNotBeNull();
+
+        await ((Task)dispose.Invoke(null, [module])!).WaitAsync(TimeSpan.FromSeconds(5));
+
+        module.ReceivedCalls()
+            .Count(call => call.GetMethodInfo().Name == nameof(IAsyncDisposable.DisposeAsync))
+            .ShouldBe(1);
+    }
 
     [Fact]
     public void AmbiguousRemoveRetryHasDestructiveLabelAndIsWithdrawnWhenViewportBecomesUnsafe()
@@ -4140,6 +4240,38 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(2);
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-remove-refresh']")
             .HasAttribute("disabled").ShouldBeFalse());
+    }
+
+    [Fact]
+    public void ChangedRetryEvidenceNeverSurfacesTheAvailableReasonOrRecovery()
+    {
+        GlobalAdministratorsSnapshot current = ComponentReady(
+            "projection-v2",
+            "target-admin",
+            "other-admin");
+        GlobalAdministratorRemovePreview rebuilt = GlobalAdministratorRemovePreview.Create(
+            "target-admin",
+            "operator-admin",
+            current,
+            isAuthorized: true);
+        var available = new GlobalAdministratorActionAvailability(
+            GlobalAdministratorActionKind.Remove,
+            IsAvailable: true,
+            GlobalAdministratorActionUnavailableReason.None,
+            "Tenants.GlobalAdministrators.Availability.Remove.Available",
+            "Tenants.GlobalAdministrators.Availability.Recovery.None");
+        MethodInfo evidenceMethod = typeof(GlobalAdministratorsPage).GetMethod(
+            "RemovePreflightFailureEvidence",
+            BindingFlags.Static | BindingFlags.NonPublic).ShouldNotBeNull();
+
+        var evidence = ((string ReasonKey, string RecoveryKey))evidenceMethod.Invoke(
+            null,
+            [rebuilt, available])!;
+
+        evidence.ReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence");
+        evidence.RecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh");
+        evidence.ReasonKey.ShouldNotBe(available.ReasonKey);
+        evidence.RecoveryKey.ShouldNotBe(available.RecoveryKey);
     }
 
     [Fact]
@@ -4346,10 +4478,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task QueuedAttemptANotificationCannotQueryOrMutateSameGenerationAttemptB()
+    public async Task AttemptAEnqueuePausedBeforePendingSlotCannotOverwriteAttemptB()
     {
-        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
-        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
         TenantCommandStatusResult pending = new(
             CommandStatus.Received,
             EventCount: 0,
@@ -4364,15 +4494,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             ComponentReady("projection-v1", "target-admin", "other-admin")));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
-        Services.AddSingleton(subscription);
-        Services.AddSingleton(notifier);
-        Services.AddScoped<TenantReadRefreshSubscription>();
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
-        await subscription.Received(1).SubscribeAsync(
-            GetGlobalAdministratorsQuery.ProjectionType,
-            "system",
-            Arg.Any<CancellationToken>());
         OpenRemovePreview(cut);
         AcknowledgeRemovePreview(cut);
         await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
@@ -4385,30 +4508,63 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "_removeSubmissionInFlight",
             BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
         singleFlight.SetValue(cut.Instance, 1);
-        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
-            GetGlobalAdministratorsQuery.ProjectionType,
-            "system");
-        await WaitUntilAsync(
-            () => PrivateField<object?>(cut.Instance, "_pendingRemoveStatusNudge") is not null,
-            TimeSpan.FromSeconds(5));
-
         GlobalAdministratorRemoveCommandSnapshot attemptB = attemptA with
         {
             MessageId = NUlid.Ulid.NewUlid().ToString(),
             CorrelationId = "correlation-b",
         };
-        typeof(GlobalAdministratorsPage).GetField(
+        FieldInfo snapshotField = typeof(GlobalAdministratorsPage).GetField(
             "_removeSnapshot",
-            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, attemptB);
-        singleFlight.SetValue(cut.Instance, 0);
-        MethodInfo drain = typeof(GlobalAdministratorsPage).GetMethod(
-            "DrainRemoveStatusNudgesAsync",
             BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
-        await ((Task)drain.Invoke(cut.Instance, null)!).WaitAsync(TimeSpan.FromSeconds(5));
+        FieldInfo pendingField = typeof(GlobalAdministratorsPage).GetField(
+            "_pendingRemoveStatusNudge",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        MethodInfo enqueue = typeof(GlobalAdministratorsPage).GetMethod(
+            "QueueRemoveStatusNudgeAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        TenantAggregateCommandLease lease =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_removeAdmissionLease");
+        Lock pendingLock = PrivateField<Lock>(cut.Instance, "_removeStatusNudgeLock");
+        var workerStarted = new ManualResetEventSlim();
+        Task? enqueueTask = null;
+        Exception? workerFailure = null;
+        var worker = new Thread(() =>
+        {
+            workerStarted.Set();
+            try
+            {
+                enqueueTask = (Task)enqueue.Invoke(cut.Instance, [attemptA])!;
+            }
+            catch (Exception exception)
+            {
+                workerFailure = exception;
+            }
+        });
+
+        using (pendingLock.EnterScope())
+        {
+            worker.Start();
+            workerStarted.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            SpinWait.SpinUntil(
+                () => (worker.ThreadState & System.Threading.ThreadState.WaitSleepJoin) != 0,
+                TimeSpan.FromSeconds(5)).ShouldBeTrue(
+                    "attempt A must be paused on the exact pending-slot lock before attempt B replaces it");
+            snapshotField.SetValue(cut.Instance, attemptB);
+            pendingField.SetValue(cut.Instance, (attemptB, lease));
+        }
+
+        worker.Join(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        workerFailure.ShouldBeNull();
+        await enqueueTask.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(5));
 
         commandGateway.StatusHandles.Count.ShouldBe(1);
         PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot")
             .ShouldBe(attemptB);
+        var retained = PrivateField<(
+            GlobalAdministratorRemoveCommandSnapshot Attempt,
+            TenantAggregateCommandLease Lease)?>(cut.Instance, "_pendingRemoveStatusNudge");
+        retained.ShouldNotBeNull().Attempt.ShouldBe(attemptB);
+        retained.Value.Lease.ShouldBeSameAs(lease);
     }
 
     [Fact]
@@ -4689,6 +4845,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         deliveryGate.SetResult();
         await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        PrivateField<bool>(first.Instance, "_isGrantSubmitting").ShouldBeFalse();
         replacement.WaitForAssertion(() => initialLease.IsReconciliationDispatchInFlight.ShouldBeFalse());
         commandGateway.GrantMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
 

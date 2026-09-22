@@ -2,10 +2,10 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-progress'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
-review_loop_iteration: 5
+review_loop_iteration: 6
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -115,6 +115,11 @@ deferred: []
 - [x] Precise wakeups and presentation -- a gate notification resumes status work only when the durable removal reconciliation actually advanced; unrelated aggregate admission changes must not issue fixed-removal status traffic. Include every removal title, description, lifecycle, state, audit, refresh, preview, and recovery string used by the page in the canonical EN/FR readiness contract. Keep the removal modal inside its declared viewport bounds with border-box sizing; retain deterministic semantic/CSS checks without introducing a browser framework solely for computed-style duplication.
 - [x] Executable coverage -- hold initial delivery across disposal and replacement for accepted, ambiguous, unsupported, and terminal outcomes; hold retry delivery across replacement and prove current-owner synchronization/release; repeat unsupported ambiguity without a stuck token; assert retained audit/politeness for degraded and unable states; hold notification-only status and authorization collapse races; dispose during removal cleanup and focus-module import; exercise false focus fallback and exact rendered Cancel ID; cover correction ordinary unable-to-verify recovery; replace fixed-delay adoption assertions with condition-based waits; and prove unrelated gate changes cause no status lookup.
 
+**Review repair constraints (iteration 6 — human-authorized exception):**
+- [x] `src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js`, `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`, `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`, and a repeatable browser validator plus evidence under `tests/` and `_bmad-output/implementation-artifacts/` -- execute the shipped focus module in real Chromium without a mocked JS result or new package/submodule/AppHost dependency; prove the start sentinel moves `document.activeElement` to the exact rendered Cancel target, prove missing-target/false focus takes the safe acknowledgement or lifecycle fallback, and make replacing the module body with `return true` fail the repeatable validation.
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- make exact-attempt notification validation and pending-slot replacement atomic so an attempt-A enqueue paused before the slot cannot overwrite a newer attempt-B nudge; retain bounded coalescing and revalidation before I/O, and add a deterministic race test that fails against the pre-iteration-6 check-before-lock implementation.
+- [x] Reapply and preserve the five successful 2026-09-22 repairs during re-derivation: raw ordinal UserId acknowledgement with encoded display only; fail-closed retry evidence/recovery instead of the `Available` key; grant submitting cleanup in `finally` across disposal/replacement; cancellation-safe focus import/invocation/disposal; and strict non-fallback invariant/FR shipped-resource enumeration.
+
 **KEEP during re-derivation:** Preserve exact fixed-envelope/payload validation, literal case-sensitive UserId transport, immutable complete BFF preview facts and self-removal copy, caller-owned canonical ULID dispatch, verified status identity/event-count gates, complete-population absence proof, no optimistic row deletion, retained aggregate exclusivity, whole-string EN/FR resources, the isolated responsive dialog shape, and unchanged aggregate/event/controller/AppHost/dependency/submodule surfaces.
 
 **Acceptance Criteria:**
@@ -218,6 +223,13 @@ Rejected:
 - Amended: added exact initial-dispatch token durability, completion-before/after-adoption release, monotonic repeated-ambiguity handling, state-faithful reconstruction, navigation-safe renderer and JS cleanup, false-focus fallback, advancement-only wakeups, complete lifecycle localization readiness, border-box modal bounds, and named held-operation tests.
 - Known-bad state avoided: do not leave a dispatched lease owned by a disposed page, leave a retry token active after lifecycle regression, adopt terminal evidence without releasing it, relabel degraded/unknown audit truth, suppress assertive failure announcements, leak an imported JS module, fault navigation cleanup, poll status on unrelated locks, or claim localization readiness for only preview strings.
 - KEEP: preserve all iteration-4 successes: bounded exact-attempt notification coalescing, render-synchronous recovery state, durable retry-result handoff, generation-atomic authorization collapse, single-drain correction adoption, safe mobile status semantics, operator-only same-ID retry, exact status identity, causal complete-projection proof, Fluent modal actions, semantic focus containment, shipped EN/FR copy, and unchanged aggregate/server/controller/AppHost/dependency/submodule contracts.
+
+### 2026-09-22 — Review repair iteration 6 (human-authorized exception)
+
+- Trigger: the post-iteration-5 review confirmed that mocked JS interop could not prove the shipped focus module moves real browser focus, and that notification validation before acquiring the pending-slot lock lets a stale attempt overwrite a newer exact-attempt nudge. The human explicitly authorized one exceptional sixth repair iteration after the workflow limit halted the run.
+- Amended: added a dependency-free repeatable real-Chromium focus validation/evidence requirement and an atomic identity-aware notification enqueue requirement with a deterministic attempt-A/attempt-B race test.
+- Known-bad state avoided: do not accept a mocked `true` as proof of focus, allow `return true` to pass without calling `focus()`, add a package/submodule/AppHost dependency for browser evidence, validate a nudge before locking and then overwrite blindly, or replace bounded exact-attempt coalescing with an unbounded queue.
+- KEEP: retain every successful iteration-5 behavior plus the five 2026-09-22 direct repairs: ordinal raw acknowledgement, fail-closed retry copy, guaranteed grant submitting cleanup, cancellation-contained focus work, and non-fallback EN/FR resource enumeration. Preserve fixed routing, retained ULID/lease identity, causal projection proof, last-administrator safety, and unchanged domain/controller/dependency/submodule surfaces.
 
 ## Review Triage Log
 
@@ -518,11 +530,11 @@ Rejected:
 
 0 decision-needed, 5 patch, 8 defer.
 
-- [ ] [Review][Patch] Encoded remove acknowledgement cannot confirm the ordinal UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
-- [ ] [Review][Patch] Fail-closed retry preflight can surface Availability.Remove.Available [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4395]
-- [ ] [Review][Patch] Grant dispatch clears the submitting flag outside finally [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3552]
-- [ ] [Review][Patch] Remove focus JS import/invoke cancellation is uncaught [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1515]
-- [ ] [Review][Patch] Shipped-resource walk accepts parent-culture fallback [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs:248]
+- [x] [Review][Patch] Encoded remove acknowledgement cannot confirm the ordinal UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
+- [x] [Review][Patch] Fail-closed retry preflight can surface Availability.Remove.Available [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4395]
+- [x] [Review][Patch] Grant dispatch clears the submitting flag outside finally [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3552]
+- [x] [Review][Patch] Remove focus JS import/invoke cancellation is uncaught [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1515]
+- [x] [Review][Patch] Shipped-resource walk accepts parent-culture fallback [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs:248]
 - [x] [Review][Defer] Restore-access correction still arms with TryMarkDispatched [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:913] — deferred: KEEP grant; this story tokenizes removal only. Story 4.2 / already recorded restore-access lease gap.
 - [x] [Review][Defer] Grant withdrawn-retry bit is not durable across adoption [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:24] — deferred: grant KEEP / Story 4.2 chrome, not last-administrator removal.
 - [x] [Review][Defer] Grant EditForm OnSubmit plus fluent-button onclick can double-enter preview [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:241] — deferred: grant KEEP launcher, not the removal dialog.
@@ -541,6 +553,76 @@ Rejected:
 - `false` TryBeginReconciliationDispatch failure after retry preflight diverges lease and snapshot — caller `RefreshRemoveStatusAsync` finally always runs `CompleteRemoveSingleFlightAsync`; `CanRetryAmbiguousRemoveDelivery` already requires no in-flight token.
 - `false` Grant notification copies a null lease after `IsDispatchMarked` — `_grantAdmissionLease?.IsDispatchMarked == true` already proves the lease is non-null.
 - `false` Unsupported submission is a retryable already-applied success path — `ApplySubmission` stays `UnableToVerify` without claiming success; iteration 5 requires monotonic same-id recovery so the completion token can clear.
+
+### 2026-09-22 — Review pass (iteration 5 continuation)
+- verdicts: 34 findings — high 6, medium 23, low 0, false 3, maybe-false 2
+- findings:
+  - `[medium]` `[defer]` Reversed audit date ranges still have no page-boundary test for query suppression and both fields' accessible error association — carried: Story 5.1 filter validation; already DW-356.
+  - `[medium]` `[bad_spec]` Removal-dialog focus tests still replace the shipped `focusElementById` behavior with a mock, so returning `true` without focusing would pass — carried: actual browser focus was not executed, and iteration 5's deterministic seam did not close that verification gap.
+  - `[medium]` `[defer]` Dynamic Keycloak bootstrap credentials are only statically asserted and never exercised through the provisioned realm — later AppHost/bootstrap work in the baseline range, not last-administrator removal.
+  - `[high]` `[defer]` `TenantAuditRow.FromEntry` falls back from an unsafe or missing narrative user id to the tenant id, which correction intent can then use as the target user — Story 5.1 audit/correction mapping, not this removal flow.
+  - `[medium]` `[defer]` `TenantAuditRow.FromEntry` replaces projected `Scope` and `Outcome` with tenant id and event type — later audit-row mapping can misstate receipts but is not Story 4.3 work.
+  - `[medium]` `[defer]` `TenantAuditNarrative.SafeTimestamp` accepts only the exact `O` format and drops otherwise valid round-trip timestamps — carried: Story 5.1 audit parsing.
+  - `[medium]` `[defer]` Numeric text matching a defined audit-category value is accepted by `Enum.TryParse` — carried: Story 5.1 filter parsing.
+  - `[medium]` `[defer]` `TenantAuditPage.TryCreateRequest` mutates render validation fields from continuations that can be off the renderer dispatcher — carried: Story 5.1 filter rendering.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` rejects legitimate list return URLs containing `cursor` — carried: Story 5.1 audit navigation.
+  - `[medium]` `[defer]` Audit permission and escalation controls both navigate to `BackHref` rather than their advertised destinations — carried: Story 5.1 recovery matrix; already DW-352.
+  - `[medium]` `[defer]` `AuditDataGrid` gives viewport messaging precedence over durable correction authorization/evidence blockers — later Story 5.1 correction presentation, not last-administrator removal.
+  - `[medium]` `[bad_spec]` `QueueRemoveStatusNudgeAsync` validates the current attempt before locking, then unconditionally overwrites the one pending slot; a stale enqueue can replace a newer attempt's nudge — this violates the iteration-4 exact-attempt coalescing contract and needs an atomic identity-aware enqueue design plus a race test.
+  - `[false]` `[reject]` Recursive `DrainRemoveStatusNudgesAsync` calls were said to grow to stack exhaustion — the recursion occurs after the drain gate is released and is awaited through the async state machine; no synchronous unbounded stack path was demonstrated.
+  - `[high]` `[defer]` `TenantQueryGateway` can return an audit snapshot for the captured caller after a later identity transition because the final payload returns are not identity-checked — later caller-bound Story 5.1 query work, not Story 4.3.
+  - `[maybe-false]` `[defer]` `focusElementById` may report a successful Fluent Cancel wrap as failure when focus lands on an inner native control — carried: a real-browser `activeElement` trace would settle DW-345.
+  - `[false]` `[reject]` Withdrawn ambiguous removal retry was said to hide its associated reason and recovery — carried: the lifecycle continues rendering `SafeMessageKey` and `SafeRecoveryKey` while only the destructive control is withdrawn.
+  - `[false]` `[reject]` The baseline-range `global.json`, AppHost, gitlink, audit, and tooling changes were attributed to Story 4.3 — carried: they are later declared work; editing this spec's scope account would not fix operator-visible removal behavior.
+  - `[medium]` `[defer]` The three `pushall` skill manifests restrict tools to Git Bash even though their preflight and orchestration require file reads and subagents — later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` prefers a stale local `main`/`master` before resolving `origin/HEAD`, so it can treat the real remote default as a feature branch and prune it — later tooling work, not Story 4.3.
+  - `[high]` `[defer]` `pushall` commits a dirty tree before checking detached HEAD or in-progress merge/rebase/cherry-pick state, risking unreachable or accidentally finalized commits — later tooling work.
+  - `[medium]` `[defer]` `pushall` uses fixed sync/merge messages without validating each exact candidate with the pinned commitlint CLI — carried: the same later tooling gap previously noted for its `git add -A` and fixed `build:` subject.
+  - `[high]` `[defer]` `pushall` validates only conflict resolutions, allowing clean merges and the final combined tree to be pushed without a build or test — later tooling work.
+  - `[medium]` `[defer]` `pushall` defines no terminal per-repository path after an initial fetch failure and can continue from stale remote-tracking refs — later tooling work.
+  - `[medium]` `[defer]` `TenantQueryResult.FromPayload` drops read-model lifecycle/freshness/provenance whenever ETag is absent — later query-contract work in the baseline range, not last-administrator removal.
+  - `[medium]` `[defer]` `TenantDetailPage` still consumes caller-free `TenantAuditSnapshot.MatchesScope(request)` for capability and command-proof decisions — carried: later Story 5.1 caller-scope work.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` repeatedly decodes and returns the decoded route, allowing encoded reserved characters to change path/query semantics — later audit-navigation work.
+  - `[medium]` `[defer]` `SafeReturnUrl` applies the clipboard/reference denylist to whole routes and rejects ordinary query values — carried: the same Story 5.1 `cursor` defect.
+  - `[high]` `[defer]` `TenantAuditSupportSafety.IsSafe` checks controls only before percent-decoding, so encoded controls can survive canonical inspection — later audit support-safety work.
+  - `[medium]` `[defer]` The audit correction viewport branch hides permission, freshness, support, and evidence reasons when the viewport is also unsafe — same later Story 5.1 presentation defect as the edge-case viewport finding.
+  - `[medium]` `[defer]` Audit “Request permission” and “Escalate” actions both route backward — carried: Story 5.1 recovery matrix; already DW-352.
+  - `[medium]` `[defer]` Audit filter validation state is written directly before renderer dispatch — carried: Story 5.1 `TryCreateRequest` rendering gap.
+  - `[maybe-false]` `[defer]` The source-reference CI lane may count skipped projection-provenance theories toward its minimum because it omits `--fail-skips on` — a controlled skipped-case CI run or pinned runner semantics would settle it; later CI work, not Story 4.3.
+  - `[medium]` `[defer]` Grant retry withdrawal is absent from retained reconciliation and can be re-armed after adoption — carried: Story 4.2 grant behavior, while this story tokenizes removal only.
+  - `[medium]` `[defer]` Three tracked review prompt artifacts embed roughly 13 MB of raw diffs and can cause recursive review-prompt growth — later review-artifact hygiene, not removal behavior.
+
+### 2026-09-22 — Review pass (human-authorized iteration 6)
+- verdicts: 28 findings — high 5, medium 20, low 0, false 3, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` The real-Chromium focus validator is not part of routine verification; the normal UI suite only inspects its source text, so a shipped `return true` no-op can pass — add a required repository CI lane that restores the UI assets and executes the browser validator.
+  - `[medium]` `[defer]` Dynamic Keycloak bootstrap credentials are still only statically asserted and never exercised through the provisioned realm — carried: later AppHost/bootstrap work in the baseline range, not last-administrator removal.
+  - `[medium]` `[defer]` `docs/quickstart.md` still advertises `admin-user` / `admin-pass` although the realm now generates credentials — later AppHost/documentation work in the baseline range, not last-administrator removal.
+  - `[medium]` `[patch]` `RealChromiumFocusValidatorPinsActiveElementMovementAndFallbacks` only checks harness and runner strings, so routine tests never execute Chromium — same current-story verification root cause as the required CI lane; wire the executable validator into repository verification.
+  - `[false]` `[reject]` The browser harness does not render the full Blazor page — bUnit already exercises the actual page markup, ids, handlers, and fallback calls while the browser harness deliberately tests the remaining shipped-JavaScript/Fluent-custom-element seam; no uncovered bad outcome was demonstrated.
+  - `[medium]` `[patch]` The browser harness removes Cancel to force fallback but does not cover an existing target whose `focus()` fails — add a deterministic rendered-but-unfocusable Cancel scenario that must land on acknowledgement.
+  - `[false]` `[reject]` `_removeStatusNudgeLock` does not guard every remove-state writer — the harmful outcome claimed cannot occur: enqueue validates and replaces the single slot under the lock, a newer attempt enqueue overwrites any transient stale slot, and drain revalidates exact attempt identity before I/O.
+  - `[high]` `[defer]` `TenantAuditRow.FromEntry` can fall back from an unsafe narrative target to the tenant id and arm correction against it — carried: Story 5.1 audit/correction mapping, not this removal flow.
+  - `[medium]` `[defer]` `TenantAuditRow.FromEntry` replaces projected `Scope` and `Outcome` with tenant id and event type — carried: later audit-row mapping, not Story 4.3.
+  - `[high]` `[defer]` `TenantAuditSupportSafety.IsSafe` checks controls only before percent-decoding — carried: later Story 5.1 audit support-safety work.
+  - `[medium]` `[defer]` `TenantAuditNarrative.SafeTimestamp` accepts only the exact `O` format — carried: Story 5.1 audit parsing.
+  - `[medium]` `[defer]` `TenantQueryResult.FromPayload` drops lifecycle, freshness, and provenance when ETag is absent — carried: later query-contract work in the baseline range.
+  - `[medium]` `[defer]` `TenantDetailPage` consumes caller-free `TenantAuditSnapshot.MatchesScope(request)` for capability and command-proof decisions — carried: later Story 5.1 caller-scope work.
+  - `[medium]` `[defer]` Audit permission and escalation actions route to `BackHref` — carried: Story 5.1 recovery matrix; already DW-352.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` applies its denylist to whole routes and rejects ordinary cursor values — carried: Story 5.1 audit navigation.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` repeatedly decodes and returns the decoded route, changing encoded reserved-character semantics — carried: later audit-navigation work.
+  - `[medium]` `[defer]` Audit correction viewport messaging hides durable permission, freshness, support, and evidence blockers — carried: later Story 5.1 presentation work.
+  - `[medium]` `[defer]` The `pushall` manifests restrict allowed tools despite requiring file reads and subagents — carried: later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` can prefer stale local `main` / `master` before the remote default branch — carried: later tooling work.
+  - `[high]` `[defer]` `pushall` commits a dirty tree before checking detached HEAD or an in-progress Git operation — carried: later tooling work.
+  - `[high]` `[defer]` `pushall` does not validate fixed commit messages with pinned commitlint and does not build/test clean merges or the final combined tree — carried: the same later tooling gaps were already recorded separately.
+  - `[medium]` `[defer]` Tracked review-prompt artifacts embed large raw diffs and can recursively grow future review prompts — carried: later review-artifact hygiene, not removal behavior.
+  - `[high]` `[defer]` `TenantCorrectionStartIntent` can substitute tenant id for an unsafe audit target — carried: the same Story 5.1 audit/correction mapping defect as the `TenantAuditRow.FromEntry` finding.
+  - `[medium]` `[defer]` `IsValidTenantAuditPayload` does not reject blank or repeated continuation cursors, allowing an enabled Next action to no-op or loop — later Story 5.1 audit pagination contract, not last-administrator removal.
+  - `[medium]` `[defer]` read-refresh authorization can collapse after the pre-assignment check and before `_readRefreshLease` assignment, leaving a subscription that sign-out missed — pre-existing page subscription code from earlier commits; later authorization-lifecycle work, not this removal change.
+  - `[medium]` `[patch]` An older Cancel-focus continuation can observe a newer removal preview and focus the lifecycle region outside the active dialog — keep focus inside the current preview when generations change; lifecycle is only the no-preview fallback.
+  - `[medium]` `[patch]` `RequiredRemoveFactKeys` omits the `Availability.Remove.*` strings that the removal surface renders, so readiness can be true while those resources resolve as raw keys — add every rendered removal availability and recovery key to the strict invariant/French completeness set and tests.
+  - `[false]` `[reject]` `global.json` and root gitlinks were attributed to this removal correction — carried: later dependency work in the baseline range; the story already declares the shipped pointer history.
 
 ## Design Notes
 
@@ -566,6 +648,7 @@ Any missing link remains pending/rejected/unable-to-verify. The generic API vali
 
 Source and tests changed by this story:
 
+- `.github/workflows/story-guards.yml`
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
 - `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor`
@@ -579,11 +662,17 @@ Source and tests changed by this story:
 - `src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js`
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html`
+- `tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorsSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs`
+
+Story-owned review evidence:
+
+- `story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md`
 
 Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced Builds, EventStore, and FrontComposer again to the SHAs this tree now ships:
 

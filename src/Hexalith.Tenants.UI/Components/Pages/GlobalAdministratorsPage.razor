@@ -1159,7 +1159,7 @@
         => _removeSnapshot.State is not TenantCommandLifecycleState.Previewed
         || !string.Equals(
             _removeAcknowledgement,
-            DisplayIdentity(_removeSnapshot.PreviewEvidence?.TargetUserId),
+            _removeSnapshot.PreviewEvidence?.TargetUserId,
             StringComparison.Ordinal)
         || IsGrantInFlight
         || IsRemoveInFlight
@@ -1616,6 +1616,11 @@
             // A newer render detached the exact focus target before JavaScript observed it.
             useFallback = true;
         }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown can cancel module import or invocation without a caller-owned token.
+            useFallback = true;
+        }
         catch (InvalidOperationException)
         {
             // The renderer stopped accepting interop while the remove-cancel focus request was in flight.
@@ -1637,8 +1642,13 @@
 
     private async Task FocusRemoveFallbackAsync(GlobalAdministratorRemovePreview expectedPreview)
     {
-        if (IsCurrentRemovePreview(expectedPreview))
+        if (IsCurrentRemovePreview(expectedPreview)
+            || (!_disposed
+                && _removeSnapshot.State is TenantCommandLifecycleState.Previewed
+                && _removeSnapshot.PreviewEvidence is { IsComplete: true }))
         {
+            // A stale continuation can finish after a newer preview replaces its expected instance. Keep
+            // focus inside that current dialog; lifecycle is safe only when no removal preview is active.
             await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
         }
         else if (!_disposed)
@@ -1664,6 +1674,10 @@
         catch (JSException)
         {
             // Browser teardown can reject disposal after navigation; containment is sufficient.
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown can cancel module disposal after the preview has already disappeared.
         }
     }
 
@@ -2087,20 +2101,37 @@
     {
         TenantAggregateCommandLease? exactLease = _removeAdmissionLease;
         if (exactAttempt.CorrelationId is null
-            || exactLease?.IsDispatchMarked != true
-            || !HasSameRemoveAttempt(_removeSnapshot, exactAttempt, exactLease))
+            || exactLease?.IsDispatchMarked != true)
         {
             return;
         }
 
-        lock (_removeStatusNudgeLock)
+        if (!TryQueueRemoveStatusNudge(exactAttempt, exactLease))
         {
-            // The fixed aggregate admits one removal at a time. One exact-attempt slot therefore coalesces an
-            // arbitrary notification burst without retaining an unbounded queue of stale snapshots.
-            _pendingRemoveStatusNudge = (exactAttempt, exactLease);
+            return;
         }
 
         await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+    }
+
+    private bool TryQueueRemoveStatusNudge(
+        GlobalAdministratorRemoveCommandSnapshot exactAttempt,
+        TenantAggregateCommandLease exactLease)
+    {
+        lock (_removeStatusNudgeLock)
+        {
+            if (!HasSameRemoveAttempt(_removeSnapshot, exactAttempt, exactLease))
+            {
+                return false;
+            }
+
+            // The fixed aggregate admits one removal at a time. One exact-attempt slot therefore coalesces an
+            // arbitrary notification burst without retaining an unbounded queue of stale snapshots. Validate
+            // the live attempt while holding the same lock that replaces the slot: an older enqueue paused
+            // before this boundary cannot overwrite a newer attempt's pending nudge.
+            _pendingRemoveStatusNudge = (exactAttempt, exactLease);
+            return true;
+        }
     }
 
     private async Task DrainRemoveStatusNudgesAsync()
@@ -2159,10 +2190,7 @@
         {
             if (exactAttempt.CorrelationId is not null)
             {
-                lock (_removeStatusNudgeLock)
-                {
-                    _pendingRemoveStatusNudge = (exactAttempt, exactLease);
-                }
+                _ = TryQueueRemoveStatusNudge(exactAttempt, exactLease);
             }
 
             return;
@@ -3536,65 +3564,68 @@
             return;
         }
 
-        TenantCommandSubmissionResult result;
         try
         {
-            result = await CommandGateway
-                .SetGlobalAdministratorTrackedAsync(request, expectedMessageId, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            result = TenantCommandSubmissionResult.Ambiguous(
-                expectedMessageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-        catch
-        {
-            result = TenantCommandSubmissionResult.Ambiguous(
-                expectedMessageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-
-        GlobalAdministratorGrantCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
-        bool completionPublished = CreateCompletionReconciliation(submissionSnapshot) is { } durableCompletion
-            && expectedLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion);
-        if (!completionPublished)
-        {
-            _ = expectedLease.TryAbortReconciliationDispatch(completionToken);
-            await PublishGrantDeliveryCompletionAsync(
-                requestSentSnapshot,
-                submissionSnapshot,
-                expectedLease,
-                generation).ConfigureAwait(false);
-        }
-        else
-        {
-            GlobalAdministratorGrantCommandSnapshot? appliedCompletion = null;
-            _ = await InvokeRendererSafelyAsync(() =>
+            TenantCommandSubmissionResult result;
+            try
             {
-                if (CanApplyGrantMutation(generation)
-                    && ReferenceEquals(_grantAdmissionLease, expectedLease)
-                    && SynchronizeOwnedGrantReconciliation())
+                result = await CommandGateway
+                    .SetGlobalAdministratorTrackedAsync(request, expectedMessageId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                result = TenantCommandSubmissionResult.Ambiguous(
+                    expectedMessageId,
+                    "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
+            }
+            catch
+            {
+                result = TenantCommandSubmissionResult.Ambiguous(
+                    expectedMessageId,
+                    "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
+            }
+
+            GlobalAdministratorGrantCommandSnapshot submissionSnapshot = requestSentSnapshot.ApplySubmission(result);
+            bool completionPublished = CreateCompletionReconciliation(submissionSnapshot) is { } durableCompletion
+                && expectedLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion);
+            if (!completionPublished)
+            {
+                _ = expectedLease.TryAbortReconciliationDispatch(completionToken);
+                await PublishGrantDeliveryCompletionAsync(
+                    requestSentSnapshot,
+                    submissionSnapshot,
+                    expectedLease,
+                    generation).ConfigureAwait(false);
+            }
+            else
+            {
+                GlobalAdministratorGrantCommandSnapshot? appliedCompletion = null;
+                _ = await InvokeRendererSafelyAsync(() =>
                 {
-                    appliedCompletion = _grantSnapshot;
-                    StateHasChanged();
-                }
-            }).ConfigureAwait(false);
+                    if (CanApplyGrantMutation(generation)
+                        && ReferenceEquals(_grantAdmissionLease, expectedLease)
+                        && SynchronizeOwnedGrantReconciliation())
+                    {
+                        appliedCompletion = _grantSnapshot;
+                        StateHasChanged();
+                    }
+                }).ConfigureAwait(false);
 
-            if (appliedCompletion?.State is TenantCommandLifecycleState.Accepted)
-            {
-                await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+                if (appliedCompletion?.State is TenantCommandLifecycleState.Accepted)
+                {
+                    await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
-
-        if (!_disposed)
+        finally
         {
-            await InvokeAsync(() =>
+            _isGrantSubmitting = false;
+            _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (CanApplyGrantMutation(generation))
                 {
-                    _isGrantSubmitting = false;
+                    StateHasChanged();
                 }
             }).ConfigureAwait(false);
         }
@@ -4165,7 +4196,7 @@
                 || expectedSnapshot.MessageId is not { Length: > 0 } messageId
                 || submissionLease is null
                 || submissionLease.IsDispatchMarked
-                || !string.Equals(_removeAcknowledgement, DisplayIdentity(request.UserId), StringComparison.Ordinal))
+                || !string.Equals(_removeAcknowledgement, request.UserId, StringComparison.Ordinal))
             {
                 return;
             }
@@ -4234,9 +4265,12 @@
                 {
                     _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
                     _removeAdmissionLease = null;
+                    (string reasonKey, string recoveryKey) = RemovePreflightFailureEvidence(
+                        rebuilt,
+                        availability);
                     SetRemoveSnapshot(expectedSnapshot.InvalidatePreview(
-                        rebuilt.UnavailableReasonKey ?? availability.ReasonKey,
-                        rebuilt.RecoveryKey ?? availability.RecoveryKey));
+                        reasonKey,
+                        recoveryKey));
                     StateHasChanged();
                     return;
                 }
@@ -4446,9 +4480,12 @@
                 || !rebuilt.Matches(current)
                 || !availability.IsAvailable)
             {
+                (string reasonKey, string recoveryKey) = RemovePreflightFailureEvidence(
+                    rebuilt,
+                    availability);
                 SetRemoveSnapshot(expected.RetainAmbiguousPreflight(
-                    rebuilt.UnavailableReasonKey ?? availability.ReasonKey,
-                    rebuilt.RecoveryKey ?? availability.RecoveryKey));
+                    reasonKey,
+                    recoveryKey));
                 StateHasChanged();
                 return;
             }
@@ -4503,6 +4540,19 @@
         // Successful completion publishes through the gate notification. Abort still applies the exact
         // result so a Failed delivery cannot leave a non-recoverable RequestSent lease.
     }
+
+    private static (string ReasonKey, string RecoveryKey) RemovePreflightFailureEvidence(
+        GlobalAdministratorRemovePreview rebuilt,
+        GlobalAdministratorActionAvailability availability)
+        => (
+            rebuilt.UnavailableReasonKey
+                ?? (!availability.IsAvailable
+                    ? availability.ReasonKey
+                    : "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Evidence"),
+            rebuilt.RecoveryKey
+                ?? (!availability.IsAvailable
+                    ? availability.RecoveryKey
+                    : "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh"));
 
     private async Task RefreshRemoveStatusCoreAsync(
         long generation,

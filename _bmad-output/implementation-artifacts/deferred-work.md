@@ -3053,3 +3053,15 @@ Chunk A (declared production source). No new DW ids; grant KEEP and later gitlin
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
   summary: Add real explicit-project-root tests for the BMAD customization resolver.
   evidence: Wrapper tests only inspect mocked argv; execute the resolver from a conflicting working directory and cover explicit-root precedence, fallback precedence, and warnings in the Python guard lane.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Update the quickstart for generated local Keycloak credentials.
+  evidence: The realm now provisions generated per-run credentials while `docs/quickstart.md` still submits `admin-user` and `admin-pass`, so the documented token request fails against the default local topology.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Reject blank and repeated continuation cursors in tenant-audit payload validation.
+  evidence: `TenantQueryGateway.IsValidTenantAuditPayload` validates rows but not the `HasMore`/cursor relationship or equality with the requested cursor, so an enabled Next action can no-op or loop on the same page.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Close the global-administrator read-refresh subscription race across authorization collapse.
+  evidence: Authorization can become false after the post-subscribe guard and before `_readRefreshLease` assignment; the sign-out path can then miss and leave that callback subscribed because the post-assignment guard only rechecks disposal.

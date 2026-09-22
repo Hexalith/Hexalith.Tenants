@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Tenants focus module browser validation</title>
+</head>
+<body>
+    <section id="remove-preview" role="dialog" aria-modal="true">
+        <span id="remove-focus-start" tabindex="0"></span>
+        <fluent-button id="tenants-global-admin-remove-cancel-button"
+                       data-testid="tenants-global-admin-remove-cancel"
+                       appearance="outline">Cancel</fluent-button>
+        <input id="remove-acknowledgement" aria-label="Removal acknowledgement">
+    </section>
+    <section id="remove-lifecycle" tabindex="-1">Removal lifecycle</section>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const cancelButtonId = "tenants-global-admin-remove-cancel-button";
+        const modulePath = new URLSearchParams(window.location.search).get("module") ?? "./tenantsFocus.js";
+        const fluentUi = await import("./fluent-ui.js");
+        fluentUi.beforeStart(document, "web");
+        await customElements.whenDefined("fluent-button");
+        const { focusElementById } = await import(modulePath);
+        const report = document.getElementById("validation-report");
+        const acknowledgement = document.getElementById("remove-acknowledgement");
+        const lifecycle = document.getElementById("remove-lifecycle");
+        const startSentinel = document.getElementById("remove-focus-start");
+        const observations = [];
+
+        function assertActiveElement(expected, scenario) {
+            const actual = document.activeElement;
+            observations.push(`${scenario}:${actual?.id ?? "none"}`);
+            if (actual !== expected) {
+                throw new Error(`${scenario} expected ${expected.id} but focused ${actual?.id ?? "none"}`);
+            }
+        }
+
+        function routeStartSentinel() {
+            const preview = document.getElementById("remove-preview");
+            if (!preview) {
+                lifecycle.focus({ preventScroll: false });
+                return;
+            }
+
+            if (!focusElementById(cancelButtonId)) {
+                acknowledgement.focus({ preventScroll: false });
+            }
+        }
+
+        startSentinel.addEventListener("focus", routeStartSentinel);
+
+        try {
+            startSentinel.focus();
+            const exactCancel = document.getElementById(cancelButtonId);
+            assertActiveElement(exactCancel, "start-to-exact-cancel");
+
+            exactCancel.setAttribute("disabled", "");
+            startSentinel.focus();
+            assertActiveElement(acknowledgement, "existing-unfocusable-cancel-to-acknowledgement");
+
+            exactCancel.remove();
+            startSentinel.focus();
+            assertActiveElement(acknowledgement, "missing-cancel-to-acknowledgement");
+
+            document.getElementById("remove-preview").remove();
+            routeStartSentinel();
+            assertActiveElement(lifecycle, "missing-preview-to-lifecycle");
+
+            document.documentElement.dataset.validationStatus = "passed";
+            report.textContent = `PASS ${observations.join(";")}`;
+        }
+        catch (error) {
+            document.documentElement.dataset.validationStatus = "failed";
+            report.textContent = `FAIL ${error instanceof Error ? error.message : String(error)};${observations.join(";")}`;
+        }
+    </script>
+</body>
+</html>
