@@ -237,12 +237,7 @@ public class PackageGovernanceTests {
                     $"{AppHostProjectPath}: {packageId} ProjectReference must remove the parent Version global property.");
             }
 
-            string additionalProperties = ItemMetadataValue(projectReference, "AdditionalProperties");
-            if (additionalProperties.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Any(property => string.Equals(
-                    property[..Math.Max(property.IndexOf('='), 0)].Trim(),
-                    "Version",
-                    StringComparison.OrdinalIgnoreCase))) {
+            if (AdditionalPropertiesExportVersion(ItemMetadataValue(projectReference, "AdditionalProperties"))) {
                 violations.Add(
                     $"{AppHostProjectPath}: {packageId} ProjectReference must not export a Version global property.");
             }
@@ -259,10 +254,53 @@ public class PackageGovernanceTests {
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/source-reference.yml"));
 
         workflow.ShouldContain("git -c submodule.recurse=false submodule update --init");
-        workflow.ShouldContain("-p:UseHexalithProjectReferences=true");
-        workflow.ShouldContain("-warnaserror");
+        workflow.ShouldContain("dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj");
+        workflow.ShouldContain("--configuration Debug -p:UseHexalithProjectReferences=true -warnaserror");
+        workflow.ShouldContain("dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj");
+        workflow.ShouldContain("--no-build");
+        workflow.ShouldContain("--minimum-expected-tests 4");
         workflow.ShouldContain(
-            "-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway");
+            "--filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway");
+
+        foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
+            workflow.ShouldNotContain(forbiddenFragment);
+        }
+    }
+
+    [Theory]
+    [InlineData("Version")]
+    [InlineData("Version=")]
+    [InlineData("Version=$(HexalithEventStoreVersion)")]
+    [InlineData("TargetFramework=net10.0;Version")]
+    [InlineData("VERSION=1.0.0")]
+    public void Additional_properties_version_tokens_are_treated_as_version_exports(string additionalProperties) {
+        ArgumentNullException.ThrowIfNull(additionalProperties);
+        AdditionalPropertiesExportVersion(additionalProperties).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("TargetFramework=net10.0")]
+    [InlineData("VersionSuffix=beta")]
+    [InlineData("InformationalVersion=1.0")]
+    public void Additional_properties_without_a_version_name_are_not_version_exports(string additionalProperties) {
+        ArgumentNullException.ThrowIfNull(additionalProperties);
+        AdditionalPropertiesExportVersion(additionalProperties).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Item_metadata_reader_combines_attribute_and_child_element_values() {
+        XElement item = XElement.Parse(
+            """
+            <ProjectReference Include="Hexalith.EventStore.csproj" AdditionalProperties="TargetFramework=net10.0" GlobalPropertiesToRemove="TargetFramework">
+              <AdditionalProperties>Version</AdditionalProperties>
+              <GlobalPropertiesToRemove>Version</GlobalPropertiesToRemove>
+            </ProjectReference>
+            """);
+
+        ItemMetadataValue(item, "AdditionalProperties").ShouldBe("TargetFramework=net10.0;Version");
+        ItemMetadataValue(item, "GlobalPropertiesToRemove").ShouldBe("TargetFramework;Version");
+        AdditionalPropertiesExportVersion(ItemMetadataValue(item, "AdditionalProperties")).ShouldBeTrue();
     }
 
     /// <summary>
@@ -430,6 +468,20 @@ public class PackageGovernanceTests {
         }
 
         return references;
+    }
+
+    private static bool AdditionalPropertiesExportVersion(string additionalProperties) {
+        ArgumentNullException.ThrowIfNull(additionalProperties);
+
+        foreach (string property in additionalProperties.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
+            int separator = property.IndexOf('=');
+            string name = separator < 0 ? property : property[..separator].Trim();
+            if (string.Equals(name, "Version", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string ItemMetadataValue(XElement item, string metadataName) {

@@ -36,6 +36,8 @@ jobs:
           --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental
       - name: Verify real-handler projection provenance
         run: >
-          dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll
-          -noLogo -noColor -parallelMode none
-          -method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Debug --no-build
+          -p:UseHexalithProjectReferences=true
+          --minimum-expected-tests 4
+          --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway

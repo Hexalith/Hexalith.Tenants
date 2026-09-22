@@ -2,9 +2,9 @@
 title: '4.2 Align Source-Reference Contracts Assembly Identity'
 type: 'bugfix'
 created: '2026-09-21'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
-review_loop_iteration: 0
+review_loop_iteration: 1
 baseline_commit: 88fe282d93e0a1c9da0c77b062d960d6cb13d291
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -30,6 +30,10 @@ context:
 - Verified the 24-test `PackageGovernanceTests` class passes after a Release build with warnings as errors.
 - Verified the AppHost still builds successfully in Release/package mode with `UseHexalithProjectReferences=false` and warnings as errors.
 - Verified workflow YAML/action linting, `git diff --check`, and the story gitlink guard; no `references/` pointer changed and the EventStore worktree is clean.
+- Closed the leftover review patches: source-reference CI now runs `dotnet test --filter-method` with `--minimum-expected-tests 4` because the xUnit in-process runner treats a missed `-method` filter as zero tests with exit 0 and rejects `-minimum-expected-tests` as an unknown option.
+- The export guard now treats a bare `AdditionalProperties` `Version` token (no `=`) as a Version leak, covering attribute and child-element metadata through the existing case-insensitive reader.
+- Tightened the source-reference workflow guard so `UseHexalithProjectReferences=true` is locked to the `dotnet build` invocation, applied `ForbiddenWorkflowFragments` to that workflow, and added an XML fixture that `ItemMetadataValue` joins attribute and child-element metadata.
+- Verified `PackageGovernanceTests` at 34/34 after a Release `-warnaserror` build.
 
 ## Review Triage Log
 
@@ -39,12 +43,23 @@ context:
 | BH-2 | medium | patch | The initial metadata check read attributes case-sensitively. It now combines attribute and child-element metadata and compares both metadata and property names case-insensitively. |
 | BH-3 | medium | patch | Release/package CI does not exercise this Debug-only graph. A dedicated workflow now builds with `UseHexalithProjectReferences=true` and runs the four cases that reproduced the MVC application-parts failure. |
 | BH-4 | false | reject | The filename intentionally preserves the requested Story 4.2 key for sprint synchronization and uses the workflow's `-2` collision suffix so the completed original story artifact is not overwritten; the title records the bounded follow-up scope. |
+| BH2-1 | medium | patch | `UseHexalithProjectReferences=true` could survive only on `dotnet test --no-build`. The guard now requires it on the `dotnet build` line. |
+| BH2-2 | medium | patch | The new workflow was not scanned for `ForbiddenWorkflowFragments`. It now uses the same forbid list as CI and release. |
+| BH2-3 | maybe-false | defer | Unverified whether MTP skipped results count toward `--minimum-expected-tests`. Prove it by running the four-case filter with one forced skip; if the floor still passes, add `--fail-skips`. |
+| BH2-4 | medium | patch | `ItemMetadataValue` had no XML fixture. A child+attribute fixture now fails if the reader drops element metadata. |
+| BH2-5 | false | reject | Complementary source/package pairing is the domain-host policy test. AppHost Debug EventStore build edges are intentionally project-only; package-mode reachability is already `No_EventStore_project_reference_is_reachable_in_package_mode`. |
+| BH2-6 | maybe-false | defer | Same cold-restore timeout question as the previous pass. A timed cold CI run of the Debug source build plus the four cases would settle it. |
+| BH2-7 | low | reject | Missing TRX upload is cosmetic for a four-test lane; adding report+artifact plumbing is more than a simple correction. |
 
 ### Review Findings
 
-- [ ] [Review][Patch] Source-reference CI can succeed without running the four real-handler cases [`.github/workflows/source-reference.yml:38`]
-- [ ] [Review][Patch] Bare `AdditionalProperties` `Version` tokens evade the export guard [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:241`]
+- [x] [Review][Patch] Source-reference CI can succeed without running the four real-handler cases [`.github/workflows/source-reference.yml:38`] — patched: `dotnet test --filter-method` with `--minimum-expected-tests 4`.
+- [x] [Review][Patch] Bare `AdditionalProperties` `Version` tokens evade the export guard [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:241`] — patched: name parsed even when the token has no `=`.
+- [x] [Review][Patch] Source-reference `UseHexalithProjectReferences` lock was not bound to `dotnet build` [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:257`]
+- [x] [Review][Patch] Source-reference workflow omitted `ForbiddenWorkflowFragments` [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:267`]
+- [x] [Review][Patch] `ItemMetadataValue` had no XML fixture for child-element metadata [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:290`]
 - [x] [Review][Defer] Source-reference job may time out on a cold restore [`.github/workflows/source-reference.yml:20`] — deferred: unverified medium; settle by timing a cold CI run of `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false --no-incremental` plus the four-case execution. If it finishes under 15 minutes, the timeout is adequate; if not, add the `domain-ci` NuGet cache and/or raise the timeout.
+- [x] [Review][Defer] MTP skipped results may satisfy `--minimum-expected-tests 4` [`.github/workflows/source-reference.yml:42`] — deferred: unverified medium; settle by running the filtered four cases with one forced skip.
 
 Rejected:
 - `false` Anonymous `git submodule update --init` skips Hexalith.Builds `initialize-build` — the composite is that exact command; this workflow inlines it. `persist-credentials: false` is extra hardening on public Hexalith URLs, not a missing fetch.
@@ -53,3 +68,5 @@ Rejected:
 - `false` AppHost guard omits Debug/`UseHexalithProjectReferences`/`ReferenceOutputAssembly=false` and conflicts with the host `Version=$(HexalithEventStoreVersion)` policy — those are complementary graphs (reverse-ref vs consumer-owned pin). Package-mode reachability is already covered by `No_EventStore_project_reference_is_reachable_in_package_mode`.
 - `false` Spec `status: done` with `review_loop_iteration: 0` and no `-2` sprint key — filename collision suffix is intentional; fixing this would edit the spec under review.
 - `false` Missing EventStore source silently runs the package graph — after a successful `submodule update --init`, `HexalithEventStoreFromSource` is true; a failed init fails the job before build.
+- `false` Complementary source/package pairing omitted from the AppHost version guard — domain-host pairing is a different test; AppHost Debug EventStore build edges are intentionally project-only.
+- `low` Missing TRX upload on the four-test source-reference lane — not worth report-and-artifact plumbing.

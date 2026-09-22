@@ -2986,3 +2986,13 @@ Chunk A (declared production source). No new DW ids; grant KEEP and later gitlin
 - `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the Cancel host id. Already DW-345; a real-browser `document.activeElement` trace after host `.focus()` would settle it. [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23`]
 - Correction outer catch may overlay Ambiguous after Accepted delivery. Unverified medium: settle by showing `RefreshStatusCoreAsync` throwing after `TryCompleteReconciliationDispatch` already published Accepted. [`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1082`]
 - `validate-story-gitlinks.py` FAILs against HEAD: UNDECLARED Commons `6da79ae -> 9f4809d` and PolymorphicSerializations `8aeed1d -> 7e95556`; MISSTATED Builds/EventStore/FrontComposer/Memories vs File List `39debe9` / `7b7f876` / `0a4c4ad` / `f174f9c`. Already DW-347; updating the record edits this spec, restoring the tree reverts later `build(deps)` (Chunk C).
+
+## Deferred from: oneshot review of spec-4-2-grant-global-administrator-with-projection-confirmation-2.md (2026-09-22)
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`
+  summary: MTP skipped results may satisfy the source-reference four-test floor.
+  evidence: maybe-false; prove it by running `--filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway` with one forced skip and `--minimum-expected-tests 4`. If that run still exits 0, add `--fail-skips`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`
+  summary: Source-reference job may time out on a cold restore.
+  evidence: maybe-false; settle by timing a cold CI run of `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false --no-incremental` plus the four-case execution. If it finishes under 15 minutes, the timeout is adequate; if not, add the domain-ci NuGet cache and/or raise the timeout.
