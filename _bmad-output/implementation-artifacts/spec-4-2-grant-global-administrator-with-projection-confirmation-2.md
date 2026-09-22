@@ -2,7 +2,7 @@
 title: '4.2 Align Source-Reference Contracts Assembly Identity'
 type: 'bugfix'
 created: '2026-09-21'
-status: 'done'
+status: 'in-progress'
 route: 'oneshot'
 review_loop_iteration: 0
 baseline_commit: 88fe282d93e0a1c9da0c77b062d960d6cb13d291
@@ -39,3 +39,17 @@ context:
 | BH-2 | medium | patch | The initial metadata check read attributes case-sensitively. It now combines attribute and child-element metadata and compares both metadata and property names case-insensitively. |
 | BH-3 | medium | patch | Release/package CI does not exercise this Debug-only graph. A dedicated workflow now builds with `UseHexalithProjectReferences=true` and runs the four cases that reproduced the MVC application-parts failure. |
 | BH-4 | false | reject | The filename intentionally preserves the requested Story 4.2 key for sprint synchronization and uses the workflow's `-2` collision suffix so the completed original story artifact is not overwritten; the title records the bounded follow-up scope. |
+
+### Review Findings
+
+- [ ] [Review][Patch] Source-reference CI can succeed without running the four real-handler cases [`.github/workflows/source-reference.yml:38`]
+- [ ] [Review][Patch] Bare `AdditionalProperties` `Version` tokens evade the export guard [`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:241`]
+- [x] [Review][Defer] Source-reference job may time out on a cold restore [`.github/workflows/source-reference.yml:20`] — deferred: unverified medium; settle by timing a cold CI run of `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false --no-incremental` plus the four-case execution. If it finishes under 15 minutes, the timeout is adequate; if not, add the `domain-ci` NuGet cache and/or raise the timeout.
+
+Rejected:
+- `false` Anonymous `git submodule update --init` skips Hexalith.Builds `initialize-build` — the composite is that exact command; this workflow inlines it. `persist-credentials: false` is extra hardening on public Hexalith URLs, not a missing fetch.
+- `false` IntegrationTests EventStore edges still leak `Version` into `Hexalith.Tenants.Contracts` — `Hexalith.EventStore`, `EventStore.Testing`, `EventStore.Testing.Integration`, and `EventStore.Aspire` do not reverse-reference Tenants.Contracts. The leak path is AppHost → Admin.Server.Host → Admin.Server, which this change already strips.
+- `false` Tenants.Aspire still sets EventStore.Aspire `Version` and mixed-builds AppHost — EventStore.Aspire has no Tenants.Contracts reverse reference, so that forward pin cannot reproduce the MVC identity mismatch.
+- `false` AppHost guard omits Debug/`UseHexalithProjectReferences`/`ReferenceOutputAssembly=false` and conflicts with the host `Version=$(HexalithEventStoreVersion)` policy — those are complementary graphs (reverse-ref vs consumer-owned pin). Package-mode reachability is already covered by `No_EventStore_project_reference_is_reachable_in_package_mode`.
+- `false` Spec `status: done` with `review_loop_iteration: 0` and no `-2` sprint key — filename collision suffix is intentional; fixing this would edit the spec under review.
+- `false` Missing EventStore source silently runs the package graph — after a successful `submodule update --init`, `HexalithEventStoreFromSource` is true; a failed init fails the job before build.
