@@ -2,7 +2,7 @@
 title: '4.2 Grant Global Administrator with Projection Confirmation'
 type: 'feature'
 created: '2026-08-31'
-status: done
+status: in-progress
 baseline_revision: 7f564930055a89251f512bafb62ee61491891a8f
 baseline_commit: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
 review_loop_iteration: 3
@@ -921,3 +921,35 @@ Rejected:
 - `low` `catch (InvalidOperationException)` in `FocusSafelyAsync` is too broad, and a failed focus has no fallback target — the catch is exactly what the 2026-09-07 patch item asked for, and narrowing it or adding a fallback adds branches for a path reachable only when focus itself fails.
 - `low` The localization reason key is drawn from the same key set whose incompleteness selects it, so `Localizer[key].Value` can render the raw key name — reachable only if the shipped resx is built missing those two specific keys; the fix adds a `ResourceNotFound` branch rather than a direct correction.
 - `low` Memoizing `HasCompleteFixedGrantLocalization` into `ComposeGrantPreview` caches a first-read false — the layer filed this as "cached for the service lifetime", but `TenantsBffComposition` is registered `TryAddScoped`, so the cache is per-circuit.
+
+### Review Findings — 2026-09-22 grant-core chunk
+
+Grant-core chunk only: `GlobalAdministratorsPage.razor` and its css, the grant state types, `TenantCommandGateway.cs`, `TenantsBffComposition.cs`, and both `TenantsResources` files. Diff `7e88a571..320cdc75`, 10 files, +3183 / −878. Correction surfaces, workspace, AppHost, UI tests, and gitlinks stay in later chunks.
+
+- [ ] [Review][Patch] Removal acknowledgement compares the raw user id while the prompt shows the encoded identity [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1126`]
+- [ ] [Review][Patch] Remove preview CSS still targets `div` children after the facts became `dt`/`dd` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:83`]
+- [ ] [Review][Patch] Identity cell combines `pre-wrap` with single-line ellipsis [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:261`]
+- [ ] [Review][Patch] An open grant preview disables confirm with no reason when a live prerequisite drops [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:645`]
+- [ ] [Review][Patch] Grant invalidation focuses the launcher instead of the failure text [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:133`]
+- [ ] [Review][Patch] Remove-cancel focus does not catch `InvalidOperationException` [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1572`]
+- [ ] [Review][Patch] Admission wake-up can redispatch a different ambiguous grant [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2378`]
+- [ ] [Review][Patch] Remove status and requery success paths skip the captured lease check [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4498`]
+- [ ] [Review][Patch] Tracked removal's ambiguous transport classification has no real-gateway test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:437`]
+- [ ] [Review][Patch] The real gateway's tracked-removal capability is absent from the capability test [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:32`]
+- [ ] [Review][Patch] Unrecognized non-retryable grant gateway statuses say the gateway is down [`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:892`]
+- [x] [Review][Defer] `focusElementById` may treat a successful Fluent button focus as failure [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:34`] — deferred: maybe-false, high if true; settle with a browser trace of `document.activeElement` after focusing the remove-cancel Fluent button host.
+- [x] [Review][Defer] `validate-story-gitlinks.py` FAILs against HEAD [`scripts/validate-story-gitlinks.py`] — deferred: this chunk excluded gitlinks. UNDECLARED `references/Hexalith.AI.Tools de38f78 -> 5f93d2e` and `references/Hexalith.Memories d1b95ab -> 8884933`; MISSTATED Builds `2fba349` (story says `9d77ed7`), Commons `9f4809d` (`372d715`), EventStore `66cb4ed` (`e38c125`), FrontComposer `0276424` (`c6fe14c`), PolymorphicSerializations `7e95556` (`8aeed1d`). Declare or revert in the gitlink chunk.
+
+Rejected:
+- `maybe-false` Acknowledgement autofill, spell-correction, or trimming can change the ordinal compare — no trim in `OnRemoveAcknowledgementChanged`; whether FluentTextInput disables autofill is unverified, and if true the harm is low.
+- `low` FrontComposer shell stays reachable behind `aria-modal` — the page stack is `inert` and the sentinel trap cycles focus inside the dialog; a shell overlay is more than a direct correction.
+- `low` `IsDeliveryRetryWithdrawn` is dropped when a renderer is replaced — `OnAfterRenderAsync` withdraws again when prerequisites are still false, and the retry control stays disabled by that same check. Persisting the bit adds a reconciliation field.
+- `false` Status transitions leave `IsDeliveryRetryWithdrawn` set — withdrawal requires a null correlation, and `ApplyStatus` runs only after a correlation exists. `Preview`, `RequestSent`, `Accepted`, and ambiguous `ApplySubmission` clear the flag.
+- `false` Ambiguous removal hides all reason and recovery text when retry prerequisites fail — the lifecycle section still renders `RemoveSafeMessage` and `RemoveSafeRecovery`. Only the retry button is hidden.
+- `false` `GetStatusAsync` shows grant status copy for removal — `GlobalAdministratorRemoveCommandSnapshot.ApplyStatus` substitutes `Remove.Status` and `Remove.UnableToVerify` keys and does not render the gateway's grant key.
+- `false` A non-task cancellation escapes status lookup — `RefreshGrantStatusCoreAsync` and `RefreshRemoveStatusCoreAsync` catch it and record an unknown status.
+- `false` `ConfirmGrantAsync` leaves an undispatched preview after cancellation — the preview stays so the operator can confirm again; dispatch invalidates or retains the lease on its own branches.
+- `low` Confirmed removal reloads the current cursor and ignores cancellation on the population walk — the apply path still checks the mutation generation, and Previous refetches that cursor. Clearing history here is more than a direct correction.
+- `false` The grant localization gate omits `AlreadyApplied` and `DuplicatePrevented`, and removal preview swaps UI culture — the grant snapshot never enters those states, and `HasCompleteLocalization` restores `CurrentUICulture` in `finally`.
+- `false` New audit filter, recovery, and viewport resource keys are unwired — `TenantAuditPage` and `AuditDataGrid` read them.
+- `false` Confirmed removal dropped the cursor-history reset, so Previous reuses pre-removal rows — Previous loads that cursor again; it does not replay a cached row set.
