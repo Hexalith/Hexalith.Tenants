@@ -105,11 +105,17 @@ with socket.socket() as listener:
     print(listener.getsockname()[1])
 PY
 )"
-python3 -m http.server "$validation_port" --bind 127.0.0.1 --directory "$validation_tmp" \
-    >"$validation_tmp/server.log" 2>&1 &
+if [[ "${TENANTS_FOCUS_TEST_SERVER_START_FAILURE:-false}" == true ]]; then
+    python3 -c 'raise SystemExit("forced focus-validator server startup failure")' \
+        >"$validation_tmp/server.log" 2>&1 &
+else
+    python3 -m http.server "$validation_port" --bind 127.0.0.1 --directory "$validation_tmp" \
+        >"$validation_tmp/server.log" 2>&1 &
+fi
 server_pid="$!"
 
 validation_url="http://127.0.0.1:${validation_port}/index.html"
+server_ready=false
 for _ in $(seq 1 50); do
     if python3 - "$validation_url" <<'PY' >/dev/null 2>&1
 import sys
@@ -119,15 +125,27 @@ with urllib.request.urlopen(sys.argv[1], timeout=0.25) as response:
         raise SystemExit(1)
 PY
     then
+        server_ready=true
+        break
+    fi
+    if ! kill -0 "$server_pid" >/dev/null 2>&1; then
         break
     fi
     sleep 0.05
 done
+if [[ "$server_ready" != true ]]; then
+    echo "Focus validation server did not become ready at $validation_url." >&2
+    sed -n '1,120p' "$validation_tmp/server.log" >&2
+    exit 1
+fi
 
 run_browser() {
     local module_name="$1"
     local profile_name="$2"
     local output_path="$3"
+    if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
+        printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
+    fi
     "$browser_path" \
         --headless=new \
         --disable-dev-shm-usage \

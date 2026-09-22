@@ -778,6 +778,14 @@
         {
             // Navigation can tear down the renderer between the alive check and dispatch.
         }
+        catch (InvalidOperationException)
+        {
+            // The renderer stopped accepting work while a removal continuation was being dispatched.
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown can cancel renderer dispatch without a caller-owned cancellation token.
+        }
 
         return invoked;
     }

@@ -2,7 +2,7 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-progress'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
 review_loop_iteration: 6
@@ -628,13 +628,13 @@ Rejected:
 
 0 decision-needed, 7 patch, 2 defer. Diff: `91d2335...c3a11fd0` limited to the removal page, its CSS, `tenantsFocus.js`, the page tests, and the focus browser harness.
 
-- [ ] [Review][Patch] Renderer teardown can drop an armed remove completion and skip nudge drain [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4346]
-- [ ] [Review][Patch] Encoded acknowledgement still cannot confirm the raw UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
-- [ ] [Review][Patch] Ambiguous remove retry returns with no reason when dispatch cannot begin [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4502]
-- [ ] [Review][Patch] Cancel-focus continuation can leave a newer removal dialog [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1497]
-- [ ] [Review][Patch] Focus-module disposal tests only cover cancellation [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:4156]
-- [ ] [Review][Patch] Remove recovery button is not described by its message [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:403]
-- [ ] [Review][Patch] Focus harness continues after the local server never becomes ready [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:113]
+- [x] [Review][Patch] Renderer teardown can drop an armed remove completion and skip nudge drain [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4346]
+- [x] [Review][Patch] Encoded acknowledgement still cannot confirm the raw UserId [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:577]
+- [x] [Review][Patch] Ambiguous remove retry returns with no reason when dispatch cannot begin [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4502]
+- [x] [Review][Patch] Cancel-focus continuation can leave a newer removal dialog [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1497]
+- [x] [Review][Patch] Focus-module disposal tests only cover cancellation [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:4156]
+- [x] [Review][Patch] Remove recovery button is not described by its message [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:403]
+- [x] [Review][Patch] Focus harness continues after the local server never becomes ready [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:113]
 - [x] [Review][Defer] Story gitlink guard still fails against HEAD [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:647] — deferred: later build(deps); already DW-347. This page slice does not move `references/`. Current tree is Builds `2fba349`, Commons `9f4809d` undeclared, EventStore `db1e9d7`, FrontComposer `00d4da4`, Memories `8884933`, PolymorphicSerializations `7e95556` undeclared. Declaring edits this spec; restoring the tree reverts later work.
 - [x] [Review][Defer] Grant preview box-sizing changed in this removal story [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css:206] — deferred: KEEP grant chrome; already recorded as Story 4.2 grant styling, not last-administrator removal.
 
@@ -648,6 +648,34 @@ Rejected:
 - `low` Remove focus sentinels are unnamed — each sentinel's focus handler immediately moves focus to Cancel or acknowledgement; an accessible name would announce a stop the trap is built to skip.
 - `false` `focusCorrectionLauncher` sends the removal trap through the acknowledgement fallback — removal calls `focusElementById`, which already requires `document.activeElement === target`.
 - `false` Grant `EditForm.OnSubmit` and the submit button both enter preview — `@onclick:preventDefault` is set, and `SubmitGrantAsync` takes `_grantPreviewInFlight` before its first await.
+
+### 2026-09-22 — Review pass (completion audit)
+
+- verdicts: 23 findings — high 6, medium 16, low 0, false 1, maybe-false 0
+- findings:
+  - `[medium]` `[defer]` `TenantQueryResult.FromPayload` drops read-model lifecycle, freshness, version, provenance, and served-at metadata when ETag is absent — carried: later query-contract work in the baseline range, not last-administrator removal.
+  - `[high]` `[defer]` `TenantAuditSupportSafety.IsSafe` checks control characters only before percent-decoding — carried: later Story 5.1 audit support-safety work.
+  - `[high]` `[defer]` `TenantAuditRow.FromEntry` can substitute the tenant id for an unsafe or missing narrative user id and arm correction against it — carried: later Story 5.1 audit/correction mapping work.
+  - `[medium]` `[defer]` tenant-audit payload validation accepts `HasMore` with a blank or repeated continuation cursor — carried: later Story 5.1 audit-pagination work.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` repeatedly decodes and returns the decoded route, changing reserved-character semantics — carried: later Story 5.1 audit-navigation work.
+  - `[medium]` `[defer]` `TenantAuditPage.SafeReturnUrl` applies its audit-reference denylist to the whole route and rejects ordinary query values — carried: later Story 5.1 audit-navigation work.
+  - `[medium]` `[defer]` audit permission and escalation actions both route to `BackHref` — carried: Story 5.1 recovery-matrix work already recorded as DW-352.
+  - `[medium]` `[defer]` the audit correction viewport branch hides durable permission, freshness, evidence, and command-support blockers — carried: later Story 5.1 correction-presentation work.
+  - `[medium]` `[defer]` `TenantAuditNarrative.SafeTimestamp` accepts only the exact `O` representation and drops other valid ISO-8601 timestamps — carried: later Story 5.1 audit-parsing work.
+  - `[medium]` `[defer]` generated Keycloak credentials no longer match the `admin-user` / `admin-pass` quickstart command — carried: later AppHost/documentation work in the baseline range.
+  - `[medium]` `[defer]` the integration fixture disables Keycloak, so generated realm credentials and bootstrap are not exercised together — carried: later AppHost/bootstrap verification work in the baseline range.
+  - `[medium]` `[defer]` `.github/workflows/source-reference.yml` validates a Debug project-reference graph rather than the Release/NuGet package graph required of CI — this workflow arrived in later baseline-range integration work, not Story 4.3.
+  - `[medium]` `[defer]` the `pushall` skill permits only Git Bash while its workflow requires file reads, edits, validation commands, and subagents — carried: later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` prefers stale local `main` or `master` before resolving the remote default branch — carried: later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` commits a dirty tree before checking detached HEAD or an in-progress Git operation — carried: later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` prescribes commit messages without validating each exact candidate with pinned commitlint — carried: later tooling work in the baseline range.
+  - `[high]` `[defer]` `pushall` can push clean merges and the final combined tree without build or test validation — carried: later tooling work in the baseline range.
+  - `[medium]` `[defer]` three tracked review prompts embed roughly 13 MB of raw diffs and recursively inflate later reviews — carried: later review-artifact hygiene work in the baseline range.
+  - `[medium]` `[patch]` the browser-server readiness guard is verified only by source-text matching, so disabling the negative branch can leave ordinary validation green — add a deterministic server-start failure path that proves the runner exits before Chromium.
+  - `[medium]` `[patch]` the Cancel/newer-preview focus race test invokes `RestoreRemoveLauncherFocusAsync` directly and does not prove the rendered Cancel plus `OnAfterRenderAsync` path is wired — add integrated bUnit coverage through the actual render lifecycle.
+  - `[medium]` `[patch]` the final removal renderer boundary does not recheck the live ordinal acknowledgement after asynchronous preflight — require the same exact raw UserId immediately before arming dispatch and cover a changed-acknowledgement race.
+  - `[medium]` `[patch]` the correction panel's renderer-safe helper catches only `ObjectDisposedException`; teardown `InvalidOperationException` or `OperationCanceledException` can still fault a removal continuation — contain the same renderer teardown exceptions as the page helper.
+  - `[false]` `[reject]` the completion audit would absorb unreviewed gitlink and unrelated baseline changes — the working-tree patch moves no gitlink, the baseline-range pointers are already committed on `main`, and the spec explicitly declares their separate history and current guard failure.
 
 ## Design Notes
 

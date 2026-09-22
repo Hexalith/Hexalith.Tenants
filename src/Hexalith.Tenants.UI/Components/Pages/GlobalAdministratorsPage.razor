@@ -384,11 +384,13 @@
             </p>
             @if (!string.IsNullOrWhiteSpace(RemoveSafeMessage))
             {
-                <p data-testid="tenants-global-admin-remove-safe-message">@RemoveSafeMessage</p>
+                <p id="tenants-global-admin-remove-safe-message"
+                   data-testid="tenants-global-admin-remove-safe-message">@RemoveSafeMessage</p>
             }
             @if (!string.IsNullOrWhiteSpace(RemoveSafeRecovery))
             {
-                <p data-testid="tenants-global-admin-remove-safe-recovery">@RemoveSafeRecovery</p>
+                <p id="tenants-global-admin-remove-safe-recovery"
+                   data-testid="tenants-global-admin-remove-safe-recovery">@RemoveSafeRecovery</p>
             }
             <p data-testid="tenants-global-admin-remove-audit-state">@RemoveAuditText</p>
             <p class="global-admins__remove-live"
@@ -404,6 +406,7 @@
                           Class="@RemoveRecoveryControlClass"
                           data-testid="tenants-global-admin-remove-refresh"
                           data-recovery-kind="@RemoveRecoveryKind"
+                          aria-describedby="@RemoveRecoveryDescribedBy"
                           Disabled="@(!CanRefreshRemoveStatus)"
                           OnClick="RefreshRemoveStatusAsync">
                 @RemoveRefreshActionText
@@ -574,7 +577,7 @@
                 <p id="tenants-global-admin-remove-preview-unavailable-recovery">@RemoveIntentRecovery</p>
             }
             <FluentTextInput @ref="_removeAcknowledgementElement"
-                             Label="@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge", DisplayIdentity(removePreview.TargetUserId)]"
+                             Label="@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Acknowledge", removePreview.TargetUserId]"
                              Value="@_removeAcknowledgement"
                              ValueChanged="OnRemoveAcknowledgementChanged"
                              data-testid="tenants-global-admin-remove-acknowledge" />
@@ -1351,6 +1354,25 @@
     private string RemoveRecoveryKind
         => IsAmbiguousRemoveDeliveryRetry ? "delivery-retry" : "status";
 
+    private string? RemoveRecoveryDescribedBy
+    {
+        get
+        {
+            List<string> ids = [];
+            if (!string.IsNullOrWhiteSpace(RemoveSafeMessage))
+            {
+                ids.Add("tenants-global-admin-remove-safe-message");
+            }
+
+            if (!string.IsNullOrWhiteSpace(RemoveSafeRecovery))
+            {
+                ids.Add("tenants-global-admin-remove-safe-recovery");
+            }
+
+            return ids.Count == 0 ? null : string.Join(' ', ids);
+        }
+    }
+
     private string RemoveRefreshActionText
         => IsAmbiguousRemoveDeliveryRetry
             ? Localizer["Tenants.GlobalAdministrators.Remove.DeliveryRetry"]
@@ -1499,17 +1521,31 @@
             _focusRemoveLauncherPending = false;
             GlobalAdministratorRemoveLauncher? launcher = _removeLauncher;
             _removeLauncher = null;
-            if (launcher is null || !await launcher.TryFocusAsync().ConfigureAwait(false))
-            {
-                _focusRemoveLifecyclePending = true;
-                StateHasChanged();
-            }
+            await RestoreRemoveLauncherFocusAsync(launcher);
         }
 
         if (_focusRemoveLifecyclePending)
         {
             _focusRemoveLifecyclePending = false;
             await FocusSafelyAsync(_removeLifecycleElement).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RestoreRemoveLauncherFocusAsync(GlobalAdministratorRemoveLauncher? launcher)
+    {
+        bool launcherFocused = launcher is not null
+            && await launcher.TryFocusAsync();
+        if (IsRemovePreviewOpen)
+        {
+            // The launcher focus can finish after a newer removal preview opens. Restore focus inside
+            // the active dialog instead of moving it outside the modal boundary. Keep this continuation
+            // on the renderer context so the current preview and its captured element stay coherent.
+            await FocusSafelyAsync(_removeAcknowledgementElement.Element).ConfigureAwait(false);
+        }
+        else if (!launcherFocused)
+        {
+            _focusRemoveLifecyclePending = true;
+            StateHasChanged();
         }
     }
 
@@ -2227,24 +2263,18 @@
 
     private async Task CompleteRemoveSingleFlightAsync()
     {
+        _isRemoveSubmitting = false;
         Volatile.Write(ref _removeSubmissionInFlight, 0);
-        if (!_disposed)
+        try
         {
-            try
-            {
-                await InvokeAsync(() =>
-                {
-                    _isRemoveSubmitting = false;
-                    StateHasChanged();
-                }).ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-                // Navigation can dispose the renderer between the alive check and dispatch.
-            }
+            await RenderIfAliveAsync().ConfigureAwait(false);
         }
-
-        await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+        finally
+        {
+            // Renderer teardown must not suppress an exact-attempt nudge that arrived while submission owned
+            // the single-flight slot. A live replacement will reject stale work by identity before doing I/O.
+            await DrainRemoveStatusNudgesAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -2482,6 +2512,14 @@
         {
             // Navigation can tear down the renderer between the alive check and dispatch.
         }
+        catch (InvalidOperationException)
+        {
+            // The renderer stopped accepting work while an already-run callback completed its durable update.
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown can cancel renderer dispatch without a caller-owned cancellation token.
+        }
 
         return invoked;
     }
@@ -2500,6 +2538,14 @@
         catch (ObjectDisposedException)
         {
             // A state notification raced component disposal.
+        }
+        catch (InvalidOperationException)
+        {
+            // The renderer stopped accepting work during circuit teardown.
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown can cancel renderer dispatch without a caller-owned cancellation token.
         }
     }
 
@@ -4188,6 +4234,9 @@
         GlobalAdministratorRemoveCommandSnapshot expectedSnapshot = _removeSnapshot;
         GlobalAdministratorRemovePreview? expectedPreview = expectedSnapshot.PreviewEvidence;
         TenantAggregateCommandLease? submissionLease = _removeAdmissionLease;
+        GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
+        long completionToken = 0;
+        long generation = 0;
         try
         {
             if (expectedSnapshot.State is not TenantCommandLifecycleState.Previewed
@@ -4202,7 +4251,7 @@
             }
 
             using PendingOperation operation = BeginRemoveMutation();
-            long generation = operation.Generation;
+            generation = operation.Generation;
             CancellationToken cancellationToken = operation.CancellationToken;
             if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -4244,13 +4293,12 @@
             }
 
             bool armed = false;
-            GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot = null;
-            long completionToken = 0;
             _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (!CanApplyRemoveMutation(generation)
                     || !ReferenceEquals(_removeSnapshot, expectedSnapshot)
-                    || !ReferenceEquals(_removeAdmissionLease, submissionLease))
+                    || !ReferenceEquals(_removeAdmissionLease, submissionLease)
+                    || !string.Equals(_removeAcknowledgement, request.UserId, StringComparison.Ordinal))
                 {
                     return;
                 }
@@ -4327,11 +4375,16 @@
                 || !submissionLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
             {
                 _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                completionToken = 0;
                 await PublishRemoveDeliveryCompletionAsync(
                     requestSentSnapshot,
                     submissionSnapshot,
                     submissionLease,
                     generation).ConfigureAwait(false);
+            }
+            else
+            {
+                completionToken = 0;
             }
 
             // Successful completion publishes through the gate notification so the current renderer and a
@@ -4340,18 +4393,60 @@
         }
         catch (OperationCanceledException)
         {
-            // Cancellation before delivery is fail-closed; cancellation during delivery is converted into a
-            // durable ambiguous result in the gateway block above.
+            // Cancellation before delivery is fail-closed. If teardown lands after the lease-backed delivery
+            // token is armed, preserve that exact command identity as ambiguous rather than stranding the token.
+            await CompleteArmedRemoveDeliveryAsAmbiguousAsync(
+                requestSentSnapshot,
+                submissionLease,
+                completionToken,
+                generation).ConfigureAwait(false);
         }
         catch
         {
-            // Every post-admission delivery exception is contained above and durably published. Remaining
-            // preflight failures leave the undispatched preview fail closed.
+            // A renderer teardown or other unexpected failure can occur after the callback durably arms the
+            // initial delivery but before gateway I/O starts. Publish an ambiguous same-id completion so a
+            // replacement can adopt it; preflight failures have no token and remain fail closed.
+            await CompleteArmedRemoveDeliveryAsAmbiguousAsync(
+                requestSentSnapshot,
+                submissionLease,
+                completionToken,
+                generation).ConfigureAwait(false);
         }
         finally
         {
             await CompleteRemoveSingleFlightAsync().ConfigureAwait(false);
         }
+    }
+
+    private async Task CompleteArmedRemoveDeliveryAsAmbiguousAsync(
+        GlobalAdministratorRemoveCommandSnapshot? requestSentSnapshot,
+        TenantAggregateCommandLease? submissionLease,
+        long completionToken,
+        long generation)
+    {
+        if (requestSentSnapshot?.MessageId is not { Length: > 0 } messageId
+            || submissionLease is null
+            || completionToken == 0)
+        {
+            return;
+        }
+
+        GlobalAdministratorRemoveCommandSnapshot ambiguousSnapshot = requestSentSnapshot.ApplySubmission(
+            TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"));
+        if (CreateCompletionReconciliation(ambiguousSnapshot) is { } durableCompletion
+            && submissionLease.TryCompleteReconciliationDispatch(completionToken, durableCompletion))
+        {
+            return;
+        }
+
+        _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+        await PublishRemoveDeliveryCompletionAsync(
+            requestSentSnapshot,
+            ambiguousSnapshot,
+            submissionLease,
+            generation).ConfigureAwait(false);
     }
 
     private async Task RefreshRemoveStatusAsync()
@@ -4505,6 +4600,19 @@
                 dispatchBasis,
                 out long completionToken))
         {
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (!ReferenceEquals(_removeSnapshot, expected)
+                    || !ReferenceEquals(_removeAdmissionLease, lease))
+                {
+                    return;
+                }
+
+                SetRemoveSnapshot(expected.RetainAmbiguousPreflight(
+                    "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+                    "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"));
+                StateHasChanged();
+            }).ConfigureAwait(false);
             return;
         }
 

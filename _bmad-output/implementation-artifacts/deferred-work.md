@@ -3072,3 +3072,7 @@ Page and focus slice (`91d2335...c3a11fd0`). No new DW ids.
 
 - Story gitlink guard still fails against HEAD. Already DW-347. Current tree is Builds `2fba349`, Commons `9f4809d` undeclared, EventStore `db1e9d7`, FrontComposer `00d4da4`, Memories `8884933`, PolymorphicSerializations `7e95556` undeclared, while the File List still states Builds `39debe9`, EventStore `7b7f876`, FrontComposer `0a4c4ad`, and Memories `f174f9c`. This slice does not move `references/`. Declaring edits the spec; restoring the tree reverts later `build(deps)` work.
 - Grant preview `box-sizing: border-box` is in `.global-admins__grant-preview`. Already deferred as KEEP grant chrome for Story 4.2, not last-administrator removal.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Validate the Release/NuGet package graph in CI rather than relying on the Debug source-reference lane.
+  evidence: `.github/workflows/source-reference.yml` explicitly builds and tests with `--configuration Debug -p:UseHexalithProjectReferences=true`, so it cannot expose packaging-only failures required by the repository CI policy; this workflow is later baseline-range integration work, not Story 4.3 removal behavior.
