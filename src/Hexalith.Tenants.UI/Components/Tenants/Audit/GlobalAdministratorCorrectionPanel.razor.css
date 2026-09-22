@@ -74,8 +74,11 @@
     }
 
     /* fc-css-exception: withdraw the destructive same-id retry on a narrow viewport while leaving
-       correlated read-only status recovery visible; Fluent has no mutation-safety visibility token. */
-    .ga-correction-panel__mutation-initiation {
+       correlated read-only status recovery visible; Fluent has no mutation-safety visibility token.
+       The retry is a FluentButton, so it carries no scope attribute — ::deep is required, matching
+       GlobalAdministratorsPage.razor.css. */
+    .ga-correction-panel__mutation-initiation,
+    ::deep .ga-correction-panel__mutation-initiation {
         display: none;
     }
 }

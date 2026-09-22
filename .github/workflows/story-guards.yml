@@ -58,5 +58,12 @@ jobs:
         run: >
           dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj
           --configuration Release --no-restore -warnaserror -m:1 -nr:false
+      - name: Install Chrome for the removal focus validator
+        id: chrome
+        uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
+        with:
+          chrome-version: stable
       - name: Validate the shipped removal focus module in Chromium
+        env:
+          CHROMIUM_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh

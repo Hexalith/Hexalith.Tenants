@@ -716,6 +716,32 @@ Rejected:
 - `low` The visible identity display does not tokenize NBSP and other non-ASCII whitespace — real Keycloak subjects never contain them, the accessible variant tokenizes them, and removal still requires an exact typed match.
 - `low` French resources mix straight and typographic apostrophes — pre-existing across the file (578 straight, 82 typographic).
 
+### Review Findings — 2026-09-22 Group A (production File List)
+
+0 decision-needed, 4 patch, 4 defer. Diff: `91d2335...HEAD` limited to the 12 production File List paths (page, correction panel, BFF, snapshots, admission gate/lease, focus module, story-guards). Tests, gitlink Chunk C, and baseline-range pollution remain for follow-up runs.
+
+- [ ] [Review][Patch] Unowned terminal dispatch completion drops Failed/Rejected/AlreadyApplied evidence and releases the lock, so a replacement cannot adopt the exact outcome [src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs:364]
+- [ ] [Review][Patch] Narrow-viewport CSS hides `.ga-correction-panel__mutation-initiation` without `::deep`, so the FluentButton same-id retry stays visible [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.css:78]
+- [ ] [Review][Patch] Correction same-id retry that fails `TryBeginReconciliationDispatch` only calls `SynchronizeOwnedReconciliation()` and returns, with no busy reason or recovery [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1269]
+- [ ] [Review][Patch] `remove-focus-browser-guard` never installs or pins Chromium; iteration-6 proof depends on whatever `google-chrome`/`chromium` the runner happens to have [.github/workflows/story-guards.yml:37]
+- [x] [Review][Defer] Story gitlink File List SHAs do not match HEAD and Commons/PolymorphicSerializations are undeclared [spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:739] — deferred: already DW-347; declaring edits this spec, restoring the tree reverts later `build(deps)` (Chunk C).
+- [x] [Review][Defer] Grant delivery was rewired onto the removal lease-token API, restore-access still uses `TryMarkDispatched`, and grant localization/readiness expanded [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3589] — deferred: KEEP grant / Story 4.2; already recorded on the earlier 2026-09-22 Group A pass and iteration-6 restore-access deferral.
+- [x] [Review][Defer] `focusElementById` may treat a successful Fluent Cancel wrap as failure, and the Chromium harness mounts a raw `<fluent-button>` rather than the Blazor `FluentButton` host [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23] — deferred: maybe-false pending a real-browser `activeElement` trace of the rendered Cancel host; already DW-345.
+- [x] [Review][Defer] Correction outer catch can overlay Ambiguous after Accepted if `RefreshStatusCoreAsync` throws [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1091] — deferred: maybe-false; settle by showing `RefreshStatusCoreAsync` throwing after `TryCompleteReconciliationDispatch` already published Accepted. Already recorded on iteration 6.
+
+Rejected:
+- `false` Grant `EditForm OnSubmit` plus `fluent-button` `@onclick` double-runs preview composition — `_grantPreviewInFlight` is taken before the first happy-path await; Blazor queues both handlers on one renderer thread.
+- `false` Ambiguous remove retry unmounts the explanation — lifecycle keeps `SafeMessageKey` / `SafeRecoveryKey`; only the destructive control is withdrawn.
+- `false` Operators cannot confirm because the target fact is `DisplayIdentity`-encoded — acknowledgement label and ordinal compare still use the raw `TargetUserId`.
+- `false` `CreateCompletionReconciliation` skips positional `GrantPreview` and would bind the wrong members — `GrantPreview` defaults to null and the remaining arguments are named; no current mis-bind.
+- `false` Removal `TryComplete` success never applies on the current renderer — `OnFixedAggregateAdmissionChanged` still calls `SynchronizeOwnedRemoveReconciliation` while `_isRemoveSubmitting` is true.
+- `false` Ambiguous remove retry `TryComplete` never applies locally — same gate notification path applies the completion snapshot.
+- `false` `_isSubmitting` stays true if the finally renderer invoke fails — those invoke failures are teardown; a replacement panel constructs with `_isSubmitting = false`.
+- `false` Revoke `Completed` with zero events becomes `UnableToVerify` — `ApplyStatus` maps that revoke case to `AlreadyApplied`.
+- `false` Removal ten-fact preview grid never becomes a grid — `.global-admins__remove-preview-grid` already has `display: grid` in the earlier shared rule; the later rule only adds column tracks.
+- `low` Fixed dialogs have no dimming backdrop — `inert` plus `aria-modal` is the isolation contract; a new overlay is extra surface.
+- `low` Focus sentinels have no accessible name — `@onfocus` immediately redirects, and labelling them would advertise empty 1×1 controls in the tab cycle.
+
 ## Design Notes
 
 Removal is intentionally a causal proof pipeline rather than an absence check:

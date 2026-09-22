@@ -361,15 +361,8 @@ public sealed class TenantAggregateCommandAdmissionGate
 
             lease.ActiveReconciliationDispatchToken = 0;
             lease.Reconciliation = completion;
-            if (IsTerminal(completion.LifecycleState)
-                && lease.CurrentOwner is null
-                && _ownerByKey.Remove(lease.AggregateLockKey))
-            {
-                lease.IsReleased = true;
-                lease.IsRetainedForAdoption = false;
-                lease.Reconciliation = null;
-            }
-
+            // Keep unowned terminal evidence for adoption. The observing owner releases through
+            // TryReleaseTerminal; wiping here drops Failed/Rejected/AlreadyApplied before replacement.
             completed = true;
         }
 

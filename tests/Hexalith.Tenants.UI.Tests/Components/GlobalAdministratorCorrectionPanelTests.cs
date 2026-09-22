@@ -639,6 +639,70 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task AmbiguousRemoveRetryExplainsWhenItsLeaseDispatchCannotBegin()
+    {
+        var commandGateway = new StubTenantCommandGateway
+        {
+            RemoveResultTask = Task.FromResult(TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("proof", "GlobalAdministratorRemoved")));
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, RevokeIntent())
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        GlobalAdministratorCorrectionSnapshot expected = cut.Instance.Snapshot.ShouldNotBeNull();
+        expected.IsSubmissionAmbiguous.ShouldBeTrue();
+        TenantAggregateCommandLease lease =
+            PrivateField<TenantAggregateCommandLease>(cut.Instance, "_admissionLease");
+        object owner = PrivateField<object>(cut.Instance, "_admissionOwner");
+        GlobalAdministratorReconciliationState dispatchBasis = expected.ToReconciliation().ShouldNotBeNull();
+        lease.TryBeginReconciliationDispatch(owner, dispatchBasis, out long competingToken).ShouldBeTrue();
+
+        long generation = PrivateField<long>(cut.Instance, "_operationGeneration");
+        MethodInfo retryMethod = typeof(GlobalAdministratorCorrectionPanel).GetMethod(
+            "RetryAmbiguousDeliveryAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        await ((Task)retryMethod.Invoke(cut.Instance, [generation])!).WaitAsync(TimeSpan.FromSeconds(5));
+
+        GlobalAdministratorCorrectionSnapshot blocked = cut.Instance.Snapshot.ShouldNotBeNull();
+        blocked.SafeMessageKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy");
+        blocked.SafeRecoveryKey.ShouldBe(
+            "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy");
+        blocked.MessageId.ShouldBe(expected.MessageId);
+        commandGateway.RemoveRequests.ShouldHaveSingleItem();
+
+        lease.TryAbortReconciliationDispatch(competingToken).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void NarrowViewportMutationInitiationUsesDeepSelectorForFluentRetry()
+    {
+        string styles = File.ReadAllText(Path.Combine(
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..")),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "GlobalAdministratorCorrectionPanel.razor.css"));
+        int breakpointIndex = styles.IndexOf("@media (max-width: 767px)", StringComparison.Ordinal);
+        breakpointIndex.ShouldBeGreaterThan(-1);
+        styles[breakpointIndex..].ShouldContain("::deep .ga-correction-panel__mutation-initiation");
+        styles[..breakpointIndex].Contains("::deep .ga-correction-panel__mutation-initiation", StringComparison.Ordinal)
+            .ShouldBeFalse("hoisting the retry rule out of the media query hides it at every width");
+    }
+
+    [Fact]
     public void OrdinaryUnableToVerifyUsesRemovalRecoveryInsteadOfGenericCorrectionCopy()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());

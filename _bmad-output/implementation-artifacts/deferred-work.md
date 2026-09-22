@@ -3099,3 +3099,12 @@ Group A removal-core source slice (`91d2335..3a98efe`). Already-recorded items a
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: Verify grant completion is applied when the grant generation is superseded after the lease completion is published (unverified, would be medium).
   evidence: `DispatchGrantAsync` syncs the published completion only while `CanApplyGrantMutation(generation)` holds, and the gate handler skips grant sync while `_isGrantSubmitting` is true; settle with a test that invalidates the generation between `TryCompleteReconciliationDispatch` and the renderer sync.
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A production File List)
+
+Production File List slice (`91d2335...HEAD`, 12 files). Already-recorded items are listed without new DW ids.
+
+- Story gitlink guard still fails against HEAD (`scripts/validate-story-gitlinks.py` exit 1: Commons and PolymorphicSerializations undeclared; Builds/EventStore/FrontComposer/Memories SHAs misstated). Already DW-347.
+- Grant delivery uses the removal lease-token API, correction restore still uses `TryMarkDispatched`, and `RequiredGrantFactKeys` expanded. KEEP grant / Story 4.2; already recorded on the earlier 2026-09-22 Group A pass and the iteration-6 restore-access deferral.
+- `focusElementById` may report failure when focus lands on an inner Fluent control, and the Chromium harness mounts a raw `<fluent-button>` rather than the Blazor `FluentButton` host. Already DW-345; a real-browser `activeElement` trace of the rendered Cancel host would settle it.
+- Correction outer catch can overlay Ambiguous after Accepted if `RefreshStatusCoreAsync` throws. Maybe-false; settle by showing that throw after `TryCompleteReconciliationDispatch` already published Accepted. Already recorded on iteration 6.

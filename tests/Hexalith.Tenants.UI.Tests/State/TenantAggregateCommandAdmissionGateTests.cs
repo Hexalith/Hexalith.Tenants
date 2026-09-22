@@ -349,11 +349,12 @@ public sealed class TenantAggregateCommandAdmissionGateTests
     }
 
     [Fact]
-    public void TerminalInitialCompletionBeforeAdoptionReleasesTheFixedAggregate()
+    public void TerminalInitialCompletionBeforeAdoptionKeepsRejectedEvidenceForReplacement()
     {
         const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
         var gate = new TenantAggregateCommandAdmissionGate();
         object originalOwner = new();
+        object replacementOwner = new();
         GlobalAdministratorRemovePreview preview = RemovePreview();
         var requestSent = new GlobalAdministratorReconciliationState(
             GlobalAdministratorActionKind.Remove,
@@ -376,9 +377,20 @@ public sealed class TenantAggregateCommandAdmissionGateTests
         };
         lease.TryCompleteReconciliationDispatch(completionToken, rejected).ShouldBeTrue();
 
-        gate.IsLocked(aggregateKey).ShouldBeFalse();
-        gate.TryAdoptRetainedLease(aggregateKey, new object(), out _, out _).ShouldBeFalse();
+        gate.IsLocked(aggregateKey).ShouldBeTrue();
+        gate.TryAdoptRetainedLease(
+            aggregateKey,
+            replacementOwner,
+            out TenantAggregateCommandLease? adopted,
+            out GlobalAdministratorReconciliationState? retained).ShouldBeTrue();
+        adopted.ShouldBeSameAs(lease);
+        retained.ShouldBe(rejected);
+        adopted!.TryReadReconciliation(replacementOwner, out GlobalAdministratorReconciliationState? visible)
+            .ShouldBeTrue();
+        visible.ShouldBe(rejected);
         lease.IsReconciliationDispatchInFlight.ShouldBeFalse();
+        adopted.TryReleaseTerminal(replacementOwner, TenantCommandLifecycleState.Rejected).ShouldBeTrue();
+        gate.IsLocked(aggregateKey).ShouldBeFalse();
     }
 
     private static GlobalAdministratorsSnapshot Complete(string projectionVersion, params string[] userIds)

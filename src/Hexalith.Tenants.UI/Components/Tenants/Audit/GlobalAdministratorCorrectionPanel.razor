@@ -1266,7 +1266,23 @@
                 deliveryReconciliation,
                 out long completionToken))
         {
-            SynchronizeOwnedReconciliation();
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, deliveryBasis))
+                {
+                    SynchronizeOwnedReconciliation();
+                    return;
+                }
+
+                SetSnapshot(
+                    deliveryBasis.RetainAmbiguousPreflight(
+                        deliveryBasis.IsRestoreAccessAction
+                            ? "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"
+                            : "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+                        "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"),
+                    focusTerminalState: true);
+                StateHasChanged();
+            }).ConfigureAwait(false);
             return;
         }
 
