@@ -3108,3 +3108,17 @@ Production File List slice (`91d2335...HEAD`, 12 files). Already-recorded items 
 - Grant delivery uses the removal lease-token API, correction restore still uses `TryMarkDispatched`, and `RequiredGrantFactKeys` expanded. KEEP grant / Story 4.2; already recorded on the earlier 2026-09-22 Group A pass and the iteration-6 restore-access deferral.
 - `focusElementById` may report failure when focus lands on an inner Fluent control, and the Chromium harness mounts a raw `<fluent-button>` rather than the Blazor `FluentButton` host. Already DW-345; a real-browser `activeElement` trace of the rendered Cancel host would settle it.
 - Correction outer catch can overlay Ambiguous after Accepted if `RefreshStatusCoreAsync` throws. Maybe-false; settle by showing that throw after `TryCompleteReconciliationDispatch` already published Accepted. Already recorded on iteration 6.
+
+## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)
+
+Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Already-recorded items are listed without new DW ids.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Make the removal rejection page test prove localization instead of echoing the gateway's raw text.
+  evidence: `Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy` (`GlobalAdministratorsPageTests.cs:2332`) passes `Rejected(expectedText, code)`, and the stub localizer text also contains `expectedText`. `RemoveSafeMessage` falls back to raw `SafeMessage` when the key is missing, so a broken `Remove.Status.Rejected.*` mapping still passes. Pre-existing; not changed in this range.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Verify the removal requery mismatch branch cannot release a live same-attempt lease from a stale confirming basis (unverified, would be medium).
+  evidence: In `RequeryRemoveProjectionAsync` (`GlobalAdministratorsPage.razor:4765-4773`), if `_removeSnapshot` advanced to the same attempt's next state during the held load, the lease still matches, so `RetainOrReleaseRemoveCompletion` can call `TryReleaseTerminal` for a terminal stale-basis projection while the UI keeps a non-terminal snapshot. Settle with a page test that advances the same attempt during a held confirming requery and asserts the lease and UI state together.
+
+- Story gitlink guard still fails (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.
