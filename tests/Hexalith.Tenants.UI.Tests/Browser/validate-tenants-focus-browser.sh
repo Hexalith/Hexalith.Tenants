@@ -6,9 +6,10 @@ project_root="$(cd -- "$script_dir/../../.." && pwd)"
 harness_path="$script_dir/tenants-focus-browser-validation.html"
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
 correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
+page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
 project_assets_path="$project_root/src/Hexalith.Tenants.UI/obj/project.assets.json"
 
-if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$project_assets_path" ]]; then
+if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$page_css_path" || ! -f "$project_assets_path" ]]; then
     echo "Focus validator inputs are missing." >&2
     exit 1
 fi
@@ -74,7 +75,13 @@ trap cleanup EXIT
 cp -- "$harness_path" "$validation_tmp/index.html"
 cp -- "$focus_module_path" "$validation_tmp/tenantsFocus.js"
 cp -- "$correction_css_path" "$validation_tmp/correction.css"
+cp -- "$page_css_path" "$validation_tmp/global-admins.css"
 cp -- "$fluent_module_path" "$validation_tmp/fluent-ui.js"
+
+cp -- "$page_css_path" "$validation_tmp/global-admins-inflow.css"
+printf '\n.global-admins__remove-preview { position: static !important; }\n' >> "$validation_tmp/global-admins-inflow.css"
+cp -- "$page_css_path" "$validation_tmp/global-admins-hidden.css"
+printf '\n.global-admins__remove-preview { display: none !important; }\n' >> "$validation_tmp/global-admins-hidden.css"
 
 python3 - "$validation_tmp/tenantsFocus.js" "$validation_tmp/tenantsFocus-return-true.js" <<'PY'
 from pathlib import Path
@@ -145,6 +152,7 @@ run_browser() {
     local module_name="$1"
     local profile_name="$2"
     local output_path="$3"
+    local css_name="${4:-global-admins.css}"
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
     fi
@@ -158,7 +166,7 @@ run_browser() {
         --user-data-dir="$validation_tmp/$profile_name" \
         --virtual-time-budget=3000 \
         --dump-dom \
-        "${validation_url}?module=./${module_name}" >"$output_path" 2>"${output_path}.stderr"
+        "${validation_url}?module=./${module_name}&css=./${css_name}" >"$output_path" 2>"${output_path}.stderr"
 }
 
 positive_output="$validation_tmp/shipped.html"
@@ -181,9 +189,24 @@ if ! grep -q 'data-validation-status="failed"' "$mutation_output"; then
     exit 1
 fi
 
+for style_mutation in inflow hidden; do
+    style_output="$validation_tmp/style-${style_mutation}.html"
+    run_browser "tenantsFocus.js" "profile-style-${style_mutation}" "$style_output" "global-admins-${style_mutation}.css"
+    if grep -q 'data-validation-status="passed"' "$style_output"; then
+        echo "Validator accepted an overriding ${style_mutation} removal-dialog rule." >&2
+        exit 1
+    fi
+    if ! grep -q 'data-validation-status="failed"' "$style_output" \
+        || ! grep -q 'remove-dialog-style' "$style_output"; then
+        echo "The ${style_mutation} removal-dialog mutation did not fail the computed-style check." >&2
+        exit 1
+    fi
+done
+
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"
 mutation_report="$(grep -o '<output id="validation-report">[^<]*' "$mutation_output" | sed 's/.*>//')"
 printf '%s\n' "Browser: $browser_version"
 printf '%s\n' "Shipped module: $positive_report"
 printf '%s\n' "Return-true mutation: correctly rejected ($mutation_report)"
+printf '%s\n' "Removal-dialog in-flow and hidden CSS mutations: correctly rejected"

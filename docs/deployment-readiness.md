@@ -28,6 +28,7 @@ Auth controls:
 | --- | --- | --- |
 | issuer | Token `iss` matches `Authentication__JwtBearer__Issuer`; wrong issuer returns `401`. | configuration-gap or product-failure |
 | audience | Token `aud` matches `Authentication__JwtBearer__Audience`; wrong audience returns `401`. | configuration-gap or product-failure |
+| signing algorithm | `Authentication__JwtBearer__AllowedAlgorithms__0` explicitly names a supported asymmetric algorithm such as `RS256`; the token header and IdP keys use that algorithm. | configuration-gap or product-failure |
 | token expiration | Token `exp` is future at run time; expired token returns `401`. | configuration-gap |
 | subject | Token has stable non-empty `sub`; evidence stores only a redacted subject alias. | configuration-gap |
 | effective tenant | Effective principal contains `eventstore:tenant=system`, including global-administrator operators. | configuration-gap or product-failure |
@@ -44,6 +45,7 @@ Required environment variables:
 | `Authentication__JwtBearer__Authority` | Absolute HTTPS OIDC authority. |
 | `Authentication__JwtBearer__Issuer` | Exact issuer expected in the token. |
 | `Authentication__JwtBearer__Audience` | Exact accepted audience for Tenants. |
+| `Authentication__JwtBearer__AllowedAlgorithms__0` | Explicit supported asymmetric IdP signing algorithm, for example `RS256`; symmetric and unknown algorithms fail validation. |
 | `Authentication__JwtBearer__RequireHttpsMetadata` | `true`. |
 | `Authentication__JwtBearer__SigningKey` | Unset or empty in production. |
 

@@ -4,13 +4,16 @@
     <meta charset="utf-8">
     <title>Tenants focus module browser validation</title>
     <link rel="stylesheet" href="./correction.css">
+    <link id="page-stylesheet" rel="stylesheet" href="./global-admins.css">
+    <style>#background-surface { position: fixed; inset: 0; z-index: 1; }</style>
 </head>
 <body>
+    <section id="background-surface" aria-hidden="true"></section>
     <section id="correction-panel" class="ga-correction-panel">
         <fluent-button id="correction-retry" class="ga-correction-panel__mutation-initiation">Retry delivery</fluent-button>
         <button id="correction-status">Refresh status</button>
     </section>
-    <section id="remove-preview" role="dialog" aria-modal="true">
+    <section id="remove-preview" class="global-admins__remove-preview" role="dialog" aria-modal="true">
         <span id="remove-focus-start" tabindex="0"></span>
         <fluent-button id="tenants-global-admin-remove-cancel-button"
                        data-testid="tenants-global-admin-remove-cancel"
@@ -21,7 +24,17 @@
     <output id="validation-report">RUNNING</output>
     <script type="module">
         const cancelButtonId = "tenants-global-admin-remove-cancel-button";
-        const modulePath = new URLSearchParams(window.location.search).get("module") ?? "./tenantsFocus.js";
+        const parameters = new URLSearchParams(window.location.search);
+        const modulePath = parameters.get("module") ?? "./tenantsFocus.js";
+        const pageCssPath = parameters.get("css") ?? "./global-admins.css";
+        if (pageCssPath !== "./global-admins.css") {
+            const stylesheet = document.getElementById("page-stylesheet");
+            await new Promise((resolve, reject) => {
+                stylesheet.addEventListener("load", resolve, { once: true });
+                stylesheet.addEventListener("error", reject, { once: true });
+                stylesheet.href = pageCssPath;
+            });
+        }
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
@@ -56,6 +69,37 @@
 
         try {
             const correctionCss = await (await fetch("./correction.css")).text();
+            const pageCss = await (await fetch(pageCssPath)).text();
+            const pageScope = pageCss.match(/\.global-admins__remove-preview\[([a-z0-9-]+)\]/)?.[1];
+            if (!pageScope) {
+                throw new Error("remove-dialog-style: compiled page CSS scope missing");
+            }
+            const preview = document.getElementById("remove-preview");
+            preview.setAttribute(pageScope, "");
+            await document.fonts.ready;
+            const previewStyle = getComputedStyle(preview);
+            const previewBounds = preview.getBoundingClientRect();
+            const previewCenter = document.elementFromPoint(
+                previewBounds.left + previewBounds.width / 2,
+                previewBounds.top + previewBounds.height / 2);
+            if (previewStyle.display === "none"
+                || previewStyle.visibility !== "visible"
+                || Number(previewStyle.opacity) === 0
+                || previewStyle.position !== "fixed"
+                || previewStyle.boxSizing !== "border-box"
+                || previewStyle.overflowY !== "auto"
+                || Number(previewStyle.zIndex) <= 1
+                || previewBounds.width <= 0
+                || previewBounds.height <= 0
+                || previewBounds.left < -1
+                || previewBounds.top < -1
+                || previewBounds.right > window.innerWidth + 1
+                || previewBounds.bottom > window.innerHeight + 1
+                || !preview.contains(previewCenter)) {
+                throw new Error(`remove-dialog-style: visible fixed foreground bounds required; display=${previewStyle.display};position=${previewStyle.position};bounds=${previewBounds.toJSON()}`);
+            }
+            observations.push("remove-dialog-computed-fixed-visible-bounded-foreground");
+
             const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];
             if (!scope || window.innerWidth > 767) {
                 throw new Error(`correction CSS scope or narrow viewport missing: ${scope ?? "none"};${window.innerWidth}`);

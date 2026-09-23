@@ -30,7 +30,7 @@ public sealed class TenantQueryHandlerETagTests
     [InlineData("get-tenant-users", "projection:tenants:tenant.alpha", "tenant-etag-2")]
     [InlineData("get-tenant-audit", "audit:tenant.alpha", "audit-etag-1")]
     [InlineData("get-global-administrators", "projection:global-administrators:singleton", "admin-etag-1")]
-    public async Task Query_handlers_surface_primary_read_model_etag_only_as_opaque_validator(
+    public async Task Query_handlers_surface_primary_read_model_etag_and_projection_metadata(
         string queryType,
         string expectedPrimaryKey,
         string expectedETag)
@@ -55,12 +55,12 @@ public sealed class TenantQueryHandlerETagTests
         QueryResponseMetadata metadata = tenantResult.Metadata.ShouldNotBeNull();
         metadata.ETag.ShouldBe(expectedETag);
         metadata.IsNotModified.ShouldBe(false);
-        metadata.ProjectionVersion.ShouldBeNull();
-        metadata.IsStale.ShouldBeNull();
+        metadata.ProjectionVersion.ShouldBe("projection-v1");
+        metadata.IsStale.ShouldBe(false);
         metadata.IsDegraded.ShouldBeNull();
-        metadata.ServedAt.ShouldBeNull();
-        metadata.Provenance.ShouldBe(QueryResponseProvenance.Unknown);
-        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        metadata.ServedAt.ShouldBe(Now);
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
     }
 
     private static QueryEnvelope CreateEnvelope(string queryType)
@@ -159,6 +159,7 @@ public sealed class TenantQueryHandlerETagTests
         {
             Administrators = administratorIds.ToHashSet(StringComparer.Ordinal),
             ProjectedAt = Now,
+            ProjectionVersion = "projection-v1",
         };
 
         _ = store.GetAsync<GlobalAdministratorReadModel>(
@@ -173,6 +174,7 @@ public sealed class TenantQueryHandlerETagTests
         var model = new TenantIndexReadModel
         {
             ProjectedAt = Now,
+            ProjectionVersion = "projection-v1",
             Tenants =
             {
                 ["tenant.alpha"] = new TenantIndexEntry("Tenant Alpha", TenantStatus.Active),
@@ -203,6 +205,7 @@ public sealed class TenantQueryHandlerETagTests
             Status = TenantStatus.Active,
             CreatedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             ProjectedAt = Now,
+            ProjectionVersion = "projection-v1",
             Members =
             {
                 ["test-user"] = TenantRole.TenantReader,
@@ -221,6 +224,7 @@ public sealed class TenantQueryHandlerETagTests
         var model = new TenantAuditReadModel
         {
             ProjectedAt = Now,
+            ProjectionVersion = "projection-v1",
             Entries =
             [
                 new TenantAuditEntry(

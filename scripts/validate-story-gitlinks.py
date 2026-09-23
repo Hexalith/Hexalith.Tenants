@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a story declares or reverts every root-declared submodule pointer change.
+"""Verify story-owned submodule pointer commits and new working-tree movement.
 
 Story commits must not silently carry `references/` gitlink bumps. This check
 diffs the submodule pointers between the story's recorded `baseline_commit` and
@@ -12,8 +12,11 @@ pointer table has gone stale asserts a state that is not the one it ships, and
 naming the path alone let that pass. Stated SHAs are matched by prefix, so both
 short and full forms are accepted.
 
-The check is fail-closed: a story with no usable baseline cannot prove anything
-about its own gitlinks, so a missing baseline is a failure, not a pass.
+Long-lived stories may record full commit IDs in `Story-Owned Gitlink Commits`.
+That record validates each pointer-bearing story commit while excluding later
+committed dependency updates. Stories without that record use the original
+baseline-to-tree check. Both modes fail on new working-tree pointer movement.
+The check is fail-closed when the baseline or a recorded commit is unusable.
 """
 
 from __future__ import annotations
@@ -110,10 +113,10 @@ def is_null_sha(sha: str) -> bool:
 
 def describe_change(old_sha: str, new_sha: str) -> str:
     if is_null_sha(old_sha):
-        return f"absent at baseline -> {new_sha}"
+        return f"absent at baseline -> {new_sha[:7]}"
     if is_null_sha(new_sha):
-        return f"{old_sha} -> removed"
-    return f"{old_sha} -> {new_sha}"
+        return f"{old_sha[:7]} -> removed"
+    return f"{old_sha[:7]} -> {new_sha[:7]}"
 
 
 def normalize_line(line: str) -> str:
@@ -253,6 +256,38 @@ def stated_targets(story_text: str) -> dict[str, str]:
     return targets
 
 
+def story_owned_commits(story_text: str) -> list[str] | None:
+    """Read full canonical commit IDs from the dedicated provenance section.
+
+    None means an older story uses the baseline-to-tree contract. A present but
+    empty or malformed section fails instead of silently reverting to that mode.
+    """
+    if not re.search(r"^## Story-Owned Gitlink Commits\s*$", story_text, re.MULTILINE):
+        return None
+    section = extract_section(story_text, "Story-Owned Gitlink Commits")
+    commits: list[str] = []
+    for line in section.splitlines():
+        if not line.strip().startswith(("-", "*", "+")):
+            continue
+        match = re.fullmatch(r"\s*[-*+]\s*`([0-9a-f]{40})`\s*", line)
+        if match is None:
+            raise CheckError("Story-Owned Gitlink Commits must contain only full 40-character commit IDs.")
+        commits.append(match.group(1))
+    if not commits or len(commits) != len(set(commits)):
+        raise CheckError("Story-Owned Gitlink Commits must contain distinct full commit IDs.")
+    return commits
+
+
+def is_ancestor(ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]]:
     """Return (path, old_sha, new_sha) for every changed pointer under references/.
 
@@ -261,7 +296,7 @@ def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]
     ones at completion time: a later `git add -A` sweeps them into an unrelated
     commit, which is exactly how this drift keeps happening.
     """
-    diff_args = ["diff", "--ignore-submodules=dirty", "--raw", baseline]
+    diff_args = ["diff", "--ignore-submodules=dirty", "--no-abbrev", "--raw", baseline]
     if ref is not None:
         diff_args.append(ref)
     raw = run_git(*diff_args, "--", SUBMODULE_ROOT)
@@ -285,7 +320,7 @@ def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]
                 new_sha = run_git("-C", path, "rev-parse", "HEAD").strip()
             except CheckError:
                 pass
-        changes.append((path, old_sha[:7], new_sha[:7]))
+        changes.append((path, old_sha, new_sha))
     return sorted(changes)
 
 
@@ -298,14 +333,14 @@ def current_pointer(path: str, ref: str | None) -> str | None:
     """
     try:
         if ref is None:
-            return run_git("-C", path, "rev-parse", "HEAD").strip()[:7]
+            return run_git("-C", path, "rev-parse", "HEAD").strip()
         raw = run_git("ls-tree", ref, "--", path)
     except CheckError:
         return None
     for line in raw.splitlines():
         fields = line.split()
         if len(fields) >= 3 and fields[1] == "commit":
-            return fields[2][:7]
+            return fields[2]
     return None
 
 
@@ -373,6 +408,53 @@ def check(story_path: Path, ref: str) -> int:
             f"baseline_commit {baseline[:7]} already touches this story's own files, so it is a\n"
             "  mid-story baseline. Pointer changes made earlier in the story are outside this diff."
         )
+
+    owned_commits = story_owned_commits(story_text)
+    if owned_commits is not None:
+        declared = declared_paths(story_text)
+        stated = stated_targets(story_text)
+        owned_targets: dict[str, str] = {}
+        failures: list[str] = []
+        print(f"\n{len(owned_commits)} recorded story-owned pointer commit(s):")
+        for commit in owned_commits:
+            canonical = run_git("rev-parse", "--verify", f"{commit}^{{commit}}").strip()
+            if canonical != commit or commit == baseline or not is_ancestor(baseline, commit) or not is_ancestor(commit, head):
+                raise CheckError(f"recorded story-owned commit {commit} is not a canonical commit after the baseline and at or before {ref}.")
+            changes_in_commit = gitlink_changes(f"{commit}^", commit)
+            if not changes_in_commit:
+                failures.append(f"  [NO GITLINK] {commit} has no references/ pointer change")
+            print(f"  {commit}")
+            for path, old_sha, new_sha in changes_in_commit:
+                expected_old = owned_targets.get(path, current_pointer(path, baseline))
+                if expected_old != old_sha:
+                    failures.append(
+                        f"  [CHAIN GAP] {path} in {commit} starts at {old_sha}, expected {expected_old}"
+                    )
+                owned_targets[path] = new_sha
+                print(f"    {path} {describe_change(old_sha, new_sha)}")
+                if path not in declared:
+                    failures.append(f"  [UNDECLARED] {path} changed in {commit}")
+
+        for path, actual in sorted(owned_targets.items()):
+            claim = stated.get(path)
+            if claim is None:
+                failures.append(f"  [UNSTATED] {path} has no story-owned target SHA")
+            elif not actual.startswith(claim):
+                failures.append(f"  [MISSTATED] {path} story-owned target is {actual}, but the story states {claim}")
+        for path in sorted(stated.keys() - owned_targets.keys()):
+            failures.append(f"  [UNOWNED CLAIM] {path} has a target SHA but no recorded story-owned pointer commit")
+
+        if compare_worktree:
+            worktree_changes = gitlink_changes(head, None)
+            for path, old_sha, new_sha in worktree_changes:
+                failures.append(f"  [WORKTREE MOVE] {path} {describe_change(old_sha, new_sha)}")
+        if failures:
+            print("\n" + "\n".join(failures))
+        for warning in warnings:
+            print(f"\nWARNING: {warning}")
+        print("\nLater committed pointer updates are outside the recorded story-owned commits.")
+        print("\nRESULT: FAIL" if failures else "\nRESULT: PASS")
+        return EXIT_FAIL if failures else EXIT_PASS
 
     compare_ref = None if compare_worktree else head
     changes = gitlink_changes(baseline, compare_ref)

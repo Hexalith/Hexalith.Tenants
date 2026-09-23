@@ -3124,5 +3124,25 @@ Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Alread
 - Story gitlink guard still fails (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Stop the pushall per-repository procedure when its initial fetch fails.
+  evidence: `.agents/skills/pushall/SKILL.md` step 1 runs `fetch --all --prune` but does not branch on failure; later merge and pruning steps can use stale remote-tracking refs.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Handle pushall checkout failure before continuing merge and final-branch steps.
+  evidence: `.agents/skills/pushall/SKILL.md` step 4 checks out the chosen default without a failure path, while steps 5–11 assume the checkout succeeded.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Fail the legacy story gitlink guard when its baseline already contains story work.
+  evidence: `scripts/validate-story-gitlinks.py` currently emits only a warning from `baseline_is_mid_story`; pointer moves before that baseline are excluded from the baseline-to-tree verdict. The current Story 4.3 baseline does not meet this condition.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Read unchanged legacy-mode gitlinks from the superproject index or tree when a submodule is uninitialized.
+  evidence: `current_pointer(path, None)` runs `git -C <path> rev-parse HEAD`; in an uninitialized submodule directory Git can resolve the superproject HEAD and report a false pointer value. Recorded-commit mode uses `git ls-tree` and is unaffected.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Release a terminal grant lease adopted after ownerless delivery completion.
+  evidence: `GlobalAdministratorsPage.AdoptRetainedReconciliation` assigns `_grantSnapshot` directly, bypassing `SetGrantSnapshot` and its terminal release; the grant replacement test completes delivery after the replacement already adopted the lease. This grant path belongs to Story 4.2 and shares the administrator aggregate lock.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.
   evidence: `TenantAuditPage.CanContinueReadOnlyForState` checks rows and stale/degraded/list-refreshed state while `ShouldRenderRows` also requires no filter validation, so the recovery link can target a heading omitted from the DOM. The audit surface was changed by later Story 5.1 work in the baseline range.

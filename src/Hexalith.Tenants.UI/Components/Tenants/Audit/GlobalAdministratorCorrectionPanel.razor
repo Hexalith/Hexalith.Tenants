@@ -1221,7 +1221,8 @@
             if (current is null
                 || deliveryBasis.RemovePreview?.Matches(current) != true
                 || !rebuilt.IsComplete
-                || !rebuilt.Matches(current))
+                || !rebuilt.Matches(current)
+                || deliveryBasis.RemovePreview?.Matches(rebuilt) != true)
             {
                 await InvokeRendererSafelyAsync(() =>
                 {

@@ -14,7 +14,7 @@ Before you begin, verify that the following tools are installed and working. Run
 dotnet --version
 ```
 
-Expected: `10.0.400` or a later `10.0.xxx` patch version. The repository pins SDK `10.0.400` in [`global.json`](../global.json) with `rollForward: latestPatch`.
+Expected: `10.0.401` or a later `10.0.xxx` patch version. The repository pins SDK `10.0.401` in [`global.json`](../global.json) with `rollForward: latestPatch`.
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 
@@ -67,7 +67,7 @@ Expected: each line starts with a commit hash or a leading space. A leading `-` 
 
 Hexalith.Tenants operates as a platform-level service within EventStore's multi-tenant model. All tenant management commands run under the `system` tenant context — this is a platform tenant that manages other tenants, not a user-facing tenant.
 
-For local development, the Aspire AppHost topology handles the `system` tenant configuration automatically. By default it starts a local Keycloak realm that emits `eventstore:tenant=system` for the sample administrator. You do not need to manually deploy EventStore or configure JWT tenant claims.
+For local development, the Aspire AppHost topology handles the `system` tenant configuration automatically. By default it starts a local Keycloak realm. AppHost generates the service administrator credentials for each run and wires them into the realm and services; those credentials are not a reusable interactive login. You do not need to manually deploy EventStore or configure JWT tenant claims.
 
 ## Clone and Build
 
@@ -106,7 +106,7 @@ Before sending a command, confirm the dashboard shows these local resources as r
 - `eventstore`: EventStore command gateway, including `POST /api/v1/commands`
 - `tenants`: Tenants domain processor for `/process` and query endpoints
 - `tenants-ui`: Blazor InteractiveServer Tenants workspace composed through FrontComposer
-- `security`: local Keycloak-backed identity provider, unless you explicitly set `EnableKeycloak=false`
+- `security`: local Keycloak-backed identity provider for the token-based steps below
 - `redis`: local state store backing DAPR actor and projection state
 - `sample`: consuming service subscribed to tenant events
 - DAPR sidecars for `eventstore`, `tenants`, and `sample`
@@ -115,66 +115,35 @@ If `eventstore` or `tenants` is missing or unhealthy, do not submit the first co
 
 ## Get an Access Token
 
-The EventStore command gateway requires a JWT token for authentication. The default local AppHost starts Keycloak with a sample realm and user.
+The EventStore command gateway requires a JWT token. The default AppHost starts the local Keycloak realm and configures OIDC validation with `RS256`. Its service administrator username and password are generated for each run and passed directly to the realm and service resources. They are not the `admin-user` / `admin-pass` pair, and the AppHost does not publish them for an interactive API session.
 
-Find the `security` base URL in the Aspire dashboard, then request a token with the local sample credentials:
+For the manual API walkthrough, provision a separate local realm user through your development identity-provider administration process. That user needs a stable subject with global-administrator authority in Tenants, plus `eventstore:tenant=system`, `eventstore:domain=global-administrators` and `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims. The AppHost bootstraps its generated service administrator automatically; a newly provisioned user must be granted global-administrator authority by an existing administrator before it can manage tenants. Use a local test identity only. If you have not provisioned one, stop before the direct API commands; an invented token will not work.
+
+Find the `security` base URL in the Aspire dashboard. With your own local test identity, request a token from the realm's public `hexalith-eventstore` client, which permits direct access grants:
 
 ```bash
-curl -s -X POST "{security-url}/realms/hexalith/protocol/openid-connect/token" \
+read -r -p "Local platform username: " LOCAL_PLATFORM_USERNAME
+read -r -s -p "Local platform password: " LOCAL_PLATFORM_PASSWORD
+printf '\n'
+TOKEN=$(curl -fsS -X POST "{security-url}/realms/hexalith/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
   -d "client_id=hexalith-eventstore" \
-  -d "username=admin-user" \
-  -d "password=admin-pass" \
-  | jq -r .access_token
+  --data-urlencode "username=$LOCAL_PLATFORM_USERNAME" \
+  --data-urlencode "password=$LOCAL_PLATFORM_PASSWORD" \
+  | jq -er .access_token)
+unset LOCAL_PLATFORM_PASSWORD
 ```
 
-If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=global-administrators`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for the two quickstart commands.
+The command requires `jq`; install it before requesting the token. Keep `TOKEN` in the local shell only and do not paste it into logs or a committed file. The realm import at `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` declares the client and the claim mappings. The AppHost applies the matching EventStore audience and asymmetric-algorithm settings.
 
-If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. The quickstart submits commands to the EventStore command gateway, so that fallback uses the development issuer, audience, and signing key from `references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json`.
+`EnableKeycloak=false` is outside this token walkthrough. The tracked `references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json` does not provide a static signing key or audience for a handwritten HMAC token, so disabling Keycloak does not make the old development-token command valid. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
 
-The compact payload produced by the examples includes `"aud":"hexalith-eventstore"`.
-
-**PowerShell:**
-
-```powershell
-$header = @{alg="HS256";typ="JWT"} | ConvertTo-Json -Compress
-$exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
-$payload = @{sub="admin-user";iss="hexalith-dev";aud="hexalith-eventstore";tenants=@("system");exp=$exp} | ConvertTo-Json -Compress
-
-function ConvertTo-Base64Url($bytes) { [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_') }
-
-$headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
-$payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))
-$signingInput = "$headerB64.$payloadB64"
-
-$key = [System.Text.Encoding]::UTF8.GetBytes("DevOnlySigningKey-AtLeast32Chars!")
-$hmac = New-Object System.Security.Cryptography.HMACSHA256(,$key)
-$sig = ConvertTo-Base64Url($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($signingInput)))
-
-$token = "$signingInput.$sig"
-Write-Output $token
-```
-
-**bash (requires openssl):**
-
-```bash
-header=$(echo -n '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-exp=$(($(date +%s) + 28800))
-payload=$(echo -n "{\"sub\":\"admin-user\",\"iss\":\"hexalith-dev\",\"aud\":\"hexalith-eventstore\",\"tenants\":[\"system\"],\"exp\":$exp}" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-sig=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "DevOnlySigningKey-AtLeast32Chars!" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-echo "$header.$payload.$sig"
-```
-
-Copy the output token — you need it in the next step.
-
-> **How it works:** The default local Keycloak realm is imported from `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` and is configured for the `hexalith-eventstore` audience used by the AppHost. The `EnableKeycloak=false` fallback uses EventStore's local HMAC-SHA256 settings with issuer `hexalith-dev` and audience `hexalith-eventstore`; the `tenants: ["system"]` source claim is normalized by EventStore into `eventstore:tenant=system`. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
->
-> **Production note:** Production deployments use OIDC authority-based JWT validation, not the local HMAC signing key. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
+> **Production note:** Production deployments use OIDC authority-based JWT validation. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
 ## Validate Before the First Command
 
-Do these checks before you submit `BootstrapGlobalAdmin`. They catch the common local setup failures while the system is still idle.
+Do these checks before you submit your first tenant command. They catch the common local setup failures while the system is still idle.
 
 ### Verify the EventStore command gateway
 
@@ -202,8 +171,8 @@ Fix these outcomes before submitting a tenant command:
 
 | Result | Meaning | Fix |
 | ------ | ------- | --- |
-| `401 Unauthorized` | Missing, expired, malformed, wrong issuer, wrong audience, or wrong signing key token | Re-acquire the Keycloak token or regenerate the local HMAC token after confirming the AppHost auth mode. |
-| `403 Forbidden` with no tenant authorization claims | Token lacks an effective `eventstore:tenant=system` claim | Use the `admin-user` local Keycloak account or a local HMAC token with `tenants: ["system"]`. |
+| `401 Unauthorized` | Missing, expired, malformed, wrong issuer, wrong audience, or wrong signing key token | Re-acquire the local Keycloak token and confirm the issuer, audience, and signing algorithm match the AppHost OIDC configuration. |
+| `403 Forbidden` with no tenant authorization claims | Token lacks an effective `eventstore:tenant=system` claim | Use your provisioned local platform account with an effective `eventstore:tenant=system` claim. |
 | `403 Forbidden` with tenant mismatch | Token tenant is not exactly `system` for the platform command path | Use the local platform administrator token; do not submit tenant-management commands under `tenant-a`, `tenant-b`, or differently cased `System`. |
 | Connection failure | EventStore is not reachable | Wait for the AppHost resource, then check Docker, DAPR full init, and AppHost resource details. |
 
@@ -217,9 +186,9 @@ Find the `eventstore` service in the Aspire dashboard and open its URL. Append `
 2. In the **Value** field, paste the token you generated — do not include the `Bearer` prefix, Swagger adds it automatically
 3. Click **Authorize**, then **Close**
 
-### Step 1: Bootstrap the Global Administrator
+### Step 1: Confirm the Global Administrator Is Already Bootstrapped
 
-Before creating tenants, you must authorize an administrator. In the EventStore Swagger UI, expand the **POST /api/v1/commands** endpoint, click **Try it out**, and submit:
+The default AppHost bootstraps its generated service administrator at startup. The following command is an optional check of the one-time bootstrap rule; it does not grant access to your newly provisioned user. In the EventStore Swagger UI, expand the **POST /api/v1/commands** endpoint, click **Try it out**, and submit:
 
 ```json
 {
@@ -236,7 +205,7 @@ Before creating tenants, you must authorize an administrator. In the EventStore 
 
 > **`messageId`** is required — it is the idempotency key. Generate a unique value per command (e.g., a ULID). Resubmitting the same `messageId` is safely deduplicated.
 
-Click **Execute**. The API returns `202 Accepted` with a correlation ID. This registers `admin-user` as a global administrator who can create and manage tenants.
+Click **Execute**. The API can return `202 Accepted` with a correlation ID for the submitted command. Poll its status: on the default AppHost, the command reaches `Rejected` with `GlobalAdminAlreadyBootstrappedRejection` because bootstrap already ran. Continue with the local platform account whose global-administrator authority was granted by an existing administrator.
 
 ### Step 2: Create Your First Tenant
 

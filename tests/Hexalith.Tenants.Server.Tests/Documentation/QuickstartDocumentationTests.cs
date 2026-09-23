@@ -89,23 +89,40 @@ public class QuickstartDocumentationTests {
     }
 
     [Fact]
-    public void Quickstart_hmac_fallback_targets_EventStore_development_auth_settings() {
+    public void Quickstart_token_request_matches_generated_realm_credentials_and_current_development_settings() {
         string quickstart = ReadQuickstart();
-        string eventStoreDevelopmentSettings = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "appsettings.Development.json"));
-        string tenantsDevelopmentSettings = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "appsettings.Development.json"));
+        using JsonDocument realm = JsonDocument.Parse(File.ReadAllText(RepositoryPath(
+            "src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json")));
+        JsonElement client = realm.RootElement.GetProperty("clients").EnumerateArray()
+            .Single(item => item.GetProperty("clientId").GetString() == "hexalith-eventstore");
+        client.GetProperty("publicClient").GetBoolean().ShouldBeTrue();
+        client.GetProperty("directAccessGrantsEnabled").GetBoolean().ShouldBeTrue();
+        JsonElement generatedAdministrator = realm.RootElement.GetProperty("users").EnumerateArray()
+            .Single(item => item.TryGetProperty("id", out JsonElement id)
+                && id.GetString() == "11111111-1111-1111-1111-111111111111");
+        generatedAdministrator.GetProperty("username").GetString()
+            .ShouldBe("${HEXALITH_EVENTSTORE_CLIENT_USERNAME}");
+        generatedAdministrator.GetProperty("credentials")[0].GetProperty("value").GetString()
+            .ShouldBe("${HEXALITH_EVENTSTORE_CLIENT_PASSWORD}");
+        using JsonDocument eventStoreDevelopmentSettings = JsonDocument.Parse(File.ReadAllText(RepositoryPath(
+            "references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "appsettings.Development.json")));
+        eventStoreDevelopmentSettings.RootElement.TryGetProperty("Authentication", out _).ShouldBeFalse();
 
-        eventStoreDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-eventstore\"");
-        eventStoreDevelopmentSettings.ShouldContain("\"SigningKey\": \"DevOnlySigningKey-AtLeast32Chars!\"");
-        tenantsDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-tenants\"");
-
+        quickstart.ShouldContain("generated for each run");
+        quickstart.ShouldContain("provision a separate local realm user");
+        quickstart.ShouldContain("bootstraps its generated service administrator at startup");
+        quickstart.ShouldContain("GlobalAdminAlreadyBootstrappedRejection");
+        quickstart.ShouldNotContain("This registers `admin-user` as a global administrator");
+        quickstart.ShouldContain("grant_type=password");
+        quickstart.ShouldContain("client_id=hexalith-eventstore");
+        quickstart.ShouldContain("--data-urlencode \"username=$LOCAL_PLATFORM_USERNAME\"");
+        quickstart.ShouldContain("--data-urlencode \"password=$LOCAL_PLATFORM_PASSWORD\"");
+        quickstart.ShouldContain("jq -er .access_token");
+        quickstart.ShouldContain("eventstore:tenant=system");
         quickstart.ShouldContain("references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json");
-        quickstart.ShouldContain("aud=\"hexalith-eventstore\"");
-        quickstart.ShouldContain("aud\":\"hexalith-eventstore\"");
-        quickstart.ShouldContain("DevOnlySigningKey-AtLeast32Chars!");
-        quickstart.ShouldContain("audience `hexalith-eventstore`");
-        quickstart.ShouldNotContain("aud=\"hexalith-tenants\"");
-        quickstart.ShouldNotContain("aud\":\"hexalith-tenants\"");
-        quickstart.ShouldNotContain("this-is-a-development-signing-key-minimum-32-chars");
+        quickstart.ShouldNotContain("-d \"password=admin-pass\"");
+        quickstart.ShouldNotContain("DevOnlySigningKey-AtLeast32Chars!");
+        quickstart.ShouldNotContain("openssl dgst -sha256 -hmac");
     }
 
     [Fact]

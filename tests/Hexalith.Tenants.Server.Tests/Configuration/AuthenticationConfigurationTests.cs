@@ -41,11 +41,38 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
         });
 
         Should.NotThrow(() => ValidateOptions(configuration, Environments.Production));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("HS256")]
+    [InlineData("unsupported-algorithm")]
+    public void ProductionOidcRequiresAnExplicitSupportedAsymmetricAlgorithm(string? algorithm) {
+        Dictionary<string, string?> overrides = CreateProductionOidcOverrides();
+        string key = $"{AuthenticationSectionName}:AllowedAlgorithms:0";
+        if (algorithm is null) {
+            _ = overrides.Remove(key);
+        }
+        else {
+            overrides[key] = algorithm;
+        }
+
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => ValidateOptions(CreateDeploymentConfiguration(overrides), Environments.Production));
+
+        string message = string.Join(Environment.NewLine, exception.Failures);
+        message.ShouldContain($"{AuthenticationSectionName}:AllowedAlgorithms");
+        message.ShouldNotContain(SecretSigningKey);
+        if (!string.IsNullOrEmpty(algorithm)) {
+            message.ShouldNotContain(algorithm);
+        }
     }
 
     [Theory]
@@ -95,6 +122,7 @@ public class AuthenticationConfigurationTests {
             [$"{prefix}Authentication__JwtBearer__Authority"] = "https://identity.example.test",
             [$"{prefix}Authentication__JwtBearer__Issuer"] = "https://identity.example.test",
             [$"{prefix}Authentication__JwtBearer__Audience"] = "hexalith-tenants",
+            [$"{prefix}Authentication__JwtBearer__AllowedAlgorithms__0"] = "RS256",
             [$"{prefix}Authentication__JwtBearer__SigningKey"] = string.Empty,
             [$"{prefix}Authentication__JwtBearer__RequireHttpsMetadata"] = "true",
         };
@@ -126,6 +154,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
             [$"{AuthenticationSectionName}:{key}"] = new string(' ', 40),
@@ -149,6 +178,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = authority,
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
         });
@@ -167,6 +197,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = SecretSigningKey,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
         });
@@ -192,6 +223,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = authority,
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = SecretSigningKey,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
         };
@@ -212,6 +244,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "false",
         });
@@ -231,7 +264,7 @@ public class AuthenticationConfigurationTests {
             () => ValidateOptionsOnStart(configuration, Environments.Production));
 
         string message = string.Join(Environment.NewLine, exception.Failures);
-        message.ShouldContain("either 'Authority' (production OIDC) or 'SigningKey'");
+        message.ShouldContain("requires exactly one of Authority or SigningKey");
         message.ShouldContain($"{AuthenticationSectionName}:Authority");
     }
 
@@ -262,6 +295,7 @@ public class AuthenticationConfigurationTests {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:AllowedAlgorithms:0"] = "RS256",
             [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
         };

@@ -4316,7 +4316,7 @@
                 if (!rebuilt.IsComplete
                     || !expectedPreview.Matches(current)
                     || !rebuilt.Matches(current)
-                    || !string.Equals(expectedPreview.TargetUserId, rebuilt.TargetUserId, StringComparison.Ordinal)
+                    || !expectedPreview.Matches(rebuilt)
                     || !availability.IsAvailable)
                 {
                     _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
@@ -4589,6 +4589,7 @@
             if (!retainedPreview.Matches(current)
                 || !rebuilt.IsComplete
                 || !rebuilt.Matches(current)
+                || !retainedPreview.Matches(rebuilt)
                 || !availability.IsAvailable)
             {
                 (string reasonKey, string recoveryKey) = RemovePreflightFailureEvidence(
@@ -4969,7 +4970,9 @@
         else
         {
             _removeAdmissionLease = lease;
-            _removeSnapshot = CreateRemoveSnapshot(reconciliation);
+            // A delivery can finish while the retained lease has no owner. Publish its exact
+            // terminal result to this page before releasing the newly adopted lease.
+            SetRemoveSnapshot(CreateRemoveSnapshot(reconciliation));
         }
     }
 

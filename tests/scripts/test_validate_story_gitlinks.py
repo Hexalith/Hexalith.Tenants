@@ -198,6 +198,7 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             f"160000,{self.target},references/Dependency",
         )
         self._git("commit", "--quiet", "-m", "move dependency pointer")
+        self.pointer_commit = self._git("rev-parse", "HEAD").stdout.strip()
 
     def tearDown(self):
         self._temporary_directory.cleanup()
@@ -229,6 +230,60 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertIn("[MISSTATED] references/Dependency", result.stdout)
         self.assertIn("RESULT: FAIL", result.stdout)
 
+    def test_recorded_story_commit_passes_after_later_unrelated_committed_pointer_update(self):
+        (self.repo / "seed.txt").write_text("later\n", encoding="utf-8")
+        self._git("add", "seed.txt")
+        self._git("commit", "--quiet", "-m", "later dependency target")
+        later_target = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("update-index", "--cacheinfo", f"160000,{later_target},references/Dependency")
+        self._git("commit", "--quiet", "-m", "later unrelated pointer refresh")
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn(self.pointer_commit, result.stdout)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commit_rejects_misstated_or_undeclared_pointer(self):
+        for file_list, completion, expected in (
+            ("- `references/Dependency`", "- `references/Dependency` deadbee -> deadbee", "[MISSTATED]"),
+            ("- `src/Thing.cs`", None, "[UNDECLARED]"),
+        ):
+            with self.subTest(expected=expected):
+                result = self._run_guard(
+                    file_list,
+                    completion,
+                    owned_commits=[self.pointer_commit],
+                )
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                self.assertIn(expected, result.stdout)
+
+    def test_recorded_story_commit_rejects_missing_and_short_commit_ids(self):
+        for commit_ids in ([], [self.pointer_commit[:7]]):
+            with self.subTest(commit_ids=commit_ids):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"- `references/Dependency` {self.baseline} -> {self.target}",
+                    owned_commits=commit_ids,
+                )
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+
+    def test_recorded_story_commit_rejects_new_worktree_pointer_movement(self):
+        self._git("update-index", "--cacheinfo", f"160000,{self.baseline},references/Dependency")
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+            include_worktree=True,
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[WORKTREE MOVE]", result.stdout)
+
     def _git(self, *args):
         return subprocess.run(
             ["git", *args],
@@ -238,12 +293,18 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             check=True,
         )
 
-    def _run_guard(self, file_list_entry, completion_entry=None):
+    def _run_guard(self, file_list_entry, completion_entry=None, owned_commits=None, include_worktree=False):
         story = self.repo / "story.md"
         head = self._git("rev-parse", "HEAD").stdout.strip()
         completion = (
             "\n## Completion Notes List\n\n" + completion_entry + "\n"
             if completion_entry is not None
+            else ""
+        )
+        provenance = (
+            "\n## Story-Owned Gitlink Commits\n\n"
+            + "".join(f"- `{commit}`\n" for commit in owned_commits)
+            if owned_commits is not None
             else ""
         )
         story.write_text(
@@ -252,7 +313,7 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             "---\n\n"
             "## File List\n\n"
             f"{file_list_entry}\n"
-            f"{completion}",
+            f"{completion}{provenance}",
             encoding="utf-8",
         )
         return subprocess.run(
@@ -260,8 +321,7 @@ class GuardCommandIntegrationTests(unittest.TestCase):
                 "python3",
                 "scripts/validate-story-gitlinks.py",
                 str(story),
-                "--ref",
-                head,
+                *([] if include_worktree else ["--ref", head]),
             ],
             cwd=self.repo,
             capture_output=True,

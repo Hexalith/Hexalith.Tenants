@@ -2232,6 +2232,33 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task ChangedCallerBeforeRemoveDispatchInvalidatesPreviewWithoutSendingCommand()
+    {
+        var composition = new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized);
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        composition.CallerSubject = "target-admin";
+
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+        commandGateway.RemoveMessageIds.ShouldBeEmpty();
+        PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot")
+            .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+    }
+
+    [Fact]
     public void TrackedLastAdministratorRaceRejectsWithoutChangingConfirmedRows()
     {
         var commandGateway = new StubTenantCommandGateway(statuses:
@@ -4322,8 +4349,18 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         harness.ShouldContain("missing-preview-to-lifecycle");
         harness.ShouldContain("narrow-correction-retry-hidden");
         harness.ShouldContain("getComputedStyle(retry).display");
+        harness.ShouldContain("class=\"global-admins__remove-preview\"");
+        harness.ShouldContain("pageCss.match(/\\.global-admins__remove-preview\\[");
+        harness.ShouldContain("getComputedStyle(preview)");
+        harness.ShouldContain("previewStyle.position !== \"fixed\"");
+        harness.ShouldContain("preview.contains(previewCenter)");
+        harness.ShouldContain("remove-dialog-computed-fixed-visible-bounded-foreground");
         runner.ShouldContain("src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js");
         runner.ShouldContain("GlobalAdministratorCorrectionPanel.razor.rz.scp.css");
+        runner.ShouldContain("GlobalAdministratorsPage.razor.rz.scp.css");
+        runner.ShouldContain("global-admins-inflow.css");
+        runner.ShouldContain("global-admins-hidden.css");
+        runner.ShouldContain("remove-dialog-style");
         runner.ShouldContain("--window-size=390,800");
         runner.ShouldContain("microsoft.fluentui.aspnetcore.components");
         runner.ShouldContain("tenantsFocus-return-true.js");
@@ -4762,6 +4799,42 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(2);
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-remove-refresh']")
             .HasAttribute("disabled").ShouldBeFalse());
+    }
+
+    [Fact]
+    public async Task ChangedCallerBeforeAmbiguousRemoveRetryRetainsIdentityWithoutRedispatch()
+    {
+        var composition = new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized);
+        var commandGateway = new StubTenantCommandGateway
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(cut);
+        AcknowledgeRemovePreview(cut);
+        await cut.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        string messageId = commandGateway.RemoveMessageIds.ShouldHaveSingleItem();
+        composition.CallerSubject = "target-admin";
+
+        await cut.Find("[data-testid='tenants-global-admin-remove-refresh']")
+            .ClickAsync(new MouseEventArgs());
+
+        commandGateway.RemoveMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+        GlobalAdministratorRemoveCommandSnapshot retained =
+            PrivateField<GlobalAdministratorRemoveCommandSnapshot>(cut.Instance, "_removeSnapshot");
+        retained.IsSubmissionAmbiguous.ShouldBeTrue();
+        retained.MessageId.ShouldBe(messageId);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
     }
 
     [Fact]
@@ -5530,6 +5603,62 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         initialLease.IsReconciliationDispatchInFlight.ShouldBeFalse();
         admissionGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators())
             .ShouldBe(outcome != "rejected");
+    }
+
+    [Theory]
+    [InlineData("failed", TenantCommandLifecycleState.Failed)]
+    [InlineData("rejected", TenantCommandLifecycleState.Rejected)]
+    public async Task OwnerlessTerminalRemoveDeliveryIsRenderedAndReleasedAfterReplacementAdopts(
+        string outcome,
+        TenantCommandLifecycleState expectedState)
+    {
+        var deliveryGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway { RemoveSubmissionGate = deliveryGate };
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("projection-v1", "target-admin", "other-admin")));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate admissionGate =
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+
+        IRenderedComponent<GlobalAdministratorsPage> first = Render<GlobalAdministratorsPage>();
+        OpenRemovePreview(first);
+        AcknowledgeRemovePreview(first);
+        Task submit = first.Find("[data-testid='tenants-global-admin-remove-submit']")
+            .ClickAsync(new MouseEventArgs());
+        await commandGateway.RemoveSubmissionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        string messageId = commandGateway.RemoveMessageIds.ShouldHaveSingleItem();
+        await first.InvokeAsync(async () => await first.Instance.DisposeAsync());
+
+        commandGateway.RemoveSubmission = outcome == "failed"
+            ? TenantCommandSubmissionResult.Failed("delivery failed")
+            : TenantCommandSubmissionResult.Rejected("rejected", "LastGlobalAdministrator");
+        deliveryGate.SetResult();
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+
+        IRenderedComponent<GlobalAdministratorsPage> replacement = Render<GlobalAdministratorsPage>();
+        replacement.WaitForAssertion(() =>
+        {
+            GlobalAdministratorRemoveCommandSnapshot snapshot =
+                PrivateField<GlobalAdministratorRemoveCommandSnapshot>(replacement.Instance, "_removeSnapshot");
+            snapshot.State.ShouldBe(expectedState);
+            snapshot.MessageId.ShouldBe(messageId);
+            replacement.Find("[data-testid='tenants-global-admin-remove-state']")
+                .TextContent.ShouldContain(outcome == "failed" ? "failed" : "rejected", Case.Insensitive);
+            admissionGate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        });
+        commandGateway.RemoveMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+
+        var nextOwner = new object();
+        admissionGate.TryAcquireLease(
+            TenantCommandAggregateLock.ForGlobalAdministrators(),
+            nextOwner,
+            out TenantAggregateCommandLease? nextLease).ShouldBeTrue();
+        nextLease!.TryAbandonBeforeDispatch(nextOwner).ShouldBeTrue();
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(1);
     }
 
     [Theory]
@@ -7608,6 +7737,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public TenantLifecycleAuthorizationReflectionState Reflection { get; set; } = reflection;
 
+        public string CallerSubject { get; set; } = "operator";
+
         /// <summary>
         /// When set, the stub resolves from the live principal instead of a fixed value, modelling the real
         /// BFF seam. The page no longer evaluates the authentication event's principal itself -- it delegates
@@ -7744,7 +7875,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 cancellationToken);
             return GlobalAdministratorRemovePreview.Create(
                 targetUserId,
-                "operator",
+                CallerSubject,
                 completeSnapshot,
                 current is TenantLifecycleAuthorizationReflectionState.Authorized);
         }

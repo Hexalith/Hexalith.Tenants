@@ -15,6 +15,7 @@ Production authentication uses OIDC discovery. The committed `src/Hexalith.Tenan
 | `Authentication:JwtBearer:Authority` | `Authentication__JwtBearer__Authority` | Absolute HTTPS OIDC authority, for example `<https-oidc-authority>` | Startup validation succeeds only when the value is present and HTTPS. | Do not commit real internal authorities in transcripts. Replace with `<https-oidc-authority>`. |
 | `Authentication:JwtBearer:Issuer` | `Authentication__JwtBearer__Issuer` | Exact token `iss` value expected from the IdP | Token inspection shows `iss` equals the configured value. | Redact environment-specific issuer hosts in committed evidence. |
 | `Authentication:JwtBearer:Audience` | `Authentication__JwtBearer__Audience` | Exact token `aud` value accepted by Tenants | Token inspection shows `aud` equals the configured value. | Redact customer-specific audience values when they identify a private deployment. |
+| `Authentication:JwtBearer:AllowedAlgorithms:0` | `Authentication__JwtBearer__AllowedAlgorithms__0` | Explicit supported asymmetric JWT algorithm, such as `RS256`, matching the IdP signing keys | Startup validation rejects a missing, blank, symmetric, or unsupported algorithm. | Record the algorithm name only; do not store signing material. |
 | `Authentication:JwtBearer:RequireHttpsMetadata` | `Authentication__JwtBearer__RequireHttpsMetadata` | `true` | Startup validation rejects `false` in `Production`. | No secret data. Record only pass/fail. |
 | `Authentication:JwtBearer:SigningKey` | `Authentication__JwtBearer__SigningKey` | Empty or unset | Startup validation rejects any production signing key. | Never print, log, or commit signing-key values. |
 
@@ -67,8 +68,9 @@ Run these checks before release. Store only the pass/fail result, test name, HTT
 
 | Check | Pass condition | Fail condition | Evidence | Redaction rule |
 | --- | --- | --- | --- | --- |
-| Production startup placeholders | Deployment overrides provide `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`. | Startup/options validation names a missing or invalid `Authentication:JwtBearer` key. | `AuthenticationConfigurationTests` or deployment startup log shows the named key. | Do not include signing-key values, bearer tokens, or full authority hosts. |
+| Production startup placeholders | Deployment overrides provide `Authority`, `Issuer`, `Audience`, an explicit supported asymmetric `AllowedAlgorithms` entry, and `RequireHttpsMetadata=true`. | Startup/options validation names a missing or invalid `Authentication:JwtBearer` key. | `AuthenticationConfigurationTests` or deployment startup log shows the named key. | Do not include signing-key values, bearer tokens, or full authority hosts. |
 | HTTPS authority | `Authority` is absolute HTTPS. | Empty, whitespace, relative, malformed, or HTTP authority fails before OIDC discovery. | Startup validation names `Authentication:JwtBearer:Authority`. | Record only the category, not the exact internal URL. |
+| JWT signing algorithm | `AllowedAlgorithms:0` names a supported asymmetric algorithm used by the IdP, such as `RS256`. | Missing, blank, symmetric, or unknown algorithms fail startup validation. | Startup validation names `Authentication:JwtBearer:AllowedAlgorithms`. | Record the algorithm name only, never keys or tokens. |
 | Signing source | Production uses OIDC `Authority`; `SigningKey` is empty or unset. | Any production signing key, or `Authority` plus `SigningKey`, fails as ambiguous. | Startup validation names `Authentication:JwtBearer:SigningKey`. | Never print the signing key. |
 | HTTPS metadata | `RequireHttpsMetadata=true`. | `false` fails in `Production`. | Startup validation names `Authentication:JwtBearer:RequireHttpsMetadata`. | No secret data. |
 | Token issuer | Token `iss` equals configured `Issuer`. | Wrong issuer returns `401 Unauthorized`. | Smoke test or manual request returns 401 at authentication. | Do not commit decoded production tokens. |
@@ -103,7 +105,7 @@ Redaction rule: test command IDs are generated; do not replace them with product
 dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~AuthenticationConfigurationTests
 ```
 
-Expected evidence: production startup/options validation fails safely for missing placeholders, whitespace values, non-HTTPS authority, `RequireHttpsMetadata=false`, and production `SigningKey`, and succeeds for valid OIDC-style overrides.
+Expected evidence: production startup/options validation fails safely for missing placeholders, invalid or missing `AllowedAlgorithms`, whitespace values, non-HTTPS authority, `RequireHttpsMetadata=false`, and production `SigningKey`, and succeeds for valid OIDC-style overrides.
 
 Redaction rule: validation assertions must name configuration keys only. They must not echo signing keys, bearer tokens, decoded payloads, or secret values.
 

@@ -480,6 +480,43 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task ChangedCallerBeforeAmbiguousCorrectionRemoveRetryRetainsIdentityWithoutRedispatch()
+    {
+        var composition = new StubTenantsBffComposition();
+        var commandGateway = new StubTenantCommandGateway
+        {
+            RemoveResultTask = Task.FromResult(TenantCommandSubmissionResult.Ambiguous(
+                "ignored",
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(composition);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("proof", "GlobalAdministratorRemoved")));
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut =
+            Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(component => component.Intent, RevokeIntent())
+                .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        string messageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
+        composition.CallerSubject = "admin-user";
+
+        await cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        commandGateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+        GlobalAdministratorCorrectionSnapshot retained = cut.Instance.Snapshot.ShouldNotBeNull();
+        retained.IsSubmissionAmbiguous.ShouldBeTrue();
+        retained.MessageId.ShouldBe(messageId);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task CorrelationlessRemoveAdoptionDoesNotAutomaticallyRetryDelivery()
     {
         var commandGateway = new StubTenantCommandGateway
@@ -2621,6 +2658,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public bool IsGlobalAdministratorRemovePreviewReady => true;
 
+        public string CallerSubject { get; set; } = "operator";
+
         public TenantLifecycleAuthorizationReflectionState SynchronousReflection { get; init; }
             = TenantLifecycleAuthorizationReflectionState.Authorized;
 
@@ -2645,7 +2684,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult(GlobalAdministratorRemovePreview.Create(
                 targetUserId,
-                "operator",
+                CallerSubject,
                 completeSnapshot,
                 isAuthorized: true));
     }

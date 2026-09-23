@@ -2,10 +2,10 @@
 title: '4.3 Remove Global Administrator with Last-Administrator Hard Stop'
 type: 'feature'
 created: '2026-09-01'
-status: 'in-review'
+status: 'done'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
-review_loop_iteration: 7
+review_loop_iteration: 8
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -43,6 +43,16 @@ deferred: []
 | Reconnect/replacement | Preview or tracked command survives rerender/circuit replacement | Matching owner adopts retained evidence and resumes without double dispatch or stranded lock | Collapse privileged rows on authoritative permission loss |
 
 </intent-contract>
+
+## User-Authorized Verification-Gate Extension (2026-09-23)
+
+The human approved expanding this run beyond the removal-only boundary to repair the two broad gates found after iteration 8. This exception is limited to the named documentation, test, query/auth contract, and gitlink-guard files below. It does not authorize moving a submodule pointer, weakening authentication or projection provenance, claiming another story's pointer bump as Story 4.3 work, or changing the fixed removal command behavior. The original removal intent and its already passing focused tests remain the preservation baseline.
+
+- [x] `docs/quickstart.md` and `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` -- align the pinned SDK prerequisite and development token guidance with `global.json`, the current AppHost security configuration, and the tracked EventStore development settings. Remove or replace any fallback command that cannot work with those settings; keep safe local instructions and test the actual documented path.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs`, `docs/production-auth-readiness.md`, and `docs/deployment-readiness.md` -- adapt production OIDC fixtures and operator guidance to the current EventStore `AllowedAlgorithms` contract, requiring an explicit supported asymmetric algorithm while preserving negative security validation and redaction.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs` and, only if the test reveals a production defect, `src/Hexalith.Tenants/Queries/` -- verify the current projection-backed response metadata rather than assuming ETag-only results. Preserve ETag, freshness, lifecycle, and provenance truth; do not change production metadata merely to satisfy an obsolete test expectation.
+- [x] `scripts/validate-story-gitlinks.py`, `tests/scripts/test_validate_story_gitlinks.py`, and this spec's gitlink record -- make the guard distinguish full canonical story-owned pointer commits from later unrelated committed pointer updates. Keep the original baseline and a fail-closed check for undeclared or misstated story-owned pointers and new working-tree pointer movement. Record actual commit provenance; do not relabel later dependency updates as Story 4.3 changes or update any `references/` pointer.
+- [x] Verify the full built server test assembly in Release and the local Debug source-reference lane, the script regression suite, this exact story gitlink command, the existing 3013-case UI lane, focused removal integration tests, and the canonical warning-clean solution build. Record exact blockers if a gate still cannot run.
 
 ## Code Map
 
@@ -119,6 +129,10 @@ deferred: []
 - [x] `src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js`, `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`, `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`, and a repeatable browser validator plus evidence under `tests/` and `_bmad-output/implementation-artifacts/` -- execute the shipped focus module in real Chromium without a mocked JS result or new package/submodule/AppHost dependency; prove the start sentinel moves `document.activeElement` to the exact rendered Cancel target, prove missing-target/false focus takes the safe acknowledgement or lifecycle fallback, and make replacing the module body with `return true` fail the repeatable validation.
 - [x] `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- make exact-attempt notification validation and pending-slot replacement atomic so an attempt-A enqueue paused before the slot cannot overwrite a newer attempt-B nudge; retain bounded coalescing and revalidation before I/O, and add a deterministic race test that fails against the pre-iteration-6 check-before-lock implementation.
 - [x] Reapply and preserve the five successful 2026-09-22 repairs during re-derivation: raw ordinal UserId acknowledgement with encoded display only; fail-closed retry evidence/recovery instead of the `Available` key; grant submitting cleanup in `finally` across disposal/replacement; cancellation-safe focus import/invocation/disposal; and strict non-fallback invariant/FR shipped-resource enumeration.
+
+**Review repair constraints (iteration 8 — human-authorized exception):**
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- when an ownerless removal delivery publishes a terminal rejection or failure before page replacement adopts it, preserve the exact terminal snapshot for the replacement, then release its adopted fixed-aggregate lease once through the same terminal-release boundary used for live snapshots. Prove the replacement renders that result, the aggregate becomes available for a new command, and no redispatch occurs. Keep accepted, ambiguous, and unable-to-verify attempts locked.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh`, `tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html`, and their focused test -- load the compiled scoped stylesheet for `GlobalAdministratorsPage.razor` into the existing Chromium harness, mount the removal dialog with the shipped scope/class shape, and assert its computed visibility, fixed positioning, viewport bounds, and foreground stacking. Make a later overriding in-flow or hidden rule fail the validator while preserving the existing focus and correction-CSS mutation checks. Add no package, submodule, AppHost, or separate browser framework.
 
 **KEEP during re-derivation:** Preserve exact fixed-envelope/payload validation, literal case-sensitive UserId transport, immutable complete BFF preview facts and self-removal copy, caller-owned canonical ULID dispatch, verified status identity/event-count gates, complete-population absence proof, no optimistic row deletion, retained aggregate exclusivity, whole-string EN/FR resources, the isolated responsive dialog shape, and unchanged aggregate/event/controller/AppHost/dependency/submodule surfaces.
 
@@ -230,6 +244,13 @@ Rejected:
 - Amended: added a dependency-free repeatable real-Chromium focus validation/evidence requirement and an atomic identity-aware notification enqueue requirement with a deterministic attempt-A/attempt-B race test.
 - Known-bad state avoided: do not accept a mocked `true` as proof of focus, allow `return true` to pass without calling `focus()`, add a package/submodule/AppHost dependency for browser evidence, validate a nudge before locking and then overwrite blindly, or replace bounded exact-attempt coalescing with an unbounded queue.
 - KEEP: retain every successful iteration-5 behavior plus the five 2026-09-22 direct repairs: ordinal raw acknowledgement, fail-closed retry copy, guaranteed grant submitting cleanup, cancellation-contained focus work, and non-fallback EN/FR resource enumeration. Preserve fixed routing, retained ULID/lease identity, causal projection proof, last-administrator safety, and unchanged domain/controller/dependency/submodule surfaces.
+
+### 2026-09-23 — Review repair iteration 8 (human-authorized exception)
+
+- Trigger: the resumed baseline-wide review confirmed a terminal ownerless removal completion can be adopted into a replacement snapshot without releasing its lease, and the existing browser validator does not execute the shipped removal-dialog stylesheet. The human authorized continuing beyond the five-iteration review limit.
+- Amended: named the exact page adoption/release boundary and a held-delivery replacement test; extended the existing dependency-free Chromium lane to assert computed removal modal presentation from the compiled scoped CSS.
+- Known-bad state avoided: do not release terminal evidence before the replacement can render it, strand the singleton lease after adoption, redispatch the retained attempt, release accepted or ambiguous attempts, or accept source-text CSS checks as proof of rendered modal isolation.
+- KEEP: preserve the completed iteration-6 focus and notification behavior, exact command provenance, complete projection proof, localized lifecycle copy, responsive safe exit, fixed scope, and unchanged domain/controller/AppHost/dependency/submodule surfaces.
 
 ## Review Triage Log
 
@@ -824,6 +845,44 @@ Rejected:
 - `[medium]` `[defer, carried]` `TenantAuditPage.SafeReturnUrl` still decodes a canonical URL before rendering Back, changing an encoded `&` query value into a separator. The prior Story 5.1 audit-navigation finding records the same outcome.
 - `[high]` `[bad_spec, carried]` A terminal removal delivery completed on a retained ownerless lease before replacement adoption can remain locked: `AdoptRetainedReconciliation` assigns the terminal snapshot directly, bypassing `SetRemoveSnapshot` and its `TryReleaseTerminal` call, while `ResumeAdoptedReconciliationAsync` skips terminal states. The earlier iteration-5 finding at this same location recorded this failure and required terminal release before or after adoption. This review exceeds the workflow's five-iteration loopback limit.
 
+### 2026-09-23 — Review pass (baseline-wide resumption)
+
+- `[medium]` `[defer, carried]` The `pushall` manifest permits only Git Bash while its procedure requires file reads, validation, and subagents. The prior iteration-6 and completion-audit rows record the same later tooling defect; the manifest still has `allowed-tools: Bash(git *)`.
+- `[high]` `[defer]` `pushall` never checks that a declared submodule path is an initialized repository before `git -C <dir>`; Git can resolve an empty submodule directory to the enclosing superproject and the assigned agent can operate on the wrong repository. This later tooling skill is outside the removal intent.
+- `[high]` `[defer, carried]` `pushall` still prefers local `main` over the remote default branch. The prior later-tooling row records this same wrong-branch outcome.
+- `[high]` `[defer, carried]` `pushall` still commits before checking out a branch and can commit from detached HEAD. The prior later-tooling row records this same outcome.
+- `[medium]` `[defer, carried]` `pushall` still uses exact commit candidates without pinned commitlint validation. The prior later-tooling row records the same repository-policy violation.
+- `[high]` `[defer, carried]` `pushall` still validates only conflicted merges; a clean merge can be pushed without relevant checks. The prior later-tooling row records this same risk.
+- `[medium]` `[defer]` `pushall` deletes merged local branch names after a failed default-branch push, because step 9 is unconditional while only step 10 checks push success. The later tooling skill is outside the removal intent.
+- `[medium]` `[defer, carried]` `.github/workflows/source-reference.yml` still builds a Debug project-reference graph. The earlier triage records that this supplemental later CI lane does not itself validate the required Release package graph.
+- `[maybe-false]` `[defer]` Tenant-audit gateway failure can retain rows for the same caller without current permission proof. The code returns a degraded snapshot after a retainable exception, but the review did not establish a reachable permission revocation before that exception or whether the audit read contract permits last-confirmed rows in this state. A fault-injected authorization-change test and the Story 5.1 retention contract would settle it; this is later audit work.
+- `[false]` `[reject, carried]` Bidirectional format scalars pass the literal identifier boundary, but `GlobalAdministratorIdentityDisplay.Encode` renders every Unicode Format scalar as a visible token. The earlier Group A row already disproved the claimed visually misleading preview.
+- `[medium]` `[defer]` A null tenant-audit item reaches `entry.EventId` in `IsValidTenantAuditPayload`, where a null reference becomes generic gateway unavailability rather than invalid payload. This is later Story 5.1 audit validation, not removal behavior.
+- `[medium]` `[defer, carried]` The tenant-audit event allowlist still rejects a whole page when a newer server sends an unknown event type. The earlier Group A row and deferred-work ledger record the same later audit contract gap.
+- `[false]` `[reject, carried]` An unsafe viewport hides the destructive ambiguous removal retry while the lifecycle retains its safe message and recovery text. The earlier page-and-focus and Group A reviews checked this same location and refuted the claim that the operator gets no explanation; the current markup still renders those fields.
+- `[medium]` `[bad_spec]` Removal modal styling has only source-text and bUnit attribute checks: the Chromium harness loads correction CSS but never the shipped page stylesheet or its computed removal-dialog style. A later override can make the dialog in-flow while every current check passes. The spec's modal-isolation verification needs a rendered computed-style browser assertion, which is more than a trivial local patch.
+- `[high]` `[bad_spec, carried]` The previously logged terminal ownerless removal result can still leave the fixed-aggregate lease locked after replacement adoption. `AdoptRetainedReconciliation` assigns `CreateRemoveSnapshot` directly, bypassing `SetRemoveSnapshot` and terminal release; `ResumeAdoptedReconciliationAsync` skips terminal removal results. The preceding baseline-wide review recorded this same unresolved blocker.
+
+The two `bad_spec` entries require a review loopback. This pass increments `review_loop_iteration` to 8, above the workflow limit of 5; the human authorized a further repair turn. The baseline diff also contains unrelated committed stories, so implementation will preserve that work and repair the named Story 4.3 seams in place. Lower-priority deferred entries are recorded here and have not been appended to `deferred-work.md` because the loopback takes precedence.
+
+### 2026-09-23 — Review pass (iteration 8 repair and gate extension)
+
+- `[high]` `[defer, carried]` `pushall` can run Git in an uninitialized submodule directory and operate on the superproject; the preceding review logged this same later-tooling defect.
+- `[high]` `[defer, carried]` `pushall` commits before leaving detached HEAD; the preceding review logged this same later-tooling defect.
+- `[high]` `[defer, carried]` `pushall` prefers a local `main` over the remote default branch; the preceding review logged this same later-tooling defect.
+- `[medium]` `[defer]` `pushall` does not branch on a failed `fetch --all --prune`, so subsequent merge and prune decisions can use stale remote refs. This later tooling workflow is outside the removal intent.
+- `[medium]` `[defer]` `pushall` has no failure branch after checkout, so its final-branch guarantee can fail while later steps run. This later tooling workflow is outside the removal intent.
+- `[medium]` `[defer, carried]` `pushall` commits without validating exact messages with pinned commitlint; the preceding review logged this same later-tooling defect.
+- `[high]` `[defer, carried]` `pushall` validates only conflicted merges; the preceding review logged this same later-tooling defect.
+- `[medium]` `[defer, carried]` `pushall` deletes merged local branch names even when push failed; the preceding review logged this same later-tooling defect.
+- `[medium]` `[defer]` The gitlink guard only warns on a mid-story baseline; a story using the legacy baseline comparison can pass despite earlier pointer moves. This existing validator behavior predates the extension and the current 4.3 baseline does not touch its story artifact.
+- `[medium]` `[defer]` The legacy gitlink guard's `current_pointer(path, None)` can resolve an uninitialized submodule path to the superproject HEAD, producing a false pointer verdict. The new recorded-commit mode reads pointers from Git trees instead; this is an existing legacy-mode issue.
+- `[false]` `[reject, carried]` Unicode Format characters in a literal identity do not render invisibly in the removal preview: `GlobalAdministratorIdentityDisplay.Encode` visibly tokenizes every Format scalar. The preceding review checked this same claim.
+- `[medium]` `[patch]` Page pre-dispatch compares old and rebuilt removal previews only with the unchanged projection; a caller change that flips `IsSelfRemoval` can still dispatch after showing the old caller-context fact. Compare the two complete previews directly before dispatch.
+- `[medium]` `[patch]` The page's ambiguous same-ID removal retry also compares each preview only with the unchanged projection; a caller change can bypass the retained self-removal fact. Compare retained and rebuilt previews before retry.
+- `[medium]` `[patch]` Correction-panel ambiguous removal retry has the same missing retained-to-rebuilt preview comparison; a caller change can retry with a different self-removal fact. Compare those previews before retry.
+- `[high]` `[defer]` A grant delivery that completes terminal while its lease has no owner can be adopted with a direct snapshot assignment and leave the shared aggregate locked. The removal branch now exercises its terminal setter; the grant branch is existing Story 4.2 behavior outside this removal intent, and the current grant replacement test completes delivery only after adoption.
+
 ## Design Notes
 
 Removal is intentionally a causal proof pipeline rather than an absence check:
@@ -833,6 +892,14 @@ Removal is intentionally a causal proof pipeline rather than an absence check:
 Any missing link remains pending/rejected/unable-to-verify. The generic API validator protects the fixed actor boundary; the existing aggregate remains the atomic last-administrator authority.
 
 ## Verification
+
+**Iteration 8 evidence (2026-09-23):** The Release UI test build passed with zero warnings; `GlobalAdministratorsPageTests` passed 220/220, including both ownerless terminal outcomes; the full UI suite passed 3013/3013 with zero skipped. The existing real-Chromium validator passed the shipped focus and compiled dialog CSS and rejected `return true`, in-flow, and hidden mutations. The canonical Release solution build passed with zero warnings. The directly run focused server classes passed 80/80, and the fixed-scope removal integration methods passed 3/3. These runs cover all nine frozen matrix rows through the page, BFF, snapshot, aggregate, and integration tests.
+
+**Broad-gate blockers:** `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false` exits 5 with zero tests under Microsoft.Testing.Platform; the built Release assembly runs 804 tests and fails 12 unrelated documentation, authentication-configuration, and query-ETag cases. A Debug source-reference build also passes warning-clean, but its direct 804-test run fails the same 12 cases. `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md` exits 1 on the already recorded baseline-range pointer drift: Commons and PolymorphicSerializations are undeclared, and four declared pointers have stale SHAs. This iteration moved no gitlink; neither broad-gate result is claimed as passing.
+
+**User-authorized gate extension evidence (2026-09-23):** The repaired Release and Debug source-reference server assemblies each passed 808/808 tests with zero skipped. The Debug source-reference server and integration builds and canonical Release solution build passed with zero warnings; the focused removal integration methods passed 3/3. The Release UI assembly passed 3013/3013 with zero skipped. The gitlink script regression suite passed 23/23 and the exact story gitlink validation command passed against three full canonical story-owned pointer commits while rejecting new working-tree pointer changes. The Chromium focus and compiled CSS validator passed, including its negative mutations; `git diff --check` passed. Rechecking `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false` still exits 5 with zero tests under Microsoft.Testing.Platform; direct execution of the built server assemblies proves the full test cases pass. No `references/` gitlink was changed by this extension.
+
+**Post-review patch evidence (2026-09-23):** Three focused changed-caller UI tests passed 3/3. After the patch, the canonical Release solution build passed with zero warnings; the full UI assembly passed 3016/3016; the Release server assembly passed 808/808; focused removal integration passed 3/3; the gitlink regression suite passed 23/23 and this story's guard passed; the Chromium validator passed its shipped checks and rejected focus and dialog-style mutations; `git diff --check` and `git diff --cached --check` passed. The Debug server assembly's 808/808 pass was before this UI-only patch. No root gitlink moved.
 
 **Commands:**
 - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false` -- expected: validator, aggregate, projection/query, and server regressions pass warning-clean.
@@ -876,16 +943,16 @@ Story-owned review evidence:
 
 - `story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md`
 
-Root submodule pointers that moved between this story's `baseline_commit` `91d2335` and the current tree. They are declared rather than reverted because the implementation commits already published them, and later `build(deps)` work advanced Builds, EventStore, and FrontComposer again to the SHAs this tree now ships:
+Root submodule pointers moved by the three story-owned commits below. Each target is the last pointer committed by Story 4.3, not the current tree pointer. Later unrelated dependency commits advanced these paths and also moved Commons and PolymorphicSerializations. The guard verifies the exact story-owned commit chain and separately rejects any new working-tree gitlink movement.
 
 - `references/Hexalith.Builds`
-  - `references/Hexalith.Builds` e0e0694 -> 39debe9 -- story implementation commits moved Builds; later `build(deps)` refreshes advanced it to the shipped pointer.
+  - `references/Hexalith.Builds` e0e069468b29ce3fe85082b7bf0eb0d1952ce77c -> e81e62770bcc72bc3d6722aefe6844775b82b6cf -- moved in the three recorded Story 4.3 commits.
 - `references/Hexalith.EventStore`
-  - `references/Hexalith.EventStore` c08cb34 -> 7b7f876 -- story commit `de5784ca` moved EventStore; later dependency refresh advanced it to the shipped pointer.
+  - `references/Hexalith.EventStore` c08cb3497768806d80a8e949d320cb28ccc40afc -> 6d436b3c271af1c3d0ef15b102c786465ed4a258 -- moved in the three recorded Story 4.3 commits.
 - `references/Hexalith.FrontComposer`
-  - `references/Hexalith.FrontComposer` 1a7edde -> 0a4c4ad -- story commit `de5784ca` moved FrontComposer; later dependency refresh advanced it to the shipped pointer.
+  - `references/Hexalith.FrontComposer` 1a7edded603cd557a97dda1277e5ae3101fbec4d -> 780dd5e901daa2472365e85b123de8b83e32cf22 -- moved in the three recorded Story 4.3 commits.
 - `references/Hexalith.Memories`
-  - `references/Hexalith.Memories` 3a7a702 -> f174f9c -- landed in story commit `de5784ca`.
+  - `references/Hexalith.Memories` 3a7a70259d0ff185947fcc2e4216f7a275651d68 -> f7fef9fb4716721baffc7dfd435de4a2968428cc -- moved in the second and third recorded Story 4.3 commits.
 
 ## Completion Notes List
 
@@ -894,4 +961,10 @@ Root submodule pointers that moved between this story's `baseline_commit` `91d23
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
 
-Story implementation commits `cf31675b`, `a3321266`, and `de5784ca` moved these root gitlinks. They are declared here so the story gitlink guard can distinguish that published drift from a silent later bump. Current shipped pointers are Builds `39debe9`, EventStore `7b7f876`, FrontComposer `0a4c4ad`, and Memories `f174f9c`. No submodule was reverted.
+Story 4.3's pointer-bearing commits are listed below with full canonical IDs. The present tree records Builds `2fba349`, EventStore `d0291d0`, FrontComposer `b6ea783`, and Memories `8884933`; these are later committed dependency updates. Commons `9f4809d` and PolymorphicSerializations `7e95556` likewise moved in later commits. None of those later updates is claimed as a Story 4.3 pointer change.
+
+## Story-Owned Gitlink Commits
+
+- `cf31675b2e860c4be23e22355e361ce977da57c3`
+- `a3321266b61fc98f98f700901bd2cc5166eff4b0`
+- `de5784ca751f51a4cfe282f67e11b13dd1ed4b45`
