@@ -1,5 +1,6 @@
 using Hexalith.Tenants.UI.Services.SupportSafety;
 
+using System.Globalization;
 using System.Text;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
@@ -87,7 +88,7 @@ internal static class TenantAuditSupportSafety
             return false;
         }
 
-        if (value.Any(char.IsControl))
+        if (ContainsInvisibleOrControl(value))
         {
             return false;
         }
@@ -96,7 +97,8 @@ internal static class TenantAuditSupportSafety
             ? IdentifierUnsafeFragments
             : StrictUnsafeFragments;
         string candidate = CanonicalizeForInspection(value);
-        if (candidate.Contains('%', StringComparison.Ordinal)
+        if (ContainsInvisibleOrControl(candidate)
+            || candidate.Contains('%', StringComparison.Ordinal)
             || (kind is SupportSafeCopyValueKind.TenantId
                 or SupportSafeCopyValueKind.UserId
                 or SupportSafeCopyValueKind.ConfigurationKey
@@ -116,6 +118,24 @@ internal static class TenantAuditSupportSafety
                 || (normalizedFragment.Length > 0
                     && normalized.Contains(normalizedFragment, StringComparison.Ordinal));
         });
+    }
+
+    private static bool ContainsInvisibleOrControl(string value)
+    {
+        if (value.Any(char.IsControl))
+        {
+            return true;
+        }
+
+        foreach (Rune rune in value.EnumerateRunes())
+        {
+            if (Rune.GetUnicodeCategory(rune) is UnicodeCategory.Format)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string CanonicalizeForInspection(string value)

@@ -370,7 +370,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             "userId: target-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "target-user"));
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {

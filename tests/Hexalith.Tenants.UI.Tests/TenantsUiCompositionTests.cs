@@ -238,6 +238,8 @@ public sealed class TenantsUiCompositionTests
             {
                 ["Tenants:BaseAddress"] = "https://tenants.invalid",
                 ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+                ["Tenants:Audit:PermissionRecoveryHref"] = "/support/audit-access",
+                ["Tenants:Audit:EscalationRecoveryHref"] = "/support/audit-incident",
             })
             .Build();
         ServiceCollection services = new();
@@ -256,6 +258,8 @@ public sealed class TenantsUiCompositionTests
         gateway.ShouldNotBeNull();
         refreshSubscription.ShouldNotBeNull();
         composition.IsReadSurfaceConnected.ShouldBeTrue();
+        composition.AuditPermissionRecoveryHref.ShouldBe("/support/audit-access");
+        composition.AuditEscalationRecoveryHref.ShouldBe("/support/audit-incident");
     }
 
     [Fact]

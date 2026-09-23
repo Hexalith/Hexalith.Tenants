@@ -3758,6 +3758,55 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("event-token")]
+    [InlineData("event%252Dsecret")]
+    public void Tenant_audit_row_mapper_rejects_unapproved_event_references(string eventReference)
+    {
+        Should.Throw<ArgumentException>(() => TenantAuditRow.FromEntry(
+            AuditEntry(eventReference, AuditEventCategory.Access),
+            ReadModelFreshnessState.Current));
+    }
+
+    [Theory]
+    [InlineData(true, null)]
+    [InlineData(false, "opaque-next")]
+    [InlineData(true, " ")]
+    public async Task Get_tenant_audit_rejects_inconsistent_next_cursor_metadata(bool hasMore, string? cursor)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-safe", AuditEventCategory.Access)], cursor, hasMore));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true, null, "opaque-next")]
+    [InlineData(false, "opaque-current", "opaque-current")]
+    public async Task Get_tenant_audit_rejects_nonadvancing_or_empty_continuation_pages(
+        bool emptyPage,
+        string? requestCursor,
+        string nextCursor)
+    {
+        IReadOnlyList<TenantAuditEntry> items = emptyPage
+            ? []
+            : [AuditEntry("event-safe", AuditEventCategory.Access)];
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(items, nextCursor, true));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha", Cursor: requestCursor), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task Get_tenant_audit_rejects_duplicate_event_references()
     {
@@ -3914,6 +3963,71 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Rows.ShouldBeEmpty();
         snapshot.CallerScope.ShouldBe(nextUserId is null ? null : TenantQueryGateway.AuditCallerScope(nextUserId));
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_discards_a_refetched_304_response_when_the_caller_changes_during_the_second_read()
+    {
+        string? currentUserId = "caller-one";
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(_ => currentUserId);
+        TenantAuditRequest request = new("tenant.alpha", ETag: "known");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            null, false, "known", ReadModelFreshnessState.Current, request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("another-caller"),
+        };
+        var pending = new TaskCompletionSource<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(
+                Task.FromResult(NotModifiedResponse<PaginatedResult<TenantAuditEntry>>("known")),
+                pending.Task);
+        TenantQueryGateway gateway = CreateGateway(client, userContextAccessor: userContext);
+
+        Task<TenantAuditSnapshot> read = gateway.GetTenantAuditAsync(request, previous, CancellationToken.None);
+        client.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantsRestQueryClient.GetTenantAuditAsync))
+            .ShouldBe(2);
+        currentUserId = "caller-two";
+        pending.SetResult(DirectResponse(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-new", AuditEventCategory.Access)], null, false)));
+
+        TenantAuditSnapshot snapshot = await read;
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Unavailable);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-two"));
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_discards_retained_rows_when_the_caller_changes_during_an_unexpected_fault()
+    {
+        string? currentUserId = "caller-one";
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(_ => currentUserId);
+        TenantAuditRequest request = new("tenant.alpha", ETag: "known");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-old", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            null, false, "known", ReadModelFreshnessState.Current, request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("caller-one"),
+        };
+        var pending = new TaskCompletionSource<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(pending.Task);
+        TenantQueryGateway gateway = CreateGateway(client, userContextAccessor: userContext);
+
+        Task<TenantAuditSnapshot> read = gateway.GetTenantAuditAsync(request, previous, CancellationToken.None);
+        currentUserId = "caller-two";
+        pending.SetException(new InvalidOperationException("transport failed"));
+
+        TenantAuditSnapshot snapshot = await read;
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Unavailable);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-two"));
     }
 
     [Fact]
@@ -6263,7 +6377,7 @@ public sealed class TenantQueryGatewayTests
             PageSize: 25,
             ETag: "audit-etag-secret");
         TenantAuditSnapshot audit = TenantAuditSnapshot.Ready(
-            [TenantAuditRow.FromEntry(AuditEntry("event-secret", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            [TenantAuditRow.FromEntry(AuditEntry("event-safe", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: "audit-next-secret",
             hasMore: true,
             eTag: "audit-etag-secret",

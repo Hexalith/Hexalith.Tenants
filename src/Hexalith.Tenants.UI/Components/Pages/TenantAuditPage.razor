@@ -174,15 +174,15 @@
                                 @Localizer["Tenants.Audit.Recovery.Action.ContinueReadOnly"]
                             </a>
                         }
-                        @if (_snapshot.Kind is TenantAuditSurfaceKind.Unauthorized)
+                        @if (_snapshot.Kind is TenantAuditSurfaceKind.Unauthorized && PermissionRecoveryHref is { } permissionHref)
                         {
-                            <a href="@BackHref" data-testid="tenants-audit-recovery-permission">
+                            <a href="@permissionHref" data-testid="tenants-audit-recovery-permission">
                                 @Localizer["Tenants.Audit.Recovery.Action.RequestPermission"]
                             </a>
                         }
-                        @if (_snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error)
+                        @if ((_snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error) && EscalationRecoveryHref is { } escalationHref)
                         {
-                            <a href="@BackHref" data-testid="tenants-audit-recovery-escalate">
+                            <a href="@escalationHref" data-testid="tenants-audit-recovery-escalate">
                                 @Localizer["Tenants.Audit.Recovery.Action.Escalate"]
                             </a>
                         }
@@ -250,7 +250,7 @@
                     <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.Audit.Previous"]
                     </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore)" OnClick="NextPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
                         @Localizer["Tenants.Audit.Next"]
                     </FluentButton>
                 </FluentStack>
@@ -344,6 +344,12 @@
     private string BackHref
         => SafeReturnUrl(ReturnUrl) ?? $"/tenants/{Uri.EscapeDataString(TenantId)}";
 
+    private string? PermissionRecoveryHref
+        => SafeRecoveryHref(BffComposition.AuditPermissionRecoveryHref);
+
+    private string? EscalationRecoveryHref
+        => SafeRecoveryHref(BffComposition.AuditEscalationRecoveryHref);
+
     // A blank/whitespace TenantId would render a dangling "Audit trail for " heading. Substitute a
     // localized fallback so the page header always reads as a complete phrase (cosmetic, not a crash fix).
     private string TenantDisplayName
@@ -395,7 +401,7 @@
         => _viewportObservation is { HasMeasurement: true, State: TenantHighImpactViewportState.Safe };
 
     private bool HasStateRecovery
-        => _snapshot.Kind is TenantAuditSurfaceKind.Empty
+        => HasFilterValidation || _snapshot.Kind is TenantAuditSurfaceKind.Empty
             or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.Stale
             or TenantAuditSurfaceKind.Degraded
@@ -406,10 +412,10 @@
             or TenantAuditSurfaceKind.Error;
 
     private bool CanResetForState
-        => _snapshot.Kind is TenantAuditSurfaceKind.FilteredEmpty;
+        => HasFilterValidation || _snapshot.Kind is TenantAuditSurfaceKind.FilteredEmpty;
 
     private bool CanRefreshForState
-        => _snapshot.Kind is TenantAuditSurfaceKind.Empty
+        => !HasFilterValidation && _snapshot.Kind is TenantAuditSurfaceKind.Empty
             or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.Stale
             or TenantAuditSurfaceKind.Degraded
@@ -424,7 +430,7 @@
                 or TenantAuditSurfaceKind.Degraded
                 or TenantAuditSurfaceKind.ListRefreshed;
 
-    private string ResourceState => _snapshot.Kind switch
+    private string ResourceState => HasFilterValidation ? "InvalidFilters" : _snapshot.Kind switch
     {
         TenantAuditSurfaceKind.Loading => "Loading",
         TenantAuditSurfaceKind.Ready => "Ready",
@@ -444,7 +450,7 @@
         => $"tenants-audit-{TestIdState(ResourceState)}";
 
     private string StatusRole
-        => _snapshot.Kind is TenantAuditSurfaceKind.Unauthorized
+        => HasFilterValidation || _snapshot.Kind is TenantAuditSurfaceKind.Unauthorized
             or TenantAuditSurfaceKind.InvalidCursor
             or TenantAuditSurfaceKind.Degraded
             or TenantAuditSurfaceKind.Unavailable
@@ -645,6 +651,11 @@
         {
             if (CanApply(tenantId, generation))
             {
+                if (result.Kind is TenantAuditSurfaceKind.ListRefreshed or TenantAuditSurfaceKind.InvalidCursor)
+                {
+                    ClearPaging();
+                }
+
                 _snapshot = result;
             }
         }).ConfigureAwait(false);
@@ -689,13 +700,10 @@
         // continuation runs on a thread-pool thread after ConfigureAwait(false).
         await InvokeAsync(() =>
         {
-            if (result.Kind is TenantAuditSurfaceKind.ListRefreshed)
+            if (CanApply(tenantId, generation))
             {
-                _cursorHistory.Clear();
-                _currentCursor = null;
+                ResolveReceiptSelection();
             }
-
-            ResolveReceiptSelection();
         }).ConfigureAwait(false);
         return result;
     }
@@ -1055,6 +1063,11 @@
 
         if (!fromValid || !toValid || !categoryValid || !rangeValid)
         {
+            // A failed local edit invalidates any prior read, including one still in flight. Keep no
+            // success chrome or rows under filters that were never submitted to the server.
+            Interlocked.Increment(ref _loadGeneration);
+            CancelActiveCancellation();
+            _snapshot = TenantAuditSnapshot.Error(new TenantAuditRequest(tenantId), TenantAuditReason.InvalidFilters);
             request = null;
             return false;
         }
@@ -1207,7 +1220,7 @@
 
         Hexalith.Tenants.Contracts.Queries.TenantDetail? detail = _tenantDetailSnapshot?.Detail;
         TenantMember? member = detail?.Members.FirstOrDefault(member =>
-            string.Equals(member.UserId, row.Narrative?.UserId ?? row.Target, StringComparison.Ordinal));
+            string.Equals(member.UserId, row.Narrative?.UserId, StringComparison.Ordinal));
         TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
             ? selectedRole
             : IntendedRoleFromNarrative(row);
@@ -1402,12 +1415,35 @@
             DateTimeStyles.None,
             out DateTime local))
         {
+            string[] offsetFormats =
+            [
+                "yyyy-MM-dd'T'HH:mmK",
+                "yyyy-MM-dd'T'HH:mm:ssK",
+                "yyyy-MM-dd'T'HH:mm:ss.FK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFK",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
+            ];
+            if (DateTimeOffset.TryParseExact(
+                value,
+                offsetFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal,
+                out DateTimeOffset absolute))
+            {
+                parsed = absolute.ToUniversalTime();
+                return parsed.Value != default(DateTimeOffset);
+            }
+
             parsed = null;
             return false;
         }
 
         parsed = new DateTimeOffset(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), TimeSpan.Zero);
-        return true;
+        return parsed.Value != default(DateTimeOffset);
     }
 
     private static string TestIdState(string resourceState)
@@ -1428,12 +1464,63 @@
 
     private static string? SafeReturnUrl(string? returnUrl)
     {
-        if (string.IsNullOrWhiteSpace(returnUrl))
+        string? canonical = CanonicalLocalHref(returnUrl);
+        if (canonical is null)
         {
             return null;
         }
 
-        string canonical = returnUrl;
+        string path = canonical.Split('?', '#')[0];
+        if (!(path.Equals("/tenants", StringComparison.Ordinal)
+            || path.StartsWith("/tenants/", StringComparison.Ordinal)))
+        {
+            return null;
+        }
+
+        string? query = canonical.Split('?', 2).Skip(1).FirstOrDefault()?.Split('#')[0];
+        if (query is not null && query.Split('&').Any(part => !IsSafeReturnQueryPart(part)))
+        {
+            return null;
+        }
+
+        return canonical;
+    }
+
+    private static bool IsSafeReturnQueryPart(string part)
+    {
+        string[] pair = part.Split('=', 2);
+        if (pair.Length != 2 || pair[1].Length > 4096)
+        {
+            return false;
+        }
+
+        string key = pair[0];
+        if (key is not ("tab" or "scope" or "userId" or "search" or "status" or "sort" or "desc" or "cursor" or "selected" or "anchor"))
+        {
+            return false;
+        }
+
+        return key is "cursor"
+            ? !string.IsNullOrWhiteSpace(pair[1]) && !pair[1].Any(char.IsControl)
+            : TenantAuditSupportSafety.SafeApprovedReference(pair[1]) is not null;
+    }
+
+    private static string? SafeRecoveryHref(string? href)
+    {
+        string? canonical = CanonicalLocalHref(href);
+        return canonical is not null && !canonical.Contains('?', StringComparison.Ordinal)
+            ? canonical
+            : null;
+    }
+
+    private static string? CanonicalLocalHref(string? href)
+    {
+        if (string.IsNullOrWhiteSpace(href) || href.Length > 8192)
+        {
+            return null;
+        }
+
+        string canonical = href;
         for (int attempt = 0; attempt < 3 && canonical.Contains('%', StringComparison.Ordinal); attempt++)
         {
             try
@@ -1452,24 +1539,23 @@
             }
         }
 
-        if (canonical.Any(char.IsControl)
+        if (!canonical.StartsWith("/", StringComparison.Ordinal)
+            || canonical.StartsWith("//", StringComparison.Ordinal)
             || canonical.Contains('%', StringComparison.Ordinal)
             || canonical.Contains('\\')
-            || canonical.StartsWith("//", StringComparison.Ordinal)
+            || canonical.Contains('#', StringComparison.Ordinal)
             || canonical.Contains("://", StringComparison.OrdinalIgnoreCase)
-            || TenantAuditSupportSafety.SafeApprovedReference(canonical) is null
-            || !(canonical.Equals("/tenants", StringComparison.Ordinal)
-                || canonical.StartsWith("/tenants/", StringComparison.Ordinal)
-                || canonical.StartsWith("/tenants?", StringComparison.Ordinal)))
+            || canonical.Any(char.IsControl))
         {
             return null;
         }
 
         string path = canonical.Split('?', '#')[0];
         return path.Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Any(segment => segment is "." or "..")
-                ? null
-                : canonical;
+            .Any(segment => segment is "." or ".."
+                || TenantAuditSupportSafety.SafeApprovedReference(segment) is null)
+            ? null
+            : canonical;
     }
 
     public async ValueTask DisposeAsync()

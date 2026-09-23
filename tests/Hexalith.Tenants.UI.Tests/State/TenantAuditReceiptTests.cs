@@ -37,7 +37,7 @@ public sealed class TenantAuditReceiptTests
     }
 
     [Fact]
-    public void Receipt_target_fallback_uses_user_id_then_key_then_tenant()
+    public void Receipt_target_uses_typed_user_for_access_and_safe_fallbacks_for_administrative_evidence()
     {
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>
         {
@@ -48,9 +48,22 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>
         {
             ["key"] = "billing.mode",
-        }), ReadModelFreshnessState.Current).Target.ShouldBe("billing.mode");
+        }), ReadModelFreshnessState.Current).Target.ShouldBeEmpty();
 
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>()), ReadModelFreshnessState.Current)
+            .Target.ShouldBeEmpty();
+
+        TenantAuditEntry administrative = new(
+            "event-administrative",
+            "TenantConfigurationSet",
+            AuditEventCategory.Administrative,
+            "actor-user",
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+            "tenant.alpha",
+            new Dictionary<string, string> { ["key"] = "billing.mode" });
+        TenantAuditReceipt.FromEntry(administrative, ReadModelFreshnessState.Current)
+            .Target.ShouldBe("billing.mode");
+        TenantAuditReceipt.FromEntry(administrative with { NarrativePayload = new Dictionary<string, string>() }, ReadModelFreshnessState.Current)
             .Target.ShouldBe("tenant.alpha");
     }
 

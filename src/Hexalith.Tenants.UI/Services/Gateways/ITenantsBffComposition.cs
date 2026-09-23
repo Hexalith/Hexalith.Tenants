@@ -14,6 +14,12 @@ public interface ITenantsBffComposition {
 
     bool IsCommandSurfaceConnected { get; }
 
+    /// <summary>Gets an approved local destination for requesting audit access, if configured.</summary>
+    string? AuditPermissionRecoveryHref => null;
+
+    /// <summary>Gets an approved local destination for escalating audit read failures, if configured.</summary>
+    string? AuditEscalationRecoveryHref => null;
+
     /// <summary>Gets whether fixed-scope command dispatch is connected.</summary>
     bool IsGlobalAdministratorDispatchConnected => false;
 

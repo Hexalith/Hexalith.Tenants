@@ -1,6 +1,7 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.SupportSafety;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -107,7 +108,11 @@ public sealed record TenantCorrectionStartIntent(
 
         TenantCorrectionCommandDomain? domain = null;
         TenantCorrectionCommandType? commandType = null;
-        string targetUserId = context.Row.Narrative?.UserId ?? context.Row.Target;
+        // Corrections require the typed, sanitized user identifier from audit evidence. A display
+        // fallback such as the tenant id or configuration key is never a command target.
+        string targetUserId = TenantAuditSupportSafety.SafeIdentifier(
+            context.Row.Narrative?.UserId,
+            SupportSafeCopyValueKind.UserId);
         string tenantScope = context.Row.Scope;
 
         switch (context.Row.EventType) {

@@ -2420,7 +2420,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "userId: admin-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "admin-user"));
 
     private static GlobalAdministratorsSnapshot Projection(params string[] userIds)
         => ProjectionPage(userIds, nextCursor: null, hasMore: false) with
@@ -2472,7 +2473,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "userId: admin-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "admin-user"));
 
     private static T PrivateField<T>(object instance, string name)
     {

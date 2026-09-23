@@ -816,7 +816,8 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             "userId: admin-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "admin-user"));
 
     private static TenantAuditRow CorrectiveRow(string eventReference, string eventType)
         => new(
@@ -832,7 +833,8 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             "userId: admin-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "admin-user"));
 
     private static GlobalAdministratorsSnapshot ProjectionReady(params string[] userIds)
         => ProjectionReadyAtVersion("ga-v1", userIds);

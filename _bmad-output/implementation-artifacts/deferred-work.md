@@ -3146,3 +3146,31 @@ Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Alread
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
   summary: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.
   evidence: `TenantAuditPage.CanContinueReadOnlyForState` checks rows and stale/degraded/list-refreshed state while `ShouldRenderRows` also requires no filter validation, so the recovery link can target a heading omitted from the DOM. The audit surface was changed by later Story 5.1 work in the baseline range.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Sanitize URL-supplied user and command context before showing it on the tenant audit page.
+  evidence: `TenantAuditPage.ContextText` renders `targetUserId` or `supportSafeCommandReference` query values without the audit support-safety classifier. This contextual entry-point behavior predates the current Story 5.1 patch.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Reject malformed audit date and non-string category fields in direct server query payloads.
+  evidence: `TenantQueryHandlerBase.DeserializeAuditPayload` converts malformed `from`/`to` and non-string `category` to null filters; the method is unchanged from the Story 5.1 baseline, so a direct authorized query can broaden its tenant-scoped result.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Recheck audit load generation inside the queued tenant-detail projection write.
+  evidence: `TenantAuditPage.RefreshTenantProjectionForLoadAsync` checks `CanApply` before `InvokeAsync` only; a route change between those operations can replace the new route's supplementary correction evidence with the old tenant's detail snapshot. This projection path predates the current patch.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Invalidate an in-flight correction open when the audit page changes tenant routes.
+  evidence: `TenantAuditPage.OnParametersSetAsync` clears paging and projections on tenant change without incrementing `_correctionOpenGeneration`; a pending `OpenCorrectionAsync` can subsequently install its old-tenant intent. This later correction workflow predates the current audit-read patch.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Revoke or refresh an open correction intent when its audit evidence degrades.
+  evidence: `TenantAuditPage.ResolveReceiptSelection` updates the selected receipt after a degraded read but can leave `_activeCorrectionIntent` and a submission-ready child panel intact. The correction lifecycle predates the current audit-read patch.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Keep dirty detached-HEAD submodule commits reachable from the branch that pushall pushes.
+  evidence: `.agents/skills/pushall/SKILL.md` commits before checking out the default branch, so a detached-HEAD commit can be left behind. This separate Git skill is unrelated to tenant audit.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+  summary: Make pushall honor the remote's actual default branch when both main and master exist.
+  evidence: `.agents/skills/pushall/SKILL.md` prefers local `main` ahead of `origin/HEAD`, so it can merge and prune against the wrong default. This separate Git skill is unrelated to tenant audit.

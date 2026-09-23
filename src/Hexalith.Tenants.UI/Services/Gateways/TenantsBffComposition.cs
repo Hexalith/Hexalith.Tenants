@@ -10,6 +10,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -20,7 +21,8 @@ internal sealed class TenantsBffComposition(
     ITenantConfigurationPrincipalResolver? principalResolver = null,
     TenantConfigurationReadPolicyProvider? policyProvider = null,
     ITenantsReadSurfaceAvailability? readSurface = null,
-    IStringLocalizer<TenantsResources>? resourceLocalizer = null) : ITenantsBffComposition {
+    IStringLocalizer<TenantsResources>? resourceLocalizer = null,
+    IConfiguration? configuration = null) : ITenantsBffComposition {
     /// <summary>Gets every localized string required to render or safely fail the grant-preview interaction.</summary>
     internal static IReadOnlyList<string> RequiredGrantFactKeys { get; } =
     [
@@ -242,6 +244,10 @@ internal sealed class TenantsBffComposition(
     public bool IsReadSurfaceConnected => readSurface?.IsConnected == true;
 
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
+
+    public string? AuditPermissionRecoveryHref => configuration?["Tenants:Audit:PermissionRecoveryHref"];
+
+    public string? AuditEscalationRecoveryHref => configuration?["Tenants:Audit:EscalationRecoveryHref"];
 
     public bool IsGlobalAdministratorDispatchConnected
         => commandGateway.SupportsGlobalAdministratorDispatch;

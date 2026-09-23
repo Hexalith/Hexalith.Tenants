@@ -2704,7 +2704,11 @@ internal sealed class TenantQueryGateway(
         TenantAuditRequest request,
         int normalizedPageSize)
     {
-        if (payload.Items.Count > normalizedPageSize)
+        if (payload.Items.Count > normalizedPageSize
+            || payload.HasMore != !string.IsNullOrWhiteSpace(payload.Cursor)
+            || (payload.HasMore
+                && (payload.Items.Count == 0
+                    || string.Equals(payload.Cursor, request.Cursor, StringComparison.Ordinal))))
         {
             return false;
         }

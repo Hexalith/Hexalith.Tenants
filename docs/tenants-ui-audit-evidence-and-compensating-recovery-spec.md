@@ -66,6 +66,10 @@ When audit capability is missing or unproven, an entry point must surface a **do
 
 [Source: `docs/tenants-ui-truth-state-and-action-availability-spec.md` §4.1, §4.2, §4.4; `docs/tenants-ui-frontcomposer-dependency-map.md#FC-AUD`; AC1]
 
+### 1.4 Operator configuration for audit recovery destinations
+
+Operators may set `Tenants:Audit:PermissionRecoveryHref` for the unauthorized audit state and `Tenants:Audit:EscalationRecoveryHref` for unavailable or error states in the server-side Tenants UI configuration. Each value must be an approved same-origin path beginning with `/`, without a query string, fragment, traversal segment, encoded unsafe content, or sensitive data. No route is supplied by default. When a key is absent or its value fails the safety check, the corresponding recovery link is hidden; the localized recovery guidance and ordinary return navigation remain available. These destinations must lead to actual permission-request and escalation workflows, not back to the tenant detail page.
+
 ## 2. Flat Audit DataGrid Fallback and Visible Timeline Dependency Status (AC2)
 
 ### 2.1 The approved first-slice fallback is a flat audit DataGrid
@@ -118,7 +122,7 @@ When a meaningful access change completes (or partially completes), the Audit Ev
 | Receipt field | Source |
 | --- | --- |
 | actor | `TenantAuditEntry.ActorId` |
-| target | `TenantAuditEntry.Target` (resolved from `NarrativePayload` `userId`/`key`, falling back to `TenantId`) |
+| target | For access events, only a support-safe typed `NarrativePayload.userId`; for administrative events, a support-safe configuration key or tenant ID fallback |
 | tenant scope | `TenantAuditEntry.Scope` / `TenantId` |
 | outcome | `TenantAuditEntry.Outcome` / `EventType` (with `Category`: `Access` / `Administrative`) |
 | timestamp | `TenantAuditEntry.Timestamp` |

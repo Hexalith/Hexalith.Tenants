@@ -46,12 +46,19 @@ public sealed record TenantAuditRow(
 
         TenantAuditNarrative narrative = TenantAuditNarrative.FromPayload(entry.NarrativePayload);
         string tenantId = TenantAuditSupportSafety.SafeIdentifier(entry.TenantId, SupportSafeCopyValueKind.TenantId);
-        string target = narrative.UserId
-            ?? narrative.ConfigurationKey
-            ?? tenantId;
+        string? eventReference = TenantAuditSupportSafety.SafeApprovedReference(entry.EventId);
+        if (eventReference is null)
+        {
+            throw new ArgumentException("An approved audit event reference is required.", nameof(entry));
+        }
+
+        bool requiresUserTarget = entry.Category is AuditEventCategory.Access;
+        string target = requiresUserTarget
+            ? narrative.UserId ?? string.Empty
+            : narrative.ConfigurationKey ?? tenantId;
 
         return new(
-            TenantAuditSupportSafety.SafeApprovedReference(entry.EventId) ?? string.Empty,
+            eventReference,
             entry.EventType,
             entry.Category,
             TenantAuditSupportSafety.SafeIdentifier(entry.ActorId, SupportSafeCopyValueKind.UserId),

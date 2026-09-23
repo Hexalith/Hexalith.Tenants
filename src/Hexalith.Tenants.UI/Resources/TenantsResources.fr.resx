@@ -3299,7 +3299,7 @@
     <value>Retour aux details du locataire</value>
   </data>
   <data name="Tenants.Audit.Category.Access" xml:space="preserve">
-    <value>Acces</value>
+    <value>Accès</value>
   </data>
   <data name="Tenants.Audit.Category.Administrative" xml:space="preserve">
     <value>Administratif</value>
@@ -3500,10 +3500,10 @@
     <value>Journal d'audit locataire</value>
   </data>
   <data name="Tenants.Audit.Filter.Category" xml:space="preserve">
-    <value>Categorie</value>
+    <value>Catégorie</value>
   </data>
   <data name="Tenants.Audit.Filter.Category.All" xml:space="preserve">
-    <value>Toutes les categories</value>
+    <value>Toutes les catégories</value>
   </data>
   <data name="Tenants.Audit.Filter.From" xml:space="preserve">
     <value>Debut</value>
@@ -4203,7 +4203,7 @@
   <data name="Tenants.Audit.Filter.Validation.FromUtc" xml:space="preserve"><value>Saisissez la date et l’heure de début au format UTC indiqué par le contrôle.</value></data>
   <data name="Tenants.Audit.Filter.Validation.ToUtc" xml:space="preserve"><value>Saisissez la date et l’heure de fin au format UTC indiqué par le contrôle.</value></data>
   <data name="Tenants.Audit.Filter.Validation.Range" xml:space="preserve"><value>La date et l’heure de début ne doivent pas être postérieures à la date et l’heure de fin.</value></data>
-  <data name="Tenants.Audit.Filter.Validation.Category" xml:space="preserve"><value>Sélectionnez Accès, Administration ou toutes les catégories.</value></data>
+  <data name="Tenants.Audit.Filter.Validation.Category" xml:space="preserve"><value>Sélectionnez Accès, Administratif ou Toutes les catégories.</value></data>
   <data name="Tenants.Audit.Recovery.Action.Reset" xml:space="preserve"><value>Réinitialiser les filtres</value></data>
   <data name="Tenants.Audit.Recovery.Action.Refresh" xml:space="preserve"><value>Actualiser l’audit</value></data>
   <data name="Tenants.Audit.Recovery.Action.ContinueReadOnly" xml:space="preserve"><value>Continuer avec les dernières lignes confirmées</value></data>
@@ -4218,6 +4218,9 @@
   <data name="Tenants.Audit.Recovery.ListRefreshed" xml:space="preserve"><value>Continuez en lecture seule depuis la première page actualisée ou actualisez à nouveau.</value></data>
   <data name="Tenants.Audit.Recovery.Unavailable" xml:space="preserve"><value>Réessayez la lecture d’audit, ou escaladez sans inclure de charges utiles, de jetons ni de diagnostics.</value></data>
   <data name="Tenants.Audit.Recovery.Error" xml:space="preserve"><value>Réessayez la lecture d’audit, ou escaladez uniquement avec un contexte sûr pour le support.</value></data>
+  <data name="Tenants.Audit.State.InvalidFilters.Title" xml:space="preserve"><value>Les filtres d’audit doivent être corrigés</value></data>
+  <data name="Tenants.Audit.State.InvalidFilters.Message" xml:space="preserve"><value>La liste d’audit n’a pas été demandée, car un filtre est invalide. Corrigez le champ signalé ou réinitialisez les filtres.</value></data>
+  <data name="Tenants.Audit.Recovery.InvalidFilters" xml:space="preserve"><value>Corrigez la date UTC ou la catégorie signalée, ou réinitialisez tous les filtres avant de demander les preuves d’audit.</value></data>
   <data name="Tenants.Audit.Viewport.Pending" xml:space="preserve"><value>Les commandes de correction restent en lecture seule jusqu’à la mesure de la fenêtre du navigateur.</value></data>
   <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>Cette correction prise en charge est en lecture seule sur téléphone. Utilisez une fenêtre de tablette ou d’ordinateur mesurée pour continuer.</value></data>
 </root>

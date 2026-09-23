@@ -169,5 +169,6 @@ public sealed class TenantCorrectionPreviewSnapshotTests
                 : "userId: target-user; previousRole: TenantReader",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "target-user"));
 }

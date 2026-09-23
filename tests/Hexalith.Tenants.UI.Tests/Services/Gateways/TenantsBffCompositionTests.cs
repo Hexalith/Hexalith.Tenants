@@ -34,6 +34,26 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 /// </remarks>
 public sealed class TenantsBffCompositionTests
 {
+    [Fact]
+    public void Audit_recovery_destinations_are_absent_until_explicitly_configured()
+    {
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        ITenantsBffComposition absent = new TenantsBffComposition(gateway);
+        absent.AuditPermissionRecoveryHref.ShouldBeNull();
+        absent.AuditEscalationRecoveryHref.ShouldBeNull();
+
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Tenants:Audit:PermissionRecoveryHref"] = "/support/audit-access",
+                ["Tenants:Audit:EscalationRecoveryHref"] = "/support/audit-incident",
+            })
+            .Build();
+        ITenantsBffComposition configured = new TenantsBffComposition(gateway, configuration: configuration);
+        configured.AuditPermissionRecoveryHref.ShouldBe("/support/audit-access");
+        configured.AuditEscalationRecoveryHref.ShouldBe("/support/audit-incident");
+    }
+
     private const string GrantedPolicy = """
         {
           "Tenants": {

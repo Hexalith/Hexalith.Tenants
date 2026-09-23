@@ -305,6 +305,53 @@ public sealed class TenantCorrectionStartIntentTests
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
     }
 
+    [Theory]
+    [InlineData("UserRemovedFromTenant", "tenant.alpha")]
+    [InlineData("UserRoleChanged", "config.key")]
+    [InlineData("GlobalAdministratorRemoved", "system")]
+    [InlineData("GlobalAdministratorSet", "global-administrators")]
+    public void Correction_never_uses_a_display_fallback_as_a_user_target(string eventType, string displayTarget)
+    {
+        ArgumentNullException.ThrowIfNull(eventType);
+        ArgumentNullException.ThrowIfNull(displayTarget);
+        TenantAuditRow row = Row(eventType, "untrusted display") with
+        {
+            Target = displayTarget,
+            Narrative = new TenantAuditNarrative(),
+        };
+
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            row,
+            intendedRole: TenantRole.TenantReader,
+            hasGlobalAdministratorCommandSupport: true));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.TargetUserId.ShouldBeEmpty();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+    }
+
+    [Theory]
+    [InlineData("UserRemovedFromTenant")]
+    [InlineData("GlobalAdministratorRemoved")]
+    public void Correction_rejects_an_unsafe_typed_user_even_when_a_display_target_exists(string eventType)
+    {
+        ArgumentNullException.ThrowIfNull(eventType);
+        TenantAuditRow row = Row(eventType, "untrusted display") with
+        {
+            Target = "tenant.alpha",
+            Narrative = new TenantAuditNarrative(UserId: "access_token=unsafe"),
+        };
+
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            row,
+            intendedRole: TenantRole.TenantReader,
+            hasGlobalAdministratorCommandSupport: true));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.TargetUserId.ShouldBeEmpty();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+    }
+
     [Fact]
     public void Unsupported_outcome_fails_closed_without_command_selection()
     {
@@ -356,5 +403,8 @@ public sealed class TenantCorrectionStartIntentTests
             referenceContext,
             freshness,
             lifecycle,
-            provenance);
+            provenance,
+            new TenantAuditNarrative(UserId: referenceContext.Contains("admin-user", StringComparison.Ordinal)
+                ? "admin-user"
+                : "target-user"));
 }

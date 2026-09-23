@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'in-progress'
+status: 'in-review'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -83,19 +83,19 @@ operator_actions:
 
 ### Review Findings
 
-- [ ] [Review][Patch] Add support-safe permission and escalation destinations on the UI composition contract, fail closed when absent, and stop wiring both recoveries to BackHref [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:178]
-- [ ] [Review][Patch] Access/GA rows with a missing or unsafe typed userId fall back to configuration key or tenant id and can arm a correction against that fallback [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:49]
-- [ ] [Review][Patch] Local filter validation hides the grid but keeps the prior Ready/Stale/Degraded success chrome and can apply an in-flight Ready snapshot because validation failure does not bump load generation [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:596]
-- [ ] [Review][Patch] ListRefreshed paging recovery is not exercised after Ready page-two history exists [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:825]
-- [ ] [Review][Patch] InvalidCursor does not clear paging history or `_currentCursor`, so recovery Refresh can resubmit the expired page-two cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:691]
-- [ ] [Review][Patch] Next is enabled on HasMore alone while NextPageAsync no-ops on a blank cursor, and payload validation does not require HasMore to agree with Cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:252]
-- [ ] [Review][Patch] Post-await caller revalidation is only tested on the first successful read, not the 304 refetch or unexpected-exception retain path [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1139]
-- [ ] [Review][Patch] FromEntry still maps a rejected EventId to an empty grid/receipt key instead of failing closed [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:54]
-- [ ] [Review][Patch] SafeReturnUrl runs the whole return URL through the event-id classifier, so legitimate `/tenants` returns that contain `cursor` (and similar fragments) are discarded [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1459]
-- [ ] [Review][Patch] Malformed From and reversed From/To have no page-level field-associated no-query tests [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:621]
-- [ ] [Review][Patch] UserRoleChanged with a missing or non-enumerable oldRole has no page test that the row stays non-submitting and requires the role picker [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:850]
-- [ ] [Review][Patch] French category validation copy does not match the select option labels [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:4195]
-- [ ] [Review][Patch] TryParseDate rejects a pasted ISO-8601 UTC instant with `Z` or an explicit offset even though the control is labeled UTC [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1377]
+- [x] [Review][Patch] Add support-safe permission and escalation destinations on the UI composition contract, fail closed when absent, and stop wiring both recoveries to BackHref [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:178]
+- [x] [Review][Patch] Access/GA rows with a missing or unsafe typed userId fall back to configuration key or tenant id and can arm a correction against that fallback [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:49]
+- [x] [Review][Patch] Local filter validation hides the grid but keeps the prior Ready/Stale/Degraded success chrome and can apply an in-flight Ready snapshot because validation failure does not bump load generation [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:596]
+- [x] [Review][Patch] ListRefreshed paging recovery is not exercised after Ready page-two history exists [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:825]
+- [x] [Review][Patch] InvalidCursor does not clear paging history or `_currentCursor`, so recovery Refresh can resubmit the expired page-two cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:691]
+- [x] [Review][Patch] Next is enabled on HasMore alone while NextPageAsync no-ops on a blank cursor, and payload validation does not require HasMore to agree with Cursor [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:252]
+- [x] [Review][Patch] Post-await caller revalidation is only tested on the first successful read, not the 304 refetch or unexpected-exception retain path [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:1139]
+- [x] [Review][Patch] FromEntry still maps a rejected EventId to an empty grid/receipt key instead of failing closed [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs:54]
+- [x] [Review][Patch] SafeReturnUrl runs the whole return URL through the event-id classifier, so legitimate `/tenants` returns that contain `cursor` (and similar fragments) are discarded [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1459]
+- [x] [Review][Patch] Malformed From and reversed From/To have no page-level field-associated no-query tests [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:621]
+- [x] [Review][Patch] UserRoleChanged with a missing or non-enumerable oldRole has no page test that the row stays non-submitting and requires the role picker [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:850]
+- [x] [Review][Patch] French category validation copy does not match the select option labels [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:4195]
+- [x] [Review][Patch] TryParseDate rejects a pasted ISO-8601 UTC instant with `Z` or an explicit offset even though the control is labeled UTC [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1377]
 - [x] [Review][Defer] Tenant detail still matches audit scope without caller binding [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1785] — deferred: pre-existing other surface; already DW-351
 - [x] [Review][Defer] UserRemovedFromTenant cannot produce typed PreviousRole/Role because the event/projection emit only userId [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1366] — deferred: pre-existing event shape; restore-access role picking is later correction-story work
 - [x] [Review][Defer] After projection refresh, OpenCorrectionAsync can still assign a re-derived intent without re-checking IsAvailable [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1140] — deferred: maybe-false medium; settle by showing whether CorrectionStartPanel/GlobalAdministratorCorrectionPanel can submit when the parent intent is unavailable after refresh
@@ -110,10 +110,30 @@ operator_actions:
 
 ## Spec Change Log
 
+- 2026-09-23 -- Review pass 2 confirmed and fixed the audit paging-shape, atomic recovery-history, year-one filter, invisible-reference, service-graph verification, and operator-configuration documentation gaps. Deferred unrelated pre-existing findings in the deferred-work ledger. Final verification is recorded below; the Product/Operations action is unchanged.
+- 2026-09-23 -- Completed the 13 open review patches for safe recovery destinations, typed correction targets, invalid-filter and cursor state, response paging metadata, safe return navigation, UTC input, French copy, and regression coverage. The Product/Operations audit-performance action remains unchanged.
 - 2026-09-05 -- Implemented the repository-controlled audit hardening, responsive/accessibility behavior, localized recovery states, and focused regression coverage. Added exact verification evidence below. Status remains `in-progress` until the change is reviewed and committed; the Product/Operations performance action is unchanged.
 - 2026-09-05 -- Review pass 1 found that the implementation contract did not make server-side caller-bound cursors, post-await caller revalidation, response-shape/filter/event validation, or typed narrative isolation explicit enough. Amended the Code Map, tasks, acceptance criteria, design notes, and verification targets; the known-bad state to avoid is a caller-replayable cursor or a Ready grid/correction intent built from mismatched, malformed, duplicated, or presentation-reparsed evidence. KEEP: retain the fixed direct REST route, authoritative ordering, localized distinct states and recovery, page-one invalid-cursor recovery, hashed caller binding for retained snapshots, support-safe allowlists, phone read-only behavior, Fluent v5 token cleanup, EN/FR parity, and focused regression style that passed in the superseded attempt.
 
 ## Review Triage Log
+
+### 2026-09-23 — Review pass 2
+- `[medium]` `[defer]` URL-supplied target user and command reference can enter the informational audit context without the audit classifier (`TenantAuditPage.razor:363`); the context rendering predates this Story 5.1 change and belongs to the contextual entry-point surface.
+- `[medium]` `[defer]` `DeserializeAuditPayload` treats malformed date and non-string category values as absent filters (`TenantQueryHandlerBase.cs:301`); the parser is unchanged from the recorded baseline, and direct server-payload validation needs separate backend work.
+- `[false]` `[reject]` A populated audit response with Unknown freshness can have a `Ready` list kind (`TenantQueryGateway.cs:1264`), but that title only claims rows loaded; the separate lifecycle/freshness evidence remains Unknown and correction gates do not treat it as current proof.
+- `[medium]` `[patch]` `HasMore` with an empty page or the same cursor as the request passes audit payload validation (`TenantQueryGateway.cs:2707`); the former hides later rows under Empty and the latter repeats one page. Extend the current paging-shape guard.
+- `[medium]` `[patch]` `LoadAsync` publishes a recovered page before clearing old cursor history (`TenantAuditPage.razor:648`); the supplementary awaited reads leave a visible interval with mismatched paging controls. Clear history with the applied snapshot.
+- `[medium]` `[defer]` The tenant-detail projection load checks generation before queueing a dispatcher write but not inside it (`TenantAuditPage.razor:1319`); a route change can publish old supplementary correction evidence. This older correction-provider path is outside the current audit-read patch.
+- `[high]` `[defer]` An in-flight correction open can outlive a tenant route change because that change does not invalidate `_correctionOpenGeneration` (`TenantAuditPage.razor:1142`); the older correction workflow can install a former tenant's intent on the new route.
+- `[high]` `[defer]` An already open correction intent can remain submission-ready after the audit list degrades (`TenantAuditPage.razor:1177`); `ResolveReceiptSelection` updates receipt state but does not revoke the active child-panel intent. The older correction workflow needs its own lifecycle fix.
+- `[low]` `[patch]` The audit reference classifier rejects control characters but accepts invisible Unicode format characters (`TenantAuditSupportSafety.cs:90`), creating visually ambiguous copied references. Reject those characters directly.
+- `[low]` `[patch]` The new configurable permission and escalation destinations have no operator documentation (`TenantsBffComposition.cs:248`); document the keys and their fail-closed behavior in the audit operations guide.
+- `[medium]` `[defer]` `/pushall` commits a dirty detached HEAD before switching branches (`.agents/skills/pushall/SKILL.md:63`), which can leave that commit unreachable from the branch pushed. This separate Git skill was added after the story baseline and is unrelated to tenant audit.
+- `[medium]` `[defer]` `/pushall` prefers a local `main` even when `origin/HEAD` names `master` (`.agents/skills/pushall/SKILL.md:62`), so it can operate on the wrong default branch. This separate Git skill is unrelated to tenant audit.
+- `[medium]` `[patch]` An empty audit response with `HasMore` and a cursor is accepted (`TenantQueryGateway.cs:2707`) and rendered Empty, hiding later rows; this independently verifies the empty-page part of the paging-shape finding above.
+- `[medium]` `[patch]` An audit response that repeats the requested cursor is accepted (`TenantQueryGateway.cs:2707`) and permits repeated Next navigation; this independently verifies the repeated-cursor part of the paging-shape finding above.
+- `[medium]` `[patch]` The page accepts a year-one UTC filter and the gateway then returns generic Error (`TenantAuditPage.razor:1037`), losing field-associated validation. Reject the default instant locally.
+- `[medium]` `[patch]` Tests construct configured recovery links directly and stub the page, but do not resolve configured `ITenantsBffComposition` through `AddHexalithTenantsUiModule`; extend that service-graph test to prove configuration reaches the page composition.
 
 ### 2026-09-05 — Review pass
 - verdicts: 38 findings — high 4, medium 20, low 8, false 6, maybe-false 0
@@ -162,6 +182,28 @@ operator_actions:
 Reuse `TenantHighImpactViewportObservation` as the authoritative FrontComposer viewport signal. Unknown/unsafe viewport evidence fails closed for mutation affordances but must not hide read-only audit evidence or recovery; pending measurement gets neutral copy, while measured phone copy appears only where an otherwise supported correction was suppressed. Caller binding belongs both in the server protected-cursor scope and in the retained snapshot/query-gateway seam. Re-read the accessor after each awaited audit response and discard an old-caller completion; do not place raw principal claims in rendered state or diagnostics. Validate the whole response before composing rows. Keep sanitized narrative structured for behavior and format a separate display string so delimiters can never create correction inputs.
 
 ## Verification
+
+**Final review-patch results recorded 2026-09-23:**
+
+- `dotnet build Hexalith.Tenants.slnx --configuration Release -m:1 --no-restore` -- passed with zero warnings and zero errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -parallelMode none` -- passed 3060/3060, zero skipped.
+- Focused final runs: `TenantQueryGatewayTests` 477/477, `TenantAuditPageTests` 89/89, `TenantAuditSupportSafetyTests` 6/6, and `TenantsUiCompositionTests` 85/85; each passed without errors or skips.
+- Isolated Aspire AppHost `tenants-ui` reached Healthy after a resource rebuild with zero warnings or errors. Playwright confirmed that `0001-01-01T00:00` produces a field-associated From error and the invalid-filter recovery state with no grid. Snapshot: `story-5-1-browser-evidence-2026-09-23/default-utc-filter-desktop.yml`. The browser and AppHost were stopped after verification.
+- The Product/Operations audit-performance approval remains outstanding; no numeric performance target or fallback was inferred.
+
+**Current review-patch results recorded 2026-09-23:**
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -m:1 --no-restore` -- passed with zero warnings and zero errors.
+- `dotnet build Hexalith.Tenants.slnx --configuration Release -m:1 --no-restore` -- passed with zero warnings and zero errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -parallelMode none` -- passed 3047/3047, zero skipped.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Components.TenantAuditPageTests -parallelMode none` -- passed 84/84.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests -parallelMode none` -- passed 475/475.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.State.TenantCorrectionStartIntentTests -parallelMode none` -- passed 30/30.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantsBffCompositionTests -parallelMode none` -- passed 67/67.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.State.TenantAuditReceiptTests -parallelMode none` -- passed 23/23.
+- `git diff --cached --check` -- passed with no output.
+- Isolated Aspire AppHost: `aspire start --isolated --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive --format Json`, `aspire resource tenants-ui rebuild --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive`, and `aspire wait tenants-ui --status healthy --timeout 60 --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive` succeeded. Playwright at 390px and desktop widths verified an unauthorized page with no unconfigured permission link, explicit UTC labels, and a reversed range with both field errors, an invalid-filter alert, no grid, and reset recovery. Snapshots: `story-5-1-browser-evidence-2026-09-23/unauthorized-desktop.yml` and `story-5-1-browser-evidence-2026-09-23/invalid-range-phone.yml`. The isolated unauthenticated session did not exercise a populated grid; blocking component and gateway tests above cover that behavior. The isolated AppHost and browser were stopped after verification.
+- No numeric audit-performance budget, percentile, throughput, event-count target, or fallback claim was inferred. The Product/Operations approval remains the sole operator action.
 
 **Commands:**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -m:1` -- expected: zero warnings and errors.

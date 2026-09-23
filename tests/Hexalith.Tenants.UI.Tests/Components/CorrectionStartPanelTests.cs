@@ -560,7 +560,10 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
                 : referenceContext,
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: eventType.StartsWith("GlobalAdministrator", StringComparison.Ordinal)
+                ? "admin-user"
+                : "target-user"));
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {

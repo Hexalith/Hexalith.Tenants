@@ -1,0 +1,100 @@
+- generic [ref=e80]:
+  - link "Skip to content" [ref=e81] [cursor=pointer]:
+    - /url: /tenants/system/audit#fc-main-content
+  - link "Skip to navigation" [ref=e82] [cursor=pointer]:
+    - /url: /tenants/system/audit#fc-nav
+  - generic [ref=e84]:
+    - banner [ref=e85]:
+      - generic [ref=e86]:
+        - generic [ref=e87]:
+          - button "Toggle navigation" [ref=e89]:
+            - button "Toggle navigation" [ref=e90] [cursor=pointer]:
+              - img [ref=e92]
+          - generic [ref=e94]:
+            - generic: Hexalith Tenants
+        - generic [ref=e95]:
+          - button "Change theme" [ref=e97] [cursor=pointer]:
+            - generic [ref=e98]:
+              - generic:
+                - generic [ref=e99]: "Change theme: Light"
+                - generic [ref=e100]: Light
+            - img [ref=e102]
+          - button "Open command palette" [ref=e104] [cursor=pointer]:
+            - img [ref=e106]
+          - button "Open settings" [ref=e108] [cursor=pointer]:
+            - img [ref=e110]
+          - button "Account menu" [ref=e113] [cursor=pointer]:
+            - img [ref=e114]
+    - navigation "Primary navigation" [ref=e118]:
+      - button "Tenants" [ref=e120] [cursor=pointer]:
+        - img [ref=e123]
+    - generic [ref=e125]:
+      - status [ref=e126]: Density set to Compact.
+      - main [ref=e127]:
+        - generic "Audit trail for system" [ref=e128]:
+          - generic [ref=e129]:
+            - paragraph [ref=e131]: Tenant audit trail
+            - generic [ref=e132]:
+              - heading "Audit trail for system" [level=1] [ref=e133]:
+                - generic [ref=e134]:
+                  - generic: Audit trail for system
+              - link "Back to tenant details" [ref=e136] [cursor=pointer]:
+                - /url: /tenants/system
+            - paragraph [ref=e138]: Read-only tenant audit evidence from the server-side query gateway.
+          - generic [ref=e139]:
+            - generic:
+              - generic [ref=e140]:
+                - heading "Tenant audit filters and paging controls" [level=2] [ref=e141]:
+                  - button "Tenant audit filters and paging controls" [expanded] [ref=e142] [cursor=pointer]:
+                    - generic [ref=e143]: Tenant audit filters and paging controls
+                  - generic [ref=e144]:
+                    - img
+                - region "Tenant audit filters and paging controls" [ref=e145]:
+                  - region "Tenant audit filters and paging controls" [ref=e146]:
+                    - generic [ref=e147]:
+                      - generic [ref=e148]:
+                        - generic [ref=e149]:
+                          - generic [ref=e150]: From (UTC)
+                          - generic "From (UTC)" [active] [ref=e151]:
+                            - textbox "From (UTC)" [ref=e153]: 0001-01-01T00:00
+                        - alert [ref=e196]: Enter the From date and time in the UTC format shown by the control.
+                      - generic [ref=e155]:
+                        - generic [ref=e156]: To (UTC)
+                        - generic "To (UTC)" [ref=e157]:
+                          - textbox "To (UTC)" [ref=e159]
+                      - generic [ref=e161]:
+                        - generic [ref=e162]: Category
+                        - generic "Category" [ref=e163] [cursor=pointer]:
+                          - generic [ref=e164]:
+                            - combobox "Category" [ref=e165]
+                            - img [ref=e167]
+                      - generic [ref=e170]:
+                        - generic [ref=e172] [cursor=pointer]:
+                          - generic: Refresh
+                        - generic [ref=e174] [cursor=pointer]:
+                          - generic: Reset filters
+              - generic [ref=e175]:
+                - heading "Audit filters need correction" [level=2] [ref=e197]:
+                  - button "Audit filters need correction" [expanded] [ref=e198] [cursor=pointer]:
+                    - generic [ref=e178]: Audit filters need correction
+                  - generic [ref=e179]:
+                    - img
+                - region "Audit filters need correction" [ref=e199]:
+                  - generic:
+                    - alert [ref=e181]:
+                      - generic [ref=e182]: "?"
+                      - generic [ref=e183]:
+                        - heading "Audit filters need correction" [level=2] [ref=e200]
+                        - paragraph [ref=e185]: The audit list was not requested because a filter is invalid. Correct the marked field or reset the filters.
+                    - status [ref=e186]:
+                      - text: Projection lifecycle
+                      - generic "Unknown" [ref=e187]:
+                        - generic:
+                          - img [ref=e188]
+                          - generic [ref=e190]: Unknown
+                    - generic [ref=e191]:
+                      - paragraph [ref=e192]: Correct the marked UTC date or category, or reset all filters before requesting audit evidence.
+                      - generic [ref=e203] [cursor=pointer]:
+                        - generic: Reset filters
+    - generic [ref=e195]:
+      - generic: Hexalith Tenants © 2026
