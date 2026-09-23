@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'in-review'
+status: 'awaiting-operator'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -69,7 +69,7 @@ operator_actions:
 - [x] `src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSnapshot.cs` and `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` -- bind retained evidence to caller, tenant, filters, cursor, page size, and validator; validate response count, non-default bounded timestamps, category/filter agreement, event/category coherence, tenant identity, and stable references; after every awaited audit read re-read the current caller and discard the result on identity change (Unauthorized when absent, otherwise Unavailable bound to the new caller, with no retained rows).
 - [x] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` and `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` -- add parity-checked whole-string UTC validation, recovery, viewport, and mobile-read-only copy with idiomatic accented French.
 - [x] Focused UI/server/integration tests -- cover changed-caller 304 refetch and unexpected-exception retention, identity change during an awaited response, invalid-cursor recovery after page-two history, malformed and non-UTC `To`, the full event allowlist/category matrix, typed role narrative mapping, exact recovery affordance sets and refresh invocation, encoded unsafe return URLs, duplicate/unsafe references, response filter/count/timestamp violations, viewport-disposal races, and authorized populated-grid semantics. Keep the hosted smoke test supplementary because it can self-skip.
-- [ ] `_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md` -- record exact verification evidence and finish as `awaiting-operator` with the unchanged operator action after all agent-controlled work is committed.
+- [x] `_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md` -- record exact verification evidence and finish as `awaiting-operator` with the unchanged operator action after all agent-controlled work is committed.
 
 **Acceptance Criteria:**
 - Given an authorized tenant route, when audit loads, then only the fixed direct REST client and approved flat Fluent grid are used and server order is preserved.
@@ -110,6 +110,7 @@ operator_actions:
 
 ## Spec Change Log
 
+- 2026-09-23 -- Committed the reviewed implementation and verification evidence as `34c485e8`. Set the terminal story status to `awaiting-operator`; the Product/Operations audit-performance action remains unchanged, and `sprint-status.yaml` remains read-only.
 - 2026-09-23 -- Review pass 2 confirmed and fixed the audit paging-shape, atomic recovery-history, year-one filter, invisible-reference, service-graph verification, and operator-configuration documentation gaps. Deferred unrelated pre-existing findings in the deferred-work ledger. Final verification is recorded below; the Product/Operations action is unchanged.
 - 2026-09-23 -- Completed the 13 open review patches for safe recovery destinations, typed correction targets, invalid-filter and cursor state, response paging metadata, safe return navigation, UTC input, French copy, and regression coverage. The Product/Operations audit-performance action remains unchanged.
 - 2026-09-05 -- Implemented the repository-controlled audit hardening, responsive/accessibility behavior, localized recovery states, and focused regression coverage. Added exact verification evidence below. Status remains `in-progress` until the change is reviewed and committed; the Product/Operations performance action is unchanged.
