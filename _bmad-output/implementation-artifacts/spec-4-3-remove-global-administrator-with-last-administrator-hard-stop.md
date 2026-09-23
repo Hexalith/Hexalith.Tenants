@@ -5,7 +5,7 @@ created: '2026-09-01'
 status: 'in-review'
 baseline_revision: '91d233558ad830555e5ed09803498a6d36c8de50'
 baseline_commit: '91d233558ad830555e5ed09803498a6d36c8de50'
-review_loop_iteration: 6
+review_loop_iteration: 7
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -806,6 +806,23 @@ Rejected:
 - `[false]` `[reject]` The AppHost/dependency claim does not attribute the broad baseline-range updates to this removal repair: later dependency commits changed those files, and the story records that gitlink drift separately. No AppHost edit is in the current working diff.
 - `[medium]` `[patch]` The correction retry CSS fix has only a source-text assertion and Blazor removal-after-notification coverage; neither executes the scoped stylesheet while the rendered FluentButton remains mounted on a narrow viewport. Add a shipped-CSS computed-style browser assertion.
 - `[medium]` `[patch]` The held grant-projection test replaces only the lease. A snapshot-only replacement during the held requery is not exercised by the status-notification variant; add that behavioral case and assert the stale result cannot overwrite it.
+
+### 2026-09-23 — Review pass (baseline-wide resume)
+
+- `[medium]` `[defer, carried]` Audit Continue read-only can target a grid heading hidden by filter validation. `CanContinueReadOnlyForState` still omits the validation condition in `ShouldRenderRows`; the prior pass recorded this later Story 5.1 defect.
+- `[medium]` `[defer, carried]` Audit Next can remain enabled with `HasMore` and no `NextCursor`, while `NextPageAsync` returns without moving. The prior iteration-6 triage records this later audit pagination defect.
+- `[medium]` `[defer, carried]` Audit Request permission and Escalate still both navigate to `BackHref`. The earlier Story 5.1 recovery finding and DW-352 record this same outcome.
+- `[false]` `[reject]` The story-guards CI job is explicitly a regression lane for the validator script, not a claim that it validates the current story artifact. The spec's Verification section separately names the exact artifact-validation command; the job passing alone does not assert that result.
+- `[medium]` `[defer, carried]` The story gitlink validator still reports undeclared or mismatched current gitlinks. The earlier DW-347 finding records the same later dependency drift; its fix would edit this build's spec.
+- `[medium]` `[defer, carried]` The source-reference job still builds the Debug project-reference graph. The earlier triage records that this supplemental later CI lane does not itself validate the Release package graph.
+- `[high]` `[defer, carried]` `pushall` still commits before checking out a branch, risking a detached commit. The prior later-tooling finding records this same procedure.
+- `[high]` `[defer, carried]` `pushall` still prefers a local `main` over the remote default branch. The prior later-tooling finding records the same wrong-branch risk.
+- `[medium]` `[defer, carried]` `pushall` still uses commit candidates without pinned commitlint validation. The prior later-tooling finding records the same rule violation.
+- `[high]` `[defer, carried]` `pushall` still permits clean merges to be pushed without a build or test of the merged tree. The prior later-tooling finding records this same gap.
+- `[false]` `[reject, carried]` The standalone Chromium harness does not render the Blazor host, but the earlier review established that bUnit covers the shipped page wiring and the harness exercises the remaining focus module and Fluent element seam. The claimed missing page-wiring proof does not follow.
+- `[medium]` `[defer, carried]` Three tracked review prompts still contain about 13 MB of duplicate diff text. The prior later-artifact-hygiene finding records the same repository cost.
+- `[medium]` `[defer, carried]` `TenantAuditPage.SafeReturnUrl` still decodes a canonical URL before rendering Back, changing an encoded `&` query value into a separator. The prior Story 5.1 audit-navigation finding records the same outcome.
+- `[high]` `[bad_spec, carried]` A terminal removal delivery completed on a retained ownerless lease before replacement adoption can remain locked: `AdoptRetainedReconciliation` assigns the terminal snapshot directly, bypassing `SetRemoveSnapshot` and its `TryReleaseTerminal` call, while `ResumeAdoptedReconciliationAsync` skips terminal states. The earlier iteration-5 finding at this same location recorded this failure and required terminal release before or after adoption. This review exceeds the workflow's five-iteration loopback limit.
 
 ## Design Notes
 
