@@ -3753,7 +3753,9 @@
         }
 
         if (!await ReauthorizeAsync().ConfigureAwait(false)
-            || _grantSnapshot.CorrelationId is null)
+            || !ReferenceEquals(_grantSnapshot, activationSnapshot)
+            || !ReferenceEquals(_grantAdmissionLease, activationLease)
+            || activationSnapshot.CorrelationId is null)
         {
             return;
         }
@@ -3761,7 +3763,12 @@
         using PendingOperation operation = BeginGrantMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+        await RefreshGrantStatusCoreAsync(
+                generation,
+                cancellationToken,
+                activationSnapshot,
+                activationLease)
+            .ConfigureAwait(false);
     }
 
     private async Task RefreshGrantStatusCoreAsync(long generation, CancellationToken cancellationToken)
@@ -4074,7 +4081,8 @@
         GlobalAdministratorGrantCommandSnapshot snapshot,
         TenantAggregateCommandLease submissionLease)
     {
-        if (!ReferenceEquals(_grantAdmissionLease, submissionLease))
+        if (!ReferenceEquals(_grantAdmissionLease, submissionLease)
+            || !string.Equals(_grantSnapshot.MessageId, snapshot.MessageId, StringComparison.Ordinal))
         {
             return false;
         }
@@ -4517,13 +4525,21 @@
         using PendingOperation operation = BeginRemoveMutation();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
-        if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
+        GlobalAdministratorsSnapshot current;
+        try
         {
+            if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            current = await LoadCompletePopulationSafelyAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // A canceled retry preflight leaves the retained identity and dispatched lease intact.
             return;
         }
-
-        GlobalAdministratorsSnapshot current = await LoadCompletePopulationSafelyAsync(cancellationToken)
-            .ConfigureAwait(false);
         GlobalAdministratorRemovePreview rebuilt;
         try
         {

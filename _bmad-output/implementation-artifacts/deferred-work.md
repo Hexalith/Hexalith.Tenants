@@ -3122,3 +3122,7 @@ Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Alread
   evidence: In `RequeryRemoveProjectionAsync` (`GlobalAdministratorsPage.razor:4765-4773`), if `_removeSnapshot` advanced to the same attempt's next state during the held load, the lease still matches, so `RetainOrReleaseRemoveCompletion` can call `TryReleaseTerminal` for a terminal stale-basis projection while the UI keeps a non-terminal snapshot. Settle with a page test that advances the same attempt during a held confirming requery and asserts the lease and UI state together.
 
 - Story gitlink guard still fails (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+  summary: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.
+  evidence: `TenantAuditPage.CanContinueReadOnlyForState` checks rows and stale/degraded/list-refreshed state while `ShouldRenderRows` also requires no filter validation, so the recovery link can target a heading omitted from the DOM. The audit surface was changed by later Story 5.1 work in the baseline range.

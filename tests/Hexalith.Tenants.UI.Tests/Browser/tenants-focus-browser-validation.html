@@ -3,8 +3,13 @@
 <head>
     <meta charset="utf-8">
     <title>Tenants focus module browser validation</title>
+    <link rel="stylesheet" href="./correction.css">
 </head>
 <body>
+    <section id="correction-panel" class="ga-correction-panel">
+        <fluent-button id="correction-retry" class="ga-correction-panel__mutation-initiation">Retry delivery</fluent-button>
+        <button id="correction-status">Refresh status</button>
+    </section>
     <section id="remove-preview" role="dialog" aria-modal="true">
         <span id="remove-focus-start" tabindex="0"></span>
         <fluent-button id="tenants-global-admin-remove-cancel-button"
@@ -50,6 +55,20 @@
         startSentinel.addEventListener("focus", routeStartSentinel);
 
         try {
+            const correctionCss = await (await fetch("./correction.css")).text();
+            const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];
+            if (!scope || window.innerWidth > 767) {
+                throw new Error(`correction CSS scope or narrow viewport missing: ${scope ?? "none"};${window.innerWidth}`);
+            }
+            document.getElementById("correction-panel").setAttribute(scope, "");
+            await document.fonts.ready;
+            const retry = document.getElementById("correction-retry");
+            if (!retry.isConnected || getComputedStyle(retry).display !== "none"
+                || getComputedStyle(document.getElementById("correction-status")).display === "none") {
+                throw new Error("mounted correction retry must be hidden while read-only status remains visible");
+            }
+            observations.push("narrow-correction-retry-hidden");
+
             startSentinel.focus();
             const exactCancel = document.getElementById(cancelButtonId);
             assertActiveElement(exactCancel, "start-to-exact-cancel");

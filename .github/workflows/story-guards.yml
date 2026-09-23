@@ -62,7 +62,7 @@ jobs:
         id: chrome
         uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
         with:
-          chrome-version: stable
+          chrome-version: 153.0.8010.52
       - name: Validate the shipped removal focus module in Chromium
         env:
           CHROMIUM_BIN: ${{ steps.chrome.outputs.chrome-path }}

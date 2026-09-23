@@ -5,9 +5,10 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$script_dir/../../.." && pwd)"
 harness_path="$script_dir/tenants-focus-browser-validation.html"
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
+correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
 project_assets_path="$project_root/src/Hexalith.Tenants.UI/obj/project.assets.json"
 
-if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$project_assets_path" ]]; then
+if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$project_assets_path" ]]; then
     echo "Focus validator inputs are missing." >&2
     exit 1
 fi
@@ -72,6 +73,7 @@ trap cleanup EXIT
 
 cp -- "$harness_path" "$validation_tmp/index.html"
 cp -- "$focus_module_path" "$validation_tmp/tenantsFocus.js"
+cp -- "$correction_css_path" "$validation_tmp/correction.css"
 cp -- "$fluent_module_path" "$validation_tmp/fluent-ui.js"
 
 python3 - "$validation_tmp/tenantsFocus.js" "$validation_tmp/tenantsFocus-return-true.js" <<'PY'
@@ -152,6 +154,7 @@ run_browser() {
         --disable-gpu \
         --no-default-browser-check \
         --no-first-run \
+        --window-size=390,800 \
         --user-data-dir="$validation_tmp/$profile_name" \
         --virtual-time-budget=3000 \
         --dump-dom \

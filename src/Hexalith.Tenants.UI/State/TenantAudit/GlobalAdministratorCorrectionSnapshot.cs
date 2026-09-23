@@ -590,14 +590,20 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
 
             GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ConfirmProjection(projection);
             GlobalAdministratorCorrectionSnapshot updated = FromRemovalSnapshot(removal);
-            return projection is null
-                ? updated
-                : updated with
+            return projection.Kind is GlobalAdministratorsSurfaceKind.Ready
+                && projection.Freshness is ReadModelFreshnessState.Current
+                && projection.Lifecycle is ProjectionLifecycleState.Current
+                && !string.IsNullOrWhiteSpace(projection.ProjectionVersion)
+                && !projection.HasMore
+                && projection.IsCompleteEvidence
+                && ProjectionIsReadable(projection)
+                ? updated with
                 {
                     LastConfirmedProjectionEvidence = projection,
                     CurrentAdministratorCount = DistinctAdministratorCount(projection),
                     TargetCurrentlyPresent = TargetPresent(projection),
-                };
+                }
+                : updated;
         }
 
         // Confirmation may only come from an authoritative, current, genuinely-readable projection.

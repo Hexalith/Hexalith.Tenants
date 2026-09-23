@@ -311,6 +311,38 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void Revoke_unreadable_or_incomplete_requery_preserves_last_confirmed_population()
+    {
+        GlobalAdministratorsSnapshot baseline = ProjectionReady("admin-user", "other-admin");
+        GlobalAdministratorCorrectionSnapshot pending = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), baseline)
+            .WithRemovePreview(RemovePreview())
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+
+        GlobalAdministratorsSnapshot[] unproven =
+        [
+            GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current, "\"ga-etag\""),
+            PagedProjectionReady("other-admin"),
+            GlobalAdministratorsSnapshot.Stale(
+                [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Stale)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"ga-etag\""),
+        ];
+
+        foreach (GlobalAdministratorsSnapshot projection in unproven)
+        {
+            GlobalAdministratorCorrectionSnapshot result = pending.ConfirmProjection(projection);
+            result.LastConfirmedProjectionEvidence.ShouldBeSameAs(baseline);
+            result.CurrentAdministratorCount.ShouldBe(2);
+            result.TargetCurrentlyPresent.ShouldBeTrue();
+            result.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        }
+    }
+
+    [Fact]
     public void Confirmation_requires_a_current_non_stale_projection()
     {
         GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot

@@ -1255,6 +1255,22 @@
         }).ConfigureAwait(false);
         if (!canRetryDelivery)
         {
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (CanApplyOperation(generation)
+                    && ReferenceEquals(_snapshot, deliveryBasis)
+                    && _admissionLease?.IsReconciliationDispatchInFlight == true)
+                {
+                    SetSnapshot(
+                        deliveryBasis.RetainAmbiguousPreflight(
+                            deliveryBasis.IsRestoreAccessAction
+                                ? "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy"
+                                : "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.AggregateBusy",
+                            "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"),
+                        focusTerminalState: true);
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
             RetainReconciliationForReplacement();
             return;
         }
