@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'awaiting-operator'
+status: 'done'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -12,8 +12,7 @@ context:
 warnings:
   - 'oversized'
 deferred: []
-operator_actions:
-  - 'Approve and record the Product/Operations audit-performance contract, including the representative dataset shape, page size and filter mix, reference environment and network assumptions, initial-render and interaction percentile budgets, authoritative test tier and repeatability method, and fallback trigger.'
+operator_actions: []
 ---
 
 <intent-contract>
@@ -183,6 +182,8 @@ operator_actions:
 Reuse `TenantHighImpactViewportObservation` as the authoritative FrontComposer viewport signal. Unknown/unsafe viewport evidence fails closed for mutation affordances but must not hide read-only audit evidence or recovery; pending measurement gets neutral copy, while measured phone copy appears only where an otherwise supported correction was suppressed. Caller binding belongs both in the server protected-cursor scope and in the retained snapshot/query-gateway seam. Re-read the accessor after each awaited audit response and discard an old-caller completion; do not place raw principal claims in rendered state or diagnostics. Validate the whole response before composing rows. Keep sanitized narrative structured for behavior and format a separate display string so delimiters can never create correction inputs.
 
 ## Verification
+
+**Performance gate closed 2026-09-24:** [Approved revision 1](story-5-1-performance-decision.md) was measured on a reserved 4 vCPU/8 GiB Linux VM against the authenticated Release full stack. The [authoritative performance evidence](story-5-1-performance-evidence.md) records the exact source and dataset hashes, environment, six complete raw 40-sample batches, 126 passing percentile groups, and ten passing functional gates with no setup or sample failure. The 50-row baseline passed every budget, so no fallback was triggered. Story 5.1 is `done`; `operator_actions` is empty. All earlier statements below about outstanding approval or measurement are historical and superseded by this result.
 
 **Final review-patch results recorded 2026-09-23:**
 

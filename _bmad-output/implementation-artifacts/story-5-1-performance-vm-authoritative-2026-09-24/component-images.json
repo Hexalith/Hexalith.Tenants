@@ -1,0 +1,17 @@
+[
+  {
+    "resource": "memories-graphs",
+    "image": "falkordb/falkordb:latest",
+    "imageId": "sha256:217bc520be076ce9e85b0ba426b2379ccbaebd17f2fe6e174288bd1b36d486bb"
+  },
+  {
+    "resource": "memories-vectors",
+    "image": "redis/redis-stack:latest",
+    "imageId": "sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7"
+  },
+  {
+    "resource": "security",
+    "image": "quay.io/keycloak/keycloak:26.6",
+    "imageId": "sha256:0aae0de7fca85525f727d3354df17896092de8bb26ae4c12d89c77e5df8cbce4"
+  }
+]

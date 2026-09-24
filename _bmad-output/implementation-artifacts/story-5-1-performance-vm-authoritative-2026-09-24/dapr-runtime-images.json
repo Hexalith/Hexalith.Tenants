@@ -1,0 +1,22 @@
+[
+  {
+    "resource": "dapr_redis",
+    "image": "docker.io/redis:6",
+    "imageId": "sha256:e7b96daa9a182b0a2639253fdab98244190ec2dca8a41da3fb31a147ef71a870"
+  },
+  {
+    "resource": "dapr_placement",
+    "image": "docker.io/daprio/dapr:1.18.4",
+    "imageId": "sha256:68bb6057abbd3cc1267ad895a73415426ba77f2b451de99693aac54b45ea7d0e"
+  },
+  {
+    "resource": "dapr_scheduler",
+    "image": "docker.io/daprio/dapr:1.18.4",
+    "imageId": "sha256:68bb6057abbd3cc1267ad895a73415426ba77f2b451de99693aac54b45ea7d0e"
+  },
+  {
+    "resource": "dapr_zipkin",
+    "image": "docker.io/openzipkin/zipkin",
+    "imageId": "sha256:d17e856dcbba7ffeefbbfc252f89ab78a4ab6faed47e646d46daad78f91b5ee2"
+  }
+]

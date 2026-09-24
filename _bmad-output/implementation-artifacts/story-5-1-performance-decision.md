@@ -1,6 +1,6 @@
 # Story 5.1 audit performance contract
 
-**Status:** Approved performance acceptance contract. Story 5.1 remains `awaiting-operator` until representative measurements satisfy this contract.
+**Status:** Approved performance acceptance contract. The representative measurements satisfied revision 1 on 2026-09-24; see the [authoritative evidence](story-5-1-performance-evidence.md). The approved requirements below are unchanged.
 
 **Approved revision:** 1.
 

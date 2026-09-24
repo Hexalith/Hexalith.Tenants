@@ -608,6 +608,7 @@ public sealed class TenantAuditPageTests : BunitContext
         gateway.Requests[1].Cursor.ShouldBe("opaque-next");
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Administrative.ToString());
+        cut.Find("[data-testid='tenants-audit-apply']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
 
         gateway.Requests[2].Cursor.ShouldBeNull();
@@ -627,10 +628,12 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-06-01T10:15");
         cut.Find("[data-testid='tenants-audit-filter-to']").Change("2026-06-02T11:45");
-        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-apply']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
 
         gateway.Requests[1].From.ShouldNotBeNull();
-        gateway.Requests[2].To.ShouldNotBeNull();
+        gateway.Requests[1].To.ShouldNotBeNull();
     }
 
     [Fact]
@@ -711,10 +714,10 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
         cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-06-03T00:00");
-        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        gateway.Requests.Count.ShouldBe(1);
         cut.Find("[data-testid='tenants-audit-filter-to']").Change("2026-06-02T00:00");
 
-        gateway.Requests.Count.ShouldBe(2);
+        gateway.Requests.Count.ShouldBe(1);
         cut.Find("[data-testid='tenants-audit-filter-from']").GetAttribute("aria-describedby")
             .ShouldBe("tenants-audit-filter-from-error");
         cut.Find("[data-testid='tenants-audit-filter-to']").GetAttribute("aria-describedby")
@@ -736,6 +739,7 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
         cut.Find("[data-testid='tenants-audit-filter-from']").Change(value);
+        cut.Find("[data-testid='tenants-audit-apply']").Click();
 
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
         gateway.Requests[1].From.ShouldBe(DateTimeOffset.Parse(expected, CultureInfo.InvariantCulture));
@@ -798,12 +802,12 @@ public sealed class TenantAuditPageTests : BunitContext
             .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
 
-        // Driven through the public trigger the remark names: a filter change calls ClearPaging with no
-        // in-flight check, so it clears the history while the Previous read is still on its dispatcher hop.
+        // Applying the staged filter clears paging while the Previous read is in flight.
         // Reaching into `_cursorHistory` by reflection reproduced the same state, but pinned a private field
         // name rather than the behaviour, and mutated it from the test thread -- the very cross-thread access
         // the production code is being asserted to survive.
         cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-01-01T00:00");
+        cut.Find("[data-testid='tenants-audit-apply']").Click();
 
         previousPage.SetResult(ReadySnapshot(
             [Row("event-1-returned", AuditEventCategory.Access)],

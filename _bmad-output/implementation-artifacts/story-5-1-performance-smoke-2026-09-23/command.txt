@@ -1,0 +1,1 @@
+scripts/run-tenant-audit-performance.sh

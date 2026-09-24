@@ -3541,6 +3541,12 @@
   <data name="Tenants.Audit.Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="Tenants.Audit.Apply" xml:space="preserve">
+    <value>Apply filters</value>
+  </data>
+  <data name="Tenants.Audit.Filter.Pending" xml:space="preserve">
+    <value>Filter changes are pending. Apply filters to update the audit entries.</value>
+  </data>
   <data name="Tenants.Audit.Reset" xml:space="preserve">
     <value>Reset filters</value>
   </data>

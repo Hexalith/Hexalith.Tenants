@@ -112,6 +112,9 @@
                     </FluentGridItem>
                     <FluentGridItem Xs="12" Md="6" Lg="3">
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" VerticalGap="12px" Wrap="true">
+                            <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-apply" OnClick="ApplyFiltersAsync">
+                                @Localizer["Tenants.Audit.Apply"]
+                            </FluentButton>
                             <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
                                 @Localizer["Tenants.Audit.Refresh"]
                             </FluentButton>
@@ -121,6 +124,10 @@
                         </FluentStack>
                     </FluentGridItem>
                 </FluentGrid>
+                @if (_filtersDirty)
+                {
+                    <p data-testid="tenants-audit-filter-pending">@Localizer["Tenants.Audit.Filter.Pending"]</p>
+                }
             </section>
         </FluentAccordionItem>
 
@@ -205,7 +212,10 @@
 
     @if (ShouldRenderRows)
     {
-        <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading">
+        <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading"
+                 data-audit-response-count="@_snapshot.Rows.Count"
+                 data-audit-page-size="@PageSize"
+                 data-audit-next-cursor-present="@(!string.IsNullOrWhiteSpace(_snapshot.NextCursor) ? "true" : "false")">
             <h2 id="tenant-audit-grid-heading">@Localizer["Tenants.Audit.GridTitle"]</h2>
             <AuditDataGrid Rows="@_snapshot.Rows"
                            HasViewportMeasurement="@(_viewportObservation?.HasMeasurement == true)"
@@ -247,10 +257,10 @@
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_filtersDirty || _pageLoadInFlight || _cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.Audit.Previous"]
                     </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(_pageLoadInFlight || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(_filtersDirty || _pageLoadInFlight || !_snapshot.HasMore || string.IsNullOrWhiteSpace(_snapshot.NextCursor))" OnClick="NextPageAsync">
                         @Localizer["Tenants.Audit.Next"]
                     </FluentButton>
                 </FluentStack>
@@ -263,6 +273,7 @@
 @code {
     private const string FocusModulePath = "./js/tenantsFocus.js";
     private const int PageSize = 50;
+    private bool _filtersDirty;
     /// <summary>Upper bound on retained paging history.</summary>
     private const int MaximumCursorHistory = CursorHistory.DefaultMaximum;
 
@@ -844,7 +855,22 @@
     }
 
     private async Task RefreshAsync()
-        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+    {
+        if (_filtersDirty)
+        {
+            await ApplyFiltersAsync().ConfigureAwait(false);
+            return;
+        }
+
+        await LoadAsync(reuseETag: true).ConfigureAwait(false);
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        ClearPaging();
+        _filtersDirty = false;
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
 
     private async Task RefreshFromNotificationAsync(string tenantId)
     {
@@ -899,13 +925,14 @@
         _fromValidationKey = null;
         _toValidationKey = null;
         _categoryValidationKey = null;
+        _filtersDirty = false;
         ClearPaging();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     private async Task NextPageAsync()
     {
-        if (_pageLoadInFlight || string.IsNullOrWhiteSpace(_snapshot.NextCursor))
+        if (_filtersDirty || _pageLoadInFlight || string.IsNullOrWhiteSpace(_snapshot.NextCursor))
         {
             return;
         }
@@ -954,7 +981,7 @@
 
     private async Task PreviousPageAsync()
     {
-        if (_pageLoadInFlight || _cursorHistory.Count == 0)
+        if (_filtersDirty || _pageLoadInFlight || _cursorHistory.Count == 0)
         {
             return;
         }
@@ -1009,25 +1036,28 @@
         }
     }
 
-    private async Task OnFromChanged(string? value)
+    private Task OnFromChanged(string? value)
     {
         _fromText = value;
-        ClearPaging();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        _filtersDirty = true;
+        _ = TryCreateRequest(TenantId, null, null, out _);
+        return Task.CompletedTask;
     }
 
-    private async Task OnToChanged(string? value)
+    private Task OnToChanged(string? value)
     {
         _toText = value;
-        ClearPaging();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        _filtersDirty = true;
+        _ = TryCreateRequest(TenantId, null, null, out _);
+        return Task.CompletedTask;
     }
 
-    private async Task OnCategoryChanged(string? value)
+    private Task OnCategoryChanged(string? value)
     {
         _categoryText = value;
-        ClearPaging();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        _filtersDirty = true;
+        _ = TryCreateRequest(TenantId, null, null, out _);
+        return Task.CompletedTask;
     }
 
     private bool TryCreateRequest(
