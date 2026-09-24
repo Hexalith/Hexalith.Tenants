@@ -2,7 +2,7 @@
 title: 'Close Story 5.1 Audit Performance Gate'
 type: 'feature'
 created: '2026-09-23'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '2729deefdde44dd89ded1e410abb9ef767b0fb9d'
 review_loop_iteration: 0
@@ -51,9 +51,9 @@ context:
 - [x] `tests/performance/tenant-audit/seed.cs` -- generate the approved deterministic 500-entry projection through the EventStore read-model seam in an isolated test topology and verify the persisted end-state before timing.
 - [x] `tests/performance/tenant-audit/audit-performance.spec.ts` and `tests/performance/tenant-audit/package.json` -- pin authenticated Chromium measurement of approved actions/viewports; preserve raw samples and nearest-rank percentiles; fail on self-skip or wrong rows.
 - [x] `scripts/run-tenant-audit-performance.sh` -- start Release Aspire at the registered callback, run seed and browser tiers, capture environment metadata, and stop resources.
-- [ ] `_bmad-output/implementation-artifacts/story-5-1-performance-evidence.md` -- record a complete audit-performance-v4 dedicated run with exact commands, environment, dataset hash, raw results, percentiles, and functional gates; retain the v3 run as historical evidence.
-- [ ] `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` -- evaluate conditional fallback from the corrected v4 50-row result; if a valid batch misses, change the UI to 25 rows, preserve paging and safety, and remeasure the full contract.
-- [ ] `_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md` -- link passing v4 evidence and update its terminal status only when the contract is satisfied.
+- [x] `_bmad-output/implementation-artifacts/story-5-1-performance-evidence.md` -- record the complete audit-performance-v4 dedicated run with exact commands, environment, dataset hash, raw results, percentiles, and functional gates; retain the v3 run as historical evidence.
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` -- evaluate conditional fallback from the corrected v4 50-row result. All valid batches passed, so the approved 25-row fallback was not triggered.
+- [x] `_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md` -- link passing v4 evidence and update its terminal status after the contract was satisfied.
 
 **Acceptance Criteria:**
 - Given approved revision 1, when the authenticated 500-entry grid is measured, then every batch meets its initial-render and interaction budgets or activates fallback.
@@ -62,7 +62,7 @@ context:
 
 ## Implementation Notes
 
-The fresh 4 vCPU/8 GiB Linux VM needed Docker buildx, an explicit Release build of the Memories server excluded from the solution, and Linux development-certificate trust for the UI's HTTPS call to Tenants API. The runner now checks these prerequisites. Earlier setup and diagnostic attempts were discarded, then the v3 test completed from a fresh seed. Review found that it stopped result timing before paging became usable. Its 50-row result cannot decide fallback; the revised v4 script requires a new dedicated run.
+The fresh 4 vCPU/8 GiB Linux VM needed Docker buildx, an explicit Release build of the Memories server excluded from the solution, and Linux development-certificate trust for the UI's HTTPS call to Tenants API. The runner now checks these prerequisites. The v3 run stopped result timing before paging became usable and cannot decide fallback. The revised v4 script completed on a clean committed source snapshot in the dedicated VM; all batches and functional gates passed with 50 rows, so no fallback code change was needed. A first v4 setup attempt failed during build on unrelated concurrent UI test work and was retained separately; it contributed no timing samples.
 
 ## Spec Change Log
 
@@ -104,6 +104,8 @@ The four result-endpoint findings (VG1, BH1, BH2, EC1) share the incomplete pain
 
 **Review corrections, 2026-09-24:** The v4 browser script waits for rows, Ready state, and the expected enabled pager through a later animation frame. Feedback is tied to the clicked action's loading or expected rows. The UI defers projection notifications while filters await Apply and clears pending state on tenant navigation. The runner preserves a safe setup-failure marker and parses Keycloak credentials containing `=`. Focused checks passed: `npm run typecheck --prefix tests/performance/tenant-audit`; `npm run test:mode --prefix tests/performance/tenant-audit` (4/4); `bash -n scripts/run-tenant-audit-performance.sh`; `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -m:1 --no-restore` (0 warnings/errors); and `tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Components.TenantAuditPageTests -parallelMode none` (91/91).
 
+**Accepted v4 evidence, 2026-09-24:** The [dedicated run](story-5-1-performance-evidence.md) on a clean 4-vCPU/8-GiB Linux VM exited 0 with `referenceRunner=true`, five warmups per viewport, six raw 40-sample batches, 5,040 failure-free samples, 126 passing nearest-rank percentile groups, and ten passing browser functional gates. Independent recomputation matched every percentile. The largest result-completion p95 was 226.6 ms against the 3,000 ms budget; initial-ready p95 was 849.7 ms against 4,000 ms; feedback p95 was 100.7 ms against 500 ms. The 50-row candidate passed; the conditional 25-row fallback did not trigger. The first setup attempt failed before timing on an unrelated concurrent test and is recorded separately.
+
 **Earlier non-authoritative smoke, 2026-09-23:** The shared 24-CPU WSL2 smoke used one sample in one batch per viewport. Its raw samples and ten passing gates were wiring evidence only; it was never an acceptance result or fallback trigger.
 
 **Fallback rerun guard:** The runner now accepts an explicit original-run directory only after validating a complete authoritative 3×40 baseline with a raw-sample percentile miss. It replays the exact original projection and manifest SHA-256, then expects 25 UI rows. The default remains 50 rows; `AUDIT_PERF_PAGE_SIZE=25` without the validated source is rejected. Focused mode tests pass 4/4 and the seed's replay verification reproduces the recorded 500-entry smoke hash. The shared-machine smoke cannot trigger this mode.
@@ -111,4 +113,4 @@ The four result-endpoint findings (VG1, BH1, BH2, EC1) share the incomplete pain
 **Commands:**
 - `dotnet build Hexalith.Tenants.slnx --configuration Release -m:1 --no-restore` -- expected: zero warnings and errors after any fallback code change.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Components.TenantAuditPageTests -parallelMode none` -- expected: all focused audit page cases pass after any fallback code change.
-- `AUDIT_PERF_DEDICATED_RUNNER=1 AUDIT_PERF_RESULT_DIR="$HOME/tenants/_bmad-output/implementation-artifacts/story-5-1-performance-v4" scripts/run-tenant-audit-performance.sh` from the dedicated guest repository root -- pending: use a new empty result directory and record three complete 40-sample batches per viewport, with exact evidence and no self-skip.
+- `AUDIT_PERF_DEDICATED_RUNNER=1 AUDIT_PERF_RESULT_DIR="$HOME/tenants/_bmad-output/implementation-artifacts/story-5-1-performance-v4-authoritative-2026-09-24" scripts/run-tenant-audit-performance.sh` from the dedicated guest repository root -- passed: `1 passed (24.1m)`, full 3×40 contract, no self-skip or failed gate; exact environment and shell setup are recorded in the evidence document.

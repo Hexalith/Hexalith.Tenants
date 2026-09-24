@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'awaiting-operator'
+status: 'done'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -12,8 +12,6 @@ context:
 warnings:
   - 'oversized'
 deferred: []
-operator_actions:
-  - 'Provide the approved dedicated 4 vCPU/8 GiB Linux runner for a complete repeat of the corrected audit-performance-v4 3×40 contract, then evaluate its result and any triggered fallback.'
 ---
 
 <intent-contract>
@@ -184,7 +182,9 @@ Reuse `TenantHighImpactViewportObservation` as the authoritative FrontComposer v
 
 ## Verification
 
-**Performance review correction 2026-09-24:** [Approved revision 1](story-5-1-performance-decision.md) remains the contract. The [v3 evidence](story-5-1-performance-evidence.md) contains six complete raw 40-sample batches and passing checks, but its result clock stopped before the pager was usable. That run cannot establish the approved result-completion budget or decide the fallback trigger. Story 5.1 remains `awaiting-operator` for a complete audit-performance-v4 run on the dedicated runner. Approval itself is complete; the remaining action is measurement and any triggered fallback. Earlier closure statements below are historical.
+**Performance acceptance 2026-09-24:** The [approved revision 1](story-5-1-performance-decision.md) contract was satisfied by the [corrected dedicated v4 run](story-5-1-performance-evidence.md). The clean 4-vCPU/8-GiB VM completed five warmups per viewport and six raw 40-sample batches. All 5,040 samples were failure-free, all 126 percentile groups passed, and all ten required browser functional gates passed. The largest result-completion p95 was 226.6 ms against 3,000 ms; initial-ready p95 was 849.7 ms against 4,000 ms; feedback p95 was 100.7 ms against 500 ms. The current 50-row UI passes, so the conditional 25-row fallback was not triggered. Story 5.1 is complete. Earlier operator and closure statements below are historical; `sprint-status.yaml` remains read-only as required by this spec.
+
+**Historical performance review correction 2026-09-24:** The v3 evidence contains six complete raw 40-sample batches and passing checks, but its result clock stopped before the pager was usable. That run could not establish the approved result-completion budget or decide the fallback trigger. Story 5.1 then remained `awaiting-operator` for a complete audit-performance-v4 run on the dedicated runner. Approval was complete; the remaining action was measurement and any triggered fallback.
 
 **Final review-patch results recorded 2026-09-23:**
 

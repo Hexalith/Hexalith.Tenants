@@ -1,0 +1,8 @@
+697cdb58c33ddeb94690d8e5a5716da407dae4bf
+ 5f93d2ec8239494852c97032c819cb1689939e36 references/Hexalith.AI.Tools (heads/main)
+ 2fba3497043fe5ffcfe4dc44c51a09eae9b950ab references/Hexalith.Builds (v4.27.4-2-g2fba349)
+ 37455bbb258d30e3ee86aa4b09769ae6e5638f9f references/Hexalith.Commons (v2.30.1-7-g37455bb)
+ ab40348def51e03dc020e589dfc183ce2e621409 references/Hexalith.EventStore (v3.108.1-18-gab40348d)
+ d7553fb2d54b5a5ad16f7328149b31dbb9295f65 references/Hexalith.FrontComposer (v4.5.0-54-gd7553fb2)
+ 8884933571e2738c406feea37e57f7124378b3e3 references/Hexalith.Memories (v2.27.1-15-g88849335)
+ 7a2134eefa689d026a3fac814dd8732b22a43723 references/Hexalith.PolymorphicSerializations (v1.19.3-5-g7a2134e)

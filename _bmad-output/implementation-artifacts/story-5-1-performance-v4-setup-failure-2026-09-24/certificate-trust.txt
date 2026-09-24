@@ -1,0 +1,14 @@
+
+Telemetry
+---------
+
+The Aspire CLI collects usage data. It is collected by Microsoft and is used to help us improve your experience. You can opt out of telemetry by setting the
+ASPIRE_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your preferred shell.
+
+Read more about Aspire CLI telemetry: https://aka.ms/aspire/cli-telemetry
+
+ℹ️ Trusting development certificate (may require elevated permissions)...
+🔐 Trusting certificates...
+⚠️ Developer certificates may not be fully trusted (trust exit code was: PartiallyFailedToTrustTheCertificate).
+⚠️ HTTPS development certificate was partially trusted. Continuing because partial trust is usable for CLI HTTPS diagnostics on Linux; browser trust may still
+   be incomplete.

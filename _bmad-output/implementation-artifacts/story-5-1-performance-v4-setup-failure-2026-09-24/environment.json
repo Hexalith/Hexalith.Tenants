@@ -1,0 +1,33 @@
+{
+  "command": "scripts/run-tenant-audit-performance.sh",
+  "gitRevision": "697cdb58c33ddeb94690d8e5a5716da407dae4bf",
+  "os": "Linux 7.0.0-31-generic x86_64",
+  "cpuModel": "AMD Ryzen 9 9950X3D 16-Core Processor",
+  "cpuCount": 4,
+  "hostCpuCount": 4,
+  "memoryKiB": 8126492,
+  "availableMemoryKiB": "7040300",
+  "loadAverage": "0.47 0.50 0.24 1/474 7920",
+  "hardwareMatch": true,
+  "dedicatedRunnerDeclared": true,
+  "idlePreflight": true,
+  "preflightCpuBusyPercent": 1.6,
+  "preflightLoadOneMinute": 0.47,
+  "preflightLimits": {
+    "cpuBusyPercentBelow": 10
+  },
+  "measurementMode": "contract",
+  "auditMode": "baseline",
+  "uiPageSize": 50,
+  "dotnet": "10.0.401",
+  "dapr": "CLI version: 1.18.2  Runtime version: 1.18.4 ",
+  "aspire": "13.5.3+b5f143315ffb6968ea939a9978797a5b20e4c688",
+  "node": "v22.22.1",
+  "playwright": "1.63.0",
+  "referenceRunner": true,
+  "viewports": [
+    "1365x768",
+    "390x844"
+  ],
+  "network": "loopback; no artificial throttling"
+}

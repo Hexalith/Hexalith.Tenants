@@ -1,0 +1,107 @@
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+
+  Hexalith.Commons.Aspire -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/bin/Release/net10.0/Hexalith.Commons.Aspire.dll
+  Hexalith.Commons.ServiceDefaults -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.ServiceDefaults/bin/Release/net10.0/Hexalith.Commons.ServiceDefaults.dll
+  Hexalith.Commons.UniqueIds -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Release/net10.0/Hexalith.Commons.UniqueIds.dll
+  Hexalith.EventStore.Contracts -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Release/net10.0/Hexalith.EventStore.Contracts.dll
+  Hexalith.EventStore.Admin.Abstractions -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Abstractions/bin/Release/net10.0/Hexalith.EventStore.Admin.Abstractions.dll
+  Hexalith.EventStore.Admin.Server -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/bin/Release/net10.0/Hexalith.EventStore.Admin.Server.dll
+  Hexalith.EventStore.ServiceDefaults -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/bin/Release/net10.0/Hexalith.EventStore.ServiceDefaults.dll
+  Hexalith.EventStore.Admin.Server.Host -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/bin/Release/net10.0/Hexalith.EventStore.Admin.Server.Host.dll
+  Hexalith.EventStore.Client -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Release/net10.0/Hexalith.EventStore.Client.dll
+  Hexalith.EventStore.SignalR -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.SignalR/bin/Release/net10.0/Hexalith.EventStore.SignalR.dll
+  Hexalith.EventStore.Admin.UI -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/bin/Release/net10.0/Hexalith.EventStore.Admin.UI.dll
+  Hexalith.EventStore.Aspire -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/bin/Release/net10.0/Hexalith.EventStore.Aspire.dll
+  Hexalith.EventStore.DomainService -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/bin/Release/net10.0/Hexalith.EventStore.DomainService.dll
+  Hexalith.EventStore.Server -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Server/bin/Release/net10.0/Hexalith.EventStore.Server.dll
+  Hexalith.EventStore.Gateway -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/bin/Release/net10.0/Hexalith.EventStore.Gateway.dll
+  Hexalith.EventStore -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Release/net10.0/Hexalith.EventStore.dll
+  Hexalith.FrontComposer.Contracts -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.dll
+  Hexalith.FrontComposer.Contracts -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/netstandard2.0/Hexalith.FrontComposer.Contracts.dll
+  Hexalith.FrontComposer.Contracts.UI -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.UI.dll
+  Hexalith.FrontComposer.Shell -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Release/net10.0/Hexalith.FrontComposer.Shell.dll
+  Hexalith.Tenants.Contracts -> /home/benchmark/tenants/src/Hexalith.Tenants.Contracts/bin/Release/net10.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Client -> /home/benchmark/tenants/src/Hexalith.Tenants.Client/bin/Release/net10.0/Hexalith.Tenants.Client.dll
+  Hexalith.Tenants.Sample -> /home/benchmark/tenants/samples/Hexalith.Tenants.Sample/bin/Release/net10.0/Hexalith.Tenants.Sample.dll
+  Hexalith.Tenants.Server -> /home/benchmark/tenants/src/Hexalith.Tenants.Server/bin/Release/net10.0/Hexalith.Tenants.Server.dll
+  Hexalith.Tenants.Testing -> /home/benchmark/tenants/src/Hexalith.Tenants.Testing/bin/Release/net10.0/Hexalith.Tenants.Testing.dll
+  Hexalith.Tenants.Sample.Tests -> /home/benchmark/tenants/samples/Hexalith.Tenants.Sample.Tests/bin/Release/net10.0/Hexalith.Tenants.Sample.Tests.dll
+  Hexalith.Tenants.Api -> /home/benchmark/tenants/src/Hexalith.Tenants.Api/bin/Release/net10.0/Hexalith.Tenants.Api.dll
+  Hexalith.Tenants.Aspire -> /home/benchmark/tenants/src/Hexalith.Tenants.Aspire/bin/Release/net10.0/Hexalith.Tenants.Aspire.dll
+  Hexalith.Tenants.AppHost -> /home/benchmark/tenants/src/Hexalith.Tenants.AppHost/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll
+  Hexalith.Tenants.UI -> /home/benchmark/tenants/src/Hexalith.Tenants.UI/bin/Release/net10.0/Hexalith.Tenants.UI.dll
+  Hexalith.Tenants -> /home/benchmark/tenants/src/Hexalith.Tenants/bin/Release/net10.0/Hexalith.Tenants.dll
+  Hexalith.Tenants.Client.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Client.Tests/bin/Release/net10.0/Hexalith.Tenants.Client.Tests.dll
+  Hexalith.Tenants.Contracts.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests.dll
+  Hexalith.Tenants.IntegrationTests -> /home/benchmark/tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll
+  Hexalith.Tenants.Server.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests.dll
+  Hexalith.Tenants.Testing.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests.dll
+  Hexalith.FrontComposer.Testing -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Release/net10.0/Hexalith.FrontComposer.Testing.dll
+  Hexalith.Tenants.UI.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:27.19
+  Hexalith.Tenants.Contracts -> /home/benchmark/tenants/src/Hexalith.Tenants.Contracts/bin/Release/net10.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Server -> /home/benchmark/tenants/src/Hexalith.Tenants.Server/bin/Release/net10.0/Hexalith.Tenants.Server.dll
+  seed -> /home/benchmark/tenants/tests/performance/tenant-audit/bin/Release/net10.0/seed.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.15
+  Hexalith.Memories.AccessTelemetry.Contracts -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Contracts/bin/Release/net10.0/Hexalith.Memories.AccessTelemetry.Contracts.dll
+  Hexalith.Memories.Contracts -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Release/net10.0/Hexalith.Memories.Contracts.dll
+  Hexalith.Memories.EventStore -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.EventStore/bin/Release/net10.0/Hexalith.Memories.EventStore.dll
+  Hexalith.Memories.Telemetry -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Telemetry/bin/Release/net10.0/Hexalith.Memories.Telemetry.dll
+  Hexalith.Memories.ServiceDefaults -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.ServiceDefaults/bin/Release/net10.0/Hexalith.Memories.ServiceDefaults.dll
+  Hexalith.Memories.Server -> /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/bin/Release/net10.0/Hexalith.Memories.Server.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.83
+Shutting down MSBuild server...
+Shutting down VB/C# compiler server...
+VB/C# compiler server shut down successfully.
+MSBuild server shut down successfully.
+
+added 6 packages, and audited 7 packages in 1s
+
+found 0 vulnerabilities
+
+> tenant-audit-performance@1.0.0 typecheck
+> tsc --noEmit
+
+Waiting for resource 'tenants-ui' to be healthy...
+
+✅ Resource 'tenants-ui' is healthy. (38.7s)
+Waiting for resource 'tenants' to be healthy...
+
+✅ Resource 'tenants' is healthy. (0.0s)
+seeded tenant=audit-perf-20260924172206 entries=500 sha256=57f33739b79deb22c53672eff0d6996e41de2ea8b9953c2bf0b9fc922b459c8c effective-projected-at=2026-09-24T17:22:07.7161252+00:00 etag-present=True
+
+> tenant-audit-performance@1.0.0 measure
+> playwright test audit-performance.spec.ts --workers=1 --reporter=line
+
+
+Running 1 test using 1 worker
+
+(node:14263) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] audit-performance.spec.ts:34:5 › authenticated tenant audit performance contract
+  Slow test file: audit-performance.spec.ts (24.1m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (24.1m)

@@ -1,6 +1,6 @@
 # Story 5.1 audit performance contract
 
-**Status:** Approved performance acceptance contract. Review found that the 2026-09-24 result clock stopped before the pager became usable. Acceptance requires a repeat run with the corrected timing script; see the [evidence record](story-5-1-performance-evidence.md). The approved requirements below are unchanged.
+**Status:** Approved performance acceptance contract, satisfied by the corrected v4 dedicated run on 2026-09-24. All 126 measured percentile groups and ten functional gates passed with the 50-row UI; the 25-row fallback was not triggered. See the [evidence record](story-5-1-performance-evidence.md). The approved requirements below are unchanged.
 
 **Approved revision:** 1.
 

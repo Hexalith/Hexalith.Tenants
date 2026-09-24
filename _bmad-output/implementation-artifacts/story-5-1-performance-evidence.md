@@ -1,14 +1,43 @@
 # Story 5.1 audit performance evidence
 
-**Status:** Acceptance pending a repeat run. The authenticated Release full-stack run completed on a dedicated 4 vCPU/8 GiB Linux KVM guest on 2026-09-24, but review found that its v3 result clock stopped at row paint before paging controls were usable. Its passing percentiles cannot establish the approved result-completion budget or rule out the 25-row fallback.
+**Status:** Accepted on 2026-09-24. The corrected v4 authenticated Release full-stack run completed on a dedicated 4 vCPU/8 GiB Linux KVM guest. All 126 percentile groups and ten functional gates passed the approved revision 1 contract with the 50-row UI, so the conditional 25-row fallback was not triggered. The earlier v3 run remains historical evidence only.
 
 ## Review correction, 2026-09-24
 
-The approved contract ends a filter or page result after expected rows **and paging controls** have painted and loading has cleared. The v3 script recorded the row-paint timestamp while `TenantAuditPage` could still await supplementary reads with paging disabled. Its `requestAnimationFrame` timestamp was also taken before that frame painted. The v4 script now waits for the expected usable pager state and a later animation frame. All recorded v3 samples below remain historical data; they are not current acceptance evidence. Run the complete 3×40 contract again on the approved dedicated runner, then evaluate fallback only from that valid result.
+The approved contract ends a filter or page result after expected rows **and paging controls** have painted and loading has cleared. The v3 script recorded the row-paint timestamp while `TenantAuditPage` could still await supplementary reads with paging disabled. Its `requestAnimationFrame` timestamp was also taken before that frame painted. The v4 script waits for the expected usable pager state and a later animation frame. All recorded v3 samples below remain historical data; they are not current acceptance evidence. The complete v4 result below is the fallback decision source.
 
-The archived source patch also labels EventStore, FrontComposer, and Memories gitlinks `-dirty` without preserving their nested status or diffs. The recorded gitlink commits identify the checked-out revisions, but the patch alone cannot prove whether those local changes affected source. The repeat run should record each root-declared submodule's source status or use clean submodule working trees.
+The archived v3 source patch also labels EventStore, FrontComposer, and Memories gitlinks `-dirty` without preserving their nested status or diffs. The recorded gitlink commits identify the checked-out revisions, but the patch alone cannot prove whether those local changes affected source. The v4 run used clean root and root-declared submodule working trees, recorded in its [source status](story-5-1-performance-v4-authoritative-2026-09-24/source-status.txt).
 
-## Contract and exact run
+## Accepted v4 run
+
+From `/home/benchmark/tenants` in the dedicated guest, with an empty result directory:
+
+```bash
+export DOTNET_ROOT="$HOME/.dotnet"
+export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$HOME/.local/bin:$HOME/.local/node/bin:$PATH"
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export AUDIT_PERF_DEDICATED_RUNNER=1
+export AUDIT_PERF_RESULT_DIR="$HOME/tenants/_bmad-output/implementation-artifacts/story-5-1-performance-v4-authoritative-2026-09-24"
+scripts/run-tenant-audit-performance.sh > "$HOME/run-v4-clean.log" 2>&1
+```
+
+The command exited **0**; the [runner log](story-5-1-performance-v4-authoritative-2026-09-24/runner-output.txt) records zero-warning, zero-error Release builds, a healthy Aspire stack, a verified 500-row seed, and **1 passed (24.1m)** in Chromium. The runner stopped the AppHost; `aspire ps --format Json` returned `[]`. The [v4 summary](story-5-1-performance-v4-authoritative-2026-09-24/summary.json) records `fullContract=true`, `audit-performance-v4`, five warmups per viewport, three batches of 40 samples, `setupFailures=[]`, 126 passing percentile groups, and ten passing functional gates. An independent read of all six raw files recomputed every nearest-rank p75/p95, checked 5,040 failure-free samples and 40 samples per group, and matched the summary.
+
+| Observable | Largest batch p75 | p75 budget | Largest batch p95 | p95 budget |
+| --- | ---: | ---: | ---: | ---: |
+| Initial audit-ready render | 594.3 ms | 2,500 ms | 849.7 ms | 4,000 ms |
+| Filter or page result | 165.3 ms | 1,500 ms | 226.6 ms | 3,000 ms |
+| Visible interaction feedback | 84.8 ms | 200 ms | 100.7 ms | 500 ms |
+
+The six raw files preserve the viewports separately: [desktop 1](story-5-1-performance-v4-authoritative-2026-09-24/raw-desktop-batch-1.json), [desktop 2](story-5-1-performance-v4-authoritative-2026-09-24/raw-desktop-batch-2.json), [desktop 3](story-5-1-performance-v4-authoritative-2026-09-24/raw-desktop-batch-3.json); [phone 1](story-5-1-performance-v4-authoritative-2026-09-24/raw-phone-batch-1.json), [phone 2](story-5-1-performance-v4-authoritative-2026-09-24/raw-phone-batch-2.json), and [phone 3](story-5-1-performance-v4-authoritative-2026-09-24/raw-phone-batch-3.json). Every sample records the response count, requested page size, next-cursor flag, and displayed row count. No self-skip or timing failure occurred.
+
+The [environment](story-5-1-performance-v4-authoritative-2026-09-24/environment.json) records `referenceRunner=true`: Ubuntu 26.04 KVM guest, Linux `7.0.0-31-generic`, four assigned CPUs by both checks, 8,126,492 KiB total memory, 7,079,388 KiB available at preflight, and 1.9% CPU busy over five seconds. The CPU was AMD Ryzen 9 9950X3D; one-minute load was 1.03. The pinned tools were .NET SDK 10.0.401, Dapr CLI 1.18.2/runtime 1.18.4, Aspire CLI 13.5.3, Node 22.22.1, Playwright 1.63.0, and Chromium 153.0.8010.12. [Component images](story-5-1-performance-v4-authoritative-2026-09-24/component-images.json), [Dapr images](story-5-1-performance-v4-authoritative-2026-09-24/dapr-runtime-images.json), and [loopback TCP samples](story-5-1-performance-v4-authoritative-2026-09-24/loopback-tcp-connect-seconds.json) are retained. Browser and services ran on the same guest over loopback without artificial throttling.
+
+The [manifest](story-5-1-performance-v4-authoritative-2026-09-24/dataset-manifest.json) has generator `tenant-audit-seed-v2`, random seed 5101, UTC anchor `2026-09-24T17:22:00Z`, isolated tenant `audit-perf-20260924172206`, 250 Access and 250 Administrative entries, and SHA-256 `57f33739b79deb22c53672eff0d6996e41de2ea8b9953c2bf0b9fc922b459c8c`. The [seed result](story-5-1-performance-v4-authoritative-2026-09-24/seed-result.txt) confirms a reread of all 500 persisted rows before timing. Source was clean at Git revision `697cdb58c33ddeb94690d8e5a5716da407dae4bf`, including all root-declared submodules. The [source patch](story-5-1-performance-v4-authoritative-2026-09-24/source-diff.patch.gz) from baseline `2729deef` has uncompressed SHA-256 `f6db1ff271f4aaab786fb569ecd4b64f12e7dfe6175565cecb9b450af919baa1`; its [compressed checksum](story-5-1-performance-v4-authoritative-2026-09-24/source-diff.patch.gz.sha256) passed verification.
+
+An initial v4 setup attempt stopped **before timing** because a concurrently added, unrelated UI test did not compile. Its [failure marker](story-5-1-performance-v4-setup-failure-2026-09-24/setup-failure.txt) and [runner log](story-5-1-performance-v4-setup-failure-2026-09-24/runner-output.txt) are retained. The original host work was preserved; the unrelated edits were backed up outside the guest repository and the successful run used the clean committed Story 5.1 source. The failed attempt was not counted as a batch or used to decide fallback.
+
+## Historical v3 contract and exact run
 
 [Approved revision 1](story-5-1-performance-decision.md) requires five untimed warmups per viewport, then three independent Chromium batches of 40 samples per applicable action at 1365×768 and 390×844. Every batch must meet nearest-rank p75 and p95 budgets. The complete run used the unchanged 50-row baseline and restarted Chromium between batches.
 
@@ -54,4 +83,4 @@ Earlier guest attempts were invalid setup checks and were never used as acceptan
 
 The earlier [shared-host smoke](story-5-1-performance-smoke-2026-09-23/summary.json) used one sample in one batch per viewport on a 24-CPU WSL2 host. Its 42 singleton groups and ten browser gates were useful wiring checks, but it was never authoritative. The guarded fallback mode was tested with `npm run test:mode --prefix tests/performance/tenant-audit` (4/4 passing): a complete synthetic valid miss selects 25 UI rows and copies the original manifest byte for byte; a passing, shared-runner, or incomplete baseline is rejected. The historical v3 baseline recorded no percentile miss, but its endpoint is incomplete, so it cannot decide whether the approved fallback is triggered.
 
-Focused UI audit-page tests passed 89/89 in the original run; Release solution and seed builds passed with zero warnings or errors; TypeScript typecheck, shell syntax, and `git diff --cached --check` passed. Review corrections were then checked separately, including 91/91 focused UI tests. A new dedicated browser run is required for performance acceptance of the current 50-row candidate.
+Focused UI audit-page tests passed 89/89 in the original run; Release solution and seed builds passed with zero warnings or errors; TypeScript typecheck, shell syntax, and `git diff --cached --check` passed. Review corrections were then checked separately, including 91/91 focused UI tests. The accepted v4 dedicated browser run above closes performance acceptance of the current 50-row candidate.

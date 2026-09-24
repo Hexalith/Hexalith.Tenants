@@ -1,0 +1,106 @@
+
+  Determining projects to restore...
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.SignalR/Hexalith.EventStore.SignalR.csproj (in 1.17 sec).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/Hexalith.EventStore.ServiceDefaults.csproj (in 521 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj (in 1.85 sec).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj (in 16 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj (in 7 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Hexalith.EventStore.Server.csproj (in 561 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj (in 3 ms).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj (in 2.42 sec).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj (in 2.42 sec).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 3 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/Hexalith.FrontComposer.Contracts.csproj (in 446 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/Hexalith.FrontComposer.Contracts.UI.csproj (in 2 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj (in 6 ms).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj (in 966 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Hexalith.EventStore.Admin.UI.csproj (in 134 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Hexalith.EventStore.Admin.Server.csproj (in 212 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/Hexalith.EventStore.Admin.Server.Host.csproj (in 6 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Abstractions/Hexalith.EventStore.Admin.Abstractions.csproj (in 3 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/Hexalith.Commons.UniqueIds.csproj (in 2 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.ServiceDefaults/Hexalith.Commons.ServiceDefaults.csproj (in 3 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/Hexalith.EventStore.Aspire.csproj (in 1.7 sec).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj (in 2.17 sec).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj (in 2.26 sec).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants/Hexalith.Tenants.csproj (in 12 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/Hexalith.Commons.Aspire.csproj (in 939 ms).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj (in 28 ms).
+  Restored /home/benchmark/tenants/tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj (in 20 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 2 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 9 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj (in 15 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj (in 17 ms).
+  Restored /home/benchmark/tenants/samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj (in 6 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/Hexalith.FrontComposer.Testing.csproj (in 7 ms).
+  Restored /home/benchmark/tenants/samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj (in 14 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Hexalith.FrontComposer.Shell.csproj (in 5 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj (in 65 ms).
+  Restored /home/benchmark/tenants/src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj (in 330 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/Hexalith.FrontComposer.SourceTools.csproj (in 1.4 sec).
+  Determining projects to restore...
+  Restored /home/benchmark/tenants/tests/performance/tenant-audit/seed.csproj (in 298 ms).
+  2 of 3 projects are up-to-date for restore.
+  Determining projects to restore...
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/Hexalith.Memories.Contracts.csproj (in 113 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Telemetry/Hexalith.Memories.Telemetry.csproj (in 3 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Contracts/Hexalith.Memories.AccessTelemetry.Contracts.csproj (in 78 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.ServiceDefaults/Hexalith.Memories.ServiceDefaults.csproj (in 667 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.EventStore/Hexalith.Memories.EventStore.csproj (in 800 ms).
+  Restored /home/benchmark/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj (in 6.15 sec).
+
+  Hexalith.Commons.Aspire -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/bin/Release/net10.0/Hexalith.Commons.Aspire.dll
+  The package Hexalith.Commons.Aspire.1.0.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/bin/Release/Hexalith.Commons.Aspire.1.0.0.nupkg'.
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/bin/Release/Hexalith.Commons.Aspire.1.0.0.snupkg'.
+  Hexalith.Commons.ServiceDefaults -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.ServiceDefaults/bin/Release/net10.0/Hexalith.Commons.ServiceDefaults.dll
+  The package Hexalith.Commons.ServiceDefaults.1.0.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.ServiceDefaults/bin/Release/Hexalith.Commons.ServiceDefaults.1.0.0.nupkg'.
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.ServiceDefaults/bin/Release/Hexalith.Commons.ServiceDefaults.1.0.0.snupkg'.
+  Hexalith.Commons.UniqueIds -> /home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Release/net10.0/Hexalith.Commons.UniqueIds.dll
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Release/Hexalith.Commons.UniqueIds.1.0.0.nupkg'.
+  Successfully created package '/home/benchmark/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Release/Hexalith.Commons.UniqueIds.1.0.0.snupkg'.
+  Hexalith.EventStore.Contracts -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Release/net10.0/Hexalith.EventStore.Contracts.dll
+  Hexalith.EventStore.Admin.Abstractions -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Abstractions/bin/Release/net10.0/Hexalith.EventStore.Admin.Abstractions.dll
+  Hexalith.EventStore.Admin.Server -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/bin/Release/net10.0/Hexalith.EventStore.Admin.Server.dll
+  Hexalith.EventStore.ServiceDefaults -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/bin/Release/net10.0/Hexalith.EventStore.ServiceDefaults.dll
+  Hexalith.EventStore.Admin.Server.Host -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/bin/Release/net10.0/Hexalith.EventStore.Admin.Server.Host.dll
+  Hexalith.EventStore.Client -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Release/net10.0/Hexalith.EventStore.Client.dll
+  Hexalith.EventStore.SignalR -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.SignalR/bin/Release/net10.0/Hexalith.EventStore.SignalR.dll
+  Hexalith.EventStore.Admin.UI -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/bin/Release/net10.0/Hexalith.EventStore.Admin.UI.dll
+  Hexalith.EventStore.Aspire -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/bin/Release/net10.0/Hexalith.EventStore.Aspire.dll
+  Hexalith.EventStore.DomainService -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/bin/Release/net10.0/Hexalith.EventStore.DomainService.dll
+  Hexalith.EventStore.Server -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Server/bin/Release/net10.0/Hexalith.EventStore.Server.dll
+  Hexalith.EventStore.Gateway -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/bin/Release/net10.0/Hexalith.EventStore.Gateway.dll
+  Hexalith.EventStore -> /home/benchmark/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Release/net10.0/Hexalith.EventStore.dll
+  Hexalith.FrontComposer.Contracts -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.dll
+  Hexalith.FrontComposer.Contracts -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/netstandard2.0/Hexalith.FrontComposer.Contracts.dll
+  Hexalith.FrontComposer.Contracts.UI -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.UI.dll
+  Hexalith.FrontComposer.Shell -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Release/net10.0/Hexalith.FrontComposer.Shell.dll
+  Hexalith.Tenants.Contracts -> /home/benchmark/tenants/src/Hexalith.Tenants.Contracts/bin/Release/net10.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Client -> /home/benchmark/tenants/src/Hexalith.Tenants.Client/bin/Release/net10.0/Hexalith.Tenants.Client.dll
+  Hexalith.Tenants.Sample -> /home/benchmark/tenants/samples/Hexalith.Tenants.Sample/bin/Release/net10.0/Hexalith.Tenants.Sample.dll
+  Hexalith.Tenants.Server -> /home/benchmark/tenants/src/Hexalith.Tenants.Server/bin/Release/net10.0/Hexalith.Tenants.Server.dll
+  Hexalith.Tenants.Testing -> /home/benchmark/tenants/src/Hexalith.Tenants.Testing/bin/Release/net10.0/Hexalith.Tenants.Testing.dll
+  Hexalith.Tenants.Sample.Tests -> /home/benchmark/tenants/samples/Hexalith.Tenants.Sample.Tests/bin/Release/net10.0/Hexalith.Tenants.Sample.Tests.dll
+  Hexalith.Tenants.Api -> /home/benchmark/tenants/src/Hexalith.Tenants.Api/bin/Release/net10.0/Hexalith.Tenants.Api.dll
+  Hexalith.Tenants.Aspire -> /home/benchmark/tenants/src/Hexalith.Tenants.Aspire/bin/Release/net10.0/Hexalith.Tenants.Aspire.dll
+  Hexalith.Tenants.AppHost -> /home/benchmark/tenants/src/Hexalith.Tenants.AppHost/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll
+  Hexalith.FrontComposer.SourceTools -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Release/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll
+  Hexalith.Tenants.UI -> /home/benchmark/tenants/src/Hexalith.Tenants.UI/bin/Release/net10.0/Hexalith.Tenants.UI.dll
+  Hexalith.Tenants -> /home/benchmark/tenants/src/Hexalith.Tenants/bin/Release/net10.0/Hexalith.Tenants.dll
+  Hexalith.Tenants.Client.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Client.Tests/bin/Release/net10.0/Hexalith.Tenants.Client.Tests.dll
+  Hexalith.Tenants.Contracts.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests.dll
+  Hexalith.Tenants.IntegrationTests -> /home/benchmark/tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll
+  Hexalith.Tenants.Server.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests.dll
+  Hexalith.Tenants.Testing.Tests -> /home/benchmark/tenants/tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests.dll
+  Hexalith.FrontComposer.Testing -> /home/benchmark/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Release/net10.0/Hexalith.FrontComposer.Testing.dll
+/home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs(24,18): error CS1061: 'BunitServiceProvider' does not contain a definition for 'AddHexalithDomain' and no accessible extension method 'AddHexalithDomain' accepting a first argument of type 'BunitServiceProvider' could be found (are you missing a using directive or an assembly reference?) [/home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]
+
+Build FAILED.
+
+/home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs(24,18): error CS1061: 'BunitServiceProvider' does not contain a definition for 'AddHexalithDomain' and no accessible extension method 'AddHexalithDomain' accepting a first argument of type 'BunitServiceProvider' could be found (are you missing a using directive or an assembly reference?) [/home/benchmark/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:01:02.98

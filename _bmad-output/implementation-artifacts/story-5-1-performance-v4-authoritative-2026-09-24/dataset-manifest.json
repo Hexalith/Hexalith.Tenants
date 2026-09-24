@@ -1,0 +1,3022 @@
+{
+  "hashSha256": "57f33739b79deb22c53672eff0d6996e41de2ea8b9953c2bf0b9fc922b459c8c",
+  "dataset": {
+    "generatorRevision": "tenant-audit-seed-v2",
+    "randomSeed": 5101,
+    "tenantId": "audit-perf-20260924172206",
+    "anchorUtc": "2026-09-24T17:22:00.0000000\u002B00:00",
+    "projectedAtUtc": "2026-09-24T17:22:07.7161252\u002B00:00",
+    "pageSize": 50,
+    "mix": {
+      "UserRemovedFromTenant": 50,
+      "UserAddedToTenant": 100,
+      "TenantConfigurationSet": 100,
+      "TenantConfigurationRemoved": 50,
+      "TenantUpdated": 99,
+      "UserRoleChanged": 100,
+      "TenantCreated": 1
+    },
+    "entries": [
+      {
+        "reference": "audit-event-000000",
+        "timestampUtc": "2026-08-25T17:22:00.0000000\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000001",
+        "timestampUtc": "2026-08-25T18:48:34.3887775\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000002",
+        "timestampUtc": "2026-08-25T20:15:08.7775551\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000003",
+        "timestampUtc": "2026-08-25T21:41:43.1663326\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000004",
+        "timestampUtc": "2026-08-25T23:08:17.5551102\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000005",
+        "timestampUtc": "2026-08-26T00:34:51.9438877\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000006",
+        "timestampUtc": "2026-08-26T02:01:26.3326653\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000007",
+        "timestampUtc": "2026-08-26T03:28:00.7214428\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000008",
+        "timestampUtc": "2026-08-26T04:54:35.1102204\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000009",
+        "timestampUtc": "2026-08-26T06:21:09.4989979\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000010",
+        "timestampUtc": "2026-08-26T07:47:43.8877755\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000011",
+        "timestampUtc": "2026-08-26T09:14:18.2765531\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000012",
+        "timestampUtc": "2026-08-26T10:40:52.6653306\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000013",
+        "timestampUtc": "2026-08-26T12:07:27.0541082\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000014",
+        "timestampUtc": "2026-08-26T13:34:01.4428857\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000015",
+        "timestampUtc": "2026-08-26T15:00:35.8316633\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000016",
+        "timestampUtc": "2026-08-26T16:27:10.2204408\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000017",
+        "timestampUtc": "2026-08-26T17:53:44.6092184\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000018",
+        "timestampUtc": "2026-08-26T19:20:18.9979959\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000019",
+        "timestampUtc": "2026-08-26T20:46:53.3867735\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000020",
+        "timestampUtc": "2026-08-26T22:13:27.7755511\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000021",
+        "timestampUtc": "2026-08-26T23:40:02.1643286\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000022",
+        "timestampUtc": "2026-08-27T01:06:36.5531062\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000023",
+        "timestampUtc": "2026-08-27T02:33:10.9418837\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000024",
+        "timestampUtc": "2026-08-27T03:59:45.3306613\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000025",
+        "timestampUtc": "2026-08-27T03:59:45.3306613\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000026",
+        "timestampUtc": "2026-08-27T06:52:54.1082164\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000027",
+        "timestampUtc": "2026-08-27T08:19:28.4969939\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000028",
+        "timestampUtc": "2026-08-27T09:46:02.8857715\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000029",
+        "timestampUtc": "2026-08-27T11:12:37.2745490\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000030",
+        "timestampUtc": "2026-08-27T12:39:11.6633266\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000031",
+        "timestampUtc": "2026-08-27T14:05:46.0521042\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000032",
+        "timestampUtc": "2026-08-27T15:32:20.4408817\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000033",
+        "timestampUtc": "2026-08-27T16:58:54.8296593\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000034",
+        "timestampUtc": "2026-08-27T18:25:29.2184368\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000035",
+        "timestampUtc": "2026-08-27T19:52:03.6072144\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000036",
+        "timestampUtc": "2026-08-27T21:18:37.9959919\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000037",
+        "timestampUtc": "2026-08-27T22:45:12.3847695\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000038",
+        "timestampUtc": "2026-08-28T00:11:46.7735470\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000039",
+        "timestampUtc": "2026-08-28T01:38:21.1623246\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000040",
+        "timestampUtc": "2026-08-28T03:04:55.5511022\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000041",
+        "timestampUtc": "2026-08-28T04:31:29.9398797\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000042",
+        "timestampUtc": "2026-08-28T05:58:04.3286573\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000043",
+        "timestampUtc": "2026-08-28T07:24:38.7174348\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000044",
+        "timestampUtc": "2026-08-28T08:51:13.1062124\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000045",
+        "timestampUtc": "2026-08-28T10:17:47.4949899\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000046",
+        "timestampUtc": "2026-08-28T11:44:21.8837675\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000047",
+        "timestampUtc": "2026-08-28T13:10:56.2725450\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000048",
+        "timestampUtc": "2026-08-28T14:37:30.6613226\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000049",
+        "timestampUtc": "2026-08-28T16:04:05.0501002\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000050",
+        "timestampUtc": "2026-08-28T16:04:05.0501002\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000051",
+        "timestampUtc": "2026-08-28T18:57:13.8276553\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000052",
+        "timestampUtc": "2026-08-28T20:23:48.2164328\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000053",
+        "timestampUtc": "2026-08-28T21:50:22.6052104\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000054",
+        "timestampUtc": "2026-08-28T23:16:56.9939879\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000055",
+        "timestampUtc": "2026-08-29T00:43:31.3827655\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000056",
+        "timestampUtc": "2026-08-29T02:10:05.7715430\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000057",
+        "timestampUtc": "2026-08-29T03:36:40.1603206\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000058",
+        "timestampUtc": "2026-08-29T05:03:14.5490981\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000059",
+        "timestampUtc": "2026-08-29T06:29:48.9378757\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000060",
+        "timestampUtc": "2026-08-29T07:56:23.3266533\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000061",
+        "timestampUtc": "2026-08-29T09:22:57.7154308\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000062",
+        "timestampUtc": "2026-08-29T10:49:32.1042084\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000063",
+        "timestampUtc": "2026-08-29T12:16:06.4929859\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000064",
+        "timestampUtc": "2026-08-29T13:42:40.8817635\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000065",
+        "timestampUtc": "2026-08-29T15:09:15.2705410\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000066",
+        "timestampUtc": "2026-08-29T16:35:49.6593186\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000067",
+        "timestampUtc": "2026-08-29T18:02:24.0480961\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000068",
+        "timestampUtc": "2026-08-29T19:28:58.4368737\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000069",
+        "timestampUtc": "2026-08-29T20:55:32.8256513\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000070",
+        "timestampUtc": "2026-08-29T22:22:07.2144288\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000071",
+        "timestampUtc": "2026-08-29T23:48:41.6032064\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000072",
+        "timestampUtc": "2026-08-30T01:15:15.9919839\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000073",
+        "timestampUtc": "2026-08-30T02:41:50.3807615\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000074",
+        "timestampUtc": "2026-08-30T04:08:24.7695390\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000075",
+        "timestampUtc": "2026-08-30T04:08:24.7695390\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000076",
+        "timestampUtc": "2026-08-30T07:01:33.5470941\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000077",
+        "timestampUtc": "2026-08-30T08:28:07.9358717\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000078",
+        "timestampUtc": "2026-08-30T09:54:42.3246492\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000079",
+        "timestampUtc": "2026-08-30T11:21:16.7134268\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000080",
+        "timestampUtc": "2026-08-30T12:47:51.1022044\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000081",
+        "timestampUtc": "2026-08-30T14:14:25.4909819\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000082",
+        "timestampUtc": "2026-08-30T15:40:59.8797595\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000083",
+        "timestampUtc": "2026-08-30T17:07:34.2685370\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000084",
+        "timestampUtc": "2026-08-30T18:34:08.6573146\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000085",
+        "timestampUtc": "2026-08-30T20:00:43.0460921\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000086",
+        "timestampUtc": "2026-08-30T21:27:17.4348697\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000087",
+        "timestampUtc": "2026-08-30T22:53:51.8236472\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000088",
+        "timestampUtc": "2026-08-31T00:20:26.2124248\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000089",
+        "timestampUtc": "2026-08-31T01:47:00.6012024\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000090",
+        "timestampUtc": "2026-08-31T03:13:34.9899799\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000091",
+        "timestampUtc": "2026-08-31T04:40:09.3787575\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000092",
+        "timestampUtc": "2026-08-31T06:06:43.7675350\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000093",
+        "timestampUtc": "2026-08-31T07:33:18.1563126\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000094",
+        "timestampUtc": "2026-08-31T08:59:52.5450901\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000095",
+        "timestampUtc": "2026-08-31T10:26:26.9338677\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000096",
+        "timestampUtc": "2026-08-31T11:53:01.3226452\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000097",
+        "timestampUtc": "2026-08-31T13:19:35.7114228\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000098",
+        "timestampUtc": "2026-08-31T14:46:10.1002004\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000099",
+        "timestampUtc": "2026-08-31T16:12:44.4889779\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000100",
+        "timestampUtc": "2026-08-31T16:12:44.4889779\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000101",
+        "timestampUtc": "2026-08-31T19:05:53.2665330\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000102",
+        "timestampUtc": "2026-08-31T20:32:27.6553106\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000103",
+        "timestampUtc": "2026-08-31T21:59:02.0440881\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000104",
+        "timestampUtc": "2026-08-31T23:25:36.4328657\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000105",
+        "timestampUtc": "2026-09-01T00:52:10.8216432\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000106",
+        "timestampUtc": "2026-09-01T02:18:45.2104208\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000107",
+        "timestampUtc": "2026-09-01T03:45:19.5991983\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000108",
+        "timestampUtc": "2026-09-01T05:11:53.9879759\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000109",
+        "timestampUtc": "2026-09-01T06:38:28.3767535\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000110",
+        "timestampUtc": "2026-09-01T08:05:02.7655310\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000111",
+        "timestampUtc": "2026-09-01T09:31:37.1543086\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000112",
+        "timestampUtc": "2026-09-01T10:58:11.5430861\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000113",
+        "timestampUtc": "2026-09-01T12:24:45.9318637\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000114",
+        "timestampUtc": "2026-09-01T13:51:20.3206412\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000115",
+        "timestampUtc": "2026-09-01T15:17:54.7094188\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000116",
+        "timestampUtc": "2026-09-01T16:44:29.0981963\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000117",
+        "timestampUtc": "2026-09-01T18:11:03.4869739\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000118",
+        "timestampUtc": "2026-09-01T19:37:37.8757515\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000119",
+        "timestampUtc": "2026-09-01T21:04:12.2645290\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000120",
+        "timestampUtc": "2026-09-01T22:30:46.6533066\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000121",
+        "timestampUtc": "2026-09-01T23:57:21.0420841\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000122",
+        "timestampUtc": "2026-09-02T01:23:55.4308617\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000123",
+        "timestampUtc": "2026-09-02T02:50:29.8196392\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000124",
+        "timestampUtc": "2026-09-02T04:17:04.2084168\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000125",
+        "timestampUtc": "2026-09-02T04:17:04.2084168\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000126",
+        "timestampUtc": "2026-09-02T07:10:12.9859719\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000127",
+        "timestampUtc": "2026-09-02T08:36:47.3747494\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000128",
+        "timestampUtc": "2026-09-02T10:03:21.7635270\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000129",
+        "timestampUtc": "2026-09-02T11:29:56.1523046\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000130",
+        "timestampUtc": "2026-09-02T12:56:30.5410821\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000131",
+        "timestampUtc": "2026-09-02T14:23:04.9298597\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000132",
+        "timestampUtc": "2026-09-02T15:49:39.3186372\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000133",
+        "timestampUtc": "2026-09-02T17:16:13.7074148\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000134",
+        "timestampUtc": "2026-09-02T18:42:48.0961923\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000135",
+        "timestampUtc": "2026-09-02T20:09:22.4849699\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000136",
+        "timestampUtc": "2026-09-02T21:35:56.8737474\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000137",
+        "timestampUtc": "2026-09-02T23:02:31.2625250\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000138",
+        "timestampUtc": "2026-09-03T00:29:05.6513026\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000139",
+        "timestampUtc": "2026-09-03T01:55:40.0400801\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000140",
+        "timestampUtc": "2026-09-03T03:22:14.4288577\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000141",
+        "timestampUtc": "2026-09-03T04:48:48.8176352\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000142",
+        "timestampUtc": "2026-09-03T06:15:23.2064128\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000143",
+        "timestampUtc": "2026-09-03T07:41:57.5951903\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000144",
+        "timestampUtc": "2026-09-03T09:08:31.9839679\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000145",
+        "timestampUtc": "2026-09-03T10:35:06.3727454\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000146",
+        "timestampUtc": "2026-09-03T12:01:40.7615230\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000147",
+        "timestampUtc": "2026-09-03T13:28:15.1503006\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000148",
+        "timestampUtc": "2026-09-03T14:54:49.5390781\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000149",
+        "timestampUtc": "2026-09-03T16:21:23.9278557\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000150",
+        "timestampUtc": "2026-09-03T16:21:23.9278557\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000151",
+        "timestampUtc": "2026-09-03T19:14:32.7054108\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000152",
+        "timestampUtc": "2026-09-03T20:41:07.0941883\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000153",
+        "timestampUtc": "2026-09-03T22:07:41.4829659\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000154",
+        "timestampUtc": "2026-09-03T23:34:15.8717434\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000155",
+        "timestampUtc": "2026-09-04T01:00:50.2605210\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000156",
+        "timestampUtc": "2026-09-04T02:27:24.6492985\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000157",
+        "timestampUtc": "2026-09-04T03:53:59.0380761\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000158",
+        "timestampUtc": "2026-09-04T05:20:33.4268537\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000159",
+        "timestampUtc": "2026-09-04T06:47:07.8156312\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000160",
+        "timestampUtc": "2026-09-04T08:13:42.2044088\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000161",
+        "timestampUtc": "2026-09-04T09:40:16.5931863\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000162",
+        "timestampUtc": "2026-09-04T11:06:50.9819639\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000163",
+        "timestampUtc": "2026-09-04T12:33:25.3707414\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000164",
+        "timestampUtc": "2026-09-04T13:59:59.7595190\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000165",
+        "timestampUtc": "2026-09-04T15:26:34.1482965\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000166",
+        "timestampUtc": "2026-09-04T16:53:08.5370741\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000167",
+        "timestampUtc": "2026-09-04T18:19:42.9258517\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000168",
+        "timestampUtc": "2026-09-04T19:46:17.3146292\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000169",
+        "timestampUtc": "2026-09-04T21:12:51.7034068\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000170",
+        "timestampUtc": "2026-09-04T22:39:26.0921843\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000171",
+        "timestampUtc": "2026-09-05T00:06:00.4809619\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000172",
+        "timestampUtc": "2026-09-05T01:32:34.8697394\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000173",
+        "timestampUtc": "2026-09-05T02:59:09.2585170\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000174",
+        "timestampUtc": "2026-09-05T04:25:43.6472945\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000175",
+        "timestampUtc": "2026-09-05T04:25:43.6472945\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000176",
+        "timestampUtc": "2026-09-05T07:18:52.4248496\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000177",
+        "timestampUtc": "2026-09-05T08:45:26.8136272\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000178",
+        "timestampUtc": "2026-09-05T10:12:01.2024048\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000179",
+        "timestampUtc": "2026-09-05T11:38:35.5911823\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000180",
+        "timestampUtc": "2026-09-05T13:05:09.9799599\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000181",
+        "timestampUtc": "2026-09-05T14:31:44.3687374\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000182",
+        "timestampUtc": "2026-09-05T15:58:18.7575150\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000183",
+        "timestampUtc": "2026-09-05T17:24:53.1462925\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000184",
+        "timestampUtc": "2026-09-05T18:51:27.5350701\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000185",
+        "timestampUtc": "2026-09-05T20:18:01.9238476\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000186",
+        "timestampUtc": "2026-09-05T21:44:36.3126252\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000187",
+        "timestampUtc": "2026-09-05T23:11:10.7014028\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000188",
+        "timestampUtc": "2026-09-06T00:37:45.0901803\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000189",
+        "timestampUtc": "2026-09-06T02:04:19.4789579\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000190",
+        "timestampUtc": "2026-09-06T03:30:53.8677354\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000191",
+        "timestampUtc": "2026-09-06T04:57:28.2565130\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000192",
+        "timestampUtc": "2026-09-06T06:24:02.6452905\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000193",
+        "timestampUtc": "2026-09-06T07:50:37.0340681\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000194",
+        "timestampUtc": "2026-09-06T09:17:11.4228456\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000195",
+        "timestampUtc": "2026-09-06T10:43:45.8116232\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000196",
+        "timestampUtc": "2026-09-06T12:10:20.2004008\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000197",
+        "timestampUtc": "2026-09-06T13:36:54.5891783\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000198",
+        "timestampUtc": "2026-09-06T15:03:28.9779559\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000199",
+        "timestampUtc": "2026-09-06T16:30:03.3667334\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000200",
+        "timestampUtc": "2026-09-06T16:30:03.3667334\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000201",
+        "timestampUtc": "2026-09-06T19:23:12.1442885\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000202",
+        "timestampUtc": "2026-09-06T20:49:46.5330661\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000203",
+        "timestampUtc": "2026-09-06T22:16:20.9218436\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000204",
+        "timestampUtc": "2026-09-06T23:42:55.3106212\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000205",
+        "timestampUtc": "2026-09-07T01:09:29.6993987\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000206",
+        "timestampUtc": "2026-09-07T02:36:04.0881763\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000207",
+        "timestampUtc": "2026-09-07T04:02:38.4769539\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000208",
+        "timestampUtc": "2026-09-07T05:29:12.8657314\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000209",
+        "timestampUtc": "2026-09-07T06:55:47.2545090\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000210",
+        "timestampUtc": "2026-09-07T08:22:21.6432865\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000211",
+        "timestampUtc": "2026-09-07T09:48:56.0320641\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000212",
+        "timestampUtc": "2026-09-07T11:15:30.4208416\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000213",
+        "timestampUtc": "2026-09-07T12:42:04.8096192\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000214",
+        "timestampUtc": "2026-09-07T14:08:39.1983967\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000215",
+        "timestampUtc": "2026-09-07T15:35:13.5871743\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000216",
+        "timestampUtc": "2026-09-07T17:01:47.9759519\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000217",
+        "timestampUtc": "2026-09-07T18:28:22.3647294\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000218",
+        "timestampUtc": "2026-09-07T19:54:56.7535070\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000219",
+        "timestampUtc": "2026-09-07T21:21:31.1422845\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000220",
+        "timestampUtc": "2026-09-07T22:48:05.5310621\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000221",
+        "timestampUtc": "2026-09-08T00:14:39.9198396\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000222",
+        "timestampUtc": "2026-09-08T01:41:14.3086172\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000223",
+        "timestampUtc": "2026-09-08T03:07:48.6973947\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000224",
+        "timestampUtc": "2026-09-08T04:34:23.0861723\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000225",
+        "timestampUtc": "2026-09-08T04:34:23.0861723\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000226",
+        "timestampUtc": "2026-09-08T07:27:31.8637274\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000227",
+        "timestampUtc": "2026-09-08T08:54:06.2525050\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000228",
+        "timestampUtc": "2026-09-08T10:20:40.6412825\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000229",
+        "timestampUtc": "2026-09-08T11:47:15.0300601\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000230",
+        "timestampUtc": "2026-09-08T13:13:49.4188376\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000231",
+        "timestampUtc": "2026-09-08T14:40:23.8076152\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000232",
+        "timestampUtc": "2026-09-08T16:06:58.1963927\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000233",
+        "timestampUtc": "2026-09-08T17:33:32.5851703\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000234",
+        "timestampUtc": "2026-09-08T19:00:06.9739478\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000235",
+        "timestampUtc": "2026-09-08T20:26:41.3627254\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000236",
+        "timestampUtc": "2026-09-08T21:53:15.7515030\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000237",
+        "timestampUtc": "2026-09-08T23:19:50.1402805\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000238",
+        "timestampUtc": "2026-09-09T00:46:24.5290581\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000239",
+        "timestampUtc": "2026-09-09T02:12:58.9178356\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000240",
+        "timestampUtc": "2026-09-09T03:39:33.3066132\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000241",
+        "timestampUtc": "2026-09-09T05:06:07.6953907\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000242",
+        "timestampUtc": "2026-09-09T06:32:42.0841683\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000243",
+        "timestampUtc": "2026-09-09T07:59:16.4729458\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000244",
+        "timestampUtc": "2026-09-09T09:25:50.8617234\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000245",
+        "timestampUtc": "2026-09-09T10:52:25.2505010\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000246",
+        "timestampUtc": "2026-09-09T12:18:59.6392785\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000247",
+        "timestampUtc": "2026-09-09T13:45:34.0280561\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000248",
+        "timestampUtc": "2026-09-09T15:12:08.4168336\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000249",
+        "timestampUtc": "2026-09-09T16:38:42.8056112\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000250",
+        "timestampUtc": "2026-09-09T16:38:42.8056112\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000251",
+        "timestampUtc": "2026-09-09T19:31:51.5831663\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000252",
+        "timestampUtc": "2026-09-09T20:58:25.9719438\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000253",
+        "timestampUtc": "2026-09-09T22:25:00.3607214\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000254",
+        "timestampUtc": "2026-09-09T23:51:34.7494989\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000255",
+        "timestampUtc": "2026-09-10T01:18:09.1382765\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000256",
+        "timestampUtc": "2026-09-10T02:44:43.5270541\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000257",
+        "timestampUtc": "2026-09-10T04:11:17.9158316\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000258",
+        "timestampUtc": "2026-09-10T05:37:52.3046092\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000259",
+        "timestampUtc": "2026-09-10T07:04:26.6933867\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000260",
+        "timestampUtc": "2026-09-10T08:31:01.0821643\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000261",
+        "timestampUtc": "2026-09-10T09:57:35.4709418\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000262",
+        "timestampUtc": "2026-09-10T11:24:09.8597194\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000263",
+        "timestampUtc": "2026-09-10T12:50:44.2484969\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000264",
+        "timestampUtc": "2026-09-10T14:17:18.6372745\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000265",
+        "timestampUtc": "2026-09-10T15:43:53.0260521\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000266",
+        "timestampUtc": "2026-09-10T17:10:27.4148296\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000267",
+        "timestampUtc": "2026-09-10T18:37:01.8036072\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000268",
+        "timestampUtc": "2026-09-10T20:03:36.1923847\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000269",
+        "timestampUtc": "2026-09-10T21:30:10.5811623\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000270",
+        "timestampUtc": "2026-09-10T22:56:44.9699398\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000271",
+        "timestampUtc": "2026-09-11T00:23:19.3587174\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000272",
+        "timestampUtc": "2026-09-11T01:49:53.7474949\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000273",
+        "timestampUtc": "2026-09-11T03:16:28.1362725\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000274",
+        "timestampUtc": "2026-09-11T04:43:02.5250501\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000275",
+        "timestampUtc": "2026-09-11T04:43:02.5250501\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000276",
+        "timestampUtc": "2026-09-11T07:36:11.3026052\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000277",
+        "timestampUtc": "2026-09-11T09:02:45.6913827\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000278",
+        "timestampUtc": "2026-09-11T10:29:20.0801603\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000279",
+        "timestampUtc": "2026-09-11T11:55:54.4689378\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000280",
+        "timestampUtc": "2026-09-11T13:22:28.8577154\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000281",
+        "timestampUtc": "2026-09-11T14:49:03.2464929\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000282",
+        "timestampUtc": "2026-09-11T16:15:37.6352705\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000283",
+        "timestampUtc": "2026-09-11T17:42:12.0240480\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000284",
+        "timestampUtc": "2026-09-11T19:08:46.4128256\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000285",
+        "timestampUtc": "2026-09-11T20:35:20.8016032\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000286",
+        "timestampUtc": "2026-09-11T22:01:55.1903807\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000287",
+        "timestampUtc": "2026-09-11T23:28:29.5791583\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000288",
+        "timestampUtc": "2026-09-12T00:55:03.9679358\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000289",
+        "timestampUtc": "2026-09-12T02:21:38.3567134\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000290",
+        "timestampUtc": "2026-09-12T03:48:12.7454909\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000291",
+        "timestampUtc": "2026-09-12T05:14:47.1342685\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000292",
+        "timestampUtc": "2026-09-12T06:41:21.5230460\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000293",
+        "timestampUtc": "2026-09-12T08:07:55.9118236\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000294",
+        "timestampUtc": "2026-09-12T09:34:30.3006012\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000295",
+        "timestampUtc": "2026-09-12T11:01:04.6893787\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000296",
+        "timestampUtc": "2026-09-12T12:27:39.0781563\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000297",
+        "timestampUtc": "2026-09-12T13:54:13.4669338\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000298",
+        "timestampUtc": "2026-09-12T15:20:47.8557114\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000299",
+        "timestampUtc": "2026-09-12T16:47:22.2444889\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000300",
+        "timestampUtc": "2026-09-12T16:47:22.2444889\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000301",
+        "timestampUtc": "2026-09-12T19:40:31.0220440\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000302",
+        "timestampUtc": "2026-09-12T21:07:05.4108216\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000303",
+        "timestampUtc": "2026-09-12T22:33:39.7995991\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000304",
+        "timestampUtc": "2026-09-13T00:00:14.1883767\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000305",
+        "timestampUtc": "2026-09-13T01:26:48.5771543\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000306",
+        "timestampUtc": "2026-09-13T02:53:22.9659318\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000307",
+        "timestampUtc": "2026-09-13T04:19:57.3547094\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000308",
+        "timestampUtc": "2026-09-13T05:46:31.7434869\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000309",
+        "timestampUtc": "2026-09-13T07:13:06.1322645\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000310",
+        "timestampUtc": "2026-09-13T08:39:40.5210420\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000311",
+        "timestampUtc": "2026-09-13T10:06:14.9098196\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000312",
+        "timestampUtc": "2026-09-13T11:32:49.2985971\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000313",
+        "timestampUtc": "2026-09-13T12:59:23.6873747\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000314",
+        "timestampUtc": "2026-09-13T14:25:58.0761523\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000315",
+        "timestampUtc": "2026-09-13T15:52:32.4649298\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000316",
+        "timestampUtc": "2026-09-13T17:19:06.8537074\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000317",
+        "timestampUtc": "2026-09-13T18:45:41.2424849\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000318",
+        "timestampUtc": "2026-09-13T20:12:15.6312625\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000319",
+        "timestampUtc": "2026-09-13T21:38:50.0200400\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000320",
+        "timestampUtc": "2026-09-13T23:05:24.4088176\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000321",
+        "timestampUtc": "2026-09-14T00:31:58.7975951\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000322",
+        "timestampUtc": "2026-09-14T01:58:33.1863727\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000323",
+        "timestampUtc": "2026-09-14T03:25:07.5751503\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000324",
+        "timestampUtc": "2026-09-14T04:51:41.9639278\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000325",
+        "timestampUtc": "2026-09-14T04:51:41.9639278\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000326",
+        "timestampUtc": "2026-09-14T07:44:50.7414829\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000327",
+        "timestampUtc": "2026-09-14T09:11:25.1302605\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000328",
+        "timestampUtc": "2026-09-14T10:37:59.5190380\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000329",
+        "timestampUtc": "2026-09-14T12:04:33.9078156\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000330",
+        "timestampUtc": "2026-09-14T13:31:08.2965931\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000331",
+        "timestampUtc": "2026-09-14T14:57:42.6853707\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000332",
+        "timestampUtc": "2026-09-14T16:24:17.0741482\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000333",
+        "timestampUtc": "2026-09-14T17:50:51.4629258\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000334",
+        "timestampUtc": "2026-09-14T19:17:25.8517034\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000335",
+        "timestampUtc": "2026-09-14T20:44:00.2404809\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000336",
+        "timestampUtc": "2026-09-14T22:10:34.6292585\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000337",
+        "timestampUtc": "2026-09-14T23:37:09.0180360\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000338",
+        "timestampUtc": "2026-09-15T01:03:43.4068136\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000339",
+        "timestampUtc": "2026-09-15T02:30:17.7955911\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000340",
+        "timestampUtc": "2026-09-15T03:56:52.1843687\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000341",
+        "timestampUtc": "2026-09-15T05:23:26.5731462\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000342",
+        "timestampUtc": "2026-09-15T06:50:00.9619238\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000343",
+        "timestampUtc": "2026-09-15T08:16:35.3507014\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000344",
+        "timestampUtc": "2026-09-15T09:43:09.7394789\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000345",
+        "timestampUtc": "2026-09-15T11:09:44.1282565\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000346",
+        "timestampUtc": "2026-09-15T12:36:18.5170340\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000347",
+        "timestampUtc": "2026-09-15T14:02:52.9058116\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000348",
+        "timestampUtc": "2026-09-15T15:29:27.2945891\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000349",
+        "timestampUtc": "2026-09-15T16:56:01.6833667\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000350",
+        "timestampUtc": "2026-09-15T16:56:01.6833667\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000351",
+        "timestampUtc": "2026-09-15T19:49:10.4609218\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000352",
+        "timestampUtc": "2026-09-15T21:15:44.8496993\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000353",
+        "timestampUtc": "2026-09-15T22:42:19.2384769\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000354",
+        "timestampUtc": "2026-09-16T00:08:53.6272545\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000355",
+        "timestampUtc": "2026-09-16T01:35:28.0160320\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000356",
+        "timestampUtc": "2026-09-16T03:02:02.4048096\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000357",
+        "timestampUtc": "2026-09-16T04:28:36.7935871\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000358",
+        "timestampUtc": "2026-09-16T05:55:11.1823647\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000359",
+        "timestampUtc": "2026-09-16T07:21:45.5711422\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000360",
+        "timestampUtc": "2026-09-16T08:48:19.9599198\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000361",
+        "timestampUtc": "2026-09-16T10:14:54.3486973\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000362",
+        "timestampUtc": "2026-09-16T11:41:28.7374749\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000363",
+        "timestampUtc": "2026-09-16T13:08:03.1262525\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000364",
+        "timestampUtc": "2026-09-16T14:34:37.5150300\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000365",
+        "timestampUtc": "2026-09-16T16:01:11.9038076\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000366",
+        "timestampUtc": "2026-09-16T17:27:46.2925851\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000367",
+        "timestampUtc": "2026-09-16T18:54:20.6813627\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000368",
+        "timestampUtc": "2026-09-16T20:20:55.0701402\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000369",
+        "timestampUtc": "2026-09-16T21:47:29.4589178\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000370",
+        "timestampUtc": "2026-09-16T23:14:03.8476953\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000371",
+        "timestampUtc": "2026-09-17T00:40:38.2364729\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000372",
+        "timestampUtc": "2026-09-17T02:07:12.6252505\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000373",
+        "timestampUtc": "2026-09-17T03:33:47.0140280\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000374",
+        "timestampUtc": "2026-09-17T05:00:21.4028056\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000375",
+        "timestampUtc": "2026-09-17T05:00:21.4028056\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000376",
+        "timestampUtc": "2026-09-17T07:53:30.1803607\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000377",
+        "timestampUtc": "2026-09-17T09:20:04.5691382\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000378",
+        "timestampUtc": "2026-09-17T10:46:38.9579158\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000379",
+        "timestampUtc": "2026-09-17T12:13:13.3466933\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000380",
+        "timestampUtc": "2026-09-17T13:39:47.7354709\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000381",
+        "timestampUtc": "2026-09-17T15:06:22.1242484\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000382",
+        "timestampUtc": "2026-09-17T16:32:56.5130260\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000383",
+        "timestampUtc": "2026-09-17T17:59:30.9018036\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000384",
+        "timestampUtc": "2026-09-17T19:26:05.2905811\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000385",
+        "timestampUtc": "2026-09-17T20:52:39.6793587\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000386",
+        "timestampUtc": "2026-09-17T22:19:14.0681362\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000387",
+        "timestampUtc": "2026-09-17T23:45:48.4569138\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000388",
+        "timestampUtc": "2026-09-18T01:12:22.8456913\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000389",
+        "timestampUtc": "2026-09-18T02:38:57.2344689\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000390",
+        "timestampUtc": "2026-09-18T04:05:31.6232464\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000391",
+        "timestampUtc": "2026-09-18T05:32:06.0120240\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000392",
+        "timestampUtc": "2026-09-18T06:58:40.4008016\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000393",
+        "timestampUtc": "2026-09-18T08:25:14.7895791\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000394",
+        "timestampUtc": "2026-09-18T09:51:49.1783567\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000395",
+        "timestampUtc": "2026-09-18T11:18:23.5671342\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000396",
+        "timestampUtc": "2026-09-18T12:44:57.9559118\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000397",
+        "timestampUtc": "2026-09-18T14:11:32.3446893\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000398",
+        "timestampUtc": "2026-09-18T15:38:06.7334669\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000399",
+        "timestampUtc": "2026-09-18T17:04:41.1222444\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000400",
+        "timestampUtc": "2026-09-18T17:04:41.1222444\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000401",
+        "timestampUtc": "2026-09-18T19:57:49.8997995\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000402",
+        "timestampUtc": "2026-09-18T21:24:24.2885771\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000403",
+        "timestampUtc": "2026-09-18T22:50:58.6773547\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000404",
+        "timestampUtc": "2026-09-19T00:17:33.0661322\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000405",
+        "timestampUtc": "2026-09-19T01:44:07.4549098\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000406",
+        "timestampUtc": "2026-09-19T03:10:41.8436873\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000407",
+        "timestampUtc": "2026-09-19T04:37:16.2324649\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000408",
+        "timestampUtc": "2026-09-19T06:03:50.6212424\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000409",
+        "timestampUtc": "2026-09-19T07:30:25.0100200\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000410",
+        "timestampUtc": "2026-09-19T08:56:59.3987975\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000411",
+        "timestampUtc": "2026-09-19T10:23:33.7875751\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000412",
+        "timestampUtc": "2026-09-19T11:50:08.1763527\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000413",
+        "timestampUtc": "2026-09-19T13:16:42.5651302\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000414",
+        "timestampUtc": "2026-09-19T14:43:16.9539078\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000415",
+        "timestampUtc": "2026-09-19T16:09:51.3426853\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000416",
+        "timestampUtc": "2026-09-19T17:36:25.7314629\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000417",
+        "timestampUtc": "2026-09-19T19:03:00.1202404\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000418",
+        "timestampUtc": "2026-09-19T20:29:34.5090180\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000419",
+        "timestampUtc": "2026-09-19T21:56:08.8977955\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantCreated"
+      },
+      {
+        "reference": "audit-event-000420",
+        "timestampUtc": "2026-09-19T23:22:43.2865731\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000421",
+        "timestampUtc": "2026-09-20T00:49:17.6753507\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000422",
+        "timestampUtc": "2026-09-20T02:15:52.0641282\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000423",
+        "timestampUtc": "2026-09-20T03:42:26.4529058\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000424",
+        "timestampUtc": "2026-09-20T05:09:00.8416833\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000425",
+        "timestampUtc": "2026-09-20T05:09:00.8416833\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000426",
+        "timestampUtc": "2026-09-20T08:02:09.6192384\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000427",
+        "timestampUtc": "2026-09-20T09:28:44.0080160\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000428",
+        "timestampUtc": "2026-09-20T10:55:18.3967935\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000429",
+        "timestampUtc": "2026-09-20T12:21:52.7855711\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000430",
+        "timestampUtc": "2026-09-20T13:48:27.1743486\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000431",
+        "timestampUtc": "2026-09-20T15:15:01.5631262\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000432",
+        "timestampUtc": "2026-09-20T16:41:35.9519038\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000433",
+        "timestampUtc": "2026-09-20T18:08:10.3406813\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000434",
+        "timestampUtc": "2026-09-20T19:34:44.7294589\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000435",
+        "timestampUtc": "2026-09-20T21:01:19.1182364\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000436",
+        "timestampUtc": "2026-09-20T22:27:53.5070140\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000437",
+        "timestampUtc": "2026-09-20T23:54:27.8957915\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000438",
+        "timestampUtc": "2026-09-21T01:21:02.2845691\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000439",
+        "timestampUtc": "2026-09-21T02:47:36.6733466\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000440",
+        "timestampUtc": "2026-09-21T04:14:11.0621242\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000441",
+        "timestampUtc": "2026-09-21T05:40:45.4509018\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000442",
+        "timestampUtc": "2026-09-21T07:07:19.8396793\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000443",
+        "timestampUtc": "2026-09-21T08:33:54.2284569\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000444",
+        "timestampUtc": "2026-09-21T10:00:28.6172344\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000445",
+        "timestampUtc": "2026-09-21T11:27:03.0060120\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000446",
+        "timestampUtc": "2026-09-21T12:53:37.3947895\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000447",
+        "timestampUtc": "2026-09-21T14:20:11.7835671\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000448",
+        "timestampUtc": "2026-09-21T15:46:46.1723446\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000449",
+        "timestampUtc": "2026-09-21T17:13:20.5611222\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000450",
+        "timestampUtc": "2026-09-21T17:13:20.5611222\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000451",
+        "timestampUtc": "2026-09-21T20:06:29.3386773\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000452",
+        "timestampUtc": "2026-09-21T21:33:03.7274549\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000453",
+        "timestampUtc": "2026-09-21T22:59:38.1162324\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000454",
+        "timestampUtc": "2026-09-22T00:26:12.5050100\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000455",
+        "timestampUtc": "2026-09-22T01:52:46.8937875\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000456",
+        "timestampUtc": "2026-09-22T03:19:21.2825651\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000457",
+        "timestampUtc": "2026-09-22T04:45:55.6713426\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000458",
+        "timestampUtc": "2026-09-22T06:12:30.0601202\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000459",
+        "timestampUtc": "2026-09-22T07:39:04.4488977\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000460",
+        "timestampUtc": "2026-09-22T09:05:38.8376753\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000461",
+        "timestampUtc": "2026-09-22T10:32:13.2264529\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000462",
+        "timestampUtc": "2026-09-22T11:58:47.6152304\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000463",
+        "timestampUtc": "2026-09-22T13:25:22.0040080\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000464",
+        "timestampUtc": "2026-09-22T14:51:56.3927855\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000465",
+        "timestampUtc": "2026-09-22T16:18:30.7815631\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000466",
+        "timestampUtc": "2026-09-22T17:45:05.1703406\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000467",
+        "timestampUtc": "2026-09-22T19:11:39.5591182\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000468",
+        "timestampUtc": "2026-09-22T20:38:13.9478957\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000469",
+        "timestampUtc": "2026-09-22T22:04:48.3366733\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000470",
+        "timestampUtc": "2026-09-22T23:31:22.7254509\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000471",
+        "timestampUtc": "2026-09-23T00:57:57.1142284\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000472",
+        "timestampUtc": "2026-09-23T02:24:31.5030060\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000473",
+        "timestampUtc": "2026-09-23T03:51:05.8917835\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationRemoved"
+      },
+      {
+        "reference": "audit-event-000474",
+        "timestampUtc": "2026-09-23T05:17:40.2805611\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000475",
+        "timestampUtc": "2026-09-23T05:17:40.2805611\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000476",
+        "timestampUtc": "2026-09-23T08:10:49.0581162\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000477",
+        "timestampUtc": "2026-09-23T09:37:23.4468937\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000478",
+        "timestampUtc": "2026-09-23T11:03:57.8356713\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000479",
+        "timestampUtc": "2026-09-23T12:30:32.2244488\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000480",
+        "timestampUtc": "2026-09-23T13:57:06.6132264\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000481",
+        "timestampUtc": "2026-09-23T15:23:41.0020040\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000482",
+        "timestampUtc": "2026-09-23T16:50:15.3907815\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000483",
+        "timestampUtc": "2026-09-23T18:16:49.7795591\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000484",
+        "timestampUtc": "2026-09-23T19:43:24.1683366\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000485",
+        "timestampUtc": "2026-09-23T21:09:58.5571142\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000486",
+        "timestampUtc": "2026-09-23T22:36:32.9458917\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000487",
+        "timestampUtc": "2026-09-24T00:03:07.3346693\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000488",
+        "timestampUtc": "2026-09-24T01:29:41.7234468\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantConfigurationSet"
+      },
+      {
+        "reference": "audit-event-000489",
+        "timestampUtc": "2026-09-24T02:56:16.1122244\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000490",
+        "timestampUtc": "2026-09-24T04:22:50.5010020\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000491",
+        "timestampUtc": "2026-09-24T05:49:24.8897795\u002B00:00",
+        "category": "Access",
+        "eventType": "UserAddedToTenant"
+      },
+      {
+        "reference": "audit-event-000492",
+        "timestampUtc": "2026-09-24T07:15:59.2785571\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000493",
+        "timestampUtc": "2026-09-24T08:42:33.6673346\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRemovedFromTenant"
+      },
+      {
+        "reference": "audit-event-000494",
+        "timestampUtc": "2026-09-24T10:09:08.0561122\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000495",
+        "timestampUtc": "2026-09-24T11:35:42.4448897\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000496",
+        "timestampUtc": "2026-09-24T13:02:16.8336673\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000497",
+        "timestampUtc": "2026-09-24T14:28:51.2224448\u002B00:00",
+        "category": "Access",
+        "eventType": "UserRoleChanged"
+      },
+      {
+        "reference": "audit-event-000498",
+        "timestampUtc": "2026-09-24T15:55:25.6112224\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      },
+      {
+        "reference": "audit-event-000499",
+        "timestampUtc": "2026-09-24T17:22:00.0000000\u002B00:00",
+        "category": "Administrative",
+        "eventType": "TenantUpdated"
+      }
+    ]
+  }
+}
