@@ -12,6 +12,15 @@ smoke=${AUDIT_PERF_SMOKE:-0}
 apphost_pid=
 apphost_log=$(mktemp)
 
+record_failure() {
+    local exit_code=$1
+    local line_number=$2
+    if [[ -d "$result_dir" && ! -f "$result_dir/setup-failure.txt" ]]; then
+        printf 'Runner command failed at line %s (exit %s).\n' "$line_number" "$exit_code" \
+            > "$result_dir/setup-failure.txt"
+    fi
+}
+
 cleanup() {
     trap - EXIT INT TERM
     unset AUDIT_PERF_USERNAME AUDIT_PERF_PASSWORD
@@ -29,6 +38,7 @@ cleanup() {
     rm -f "$apphost_log"
 }
 trap cleanup EXIT INT TERM
+trap 'record_failure "$?" "$LINENO"' ERR
 
 if [[ -n "$fallback_source" ]]; then
     if [[ ! -d "$fallback_source" ]]; then
@@ -217,8 +227,8 @@ if [[ -z "$security_container" || "$security_container" == null ]]; then
     exit 1
 fi
 security_env=$(docker inspect "$security_container" --format '{{json .Config.Env}}')
-export AUDIT_PERF_USERNAME=${AUDIT_PERF_USERNAME:-$(jq -r '.[] | select(startswith("HEXALITH_EVENTSTORE_CLIENT_USERNAME=")) | split("=")[1]' <<< "$security_env")}
-export AUDIT_PERF_PASSWORD=${AUDIT_PERF_PASSWORD:-$(jq -r '.[] | select(startswith("HEXALITH_EVENTSTORE_CLIENT_PASSWORD=")) | split("=")[1]' <<< "$security_env")}
+export AUDIT_PERF_USERNAME=${AUDIT_PERF_USERNAME:-$(jq -r '.[] | select(startswith("HEXALITH_EVENTSTORE_CLIENT_USERNAME=")) | ltrimstr("HEXALITH_EVENTSTORE_CLIENT_USERNAME=")' <<< "$security_env")}
+export AUDIT_PERF_PASSWORD=${AUDIT_PERF_PASSWORD:-$(jq -r '.[] | select(startswith("HEXALITH_EVENTSTORE_CLIENT_PASSWORD=")) | ltrimstr("HEXALITH_EVENTSTORE_CLIENT_PASSWORD=")' <<< "$security_env")}
 unset security_env
 if [[ -z "$AUDIT_PERF_USERNAME" || -z "$AUDIT_PERF_PASSWORD" ]]; then
     printf '%s\n' 'The global administrator test account is unavailable.' | tee "$result_dir/setup-failure.txt" >&2

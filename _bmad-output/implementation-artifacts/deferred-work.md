@@ -3174,3 +3174,7 @@ Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Alread
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
   summary: Make pushall honor the remote's actual default branch when both main and master exist.
   evidence: `.agents/skills/pushall/SKILL.md` prefers local `main` ahead of `origin/HEAD`, so it can merge and prune against the wrong default. This separate Git skill is unrelated to tenant audit.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail-2.md`
+  summary: Resolve whether the historical Story 5.1 performance guest used modified dependency source.
+  evidence: The archived source patch marks EventStore, FrontComposer, and Memories gitlinks dirty without their nested status or diffs. A clean dependency checkout or preserved nested status/diffs on the next dedicated run would settle whether those markers represented source changes or generated output.

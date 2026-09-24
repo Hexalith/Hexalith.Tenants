@@ -35,7 +35,7 @@ export async function prepareRun(resultDirectory, fallbackDirectory = '', reques
         'Original dataset hash is inconsistent.');
     requireValid(dataset?.pageSize === 50 && dataset?.entries?.length === 500,
         'Original manifest must contain the approved 500-entry, 50-row baseline.');
-    requireValid(summary.scriptVersion === 'audit-performance-v3' && summary.uiPageSize === 50,
+    requireValid(summary.scriptVersion === 'audit-performance-v4' && summary.uiPageSize === 50,
         'Original run must be a 50-row measurement by the current browser script.');
     requireValid(summary.fullContract === true && summary.samplesPerBatch === 40
         && summary.batchCount === 3 && summary.warmCount === 5

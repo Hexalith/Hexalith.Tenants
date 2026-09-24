@@ -550,6 +550,7 @@
             await InvokeAsync(() =>
             {
                 ClearPaging();
+                _filtersDirty = false;
                 _tenantDetailSnapshot = null;
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
@@ -874,7 +875,7 @@
 
     private async Task RefreshFromNotificationAsync(string tenantId)
     {
-        if (_disposed || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+        if (_disposed || _filtersDirty || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
         {
             return;
         }

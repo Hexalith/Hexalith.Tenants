@@ -1,6 +1,6 @@
 # Story 5.1 audit performance contract
 
-**Status:** Approved performance acceptance contract. The representative measurements satisfied revision 1 on 2026-09-24; see the [authoritative evidence](story-5-1-performance-evidence.md). The approved requirements below are unchanged.
+**Status:** Approved performance acceptance contract. Review found that the 2026-09-24 result clock stopped before the pager became usable. Acceptance requires a repeat run with the corrected timing script; see the [evidence record](story-5-1-performance-evidence.md). The approved requirements below are unchanged.
 
 **Approved revision:** 1.
 
@@ -8,7 +8,7 @@
 
 ## Decision and scope
 
-The dataset, reference environment, measurement procedure, budgets, and fallback below form one approved contract. No repository evidence currently establishes that the audit UI meets it. The existing Story 5.1 functional verification remains valid but does not substitute for this performance run.
+The dataset, reference environment, measurement procedure, budgets, and fallback below form one approved contract. The existing Story 5.1 functional verification remains valid but does not substitute for a performance run that measures every approved endpoint.
 
 ## Representative data and workload
 

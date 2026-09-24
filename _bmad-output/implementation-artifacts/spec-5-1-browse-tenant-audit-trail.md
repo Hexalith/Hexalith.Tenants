@@ -2,7 +2,7 @@
 title: 'Browse Tenant Audit Trail'
 type: 'feature'
 created: '2026-09-05'
-status: 'done'
+status: 'awaiting-operator'
 baseline_revision: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 baseline_commit: '0ca32a5cf6448f35b67f29f0ddcbce44d144b05e'
 review_loop_iteration: 1
@@ -12,7 +12,8 @@ context:
 warnings:
   - 'oversized'
 deferred: []
-operator_actions: []
+operator_actions:
+  - 'Provide the approved dedicated 4 vCPU/8 GiB Linux runner for a complete repeat of the corrected audit-performance-v4 3×40 contract, then evaluate its result and any triggered fallback.'
 ---
 
 <intent-contract>
@@ -183,7 +184,7 @@ Reuse `TenantHighImpactViewportObservation` as the authoritative FrontComposer v
 
 ## Verification
 
-**Performance gate closed 2026-09-24:** [Approved revision 1](story-5-1-performance-decision.md) was measured on a reserved 4 vCPU/8 GiB Linux VM against the authenticated Release full stack. The [authoritative performance evidence](story-5-1-performance-evidence.md) records the exact source and dataset hashes, environment, six complete raw 40-sample batches, 126 passing percentile groups, and ten passing functional gates with no setup or sample failure. The 50-row baseline passed every budget, so no fallback was triggered. Story 5.1 is `done`; `operator_actions` is empty. All earlier statements below about outstanding approval or measurement are historical and superseded by this result.
+**Performance review correction 2026-09-24:** [Approved revision 1](story-5-1-performance-decision.md) remains the contract. The [v3 evidence](story-5-1-performance-evidence.md) contains six complete raw 40-sample batches and passing checks, but its result clock stopped before the pager was usable. That run cannot establish the approved result-completion budget or decide the fallback trigger. Story 5.1 remains `awaiting-operator` for a complete audit-performance-v4 run on the dedicated runner. Approval itself is complete; the remaining action is measurement and any triggered fallback. Earlier closure statements below are historical.
 
 **Final review-patch results recorded 2026-09-23:**
 

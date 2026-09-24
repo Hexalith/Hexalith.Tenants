@@ -3,5 +3,6 @@
         {
             "file": "references/Hexalith.AI.Tools/hexalith-git-instructions.md"
         }
-    ]
+    ],
+    "dotnet.defaultSolution": "Hexalith.Tenants.slnx"
 }

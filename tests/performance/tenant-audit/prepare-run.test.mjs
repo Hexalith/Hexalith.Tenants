@@ -117,7 +117,7 @@ async function makeBaseline({ miss, referenceRunner = true }) {
         }
     }
     await writeFile(join(directory, 'summary.json'), JSON.stringify({
-        scriptVersion: 'audit-performance-v3', uiPageSize: 50, fullContract: true,
+        scriptVersion: 'audit-performance-v4', uiPageSize: 50, fullContract: true,
         samplesPerBatch: 40, batchCount: 3, warmCount: 5, datasetHash: hashSha256,
         setupFailures: [], functionalGates: Array.from({ length: 10 }, () => ({ pass: true })), groups,
     }));

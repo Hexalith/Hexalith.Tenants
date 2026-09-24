@@ -97,11 +97,44 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public async Task Notification_does_not_submit_pending_filters_before_apply()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-confirmed", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>());
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Administrative.ToString());
+
+        var processed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantReadRefreshSubscription refreshSubscription = Services.GetRequiredService<TenantReadRefreshSubscription>();
+        await using TenantReadRefreshLease marker = await refreshSubscription.SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType,
+            "tenant.alpha",
+            () => { processed.SetResult(); return Task.CompletedTask; });
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+        await processed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-filter-pending']").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-audit-row']")
+            .GetAttribute("data-audit-reference").ShouldBe("event-confirmed");
+    }
+
+    [Fact]
     public async Task Tenant_rebinding_disposes_the_previous_subscription_and_only_the_new_scope_refreshes()
     {
         StubTenantQueryGateway gateway = RegisterServices(
             ReadySnapshot([Row("event-alpha", AuditEventCategory.Access)]),
-            ReadySnapshot([Row("event-beta", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-beta", AuditEventCategory.Access)], nextCursor: "beta-next", hasMore: true),
             ReadySnapshot([Row("event-beta-refreshed", AuditEventCategory.Access)]));
         IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
@@ -116,6 +149,8 @@ public sealed class TenantAuditPageTests : BunitContext
             "tenant.alpha",
             Arg.Any<CancellationToken>());
 
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Access.ToString());
+        cut.Find("[data-testid='tenants-audit-filter-pending']").ShouldNotBeNull();
         cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
 
         cut.WaitForAssertion(() =>
@@ -123,6 +158,8 @@ public sealed class TenantAuditPageTests : BunitContext
             gateway.Requests.Count.ShouldBe(2);
             cut.Find("[data-testid='tenants-audit-row']")
                 .GetAttribute("data-audit-reference").ShouldBe("event-beta");
+            cut.FindAll("[data-testid='tenants-audit-filter-pending']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-audit-next']").HasAttribute("disabled").ShouldBeFalse();
         });
         await subscription.Received(1).UnsubscribeAsync(
             GetTenantAuditQuery.ProjectionType,
@@ -608,11 +645,38 @@ public sealed class TenantAuditPageTests : BunitContext
         gateway.Requests[1].Cursor.ShouldBe("opaque-next");
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Administrative.ToString());
+        cut.Find("[data-testid='tenants-audit-filter-pending']").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-audit-next']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-audit-apply']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
 
         gateway.Requests[2].Cursor.ShouldBeNull();
         gateway.Requests[2].Category.ShouldBe(AuditEventCategory.Administrative);
+        cut.FindAll("[data-testid='tenants-audit-filter-pending']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Refresh_with_pending_filter_applies_it_from_page_one_without_reusing_the_validator()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Access)], requestCursor: "opaque-next"),
+            ReadySnapshot([Row("event-3", AuditEventCategory.Administrative)]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Administrative.ToString());
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+        gateway.Requests[2].Category.ShouldBe(AuditEventCategory.Administrative);
+        gateway.Requests[2].Cursor.ShouldBeNull();
+        gateway.Requests[2].ETag.ShouldBeNull();
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]

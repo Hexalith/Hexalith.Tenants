@@ -127,7 +127,7 @@ test('authenticated tenant audit performance contract', async () => {
     }
 
     const groups = summarize(all, samplesPerBatch);
-    const result = { scriptVersion: 'audit-performance-v3', chromiumVersion, fullContract, samplesPerBatch, batchCount,
+    const result = { scriptVersion: 'audit-performance-v4', chromiumVersion, fullContract, samplesPerBatch, batchCount,
         warmCount, uiPageSize, seedManifestPageSize: manifest.dataset.pageSize, datasetHash: manifest.hashSha256,
         setupFailures, functionalGates, groups };
     await writeFile(resolve(resultDir, 'summary.json'), JSON.stringify(result, null, 2));
@@ -148,7 +148,14 @@ async function checkFunctionalGates(browser: Browser, session: Awaited<ReturnTyp
         await page.goto(`${baseUrl}/tenants/${dataset.tenantId}/audit`, { waitUntil: 'domcontentloaded' });
         await assertRows(page, pageEntries(dataset, 'unfiltered', 0));
         await gate('grid semantics and critical fields', async () => {
-            await expect(page.getByRole('grid')).toBeVisible();
+            const grid = page.getByRole('grid');
+            await expect(grid).toBeVisible();
+            for (const heading of ['Timestamp', 'Actor', 'Freshness', 'Reference context']) {
+                await expect(grid.getByRole('columnheader', { name: heading })).toBeVisible();
+            }
+            await expect(page.locator('[data-testid="tenants-audit-ready"]')).toHaveAttribute('role', 'status');
+            await expect(page.locator('[data-testid="tenants-audit-ready"]')).toHaveAttribute('aria-live', 'polite');
+            await expect(page.getByRole('navigation', { name: 'Tenant audit pages' })).toBeVisible();
             for (const field of ['timestamp', 'actor', 'freshness', 'reference']) {
                 await expect(page.locator(`[data-testid="tenants-audit-row-${field}"]`)).toHaveCount(uiPageSize);
             }
@@ -235,35 +242,47 @@ function pageEntries(dataset: Dataset, caseName: CaseName, pageIndex: number): s
     return filtered.slice(pageIndex * uiPageSize, (pageIndex + 1) * uiPageSize).map(entry => entry.reference);
 }
 
-async function assertRows(page: Page, expected: string[], stabilityMs = 150): Promise<number> {
+async function assertRows(page: Page, expected: string[], stabilityMs = 150,
+    pager?: { previousEnabled: boolean; nextEnabled: boolean }): Promise<number> {
     const signature = expected.join('|');
     await page.evaluate(() => { (window as any).__auditRowMatch = undefined; });
     try {
-        await page.waitForFunction(({ refs, signature, stabilityMs }) => {
-            const ready = document.querySelector('[data-testid="tenants-audit-ready"]');
-            const actual = [...document.querySelectorAll('[data-testid="tenants-audit-row"]')]
-                .map(element => element.getAttribute('data-audit-reference'));
-            const matched = !!ready && actual.length === refs.length && actual.every((value, index) => value === refs[index]);
+        await page.waitForFunction(({ refs, signature, stabilityMs, pager }) => {
+            const matches = () => {
+                const ready = document.querySelector('[data-testid="tenants-audit-ready"]');
+                const actual = [...document.querySelectorAll('[data-testid="tenants-audit-row"]')]
+                    .map(element => element.getAttribute('data-audit-reference'));
+                if (!ready || actual.length !== refs.length
+                    || !actual.every((value, index) => value === refs[index])) return false;
+                if (!pager) return true;
+                const previous = document.querySelector('[data-testid="tenants-audit-previous"]');
+                const next = document.querySelector('[data-testid="tenants-audit-next"]');
+                return !!previous && !!next
+                    && !document.querySelector('[data-testid="tenants-audit-filter-pending"]')
+                    && !previous.hasAttribute('disabled') === pager.previousEnabled
+                    && !next.hasAttribute('disabled') === pager.nextEnabled;
+            };
             const holder = window as any;
-            if (!matched) {
+            if (!matches()) {
                 holder.__auditRowMatch = undefined;
                 return false;
             }
             if (!holder.__auditRowMatch || holder.__auditRowMatch.signature !== signature) {
                 holder.__auditRowMatch = { signature, firstPaint: null as number | null };
                 requestAnimationFrame(() => {
-                    const rows = [...document.querySelectorAll('[data-testid="tenants-audit-row"]')]
-                        .map(element => element.getAttribute('data-audit-reference'));
-                    if (holder.__auditRowMatch?.signature === signature && rows.join('|') === signature
-                        && document.querySelector('[data-testid="tenants-audit-ready"]')) {
-                        holder.__auditRowMatch.firstPaint = performance.timeOrigin + performance.now();
-                    }
+                    // The first frame paints after its callbacks; the second callback is an upper
+                    // bound after rows, state, and pager have all painted.
+                    requestAnimationFrame(() => {
+                        if (holder.__auditRowMatch?.signature === signature && matches()) {
+                            holder.__auditRowMatch.firstPaint = performance.timeOrigin + performance.now();
+                        }
+                    });
                 });
                 return false;
             }
             return holder.__auditRowMatch.firstPaint !== null
                 && performance.timeOrigin + performance.now() - holder.__auditRowMatch.firstPaint >= stabilityMs;
-        }, { refs: expected, signature, stabilityMs }, { timeout: 30_000, polling: 'raf' });
+        }, { refs: expected, signature, stabilityMs, pager }, { timeout: 30_000, polling: 'raf' });
     } catch (error) {
         const diagnostic = await page.evaluate(() => ({
             path: location.pathname,
@@ -299,7 +318,7 @@ async function measureInitial(page: Page, dataset: Dataset, viewport: string, ba
     try {
         await page.goto(`${baseUrl}/tenants/${dataset.tenantId}/audit`, { waitUntil: 'domcontentloaded' });
         const refs = pageEntries(dataset, 'unfiltered', 0);
-        const painted = await assertRows(page, refs, 350);
+        const painted = await assertRows(page, refs, 350, { previousEnabled: false, nextEnabled: true });
         duration = painted - start;
         meta = await metadata(page);
         expect(meta).toEqual({ responseCount: refs.length, pageSize: uiPageSize,
@@ -318,26 +337,36 @@ async function measureAction(page: Page, dataset: Dataset, viewport: string, bat
     const selector = `[data-testid="tenants-audit-${action}"]`;
     const button = page.locator(selector);
     await expect(button).toBeEnabled();
-    await page.evaluate(() => {
-        const state = document.querySelector('[data-testid^="tenants-audit-"][role="status"], [data-testid^="tenants-audit-"][role="alert"]');
-        const priorState = state?.getAttribute('data-testid');
+    await page.evaluate(expectedSignature => {
         const priorRows = [...document.querySelectorAll('[data-testid="tenants-audit-row"]')]
             .map(element => element.getAttribute('data-audit-reference')).join('|');
         const timing = { start: 0, feedback: null as number | null };
+        let feedbackScheduled = false;
         (window as any).__auditTiming = timing;
         document.addEventListener('click', () => { timing.start = performance.timeOrigin + performance.now(); }, { capture: true, once: true });
-        const observer = new MutationObserver(() => {
-            if (!timing.start || timing.feedback !== null) return;
-            const currentState = document.querySelector('[data-testid^="tenants-audit-"][role="status"], [data-testid^="tenants-audit-"][role="alert"]')?.getAttribute('data-testid');
+        const actionChanged = () => {
+            const loading = !!document.querySelector('[data-testid="tenants-audit-loading"]');
             const rows = [...document.querySelectorAll('[data-testid="tenants-audit-row"]')]
                 .map(element => element.getAttribute('data-audit-reference')).join('|');
-            if (currentState !== priorState || rows !== priorRows) {
-                requestAnimationFrame(() => { timing.feedback = performance.timeOrigin + performance.now(); observer.disconnect(); });
-            }
+            return loading || (rows !== priorRows && rows === expectedSignature);
+        };
+        const observer = new MutationObserver(() => {
+            if (!timing.start || timing.feedback !== null || feedbackScheduled || !actionChanged()) return;
+            feedbackScheduled = true;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (actionChanged()) {
+                        timing.feedback = performance.timeOrigin + performance.now();
+                        observer.disconnect();
+                    } else {
+                        feedbackScheduled = false;
+                    }
+                });
+            });
         });
         observer.observe(document.querySelector('[data-testid="tenants-audit-surface"]')!,
             { attributes: true, childList: true, characterData: true, subtree: true });
-    });
+    }, refs.join('|'));
     let failure: string | null = null;
     let duration: number | null = null;
     let feedback: number | null = null;
@@ -345,7 +374,10 @@ async function measureAction(page: Page, dataset: Dataset, viewport: string, bat
         nextCursorPresent: null as boolean | null, displayedRowCount: null as number | null };
     try {
         await button.click();
-        const painted = await assertRows(page, refs);
+        const painted = await assertRows(page, refs, 150, {
+            previousEnabled: pageIndex > 0,
+            nextEnabled: pageEntries(dataset, resultCase, pageIndex + 1).length > 0,
+        });
         const times = await page.evaluate(() => ({ end: performance.timeOrigin + performance.now(),
             start: (window as any).__auditTiming.start as number,
             feedback: (window as any).__auditTiming.feedback as number | null }));
