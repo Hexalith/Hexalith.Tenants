@@ -13,14 +13,16 @@ public static class TenantsFrontComposerRegistration {
     public static DomainManifest Manifest { get; } = new(
         "Tenants",
         "tenants",
-        [],
-        [],
+        [typeof(TenantSummaryProjection).FullName!],
+        [typeof(CreateTenantCommand).FullName!],
         // Icon + localization for the left-nav category: the shell shows the BuildingPeople glyph on the
         // collapsed rail and resolves the category title ("Tenants" / "Locataires") from TenantsResources
         // per the request culture, matching the localized page body. Name stays the invariant fallback.
         Icon: "Regular.Size20.BuildingPeople",
         NameKey: "Tenants.Navigation.Tenants",
-        Resource: typeof(TenantsResources));
+        Resource: typeof(TenantsResources)) {
+        FullPageCommands = [],
+    };
 
     public static void RegisterDomain(IFrontComposerRegistry registry) {
         ArgumentNullException.ThrowIfNull(registry);

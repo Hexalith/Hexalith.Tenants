@@ -1,0 +1,186 @@
+@page "/tenants/tenant-summary-projection"
+@implements IDisposable
+@using Fluxor
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantQueryGateway QueryGateway
+@inject IDispatcher Dispatcher
+@inject IStore Store
+@inject IServiceProvider Services
+
+<h1>@Localizer["Tenants.Navigation.Tenants"]</h1>
+
+<FluentAccordion ExpandMode="AccordionExpandMode.Multi">
+    <FluentAccordionItem Header="@Localizer["Tenants.Navigation.Tenants"]" Expanded="true">
+        @if (_kind is TenantListSurfaceKind.Loading)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Info"
+                              Title="@Localizer["Tenants.List.State.Loading.Message"]" />
+        }
+        else if (_kind is TenantListSurfaceKind.Ready or TenantListSurfaceKind.Empty or TenantListSurfaceKind.Stale or TenantListSurfaceKind.Degraded)
+        {
+            @if (_kind is TenantListSurfaceKind.Stale or TenantListSurfaceKind.Degraded)
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Warning"
+                                  Title="@Localizer[$"Tenants.List.State.{_kind}.Message"]" />
+            }
+            <FluentText As="TextTag.Paragraph">@Localizer["Tenants.Generated.ProjectionPreview"]</FluentText>
+            <DynamicComponent Type="typeof(TenantSummaryProjectionView)" />
+        }
+        else
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Warning"
+                              Title="@Localizer[$"Tenants.List.State.{_kind}.Message"]" />
+        }
+    </FluentAccordionItem>
+    <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]" Expanded="false">
+        <FluentMessageBar Intent="MessageBarIntent.Info"
+                          Title="@Localizer["Tenants.Generated.CommandPreview"]" />
+        <fieldset disabled aria-label="@Localizer["Tenants.Create.Title"]">
+            <DynamicComponent Type="typeof(CreateTenantCommandForm)" />
+        </fieldset>
+    </FluentAccordionItem>
+</FluentAccordion>
+
+@code {
+    private CancellationTokenSource _cancellation = new();
+    private AuthenticationStateProvider? _authenticationStateProvider;
+    private TenantListSurfaceKind _kind = TenantListSurfaceKind.Loading;
+    private long _loadVersion;
+    private bool _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Store.InitializeAsync();
+        if (_disposed)
+        {
+            return;
+        }
+
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+
+        await LoadProjectionAsync(_loadVersion, _cancellation.Token);
+    }
+
+    private async Task LoadProjectionAsync(long version, CancellationToken cancellationToken)
+    {
+        TenantListSnapshot snapshot;
+        try
+        {
+            snapshot = await QueryGateway.ListTenantsAsync(
+                new TenantListRequest(),
+                previous: null,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            if (!_disposed && version == _loadVersion)
+            {
+                _kind = TenantListSurfaceKind.Error;
+            }
+
+            return;
+        }
+
+        if (_disposed || cancellationToken.IsCancellationRequested || version != _loadVersion)
+        {
+            return;
+        }
+
+        _kind = snapshot.IsDegraded ? TenantListSurfaceKind.Degraded : snapshot.Kind;
+        if (_kind is not (TenantListSurfaceKind.Ready or TenantListSurfaceKind.Empty or TenantListSurfaceKind.Stale or TenantListSurfaceKind.Degraded))
+        {
+            return;
+        }
+
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction(
+            "tenant-summary",
+            snapshot.Rows.Select(static row => new TenantSummaryProjection
+            {
+                Id = row.TenantId,
+                Name = row.Name,
+                Status = row.Status,
+            }).ToArray()));
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        long version = Interlocked.Increment(ref _loadVersion);
+        Task callback = InvokeAsync(() => ReloadForAuthenticationChangeAsync(authenticationStateTask, version));
+        _ = ObserveAuthenticationCallbackAsync(callback);
+    }
+
+    private async Task ReloadForAuthenticationChangeAsync(Task<AuthenticationState> authenticationStateTask, long version)
+    {
+        if (_disposed || version != _loadVersion)
+        {
+            return;
+        }
+
+        _cancellation.Cancel();
+        _cancellation.Dispose();
+        _cancellation = new CancellationTokenSource();
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+        _kind = TenantListSurfaceKind.Loading;
+        StateHasChanged();
+
+        try
+        {
+            _ = await authenticationStateTask;
+        }
+        catch
+        {
+            if (!_disposed && version == _loadVersion)
+            {
+                _kind = TenantListSurfaceKind.Unauthorized;
+                StateHasChanged();
+            }
+
+            return;
+        }
+
+        if (_disposed || version != _loadVersion)
+        {
+            return;
+        }
+
+        await LoadProjectionAsync(version, _cancellation.Token);
+        if (!_disposed && version == _loadVersion)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private static async Task ObserveAuthenticationCallbackAsync(Task callback)
+    {
+        try
+        {
+            await callback;
+        }
+        catch
+        {
+            // Authentication transitions leave the projection hidden until a later authorized read.
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        }
+
+        _cancellation.Cancel();
+        _cancellation.Dispose();
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+    }
+}

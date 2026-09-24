@@ -4229,4 +4229,6 @@
   <data name="Tenants.Audit.Recovery.InvalidFilters" xml:space="preserve"><value>Correct the marked UTC date or category, or reset all filters before requesting audit evidence.</value></data>
   <data name="Tenants.Audit.Viewport.Pending" xml:space="preserve"><value>Correction controls remain read-only until the browser viewport is measured.</value></data>
   <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue.</value></data>
+  <data name="Tenants.Generated.CommandPreview" xml:space="preserve"><value>Generated form preview. Use the Tenants workspace to create a tenant.</value></data>
+  <data name="Tenants.Generated.ProjectionPreview" xml:space="preserve"><value>Generated view of the first authorized tenant page. Use the Tenants workspace for paging and actions.</value></data>
 </root>

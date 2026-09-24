@@ -19,6 +19,8 @@
     <PackageReference Include="Hexalith.FrontComposer.Contracts" Condition="'$(HexalithFrontComposerFromSource)' != 'true'" />
     <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj" Condition="'$(HexalithFrontComposerFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.FrontComposer.Shell" Condition="'$(HexalithFrontComposerFromSource)' != 'true'" />
+    <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.SourceTools\Hexalith.FrontComposer.SourceTools.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" Condition="'$(HexalithFrontComposerFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.FrontComposer.SourceTools" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" Condition="'$(HexalithFrontComposerFromSource)' != 'true'" />
     <!-- Reserved Story 1.9 search composition seam (Debug source when available; Release uses packages).
          Story 1.2 does not call Memories or create a search cursor. -->
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />

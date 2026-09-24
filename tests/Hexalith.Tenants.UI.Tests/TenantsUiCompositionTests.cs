@@ -58,7 +58,7 @@ public sealed class TenantsUiCompositionTests
     private static readonly TimeSpan DependencyResolutionTimeout = TimeSpan.FromMinutes(3);
 
     [Fact]
-    public void FrontComposer_registration_exposes_tenants_nav_entries_and_minimal_manifest()
+    public void FrontComposer_registration_exposes_tenants_nav_entries_and_generated_surface_manifest()
     {
         CapturingRegistry registry = new();
 
@@ -80,8 +80,9 @@ public sealed class TenantsUiCompositionTests
 
         DomainManifest manifest = registry.Manifests.ShouldHaveSingleItem();
         manifest.BoundedContext.ShouldBe("tenants");
-        manifest.Projections.ShouldBeEmpty();
-        manifest.Commands.ShouldBeEmpty();
+        manifest.Projections.ShouldBe([typeof(TenantSummaryProjection).FullName!]);
+        manifest.Commands.ShouldBe([typeof(CreateTenantCommand).FullName!]);
+        manifest.FullPageCommands.ShouldBeEmpty();
         manifest.Icon.ShouldBe("Regular.Size20.BuildingPeople");
         manifest.NameKey.ShouldBe("Tenants.Navigation.Tenants");
         manifest.Resource.ShouldBe(typeof(TenantsResources));

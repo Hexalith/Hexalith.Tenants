@@ -4229,4 +4229,6 @@
   <data name="Tenants.Audit.Recovery.InvalidFilters" xml:space="preserve"><value>Corrigez la date UTC ou la catégorie signalée, ou réinitialisez tous les filtres avant de demander les preuves d’audit.</value></data>
   <data name="Tenants.Audit.Viewport.Pending" xml:space="preserve"><value>Les commandes de correction restent en lecture seule jusqu’à la mesure de la fenêtre du navigateur.</value></data>
   <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>Cette correction prise en charge est en lecture seule sur téléphone. Utilisez une fenêtre de tablette ou d’ordinateur mesurée pour continuer.</value></data>
+  <data name="Tenants.Generated.CommandPreview" xml:space="preserve"><value>Aperçu du formulaire généré. Utilisez l’espace de travail Locataires pour créer un locataire.</value></data>
+  <data name="Tenants.Generated.ProjectionPreview" xml:space="preserve"><value>Vue générée de la première page de locataires autorisée. Utilisez l’espace de travail Locataires pour la pagination et les actions.</value></data>
 </root>
