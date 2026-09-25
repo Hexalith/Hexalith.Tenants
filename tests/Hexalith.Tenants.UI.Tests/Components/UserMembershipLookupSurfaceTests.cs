@@ -8,6 +8,7 @@ using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -26,7 +27,29 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class UserMembershipLookupSurfaceTests : BunitContext
 {
     [Fact]
-    public void Compatibility_user_lookup_route_canonicalizes_before_querying()
+    public void Removing_audit_focus_clears_notices_and_allows_same_focus_to_be_restored_again()
+    {
+        RegisterServices(UserTenantMembershipSnapshot.Empty(
+            isAuthorizationScoped: true, ReadModelFreshnessState.Current, eTag: null, targetUserId: null));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusAuditLauncher", _ => true);
+        focus.SetResult(false);
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/users?auditFocus=tenants-user-row-tenant.alpha&auditPartialReturn=true");
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("[data-testid='tenants-audit-partial-return']");
+
+        navigation.NavigateTo("/tenants/users");
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-audit-partial-return']").ShouldBeEmpty();
+
+        navigation.NavigateTo("/tenants/users?auditFocus=tenants-user-row-tenant.alpha");
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
+    }
+
+    [Fact]
+    public void Standalone_user_lookup_route_queries_and_canonicalizes()
     {
         List<UserTenantMembershipRequest> requests = [];
         RegisterServices(call =>
@@ -45,10 +68,11 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         NavigateToLookup("target.user@example");
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
 
-        requests.ShouldBeEmpty();
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+        requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("target.user@example");
         cut.Find("[data-testid='tenants-user-lookup-input']").GetAttribute("value").ShouldBe("target.user@example");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
-            "http://localhost/tenants?tab=users&userId=target.user%40example");
+            "http://localhost/tenants/users?tab=users&userId=target.user%40example");
     }
 
     [Fact]
@@ -122,7 +146,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-user-invalid']");
 
         cut.Find("[data-testid='tenants-user-invalid']").GetAttribute("role").ShouldBe("alert");
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/users?tab=users");
         gateway.DidNotReceiveWithAnyArgs()
             .GetUserTenantsAsync(default!, default, default);
     }
@@ -167,6 +191,60 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-projection-lifecycle']").TextContent.Trim().ShouldBe("Rebuilding");
         (cut.Find("[data-testid='tenants-user-projection-lifecycle']").GetAttribute("class") ?? string.Empty)
             .ShouldContain("projection-lifecycle-badge--rebuilding");
+    }
+
+    [Fact]
+    public void Standalone_lookup_authorized_current_row_links_to_audit_with_standalone_return_and_user_hint()
+    {
+        List<UserTenantMembershipRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+                targetUserId: "target.user@example"));
+        });
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(composition);
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants/users?userId=target.user%40example&auditFocus=tenants-user-row-tenant.alpha&auditPartialReturn=true");
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+        requests.ShouldHaveSingleItem();
+        cut.WaitForElement("[data-testid='tenants-audit-entrypoint']");
+        cut.Find("[data-testid='tenants-audit-entrypoint']").NodeName.ShouldBe("FLUENT-ANCHOR-BUTTON");
+        cut.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']");
+        string href = cut.Find("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href")!;
+        href.ShouldStartWith("/tenants/tenant.alpha/audit?");
+        href.ShouldContain("targetUserId=target.user%40example");
+        href.ShouldContain("source=user-lookup");
+        href.ShouldContain("returnUrl=%2Ftenants%2Fusers");
+        href.ShouldNotContain("auditFocus%3D");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldContain("auditFocus=tenants-user-row-tenant.alpha");
+    }
+
+    [Fact]
+    public void Lookup_without_user_is_terminal_but_pending_lookup_waits_for_its_result()
+    {
+        TaskCompletionSource<UserTenantMembershipSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        RegisterServices(_ => pending.Task);
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.AuditReadResolved, true));
+        cut.Find("[data-testid='tenants-user-lookup']")
+            .HasAttribute("data-audit-focus-terminal").ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.AuditReadResolved, true));
+        cut.Find("[data-testid='tenants-user-lookup']")
+            .HasAttribute("data-audit-focus-terminal").ShouldBeFalse();
     }
 
     /// <summary>

@@ -106,6 +106,7 @@
                                 Width="260px"
                                 Pin="DataGridColumnPin.Start">
                     <div class="tenant-members__user"
+                         id="@($"tenants-member-{context.Member.UserId}")"
                          tabindex="0"
                          data-testid="tenants-member-row">
                         <div class="tenant-members__user-row" data-testid="tenants-member-user-id">
@@ -165,7 +166,8 @@
                                              AccessibleName="@Localizer["Tenants.Members.AuditAccessibleLabel", context.Member.UserId, Detail.TenantId]"
                                              ReturnUrl="@MemberReturnUrl"
                                              ReturnFocus="@($"tenants-member-{context.Member.UserId}")"
-                                             IsAvailable="@CanOpenMemberAudit" />
+                                             IsAvailable="@CanOpenMemberAudit"
+                                             OnRefresh="@RefreshMemberAuditAsync" />
                 </TemplateColumn>
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Actions"]"
                                 ColumnId="member-actions"
@@ -413,7 +415,13 @@
     public bool AuditProofCapabilityAvailable { get; set; }
 
     [Parameter]
+    public string? DetailAuditReturnUrl { get; set; }
+
+    [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [CascadingParameter(Name = "AuditAuthorityRefresh")]
+    public Func<Task>? AuditAuthorityRefresh { get; set; }
 
     [Parameter]
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
@@ -503,10 +511,13 @@
         };
 
     private bool CanOpenMemberAudit
-        => Members.Kind is TenantUsersSurfaceKind.Ready
-            or TenantUsersSurfaceKind.Stale
-            or TenantUsersSurfaceKind.Degraded
-            or TenantUsersSurfaceKind.Unknown;
+        => AuditProofCapabilityAvailable
+            && SurfaceKind is TenantDetailSurfaceKind.Ready
+            && Freshness is ReadModelFreshnessState.Current
+            && Lifecycle is ProjectionLifecycleState.Current
+            && Members.Kind is TenantUsersSurfaceKind.Ready
+            && Members.Freshness is ReadModelFreshnessState.Current
+            && Members.Lifecycle is ProjectionLifecycleState.Current;
 
     private bool ActionsAreEvidenceBacked
         => SurfaceKind is TenantDetailSurfaceKind.Ready
@@ -589,7 +600,20 @@
                 : StateMessage;
 
     private string MemberReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+
+    private async Task RefreshMemberAuditAsync()
+    {
+        if (OnProjectionRefreshRequested.HasDelegate)
+        {
+            await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        }
+
+        if (AuditAuthorityRefresh is not null)
+        {
+            await AuditAuthorityRefresh().ConfigureAwait(false);
+        }
+    }
 
     private MemberRow ToRow(TenantMember member, int index)
     {

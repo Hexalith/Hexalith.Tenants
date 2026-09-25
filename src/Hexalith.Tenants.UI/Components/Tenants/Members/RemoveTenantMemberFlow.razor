@@ -164,7 +164,7 @@
     <section class="tenants-remove-member-flow__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-remove-member-lifecycle"
+             id="tenants-remove-member-lifecycle" data-testid="tenants-remove-member-lifecycle"
              aria-labelledby="tenants-remove-member-state-label">
         <h4 id="tenants-remove-member-state-label">@Localizer["Tenants.RemoveMember.Lifecycle.Title"]</h4>
         <p class="@StateClass" data-testid="tenants-remove-member-state">
@@ -186,9 +186,9 @@
                                                  AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-remove-member-lifecycle"
-                                                 SupportSafeCommandReference="@_snapshot.MessageId"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -200,7 +200,7 @@
                 <AuditEvidenceReceipt Receipt="@_removalProof"
                                       OnRetry="RefreshStatusAsync"
                                       OnClose="DismissReceiptAsync"
-                                      OnInspectAudit="InspectAuditAsync" />
+                                      OnInspectAudit="@(AuditReadAvailable ? EventCallback.Factory.Create(this, InspectAuditAsync) : default(EventCallback))" />
             }
         </div>
         <p data-testid="tenants-remove-member-recovery">@RecoveryText</p>
@@ -223,6 +223,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private readonly object _formModel = new();
     private TenantRemoveMemberCommandSnapshot _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
     private TenantAuditReceipt? _removalProof;
@@ -483,7 +489,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.RemoveMember.Recovery.{_snapshot.State}"];
@@ -1167,13 +1173,18 @@
 
     private Task InspectAuditAsync()
     {
+        if (!AuditReadAvailable
+            || !TenantAuditNavigationSafety.IsSafeIdentifier(Detail.TenantId)
+            || !TenantAuditNavigationSafety.IsSafeIdentifier(Member.UserId)
+            || TenantAuditNavigationSafety.SafeReturnUrl(CommandAuditReturnUrl, out _) is null)
+        {
+            return Task.CompletedTask;
+        }
+
         string target = Uri.EscapeDataString(Member.UserId);
-        string commandReference = string.IsNullOrWhiteSpace(_snapshot.MessageId)
-            ? string.Empty
-            : $"&supportSafeCommandReference={Uri.EscapeDataString(_snapshot.MessageId)}";
         string returnUrl = Uri.EscapeDataString(CommandAuditReturnUrl);
         Navigation.NavigateTo(
-            $"{CommandAuditReturnUrl}/audit?targetUserId={target}{commandReference}&source=command-result&returnUrl={returnUrl}&returnFocus=tenants-remove-member-lifecycle");
+            $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}/audit?targetUserId={target}&source=command-result&returnUrl={returnUrl}&returnFocus=tenants-remove-member-lifecycle");
         return Task.CompletedTask;
     }
 

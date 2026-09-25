@@ -36,10 +36,10 @@
                 @ContextText
             </p>
         }
-        @if (!string.IsNullOrWhiteSpace(ReturnFocus))
+        @if (SafeBackReturnUrl is not null)
         {
             <p class="tenant-audit__return-context" data-testid="tenants-audit-return-context">
-                @Localizer["Tenants.Audit.ReturnContext", ReturnFocus]
+                @Localizer["Tenants.Audit.ReturnContext", SourceLabel]
             </p>
         }
         </Metadata>
@@ -349,11 +349,39 @@
     public string? SourceKind { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "auditPartialReturn")]
+    public bool AuditPartialReturn { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "receiptReference")]
     public string? ReceiptReference { get; set; }
 
+    private string? SafeBackReturnUrl => TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out _);
+
     private string BackHref
-        => SafeReturnUrl(ReturnUrl) ?? $"/tenants/{Uri.EscapeDataString(TenantId)}";
+    {
+        get
+        {
+            string? safe = TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out bool strippedCursor);
+            if (safe is null)
+            {
+                return "/tenants?auditReturnUnavailable=true";
+            }
+
+            if (TenantAuditNavigationSafety.IsSafeFocus(ReturnFocus) && !safe.Contains("auditFocus=", StringComparison.Ordinal))
+            {
+                safe += (safe.Contains('?', StringComparison.Ordinal) ? "&" : "?")
+                    + "auditFocus=" + Uri.EscapeDataString(ReturnFocus!);
+            }
+
+            if ((AuditPartialReturn || strippedCursor) && !safe.Contains("auditPartialReturn=", StringComparison.Ordinal))
+            {
+                safe += (safe.Contains('?', StringComparison.Ordinal) ? "&" : "?") + "auditPartialReturn=true";
+            }
+
+            return safe;
+        }
+    }
 
     private string? PermissionRecoveryHref
         => SafeRecoveryHref(BffComposition.AuditPermissionRecoveryHref);
@@ -361,25 +389,32 @@
     private string? EscalationRecoveryHref
         => SafeRecoveryHref(BffComposition.AuditEscalationRecoveryHref);
 
-    // A blank/whitespace TenantId would render a dangling "Audit trail for " heading. Substitute a
-    // localized fallback so the page header always reads as a complete phrase (cosmetic, not a crash fix).
+    // Never echo an unsafe direct-route identifier into the heading or document title.
     private string TenantDisplayName
-        => string.IsNullOrWhiteSpace(TenantId) ? Localizer["Tenants.Audit.UnknownTenant"].Value : TenantId;
+        => TenantAuditNavigationSafety.IsSafeIdentifier(TenantId)
+            ? TenantId
+            : Localizer["Tenants.Audit.UnknownTenant"].Value;
 
     private bool HasContext
-        => !string.IsNullOrWhiteSpace(TargetUserId)
-            || !string.IsNullOrWhiteSpace(SupportSafeCommandReference)
+        => SafeTargetUserId is not null
+            || SafeCommandReference is not null
             || !string.IsNullOrWhiteSpace(SourceKind);
+
+    private string? SafeTargetUserId
+        => TenantAuditNavigationSafety.IsSafeIdentifier(TargetUserId) ? TargetUserId : null;
+
+    private string? SafeCommandReference
+        => TenantAuditNavigationSafety.IsSafeHint(SupportSafeCommandReference) ? SupportSafeCommandReference : null;
 
     // Context restoration is informational, never a blocking state, so it is always polite.
     private string ContextLiveRegion
         => "polite";
 
     private string ContextText
-        => !string.IsNullOrWhiteSpace(TargetUserId)
-            ? Localizer["Tenants.Audit.Context.User", GlobalAdministratorIdentityDisplay.Encode(TargetUserId)]
-            : !string.IsNullOrWhiteSpace(SupportSafeCommandReference)
-                ? Localizer["Tenants.Audit.Context.Command", SupportSafeCommandReference]
+        => SafeTargetUserId is { } safeTarget
+            ? Localizer["Tenants.Audit.Context.User", GlobalAdministratorIdentityDisplay.Encode(safeTarget)]
+            : SafeCommandReference is { } safeCommand
+                ? Localizer["Tenants.Audit.Context.Command", safeCommand]
                 : Localizer["Tenants.Audit.Context.Source", SourceLabel];
 
     // Resolve the machine source kind to a localized whole phrase so raw tokens never reach visible copy.
@@ -531,6 +566,29 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
+        if (!TenantAuditNavigationSafety.IsSafeIdentifier(tenantId))
+        {
+            Interlocked.Increment(ref _loadGeneration);
+            CancelActiveCancellation();
+            IAsyncDisposable? invalidLease = _readRefreshLease;
+            _readRefreshLease = null;
+            _subscriptionTenantId = null;
+            if (invalidLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(invalidLease).ConfigureAwait(false);
+            }
+
+            await InvokeAsync(() =>
+            {
+                ClearPaging();
+                _tenantDetailSnapshot = null;
+                _globalAdministratorsSnapshot = null;
+                _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest("invalid"));
+                _loadedTenantId = null;
+            }).ConfigureAwait(false);
+            return;
+        }
+
         bool tenantChanged = !string.Equals(_loadedTenantId, tenantId, StringComparison.Ordinal);
         if (tenantChanged)
         {
@@ -1067,6 +1125,12 @@
         string? eTag,
         out TenantAuditRequest? request)
     {
+        if (!TenantAuditNavigationSafety.IsSafeIdentifier(tenantId))
+        {
+            request = null;
+            return false;
+        }
+
         bool fromValid = TryParseDate(_fromText, out DateTimeOffset? from);
         bool toValid = TryParseDate(_toText, out DateTimeOffset? to);
         AuditEventCategory parsedCategory = default;
@@ -1491,49 +1555,6 @@
         }
 
         return result;
-    }
-
-    private static string? SafeReturnUrl(string? returnUrl)
-    {
-        string? canonical = CanonicalLocalHref(returnUrl);
-        if (canonical is null)
-        {
-            return null;
-        }
-
-        string path = canonical.Split('?', '#')[0];
-        if (!(path.Equals("/tenants", StringComparison.Ordinal)
-            || path.StartsWith("/tenants/", StringComparison.Ordinal)))
-        {
-            return null;
-        }
-
-        string? query = canonical.Split('?', 2).Skip(1).FirstOrDefault()?.Split('#')[0];
-        if (query is not null && query.Split('&').Any(part => !IsSafeReturnQueryPart(part)))
-        {
-            return null;
-        }
-
-        return canonical;
-    }
-
-    private static bool IsSafeReturnQueryPart(string part)
-    {
-        string[] pair = part.Split('=', 2);
-        if (pair.Length != 2 || pair[1].Length > 4096)
-        {
-            return false;
-        }
-
-        string key = pair[0];
-        if (key is not ("tab" or "scope" or "userId" or "search" or "status" or "sort" or "desc" or "cursor" or "selected" or "anchor"))
-        {
-            return false;
-        }
-
-        return key is "cursor"
-            ? !string.IsNullOrWhiteSpace(pair[1]) && !pair[1].Any(char.IsControl)
-            : TenantAuditSupportSafety.SafeApprovedReference(pair[1]) is not null;
     }
 
     private static string? SafeRecoveryHref(string? href)

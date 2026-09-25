@@ -38,7 +38,7 @@
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
-        const { focusElementById } = await import(modulePath);
+        const { focusElementById, focusAuditLauncher } = await import(modulePath);
         const report = document.getElementById("validation-report");
         const acknowledgement = document.getElementById("remove-acknowledgement");
         const lifecycle = document.getElementById("remove-lifecycle");
@@ -128,6 +128,127 @@
             document.getElementById("remove-preview").remove();
             routeStartSentinel();
             assertActiveElement(lifecycle, "missing-preview-to-lifecycle");
+
+            const otherTab = document.createElement("section");
+            otherTab.dataset.testid = "unrelated-tab";
+            otherTab.dataset.auditFocusTerminal = "true";
+            otherTab.dataset.auditFocusPageTerminal = "true";
+            otherTab.dataset.auditFocusHeading = "unrelated-heading";
+            otherTab.dataset.auditFocusActiveOrigin = "unrelated-tab";
+            document.body.append(otherTab);
+            const auditOrigin = document.createElement("section");
+            auditOrigin.dataset.testid = "tenants-my-page";
+            auditOrigin.dataset.auditFocusTerminal = "false";
+            auditOrigin.innerHTML = '<h1 id="tenants-my-heading" tabindex="-1">My Tenants</h1>';
+            document.body.append(auditOrigin);
+            const focusPromise = focusAuditLauncher("tenants-my-row-tenant.alpha", "tenants-my-page", "tenants-my-heading");
+            await new Promise(resolve => setTimeout(resolve, 40));
+            if (document.activeElement?.id === "tenants-my-heading") {
+                throw new Error("unrelated terminal marker ended pending origin focus");
+            }
+            const row = document.createElement("div");
+            row.setAttribute("role", "row");
+            row.innerHTML = '<span id="tenants-my-row-tenant.alpha">Tenant</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.alpha/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button>';
+            auditOrigin.append(row);
+            if (!await focusPromise) {
+                throw new Error("delayed Fluent audit launcher was not focused");
+            }
+            assertActiveElement(row.querySelector("fluent-anchor-button"), "delayed-standalone-audit-launcher");
+
+            const workspaceOrigin = document.createElement("section");
+            workspaceOrigin.dataset.testid = "tenants-workspace-tenants-panel-content";
+            workspaceOrigin.setAttribute("data-audit-focus-terminal", "");
+            workspaceOrigin.innerHTML = '<div role="row"><span id="tenants-row-tenant.beta">Beta</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></div>';
+            document.body.append(workspaceOrigin);
+            if (!await focusAuditLauncher("tenants-row-tenant.beta", "tenants-workspace-tenants-panel-content", "tenants-list-heading")) {
+                throw new Error("workspace row audit launcher was not focused");
+            }
+            assertActiveElement(workspaceOrigin.querySelector("fluent-anchor-button"), "workspace-row-audit-launcher");
+
+            const detailOrigin = document.createElement("section");
+            detailOrigin.dataset.testid = "tenants-detail-audit-origin";
+            detailOrigin.dataset.auditFocusTerminal = "true";
+            detailOrigin.innerHTML = '<h1 id="tenants-detail-identity" data-testid="tenants-detail-identity">Tenant detail <fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></h1><div role="row"><span id="tenants-member-user.alpha">Member</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></div>';
+            document.body.append(detailOrigin);
+            if (!await focusAuditLauncher("tenants-detail-identity", "tenants-detail-audit-origin", "tenants-detail-identity")) {
+                throw new Error("detail identity audit launcher was not focused");
+            }
+            assertActiveElement(detailOrigin.querySelector("h1 fluent-anchor-button"), "detail-audit-launcher");
+            if (!await focusAuditLauncher("tenants-member-user.alpha", "tenants-detail-audit-origin", "tenants-detail-identity")) {
+                throw new Error("member row audit launcher was not focused");
+            }
+            assertActiveElement(detailOrigin.querySelector("[role=row] fluent-anchor-button"), "member-audit-launcher");
+
+            const commandLifecycle = document.createElement("section");
+            commandLifecycle.id = "tenants-create-lifecycle";
+            commandLifecycle.innerHTML = '<fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button>';
+            workspaceOrigin.append(commandLifecycle);
+            if (!await focusAuditLauncher("tenants-create-lifecycle", "tenants-workspace-tenants-panel-content", "tenants-list-heading")) {
+                throw new Error("create command audit launcher was not focused");
+            }
+            assertActiveElement(commandLifecycle.querySelector("fluent-anchor-button"), "command-audit-launcher");
+
+            const settledPage = document.createElement("span");
+            settledPage.hidden = true;
+            settledPage.dataset.auditFocusPageTerminal = "false";
+            settledPage.dataset.auditFocusHeading = "tenants-list-heading";
+            settledPage.dataset.auditFocusActiveOrigin = "tenants-workspace-tenants-panel-content";
+            const pageHeading = document.createElement("h1");
+            pageHeading.id = "tenants-list-heading";
+            pageHeading.tabIndex = -1;
+            document.body.append(pageHeading);
+            let settledEarly = false;
+            const missingPageOrigin = focusAuditLauncher("tenants-my-row-gone", "tenants-my-tab-not-mounted", "tenants-list-heading")
+                .then(found => { settledEarly = true; return found; });
+            await new Promise(resolve => setTimeout(resolve, 40));
+            if (settledEarly) {
+                throw new Error("missing origin settled before page terminal state");
+            }
+            document.body.append(settledPage);
+            if (await missingPageOrigin) {
+                throw new Error("missing origin incorrectly reported success");
+            }
+            assertActiveElement(pageHeading, "wrong-tab-route-heading");
+
+            settledPage.dataset.auditFocusActiveOrigin = "pending-origin";
+            let terminalSettledEarly = false;
+            const missingTerminalOrigin = focusAuditLauncher("missing-row", "pending-origin", "tenants-list-heading")
+                .then(found => { terminalSettledEarly = true; return found; });
+            await new Promise(resolve => setTimeout(resolve, 40));
+            if (terminalSettledEarly) {
+                throw new Error("matching origin settled before terminal state");
+            }
+            settledPage.setAttribute("data-audit-focus-page-terminal", "");
+            if (await missingTerminalOrigin) {
+                throw new Error("terminal missing origin incorrectly reported success");
+            }
+            assertActiveElement(pageHeading, "terminal-missing-origin-heading");
+
+            const missingOrigin = document.createElement("section");
+            missingOrigin.dataset.testid = "tenants-user-lookup";
+            missingOrigin.dataset.auditFocusTerminal = "false";
+            missingOrigin.innerHTML = '<h1 id="tenants-user-lookup-heading" tabindex="-1">User lookup</h1>';
+            document.body.append(missingOrigin);
+            const fallbackPromise = focusAuditLauncher("tenants-user-row-missing", "tenants-user-lookup", "tenants-user-lookup-heading");
+            await new Promise(resolve => setTimeout(resolve, 40));
+            missingOrigin.setAttribute("data-audit-focus-terminal", "");
+            if (await fallbackPromise) {
+                throw new Error("missing audit launcher incorrectly reported success");
+            }
+            assertActiveElement(document.getElementById("tenants-user-lookup-heading"), "missing-standalone-audit-heading");
+
+            missingOrigin.removeAttribute("data-audit-focus-terminal");
+            const routeExitFocus = focusAuditLauncher(
+                "tenants-user-row-not-loaded", "tenants-user-lookup", "tenants-user-lookup-heading");
+            window.history.pushState({}, "", `${window.location.pathname}${window.location.search}&route-left=1`);
+            const routeExitResult = await Promise.race([
+                routeExitFocus,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("focus promise survived route exit")), 1000)),
+            ]);
+            if (routeExitResult) {
+                throw new Error("route exit incorrectly reported launcher focus");
+            }
+            observations.push("route-exit-clears-pending-focus-wait");
 
             document.documentElement.dataset.validationStatus = "passed";
             report.textContent = `PASS ${observations.join(";")}`;

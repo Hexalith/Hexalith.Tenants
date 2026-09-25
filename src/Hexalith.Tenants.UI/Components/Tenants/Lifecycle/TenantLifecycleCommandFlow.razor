@@ -111,6 +111,7 @@
     </EditForm>
 
     <section class="tenant-lifecycle-flow__lifecycle"
+             id="tenants-lifecycle-lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
              aria-labelledby="tenants-lifecycle-state-label">
@@ -133,7 +134,8 @@
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-lifecycle-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -160,6 +162,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private readonly object _formModel = new();
     private TenantLifecycleCommandSnapshot _snapshot = TenantLifecycleCommandSnapshot.Idle();
     private string? _confirmationText;
@@ -392,7 +400,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(PreviewTenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(PreviewTenantId)}";
 
     private string RecoveryText
     {

@@ -105,7 +105,9 @@
                                      Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
                                      AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", context.TenantId]"
                                      ReturnUrl="@ListReturnUrl(context)"
-                                     ReturnFocus="@($"tenant-row-{context.TenantId}")" />
+                                     ReturnFocus="@($"tenant-row-{context.TenantId}")"
+                                     IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
+                                     OnRefresh="@OnAuditRefresh" />
         </TemplateColumn>
     </FluentDataGrid>
 </div>
@@ -128,6 +130,12 @@
 
     [Parameter]
     public Func<TenantListRow, string> AuditHref { get; set; } = static row => $"/tenants/{Uri.EscapeDataString(row.TenantId)}/audit?source=tenant-list";
+
+    [Parameter]
+    public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public EventCallback OnAuditRefresh { get; set; }
 
     [Parameter]
     public string SortColumn { get; set; } = TenantListSortColumns.TenantId;
@@ -159,13 +167,13 @@
     private string GridSortStateKey
         => $"{SortColumn}:{SortDescending}:{PreserveRowOrder}";
 
-    private string ListReturnUrl(TenantListRow row)
+    private string? ListReturnUrl(TenantListRow row)
     {
         string href = AuditHref(row);
         int returnUrlIndex = href.IndexOf("returnUrl=", StringComparison.Ordinal);
         if (returnUrlIndex < 0)
         {
-            return "/tenants";
+            return null;
         }
 
         string encodedReturnUrl = href[(returnUrlIndex + "returnUrl=".Length)..];

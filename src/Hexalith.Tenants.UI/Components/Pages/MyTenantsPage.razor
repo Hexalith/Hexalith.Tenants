@@ -1,16 +1,100 @@
 @page "/tenants/my"
 @using Hexalith.Tenants.UI.Components.Users
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject IJSRuntime JS
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px">
         <FcPageHeader PageTitle="@Localizer["Tenants.MyTenants.Title"]"
                       Heading="@Localizer["Tenants.MyTenants.Title"]"
+                      HeadingId="tenants-my-heading"
+                      HeadingTabIndex="-1"
                       Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
                       Description="@Localizer["Tenants.MyTenants.Description"]"
                       TestId="tenants-my-page-header" />
+        @if (_missingOrigin)
+        {
+            <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
+        }
+        @if (_partialReturn)
+        {
+            <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
+        }
 
-        <MyTenantsPanel ShowBackLink="true"
-                        BackHref="/tenants?tab=tenants&scope=mine" />
+        <AuditReadAuthorityBoundary @ref="_auditAuthority" Context="auditAuthority">
+            <span hidden data-audit-focus-page-terminal="@auditAuthority.IsResolved"
+                  data-audit-focus-heading="tenants-my-heading"
+                  data-audit-focus-active-origin="tenants-my-page"></span>
+            <MyTenantsPanel ShowBackLink="true"
+                            BackHref="/tenants?tab=tenants&amp;scope=mine"
+                            AuditReadAvailable="@auditAuthority.IsAvailable"
+                            AuditReadResolved="@auditAuthority.IsResolved"
+                            OnAuditRefresh="@RefreshAuditAuthorityAsync" />
+        </AuditReadAuthorityBoundary>
     </FluentStack>
 </FcPageLayout>
+
+@code {
+    private AuditReadAuthorityBoundary? _auditAuthority;
+    private string? _pendingFocus;
+    private string? _handledFocus;
+    private bool _missingOrigin;
+    private bool _partialReturn;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "auditFocus")]
+    public string? AuditFocus { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "auditPartialReturn")]
+    public bool AuditPartialReturn { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (AuditFocus is null || !TenantAuditNavigationSafety.IsSafeFocus(AuditFocus))
+        {
+            _pendingFocus = null;
+            _handledFocus = null;
+            _missingOrigin = false;
+            _partialReturn = false;
+            return;
+        }
+
+        if (AuditFocus is { } focus && TenantAuditNavigationSafety.IsSafeFocus(focus)
+            && !string.Equals(_handledFocus, focus, StringComparison.Ordinal))
+        {
+            _pendingFocus = focus;
+            _handledFocus = focus;
+            _missingOrigin = false;
+            _partialReturn = AuditPartialReturn;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingFocus is not { } focus)
+        {
+            return;
+        }
+
+        _pendingFocus = null;
+        try
+        {
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            bool found = await module.InvokeAsync<bool>("focusAuditLauncher", focus, "tenants-my-page", "tenants-my-heading");
+            if (!found && string.Equals(_handledFocus, focus, StringComparison.Ordinal))
+            {
+                _missingOrigin = true;
+                StateHasChanged();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser circuit ended before focus restoration.
+        }
+    }
+
+    private Task RefreshAuditAuthorityAsync()
+        => _auditAuthority?.RefreshAsync() ?? Task.CompletedTask;
+}

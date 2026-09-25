@@ -45,6 +45,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(component => component.SourceTestId, "tenants-member-audit-entrypoint")
             .Add(component => component.ReturnUrl, "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha")
             .Add(component => component.ReturnFocus, "tenants-member-user.alpha")
+            .Add(component => component.IsAvailable, true)
             .Add(component => component.Label, "Audit evidence")
             .Add(component => component.AccessibleName, "Open audit evidence for user user.alpha in tenant tenant.alpha"));
 
@@ -63,7 +64,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     }
 
     [Fact]
-    public void Audit_entry_point_drops_unsafe_return_url_and_control_character_context()
+    public void Audit_entry_point_blocks_unsafe_return_url_and_control_character_context()
     {
         RegisterLocalizer();
 
@@ -77,15 +78,9 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(component => component.Label, "Audit evidence")
             .Add(component => component.AccessibleName, "Open audit evidence for command result in tenant tenant.alpha"));
 
-        string auditHref = RequiredAttribute(EntryPointFromMarker(cut, "tenants-command-audit-entrypoint"), "href");
-
-        auditHref.ShouldContain("/tenants/tenant.alpha/audit?");
-        auditHref.ShouldContain("source=command-result");
-        auditHref.ShouldNotContain("returnUrl=", Case.Insensitive);
-        auditHref.ShouldNotContain("supportSafeCommandReference=", Case.Insensitive);
-        auditHref.ShouldNotContain("returnFocus=", Case.Insensitive);
-        auditHref.ShouldNotContain("example.test", Case.Insensitive);
-        auditHref.ShouldNotContain("raw", Case.Insensitive);
+        cut.Find("[data-testid='tenants-audit-entrypoint']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Markup.ShouldNotContain("example.test", Case.Insensitive);
+        cut.Markup.ShouldNotContain("command-safe", Case.Insensitive);
     }
 
     [Fact]
@@ -103,6 +98,8 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         entryPoint.TagName.ShouldBe("FLUENT-BUTTON");
         entryPoint.HasAttribute("disabled").ShouldBeTrue();
         entryPoint.TextContent.ShouldContain("Tenant scope is required before audit evidence can be opened.");
+        string reasonId = RequiredAttribute(entryPoint, "aria-describedby");
+        cut.Find("#" + reasonId).TextContent.ShouldBe("Tenant scope is required before audit evidence can be opened.");
         cut.FindAll("a").ShouldBeEmpty();
     }
 
@@ -126,10 +123,12 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             MemberCount = TenantCountValue.Known(2),
             OwnerCount = TenantCountValue.Known(1),
             Freshness = ReadModelFreshnessState.Current,
+            Lifecycle = ProjectionLifecycleState.Current,
         };
 
         IRenderedComponent<TenantDataGrid> cut = Render<TenantDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
+            .Add(component => component.AuditReadAvailable, true)
             .Add(component => component.DetailHref, selected => context.ToDetailUrl(selected))
             .Add(component => component.AuditHref, selected => context.ToAuditUrl(selected)));
 
@@ -145,10 +144,11 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     public void User_lookup_grid_carries_target_user_context_without_primary_users_navigation()
     {
         RegisterFluentServices();
-        UserTenantMembershipRow row = new("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current);
+        UserTenantMembershipRow row = new("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current);
 
         IRenderedComponent<MyTenantsDataGrid> cut = Render<MyTenantsDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
+            .Add(component => component.AuditReadAvailable, true)
             .Add(component => component.ResourcePrefix, "Tenants.UserLookup")
             .Add(component => component.SelectorPrefix, "tenants-user")
             .Add(component => component.TargetUserId, "user.alpha")
@@ -204,6 +204,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(component => component.AccessibleName, "Open audit evidence for audit evidence delayed in tenant tenant.alpha")
             .Add(component => component.ReturnUrl, "/tenants/tenant.alpha")
             .Add(component => component.ReturnFocus, "tenants-config-set-lifecycle")
+            .Add(component => component.IsAvailable, true)
             .Add(component => component.AvailabilityText, "Audit evidence delayed."));
 
         string auditHref = RequiredAttribute(EntryPointFromMarker(cut, "tenants-command-audit-entrypoint"), "href");
@@ -230,7 +231,8 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-audit-context']");
 
         cut.Find("[data-testid='tenants-audit-context']").TextContent.ShouldContain("user.alpha");
-        RequiredAttribute(cut.Find("[data-testid='tenants-audit-back']"), "href").ShouldBe("/tenants/tenant.alpha");
+        RequiredAttribute(cut.Find("[data-testid='tenants-audit-back']"), "href")
+            .ShouldBe("/tenants/tenant.alpha?auditFocus=tenants-member-user.alpha");
         gateway.Received(1).GetTenantAuditAsync(
             Arg.Is<TenantAuditRequest>(request => request != null && request.TenantId == "tenant.alpha" && request.Cursor == null),
             Arg.Any<TenantAuditSnapshot?>(),
@@ -351,9 +353,9 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.Back"] = "Back to tenant details",
             ["Tenants.Audit.Category.Access"] = "Access",
             ["Tenants.Audit.Category.Administrative"] = "Administrative",
-            ["Tenants.Audit.Context.Command"] = "Command audit context {0} is selected. Tenant-scoped audit filters remain authoritative.",
+            ["Tenants.Audit.Context.Command"] = "Command reference {0} is a context hint, not proof. The audit grid is filtered by tenant, date, and category.",
             ["Tenants.Audit.Context.Source"] = "Audit opened from {0}. Tenant-scoped audit filters remain authoritative.",
-            ["Tenants.Audit.Context.User"] = "Audit context for user {0} is selected. Tenant-scoped audit filters remain authoritative.",
+            ["Tenants.Audit.Context.User"] = "User {0} is a context hint. The audit grid is filtered by tenant, date, and category; it does not show exhaustive user results.",
             ["Tenants.Audit.Context.SourceKind.TenantList"] = "the tenant list",
             ["Tenants.Audit.Context.SourceKind.TenantDetail"] = "tenant detail",
             ["Tenants.Audit.Context.SourceKind.MemberRow"] = "a member row",
@@ -379,7 +381,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.PaginationLabel"] = "Tenant audit pages",
             ["Tenants.Audit.Refresh"] = "Refresh",
             ["Tenants.Audit.Reset"] = "Reset filters",
-            ["Tenants.Audit.ReturnContext"] = "Return context restored. Focus target: {0}",
+            ["Tenants.Audit.ReturnContext"] = "Return to {0}. The originating control will receive focus when available.",
             ["Tenants.Audit.State.Empty.Message"] = "No audit entries are visible for this tenant scope.",
             ["Tenants.Audit.State.Empty.Title"] = "No audit entries",
             ["Tenants.Audit.State.Loading.Message"] = "Audit entries are loading through the server-side query gateway.",

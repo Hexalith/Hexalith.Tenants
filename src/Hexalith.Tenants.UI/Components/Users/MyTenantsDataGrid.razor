@@ -89,7 +89,9 @@
                                      Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
                                      AccessibleName="@AuditAccessibleName(context)"
                                      ReturnUrl="@ReturnUrl"
-                                     ReturnFocus="@($"{SelectorPrefix}-row-{context.TenantId}")" />
+                                     ReturnFocus="@($"{SelectorPrefix}-row-{context.TenantId}")"
+                                     IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
+                                     OnRefresh="@OnAuditRefresh" />
         </TemplateColumn>
     </FluentDataGrid>
 </div>
@@ -115,6 +117,12 @@
 
     [Parameter]
     public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public EventCallback OnAuditRefresh { get; set; }
 
     [Parameter]
     public string SourceKind { get; set; } = "my-tenants";

@@ -13,6 +13,7 @@ using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.UserTenants;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
@@ -1961,8 +1962,13 @@ public sealed class TenantListSurfaceTests : BunitContext
     {
         const string cursorSentinel = "opaque-protected-cursor-sentinel";
         const string eTagSentinel = "protected-etag-sentinel";
+        ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
+        bff.IsReadSurfaceConnected.Returns(true);
+        bff.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(bff);
         RegisterServices(ReadySnapshot(
-            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]) with
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None) with { Lifecycle = ProjectionLifecycleState.Current }]) with
         {
             ETag = eTagSentinel,
         });
@@ -1971,6 +1977,8 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
 
         string detailHref = cut.Find("[data-testid='tenants-list-detail-link']")
             .GetAttribute("href")
@@ -1980,6 +1988,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             .ShouldNotBeNull()
             .GetAttribute("href")
             .ShouldNotBeNull();
+        auditHref.ShouldContain("auditPartialReturn=true");
 
         foreach (string returnUrl in new[]
         {

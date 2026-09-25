@@ -1,4 +1,3 @@
-@using System.Globalization
 @using System.Text
 @inject IStringLocalizer<TenantsResources> Localizer
 
@@ -24,13 +23,26 @@ else
                   Disabled="true"
                   data-testid="tenants-audit-entrypoint"
                   data-audit-source="@SourceKind"
-                  aria-label="@AccessibleName">
+                  aria-label="@AccessibleName"
+                  aria-describedby="@_reasonId">
         <span data-testid="@SourceTestId">@Label</span>
-        <span class="tenants-audit-entrypoint__reason">@UnavailableText</span>
+        @if (!string.IsNullOrWhiteSpace(AvailabilityText))
+        {
+            <span class="tenants-audit-entrypoint__state">@AvailabilityText</span>
+        }
+        <span id="@_reasonId" class="tenants-audit-entrypoint__reason">@UnavailableText</span>
     </FluentButton>
+    @if ((OnRefresh.HasDelegate || AuditAuthorityRefresh is not null) && HasSafeContext)
+    {
+        <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="RefreshAsync" data-testid="tenants-audit-entrypoint-refresh">
+            @Localizer["Tenants.Audit.Refresh"]
+        </FluentButton>
+    }
 }
 
 @code {
+    private readonly string _reasonId = $"tenants-audit-reason-{Guid.NewGuid():N}";
+
     [Parameter]
     public string? TenantId { get; set; }
 
@@ -59,7 +71,13 @@ else
     public string AccessibleName { get; set; } = string.Empty;
 
     [Parameter]
-    public bool IsAvailable { get; set; } = true;
+    public bool IsAvailable { get; set; }
+
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
+    [CascadingParameter(Name = "AuditAuthorityRefresh")]
+    public Func<Task>? AuditAuthorityRefresh { get; set; }
 
     [Parameter]
     public string? UnavailableReason { get; set; }
@@ -68,35 +86,62 @@ else
     public string? AvailabilityText { get; set; }
 
     private bool HasTenantScope
-        => !string.IsNullOrWhiteSpace(TenantId) && !TenantId.Any(char.IsControl);
+        => TenantAuditNavigationSafety.IsSafeIdentifier(TenantId);
+
+    private bool HasSafeContext
+        => HasTenantScope
+            && TenantAuditNavigationSafety.IsSafeSource(SourceKind)
+            && (TargetUserId is null || TenantAuditNavigationSafety.IsSafeIdentifier(TargetUserId))
+            && (SupportSafeCommandReference is null || TenantAuditNavigationSafety.IsSafeHint(SupportSafeCommandReference))
+            && (ReturnFocus is null || TenantAuditNavigationSafety.IsSafeFocus(ReturnFocus))
+            && TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out _) is not null;
 
     private bool CanOpen
-        => IsAvailable && HasTenantScope;
+        => IsAvailable && HasSafeContext;
 
     private string Href
         => BuildHref();
 
     private string UnavailableText
-        => !HasTenantScope
+        => string.IsNullOrWhiteSpace(TenantId)
             ? Localizer["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"]
-            : string.IsNullOrWhiteSpace(UnavailableReason)
+            : !HasSafeContext
+                ? Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"]
+                : string.IsNullOrWhiteSpace(UnavailableReason)
                 ? Localizer["Tenants.Audit.EntryPoint.Unavailable.StaleScope"]
                 : UnavailableReason;
 
     private string BuildHref()
     {
-        if (!HasTenantScope)
+        if (!HasSafeContext)
         {
             return string.Empty;
         }
 
-        StringBuilder builder = new(string.Create(CultureInfo.InvariantCulture, $"/tenants/{Uri.EscapeDataString(TenantId!)}/audit"));
+        StringBuilder builder = new($"/tenants/{Uri.EscapeDataString(TenantId!)}/audit");
         AppendQuery(builder, "targetUserId", TargetUserId);
         AppendQuery(builder, "supportSafeCommandReference", SupportSafeCommandReference);
         AppendQuery(builder, "source", SourceKind);
-        AppendQuery(builder, "returnUrl", IsSafeReturnUrl(ReturnUrl) ? ReturnUrl : null);
+        string? safeReturnUrl = TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out bool partialReturn);
+        AppendQuery(builder, "returnUrl", safeReturnUrl);
         AppendQuery(builder, "returnFocus", ReturnFocus);
+        if (partialReturn)
+        {
+            AppendQuery(builder, "auditPartialReturn", "true");
+        }
         return builder.ToString();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (OnRefresh.HasDelegate)
+        {
+            await OnRefresh.InvokeAsync().ConfigureAwait(false);
+        }
+        else if (AuditAuthorityRefresh is not null)
+        {
+            await AuditAuthorityRefresh().ConfigureAwait(false);
+        }
     }
 
     private static void AppendQuery(StringBuilder builder, string key, string? value)
@@ -112,8 +157,4 @@ else
         builder.Append(Uri.EscapeDataString(value));
     }
 
-    private static bool IsSafeReturnUrl(string? returnUrl)
-        => !string.IsNullOrWhiteSpace(returnUrl)
-            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
-            && !returnUrl.StartsWith("//", StringComparison.Ordinal);
 }

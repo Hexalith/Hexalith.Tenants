@@ -820,20 +820,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-audit-receipt'] .audit-evidence-receipt__action").Click();
         Uri auditUri = new(Services.GetRequiredService<NavigationManager>().Uri);
-        Dictionary<string, string> query = auditUri.Query
-            .TrimStart('?')
-            .Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => part.Split('=', 2))
-            .ToDictionary(
-                pair => Uri.UnescapeDataString(pair[0]),
-                pair => Uri.UnescapeDataString(pair.Length == 2 ? pair[1] : string.Empty),
-                StringComparer.Ordinal);
-        auditUri.AbsolutePath.ShouldBe("/tenants/tenant.alpha/audit");
-        query["targetUserId"].ShouldBe("reader-user");
-        query["supportSafeCommandReference"].ShouldBe("message-1");
-        query["source"].ShouldBe("command-result");
-        query["returnUrl"].ShouldBe("/tenants/tenant.alpha");
-        query["returnFocus"].ShouldBe("tenants-remove-member-lifecycle");
+        auditUri.AbsolutePath.ShouldBe("/");
+        cut.Find("[data-testid='tenants-command-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        cut.Markup.ShouldNotContain("message-1");
     }
 
     [Fact]

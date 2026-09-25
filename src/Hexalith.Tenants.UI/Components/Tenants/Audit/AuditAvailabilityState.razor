@@ -56,6 +56,9 @@
     [Parameter]
     public EventCallback OnRefresh { get; set; }
 
+    [CascadingParameter(Name = "AuditAuthorityRefresh")]
+    public Func<Task>? AuditAuthorityRefresh { get; set; }
+
     [Parameter]
     public EventCallback OnInspectAudit { get; set; }
 
@@ -162,6 +165,10 @@
                 break;
             case TenantAuditRecoveryVerb.Refresh:
                 await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
+                if (AuditAuthorityRefresh is not null)
+                {
+                    await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
+                }
                 break;
             case TenantAuditRecoveryVerb.InspectAudit:
                 await InvokeAsync(() => OnInspectAudit.InvokeAsync()).ConfigureAwait(false);

@@ -94,7 +94,7 @@
     <section class="tenants-add-member-flow__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-add-member-lifecycle"
+             id="tenants-add-member-lifecycle" data-testid="tenants-add-member-lifecycle"
              aria-labelledby="tenants-add-member-state-label">
         <h4 id="tenants-add-member-state-label">@Localizer["Tenants.AddMember.Lifecycle.Title"]</h4>
         <p class="@StateClass" data-testid="tenants-add-member-state">
@@ -117,7 +117,8 @@
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-add-member-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -136,6 +137,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private static readonly TenantRole[] AssignableRoles =
     [
         TenantRole.TenantOwner,
@@ -270,7 +277,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";

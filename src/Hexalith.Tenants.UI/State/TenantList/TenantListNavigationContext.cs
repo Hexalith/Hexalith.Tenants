@@ -56,7 +56,6 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
 
         TenantWorkspaceState selected = WorkspaceState with
         {
-            Cursor = null,
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };

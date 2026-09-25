@@ -7,7 +7,10 @@
 @inject IStore Store
 @inject IServiceProvider Services
 
-<h1>@Localizer["Tenants.Navigation.Tenants"]</h1>
+<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+<FcPageHeader PageTitle="@Localizer["Tenants.Navigation.Tenants"]"
+              Heading="@Localizer["Tenants.Navigation.Tenants"]"
+              TestId="tenants-summary-projection-header" />
 
 <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
     <FluentAccordionItem Header="@Localizer["Tenants.Navigation.Tenants"]" Expanded="true">
@@ -40,6 +43,7 @@
         </fieldset>
     </FluentAccordionItem>
 </FluentAccordion>
+</FcPageLayout>
 
 @code {
     private CancellationTokenSource _cancellation = new();

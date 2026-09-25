@@ -1,0 +1,159 @@
+@implements IDisposable
+@inject IServiceProvider Services
+
+@ChildContent(this)
+
+@code {
+    private AuthenticationStateProvider? _authenticationStateProvider;
+    private long _version;
+    private long _callerVersion;
+    private long _resolvedCallerVersion;
+    private long _pendingCallerVersion;
+    private bool _disposed;
+    private ITenantsBffComposition? BffComposition
+        => Services.GetService(typeof(ITenantsBffComposition)) as ITenantsBffComposition;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<AuditReadAuthorityBoundary> ChildContent { get; set; } = default!;
+
+    public bool IsAvailable { get; private set; }
+
+    public bool IsResolved { get; private set; }
+
+    protected override void OnInitialized()
+    {
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+
+        _ = ObserveAsync(RefreshAsync());
+    }
+
+    public async Task RefreshAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        long version = Interlocked.Increment(ref _version);
+        await InvokeAsync(() =>
+        {
+            if (!_disposed && version == Volatile.Read(ref _version))
+            {
+                IsAvailable = false;
+                IsResolved = Volatile.Read(ref _pendingCallerVersion) == 0
+                    && Volatile.Read(ref _resolvedCallerVersion) != Volatile.Read(ref _callerVersion);
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+        if (Volatile.Read(ref _pendingCallerVersion) == 0
+            && Volatile.Read(ref _resolvedCallerVersion) == Volatile.Read(ref _callerVersion))
+        {
+            await ResolveAsync(version).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ResolveAsync(long version)
+    {
+        TenantLifecycleAuthorizationReflectionState reflection;
+        try
+        {
+            reflection = BffComposition is { } composition
+                ? await composition.ResolveGlobalAdministratorsAuthorizationAsync().ConfigureAwait(false)
+                : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        catch
+        {
+            reflection = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (!_disposed
+                && version == Volatile.Read(ref _version)
+                && Volatile.Read(ref _pendingCallerVersion) == 0
+                && Volatile.Read(ref _resolvedCallerVersion) == Volatile.Read(ref _callerVersion))
+            {
+                IsAvailable = reflection is TenantLifecycleAuthorizationReflectionState.Authorized
+                    && BffComposition?.IsReadSurfaceConnected is true;
+                IsResolved = true;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> callerTask)
+    {
+        long callerVersion = Interlocked.Increment(ref _callerVersion);
+        Interlocked.Exchange(ref _pendingCallerVersion, callerVersion);
+        Interlocked.Increment(ref _version);
+        _ = ObserveAsync(ApplyCallerChangeAsync(callerTask, callerVersion));
+    }
+
+    private async Task ApplyCallerChangeAsync(Task<AuthenticationState> callerTask, long callerVersion)
+    {
+        await InvokeAsync(() =>
+        {
+            if (!_disposed && callerVersion == Volatile.Read(ref _callerVersion))
+            {
+                IsAvailable = false;
+                IsResolved = false;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+        try
+        {
+            _ = await callerTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            if (callerVersion != Volatile.Read(ref _callerVersion))
+            {
+                return;
+            }
+
+            Interlocked.CompareExchange(ref _pendingCallerVersion, 0, callerVersion);
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && callerVersion == Volatile.Read(ref _callerVersion))
+                {
+                    IsResolved = true;
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        if (!_disposed && callerVersion == Volatile.Read(ref _callerVersion))
+        {
+            Interlocked.Exchange(ref _resolvedCallerVersion, callerVersion);
+            Interlocked.CompareExchange(ref _pendingCallerVersion, 0, callerVersion);
+            await RefreshAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static async Task ObserveAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Renderer disposal closes the boundary.
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Interlocked.Increment(ref _version);
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        }
+    }
+}

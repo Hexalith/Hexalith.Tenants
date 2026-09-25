@@ -3,7 +3,8 @@
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup">
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup"
+             data-audit-focus-terminal="@(AuditReadResolved && _snapshot?.Kind is not UserTenantMembershipSurfaceKind.Loading)">
     <FluentAccordion Class="user-lookup-page__sections"
                      ExpandMode="AccordionExpandMode.Multi"
                      Block="true">
@@ -157,7 +158,9 @@
                                            SelectorPrefix="tenants-user"
                                            TargetUserId="@_targetUserId"
                                            SourceKind="user-lookup"
-                                           ReturnUrl="@UserLookupReturnUrl" />
+                                           ReturnUrl="@UserLookupReturnUrl"
+                                           AuditReadAvailable="@AuditReadAvailable"
+                                           OnAuditRefresh="@RefreshAuditAsync" />
 
                         <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
@@ -204,6 +207,21 @@
 
     [Parameter]
     public bool UseWorkspaceRoute { get; set; }
+
+    [Parameter]
+    public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public bool AuditReadResolved { get; set; }
+
+    [Parameter]
+    public string? AuditFocus { get; set; }
+
+    [Parameter]
+    public bool AuditPartialReturn { get; set; }
+
+    [Parameter]
+    public EventCallback OnAuditRefresh { get; set; }
 
     [Parameter]
     public bool ShowBackLink { get; set; } = true;
@@ -270,7 +288,10 @@
         };
 
     private string UserLookupReturnUrl
-        => TenantWorkspaceState.FromQuery(
+    {
+        get
+        {
+            string canonical = TenantWorkspaceState.FromQuery(
             TenantWorkspaceState.UsersTab,
             TenantWorkspaceState.AllScope,
             _targetUserId ?? _inputUserId,
@@ -281,6 +302,33 @@
             _currentCursor,
             selectedTenantId: null,
             anchor: null).ToCanonicalUrl();
+            return UseWorkspaceRoute ? canonical : "/tenants/users" + canonical[8..];
+        }
+    }
+
+    private string UserLookupNavigationUrl
+    {
+        get
+        {
+            string standalone = UserLookupReturnUrl;
+            if (UseWorkspaceRoute)
+            {
+                return standalone;
+            }
+
+            if (TenantAuditNavigationSafety.IsSafeFocus(AuditFocus))
+            {
+                standalone += "&auditFocus=" + Uri.EscapeDataString(AuditFocus!);
+            }
+
+            if (AuditPartialReturn)
+            {
+                standalone += "&auditPartialReturn=true";
+            }
+
+            return standalone;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -349,11 +397,14 @@
 
     private async Task RefreshAsync()
     {
+        await OnAuditRefresh.InvokeAsync().ConfigureAwait(false);
         if (!string.IsNullOrEmpty(_targetUserId))
         {
             await RunLookupAsync(_targetUserId, reuseETag: true).ConfigureAwait(false);
         }
     }
+
+    private Task RefreshAuditAsync() => RefreshAsync();
 
     private async Task ClearAsync()
     {
@@ -428,18 +479,12 @@
                     : UserTenantMembershipReason.InvalidTargetUser);
             _announcement = Localizer["Tenants.UserLookup.Announcement.Invalid"];
             _focusStatusPending = true;
-            Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
+            Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
             return true;
         }
 
         string validTargetUserId = normalizedTargetUserId;
         _targetUserId = validTargetUserId;
-        if (!UseWorkspaceRoute)
-        {
-            Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
-            return false;
-        }
-
         UserTenantMembershipSnapshot? previous = _snapshot;
         _snapshot = UserTenantMembershipSnapshot.Loading() with
         {
@@ -481,7 +526,7 @@
                 ? Localizer["Tenants.UserLookup.Announcement.PageRecovered", validTargetUserId]
                 : AnnouncementFor(snapshot, validTargetUserId);
             _focusStatusPending = true;
-            Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
+            Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
             applied = true;
         });
 

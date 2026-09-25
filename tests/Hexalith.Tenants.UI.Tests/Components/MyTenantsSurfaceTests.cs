@@ -91,6 +91,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             "tenants-my-copy-reference",
             "tenants-copy-reference",
             "tenants-audit-entrypoint",
+            "tenants-audit-entrypoint-refresh",
             "tenants-my-next",
             "tenants-my-previous",
             "tenants-my-refresh",
@@ -127,6 +128,28 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-surface-testid='tenants-my-copy-reference']").Click();
         cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
         writeHandler.Invocations.Single().Arguments[0].ShouldBe(tenantId);
+    }
+
+    [Fact]
+    public void Removing_audit_focus_clears_notices_and_allows_same_focus_to_be_restored_again()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusAuditLauncher", _ => true);
+        focus.SetResult(false);
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha&auditPartialReturn=true");
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("[data-testid='tenants-audit-partial-return']");
+
+        navigation.NavigateTo("/tenants/my");
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-audit-partial-return']").ShouldBeEmpty();
+
+        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
     }
 
     [Fact]
@@ -288,19 +311,23 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.beta"));
 
         requests[1].Cursor.ShouldBe("opaque-next-cursor");
-        requestUris[1].ShouldBe("http://localhost/tenants?tab=tenants&scope=mine&cursor=opaque-next-cursor");
+        requestUris[1].ShouldBe("http://localhost/tenants/my?cursor=opaque-next-cursor");
+        string detailHref = cut.Find("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
+        detailHref.ShouldNotContain("opaque-next-cursor");
+        Uri.UnescapeDataString(detailHref["/tenants/tenant.beta?returnUrl=".Length..])
+            .ShouldBe("/tenants/my?auditFocus=tenants-my-row-tenant.beta&auditPartialReturn=true");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Stale");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
-            "http://localhost/tenants?tab=tenants&scope=mine&cursor=opaque-next-cursor");
+            "http://localhost/tenants/my?cursor=opaque-next-cursor");
 
         cut.Find("[data-testid='tenants-my-previous']").Click();
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.alpha"));
 
         requests[2].Cursor.ShouldBeNull();
-        requestUris[2].ShouldBe("http://localhost/tenants?tab=tenants&scope=mine");
+        requestUris[2].ShouldBe("http://localhost/tenants/my");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
-            "http://localhost/tenants?tab=tenants&scope=mine");
+            "http://localhost/tenants/my");
     }
 
     [Fact]
@@ -342,7 +369,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         href.ShouldNotBeNull();
         href.ShouldStartWith("/tenants/tenant.alpha?returnUrl=");
         string decodedReturnUrl = Uri.UnescapeDataString(href!["/tenants/tenant.alpha?returnUrl=".Length..]);
-        decodedReturnUrl.ShouldBe("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+        decodedReturnUrl.ShouldBe("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
 
         // AC7: the identity element carries the id the ReturnFocus anchor points at, so focus-on-return
         // resolves (previously the id was missing and focus was a no-op).

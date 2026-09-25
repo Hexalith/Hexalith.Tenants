@@ -4,11 +4,18 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.UI.Components.Users
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
+@inject IJSRuntime JS
 
+<CascadingValue Value="@AuditReadAvailable" Name="AuditReadAvailable">
+<CascadingValue Value="@((Func<Task>)RefreshAuditAuthorityAsync)" Name="AuditAuthorityRefresh">
+<span hidden data-audit-focus-page-terminal="@(_auditAuthorityResolved && (IsUsersTab || _snapshot.Kind is not TenantListSurfaceKind.Loading))"
+      data-audit-focus-heading="tenants-list-heading"
+      data-audit-focus-active-origin="@ActiveAuditOrigin"></span>
 <FcAggregateListPage TItem="TenantListRow"
                      @ref="_listPage"
                      LayoutMode="FcPageLayoutMode.FullWidth"
@@ -47,7 +54,8 @@
                 <FluentStack Orientation="Orientation.Vertical"
                              VerticalGap="24px"
                              Width="100%"
-                             data-testid="tenants-workspace-tenants-panel-content">
+                             data-testid="tenants-workspace-tenants-panel-content"
+                             data-audit-focus-terminal="@(_auditAuthorityResolved && _snapshot.Kind is not TenantListSurfaceKind.Loading)">
                     <FluentStack Orientation="Orientation.Horizontal"
                                  HorizontalGap="12px"
                                  VerticalGap="12px"
@@ -132,6 +140,14 @@
                             @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
                         </FluentText>
                     }
+                    @if (_auditReturnNotice)
+                    {
+                        <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
+                    }
+                    @if (_auditPartialReturn)
+                    {
+                        <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
+                    }
                     @if (IsRetainedMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
                     {
                         <FluentText As="TextTag.Paragraph"
@@ -145,7 +161,7 @@
                     {
                         <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
                             <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
-                                                 Expanded="false"
+                                                 Expanded="@IsCreateAuditReturn"
                                                  data-testid="tenants-create-accordion">
                                 <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
                                                   IsFresh="@IsCreateFresh"
@@ -154,6 +170,7 @@
                                                   BaselineTenantAbsent="@IsAuthoritativeFirstTenantEmpty"
                                                   IsFirstTenantBootstrap="@IsFirstTenantBootstrap"
                                                   ShowHeading="false"
+                                                  RestoreAuditReturn="@IsCreateAuditReturn"
                                                   OnProjectionRefreshRequested="RefreshAsync"
                                                   ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
                             </FluentAccordionItem>
@@ -239,6 +256,8 @@
                     @if (IsRetainedTenantListView && ShowList)
                     {
                         <TenantDataGrid Rows="@_visibleRows"
+                                        AuditReadAvailable="@AuditReadAvailable"
+                                        OnAuditRefresh="@RefreshAsync"
                                         DetailHref="CreateDetailHref"
                                         AuditHref="CreateAuditHref"
                                         SortColumn="@_sortColumn"
@@ -248,7 +267,7 @@
                     }
                     else if (IsRetainedMyTenantsView)
                     {
-                        <MyTenantsPanel InitialCursor="@_tenantWorkspaceState.Cursor" />
+                        <MyTenantsPanel InitialCursor="@_tenantWorkspaceState.Cursor" UseWorkspaceRoute="true" AuditReadAvailable="@AuditReadAvailable" AuditReadResolved="@_auditAuthorityResolved" OnAuditRefresh="@RefreshAuditAuthorityAsync" />
                     }
                     @if (ShowPager)
                     {
@@ -273,6 +292,9 @@
                     <UserMembershipLookupPanel InitialUserId="@_usersWorkspaceState.UserId"
                                                InitialSort="@_usersWorkspaceState.Sort"
                                                InitialCursor="@_usersWorkspaceState.Cursor"
+                                               AuditReadAvailable="@AuditReadAvailable"
+                                               AuditReadResolved="@_auditAuthorityResolved"
+                                               OnAuditRefresh="@RefreshAuditAuthorityAsync"
                                                UseWorkspaceRoute="true"
                                                ShowBackLink="false" />
                 </div>
@@ -280,6 +302,8 @@
         </FcPageTabs>
     </Body>
 </FcAggregateListPage>
+</CascadingValue>
+</CascadingValue>
 
 @code {
     private static readonly int[] _pageSizes = [20, 50, 100];
@@ -332,10 +356,28 @@
     private string _tenantScope = TenantWorkspaceState.AllScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
+    private string? _pendingAuditFocus;
+    private string? _handledAuditFocus;
+    private bool _auditReturnNotice;
+    private bool _auditPartialReturn;
+    private bool _handledMissingAuditReturn;
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
     private bool _canReviewGlobalAdministrators;
+    private bool _auditAuthorityResolved;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "auditFocus")]
+    public string? QueryAuditFocus { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "auditPartialReturn")]
+    public bool QueryAuditPartialReturn { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "auditReturnUnavailable")]
+    public bool QueryAuditReturnUnavailable { get; set; }
     private AuthenticationStateProvider? _authenticationStateProvider;
     private long _authorizationVersion;
 
@@ -394,6 +436,14 @@
 
     private bool IsTenantsTab
         => string.Equals(_activeTabId, TenantWorkspaceState.TenantsTab, StringComparison.Ordinal);
+
+    private bool IsCreateAuditReturn
+        => string.Equals(QueryAuditFocus, "tenants-create-lifecycle", StringComparison.Ordinal);
+
+    private string ActiveAuditOrigin
+        => IsUsersTab ? "tenants-user-lookup"
+            : IsMyTenantsView ? "tenants-my-page"
+            : "tenants-workspace-tenants-panel-content";
 
     private bool IsUsersTab
         => string.Equals(_activeTabId, TenantWorkspaceState.UsersTab, StringComparison.Ordinal);
@@ -566,13 +616,15 @@
         StartGlobalAdministratorsEntryResolution();
         bool querySearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         RestoreContextFromQuery();
+        CaptureAuditReturn();
         NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
         _initialized = true;
 
         // When returning from a tenant detail surface the launching row may no longer be visible
         // after the list reloads, so move keyboard focus to the list heading and let the visible
         // return-context message explain that filters/sort/cursor/selection were restored.
-        _focusHeadingPending = !string.IsNullOrWhiteSpace(_selectedTenantId);
+        _focusHeadingPending = _pendingAuditFocus is null
+            && (QueryAuditReturnUnavailable || !string.IsNullOrWhiteSpace(_selectedTenantId));
 
         if (IsTenantListView)
         {
@@ -584,6 +636,7 @@
     {
         long version = Interlocked.Increment(ref _authorizationVersion);
         _canReviewGlobalAdministrators = false;
+        _auditAuthorityResolved = false;
         Task callback = InvokeAsync(() => ResolveGlobalAdministratorsEntryAsync(version));
         _ = ObserveAuthorizationCallbackAsync(callback);
     }
@@ -592,6 +645,15 @@
     {
         if (Services.GetService(typeof(ITenantsBffComposition)) is not ITenantsBffComposition bffComposition)
         {
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && version == Volatile.Read(ref _authorizationVersion))
+                {
+                    _canReviewGlobalAdministrators = false;
+                    _auditAuthorityResolved = true;
+                    StateHasChanged();
+                }
+            });
             return;
         }
 
@@ -602,6 +664,14 @@
         }
         catch
         {
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && version == Volatile.Read(ref _authorizationVersion))
+                {
+                    _auditAuthorityResolved = true;
+                    StateHasChanged();
+                }
+            });
             return;
         }
 
@@ -613,6 +683,7 @@
             }
 
             _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
+            _auditAuthorityResolved = true;
             StateHasChanged();
         });
     }
@@ -634,6 +705,7 @@
         }
 
         _canReviewGlobalAdministrators = false;
+        _auditAuthorityResolved = false;
         StateHasChanged();
 
         try
@@ -642,6 +714,8 @@
         }
         catch
         {
+            _auditAuthorityResolved = true;
+            StateHasChanged();
             return;
         }
 
@@ -672,6 +746,8 @@
             return;
         }
 
+        CaptureAuditReturn();
+
         bool incomingSearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         TenantWorkspaceState incoming = WorkspaceStateFromQuery();
         if (incoming == _workspaceState)
@@ -695,10 +771,81 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_pendingAuditFocus is { } focus)
+        {
+            _pendingAuditFocus = null;
+            _ = RestoreAuditFocusAsync(focus);
+        }
+
         if (_focusHeadingPending)
         {
             _focusHeadingPending = false;
             await _listPage.FocusHeadingAsync();
+        }
+    }
+
+    private void CaptureAuditReturn()
+    {
+        if (QueryAuditFocus is null || !TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
+        {
+            _handledAuditFocus = null;
+            _pendingAuditFocus = null;
+            _auditPartialReturn = false;
+            if (QueryAuditReturnUnavailable)
+            {
+                _auditReturnNotice = true;
+                if (!_handledMissingAuditReturn)
+                {
+                    _focusHeadingPending = true;
+                }
+
+                _handledMissingAuditReturn = true;
+            }
+            else
+            {
+                _auditReturnNotice = false;
+                _handledMissingAuditReturn = false;
+            }
+
+            return;
+        }
+
+        _handledMissingAuditReturn = false;
+
+        if (QueryAuditFocus is { } focus && TenantAuditNavigationSafety.IsSafeFocus(focus)
+            && !string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+        {
+            _handledAuditFocus = focus;
+            _pendingAuditFocus = focus;
+            _focusHeadingPending = false;
+            _auditReturnNotice = false;
+            _auditPartialReturn = QueryAuditPartialReturn;
+        }
+    }
+
+    private async Task RestoreAuditFocusAsync(string focus)
+    {
+        string origin = focus.StartsWith("tenants-user-row-", StringComparison.Ordinal)
+            ? "tenants-user-lookup"
+            : focus.StartsWith("tenants-my-row-", StringComparison.Ordinal)
+                ? "tenants-my-page"
+                : "tenants-workspace-tenants-panel-content";
+        try
+        {
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            bool found = await module.InvokeAsync<bool>("focusAuditLauncher", focus, origin, "tenants-list-heading");
+            if (!found && !_disposed && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+            {
+                await InvokeAsync(() =>
+                {
+                    _auditReturnNotice = true;
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser circuit ended before focus restoration.
         }
     }
 
@@ -912,7 +1059,20 @@
     }
 
     private async Task RefreshAsync()
-        => await LoadAsync(reuseETag: true);
+    {
+        StartGlobalAdministratorsEntryResolution();
+        await LoadAsync(reuseETag: true);
+    }
+
+    private Task RefreshAuditAuthorityAsync()
+    {
+        StartGlobalAdministratorsEntryResolution();
+        return Task.CompletedTask;
+    }
+
+    private bool AuditReadAvailable
+        => _canReviewGlobalAdministrators
+            && Services.GetService(typeof(ITenantsBffComposition)) is ITenantsBffComposition { IsReadSurfaceConnected: true };
 
     // Reconciles the two search paging modes. Crossing the authoritative/fallback boundary retires the
     // mode that is no longer active, so its Previous affordance cannot offer unreachable pages and a
@@ -1321,6 +1481,20 @@
     private bool NavigateToCanonicalWorkspaceIfNeeded(TenantWorkspaceState state)
     {
         string canonicalUrl = state.ToCanonicalUrl();
+        if (TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
+        {
+            canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")
+                + "auditFocus=" + Uri.EscapeDataString(QueryAuditFocus!);
+            if (QueryAuditPartialReturn)
+            {
+                canonicalUrl += "&auditPartialReturn=true";
+            }
+        }
+        else if (QueryAuditReturnUnavailable)
+        {
+            canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")
+                + "auditReturnUnavailable=true";
+        }
         string currentUrl = HttpContext is null
             ? Navigation.ToBaseRelativePath(Navigation.Uri)
             : $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";

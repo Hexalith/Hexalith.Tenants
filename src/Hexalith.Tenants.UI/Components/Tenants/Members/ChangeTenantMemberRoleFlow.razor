@@ -115,7 +115,7 @@
     <section class="tenants-change-role-flow__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-change-role-lifecycle"
+             id="tenants-change-role-lifecycle" data-testid="tenants-change-role-lifecycle"
              aria-labelledby="tenants-change-role-state-label">
         <h4 id="tenants-change-role-state-label">@Localizer["Tenants.ChangeRole.Lifecycle.Title"]</h4>
         <p class="@StateClass" data-testid="tenants-change-role-state">
@@ -138,7 +138,8 @@
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-change-role-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -157,6 +158,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private static readonly TenantRole[] AssignableRoles =
     [
         TenantRole.TenantOwner,
@@ -310,7 +317,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";

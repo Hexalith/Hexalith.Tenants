@@ -153,7 +153,7 @@
     }
 
     <section class="tenants-config-set__lifecycle" @ref="_lifecycleElement" tabindex="-1"
-             data-testid="tenants-config-set-lifecycle" aria-labelledby="tenants-config-set-state-label">
+             id="tenants-config-set-lifecycle" data-testid="tenants-config-set-lifecycle" aria-labelledby="tenants-config-set-state-label">
         <h4 id="tenants-config-set-state-label">@Localizer["Tenants.Configuration.Set.Lifecycle.Title"]</h4>
         <p class="@StateClass" data-testid="tenants-config-set-state">
             <span aria-hidden="true">@StateSymbol</span><span>@StateText</span>
@@ -169,7 +169,8 @@
                                                  AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Context.TenantId]"
                                                  ReturnUrl="@CommandAuditReturnUrl" ReturnFocus="tenants-config-set-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -185,6 +186,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private const int MaxConfigurationKeyLength = 256;
     private const int MaxConfigurationValueLength = 1024;
     private readonly object _formModel = new();
@@ -342,7 +349,7 @@
     private string StateText => Localizer[$"Tenants.Configuration.Set.State.{LocalizedCommandState(_snapshot.State)}"];
     private string AuditText => Localizer[$"Tenants.Configuration.Set.Audit.{LocalizedAuditState(_snapshot.AuditState)}"];
     private bool ShouldRenderAuditEntryPoint => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
-    private string CommandAuditReturnUrl => $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
+    private string CommandAuditReturnUrl => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
     private string RecoveryText => Localizer[$"Tenants.Configuration.Set.Recovery.{LocalizedCommandState(_snapshot.State)}"];
     private string LiveRegionMode => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
     private string KeyDescribedBy => DescribedBy("tenants-config-set-key-help");

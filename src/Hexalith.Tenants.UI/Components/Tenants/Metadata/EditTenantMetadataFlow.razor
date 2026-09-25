@@ -118,7 +118,7 @@
     <section class="tenants-edit-metadata__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-edit-metadata-lifecycle"
+             id="tenants-edit-metadata-lifecycle" data-testid="tenants-edit-metadata-lifecycle"
              aria-labelledby="tenants-edit-metadata-state-label">
         <h3 id="tenants-edit-metadata-state-label">@Localizer["Tenants.EditMetadata.Lifecycle.Title"]</h3>
         <p class="@StateClass" data-testid="tenants-edit-metadata-state">
@@ -139,7 +139,8 @@
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-edit-metadata-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -159,6 +160,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     private readonly object _formModel = new();
     private TenantUpdateMetadataCommandSnapshot _snapshot = TenantUpdateMetadataCommandSnapshot.Idle();
     private string? _name;
@@ -372,7 +379,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.EditMetadata.Recovery.{_snapshot.State}"];

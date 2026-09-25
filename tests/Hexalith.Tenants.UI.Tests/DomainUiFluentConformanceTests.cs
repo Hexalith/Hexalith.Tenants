@@ -297,6 +297,7 @@ public sealed class DomainUiFluentConformanceTests
             ("TenantAuditPage.razor", "FcPageLayoutMode.FullWidth", "audit review keeps the audit DataGrid directly visible"),
             ("TenantDetailPage.razor", "FcPageLayoutMode.Constrained", "tenant detail is a readable detail and command composition page"),
             ("UserMembershipLookupPage.razor", "FcPageLayoutMode.Constrained", "lookup form and status copy need readable measure"),
+            ("TenantSummaryProjectionPage.razor", "FcPageLayoutMode.FullWidth", "tenant summary projection is a DataGrid-first operational surface"),
         ];
 
         List<string> offenders = [];

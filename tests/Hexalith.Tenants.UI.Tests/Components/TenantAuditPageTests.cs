@@ -328,7 +328,7 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void RestoredAuditContextEscapesFormatIdentity()
+    public void RestoredAuditContextRejectsUnsafeIdentity()
     {
         RegisterServices(ReadySnapshot([Row("event-safe-reference", AuditEventCategory.Access)]));
         const string target = "  target\u034F\uFE0F\\{U+200D}  ";
@@ -339,8 +339,7 @@ public sealed class TenantAuditPageTests : BunitContext
             .Add(component => component.TenantId, "system"));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
-        cut.Find("[data-testid='tenants-audit-context']")
-            .TextContent.ShouldContain(@"  target\{U+034F}\{U+FE0F}\\{U+200D}  ");
+        cut.FindAll("[data-testid='tenants-audit-context']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -1006,14 +1005,14 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Theory]
-    [InlineData("%252F%252Fevil.example", "/tenants/tenant.alpha")]
-    [InlineData("%2568%2574%2574%2570%2573%253A%252F%252Fevil.example", "/tenants/tenant.alpha")]
-    [InlineData("%252Ftenants%252F..%252Fadmin", "/tenants/tenant.alpha")]
-    [InlineData("/tenants/%2561ccess_token", "/tenants/tenant.alpha")]
-    [InlineData("/tenants/tenant.beta?filter=%2561uthorization", "/tenants/tenant.alpha")]
-    [InlineData("%2Ftenants%2Ftenant.beta%3Fkey%3D%2573ecret", "/tenants/tenant.alpha")]
-    [InlineData("%252Ftenants%252Ftenant.beta%253Ftab%253Daudit", "/tenants/tenant.beta?tab=audit")]
-    [InlineData("/tenants?cursor=opaque-next&selected=tenant.beta", "/tenants?cursor=opaque-next&selected=tenant.beta")]
+    [InlineData("%252F%252Fevil.example", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("%2568%2574%2574%2570%2573%253A%252F%252Fevil.example", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("%252Ftenants%252F..%252Fadmin", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("/tenants/%2561ccess_token", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("/tenants/tenant.beta?filter=%2561uthorization", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("%2Ftenants%2Ftenant.beta%3Fkey%3D%2573ecret", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("%252Ftenants%252Ftenant.beta%253Ftab%253Daudit", "/tenants?auditReturnUnavailable=true")]
+    [InlineData("/tenants?cursor=opaque-next&selected=tenant.beta", "/tenants?selected=tenant.beta&auditPartialReturn=true")]
     public void Tenant_audit_return_navigation_canonicalizes_safe_paths_and_rejects_encoded_unsafe_urls(
         string returnUrl,
         string expectedHref)
@@ -1027,6 +1026,36 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
         cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldBe(expectedHref);
+    }
+
+    [Fact]
+    public void Audit_page_without_return_context_uses_explicit_missing_origin_handoff()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href")
+            .ShouldBe("/tenants?auditReturnUnavailable=true");
+    }
+
+    [Fact]
+    public void Older_audit_link_reports_partial_return_when_a_nested_list_cursor_is_stripped()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo(navigation.GetUriWithQueryParameter(
+            "returnUrl", "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fcursor%3Dopaque-next%26search%3Dalpha"));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        string href = cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldNotBeNull();
+        href.ShouldContain("auditPartialReturn=true");
+        href.ShouldNotContain("cursor");
     }
 
     [Fact]
@@ -1448,12 +1477,43 @@ public sealed class TenantAuditPageTests : BunitContext
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, blankTenantId));
-        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        cut.WaitForElement("[data-testid='tenants-audit-unavailable']");
 
         // A blank/whitespace TenantId must render the localized fallback, never a dangling
         // "Audit trail for " heading (AC8 — cosmetic, not a crash fix).
         cut.Markup.ShouldContain("Audit trail for this tenant");
         cut.Markup.ShouldNotContain("Audit trail for <", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("tenant/other")]
+    [InlineData("tenant\u200dalpha")]
+    [InlineData("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")]
+    public void UnsafeDirectTenantRouteNeverQueriesAudit(string tenantId)
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, tenantId));
+
+        cut.Find("[data-testid='tenants-audit-unavailable']").ShouldNotBeNull();
+        cut.Find("#tenant-audit-heading").TextContent.ShouldContain("Audit trail for this tenant");
+        gateway.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void UnpairedSurrogateDirectRouteUsesFallbackHeadingWithoutReadingAudit()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        string unsafeTenantId = "tenant" + new string((char)0xD800, 1) + "alpha";
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, unsafeTenantId));
+
+        cut.Find("#tenant-audit-heading").TextContent.ShouldContain("Audit trail for this tenant");
+        gateway.Requests.ShouldBeEmpty();
     }
 
     [Fact]

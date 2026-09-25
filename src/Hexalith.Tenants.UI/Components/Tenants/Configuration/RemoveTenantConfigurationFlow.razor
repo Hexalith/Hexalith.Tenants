@@ -144,7 +144,7 @@
     <section class="tenants-config-remove__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-config-remove-lifecycle"
+             id="tenants-config-remove-lifecycle" data-testid="tenants-config-remove-lifecycle"
              aria-labelledby="tenants-config-remove-state-label">
         <h4 id="tenants-config-remove-state-label">@Localizer["Tenants.Configuration.Remove.Lifecycle.Title"]</h4>
         <p class="@StateClass" data-testid="tenants-config-remove-state">
@@ -165,7 +165,8 @@
                                                  ReturnUrl="@CommandAuditReturnUrl"
                                                  ReturnFocus="tenants-config-remove-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -190,6 +191,12 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "DetailAuditReturnUrl")]
+    public string? DetailAuditReturnUrl { get; set; }
+
     internal static readonly TimeSpan MaximumOperationDuration = TimeSpan.FromSeconds(30);
     private readonly object _formModel = new();
     private TenantRemoveConfigurationCommandSnapshot _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle();
@@ -448,7 +455,7 @@
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
     private string CommandAuditReturnUrl
-        => $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
+        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.Configuration.Remove.Recovery.{_snapshot.State}"];

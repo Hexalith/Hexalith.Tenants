@@ -97,7 +97,7 @@
     <section class="tenants-create-flow__lifecycle"
              @ref="_lifecycleElement"
              tabindex="-1"
-             data-testid="tenants-create-lifecycle"
+             id="tenants-create-lifecycle" data-testid="tenants-create-lifecycle"
              aria-labelledby="tenants-create-state-label">
         <h3 id="tenants-create-state-label">@Localizer["Tenants.Create.Lifecycle.Title"]</h3>
         <p class="@StateClass" data-testid="tenants-create-state">
@@ -118,7 +118,8 @@
                                                  ReturnUrl="/tenants"
                                                  ReturnFocus="tenants-create-lifecycle"
                                                  AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
+                                                 IsAvailable="@AuditReadAvailable" />
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -139,6 +140,9 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "AuditReadAvailable")]
+    public bool AuditReadAvailable { get; set; }
+
     private readonly object _formModel = new();
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
     private string? _tenantId;
@@ -158,6 +162,9 @@
 
     [Parameter]
     public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool RestoreAuditReturn { get; set; }
 
     [Parameter]
     public bool IsFresh { get; set; } = true;
@@ -181,6 +188,24 @@
     public Func<string, Task<(TenantSummary? Summary, string? ProjectionVersion)>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantCreateCommandSnapshot Snapshot => _snapshot;
+
+    protected override void OnInitialized()
+    {
+        TenantCreateAuditReturnState? returnState = Services.GetService<TenantCreateAuditReturnState>();
+        if (!RestoreAuditReturn || !IsAuthorized)
+        {
+            returnState?.Clear();
+            return;
+        }
+
+        if (returnState?.Take() is { } retained)
+        {
+            _snapshot = retained.Snapshot;
+            _tenantId = retained.TenantId;
+            _name = retained.Name;
+            _description = retained.Description;
+        }
+    }
 
     private string? UnavailableReason
         => !IsAuthorized
@@ -260,6 +285,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Keep the state before navigation. A native anchor can leave a Blazor Server circuit before
+        // its click callback reaches the server, so click-time retention is too late.
+        TenantCreateAuditReturnState? returnState = Services.GetService<TenantCreateAuditReturnState>();
+        if (IsAuthorized && AuditReadAvailable && ShouldRenderAuditEntryPoint
+            && TenantAuditNavigationSafety.IsSafeIdentifier(_tenantId))
+        {
+            returnState?.Remember(_snapshot, _tenantId, _name, _description);
+        }
+        else
+        {
+            returnState?.Clear();
+        }
+
         if (_focusTenantIdPending)
         {
             _focusTenantIdPending = false;

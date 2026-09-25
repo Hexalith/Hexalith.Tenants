@@ -12,6 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -23,6 +24,62 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class CreateTenantFlowTests : FluentBunitContext
 {
+    [Fact]
+    public void Audit_return_restores_create_command_state_once_within_the_circuit()
+    {
+        TenantCreateAuditReturnState returnState = new(new ServiceCollection().BuildServiceProvider());
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new CreateTenant("tenant.alpha", "Alpha", "Description"), null, true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"));
+        returnState.Remember(snapshot, "tenant.alpha", "Alpha", "Description");
+        Services.AddSingleton(returnState);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+
+        IRenderedComponent<CreateTenantFlow> returned = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.RestoreAuditReturn, true));
+
+        returned.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        returned.Find("[data-testid='tenants-create-tenant-id']").GetAttribute("value").ShouldBe("tenant.alpha");
+        returned.Find("[data-testid='tenants-create-name']").GetAttribute("value").ShouldBe("Alpha");
+        returnState.Take().ShouldBeNull();
+
+        returnState.Remember(snapshot, "tenant.alpha", "Alpha", null);
+        _ = Render<CreateTenantFlow>();
+        returnState.Take().ShouldBeNull();
+    }
+
+    [Fact]
+    public void Rendered_create_audit_launcher_saves_state_before_navigation()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed),
+        };
+        TenantCreateAuditReturnState returnState = new(new ServiceCollection().BuildServiceProvider());
+        Services.AddSingleton(returnState);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadAvailable")
+            .Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(child => child
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<(TenantSummary?, string?)>((null, null)))));
+        IRenderedComponent<CreateTenantFlow> flow = wrapper.FindComponent<CreateTenantFlow>();
+        flow.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        flow.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        flow.Find("form").Submit();
+        flow.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']");
+
+        var retained = returnState.Take();
+        retained.ShouldNotBeNull();
+        retained.Value.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        retained.Value.TenantId.ShouldBe("tenant.alpha");
+    }
+
     [Fact]
     public void Create_flow_renders_stable_selectors_and_fail_closed_reason()
     {

@@ -23,6 +23,7 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -44,6 +45,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
         Services.AddScoped<TenantSearchPagingState>();
+        Services.AddScoped<TenantCreateAuditReturnState>();
     }
 
     [Fact]
@@ -271,6 +273,46 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
 
         cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Workspace_without_bff_resolves_audit_focus_fail_closed()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForElement("[data-audit-focus-page-terminal]");
+        cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+        PrivateField<bool>(cut.Instance, "_auditAuthorityResolved").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Missing_audit_return_handoff_shows_notice_and_requests_heading_focus()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?auditReturnUnavailable=true");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.Find("[data-testid='tenants-audit-return-notice']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldEndWith("/tenants?auditReturnUnavailable=true");
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants");
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
     }
 
     [Fact]
@@ -546,9 +588,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         gateway.Received(1)
             .GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>());
         cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.alpha");
-        string? auditHref = cut.Find("[data-testid='tenants-audit-entrypoint']").GetAttribute("href");
-        auditHref.ShouldNotBeNull();
-        auditHref.ShouldContain("returnUrl=");
+        cut.Find("[data-testid='tenants-audit-entrypoint']").GetAttribute("href").ShouldBeNull();
     }
 
     [Fact]
@@ -658,6 +698,45 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         // The accordion header already shows the title, so the inner <h2> must not be rendered (no duplicate).
         cut.FindAll("#tenants-create-heading").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Audit_return_restores_create_lifecycle_inside_expanded_accordion()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), null, true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"));
+        Services.GetRequiredService<TenantCreateAuditReturnState>()
+            .Remember(snapshot, "tenant.alpha", "Alpha", null);
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants?auditFocus=tenants-create-lifecycle");
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+
+        IRenderedComponent<Router> cut = Render<Router>(parameters => parameters
+            .Add(component => component.AppAssembly, typeof(TenantsWorkspace).Assembly)
+            .Add(component => component.Found, routeData => builder =>
+            {
+                builder.OpenComponent<RouteView>(0);
+                builder.AddAttribute(1, "RouteData", routeData);
+                builder.CloseComponent();
+            }));
+
+        cut.WaitForElement("[data-testid='tenants-create-accordion']");
+        cut.FindComponent<TenantsWorkspace>().Instance.QueryAuditFocus.ShouldBe("tenants-create-lifecycle");
+        cut.Find("[data-testid='tenants-create-accordion']").HasAttribute("expanded").ShouldBeTrue();
+        CreateTenantFlow restored = cut.FindComponent<CreateTenantFlow>().Instance;
+        restored.RestoreAuditReturn.ShouldBeTrue();
+        restored.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Find("[data-testid='tenants-create-lifecycle']");
     }
 
     [Fact]
