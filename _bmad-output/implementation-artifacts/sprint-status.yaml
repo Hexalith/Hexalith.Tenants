@@ -73,7 +73,7 @@ development_status:
   epic-4-retrospective: done
 
   epic-5: in-progress
-  5-1-browse-tenant-audit-trail: in-progress
+  5-1-browse-tenant-audit-trail: done
   5-2-reach-scoped-audit-evidence-from-context: review
   5-3-view-a-support-safe-audit-evidence-receipt: backlog
   5-4-understand-audit-availability-and-recovery: backlog

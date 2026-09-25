@@ -2860,7 +2860,8 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-rem
 location: _bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: The Story 5.1 spec remains in review because its final operator-handoff task for the awaiting-operator performance contract is unchecked; this tracking belongs to Story 5.1 rather than last-administrator removal.
-status: open
+status: done 2026-09-24
+resolution: already resolved: commit e41a784e4fe870c2290676e60d8aaf6527a76219; spec-5-1-browse-tenant-audit-trail.md:5 is done with every task checked, and story-5-1-performance-evidence.md records the passing v4 run (126/126 percentile groups, 10/10 gates, no fallback).
 
 ### DW-349: Tenant audit filter validation can be written off the renderer and never painted.
 
