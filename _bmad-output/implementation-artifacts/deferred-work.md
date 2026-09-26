@@ -3179,3 +3179,23 @@ Page-test slice (`91d2335..0f490cb`, `GlobalAdministratorsPageTests.cs`). Alread
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail-2.md`
   summary: Resolve whether the historical Story 5.1 performance guest used modified dependency source.
   evidence: The archived source patch marks EventStore, FrontComposer, and Memories gitlinks dirty without their nested status or diffs. A clean dependency checkout or preserved nested status/diffs on the next dedicated run would settle whether those markers represented source changes or generated output.
+
+## Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-26)
+
+Story range `fc147e3e..f17027ac`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+  summary: Story 5.2 gitlink guard fails against HEAD because later commits bump submodules.
+  evidence: `scripts/validate-story-gitlinks.py` exits 1 for undeclared Builds `754d2b4→2326f98`, EventStore `04682ea→4fafcb9`, and FrontComposer `2e33757→07bfc22`. The bumps come from `8431d992` (Story 5.1 closure), `04f68c60`, and `dfa78e10`. `--ref f17027ac` passes, with no `references/` change in the story range.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+  summary: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.
+  evidence: `TenantsUiRouteSmokeTests` audit-context assertions (`:110-111`) only compiled. In every review pass, fixture setup timed out on EventStore `/alive` before any assertion ran.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+  summary: Verify focus restoration does not report a false missing origin when the page replaces its own URL mid-wait (unverified, would be medium).
+  evidence: `tenantsFocus.js` `check()` and its 250 ms interval call `finish(false)` on any `href` change, including same-route canonicalization or a `ListRefreshed` recovery `NavigateTo`. A browser trace of an audit return whose Back URL differs from the canonical workspace URL would settle it.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+  summary: Restore in-flight detail command panels after an audit round trip by expanding their accordion item (Option C follow-up).
+  evidence: Decision 2026-09-26 (Option A) accepted heading focus plus notice for detail command-flow and cursor returns. `TenantLifecycleCommandFlow`, `SetTenantConfigurationFlow`, and `RemoveTenantConfigurationFlow` already re-adopt a `RetainsAttempt` (RequestSent/Accepted) snapshot from their circuit `*AttemptTracker` on re-init. Their `FluentAccordionItem` in `TenantDetailPage.razor` may be collapsed on return, so the launcher cannot take focus. Expand the matching item when `auditFocus` names that flow, as `CreateTenantFlow` does, then browser-verify. Circuit-local state for terminal results, the member and metadata flows, and the list cursor was rejected as over-engineering, and it conflicts with the paging no-silent-reactivation invariant.
