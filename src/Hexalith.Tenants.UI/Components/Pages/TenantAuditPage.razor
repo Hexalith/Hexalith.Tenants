@@ -24,6 +24,7 @@
     <FcPageHeader PageTitle="@Localizer["Tenants.Audit.Title", TenantDisplayName]"
                   Heading="@Localizer["Tenants.Audit.Title", TenantDisplayName]"
                   HeadingId="tenant-audit-heading"
+                  HeadingTabIndex="-1"
                   Eyebrow="@Localizer["Tenants.Audit.Eyebrow"]"
                   Description="@Localizer["Tenants.Audit.Description"]"
                   TestId="tenants-audit-page-header">
@@ -39,12 +40,12 @@
         @if (SafeBackReturnUrl is not null)
         {
             <p class="tenant-audit__return-context" data-testid="tenants-audit-return-context">
-                @Localizer["Tenants.Audit.ReturnContext", SourceLabel]
+                @Localizer[HasBackLauncherFocus ? "Tenants.Audit.ReturnContext" : "Tenants.Audit.ReturnContext.NoFocus", BackOriginLabel]
             </p>
         }
         </Metadata>
         <Actions>
-            <a class="tenant-audit__back" href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
+            <a class="tenant-audit__back" href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.BackTo", BackOriginLabel]</a>
         </Actions>
     </FcPageHeader>
 
@@ -310,6 +311,7 @@
     private bool _pageLoadInFlight;
     private bool _disposed;
     private long _loadGeneration;
+    private long _routeGeneration;
     private CancellationTokenSource? _loadCancellation;
     // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
     // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
@@ -356,19 +358,87 @@
     [SupplyParameterFromQuery(Name = "receiptReference")]
     public string? ReceiptReference { get; set; }
 
-    private string? SafeBackReturnUrl => TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out _);
+    private string? SafeBackReturnUrl
+    {
+        get
+        {
+            string? safe = TenantAuditNavigationSafety.SafeReturnUrlForTenant(ReturnUrl, TenantId, out _);
+            if (safe is null)
+            {
+                return null;
+            }
+
+            string? anchor = TenantAuditNavigationSafety.ReturnQueryValue(safe, "anchor");
+            string? existingFocus = TenantAuditNavigationSafety.ReturnQueryValue(safe, "auditFocus");
+            return ReturnFocus is not null
+                && (!TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, ReturnFocus)
+                    || (anchor is not null && !string.Equals(anchor, ReturnFocus, StringComparison.Ordinal))
+                    || (existingFocus is not null && !string.Equals(existingFocus, ReturnFocus, StringComparison.Ordinal)))
+                ? null
+                : safe;
+        }
+    }
+
+    private bool HasBackLauncherFocus
+        => SafeBackReturnUrl is { } safe
+            && (TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, ReturnFocus)
+                || TenantAuditNavigationSafety.ReturnQueryValue(safe, "auditFocus") is not null);
+
+    private string BackOriginLabel
+    {
+        get
+        {
+            string? safe = SafeBackReturnUrl;
+            if (safe is null)
+            {
+                return Localizer["Tenants.Audit.Context.SourceKind.TenantList"];
+            }
+
+            string path = safe.Split('?', 2)[0];
+            return path switch
+            {
+                "/tenants/my" => Localizer["Tenants.Audit.Context.SourceKind.MyTenants"],
+                "/tenants/users" => Localizer["Tenants.Audit.Context.SourceKind.UserLookup"],
+                "/tenants" when TenantAuditNavigationSafety.ReturnQueryValue(safe, "tab") is "users"
+                    => Localizer["Tenants.Audit.Context.SourceKind.UserLookup"],
+                "/tenants" when TenantAuditNavigationSafety.ReturnQueryValue(safe, "scope") is "mine"
+                    => Localizer["Tenants.Audit.Context.SourceKind.MyTenants"],
+                "/tenants" => Localizer["Tenants.Audit.Context.SourceKind.TenantList"],
+                _ => Localizer["Tenants.Audit.Context.SourceKind.TenantDetail"],
+            };
+        }
+    }
 
     private string BackHref
     {
         get
         {
-            string? safe = TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out bool strippedCursor);
-            if (safe is null)
+            if (ReturnFocus is not null && !TenantAuditNavigationSafety.IsSafeFocus(ReturnFocus))
             {
                 return "/tenants?auditReturnUnavailable=true";
             }
 
-            if (TenantAuditNavigationSafety.IsSafeFocus(ReturnFocus) && !safe.Contains("auditFocus=", StringComparison.Ordinal))
+            string? safe = SafeBackReturnUrl;
+            _ = TenantAuditNavigationSafety.SafeReturnUrlForTenant(ReturnUrl, TenantId, out bool strippedCursor);
+            if (safe is null)
+            {
+                return ReturnUrl is null && ReturnFocus is null && TenantAuditNavigationSafety.IsSafeTenantId(TenantId)
+                    && TenantId is not ("my" or "users")
+                    ? $"/tenants/{Uri.EscapeDataString(TenantId)}"
+                    : "/tenants?auditReturnUnavailable=true";
+            }
+
+            string? anchor = TenantAuditNavigationSafety.ReturnQueryValue(safe, "anchor");
+            string? existingFocus = TenantAuditNavigationSafety.ReturnQueryValue(safe, "auditFocus");
+            if (ReturnFocus is not null
+                && (!TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, ReturnFocus)
+                    || (anchor is not null && !string.Equals(anchor, ReturnFocus, StringComparison.Ordinal))
+                    || (existingFocus is not null && !string.Equals(existingFocus, ReturnFocus, StringComparison.Ordinal))))
+            {
+                return "/tenants?auditReturnUnavailable=true";
+            }
+
+            if (ReturnFocus is not null && existingFocus is null)
             {
                 safe += (safe.Contains('?', StringComparison.Ordinal) ? "&" : "?")
                     + "auditFocus=" + Uri.EscapeDataString(ReturnFocus!);
@@ -391,7 +461,7 @@
 
     // Never echo an unsafe direct-route identifier into the heading or document title.
     private string TenantDisplayName
-        => TenantAuditNavigationSafety.IsSafeIdentifier(TenantId)
+        => TenantAuditNavigationSafety.IsSafeTenantId(TenantId)
             ? TenantId
             : Localizer["Tenants.Audit.UnknownTenant"].Value;
 
@@ -566,18 +636,14 @@
     protected override async Task OnParametersSetAsync()
     {
         string tenantId = TenantId;
-        if (!TenantAuditNavigationSafety.IsSafeIdentifier(tenantId))
+        long routeGeneration = Interlocked.Increment(ref _routeGeneration);
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
         {
             Interlocked.Increment(ref _loadGeneration);
             CancelActiveCancellation();
             IAsyncDisposable? invalidLease = _readRefreshLease;
             _readRefreshLease = null;
             _subscriptionTenantId = null;
-            if (invalidLease is not null)
-            {
-                await DisposeLeaseSupportSafelyAsync(invalidLease).ConfigureAwait(false);
-            }
-
             await InvokeAsync(() =>
             {
                 ClearPaging();
@@ -585,7 +651,12 @@
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest("invalid"));
                 _loadedTenantId = null;
+                StateHasChanged();
             }).ConfigureAwait(false);
+            if (invalidLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(invalidLease).ConfigureAwait(false);
+            }
             return;
         }
 
@@ -595,16 +666,6 @@
             IAsyncDisposable? previousLease = _readRefreshLease;
             _readRefreshLease = null;
             _subscriptionTenantId = null;
-            if (previousLease is not null)
-            {
-                await previousLease.DisposeAsync().ConfigureAwait(false);
-            }
-
-            // Marshalled: the lease dispose above is a remote unsubscribe that can genuinely suspend, so
-            // this block may run on a thread-pool thread while the render ComponentBase queued for the
-            // incomplete task is still in flight. ClearPaging clears _cursorHistory and, critically,
-            // _selectedCorrectionRoles -- a plain Dictionary the renderer reads via TryGetValue, which can
-            // throw InvalidOperationException on a concurrent mutation and tear down the circuit.
             await InvokeAsync(() =>
             {
                 ClearPaging();
@@ -612,15 +673,17 @@
                 _tenantDetailSnapshot = null;
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
+                _loadedTenantId = tenantId;
+                StateHasChanged();
             }).ConfigureAwait(false);
-
-            // Recorded only once the clear has actually run. Assigning it before the awaited lease dispose
-            // let a re-entrant OnParametersSetAsync for the same tenant, arriving while that dispose was
-            // suspended, compute tenantChanged == false -- so the conditional read below reused the previous
-            // tenant's ETag as its If-None-Match validator and its cursor as the paging position. Before the
-            // reuseETag/retainConfirmed change those arguments were unconditionally false, so no cross-tenant
-            // validator could leak; now the assignment order is what holds that line.
-            _loadedTenantId = tenantId;
+            if (previousLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(previousLease).ConfigureAwait(false);
+            }
+            if (routeGeneration != Volatile.Read(ref _routeGeneration))
+            {
+                return;
+            }
         }
 
         // Only a tenant change may discard the retained validator and blank the grid. The route carries six
@@ -1125,7 +1188,7 @@
         string? eTag,
         out TenantAuditRequest? request)
     {
-        if (!TenantAuditNavigationSafety.IsSafeIdentifier(tenantId))
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
         {
             request = null;
             return false;

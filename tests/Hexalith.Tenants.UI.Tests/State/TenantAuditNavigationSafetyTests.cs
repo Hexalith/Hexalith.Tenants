@@ -67,15 +67,48 @@ public sealed class TenantAuditNavigationSafetyTests
     }
 
     [Fact]
-    public void NestedPlusAndAtFocusIdentifierIsPreserved()
+    public void NestedFocusForWrongReturnRouteIsRejected()
     {
         string? safe = TenantAuditNavigationSafety.SafeReturnUrl(
             "/tenants/tenant.alpha?returnUrl=%2Ftenants%3FauditFocus%3Dtenants-member-user%2Balpha%40example.com",
             out bool partial);
 
-        safe.ShouldBe("/tenants/tenant.alpha?returnUrl=%2Ftenants%3FauditFocus%3Dtenants-member-user%252Balpha%2540example.com");
+        safe.ShouldBeNull();
         partial.ShouldBeFalse();
         TenantAuditNavigationSafety.IsSafeFocus("tenants-member-user+alpha@example.com").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void NestedFocusMustBelongToItsOwnNestedReturnRoute()
+    {
+        string? valid = TenantAuditNavigationSafety.SafeReturnUrl(
+            "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Ftab%3Dusers%26auditFocus%3Dtenants-user-row-tenant.alpha",
+            out _);
+        valid.ShouldNotBeNull();
+
+        string? invalid = TenantAuditNavigationSafety.SafeReturnUrl(
+            "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Ftab%3Dusers%26auditFocus%3Dtenant-row-tenant.alpha",
+            out _);
+        invalid.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SafeUserIdentityPunctuationRemainsValidInDerivedMemberFocus()
+    {
+        TenantAuditNavigationSafety.IsSafeFocus("tenants-member-user+'!~").ShouldBeTrue();
+        TenantAuditNavigationSafety.IsSafeFocus("tenants-member-user%2Fsecret").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void NestedPlusAndAtFocusIdentifierIsPreserved()
+    {
+        string? safe = TenantAuditNavigationSafety.SafeReturnUrl(
+            "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Ftab%3Dusers%26auditFocus%3Dtenants-user-row-user%2Balpha%40example.com",
+            out bool partial);
+
+        safe.ShouldBe("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Ftab%3Dusers%26auditFocus%3Dtenants-user-row-user%252Balpha%2540example.com");
+        partial.ShouldBeFalse();
+        TenantAuditNavigationSafety.IsSafeFocus("tenants-user-row-user+alpha@example.com").ShouldBeTrue();
     }
 
     [Fact]

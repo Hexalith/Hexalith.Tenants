@@ -20,6 +20,7 @@
                     @if (DetailHref is not null)
                     {
                         <a class="my-tenants-grid__detail-link"
+                           id="@($"{SelectorPrefix}-detail-{context.TenantId}")"
                            href="@DetailHref(context)"
                            title="@context.TenantId"
                            data-testid="@($"{SelectorPrefix}-detail-link")"
@@ -81,6 +82,8 @@
             <ProjectionLifecycleBadge Lifecycle="@context.Lifecycle"
                                       TestId="@($"{SelectorPrefix}-projection-lifecycle")" />
         </TemplateColumn>
+        @if (!AuditReadDenied)
+        {
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
             <AuditEvidenceEntryPoint TenantId="@context.TenantId"
                                      TargetUserId="@TargetUserId"
@@ -93,6 +96,7 @@
                                      IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
                                      OnRefresh="@OnAuditRefresh" />
         </TemplateColumn>
+        }
     </FluentDataGrid>
 </div>
 
@@ -120,6 +124,9 @@
 
     [Parameter]
     public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public bool AuditReadDenied { get; set; }
 
     [Parameter]
     public EventCallback OnAuditRefresh { get; set; }

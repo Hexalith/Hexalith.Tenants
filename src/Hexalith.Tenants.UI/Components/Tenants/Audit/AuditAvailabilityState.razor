@@ -56,6 +56,9 @@
     [Parameter]
     public EventCallback OnRefresh { get; set; }
 
+    [Parameter]
+    public bool OwnerRefreshIncludesAuditAuthority { get; set; }
+
     [CascadingParameter(Name = "AuditAuthorityRefresh")]
     public Func<Task>? AuditAuthorityRefresh { get; set; }
 
@@ -165,7 +168,7 @@
                 break;
             case TenantAuditRecoveryVerb.Refresh:
                 await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
-                if (AuditAuthorityRefresh is not null)
+                if (AuditAuthorityRefresh is not null && !OwnerRefreshIncludesAuditAuthority)
                 {
                     await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
                 }

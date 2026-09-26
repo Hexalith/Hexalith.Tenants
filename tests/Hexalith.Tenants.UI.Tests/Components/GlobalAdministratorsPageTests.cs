@@ -6100,7 +6100,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         workspace.ShouldNotContain("href=\"/users\"");
         workspace.ShouldNotContain("href=\"/tenants/my\"");
         workspace.ShouldNotContain("href=\"/tenants/users\"");
-        detail.ShouldContain("TenantAuditNavigationSafety.SafeReturnUrl(returnUrl, out _)");
+        detail.ShouldContain("TenantAuditNavigationSafety.SafeListReturnUrl(ReturnUrl, out bool strippedCursor)");
     }
 
     private static string ProjectRoot()

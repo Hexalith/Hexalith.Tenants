@@ -69,8 +69,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail(
             "tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active, []))));
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusAuditLauncher", _ => true);
-        focus.SetResult(false);
+        JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
+        focus.SetResult("missing");
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/tenants/tenant.alpha?auditFocus=tenants-detail-identity&auditPartialReturn=true");
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
@@ -89,7 +89,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Detail_page_loads_through_gateway_and_renders_operational_overview()
     {
-        const string tenantId = "  tenant/%2F?x=é&glyph=о  ";
+        const string tenantId = "tenant.alpha";
         const string memberId = "  user/%2F?x=é&glyph=о  ";
         TenantDetail detail = Detail(
             tenantId,
@@ -1552,6 +1552,69 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_audit_waits_for_initial_caller_before_capability_read()
+    {
+        var pending = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        AuthenticationStateProvider caller = Substitute.For<AuthenticationStateProvider>();
+        caller.GetAuthenticationStateAsync().Returns(pending.Task);
+        Services.AddSingleton(caller);
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        _ = gateway.DidNotReceive().GetTenantAuditAsync(
+            Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>());
+
+        pending.SetResult(new AuthenticationState(new ClaimsPrincipal()));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+    }
+
+    [Fact]
+    public void Detail_without_authentication_provider_keeps_audit_closed()
+    {
+        Services.RemoveAll<AuthenticationStateProvider>();
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        cut.FindAll("fluent-anchor-button[data-testid='tenants-audit-entrypoint']").ShouldBeEmpty();
+        _ = gateway.DidNotReceive().GetTenantAuditAsync(
+            Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Unauthorized_page_one_audit_probe_hides_detail_and_member_entries()
+    {
+        AuthenticationStateProvider caller = Substitute.For<AuthenticationStateProvider>();
+        caller.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+        Services.AddSingleton(caller);
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "v1")));
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        gateway.GetTenantAuditAsync(
+                Arg.Is<TenantAuditRequest>(request => request.PageSize == 1),
+                Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => TenantAuditSnapshot.Unauthorized(call.ArgAt<TenantAuditRequest>(0)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        cut.WaitForElement("[data-testid='tenants-member-row']");
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-detail-audit-entrypoint']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-member-audit-entrypoint']").ShouldBeEmpty();
+        _ = gateway.Received(1).GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.PageSize == 1),
+            Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void Detail_audit_refresh_waits_for_pending_caller_before_probing_again()
     {
         var authentication = new MutableAuthenticationStateProvider();
@@ -1587,7 +1650,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Detail_audit_refresh_after_failed_caller_keeps_link_closed_and_focus_terminal()
+    public void Detail_audit_refresh_after_failed_caller_reacquires_caller_and_capability()
     {
         var authentication = new MutableAuthenticationStateProvider();
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
@@ -1606,10 +1669,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
         cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
 
-        cut.Find("[data-testid='tenants-detail-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
         cut.WaitForElement("[data-testid='tenants-detail-audit-origin'][data-audit-focus-terminal]");
-        _ = gateway.Received(1).GetTenantAuditAsync(
+        _ = gateway.Received(2).GetTenantAuditAsync(
             Arg.Is<TenantAuditRequest>(request => request.PageSize == 1),
             Arg.Any<TenantAuditSnapshot?>(),
             Arg.Any<CancellationToken>());
@@ -2705,7 +2768,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(page => page.TenantId, "tenant.alpha"));
         cut.WaitForElement("[data-testid='tenants-detail-identity']");
 
-        cut.Find("[data-testid='tenants-detail-back']").GetAttribute("href").ShouldBe("/tenants");
+        cut.Find("[data-testid='tenants-detail-back']").GetAttribute("href").ShouldBe("/tenants?auditReturnUnavailable=true");
     }
 
     [Theory]
@@ -4614,7 +4677,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Disabled_member_audit_refresh_requests_projection_and_authority()
+    public void Disabled_member_audit_refresh_uses_owner_projection_refresh_once()
     {
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
@@ -4628,6 +4691,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
             .Add(view => view.ProjectionVersion, "v1")
             .Add(view => view.Members, MemberSnapshot(detail) with { Freshness = ReadModelFreshnessState.Stale })
+            .Add(view => view.DetailAuditReturnUrl, "/tenants/tenant.alpha")
             .Add(view => view.OnProjectionRefreshRequested, EventCallback.Factory.Create(this, () => projectionRefreshes++)));
         cut.Instance.AuditAuthorityRefresh = () =>
         {
@@ -4638,7 +4702,45 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-audit-entrypoint-refresh']")[0].Click();
 
         projectionRefreshes.ShouldBe(1);
-        authorityRefreshes.ShouldBe(1);
+        authorityRefreshes.ShouldBe(0);
+        cut.Find("[data-testid='tenants-member-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+    }
+
+    [Fact]
+    public void Suspended_member_owner_refresh_starts_one_capability_probe()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int ownerRefreshes = 0;
+        int capabilityProbes = 0;
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.Members, MemberSnapshot(detail) with { Freshness = ReadModelFreshnessState.Stale })
+            .Add(view => view.DetailAuditReturnUrl, "/tenants/tenant.alpha")
+            .Add(view => view.OnProjectionRefreshRequested, EventCallback.Factory.Create(this, async () =>
+            {
+                ownerRefreshes++;
+                await owner.Task.ConfigureAwait(false);
+                capabilityProbes++;
+            })));
+        cut.Instance.AuditAuthorityRefresh = () =>
+        {
+            capabilityProbes++;
+            return Task.CompletedTask;
+        };
+
+        cut.FindAll("[data-testid='tenants-audit-entrypoint-refresh']")[0].Click();
+        ownerRefreshes.ShouldBe(1);
+        capabilityProbes.ShouldBe(0);
+        owner.SetResult();
+
+        cut.WaitForAssertion(() => capabilityProbes.ShouldBe(1));
         cut.Find("[data-testid='tenants-member-audit-entrypoint']")
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
     }

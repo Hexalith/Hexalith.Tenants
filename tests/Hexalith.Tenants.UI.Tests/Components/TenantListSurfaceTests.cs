@@ -19,6 +19,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -1960,6 +1961,9 @@ public sealed class TenantListSurfaceTests : BunitContext
     [Fact]
     public void Tenant_row_links_preserve_safe_page_one_return_context_without_cursor_or_etag_disclosure()
     {
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        Services.AddSingleton(authentication);
         const string cursorSentinel = "opaque-protected-cursor-sentinel";
         const string eTagSentinel = "protected-etag-sentinel";
         ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();

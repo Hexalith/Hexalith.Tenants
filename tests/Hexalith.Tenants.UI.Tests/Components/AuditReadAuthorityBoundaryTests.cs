@@ -74,7 +74,7 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
     }
 
     [Fact]
-    public void FailedCallerCannotBeReauthorizedByManualRefresh()
+    public void FailedCallerRefreshReacquiresCurrentCaller()
     {
         MutableAuthenticationStateProvider authentication = new();
         ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
@@ -93,10 +93,9 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
         cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
 
-        cut.Find("[data-testid='tenants-my-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
-        cut.WaitForElement("[data-audit-focus-terminal]");
-        _ = bff.Received(1).ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+        _ = bff.Received(2).ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
 
         authentication.PublishResolved();
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
@@ -124,7 +123,60 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
     }
 
-    private void Register(AuthenticationStateProvider authentication, ITenantsBffComposition bff)
+    [Fact]
+    public void InitialCallerMustResolveBeforeStandaloneAuditAuthorityIsQueried()
+    {
+        var authentication = new PendingInitialAuthenticationStateProvider();
+        ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
+        bff.IsReadSurfaceConnected.Returns(true);
+        bff.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Register(authentication, bff);
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        _ = bff.DidNotReceive().ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
+
+        authentication.Resolve();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+    }
+
+    [Fact]
+    public void ProvenDeniedCallerLosesStandaloneAuditColumn()
+    {
+        MutableAuthenticationStateProvider authentication = new();
+        ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
+        bff.IsReadSurfaceConnected.Returns(true);
+        TenantLifecycleAuthorizationReflectionState reflection = TenantLifecycleAuthorizationReflectionState.Authorized;
+        bff.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => ValueTask.FromResult(reflection));
+        Register(authentication, bff);
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+
+        reflection = TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        authentication.PublishResolved();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-my-audit-entrypoint']").ShouldBeEmpty());
+    }
+
+    [Fact]
+    public void AbsentAuthenticationProviderDoesNotQueryAuditAuthority()
+    {
+        ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
+        bff.IsReadSurfaceConnected.Returns(true);
+        Register(null, bff);
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
+        _ = bff.DidNotReceive().ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
+    }
+
+    private void Register(AuthenticationStateProvider? authentication, ITenantsBffComposition bff)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -135,7 +187,10 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
                 nextCursor: null, hasMore: false, eTag: null, freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton(gateway);
         Services.AddSingleton(bff);
-        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        if (authentication is not null)
+        {
+            Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        }
         Services.AddLocalization();
         Services.AddFluentUIComponents();
     }
@@ -154,6 +209,15 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
         }
 
         public void PublishResolved() => NotifyAuthenticationStateChanged(Task.FromResult(_state));
+    }
+
+    private sealed class PendingInitialAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        private readonly TaskCompletionSource<AuthenticationState> _pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => _pending.Task;
+
+        public void Resolve() => _pending.SetResult(new AuthenticationState(new ClaimsPrincipal()));
     }
 
 }

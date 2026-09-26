@@ -18,6 +18,8 @@
 
     public bool IsAvailable { get; private set; }
 
+    public bool IsDenied { get; private set; }
+
     public bool IsResolved { get; private set; }
 
     protected override void OnInitialized()
@@ -28,7 +30,28 @@
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         }
 
-        _ = ObserveAsync(RefreshAsync());
+        if (_authenticationStateProvider is null)
+        {
+            IsResolved = true;
+        }
+        else
+        {
+            StartCallerResolution();
+        }
+    }
+
+    private void StartCallerResolution()
+    {
+        try
+        {
+            OnAuthenticationStateChanged(_authenticationStateProvider!.GetAuthenticationStateAsync());
+        }
+        catch
+        {
+            IsAvailable = false;
+            IsDenied = false;
+            IsResolved = true;
+        }
     }
 
     public async Task RefreshAsync()
@@ -38,14 +61,33 @@
             return;
         }
 
+        if (_authenticationStateProvider is null)
+        {
+            await InvokeAsync(() =>
+            {
+                IsAvailable = false;
+                IsDenied = false;
+                IsResolved = true;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        if (Volatile.Read(ref _pendingCallerVersion) == 0
+            && Volatile.Read(ref _resolvedCallerVersion) != Volatile.Read(ref _callerVersion))
+        {
+            StartCallerResolution();
+            return;
+        }
+
         long version = Interlocked.Increment(ref _version);
         await InvokeAsync(() =>
         {
             if (!_disposed && version == Volatile.Read(ref _version))
             {
                 IsAvailable = false;
-                IsResolved = Volatile.Read(ref _pendingCallerVersion) == 0
-                    && Volatile.Read(ref _resolvedCallerVersion) != Volatile.Read(ref _callerVersion);
+                IsDenied = false;
+                IsResolved = false;
                 StateHasChanged();
             }
         }).ConfigureAwait(false);
@@ -79,6 +121,7 @@
             {
                 IsAvailable = reflection is TenantLifecycleAuthorizationReflectionState.Authorized
                     && BffComposition?.IsReadSurfaceConnected is true;
+                IsDenied = reflection is TenantLifecycleAuthorizationReflectionState.MissingPermission;
                 IsResolved = true;
                 StateHasChanged();
             }
@@ -100,6 +143,7 @@
             if (!_disposed && callerVersion == Volatile.Read(ref _callerVersion))
             {
                 IsAvailable = false;
+                IsDenied = false;
                 IsResolved = false;
                 StateHasChanged();
             }

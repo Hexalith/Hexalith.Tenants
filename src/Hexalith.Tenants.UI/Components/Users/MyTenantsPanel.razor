@@ -4,7 +4,8 @@
 @inject NavigationManager Navigation
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page"
-             data-audit-focus-terminal="@(AuditReadResolved && _snapshot.Kind is not UserTenantMembershipSurfaceKind.Loading)">
+             data-audit-focus-terminal="@(AuditReadResolved && _snapshot.Kind is not UserTenantMembershipSurfaceKind.Loading)"
+             data-detail-focus-terminal="@(_snapshot.Kind is not UserTenantMembershipSurfaceKind.Loading)">
     @if (ShowBackLink)
     {
         <FluentStack Orientation="Orientation.Horizontal" Class="my-tenants-page__breadcrumb">
@@ -82,7 +83,8 @@
         }
 
         <MyTenantsDataGrid Rows="@_snapshot.Rows" DetailHref="DetailHrefFor" ReturnUrl="@EffectiveReturnUrl"
-                           AuditReadAvailable="@AuditReadAvailable" OnAuditRefresh="@RefreshAuditAsync" />
+                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready)"
+                           AuditReadDenied="@AuditReadDenied" OnAuditRefresh="@RefreshAuditAsync" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
             <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
@@ -121,6 +123,9 @@
 
     [Parameter]
     public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public bool AuditReadDenied { get; set; }
 
     [Parameter]
     public bool AuditReadResolved { get; set; }
@@ -166,6 +171,7 @@
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         UserTenantMembershipSnapshot previous = _snapshot;
         _snapshot = UserTenantMembershipSnapshot.Loading();
+        StateHasChanged();
 
         UserTenantMembershipRequest request = new(
             Cursor: _currentCursor,
@@ -193,8 +199,8 @@
 
     private async Task RefreshAsync()
     {
-        await OnAuditRefresh.InvokeAsync().ConfigureAwait(false);
-        await LoadAsync(reuseETag: true).ConfigureAwait(false);
+        await InvokeAsync(() => OnAuditRefresh.InvokeAsync()).ConfigureAwait(false);
+        await InvokeAsync(() => LoadAsync(reuseETag: true)).ConfigureAwait(false);
     }
 
     private Task RefreshAuditAsync() => RefreshAsync();
@@ -204,7 +210,7 @@
         _cursorHistory.Push(_currentCursor);
         _currentCursor = _snapshot.NextCursor;
         await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await InvokeAsync(() => LoadAsync(reuseETag: false)).ConfigureAwait(false);
     }
 
     private async Task PreviousPageAsync()
@@ -213,7 +219,7 @@
         {
             _currentCursor = _cursorHistory.Pop();
             await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await InvokeAsync(() => LoadAsync(reuseETag: false)).ConfigureAwait(false);
         }
     }
 
@@ -222,22 +228,19 @@
             ? MyTenantsWorkspaceState().ToCanonicalUrl()
             : "/tenants/my" + (_currentCursor is null ? string.Empty : "?cursor=" + Uri.EscapeDataString(_currentCursor));
 
-    // Builds the shared /tenants/{tenantId} detail drill-in for a self-audit row, reusing the scope=all
-    // navigation mechanism. The return URL carries scope=mine plus the selection and a return-focus anchor
-    // that matches this row's element id; the cursor is reset so return lands on the authorized first page
-    // (mirroring the scope=all list detail behavior), where the workspace shows the return-context banner
-    // and restores focus to the heading.
+    // Ordinary detail navigation returns focus to the clicked detail link. Audit launcher focus is
+    // reserved for an actual audit handoff.
     private string DetailHrefFor(UserTenantMembershipRow row)
     {
         if (UseWorkspaceRoute)
         {
             return new TenantListNavigationContext(MyTenantsWorkspaceState())
-                .ToDetailUrl(row.TenantId, $"tenants-my-row-{row.TenantId}");
+                .ToDetailUrl(row.TenantId, $"tenants-my-detail-{row.TenantId}");
         }
 
         // A protected paging cursor must not enter the detail URL, even inside a nested returnUrl.
         // Keep the row focus and mark the lost page position for the return notice.
-        string returnUrl = "/tenants/my?auditFocus=" + Uri.EscapeDataString($"tenants-my-row-{row.TenantId}")
+        string returnUrl = "/tenants/my?anchor=" + Uri.EscapeDataString($"tenants-my-detail-{row.TenantId}")
             + (_currentCursor is null ? string.Empty : "&auditPartialReturn=true");
         return $"/tenants/{Uri.EscapeDataString(row.TenantId)}?returnUrl={Uri.EscapeDataString(returnUrl)}";
     }

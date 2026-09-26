@@ -9,11 +9,13 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantDetail;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -27,13 +29,40 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class UserMembershipLookupSurfaceTests : BunitContext
 {
     [Fact]
+    public void Lookup_refresh_waits_for_suspended_owner_then_renders_loading_and_result()
+    {
+        var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pendingRead = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        RegisterServices(_ => ++reads == 1
+            ? Task.FromResult(ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active,
+                TenantRole.TenantReader, ReadModelFreshnessState.Current)], targetUserId: "user.alpha"))
+            : pendingRead.Task);
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(p => p.InitialUserId, "user.alpha")
+            .Add(p => p.OnAuditRefresh, EventCallback.Factory.Create(this, () => owner.Task)));
+        cut.WaitForElement("[data-testid='tenants-user-row']");
+
+        cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
+        reads.ShouldBe(1);
+        owner.SetResult();
+        cut.WaitForElement("[data-testid='tenants-user-loading']");
+        cut.WaitForAssertion(() => reads.ShouldBe(2));
+
+        pendingRead.SetResult(ReadySnapshot([Row("tenant.beta", "Beta", TenantStatus.Active,
+            TenantRole.TenantReader, ReadModelFreshnessState.Current)], targetUserId: "user.alpha"));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldContain("tenant.beta"));
+        cut.FindAll("[data-testid='tenants-user-loading']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Removing_audit_focus_clears_notices_and_allows_same_focus_to_be_restored_again()
     {
         RegisterServices(UserTenantMembershipSnapshot.Empty(
             isAuthorizationScoped: true, ReadModelFreshnessState.Current, eTag: null, targetUserId: null));
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusAuditLauncher", _ => true);
-        focus.SetResult(false);
+        JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
+        focus.SetResult("missing");
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/tenants/users?auditFocus=tenants-user-row-tenant.alpha&auditPartialReturn=true");
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
@@ -209,6 +238,9 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
             .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton(composition);
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        Services.AddSingleton(authentication);
 
         Services.GetRequiredService<NavigationManager>().NavigateTo(
             "/tenants/users?userId=target.user%40example&auditFocus=tenants-user-row-tenant.alpha&auditPartialReturn=true");
@@ -227,6 +259,64 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         href.ShouldContain("returnUrl=%2Ftenants%2Fusers");
         href.ShouldNotContain("auditFocus%3D");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldContain("auditFocus=tenants-user-row-tenant.alpha");
+    }
+
+    [Fact]
+    public void Standalone_lookup_page_two_audit_back_restarts_page_one_with_partial_notice()
+    {
+        List<UserTenantMembershipRequest> requests = [];
+        ITenantQueryGateway gateway = RegisterServices(call =>
+        {
+            UserTenantMembershipRequest request = call.ArgAt<UserTenantMembershipRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader,
+                    ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+                targetUserId: request.TargetUserId));
+        });
+        gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                return TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "audit-etag", request) with
+                {
+                    Lifecycle = ProjectionLifecycleState.Current,
+                    ProjectionVersion = "audit-v1",
+                };
+            });
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(composition);
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new System.Security.Claims.ClaimsPrincipal())));
+        Services.AddSingleton(authentication);
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/users?tab=users&userId=target.user&sort=role&cursor=opaque-page-two");
+
+        IRenderedComponent<UserMembershipLookupPage> source = Render<UserMembershipLookupPage>();
+        source.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']");
+        requests.ShouldHaveSingleItem().Cursor.ShouldBe("opaque-page-two");
+        string auditHref = source.Find("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href").ShouldNotBeNull();
+        auditHref.ShouldNotContain("opaque-page-two");
+        auditHref.ShouldContain("auditPartialReturn=true");
+        auditHref.ShouldContain("userId%3Dtarget.user");
+        auditHref.ShouldContain("sort%3Drole");
+
+        navigation.NavigateTo(auditHref);
+        IRenderedComponent<TenantAuditPage> audit = Render<TenantAuditPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        string backHref = audit.Find("[data-testid='tenants-audit-back']")
+            .GetAttribute("href").ShouldNotBeNull();
+        backHref.ShouldContain("auditPartialReturn=true");
+        backHref.ShouldNotContain("cursor=");
+
+        navigation.NavigateTo(backHref);
+        IRenderedComponent<UserMembershipLookupPage> returned = Render<UserMembershipLookupPage>();
+        returned.WaitForElement("[data-testid='tenants-audit-partial-return']");
+        requests[^1].Cursor.ShouldBeNull();
     }
 
     [Fact]

@@ -3673,17 +3673,29 @@
   <data name="Tenants.Audit.EntryPoint.Unavailable.ScopeRequired" xml:space="preserve">
     <value>La portee locataire est requise avant d'ouvrir les preuves d'audit.</value>
   </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.Disconnected" xml:space="preserve">
+    <value>Le service de lecture d'audit est deconnecte. Actualisez lorsque la connexion est retablie.</value>
+  </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.StaleScope" xml:space="preserve">
     <value>Actualisez la portee locataire avant d'ouvrir les preuves d'audit.</value>
   </data>
   <data name="Tenants.Audit.Return.MissingOrigin" xml:space="preserve">
     <value>Le controle d'audit d'origine n'est plus disponible. Le focus a ete place sur le titre de la page.</value>
   </data>
+  <data name="Tenants.Audit.Return.Stalled" xml:space="preserve">
+    <value>La page d'origine n'a pas termine son chargement ; le focus n'a pas pu etre restaure. Le focus a ete place sur le titre de la page.</value>
+  </data>
   <data name="Tenants.Audit.Return.Partial" xml:space="preserve">
     <value>Une partie de la pagination ne peut pas etre restauree ; le curseur protege a ete omis.</value>
   </data>
   <data name="Tenants.Audit.ReturnContext" xml:space="preserve">
     <value>Retour vers {0}. Le controle d'origine recevra le focus s'il est disponible.</value>
+  </data>
+  <data name="Tenants.Audit.ReturnContext.NoFocus" xml:space="preserve">
+    <value>Retour vers {0}.</value>
+  </data>
+  <data name="Tenants.Audit.BackTo" xml:space="preserve">
+    <value>Retour vers {0}</value>
   </data>
   <data name="Tenants.Detail.AuditAccessibleLabel" xml:space="preserve">
     <value>Ouvrir les preuves d'audit pour le locataire {0} depuis le detail locataire</value>

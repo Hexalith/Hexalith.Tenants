@@ -98,6 +98,8 @@
                 @PendingLabel(context.PendingState)
             </FluentBadge>
         </TemplateColumn>
+        @if (!AuditReadDenied)
+        {
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
             <AuditEvidenceEntryPoint TenantId="@context.TenantId"
                                      SourceKind="tenant-list"
@@ -106,9 +108,11 @@
                                      AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", context.TenantId]"
                                      ReturnUrl="@ListReturnUrl(context)"
                                      ReturnFocus="@($"tenant-row-{context.TenantId}")"
+                                     PartialReturn="@AuditHref(context).Contains("auditPartialReturn=true", StringComparison.Ordinal)"
                                      IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
                                      OnRefresh="@OnAuditRefresh" />
         </TemplateColumn>
+        }
     </FluentDataGrid>
 </div>
 
@@ -133,6 +137,9 @@
 
     [Parameter]
     public bool AuditReadAvailable { get; set; }
+
+    [Parameter]
+    public bool AuditReadDenied { get; set; }
 
     [Parameter]
     public EventCallback OnAuditRefresh { get; set; }

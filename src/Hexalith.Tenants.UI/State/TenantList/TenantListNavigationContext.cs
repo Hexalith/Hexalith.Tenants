@@ -56,11 +56,13 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
 
         TenantWorkspaceState selected = WorkspaceState with
         {
+            Cursor = null,
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };
         string tenantId = Uri.EscapeDataString(row.TenantId);
         string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
-        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}");
+        string partial = WorkspaceState.Cursor is null ? string.Empty : "&auditPartialReturn=true";
+        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}{partial}");
     }
 }

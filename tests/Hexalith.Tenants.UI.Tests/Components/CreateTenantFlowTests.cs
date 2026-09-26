@@ -61,6 +61,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton(returnState);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
 
         IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
             .Add(p => p.Name, "AuditReadAvailable")
@@ -705,6 +708,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
+            ["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"] = "The audit context is invalid. Return to the originating page and select a current tenant.",
+            ["Tenants.Audit.EntryPoint.Unavailable.Disconnected"] = "The audit read service is disconnected. Refresh when the connection returns.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
             ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
             ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",

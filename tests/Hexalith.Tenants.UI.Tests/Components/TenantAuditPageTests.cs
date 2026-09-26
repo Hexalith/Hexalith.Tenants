@@ -1029,7 +1029,7 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void Audit_page_without_return_context_uses_explicit_missing_origin_handoff()
+    public void Audit_page_without_return_context_returns_to_its_tenant_detail()
     {
         RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
 
@@ -1038,7 +1038,41 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
         cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href")
-            .ShouldBe("/tenants?auditReturnUnavailable=true");
+            .ShouldBe("/tenants/tenant.alpha");
+    }
+
+    [Fact]
+    public void Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants/tenant.alpha/audit?returnUrl="
+            + Uri.EscapeDataString("/tenants?selected=tenant.alpha&anchor=tenant-row-tenant.alpha")
+            + "&returnFocus=tenant-row-tenant.alpha");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        string href = cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldNotBeNull();
+        href.ShouldBe("/tenants?selected=tenant.alpha&anchor=tenant-row-tenant.alpha&auditFocus=tenant-row-tenant.alpha");
+        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.ShouldContain("focus");
+    }
+
+    [Fact]
+    public void Focusless_detail_return_preserves_a_stripped_cursor_notice()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants/tenant.alpha/audit?returnUrl="
+            + Uri.EscapeDataString("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fcursor%3Dprotected%26selected%3Dtenant.alpha"));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        string href = cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldNotBeNull();
+        href.ShouldContain("auditPartialReturn=true");
+        href.ShouldNotContain("protected");
+        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.ShouldNotContain("focus");
     }
 
     [Fact]

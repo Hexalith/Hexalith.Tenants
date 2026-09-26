@@ -175,6 +175,7 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="RefreshStatusAsync"
                                         OnContinueReadOnly="ContinueReadOnlyAsync">
                     <InspectAuditAction>
@@ -200,7 +201,11 @@
                 <AuditEvidenceReceipt Receipt="@_removalProof"
                                       OnRetry="RefreshStatusAsync"
                                       OnClose="DismissReceiptAsync"
-                                      OnInspectAudit="@(AuditReadAvailable ? EventCallback.Factory.Create(this, InspectAuditAsync) : default(EventCallback))" />
+                                      OnInspectAudit="@(CanInspectAudit ? EventCallback.Factory.Create(this, InspectAuditAsync) : default(EventCallback))" />
+                @if (!CanInspectAudit)
+                {
+                    <p role="status" data-testid="tenants-remove-member-inspect-unavailable">@InspectAuditUnavailableReason</p>
+                }
             }
         </div>
         <p data-testid="tenants-remove-member-recovery">@RecoveryText</p>
@@ -488,8 +493,21 @@
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
-    private string CommandAuditReturnUrl
-        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+    private string? CommandAuditReturnUrl
+        => DetailAuditReturnUrl;
+
+    private bool CanInspectAudit
+        => AuditReadAvailable
+            && Services.GetService<ITenantsBffComposition>()?.IsReadSurfaceConnected is true
+            && TenantAuditNavigationSafety.IsSafeTenantId(Detail.TenantId)
+            && TenantAuditNavigationSafety.IsSafeIdentifier(Member.UserId)
+            && TenantAuditNavigationSafety.SafeReturnUrlForTenant(CommandAuditReturnUrl, Detail.TenantId, out _) is { } safe
+            && TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, "tenants-remove-member-lifecycle");
+
+    private string InspectAuditUnavailableReason
+        => Services.GetService<ITenantsBffComposition>()?.IsReadSurfaceConnected is true
+            ? Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"]
+            : Localizer["Tenants.Audit.EntryPoint.Unavailable.Disconnected"];
 
     private string RecoveryText
         => Localizer[$"Tenants.RemoveMember.Recovery.{_snapshot.State}"];
@@ -1173,16 +1191,13 @@
 
     private Task InspectAuditAsync()
     {
-        if (!AuditReadAvailable
-            || !TenantAuditNavigationSafety.IsSafeIdentifier(Detail.TenantId)
-            || !TenantAuditNavigationSafety.IsSafeIdentifier(Member.UserId)
-            || TenantAuditNavigationSafety.SafeReturnUrl(CommandAuditReturnUrl, out _) is null)
+        if (!CanInspectAudit || CommandAuditReturnUrl is not { } safeReturn)
         {
             return Task.CompletedTask;
         }
 
         string target = Uri.EscapeDataString(Member.UserId);
-        string returnUrl = Uri.EscapeDataString(CommandAuditReturnUrl);
+        string returnUrl = Uri.EscapeDataString(safeReturn);
         Navigation.NavigateTo(
             $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}/audit?targetUserId={target}&source=command-result&returnUrl={returnUrl}&returnFocus=tenants-remove-member-lifecycle");
         return Task.CompletedTask;

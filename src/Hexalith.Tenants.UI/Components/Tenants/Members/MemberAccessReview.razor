@@ -155,6 +155,8 @@
                     <ProjectionLifecycleBadge Lifecycle="@Members.Lifecycle"
                                               TestId="tenants-member-row-projection-lifecycle" />
                 </TemplateColumn>
+                @if (ShowAuditColumn)
+                {
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Audit"]"
                                 ColumnId="member-audit"
                                 Width="180px">
@@ -169,6 +171,7 @@
                                              IsAvailable="@CanOpenMemberAudit"
                                              OnRefresh="@RefreshMemberAuditAsync" />
                 </TemplateColumn>
+                }
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Actions"]"
                                 ColumnId="member-actions"
                                 Width="360px">
@@ -517,7 +520,14 @@
             && Lifecycle is ProjectionLifecycleState.Current
             && Members.Kind is TenantUsersSurfaceKind.Ready
             && Members.Freshness is ReadModelFreshnessState.Current
-            && Members.Lifecycle is ProjectionLifecycleState.Current;
+            && Members.Lifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(ProjectionVersion)
+            && string.Equals(ProjectionVersion, Members.ProjectionVersion, StringComparison.Ordinal);
+
+    private bool ShowAuditColumn => !AuditReadDenied;
+
+    [Parameter]
+    public bool AuditReadDenied { get; set; }
 
     private bool ActionsAreEvidenceBacked
         => SurfaceKind is TenantDetailSurfaceKind.Ready
@@ -599,19 +609,19 @@
                 ? Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]
                 : StateMessage;
 
-    private string MemberReturnUrl
-        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+    private string? MemberReturnUrl
+        => DetailAuditReturnUrl;
 
     private async Task RefreshMemberAuditAsync()
     {
         if (OnProjectionRefreshRequested.HasDelegate)
         {
-            await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+            // The detail owner's read refresh also starts its audit capability probe.
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         }
-
-        if (AuditAuthorityRefresh is not null)
+        else if (AuditAuthorityRefresh is not null)
         {
-            await AuditAuthorityRefresh().ConfigureAwait(false);
+            await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
         }
     }
 

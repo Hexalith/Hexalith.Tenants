@@ -3673,17 +3673,29 @@
   <data name="Tenants.Audit.EntryPoint.Unavailable.ScopeRequired" xml:space="preserve">
     <value>Tenant scope is required before audit evidence can be opened.</value>
   </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.Disconnected" xml:space="preserve">
+    <value>The audit read service is disconnected. Refresh when the connection returns.</value>
+  </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.StaleScope" xml:space="preserve">
     <value>Refresh tenant scope before opening audit evidence.</value>
   </data>
   <data name="Tenants.Audit.Return.MissingOrigin" xml:space="preserve">
     <value>The original audit control is no longer available. Focus moved to the page heading.</value>
   </data>
+  <data name="Tenants.Audit.Return.Stalled" xml:space="preserve">
+    <value>The original page did not finish loading, so focus could not be restored. Focus moved to the page heading.</value>
+  </data>
   <data name="Tenants.Audit.Return.Partial" xml:space="preserve">
     <value>Some paging state could not be restored; the paging position was omitted.</value>
   </data>
   <data name="Tenants.Audit.ReturnContext" xml:space="preserve">
     <value>Return to {0}. The originating control will receive focus when available.</value>
+  </data>
+  <data name="Tenants.Audit.ReturnContext.NoFocus" xml:space="preserve">
+    <value>Return to {0}.</value>
+  </data>
+  <data name="Tenants.Audit.BackTo" xml:space="preserve">
+    <value>Back to {0}</value>
   </data>
   <data name="Tenants.Detail.AuditAccessibleLabel" xml:space="preserve">
     <value>Open audit evidence for tenant {0} from tenant detail</value>

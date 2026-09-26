@@ -159,7 +159,8 @@
                                            TargetUserId="@_targetUserId"
                                            SourceKind="user-lookup"
                                            ReturnUrl="@UserLookupReturnUrl"
-                                           AuditReadAvailable="@AuditReadAvailable"
+                                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready)"
+                                           AuditReadDenied="@AuditReadDenied"
                                            OnAuditRefresh="@RefreshAuditAsync" />
 
                         <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
@@ -212,6 +213,9 @@
     public bool AuditReadAvailable { get; set; }
 
     [Parameter]
+    public bool AuditReadDenied { get; set; }
+
+    [Parameter]
     public bool AuditReadResolved { get; set; }
 
     [Parameter]
@@ -219,6 +223,9 @@
 
     [Parameter]
     public bool AuditPartialReturn { get; set; }
+
+    [Parameter]
+    public bool AuditReturnUnavailable { get; set; }
 
     [Parameter]
     public EventCallback OnAuditRefresh { get; set; }
@@ -311,11 +318,6 @@
         get
         {
             string standalone = UserLookupReturnUrl;
-            if (UseWorkspaceRoute)
-            {
-                return standalone;
-            }
-
             if (TenantAuditNavigationSafety.IsSafeFocus(AuditFocus))
             {
                 standalone += "&auditFocus=" + Uri.EscapeDataString(AuditFocus!);
@@ -324,6 +326,11 @@
             if (AuditPartialReturn)
             {
                 standalone += "&auditPartialReturn=true";
+            }
+
+            if (AuditReturnUnavailable)
+            {
+                standalone += "&auditReturnUnavailable=true";
             }
 
             return standalone;
@@ -397,10 +404,10 @@
 
     private async Task RefreshAsync()
     {
-        await OnAuditRefresh.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnAuditRefresh.InvokeAsync()).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(_targetUserId))
         {
-            await RunLookupAsync(_targetUserId, reuseETag: true).ConfigureAwait(false);
+            await InvokeAsync(() => RunLookupAsync(_targetUserId, reuseETag: true)).ConfigureAwait(false);
         }
     }
 
@@ -478,7 +485,7 @@
                     ? UserTenantMembershipReason.MissingTargetUser
                     : UserTenantMembershipReason.InvalidTargetUser);
             _announcement = Localizer["Tenants.UserLookup.Announcement.Invalid"];
-            _focusStatusPending = true;
+            _focusStatusPending = !TenantAuditNavigationSafety.IsSafeFocus(AuditFocus);
             Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
             return true;
         }
@@ -491,6 +498,7 @@
             TargetUserId = validTargetUserId,
         };
         _announcement = Localizer["Tenants.UserLookup.Announcement.Loading", validTargetUserId];
+        StateHasChanged();
 
         UserTenantMembershipRequest request = new(
             TargetUserId: validTargetUserId,
@@ -525,7 +533,7 @@
             _announcement = snapshot.PagingRecovered
                 ? Localizer["Tenants.UserLookup.Announcement.PageRecovered", validTargetUserId]
                 : AnnouncementFor(snapshot, validTargetUserId);
-            _focusStatusPending = true;
+            _focusStatusPending = !TenantAuditNavigationSafety.IsSafeFocus(AuditFocus);
             Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
             applied = true;
         });

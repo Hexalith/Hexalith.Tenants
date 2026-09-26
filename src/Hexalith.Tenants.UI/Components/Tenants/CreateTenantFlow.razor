@@ -108,6 +108,7 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="RefreshStatusAsync">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@_tenantId"
@@ -145,6 +146,7 @@
 
     private readonly object _formModel = new();
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
+    private bool _returnStateConsumed;
     private string? _tenantId;
     private string? _name;
     private string? _description;
@@ -200,6 +202,7 @@
 
         if (returnState?.Take() is { } retained)
         {
+            _returnStateConsumed = true;
             _snapshot = retained.Snapshot;
             _tenantId = retained.TenantId;
             _name = retained.Name;
@@ -288,7 +291,7 @@
         // Keep the state before navigation. A native anchor can leave a Blazor Server circuit before
         // its click callback reaches the server, so click-time retention is too late.
         TenantCreateAuditReturnState? returnState = Services.GetService<TenantCreateAuditReturnState>();
-        if (IsAuthorized && AuditReadAvailable && ShouldRenderAuditEntryPoint
+        if (!_returnStateConsumed && IsAuthorized && AuditReadAvailable && ShouldRenderAuditEntryPoint
             && TenantAuditNavigationSafety.IsSafeIdentifier(_tenantId))
         {
             returnState?.Remember(_snapshot, _tenantId, _name, _description);
@@ -373,6 +376,10 @@
         }
 
         var request = new CreateTenant(_tenantId, _name, _description);
+        if (_snapshot.Intent != request)
+        {
+            _returnStateConsumed = false;
+        }
 
         if (_snapshot.MessageId is not null || _snapshot.CorrelationId is not null)
         {

@@ -75,6 +75,42 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         refreshCount.ShouldBe(2);
     }
 
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void Suspended_recovery_refresh_respects_owner_capability_probe_ownership(
+        bool ownerStartsAuthorityProbe,
+        int expectedCascadeProbes)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int ownerRefreshes = 0;
+        int ownerCompletions = 0;
+        int cascadedProbes = 0;
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(p => p.AuditState, TenantCommandAuditState.AuditUnavailable)
+            .Add(p => p.OwnerRefreshIncludesAuditAuthority, ownerStartsAuthorityProbe)
+            .Add(p => p.OnRefresh, EventCallback.Factory.Create(this, async () =>
+            {
+                ownerRefreshes++;
+                await owner.Task.ConfigureAwait(false);
+                ownerCompletions++;
+            })));
+        cut.Instance.AuditAuthorityRefresh = () =>
+        {
+            cascadedProbes++;
+            return Task.CompletedTask;
+        };
+
+        cut.Find("[data-recovery-verb='refresh']").Click();
+        ownerRefreshes.ShouldBe(1);
+        cascadedProbes.ShouldBe(0);
+        owner.SetResult();
+
+        cut.WaitForAssertion(() => ownerCompletions.ShouldBe(1));
+        cut.WaitForAssertion(() => cascadedProbes.ShouldBe(expectedCascadeProbes));
+    }
+
     [Fact]
     public void Availability_recovery_actions_are_native_keyboard_operable_controls()
     {

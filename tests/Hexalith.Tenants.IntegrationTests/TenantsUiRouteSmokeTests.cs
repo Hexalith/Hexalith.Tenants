@@ -100,7 +100,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         _fixture.SkipIfUnavailable();
 
         string markup = await GetHostedUiMarkupWhenReadyAsync(
-                "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%3Fsearch%3Dalpha%26selected%3Dtenant.alpha&returnFocus=tenants-member-operator.support-01",
+                "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%2Ftenant.alpha%3FreturnUrl%3D%252Ftenants%253Fsearch%253Dalpha%2526selected%253Dtenant.alpha&returnFocus=tenants-member-operator.support-01",
                 TenantsAuditUnauthorizedMarker)
             .ConfigureAwait(false);
 
@@ -110,7 +110,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-audit-return-context\"");
         markup.ShouldContain("Return to a member row");
         markup.ShouldContain("data-testid=\"tenants-audit-back\"");
-        markup.ShouldContain("href=\"/tenants?search=alpha");
+        markup.ShouldContain("href=\"/tenants/tenant.alpha?returnUrl=");
         markup.ShouldContain("selected=tenant.alpha");
         markup.ShouldContain("auditFocus=tenants-member-operator.support-01");
         markup.ShouldContain(TenantsAuditUnauthorizedMarker);

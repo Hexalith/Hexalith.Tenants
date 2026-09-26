@@ -104,6 +104,56 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     }
 
     [Fact]
+    public void Available_parent_cannot_open_audit_without_bff_read_composition()
+    {
+        Services.AddFluentUIComponents();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<AuditEvidenceEntryPoint> cut = Render<AuditEvidenceEntryPoint>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha")
+            .Add(p => p.SourceKind, "tenant-detail")
+            .Add(p => p.ReturnUrl, "/tenants/tenant.alpha")
+            .Add(p => p.IsAvailable, true));
+
+        cut.Find("[data-testid='tenants-audit-entrypoint']").GetAttribute("href").ShouldBeNull();
+        cut.Markup.ShouldContain("disconnected");
+    }
+
+    [Fact]
+    public void Current_row_in_uncertain_list_page_cannot_open_audit()
+    {
+        RegisterFluentServices();
+        TenantListRow row = TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))
+            with { Freshness = ReadModelFreshnessState.Current, Lifecycle = ProjectionLifecycleState.Current };
+        IRenderedComponent<TenantDataGrid> cut = Render<TenantDataGrid>(parameters => parameters
+            .Add(p => p.Rows, [row])
+            .Add(p => p.AuditReadAvailable, false)
+            .Add(p => p.AuditHref, _ => "/tenants/tenant.alpha/audit?returnUrl=%2Ftenants"));
+
+        EntryPointFromMarker(cut, "tenants-list-audit-entrypoint").GetAttribute("href").ShouldBeNull();
+    }
+
+    [Fact]
+    public void Member_audit_entry_requires_matching_detail_and_member_projection_versions()
+    {
+        RegisterFluentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, detail)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.ProjectionVersion, "detail-v2")
+            .Add(p => p.DetailAuditReturnUrl, "/tenants/tenant.alpha")
+            .Add(p => p.Members, TenantUsersSnapshot.Ready(detail.TenantId, detail.Members,
+                nextCursor: null, hasMore: false, eTag: null, projectionVersion: "members-v1",
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)));
+
+        EntryPointFromMarker(cut, "tenants-member-audit-entrypoint").GetAttribute("href").ShouldBeNull();
+    }
+
+    [Fact]
     public void Tenant_row_entry_point_preserves_existing_detail_link_and_list_return_context()
     {
         RegisterFluentServices();
@@ -175,6 +225,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.ProjectionVersion, "v1")
+            .Add(component => component.DetailAuditReturnUrl, "/tenants/tenant.alpha")
             .Add(component => component.Members, TenantUsersSnapshot.Ready(
                 detail.TenantId,
                 detail.Members,
@@ -306,6 +357,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     {
         Services.AddFluentUIComponents();
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
     }
 
     private static TenantDetail Detail(string tenantId)
@@ -371,6 +423,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
+            ["Tenants.Audit.EntryPoint.Unavailable.Disconnected"] = "The audit read service is disconnected. Refresh when the connection returns.",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.Eyebrow"] = "Tenant audit trail",
             ["Tenants.Audit.Filter.Category"] = "Category",

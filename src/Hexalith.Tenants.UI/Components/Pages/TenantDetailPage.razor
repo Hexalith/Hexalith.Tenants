@@ -27,6 +27,10 @@
 {
     <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
 }
+@if (_auditStalledNotice)
+{
+    <p role="status" data-testid="tenants-audit-stalled-return">@Localizer["Tenants.Audit.Return.Stalled"]</p>
+}
 @if (_auditPartialReturn)
 {
     <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
@@ -105,6 +109,8 @@
                                            AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", Detail.TenantId]"
                                            TestId="tenants-detail-copy-reference" />
                 </div>
+                @if (!_auditReadDenied)
+                {
                 <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                          SourceKind="tenant-detail"
                                          SourceTestId="tenants-detail-audit-entrypoint"
@@ -114,6 +120,7 @@
                                          ReturnFocus="tenants-detail-identity"
                                          IsAvailable="@(_auditProofCapabilityAvailable && _snapshot.Kind is TenantDetailSurfaceKind.Ready && _snapshot.Freshness is ReadModelFreshnessState.Current && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
                                          OnRefresh="@RefreshTenantReadsAsync" />
+                }
                 </Metadata>
             </FcPageHeader>
 
@@ -217,6 +224,7 @@
                                             Members="@_tenantUsersSnapshot"
                                             GlobalAdministrators="@_globalAdministratorsSnapshot"
                                             AuditProofCapabilityAvailable="@_auditProofCapabilityAvailable"
+                                            AuditReadDenied="@_auditReadDenied"
                                             DetailAuditReturnUrl="@DetailReturnUrl"
                                             CanGoPrevious="@(_memberCursorHistory.Count > 0)"
                                             PagingJumpedToFirstPage="@_memberPagingJumpedToFirstPage"
@@ -280,13 +288,18 @@
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private bool _auditProofCapabilityAvailable;
     private bool _auditCapabilityResolved;
+    private bool _auditReadDenied;
     private string? _pendingAuditFocus;
     private string? _handledAuditFocus;
     private bool _auditReturnNotice;
+    private bool _auditStalledNotice;
     private bool _auditPartialReturn;
+    private bool _consumedFocuslessReturn;
     private long _auditCallerVersion;
     private long _resolvedAuditCallerVersion;
     private long _pendingAuditCallerVersion;
+    private long _lastAuditProbeGeneration = -1;
+    private long _lastAuditProbeCallerVersion = -1;
     /// <summary>Upper bound on retained member paging history.</summary>
     private const int MaximumMemberCursorHistory = CursorHistory.DefaultMaximum;
     private const int MetadataAuditProofPageSize = 100;
@@ -390,10 +403,10 @@
     {
         get
         {
-            string? safe = TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out bool strippedCursor);
+            string? safe = TenantAuditNavigationSafety.SafeListReturnUrl(ReturnUrl, out bool strippedCursor);
             if (safe is null)
             {
-                return "/tenants";
+                return ReturnUrl is null ? "/tenants" : "/tenants?auditReturnUnavailable=true";
             }
 
             if ((QueryAuditPartialReturn || strippedCursor) && !safe.Contains("auditPartialReturn=", StringComparison.Ordinal))
@@ -416,12 +429,21 @@
             && _snapshot.Kind is not TenantDetailSurfaceKind.Loading
             && _tenantUsersSnapshot.Kind is not TenantUsersSurfaceKind.Loading;
 
-    private string DetailReturnUrl
+    private string? DetailReturnUrl
     {
         get
         {
+            if (!TenantAuditNavigationSafety.IsSafeTenantId(TenantId))
+            {
+                return null;
+            }
+
             string detail = $"/tenants/{Uri.EscapeDataString(TenantId)}";
-            string? safeListReturn = TenantAuditNavigationSafety.SafeReturnUrl(ReturnUrl, out bool strippedCursor);
+            string? safeListReturn = TenantAuditNavigationSafety.SafeListReturnUrl(ReturnUrl, out bool strippedCursor);
+            if (ReturnUrl is not null && safeListReturn is null)
+            {
+                return null;
+            }
             if (safeListReturn is not null)
             {
                 detail += "?returnUrl=" + Uri.EscapeDataString(safeListReturn);
@@ -663,6 +685,7 @@
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+            StartAuditCallerResolution();
         }
     }
 
@@ -676,7 +699,12 @@
             _pendingAuditFocus = null;
             _handledAuditFocus = null;
             _auditReturnNotice = false;
-            _auditPartialReturn = false;
+            _auditStalledNotice = false;
+            _auditPartialReturn = QueryAuditPartialReturn;
+            if (!QueryAuditPartialReturn)
+            {
+                _consumedFocuslessReturn = false;
+            }
         }
 
         if (QueryAuditFocus is { } focus && TenantAuditNavigationSafety.IsSafeFocus(focus)
@@ -685,6 +713,7 @@
             _pendingAuditFocus = focus;
             _handledAuditFocus = focus;
             _auditReturnNotice = false;
+            _auditStalledNotice = false;
             _auditPartialReturn = QueryAuditPartialReturn;
         }
 
@@ -707,10 +736,28 @@
         _tenantUsersSnapshot = TenantUsersSnapshot.Loading(tenantId);
         _globalAdministratorsSnapshot = null;
         _auditProofCapabilityAvailable = false;
+        _auditReadDenied = false;
         _memberCursor = null;
         _memberCursorHistory.Clear();
         _memberPagingHistoryTruncated = false;
         _memberPagingJumpedToFirstPage = false;
+
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
+        {
+            CancelAuditCapability();
+            _auditCapabilityResolved = true;
+            _snapshot = TenantDetailSnapshot.Unavailable(Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"].Value);
+            _tenantUsersSnapshot = TenantUsersSnapshot.Invalid("invalid");
+            IAsyncDisposable? priorLease = _readRefreshLease;
+            _readRefreshLease = null;
+            _subscriptionTenantId = null;
+            if (priorLease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(priorLease).ConfigureAwait(false);
+            }
+
+            return;
+        }
 
         string? incomingAggregateLockKey = string.IsNullOrWhiteSpace(tenantId)
             ? null
@@ -877,6 +924,7 @@
 
             StartLifecycleAuthorizationResolution(TenantId, authenticationStateTask);
             _auditProofCapabilityAvailable = false;
+            _auditReadDenied = false;
             _auditCapabilityResolved = false;
             CancelAuditCapability();
             _ = ObserveAuditCallerAsync(authenticationStateTask, auditCallerVersion);
@@ -912,7 +960,14 @@
         {
             Interlocked.Exchange(ref _resolvedAuditCallerVersion, callerVersion);
             Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
-            await InvokeAsync(() => StartAuditCapabilityProbe(TenantId, Volatile.Read(ref _loadGeneration))).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                long generation = Volatile.Read(ref _loadGeneration);
+                if (generation != 0)
+                {
+                    StartAuditCapabilityProbe(TenantId, generation);
+                }
+            }).ConfigureAwait(false);
         }
     }
 
@@ -1012,6 +1067,14 @@
             _ = RestoreAuditFocusAsync(focus);
         }
 
+        if (QueryAuditFocus is null && QueryAuditPartialReturn && !_consumedFocuslessReturn)
+        {
+            _consumedFocuslessReturn = true;
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            await module.InvokeVoidAsync("consumeReturnMarkers");
+            QueryAuditPartialReturn = false;
+        }
+
         // Retry optional notification setup after later renders when an earlier attempt was superseded or
         // returned no lease. The method's in-flight and existing-lease guards keep successful setup
         // single-instance. Without this, one cancelled or empty setup disabled projection auto-refresh for
@@ -1029,13 +1092,24 @@
     {
         try
         {
+            string tenantId = TenantId;
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-            bool found = await module.InvokeAsync<bool>("focusAuditLauncher", focus, "tenants-detail-audit-origin", "tenants-detail-identity");
-            if (!found && !_disposed && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+            string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, "tenants-detail-audit-origin", "tenants-detail-identity");
+            if (outcome != "cancelled" && !_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+            {
+                await module.InvokeVoidAsync("consumeReturnMarkers", focus);
+                QueryAuditFocus = null;
+                QueryAuditPartialReturn = false;
+            }
+            if (outcome is "missing" or "stalled"
+                && !_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
             {
                 await InvokeAsync(() =>
                 {
-                    _auditReturnNotice = true;
+                    _auditReturnNotice = outcome == "missing";
+                    _auditStalledNotice = outcome == "stalled";
                     StateHasChanged();
                 });
             }
@@ -1222,9 +1296,35 @@
         return RefreshTenantReadsAsync(TenantId);
     }
 
+    private void EnsureCurrentAuditCaller()
+    {
+        if (_authenticationStateProvider is not null
+            && Volatile.Read(ref _pendingAuditCallerVersion) == 0
+            && Volatile.Read(ref _resolvedAuditCallerVersion) != Volatile.Read(ref _auditCallerVersion))
+        {
+            StartAuditCallerResolution();
+        }
+    }
+
+    private void StartAuditCallerResolution()
+    {
+        try
+        {
+            OnAuthenticationStateChanged(_authenticationStateProvider!.GetAuthenticationStateAsync());
+        }
+        catch
+        {
+            _auditProofCapabilityAvailable = false;
+            _auditReadDenied = false;
+            _auditCapabilityResolved = true;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task RefreshTenantReadsAsync(string tenantId)
     {
-        if (!string.Equals(TenantId, tenantId, StringComparison.Ordinal))
+        if (!string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+            || !TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
         {
             return;
         }
@@ -1251,6 +1351,7 @@
                 retainedMembers,
                 cancellationToken);
         StartGlobalAdministratorsLoad(tenantId, generation, retainedGlobalAdministrators);
+        EnsureCurrentAuditCaller();
         StartAuditCapabilityProbe(tenantId, generation);
         // Observe detail, members, and global-administrator reads independently. Task.WhenAll rethrew an
         // operational fault before either result could be applied, leaving the retained member page permanently
@@ -1885,9 +1986,28 @@
             .LoadAsync(QueryGateway, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-    private void StartAuditCapabilityProbe(string tenantId, long generation)
+    private void StartAuditCapabilityProbe(string tenantId, long generation, bool force = false)
     {
+        long callerVersion = Volatile.Read(ref _auditCallerVersion);
+        if (!force && _lastAuditProbeGeneration == generation && _lastAuditProbeCallerVersion == callerVersion)
+        {
+            return;
+        }
         _auditCapabilityResolved = false;
+        _auditProofCapabilityAvailable = false;
+        _auditReadDenied = false;
+        if (_authenticationStateProvider is null)
+        {
+            _auditCapabilityResolved = true;
+            CancelAuditCapability();
+            return;
+        }
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
+        {
+            _auditCapabilityResolved = true;
+            CancelAuditCapability();
+            return;
+        }
         if (Volatile.Read(ref _pendingAuditCallerVersion) != 0
             || Volatile.Read(ref _resolvedAuditCallerVersion) != Volatile.Read(ref _auditCallerVersion))
         {
@@ -1896,14 +2016,20 @@
             return;
         }
 
+        _lastAuditProbeGeneration = generation;
+        _lastAuditProbeCallerVersion = callerVersion;
         CancellationTokenSource source = ReplaceAuditCapabilityCancellation();
-        _ = LoadAuditCapabilityForGenerationAsync(tenantId, generation, Volatile.Read(ref _auditCallerVersion), source);
+        _ = LoadAuditCapabilityForGenerationAsync(tenantId, generation, callerVersion, source);
     }
 
     private Task RefreshAuditCapabilityAsync()
     {
         _auditProofCapabilityAvailable = false;
-        StartAuditCapabilityProbe(TenantId, Volatile.Read(ref _loadGeneration));
+        _auditReadDenied = false;
+        long callerVersion = Volatile.Read(ref _auditCallerVersion);
+        EnsureCurrentAuditCaller();
+        bool callerReacquired = callerVersion != Volatile.Read(ref _auditCallerVersion);
+        StartAuditCapabilityProbe(TenantId, Volatile.Read(ref _loadGeneration), force: !callerReacquired);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -1915,6 +2041,7 @@
         CancellationTokenSource source)
     {
         bool available = false;
+        bool denied = false;
         try
         {
             if (BffComposition.IsReadSurfaceConnected)
@@ -1925,6 +2052,7 @@
                     .ConfigureAwait(false);
                 source.Token.ThrowIfCancellationRequested();
                 available = IsAuthoritativeAuditCapability(audit, request);
+                denied = audit.Kind is TenantAuditSurfaceKind.Unauthorized;
             }
         }
         catch (OperationCanceledException) when (source.IsCancellationRequested)
@@ -1958,6 +2086,7 @@
                     && Volatile.Read(ref _resolvedAuditCallerVersion) == Volatile.Read(ref _auditCallerVersion))
                 {
                     _auditProofCapabilityAvailable = available;
+                    _auditReadDenied = denied;
                     _auditCapabilityResolved = true;
                     StateHasChanged();
                 }
@@ -2641,14 +2770,6 @@
             TenantStatus.Disabled => FcFluentIcons.SubtractCircle16(),
             _ => FcFluentIcons.QuestionCircle16(),
         };
-
-    // The "/tenants" prefix check already rejects every protocol-relative value: a string starting "//" has
-    // '/' at index 1, where the prefix requires 't'. The former explicit "//" clause was unreachable by
-    // construction, so deleting it changes nothing -- it is removed rather than kept, because a guard that
-    // cannot decide anything reads as protection that is not there. Any future relaxation of the prefix
-    // check must re-add an explicit scheme-relative rejection.
-    private static bool IsSafeReturnUrl(string? returnUrl)
-        => TenantAuditNavigationSafety.SafeReturnUrl(returnUrl, out _) is not null;
 
     public async ValueTask DisposeAsync()
     {

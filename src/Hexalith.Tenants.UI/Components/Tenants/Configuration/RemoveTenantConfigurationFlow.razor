@@ -155,6 +155,7 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="RefreshStatusAsync">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@Context.TenantId"

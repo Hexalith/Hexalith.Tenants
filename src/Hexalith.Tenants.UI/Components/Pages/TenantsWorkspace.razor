@@ -38,6 +38,18 @@
         }
     </Toolbar>
     <Body>
+        @if (_auditReturnNotice)
+        {
+            <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
+        }
+        @if (_auditStalledNotice)
+        {
+            <p role="status" data-testid="tenants-audit-stalled-return">@Localizer["Tenants.Audit.Return.Stalled"]</p>
+        }
+        @if (_auditPartialReturn)
+        {
+            <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
+        }
         @* FcPageTabs owns tab semantics, selection, roving focus, and the association to its
            Fluent-generated "${Id}-panel" tab panel. Each FcPageTab.ChildContent is the real panel
            content: FcPageTab retains it (via DeferredLoading) after first activation, so switching
@@ -139,14 +151,6 @@
                                     data-testid="tenants-list-return-context">
                             @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
                         </FluentText>
-                    }
-                    @if (_auditReturnNotice)
-                    {
-                        <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
-                    }
-                    @if (_auditPartialReturn)
-                    {
-                        <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
                     }
                     @if (IsRetainedMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
                     {
@@ -256,7 +260,8 @@
                     @if (IsRetainedTenantListView && ShowList)
                     {
                         <TenantDataGrid Rows="@_visibleRows"
-                                        AuditReadAvailable="@AuditReadAvailable"
+                                        AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is TenantListSurfaceKind.Ready)"
+                                        AuditReadDenied="@_auditReadDenied"
                                         OnAuditRefresh="@RefreshAsync"
                                         DetailHref="CreateDetailHref"
                                         AuditHref="CreateAuditHref"
@@ -267,7 +272,7 @@
                     }
                     else if (IsRetainedMyTenantsView)
                     {
-                        <MyTenantsPanel InitialCursor="@_tenantWorkspaceState.Cursor" UseWorkspaceRoute="true" AuditReadAvailable="@AuditReadAvailable" AuditReadResolved="@_auditAuthorityResolved" OnAuditRefresh="@RefreshAuditAuthorityAsync" />
+                        <MyTenantsPanel InitialCursor="@_tenantWorkspaceState.Cursor" UseWorkspaceRoute="true" AuditReadAvailable="@AuditReadAvailable" AuditReadDenied="@_auditReadDenied" AuditReadResolved="@_auditAuthorityResolved" OnAuditRefresh="@RefreshAuditAuthorityAsync" />
                     }
                     @if (ShowPager)
                     {
@@ -292,7 +297,11 @@
                     <UserMembershipLookupPanel InitialUserId="@_usersWorkspaceState.UserId"
                                                InitialSort="@_usersWorkspaceState.Sort"
                                                InitialCursor="@_usersWorkspaceState.Cursor"
+                                               AuditFocus="@QueryAuditFocus"
+                                               AuditPartialReturn="@QueryAuditPartialReturn"
+                                               AuditReturnUnavailable="@QueryAuditReturnUnavailable"
                                                AuditReadAvailable="@AuditReadAvailable"
+                                               AuditReadDenied="@_auditReadDenied"
                                                AuditReadResolved="@_auditAuthorityResolved"
                                                OnAuditRefresh="@RefreshAuditAuthorityAsync"
                                                UseWorkspaceRoute="true"
@@ -358,14 +367,22 @@
     private bool _focusHeadingPending;
     private string? _pendingAuditFocus;
     private string? _handledAuditFocus;
+    private string? _pendingDetailFocus;
+    private string? _handledDetailFocus;
     private bool _auditReturnNotice;
+    private bool _auditStalledNotice;
     private bool _auditPartialReturn;
+    private bool _consumedFocuslessReturn;
     private bool _handledMissingAuditReturn;
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
     private bool _canReviewGlobalAdministrators;
     private bool _auditAuthorityResolved;
+    private bool _auditReadDenied;
+    private long _auditCallerVersion;
+    private long _resolvedAuditCallerVersion;
+    private long _pendingAuditCallerVersion;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "auditFocus")]
@@ -613,7 +630,14 @@
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
         }
 
-        StartGlobalAdministratorsEntryResolution();
+        if (_authenticationStateProvider is not null)
+        {
+            StartAuditCallerResolution();
+        }
+        else
+        {
+            _auditAuthorityResolved = true;
+        }
         bool querySearchTermTooLong = TenantWorkspaceState.IsSearchTooLong(QuerySearch);
         RestoreContextFromQuery();
         CaptureAuditReturn();
@@ -623,7 +647,7 @@
         // When returning from a tenant detail surface the launching row may no longer be visible
         // after the list reloads, so move keyboard focus to the list heading and let the visible
         // return-context message explain that filters/sort/cursor/selection were restored.
-        _focusHeadingPending = _pendingAuditFocus is null
+        _focusHeadingPending = _pendingAuditFocus is null && _pendingDetailFocus is null
             && (QueryAuditReturnUnavailable || !string.IsNullOrWhiteSpace(_selectedTenantId));
 
         if (IsTenantListView)
@@ -634,8 +658,33 @@
 
     private void StartGlobalAdministratorsEntryResolution()
     {
+        if (_authenticationStateProvider is null)
+        {
+            _canReviewGlobalAdministrators = false;
+            _auditReadDenied = false;
+            _auditAuthorityResolved = true;
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (Volatile.Read(ref _pendingAuditCallerVersion) != 0)
+        {
+            _canReviewGlobalAdministrators = false;
+            _auditReadDenied = false;
+            _auditAuthorityResolved = false;
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (Volatile.Read(ref _resolvedAuditCallerVersion) != Volatile.Read(ref _auditCallerVersion))
+        {
+            StartAuditCallerResolution();
+            return;
+        }
+
         long version = Interlocked.Increment(ref _authorizationVersion);
         _canReviewGlobalAdministrators = false;
+        _auditReadDenied = false;
         _auditAuthorityResolved = false;
         Task callback = InvokeAsync(() => ResolveGlobalAdministratorsEntryAsync(version));
         _ = ObserveAuthorizationCallbackAsync(callback);
@@ -683,6 +732,7 @@
             }
 
             _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
+            _auditReadDenied = reflection == TenantLifecycleAuthorizationReflectionState.MissingPermission;
             _auditAuthorityResolved = true;
             StateHasChanged();
         });
@@ -690,14 +740,32 @@
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
+        long callerVersion = Interlocked.Increment(ref _auditCallerVersion);
+        Interlocked.Exchange(ref _pendingAuditCallerVersion, callerVersion);
         long version = Interlocked.Increment(ref _authorizationVersion);
-        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
+        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version, callerVersion));
         _ = ObserveAuthorizationCallbackAsync(callback);
+    }
+
+    private void StartAuditCallerResolution()
+    {
+        try
+        {
+            OnAuthenticationStateChanged(_authenticationStateProvider!.GetAuthenticationStateAsync());
+        }
+        catch
+        {
+            _canReviewGlobalAdministrators = false;
+            _auditReadDenied = false;
+            _auditAuthorityResolved = true;
+            _ = InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task ApplyAuthenticationStateChangedAsync(
         Task<AuthenticationState> authenticationStateTask,
-        long version)
+        long version,
+        long callerVersion)
     {
         if (_disposed || version != Volatile.Read(ref _authorizationVersion))
         {
@@ -705,6 +773,7 @@
         }
 
         _canReviewGlobalAdministrators = false;
+        _auditReadDenied = false;
         _auditAuthorityResolved = false;
         StateHasChanged();
 
@@ -714,17 +783,28 @@
         }
         catch
         {
+            if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
+            {
+                return;
+            }
+
+            Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
             _auditAuthorityResolved = true;
             StateHasChanged();
             return;
         }
 
-        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
         {
             return;
         }
 
-        await ResolveGlobalAdministratorsEntryAsync(version);
+        Interlocked.Exchange(ref _resolvedAuditCallerVersion, callerVersion);
+        Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
+        if (version == Volatile.Read(ref _authorizationVersion))
+        {
+            await ResolveGlobalAdministratorsEntryAsync(version);
+        }
     }
 
     private static async Task ObserveAuthorizationCallbackAsync(Task callback)
@@ -771,6 +851,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_pendingDetailFocus is { } detailFocus)
+        {
+            _pendingDetailFocus = null;
+            _ = RestoreDetailFocusAsync(detailFocus);
+        }
+
         if (_pendingAuditFocus is { } focus)
         {
             _pendingAuditFocus = null;
@@ -782,15 +868,45 @@
             _focusHeadingPending = false;
             await _listPage.FocusHeadingAsync();
         }
+
+        if (_pendingAuditFocus is null && QueryAuditFocus is null
+            && (QueryAuditPartialReturn || QueryAuditReturnUnavailable) && !_consumedFocuslessReturn)
+        {
+            _consumedFocuslessReturn = true;
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            await module.InvokeVoidAsync("consumeReturnMarkers");
+            QueryAuditPartialReturn = false;
+            QueryAuditReturnUnavailable = false;
+        }
     }
 
     private void CaptureAuditReturn()
     {
+        if (QueryAnchor is { } detailFocus
+            && detailFocus.StartsWith("tenants-my-detail-", StringComparison.Ordinal)
+            && TenantAuditNavigationSafety.IsSafeFocus(detailFocus)
+            && !string.Equals(_handledDetailFocus, detailFocus, StringComparison.Ordinal))
+        {
+            _handledDetailFocus = detailFocus;
+            _pendingDetailFocus = detailFocus;
+            _focusHeadingPending = false;
+        }
+        else if (QueryAnchor is null)
+        {
+            _handledDetailFocus = null;
+            _pendingDetailFocus = null;
+        }
+
         if (QueryAuditFocus is null || !TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
         {
             _handledAuditFocus = null;
             _pendingAuditFocus = null;
-            _auditPartialReturn = false;
+            _auditPartialReturn = QueryAuditPartialReturn;
+            if (!QueryAuditPartialReturn && !QueryAuditReturnUnavailable)
+            {
+                _consumedFocuslessReturn = false;
+            }
+            _auditStalledNotice = false;
             if (QueryAuditReturnUnavailable)
             {
                 _auditReturnNotice = true;
@@ -819,7 +935,30 @@
             _pendingAuditFocus = focus;
             _focusHeadingPending = false;
             _auditReturnNotice = false;
+            _auditStalledNotice = false;
             _auditPartialReturn = QueryAuditPartialReturn;
+        }
+    }
+
+    private async Task RestoreDetailFocusAsync(string focus)
+    {
+        try
+        {
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            string? outcome = await module.InvokeAsync<string>("restoreDetailFocus", focus, "tenants-my-page", "tenants-list-heading");
+            if (outcome != "cancelled" && string.Equals(QueryAnchor, focus, StringComparison.Ordinal))
+            {
+                await module.InvokeVoidAsync("consumeReturnMarkers", focus, null, true);
+                QueryAnchor = null;
+            }
+            if (outcome is "missing" or "stalled" && !_disposed && string.Equals(_handledDetailFocus, focus, StringComparison.Ordinal))
+            {
+                await InvokeAsync(() => { _auditReturnNotice = outcome == "missing"; _auditStalledNotice = outcome == "stalled"; StateHasChanged(); });
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Navigation ended before focus restoration.
         }
     }
 
@@ -832,13 +971,28 @@
                 : "tenants-workspace-tenants-panel-content";
         try
         {
+            string? targetUserId = origin == "tenants-user-lookup" ? _usersWorkspaceState.UserId : null;
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-            bool found = await module.InvokeAsync<bool>("focusAuditLauncher", focus, origin, "tenants-list-heading");
-            if (!found && !_disposed && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+            string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, origin,
+                "tenants-list-heading", targetUserId);
+            if (outcome != "cancelled"
+                && (origin != "tenants-user-lookup" || string.Equals(_usersWorkspaceState.UserId, targetUserId, StringComparison.Ordinal)))
+            {
+                await module.InvokeVoidAsync("consumeReturnMarkers", focus, targetUserId);
+                if (string.Equals(QueryAuditFocus, focus, StringComparison.Ordinal))
+                {
+                    QueryAuditFocus = null;
+                    QueryAuditPartialReturn = false;
+                }
+            }
+            if (outcome is "missing" or "stalled"
+                && !_disposed && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal)
+                && (origin != "tenants-user-lookup" || string.Equals(_usersWorkspaceState.UserId, targetUserId, StringComparison.Ordinal)))
             {
                 await InvokeAsync(() =>
                 {
-                    _auditReturnNotice = true;
+                    _auditReturnNotice = outcome == "missing";
+                    _auditStalledNotice = outcome == "stalled";
                     StateHasChanged();
                 });
             }
@@ -1494,6 +1648,11 @@
         {
             canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")
                 + "auditReturnUnavailable=true";
+        }
+        if (QueryAuditPartialReturn && !canonicalUrl.Contains("auditPartialReturn=", StringComparison.Ordinal))
+        {
+            canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")
+                + "auditPartialReturn=true";
         }
         string currentUrl = HttpContext is null
             ? Navigation.ToBaseRelativePath(Navigation.Uri)

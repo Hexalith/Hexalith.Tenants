@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 
 using Bunit;
 
@@ -8,11 +9,13 @@ using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -29,6 +32,66 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     public MyTenantsSurfaceTests()
     {
         Services.AddScoped<TenantSearchPagingState>();    }
+
+    [Fact]
+    public void Standalone_page_two_reload_binds_cursor_but_audit_handoff_omits_it()
+    {
+        UserTenantMembershipRequest? observedRequest = null;
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(composition);
+        AuthenticationStateProvider caller = Substitute.For<AuthenticationStateProvider>();
+        caller.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+        Services.AddSingleton(caller);
+        RegisterServices(call =>
+        {
+            observedRequest = call.ArgAt<UserTenantMembershipRequest>(0);
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantOwner,
+                    ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)]) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+            });
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/my?cursor=opaque-page-two");
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']");
+        observedRequest.ShouldNotBeNull().Cursor.ShouldBe("opaque-page-two");
+        string href = cut.Find("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href").ShouldNotBeNull();
+        href.ShouldContain("auditPartialReturn=true");
+        href.ShouldNotContain("opaque-page-two");
+        href.ShouldContain("returnUrl=%2Ftenants%2Fmy");
+    }
+
+    [Fact]
+    public void My_tenants_refresh_waits_for_suspended_owner_then_renders_loading_and_result()
+    {
+        var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pendingRead = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        RegisterServices(_ => ++reads == 1
+            ? Task.FromResult(ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active,
+                TenantRole.TenantReader, ReadModelFreshnessState.Current)]))
+            : pendingRead.Task);
+        IRenderedComponent<Hexalith.Tenants.UI.Components.Users.MyTenantsPanel> cut = Render<Hexalith.Tenants.UI.Components.Users.MyTenantsPanel>(parameters => parameters
+            .Add(p => p.OnAuditRefresh, EventCallback.Factory.Create(this, () => owner.Task)));
+        cut.WaitForElement("[data-testid='tenants-my-row']");
+
+        cut.Find("[data-testid='tenants-my-refresh']").Click();
+        reads.ShouldBe(1);
+        owner.SetResult();
+        cut.WaitForElement("[data-testid='tenants-my-loading']");
+        cut.WaitForAssertion(() => reads.ShouldBe(2));
+
+        pendingRead.SetResult(ReadySnapshot([Row("tenant.beta", "Beta", TenantStatus.Active,
+            TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.beta"));
+        cut.FindAll("[data-testid='tenants-my-loading']").ShouldBeEmpty();
+    }
 
     [Fact]
     public void My_tenants_route_renders_memberships_stable_selectors_and_no_mutation_controls()
@@ -136,8 +199,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         RegisterServices(ReadySnapshot(
             [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusAuditLauncher", _ => true);
-        focus.SetResult(false);
+        JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
+        focus.SetResult("missing");
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha&auditPartialReturn=true");
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
@@ -315,7 +378,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         string detailHref = cut.Find("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
         detailHref.ShouldNotContain("opaque-next-cursor");
         Uri.UnescapeDataString(detailHref["/tenants/tenant.beta?returnUrl=".Length..])
-            .ShouldBe("/tenants/my?auditFocus=tenants-my-row-tenant.beta&auditPartialReturn=true");
+            .ShouldBe("/tenants/my?anchor=tenants-my-detail-tenant.beta&auditPartialReturn=true");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Stale");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
             "http://localhost/tenants/my?cursor=opaque-next-cursor");
@@ -369,7 +432,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         href.ShouldNotBeNull();
         href.ShouldStartWith("/tenants/tenant.alpha?returnUrl=");
         string decodedReturnUrl = Uri.UnescapeDataString(href!["/tenants/tenant.alpha?returnUrl=".Length..]);
-        decodedReturnUrl.ShouldBe("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
+        decodedReturnUrl.ShouldBe("/tenants/my?anchor=tenants-my-detail-tenant.alpha");
 
         // AC7: the identity element carries the id the ReturnFocus anchor points at, so focus-on-return
         // resolves (previously the id was missing and focus was a no-op).
@@ -378,6 +441,26 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         // The self-audit Role column is preserved alongside the new drill-in.
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Ordinary_detail_return_focuses_the_rendered_detail_link_without_an_audit_notice()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<string> detailFocus = module.Setup<string>("restoreDetailFocus", _ => true);
+        detailFocus.SetResult("found");
+
+        IRenderedComponent<MyTenantsPage> source = Render<MyTenantsPage>();
+        source.WaitForElement("[data-testid='tenants-my-detail-link']");
+        string detailHref = source.Find("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
+        string listReturn = Uri.UnescapeDataString(detailHref.Split("returnUrl=", StringSplitOptions.None)[1]);
+        Services.GetRequiredService<NavigationManager>().NavigateTo(listReturn);
+        source.WaitForElement("[id='tenants-my-detail-tenant.alpha']");
+        source.WaitForAssertion(() => detailFocus.Invocations.Count.ShouldBe(1));
+        detailFocus.Invocations.Single().Arguments[0].ShouldBe("tenants-my-detail-tenant.alpha");
+        source.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();
     }
 
     [Fact]

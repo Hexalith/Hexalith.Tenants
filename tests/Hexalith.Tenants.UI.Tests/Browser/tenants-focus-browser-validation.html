@@ -38,7 +38,7 @@
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
-        const { focusElementById, focusAuditLauncher } = await import(modulePath);
+        const { focusElementById, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
         const report = document.getElementById("validation-report");
         const acknowledgement = document.getElementById("remove-acknowledgement");
         const lifecycle = document.getElementById("remove-lifecycle");
@@ -168,12 +168,12 @@
             const detailOrigin = document.createElement("section");
             detailOrigin.dataset.testid = "tenants-detail-audit-origin";
             detailOrigin.dataset.auditFocusTerminal = "true";
-            detailOrigin.innerHTML = '<h1 id="tenants-detail-identity" data-testid="tenants-detail-identity">Tenant detail <fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></h1><div role="row"><span id="tenants-member-user.alpha">Member</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></div>';
+            detailOrigin.innerHTML = '<header data-testid="tenants-detail-identity"><h1 id="tenants-detail-identity" tabindex="-1">Tenant detail</h1><div class="metadata"><fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></div></header><div role="row"><span id="tenants-member-user.alpha">Member</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.beta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button></div>';
             document.body.append(detailOrigin);
             if (!await focusAuditLauncher("tenants-detail-identity", "tenants-detail-audit-origin", "tenants-detail-identity")) {
                 throw new Error("detail identity audit launcher was not focused");
             }
-            assertActiveElement(detailOrigin.querySelector("h1 fluent-anchor-button"), "detail-audit-launcher");
+            assertActiveElement(detailOrigin.querySelector(".metadata fluent-anchor-button"), "detail-audit-launcher");
             if (!await focusAuditLauncher("tenants-member-user.alpha", "tenants-detail-audit-origin", "tenants-detail-identity")) {
                 throw new Error("member row audit launcher was not focused");
             }
@@ -236,6 +236,71 @@
                 throw new Error("missing audit launcher incorrectly reported success");
             }
             assertActiveElement(document.getElementById("tenants-user-lookup-heading"), "missing-standalone-audit-heading");
+
+            const fixtureUrl = `${window.location.pathname}${window.location.search}`;
+            window.history.replaceState({}, "", "/tenants/my?anchor=tenants-my-detail-tenant.alpha");
+            const detailLink = document.createElement("a");
+            detailLink.id = "tenants-my-detail-tenant.alpha";
+            detailLink.href = "/tenants/tenant.alpha";
+            detailLink.textContent = "Open tenant detail";
+            auditOrigin.append(detailLink);
+            if (await restoreDetailFocus(detailLink.id, "tenants-my-page", "tenants-my-heading") !== "found") {
+                throw new Error("ordinary My Tenants detail link was not focused");
+            }
+            assertActiveElement(detailLink, "ordinary-my-tenants-detail-link");
+
+            missingOrigin.removeAttribute("data-audit-focus-terminal");
+            window.history.replaceState({}, "", "/tenants/users?userId=target.one&auditFocus=tenants-user-row-tenant.gamma");
+            const delayedLookup = restoreAuditFocus("tenants-user-row-tenant.gamma", "tenants-user-lookup", "tenants-user-lookup-heading", "target.one");
+            window.history.replaceState({}, "", "/tenants/users?tab=users&userId=target.one&auditFocus=tenants-user-row-tenant.gamma");
+            const lookupRow = document.createElement("div");
+            lookupRow.setAttribute("role", "row");
+            lookupRow.innerHTML = '<span id="tenants-user-row-tenant.gamma">Gamma</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.gamma/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button>';
+            missingOrigin.append(lookupRow);
+            if (await delayedLookup !== "found") {
+                throw new Error("canonicalized lookup did not focus its delayed launcher");
+            }
+            assertActiveElement(lookupRow.querySelector("fluent-anchor-button"), "canonicalized-delayed-lookup-launcher");
+
+            const sameFocus = "tenants-user-row-tenant.delta";
+            window.history.replaceState({}, "", `/tenants/users?tab=users&userId=target.one&auditFocus=${sameFocus}`);
+            const oldTarget = restoreAuditFocus(sameFocus, "tenants-user-lookup", "tenants-user-lookup-heading", "target.one");
+            window.history.replaceState({}, "", `/tenants/users?tab=users&userId=target.two&auditFocus=${sameFocus}`);
+            const newTarget = restoreAuditFocus(sameFocus, "tenants-user-lookup", "tenants-user-lookup-heading", "target.two");
+            if (await oldTarget !== "cancelled") throw new Error("old lookup target wait was not cancelled");
+            const replacementRow = document.createElement("div");
+            replacementRow.setAttribute("role", "row");
+            replacementRow.innerHTML = '<span id="tenants-user-row-tenant.delta">Delta</span><fluent-anchor-button tabindex="0" href="/tenants/tenant.delta/audit" data-testid="tenants-audit-entrypoint">Audit evidence</fluent-anchor-button>';
+            missingOrigin.append(replacementRow);
+            if (await newTarget !== "found") throw new Error("new lookup target lost same-row focus");
+            assertActiveElement(replacementRow.querySelector("fluent-anchor-button"), "changed-lookup-target-launcher");
+
+            const removedMarkerFocus = "tenants-user-row-tenant.future";
+            window.history.replaceState({}, "", `/tenants/users?tab=users&userId=target.two&auditFocus=${removedMarkerFocus}`);
+            const removedMarkerWait = restoreAuditFocus(removedMarkerFocus, "tenants-user-lookup", "tenants-user-lookup-heading", "target.two");
+            window.history.replaceState({}, "", "/tenants/users?tab=users&userId=target.two");
+            if (await removedMarkerWait !== "cancelled") throw new Error("removed marker left an active focus wait");
+            observations.push("lookup-canonicalization-target-change-and-marker-removal");
+
+            window.history.replaceState({}, "", "/tenants/users?userId=target.two&sort=role&auditFocus=tenants-user-row-tenant.delta&auditPartialReturn=true#audit-section");
+            if (consumeReturnMarkers("tenants-user-row-tenant.delta", "target.one")) {
+                throw new Error("different lookup user consumed return markers");
+            }
+            if (!consumeReturnMarkers("tenants-user-row-tenant.delta", "target.two")) {
+                throw new Error("matching lookup user did not consume return markers");
+            }
+            if (window.location.pathname + window.location.search + window.location.hash
+                !== "/tenants/users?userId=target.two&sort=role#audit-section") {
+                throw new Error("return marker cleanup changed ordinary query or fragment");
+            }
+            window.history.replaceState({}, "", "/tenants/my?anchor=tenants-my-detail-tenant.alpha&auditPartialReturn=true&sort=name#detail");
+            if (!consumeReturnMarkers("tenants-my-detail-tenant.alpha", null, true)
+                || window.location.pathname + window.location.search + window.location.hash
+                    !== "/tenants/my?sort=name#detail") {
+                throw new Error("ordinary detail marker cleanup changed query or fragment");
+            }
+            observations.push("return-markers-consumed-once-with-ordinary-state-preserved");
+            window.history.replaceState({}, "", fixtureUrl);
 
             missingOrigin.removeAttribute("data-audit-focus-terminal");
             const routeExitFocus = focusAuditLauncher(

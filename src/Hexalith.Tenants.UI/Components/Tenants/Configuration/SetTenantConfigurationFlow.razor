@@ -161,7 +161,7 @@
         <div data-testid="tenants-config-set-audit">
             @if (ShouldRenderAuditEntryPoint)
             {
-                <AuditAvailabilityState AuditState="@_snapshot.AuditState" OnRefresh="RefreshStatusAsync">
+                <AuditAvailabilityState AuditState="@_snapshot.AuditState" OnRefresh="RefreshStatusAsync" OwnerRefreshIncludesAuditAuthority="true">
                     <InspectAuditAction>
                         <AuditEvidenceEntryPoint TenantId="@Context.TenantId" SourceKind="command-result"
                                                  SourceTestId="tenants-command-audit-entrypoint"

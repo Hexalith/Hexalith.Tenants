@@ -17,6 +17,10 @@
         {
             <p role="status" data-testid="tenants-audit-return-notice">@Localizer["Tenants.Audit.Return.MissingOrigin"]</p>
         }
+        @if (_stalledOrigin)
+        {
+            <p role="status" data-testid="tenants-audit-stalled-return">@Localizer["Tenants.Audit.Return.Stalled"]</p>
+        }
         @if (_partialReturn)
         {
             <p role="status" data-testid="tenants-audit-partial-return">@Localizer["Tenants.Audit.Return.Partial"]</p>
@@ -28,7 +32,9 @@
                   data-audit-focus-active-origin="tenants-my-page"></span>
             <MyTenantsPanel ShowBackLink="true"
                             BackHref="/tenants?tab=tenants&amp;scope=mine"
+                            InitialCursor="@QueryCursor"
                             AuditReadAvailable="@auditAuthority.IsAvailable"
+                            AuditReadDenied="@auditAuthority.IsDenied"
                             AuditReadResolved="@auditAuthority.IsResolved"
                             OnAuditRefresh="@RefreshAuditAuthorityAsync" />
         </AuditReadAuthorityBoundary>
@@ -39,8 +45,12 @@
     private AuditReadAuthorityBoundary? _auditAuthority;
     private string? _pendingFocus;
     private string? _handledFocus;
+    private string? _pendingDetailFocus;
+    private string? _handledDetailFocus;
     private bool _missingOrigin;
+    private bool _stalledOrigin;
     private bool _partialReturn;
+    private bool _consumedFocuslessReturn;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "auditFocus")]
@@ -50,6 +60,14 @@
     [SupplyParameterFromQuery(Name = "auditPartialReturn")]
     public bool AuditPartialReturn { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "anchor")]
+    public string? QueryAnchor { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cursor")]
+    public string? QueryCursor { get; set; }
+
     protected override void OnParametersSet()
     {
         if (AuditFocus is null || !TenantAuditNavigationSafety.IsSafeFocus(AuditFocus))
@@ -57,24 +75,71 @@
             _pendingFocus = null;
             _handledFocus = null;
             _missingOrigin = false;
-            _partialReturn = false;
-            return;
+            _stalledOrigin = false;
+            _partialReturn = AuditPartialReturn;
+            if (!AuditPartialReturn)
+            {
+                _consumedFocuslessReturn = false;
+            }
         }
-
-        if (AuditFocus is { } focus && TenantAuditNavigationSafety.IsSafeFocus(focus)
+        else if (AuditFocus is { } focus && TenantAuditNavigationSafety.IsSafeFocus(focus)
             && !string.Equals(_handledFocus, focus, StringComparison.Ordinal))
         {
             _pendingFocus = focus;
             _handledFocus = focus;
             _missingOrigin = false;
+            _stalledOrigin = false;
             _partialReturn = AuditPartialReturn;
+        }
+
+        if (QueryAnchor is { } anchor && anchor.StartsWith("tenants-my-detail-", StringComparison.Ordinal)
+            && TenantAuditNavigationSafety.IsSafeFocus(anchor)
+            && !string.Equals(_handledDetailFocus, anchor, StringComparison.Ordinal))
+        {
+            _pendingDetailFocus = anchor;
+            _handledDetailFocus = anchor;
+        }
+        else if (QueryAnchor is null)
+        {
+            _pendingDetailFocus = null;
+            _handledDetailFocus = null;
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_pendingDetailFocus is { } detailFocus)
+        {
+            _pendingDetailFocus = null;
+            try
+            {
+                await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+                string? outcome = await module.InvokeAsync<string>("restoreDetailFocus", detailFocus, "tenants-my-page", "tenants-my-heading");
+                if (outcome != "cancelled" && string.Equals(QueryAnchor, detailFocus, StringComparison.Ordinal))
+                {
+                    await module.InvokeVoidAsync("consumeReturnMarkers", detailFocus, null, true);
+                    QueryAnchor = null;
+                }
+                if (outcome is "missing" or "stalled" && string.Equals(_handledDetailFocus, detailFocus, StringComparison.Ordinal))
+                {
+                    await InvokeAsync(() => { _missingOrigin = outcome == "missing"; _stalledOrigin = outcome == "stalled"; StateHasChanged(); });
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit ended before return focus could be restored.
+            }
+        }
+
         if (_pendingFocus is not { } focus)
         {
+            if (_partialReturn && AuditFocus is null && !_consumedFocuslessReturn)
+            {
+                _consumedFocuslessReturn = true;
+                await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+                await module.InvokeVoidAsync("consumeReturnMarkers");
+                AuditPartialReturn = false;
+            }
             return;
         }
 
@@ -82,10 +147,17 @@
         try
         {
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-            bool found = await module.InvokeAsync<bool>("focusAuditLauncher", focus, "tenants-my-page", "tenants-my-heading");
-            if (!found && string.Equals(_handledFocus, focus, StringComparison.Ordinal))
+            string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, "tenants-my-page", "tenants-my-heading");
+            if (outcome != "cancelled" && string.Equals(AuditFocus, focus, StringComparison.Ordinal))
             {
-                _missingOrigin = true;
+                await module.InvokeVoidAsync("consumeReturnMarkers", focus);
+                AuditFocus = null;
+                AuditPartialReturn = false;
+            }
+            if (outcome is "missing" or "stalled" && string.Equals(_handledFocus, focus, StringComparison.Ordinal))
+            {
+                _missingOrigin = outcome == "missing";
+                _stalledOrigin = outcome == "stalled";
                 StateHasChanged();
             }
         }
