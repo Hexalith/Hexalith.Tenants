@@ -1,0 +1,38 @@
+{
+  "schema": "frontcomposer-adopter-proof/v1",
+  "execution_date": "2026-09-25",
+  "candidate_sha": "05d122005d328ec8f15ecd276058be29730288c2",
+  "package_identity": {
+    "version": "4.4.0-g6.05d12200",
+    "ids": [
+      "Hexalith.FrontComposer.Contracts",
+      "Hexalith.FrontComposer.Contracts.UI",
+      "Hexalith.FrontComposer.Shell",
+      "Hexalith.FrontComposer.SourceTools"
+    ],
+    "archive_sha512": {
+      "Hexalith.FrontComposer.Contracts": "VlwTn+q+L6VnKclhJ9tHaELmEz9iPPBAUXQO2PXLFQxixv5TYe4npJPGgByf0JWIf5btGX3QfjtijS0612+sMA==",
+      "Hexalith.FrontComposer.Contracts.UI": "cYjyr97X7DGvQvX4/qlJMTc6VCUBThqveMa/K1C1WBRVvP7i3oX54gLFw0wHPwJCEuabr6k59ObhQX5Ut0fT4Q==",
+      "Hexalith.FrontComposer.Shell": "36bPql6tWPX1xfXzub1vTHFRYPtXqvoiNTqzUmybv7BqQ2LHlYrj0VwV9ua/nsAuFO1dPximx/l9spNIc4/snw==",
+      "Hexalith.FrontComposer.SourceTools": "9Ii4HX711fAMNXN2AktEaP+G4Q/scWnzkPh0XPOKaWeiA+bNZf7l4RXWbIRVWA8sBFFGZI9F8T1yHXIhLqhDNA=="
+    },
+    "verified": true
+  },
+  "runtime_identity": {
+    "dotnet_sdk": "10.0.401",
+    "netcore": "10.0.12",
+    "aspnetcore": "10.0.12"
+  },
+  "surfaces": {
+    "projection": "TenantSummaryProjectionView@/adopter/tenants-projection",
+    "command": "CreateTenantCommandForm@/adopter/tenants-command"
+  },
+  "assertions": {
+    "projection_rendered": true,
+    "command_rendered": true,
+    "bootstrap_rejected": true,
+    "empty_registry_rendered": true
+  },
+  "result": "pass",
+  "failure": null
+}
