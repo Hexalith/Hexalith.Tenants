@@ -1,7 +1,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <CascadingAuthenticationState>
-    <Router AppAssembly="typeof(Program).Assembly">
+    <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Hexalith.FrontComposer.Shell.Components.Layout.FcModuleLandingPage).Assembly }">
         <Found Context="routeData">
             <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
             <FocusOnNavigate RouteData="routeData" Selector="h1" />

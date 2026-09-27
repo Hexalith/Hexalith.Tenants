@@ -474,6 +474,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.FindComponents<UserMembershipLookupPanel>().ShouldBeEmpty();
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
+        JSInterop.Invocations["prepareTabNavigation"].Single().Arguments.ShouldBe(new object?[] { "/tenants/workspace-users", "workspace-users" });
         UserMembershipLookupPanel firstUsersPanel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
         cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
@@ -490,7 +491,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
         cut.FindComponents<UserMembershipLookupPanel>().ShouldHaveSingleItem().Instance.ShouldBeSameAs(firstUsersPanel);
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
-        navigation.Uri.ShouldContain("cursor=tenant-cursor");
+        navigation.Uri.ShouldContain("/tenants/tenants?cursor=tenant-cursor");
         firstUsersPanel.InitialUserId.ShouldBe("user.one");
         firstUsersPanel.InitialSort.ShouldBe(UserTenantMembershipSortColumns.Role);
         firstUsersPanel.InitialCursor.ShouldBe("user-cursor");
@@ -499,7 +500,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
         cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(firstUsersPanel);
-        navigation.Uri.ShouldContain("userId=user.one");
+        navigation.Uri.ShouldContain("/tenants/workspace-users?userId=user.one");
         navigation.Uri.ShouldContain("sort=role");
         navigation.Uri.ShouldContain("cursor=user-cursor");
         cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");

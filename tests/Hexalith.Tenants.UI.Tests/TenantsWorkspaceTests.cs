@@ -12,6 +12,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Components.Tenants;
+using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -224,6 +225,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-user-lookup-input']");
         FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        UserMembershipLookupPanel retainedUsers = cut.FindComponent<UserMembershipLookupPanel>().Instance;
         tabs.ActiveTabId.ShouldBe("workspace-users");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users");
 
@@ -231,6 +233,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-refresh']");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/tenants");
         cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.TenantsTab);
+        JSInterop.Invocations["prepareTabNavigation"].Single().Arguments.ShouldBe(new object?[] { "/tenants/tenants", "tenants" });
+        cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(retainedUsers);
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users");
+        cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(retainedUsers);
+        JSInterop.Invocations["prepareTabNavigation"].Count.ShouldBe(2);
     }
 
     [Fact]
@@ -341,7 +350,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
 
         cut.Find("[data-testid='tenants-audit-return-notice']").TextContent.ShouldNotBeNullOrWhiteSpace();
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldEndWith("/tenants?auditReturnUnavailable=true");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldEndWith("/tenants/tenants?auditReturnUnavailable=true");
         string headingReference = HeadingReferenceId(cut);
         cut.WaitForAssertion(() => HeadingFocusRequests(headingReference).ShouldBe(1));
 
@@ -1098,7 +1107,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
 
         cut.WaitForElement("[data-testid='tenants-user-lookup-input']");
-        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.UsersTab);
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe("workspace-users");
         gateway.DidNotReceive()
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         gateway.Received(1).GetUserTenantsAsync(

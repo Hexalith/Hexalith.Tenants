@@ -61,7 +61,9 @@
            content: FcPageTab retains it (via DeferredLoading) after first activation, so switching
            tabs preserves the panel component instance, local state, and in-flight work without
            Tenants hand-rolling its own hidden/aria-hidden panel wrapper. *@
-        <FcPageTabs ActiveTabId="@_activeTabId"
+        <FcPageTabs ActiveTabId="@(IsUsersTab ? "workspace-users" : TenantWorkspaceState.TenantsTab)"
+                    ModuleRoute="/tenants"
+                    DefaultTabId="@TenantWorkspaceState.TenantsTab"
                     ActiveTabIdChanged="OnActiveTabChanged"
                     AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
                     TestId="tenants-workspace-tabs">
@@ -303,7 +305,7 @@
                 </FluentStack>
                 </div>
             </FcPageTab>
-            <FcPageTab Id="@TenantWorkspaceState.UsersTab"
+            <FcPageTab Id="workspace-users"
                        Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
                        DeferredLoading="true">
                 <div data-testid="tenants-workspace-users-panel">
@@ -1719,7 +1721,7 @@
 
     private bool NavigateToCanonicalWorkspaceIfNeeded(TenantWorkspaceState state)
     {
-        string canonicalUrl = state.ToCanonicalUrl(routeBacked: RouteTabFromLocation is not null);
+        string canonicalUrl = state.ToCanonicalUrl(routeBacked: true);
         if (TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
         {
             canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")

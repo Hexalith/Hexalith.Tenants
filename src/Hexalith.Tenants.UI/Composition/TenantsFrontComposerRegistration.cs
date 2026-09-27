@@ -22,6 +22,14 @@ public static class TenantsFrontComposerRegistration {
         NameKey: "Tenants.Navigation.Tenants",
         Resource: typeof(TenantsResources)) {
         FullPageCommands = [],
+        CanonicalRouteAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["/"] = "/tenants/tenants",
+            ["/?tab=users"] = "/tenants/workspace-users",
+            ["/?tab=workspace-users"] = "/tenants/workspace-users",
+            ["/tenants"] = "/tenants/tenants",
+            ["/tenants?tab=users"] = "/tenants/workspace-users",
+            ["/tenants?tab=workspace-users"] = "/tenants/workspace-users",
+        },
     };
 
     public static void RegisterDomain(IFrontComposerRegistry registry) {
