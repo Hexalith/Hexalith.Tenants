@@ -94,6 +94,80 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-lookup-page-header']");
     }
 
+    [Fact]
+    public void Standalone_lookup_partial_return_keeps_notice_when_marker_cleanup_fails()
+    {
+        RegisterServices(UserTenantMembershipSnapshot.Empty(
+            isAuthorizationScoped: true, ReadModelFreshnessState.Current, eTag: null, targetUserId: null));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler cleanup = module.SetupVoid("consumeReturnMarkers");
+        cleanup.SetException(new Microsoft.JSInterop.JSException("Marker cleanup unavailable."));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/users?auditPartialReturn=true");
+
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+
+        cut.WaitForAssertion(() => cleanup.Invocations.Count.ShouldBe(1));
+        cut.Find("[data-testid='tenants-audit-partial-return']");
+        cut.Find("[data-testid='tenants-user-lookup-page-header']");
+    }
+
+    [Fact]
+    public void Consumed_return_markers_do_not_replay_into_later_lookups_and_later_results_receive_status_focus()
+    {
+        RegisterServices(call => Task.FromResult(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+            targetUserId: call.ArgAt<UserTenantMembershipRequest>(0).TargetUserId)));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
+        focus.SetResult("found");
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/users?userId=user.alpha&auditFocus=tenants-user-row-tenant.alpha&auditPartialReturn=true");
+
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        string statusReference = cut.Find("[data-testid='tenants-user-lookup-status']")
+            .GetAttribute("blazor:elementreference").ShouldNotBeNull();
+
+        // The lookup status must not compete with the audit launcher that is being restored.
+        StatusFocusRequests(statusReference).ShouldBe(0);
+
+        cut.Find("[data-testid='tenants-user-lookup-input']").Change("user.beta");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => navigation.Uri.ShouldContain("userId=user.beta"));
+        navigation.Uri.ShouldNotContain("auditFocus");
+        navigation.Uri.ShouldNotContain("auditPartialReturn");
+        cut.WaitForAssertion(() => StatusFocusRequests(statusReference).ShouldBe(1));
+        focus.Invocations.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Lookup_focus_outcome_for_a_previous_target_user_neither_consumes_markers_nor_shows_notices()
+    {
+        RegisterServices(call => Task.FromResult(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+            targetUserId: call.ArgAt<UserTenantMembershipRequest>(0).TargetUserId)));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
+        JSRuntimeInvocationHandler cleanup = module.SetupVoid("consumeReturnMarkers", _ => true);
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/users?userId=user.alpha&auditFocus=tenants-user-row-tenant.alpha");
+
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        focus.Invocations.Single().Arguments[3].ShouldBe("user.alpha");
+
+        navigation.NavigateTo("/tenants/users?userId=user.beta");
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-user-lookup-target']").TextContent.ShouldContain("user.beta"));
+        focus.SetResult("missing");
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
+        cleanup.Invocations.ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-stalled-return']").ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData(ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Current)]
     [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown)]
@@ -624,6 +698,13 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         gridStyles.ShouldContain("overflow-wrap: anywhere");
         gridStyles.ShouldContain("white-space: break-spaces");
     }
+
+    private int StatusFocusRequests(string statusReference)
+        => JSInterop.Invocations
+            .Count(invocation => invocation.Identifier == "Blazor._internal.domWrapper.focus"
+                && invocation.Arguments.Count > 0
+                && invocation.Arguments[0] is ElementReference element
+                && element.Id == statusReference);
 
     private ITenantQueryGateway RegisterServices(UserTenantMembershipSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
