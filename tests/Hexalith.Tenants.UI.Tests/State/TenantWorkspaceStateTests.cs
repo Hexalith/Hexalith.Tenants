@@ -399,8 +399,11 @@ public sealed class TenantWorkspaceStateTests
 
         state.ToCanonicalUrl().ShouldBe(
             "/tenants?search=alpha%20beta&status=Disabled&sort=name&desc=True&selected=tenant.alpha&anchor=tenant-row-tenant.alpha");
+        state.ToCanonicalUrl(routeBacked: true).ShouldBe(
+            "/tenants/tenants?search=alpha%20beta&status=Disabled&sort=name&desc=True&selected=tenant.alpha&anchor=tenant-row-tenant.alpha");
 
         TenantWorkspaceState users = state.WithTab(TenantWorkspaceState.UsersTab).WithUserId("user/target");
         users.ToCanonicalUrl().ShouldBe("/tenants?tab=users&userId=user%2Ftarget&sort=name");
+        users.ToCanonicalUrl(routeBacked: true).ShouldBe("/tenants/workspace-users?userId=user%2Ftarget&sort=name");
     }
 }

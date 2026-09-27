@@ -564,7 +564,7 @@
         get
         {
             TenantWorkspaceState safeReturnState = CurrentWorkspaceState() with { Cursor = null };
-            return $"/global-administrators?returnUrl={Uri.EscapeDataString(safeReturnState.ToCanonicalUrl())}";
+            return $"/global-administrators?returnUrl={Uri.EscapeDataString(safeReturnState.ToCanonicalUrl(routeBacked: true))}";
         }
     }
 

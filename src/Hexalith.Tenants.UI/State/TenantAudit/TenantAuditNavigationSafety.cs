@@ -212,7 +212,7 @@ public static partial class TenantAuditNavigationSafety
     }
 
     private static bool IsListPath(string path)
-        => path is "/tenants" or "/tenants/my" or "/tenants/users";
+        => path is "/tenants" or "/tenants/my" or "/tenants/users" or "/tenants/tenants" or "/tenants/workspace-users";
 
     private static bool IsSafeListReturnUrl(string safe)
         => IsListPath(PathOf(safe)) && QueryValue(safe, "returnUrl") is null;
@@ -251,16 +251,16 @@ public static partial class TenantAuditNavigationSafety
                 || focus.StartsWith("tenants-my-detail-", StringComparison.Ordinal);
         }
 
-        if (path is "/tenants/users")
+        if (path is "/tenants/users" or "/tenants/workspace-users")
         {
             return focus.StartsWith("tenants-user-row-", StringComparison.Ordinal);
         }
 
-        if (path is "/tenants")
+        if (path is "/tenants" or "/tenants/tenants")
         {
             string? tab = QueryValue(url, "tab");
             string? scope = QueryValue(url, "scope");
-            return tab is "users"
+            return path is "/tenants" && tab is "users"
                 ? focus.StartsWith("tenants-user-row-", StringComparison.Ordinal)
                 : scope is "mine"
                     ? focus.StartsWith("tenants-my-row-", StringComparison.Ordinal)

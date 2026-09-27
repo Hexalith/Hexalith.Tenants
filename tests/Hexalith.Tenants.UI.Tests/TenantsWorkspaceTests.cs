@@ -20,6 +20,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Tests.Components;
 using Hexalith.Tenants.UI.State.UserTenants;
+using Hexalith.FrontComposer.Shell.Services;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -46,6 +47,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
         // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantCreateAuditReturnState>();
+        Services.AddLocalization();
+        Services.AddScoped<NavigationFailureNotifier>();
     }
 
     [Fact]
@@ -173,7 +176,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement(expectedSurfaceSelector);
 
-        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(tab);
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(
+            tab == TenantWorkspaceState.UsersTab ? "workspace-users" : tab);
         cut.Find(expectedSurfaceSelector).ShouldNotBeNull();
         TenantWorkspaceState normalizedState = PrivateField<TenantWorkspaceState>(cut.Instance, "_workspaceState");
         normalizedState.Tab.ShouldBe(tab);
@@ -189,8 +193,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
                 ? TenantWorkspaceState.MyScope
                 : TenantWorkspaceState.AllScope;
             string expectedUrl = nextScope == TenantWorkspaceState.MyScope
-                ? $"http://localhost/tenants?tab={TenantWorkspaceState.TenantsTab}&scope={TenantWorkspaceState.MyScope}"
-                : "http://localhost/tenants";
+                ? "http://localhost/tenants/tenants?scope=mine"
+                : "http://localhost/tenants/tenants";
             string nextSurfaceSelector = nextScope == TenantWorkspaceState.MyScope
                 ? "[data-testid='tenants-my-list']"
                 : "[data-testid='tenants-list-refresh']";
@@ -201,6 +205,31 @@ public sealed class TenantsWorkspaceTests : BunitContext
             Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(expectedUrl);
             PrivateField<TenantWorkspaceState>(cut.Instance, "_workspaceState").Scope.ShouldBe(nextScope);
         }
+    }
+
+    [Fact]
+    public async Task Route_backed_workspace_tabs_select_the_matching_panel_and_navigate_between_urls()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/workspace-users");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-user-lookup-input']");
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        tabs.ActiveTabId.ShouldBe("workspace-users");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users");
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
+        cut.WaitForElement("[data-testid='tenants-list-refresh']");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/tenants");
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.TenantsTab);
     }
 
     [Fact]
@@ -220,7 +249,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
 
         string? href = cut.Find("[data-testid='tenants-global-administrators-entry']").GetAttribute("href");
-        href.ShouldBe("/global-administrators?returnUrl=%2Ftenants%3Fsearch%3Dalpha%26sort%3Dname%26desc%3DTrue");
+        href.ShouldBe("/global-administrators?returnUrl=%2Ftenants%2Ftenants%3Fsearch%3Dalpha%26sort%3Dname%26desc%3DTrue");
         cut.FindAll("[data-testid='tenants-global-administrators-entry']").Count.ShouldBe(1);
     }
 
@@ -257,7 +286,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.GetRequiredService<NavigationManager>().Uri.ShouldContain("cursor=opaque-page-2");
         cut.Find("[data-testid='tenants-global-administrators-entry']")
             .GetAttribute("href")
-            .ShouldBe("/global-administrators?returnUrl=%2Ftenants");
+            .ShouldBe("/global-administrators?returnUrl=%2Ftenants%2Ftenants");
     }
 
     [Fact]
@@ -765,7 +794,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         // The canonical URL preserves the selection/anchor so a redirect does not strip the restored context.
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
-            "http://localhost/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+            "http://localhost/tenants/tenants?scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
     }
 
     [Fact]
@@ -801,9 +830,9 @@ public sealed class TenantsWorkspaceTests : BunitContext
         gateway.DidNotReceive()
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("USER.Target-01");
-        IElement usersTab = cut.Find("#users");
-        IElement usersPanel = cut.Find("#users-panel");
-        usersTab.GetAttribute("aria-controls").ShouldBe("users-panel");
+        IElement usersTab = cut.Find("#workspace-users");
+        IElement usersPanel = cut.Find("#workspace-users-panel");
+        usersTab.GetAttribute("aria-controls").ShouldBe("workspace-users-panel");
         usersPanel.GetAttribute("role").ShouldBe("tabpanel");
         usersPanel.QuerySelector("[data-testid='tenants-user-lookup-results']").ShouldNotBeNull();
         cut.FindAll("[data-testid='tenants-workspace-tenants-panel-content']").ShouldBeEmpty();

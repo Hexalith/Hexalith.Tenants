@@ -227,7 +227,7 @@
 
     private string BuildReturnUrl()
         => UseWorkspaceRoute
-            ? MyTenantsWorkspaceState().ToCanonicalUrl()
+            ? MyTenantsWorkspaceState().ToCanonicalUrl(routeBacked: true)
             : "/tenants/my" + (_currentCursor is null ? string.Empty : "?cursor=" + Uri.EscapeDataString(_currentCursor));
 
     // Ordinary detail navigation returns focus to the clicked detail link. Audit launcher focus is

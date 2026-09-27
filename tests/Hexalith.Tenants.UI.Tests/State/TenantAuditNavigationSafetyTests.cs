@@ -92,6 +92,21 @@ public sealed class TenantAuditNavigationSafetyTests
         invalid.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData("/tenants/tenants", "tenant-row-tenant.alpha", "tenants-user-row-tenant.alpha")]
+    [InlineData("/tenants/workspace-users", "tenants-user-row-tenant.alpha", "tenant-row-tenant.alpha")]
+    public void CanonicalWorkspaceReturnAcceptsOnlyItsOwnFocus(string route, string validFocus, string invalidFocus)
+    {
+        TenantAuditNavigationSafety.SafeListReturnUrl(route, out _).ShouldBe(route);
+        TenantAuditNavigationSafety.IsFocusForReturnUrl(route, validFocus).ShouldBeTrue();
+        TenantAuditNavigationSafety.IsFocusForReturnUrl(route, invalidFocus).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanonicalTenantsRouteIgnoresLegacyUsersTabQueryForFocus()
+        => TenantAuditNavigationSafety.IsFocusForReturnUrl(
+            "/tenants/tenants?tab=users", "tenants-user-row-tenant.alpha").ShouldBeFalse();
+
     [Fact]
     public void SafeUserIdentityPunctuationRemainsValidInDerivedMemberFocus()
     {

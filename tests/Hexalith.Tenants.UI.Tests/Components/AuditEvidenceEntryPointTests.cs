@@ -63,6 +63,26 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         cut.Markup.ShouldNotContain("CorrelationId", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData("/tenants/tenants?selected=tenant.alpha", "tenant-row-tenant.alpha", "tenant-list")]
+    [InlineData("/tenants/workspace-users?userId=user.alpha", "tenants-user-row-tenant.alpha", "user-lookup")]
+    public void Workspace_audit_buttons_are_enabled_for_canonical_tab_routes(string returnUrl, string returnFocus, string source)
+    {
+        RegisterLocalizer();
+
+        IRenderedComponent<AuditEvidenceEntryPoint> cut = Render<AuditEvidenceEntryPoint>(parameters => parameters
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.SourceKind, source)
+            .Add(component => component.ReturnUrl, returnUrl)
+            .Add(component => component.ReturnFocus, returnFocus)
+            .Add(component => component.IsAvailable, true));
+
+        string href = RequiredAttribute(cut.Find("[data-testid='tenants-audit-entrypoint']"), "href");
+        href.ShouldContain("/tenants/tenant.alpha/audit?");
+        href.ShouldContain("returnFocus=" + returnFocus);
+        href.ShouldContain("returnUrl=");
+    }
+
     [Fact]
     public void Audit_entry_point_blocks_unsafe_return_url_and_control_character_context()
     {

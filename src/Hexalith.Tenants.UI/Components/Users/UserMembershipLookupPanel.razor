@@ -310,7 +310,7 @@
             sortDescending: null,
             _currentCursor,
             selectedTenantId: null,
-            anchor: null).ToCanonicalUrl();
+            anchor: null).ToCanonicalUrl(routeBacked: UseWorkspaceRoute);
             return UseWorkspaceRoute ? canonical : "/tenants/users" + canonical[8..];
         }
     }

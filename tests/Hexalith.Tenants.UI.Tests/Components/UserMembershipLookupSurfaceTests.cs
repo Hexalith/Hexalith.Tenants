@@ -242,7 +242,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-lookup-input']").GetAttribute("value").ShouldBe(string.Empty);
         cut.FindAll("[data-testid='tenants-user-lookup-results']").ShouldBeEmpty();
         cut.Markup.ShouldContain("User membership lookup cleared.");
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users");
     }
 
     [Fact]
@@ -532,7 +532,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             cut.Markup.ShouldContain("Visible memberships sorted.");
             cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
         });
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users&userId=target.user&sort=name");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users?userId=target.user&sort=name");
 
         cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
         cut.WaitForAssertion(() => requests[3].ETag.ShouldBe("\"etag\""));

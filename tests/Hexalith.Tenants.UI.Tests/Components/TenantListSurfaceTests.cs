@@ -6,6 +6,7 @@ using Bunit;
 
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Components.Layout;
+using Hexalith.FrontComposer.Shell.Services;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -35,6 +36,12 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class TenantListSurfaceTests : BunitContext
 {
+    public TenantListSurfaceTests()
+    {
+        Services.AddLocalization();
+        Services.AddScoped<NavigationFailureNotifier>();
+    }
+
     [Fact]
     public void Workspace_renders_grid_controls_stable_selectors_and_truth_state()
     {
@@ -368,7 +375,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Markup.ShouldContain("tenant.alpha");
         AssertSingleNoticeLiveRegion(cut);
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
-        navigation.Uri.ShouldBe("http://localhost/tenants");
+        navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
         cut.Markup.ShouldNotContain("expired-protected-cursor", Case.Insensitive);
     }
 
@@ -400,14 +407,14 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
 
-        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
 
         cut.WaitForAssertion(() =>
         {
-            navigation.Uri.ShouldContain("tab=users");
+            navigation.Uri.ShouldContain("/tenants/workspace-users");
             navigation.Uri.ShouldNotContain("tenant-list-cursor");
-            cut.Find("#users").GetAttribute("aria-controls").ShouldBe("users-panel");
-            cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
+            cut.Find("#workspace-users").GetAttribute("aria-controls").ShouldBe("workspace-users-panel");
+            cut.Find("#workspace-users-panel").GetAttribute("role").ShouldBe("tabpanel");
             cut.FindComponent<UserMembershipLookupPanel>().Instance.InitialCursor.ShouldBeNull();
         });
     }
@@ -428,7 +435,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         await ChangeSearchAsync(cut, "filtered");
         FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
-        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
 
         cut.WaitForAssertion(() =>
@@ -466,11 +473,11 @@ public sealed class TenantListSurfaceTests : BunitContext
         // UserMembershipLookupPanel -- is not mounted merely because the tab header exists.
         cut.FindComponents<UserMembershipLookupPanel>().ShouldBeEmpty();
 
-        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
         UserMembershipLookupPanel firstUsersPanel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
         cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance.ShouldBeSameAs(firstTenantsPanel);
         cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
-        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#workspace-users-panel").GetAttribute("role").ShouldBe("tabpanel");
 
         navigation.NavigateTo("/tenants?tab=users&userId=user.one&sort=role&cursor=user-cursor");
         cut.WaitForAssertion(() =>
@@ -488,15 +495,15 @@ public sealed class TenantListSurfaceTests : BunitContext
         firstUsersPanel.InitialSort.ShouldBe(UserTenantMembershipSortColumns.Role);
         firstUsersPanel.InitialCursor.ShouldBe("user-cursor");
         cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
-        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#workspace-users-panel").GetAttribute("role").ShouldBe("tabpanel");
 
-        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
         cut.FindComponent<UserMembershipLookupPanel>().Instance.ShouldBeSameAs(firstUsersPanel);
         navigation.Uri.ShouldContain("userId=user.one");
         navigation.Uri.ShouldContain("sort=role");
         navigation.Uri.ShouldContain("cursor=user-cursor");
         cut.Find("#tenants-panel").GetAttribute("role").ShouldBe("tabpanel");
-        cut.Find("#users-panel").GetAttribute("role").ShouldBe("tabpanel");
+        cut.Find("#workspace-users-panel").GetAttribute("role").ShouldBe("tabpanel");
     }
 
     [Fact]
@@ -532,13 +539,13 @@ public sealed class TenantListSurfaceTests : BunitContext
         RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current));
         Bunit.TestDoubles.BunitNavigationManager navigation =
             (Bunit.TestDoubles.BunitNavigationManager)Services.GetRequiredService<NavigationManager>();
-        navigation.NavigateTo("/tenants");
+        navigation.NavigateTo("/tenants/tenants");
         int navigationCount = navigation.History.Count;
 
         _ = Render<TenantsWorkspace>();
 
         navigation.History.Count.ShouldBe(navigationCount);
-        navigation.Uri.ShouldBe("http://localhost/tenants");
+        navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
     }
 
     [Fact]
@@ -555,7 +562,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Dispose();
 
         navigation.History.Count.ShouldBe(navigationCount);
-        navigation.Uri.ShouldBe("http://localhost/tenants");
+        navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
     }
 
     [Fact]
@@ -567,7 +574,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         _ = Render<TenantsWorkspace>();
 
-        navigation.Uri.ShouldBe("http://localhost/tenants");
+        navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
     }
 
     [Fact]
@@ -2208,7 +2215,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         TaskCompletionSource<bool> recoveryNavigationAccess = new(TaskCreationOptions.RunContinuationsAsynchronously);
         navigation.LocationChanged += (_, args) =>
         {
-            if (string.Equals(args.Location, "http://localhost/tenants", StringComparison.Ordinal))
+            if (string.Equals(args.Location, "http://localhost/tenants/tenants", StringComparison.Ordinal))
             {
                 recoveryNavigationAccess.TrySetResult(Renderer.Dispatcher.CheckAccess());
             }
@@ -2231,7 +2238,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         (await recoveryNavigationAccess.Task.WaitAsync(TimeSpan.FromSeconds(5))).ShouldBeTrue();
         cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.recovered"));
-        navigation.Uri.ShouldBe("http://localhost/tenants");
+        navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
         cut.Markup.ShouldNotContain(expiredCursor, Case.Insensitive);
 
         Renderer.UnhandledException.IsCompleted.ShouldBeFalse();
