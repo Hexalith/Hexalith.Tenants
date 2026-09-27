@@ -21,5 +21,6 @@
     <Project Path="tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj" />
     <Project Path="tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj" />
     <Project Path="tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj" />
+    <Project Path="tests/performance/tenant-audit/seed.csproj" />
   </Folder>
 </Solution>

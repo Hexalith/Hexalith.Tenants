@@ -60,8 +60,6 @@
            Tenants hand-rolling its own hidden/aria-hidden panel wrapper. *@
         <FcPageTabs ActiveTabId="@_activeTabId"
                     ActiveTabIdChanged="OnActiveTabChanged"
-                    ModuleRoute="/tenants"
-                    DefaultTabId="@TenantWorkspaceState.TenantsTab"
                     AriaLabel="@Localizer["Tenants.Workspace.Tabs.Label"]"
                     TestId="tenants-workspace-tabs">
             <FcPageTab Id="@TenantWorkspaceState.TenantsTab"
@@ -297,7 +295,7 @@
                 </FluentStack>
                 </div>
             </FcPageTab>
-            <FcPageTab Id="workspace-users"
+            <FcPageTab Id="@TenantWorkspaceState.UsersTab"
                        Header="@Localizer["Tenants.Workspace.Tabs.Users"]"
                        DeferredLoading="true">
                 <div data-testid="tenants-workspace-users-panel">
@@ -1676,7 +1674,7 @@
 
     private bool NavigateToCanonicalWorkspaceIfNeeded(TenantWorkspaceState state)
     {
-        string canonicalUrl = state.ToCanonicalUrl(routeBacked: true);
+        string canonicalUrl = state.ToCanonicalUrl(routeBacked: RouteTabFromLocation is not null);
         if (TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
         {
             canonicalUrl += (canonicalUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?")
