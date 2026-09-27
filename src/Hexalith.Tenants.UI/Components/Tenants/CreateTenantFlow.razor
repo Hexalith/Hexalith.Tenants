@@ -111,16 +111,20 @@
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="RefreshStatusAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@_tenantId"
-                                                 SourceKind="command-result"
-                                                 SourceTestId="tenants-command-audit-entrypoint"
-                                                 Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, _tenantId ?? string.Empty]"
-                                                 ReturnUrl="/tenants"
-                                                 ReturnFocus="tenants-create-lifecycle"
-                                                 AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
-                                                 IsAvailable="@AuditReadAvailable" />
+                        @if (!AuditReadDenied)
+                        {
+                            <AuditEvidenceEntryPoint TenantId="@_tenantId"
+                                                     SourceKind="command-result"
+                                                     SourceTestId="tenants-command-audit-entrypoint"
+                                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, _tenantId ?? string.Empty]"
+                                                     ReturnUrl="@(WorkspaceAuditReturnUrl ?? "/tenants")"
+                                                     ReturnFocus="tenants-create-lifecycle"
+                                                     AvailabilityText="@AuditText"
+                                                     AuthorityPending="@AuditReadPending"
+                                                     UnavailableReason="@AuditReadUnavailableReason"
+                                                     IsAvailable="@AuditReadAvailable" />
+                        }
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -143,6 +147,18 @@
 @code {
     [CascadingParameter(Name = "AuditReadAvailable")]
     public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "AuditReadPending")]
+    public bool AuditReadPending { get; set; }
+
+    [CascadingParameter(Name = "AuditReadDenied")]
+    public bool AuditReadDenied { get; set; }
+
+    [CascadingParameter(Name = "AuditReadUnavailableReason")]
+    public string? AuditReadUnavailableReason { get; set; }
+
+    [CascadingParameter(Name = "WorkspaceAuditReturnUrl")]
+    public string? WorkspaceAuditReturnUrl { get; set; }
 
     private readonly object _formModel = new();
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
@@ -207,6 +223,16 @@
             _tenantId = retained.TenantId;
             _name = retained.Name;
             _description = retained.Description;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // The host clears its one-shot create return marker once focus is restored. Re-arm retention
+        // then, so a second audit trip from the restored flow keeps the latest command state.
+        if (!RestoreAuditReturn)
+        {
+            _returnStateConsumed = false;
         }
     }
 

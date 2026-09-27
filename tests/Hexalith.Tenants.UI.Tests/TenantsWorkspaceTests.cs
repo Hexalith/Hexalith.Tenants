@@ -341,6 +341,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-audit-return-notice']").TextContent.ShouldNotBeNullOrWhiteSpace();
         Services.GetRequiredService<NavigationManager>().Uri.ShouldEndWith("/tenants?auditReturnUnavailable=true");
+        string headingReference = cut.Find("#tenants-list-heading").GetAttribute("blazor:elementreference").ShouldNotBeNull();
+        cut.WaitForAssertion(() => HeadingFocusRequests(headingReference).ShouldBe(1));
 
         Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants");
         cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
@@ -903,9 +905,202 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.FindComponent<TenantsWorkspace>().Instance.QueryAuditFocus.ShouldBeNull();
         cut.Find("[data-testid='tenants-create-accordion']").HasAttribute("expanded").ShouldBeTrue();
         CreateTenantFlow restored = cut.FindComponent<CreateTenantFlow>().Instance;
-        restored.RestoreAuditReturn.ShouldBeTrue();
+
+        // The one-shot marker is consumed after focus restoration and the workspace re-renders without it;
+        // the accordion stays latched open around the restored lifecycle instead of collapsing.
+        restored.RestoreAuditReturn.ShouldBeFalse();
         restored.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Find("[data-testid='tenants-create-lifecycle']");
+    }
+
+    [Fact]
+    public void Create_audit_return_keeps_list_view_and_rearms_retention_after_the_marker_is_consumed()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), null, true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"));
+        TenantCreateAuditReturnState returnState = Services.GetRequiredService<TenantCreateAuditReturnState>();
+        returnState.Remember(snapshot, "tenant.alpha", "Alpha", null);
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants?status=Active&sort=name&desc=True&auditFocus=tenants-create-lifecycle");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        string href = cut.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href").ShouldNotBeNull();
+        href.ShouldContain("returnUrl=%2Ftenants%3Fstatus%3DActive%26sort%3Dname%26desc%3DTrue");
+        href.ShouldContain("returnFocus=tenants-create-lifecycle");
+        cut.FindComponent<CreateTenantFlow>().Instance.RestoreAuditReturn.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-accordion']").HasAttribute("expanded").ShouldBeTrue();
+
+        // A second audit trip from the restored flow must find the latest create state again.
+        var retained = returnState.Take();
+        retained.ShouldNotBeNull();
+        retained.Value.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
+    public void Workspace_partial_return_keeps_notice_when_marker_cleanup_fails()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler cleanup = module.SetupVoid("consumeReturnMarkers");
+        cleanup.SetException(new Microsoft.JSInterop.JSException("Marker cleanup unavailable."));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?auditPartialReturn=true");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForAssertion(() => cleanup.Invocations.Count.ShouldBe(1));
+        cut.Find("[data-testid='tenants-audit-partial-return']");
+        cut.Find("[data-testid='tenants-list-refresh']");
+    }
+
+    [Fact]
+    public void Workspace_mine_scope_opens_audit_for_an_authorized_current_row()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [CurrentMembershipRow("tenant.alpha", "Alpha", TenantRole.TenantOwner)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current }));
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?tab=tenants&scope=mine");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        string href = cut.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href").ShouldNotBeNull();
+        href.ShouldStartWith("/tenants/tenant.alpha/audit?");
+        href.ShouldContain("source=my-tenants");
+        href.ShouldContain("returnUrl=%2Ftenants%3Ftab%3Dtenants%26scope%3Dmine");
+        href.ShouldContain("returnFocus=tenants-my-row-tenant.alpha");
+    }
+
+    [Fact]
+    public void Workspace_users_tab_opens_audit_for_an_authorized_current_row_with_the_user_hint()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetUserTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [CurrentMembershipRow("tenant.beta", "Beta", TenantRole.TenantReader)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current,
+                targetUserId: "user.target-01") with { Lifecycle = ProjectionLifecycleState.Current }));
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?tab=users&userId=user.target-01");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        string href = cut.WaitForElement("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")
+            .GetAttribute("href").ShouldNotBeNull();
+        href.ShouldStartWith("/tenants/tenant.beta/audit?");
+        href.ShouldContain("targetUserId=user.target-01");
+        href.ShouldContain("source=user-lookup");
+        href.ShouldContain("returnUrl=%2Ftenants%3Ftab%3Dusers%26userId%3Duser.target-01");
+        href.ShouldContain("returnFocus=tenants-user-row-tenant.beta");
+    }
+
+    [Fact]
+    public void Workspace_mine_detail_return_focuses_the_detail_link_without_heading_focus()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [MembershipRow("tenant.alpha", "Alpha", TenantRole.TenantOwner)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<string> detailFocus = module.Setup<string>("restoreDetailFocus", _ => true);
+        detailFocus.SetResult("found");
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?tab=tenants&scope=mine");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        string detailHref = cut.WaitForElement("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
+        string listReturn = Uri.UnescapeDataString(detailHref.Split("returnUrl=", StringSplitOptions.None)[1]);
+        listReturn.ShouldContain("anchor=tenants-my-detail-tenant.alpha");
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo(listReturn);
+
+        cut.WaitForAssertion(() => detailFocus.Invocations.Count.ShouldBe(1));
+        detailFocus.Invocations.Single().Arguments.ShouldBe(
+            ["tenants-my-detail-tenant.alpha", "tenants-my-page", "tenants-list-heading"]);
+        string headingReference = cut.Find("#tenants-list-heading").GetAttribute("blazor:elementreference").ShouldNotBeNull();
+        HeadingFocusRequests(headingReference).ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Route_backed_users_path_opens_the_users_tab_and_keeps_its_route()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetUserTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [MembershipRow("tenant.beta", "Beta", TenantRole.TenantReader)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current,
+                targetUserId: "user.target-01")));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/workspace-users?userId=user.target-01");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForElement("[data-testid='tenants-user-lookup-input']");
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.UsersTab);
+        gateway.DidNotReceive()
+            .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users?userId=user.target-01");
     }
 
     [Fact]
@@ -1152,6 +1347,16 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)
         => new(tenantId, name, TenantStatus.Active, role, ReadModelFreshnessState.Current);
+
+    private static UserTenantMembershipRow CurrentMembershipRow(string tenantId, string name, TenantRole role)
+        => new(tenantId, name, TenantStatus.Active, role, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current);
+
+    private int HeadingFocusRequests(string headingReference)
+        => JSInterop.Invocations
+            .Count(invocation => invocation.Identifier == "Blazor._internal.domWrapper.focus"
+                && invocation.Arguments.Count > 0
+                && invocation.Arguments[0] is ElementReference element
+                && element.Id == headingReference);
 
     // SetRendererInfo initializes the service provider, so it must run after every registration. The
     // workspace only restores retained protected paging on an interactive render pass.

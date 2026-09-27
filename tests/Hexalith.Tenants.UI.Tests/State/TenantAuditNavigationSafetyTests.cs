@@ -115,6 +115,28 @@ public sealed class TenantAuditNavigationSafetyTests
     }
 
     [Fact]
+    public void FocusDerivedFromAMaximumLengthIdentityRemainsValid()
+    {
+        string userId = new('u', 256);
+
+        TenantAuditNavigationSafety.IsSafeIdentifier(userId).ShouldBeTrue();
+        TenantAuditNavigationSafety.IsSafeFocus($"tenants-member-{userId}").ShouldBeTrue();
+        TenantAuditNavigationSafety.IsSafeFocus($"tenants-member-{userId}u").ShouldBeFalse();
+        TenantAuditNavigationSafety.IsSafeFocus("tenants-member-").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("eyJhbGciOiJIUzI1NiJ9")]
+    [InlineData("messageid-01ARZ3NDEKTSV4RRFFQ69G5FAV")]
+    [InlineData("correlation-123")]
+    public void CommandReferenceHintAppliesTheReceiptApprovedReferenceRule(string reference)
+    {
+        TenantAuditNavigationSafety.IsSafeIdentifier(reference).ShouldBeTrue();
+        TenantAuditNavigationSafety.IsSafeHint(reference).ShouldBeFalse();
+        TenantAuditNavigationSafety.IsSafeHint("command-safe-reference").ShouldBeTrue();
+    }
+
+    [Fact]
     public void NestedPlusAndAtFocusIdentifierIsPreserved()
     {
         string? safe = TenantAuditNavigationSafety.SafeReturnUrl(

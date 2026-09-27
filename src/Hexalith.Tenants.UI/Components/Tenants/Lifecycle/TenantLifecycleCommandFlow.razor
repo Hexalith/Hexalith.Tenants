@@ -127,16 +127,20 @@
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="RefreshStatusFromUiAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@PreviewTenantId"
-                                                 SourceKind="command-result"
-                                                 SourceTestId="tenants-command-audit-entrypoint"
-                                                 Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, PreviewTenantId]"
-                                                 ReturnUrl="@CommandAuditReturnUrl"
-                                                 ReturnFocus="tenants-lifecycle-lifecycle"
-                                                 AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
-                                                 IsAvailable="@AuditReadAvailable" />
+                        @if (!AuditReadDenied)
+                        {
+                            <AuditEvidenceEntryPoint TenantId="@PreviewTenantId"
+                                                     SourceKind="command-result"
+                                                     SourceTestId="tenants-command-audit-entrypoint"
+                                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, PreviewTenantId]"
+                                                     ReturnUrl="@CommandAuditReturnUrl"
+                                                     ReturnFocus="tenants-lifecycle-lifecycle"
+                                                     AvailabilityText="@AuditText"
+                                                     AuthorityPending="@AuditReadPending"
+                                                     UnavailableReason="@AuditReadUnavailableReason"
+                                                     IsAvailable="@AuditReadAvailable" />
+                        }
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -165,6 +169,15 @@
 @code {
     [CascadingParameter(Name = "AuditReadAvailable")]
     public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "AuditReadPending")]
+    public bool AuditReadPending { get; set; }
+
+    [CascadingParameter(Name = "AuditReadDenied")]
+    public bool AuditReadDenied { get; set; }
+
+    [CascadingParameter(Name = "AuditReadUnavailableReason")]
+    public string? AuditReadUnavailableReason { get; set; }
 
     [CascadingParameter(Name = "DetailAuditReturnUrl")]
     public string? DetailAuditReturnUrl { get; set; }

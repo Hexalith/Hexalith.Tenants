@@ -3623,19 +3623,19 @@
     <value>ce locataire</value>
   </data>
   <data name="Tenants.Audit.Context.Command" xml:space="preserve">
-    <value>La reference de commande {0} est un indice de contexte, pas une preuve. La grille d'audit est filtree par locataire, date et categorie.</value>
+    <value>La référence de commande {0} est un indice de contexte, pas une preuve. La grille d'audit est filtrée par locataire, date et catégorie.</value>
   </data>
   <data name="Tenants.Audit.Context.Source" xml:space="preserve">
     <value>Audit ouvert depuis {0}. Les filtres d'audit limites au locataire restent la reference.</value>
   </data>
   <data name="Tenants.Audit.Context.User" xml:space="preserve">
-    <value>L'utilisateur {0} est un indice de contexte. La grille d'audit est filtree par locataire, date et categorie ; elle ne montre pas tous les resultats de cet utilisateur.</value>
+    <value>L'utilisateur {0} est un indice de contexte. La grille d'audit est filtrée par locataire, date et catégorie ; elle ne montre pas tous les résultats de cet utilisateur.</value>
   </data>
   <data name="Tenants.Audit.Context.SourceKind.TenantList" xml:space="preserve">
     <value>la liste des locataires</value>
   </data>
   <data name="Tenants.Audit.Context.SourceKind.TenantDetail" xml:space="preserve">
-    <value>le detail locataire</value>
+    <value>le détail du locataire</value>
   </data>
   <data name="Tenants.Audit.Context.SourceKind.MemberRow" xml:space="preserve">
     <value>une ligne de membre</value>
@@ -3647,7 +3647,7 @@
     <value>vos locataires</value>
   </data>
   <data name="Tenants.Audit.Context.SourceKind.CommandResult" xml:space="preserve">
-    <value>un resultat de commande</value>
+    <value>un résultat de commande</value>
   </data>
   <data name="Tenants.Audit.Context.SourceKind.Default" xml:space="preserve">
     <value>une autre surface locataire</value>
@@ -3668,28 +3668,34 @@
     <value>Preuves d'audit</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.InvalidContext" xml:space="preserve">
-    <value>Le contexte d'audit est invalide. Revenez a la page d'origine et selectionnez un locataire a jour.</value>
+    <value>Le contexte d'audit est invalide. Revenez à la page d'origine et sélectionnez un locataire à jour.</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.ScopeRequired" xml:space="preserve">
     <value>La portee locataire est requise avant d'ouvrir les preuves d'audit.</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.Disconnected" xml:space="preserve">
-    <value>Le service de lecture d'audit est deconnecte. Actualisez lorsque la connexion est retablie.</value>
+    <value>Le service de lecture d'audit est déconnecté. Actualisez lorsque la connexion est rétablie.</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.Pending" xml:space="preserve">
+    <value>Vérification de l'accès à l'audit…</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.AccessUnconfirmed" xml:space="preserve">
+    <value>L'accès à l'audit n'a pas pu être confirmé pour le périmètre locataire actuel. Actualisez pour réessayer.</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Unavailable.StaleScope" xml:space="preserve">
     <value>Actualisez la portee locataire avant d'ouvrir les preuves d'audit.</value>
   </data>
   <data name="Tenants.Audit.Return.MissingOrigin" xml:space="preserve">
-    <value>Le controle d'audit d'origine n'est plus disponible. Le focus a ete place sur le titre de la page.</value>
+    <value>Le contrôle d'audit d'origine n'est plus disponible. Le focus a été placé sur le titre de la page.</value>
   </data>
   <data name="Tenants.Audit.Return.Stalled" xml:space="preserve">
-    <value>La page d'origine n'a pas termine son chargement ; le focus n'a pas pu etre restaure. Le focus a ete place sur le titre de la page.</value>
+    <value>La page d'origine n'a pas terminé son chargement ; le focus n'a pas pu être restauré. Le focus a été placé sur le titre de la page.</value>
   </data>
   <data name="Tenants.Audit.Return.Partial" xml:space="preserve">
-    <value>Une partie de la pagination ne peut pas etre restauree ; le curseur protege a ete omis.</value>
+    <value>Une partie de l'état de pagination n'a pas pu être restaurée ; la position de pagination a été omise.</value>
   </data>
   <data name="Tenants.Audit.ReturnContext" xml:space="preserve">
-    <value>Retour vers {0}. Le controle d'origine recevra le focus s'il est disponible.</value>
+    <value>Retour vers {0}. Le contrôle d'origine recevra le focus s'il est disponible.</value>
   </data>
   <data name="Tenants.Audit.ReturnContext.NoFocus" xml:space="preserve">
     <value>Retour vers {0}.</value>

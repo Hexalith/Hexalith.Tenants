@@ -96,9 +96,21 @@
             if (_partialReturn && AuditFocus is null && !_consumedFocuslessReturn)
             {
                 _consumedFocuslessReturn = true;
-                await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-                await module.InvokeVoidAsync("consumeReturnMarkers");
-                AuditPartialReturn = false;
+                try
+                {
+                    await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+                    await module.InvokeVoidAsync("consumeReturnMarkers");
+                    AuditPartialReturn = false;
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (JSDisconnectedException)
+                {
+                    // The circuit ended before the URL marker could be consumed.
+                }
+                catch (Exception exception) when (exception is JSException or TaskCanceledException)
+                {
+                    // Keep the visible partial-return notice when browser cleanup is unavailable.
+                }
             }
             return;
         }
@@ -119,8 +131,10 @@
                 {
                     _missingOrigin = outcome == "missing";
                     _stalledOrigin = outcome == "stalled";
-                    StateHasChanged();
                 }
+
+                // Re-render so the lookup panel stops carrying the consumed markers into later URLs.
+                StateHasChanged();
             }
         }
         catch (JSDisconnectedException)

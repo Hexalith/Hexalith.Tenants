@@ -20,6 +20,9 @@
 @implements IAsyncDisposable
 
 <CascadingValue Value="@DetailAuditReadAvailable" Name="AuditReadAvailable">
+<CascadingValue Value="@(!_auditCapabilityResolved)" Name="AuditReadPending">
+<CascadingValue Value="@_auditReadDenied" Name="AuditReadDenied">
+<CascadingValue Value="@DetailAuditUnavailableReason" Name="AuditReadUnavailableReason">
 <CascadingValue Value="@((Func<Task>)RefreshAuditCapabilityAsync)" Name="AuditAuthorityRefresh">
 <CascadingValue Value="@((Func<long>)(() => Volatile.Read(ref _auditRefreshVersion)))" Name="AuditAuthorityRefreshVersion">
 <CascadingValue Value="@DetailReturnUrl" Name="DetailAuditReturnUrl">
@@ -128,6 +131,8 @@
                                          ReturnUrl="@DetailReturnUrl"
                                          ReturnFocus="tenants-detail-identity"
                                          IsAvailable="@(_auditProofCapabilityAvailable && _snapshot.Kind is TenantDetailSurfaceKind.Ready && _snapshot.Freshness is ReadModelFreshnessState.Current && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
+                                         AuthorityPending="@(!_auditCapabilityResolved)"
+                                         UnavailableReason="@DetailAuditUnavailableReason"
                                          OnRefresh="@RefreshTenantReadsAsync" />
                 }
                 </Metadata>
@@ -291,6 +296,9 @@
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>
+</CascadingValue>
+</CascadingValue>
+</CascadingValue>
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
@@ -434,6 +442,13 @@
             && _snapshot.Kind is TenantDetailSurfaceKind.Ready
             && _snapshot.Freshness is ReadModelFreshnessState.Current
             && _snapshot.Lifecycle is ProjectionLifecycleState.Current;
+
+    // A resolved capability probe that neither proved access nor denial is indeterminate. A stale tenant
+    // snapshot keeps the entry point's tenant-scope reason, and pending or denied access has its own treatment.
+    private string? DetailAuditUnavailableReason
+        => _auditCapabilityResolved && !_auditProofCapabilityAvailable && !_auditReadDenied
+            ? Localizer["Tenants.Audit.EntryPoint.Unavailable.AccessUnconfirmed"].Value
+            : null;
 
     private bool IsAuditFocusTerminal
         => _auditCapabilityResolved
@@ -1081,9 +1096,20 @@
         if (QueryAuditFocus is null && QueryAuditPartialReturn && !_consumedFocuslessReturn)
         {
             _consumedFocuslessReturn = true;
-            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-            await module.InvokeVoidAsync("consumeReturnMarkers");
-            QueryAuditPartialReturn = false;
+            try
+            {
+                await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+                await module.InvokeVoidAsync("consumeReturnMarkers");
+                QueryAuditPartialReturn = false;
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit ended before the URL marker could be consumed.
+            }
+            catch (Exception exception) when (exception is JSException or TaskCanceledException)
+            {
+                // Keep the visible partial-return notice when browser cleanup is unavailable.
+            }
         }
 
         // Retry optional notification setup after later renders when an earlier attempt was superseded or
@@ -1174,7 +1200,7 @@
         }
 
         if (_disposed
-            || string.IsNullOrWhiteSpace(tenantId)
+            || !TenantAuditNavigationSafety.IsSafeTenantId(tenantId)
             || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
             || string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             || _readRefreshLease is not null
@@ -1599,6 +1625,14 @@
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
+
+        // BeginLoad supersedes the load generation, which drops an in-flight audit capability probe.
+        // Restart an unresolved probe under the new generation so detail audit links do not stay disabled.
+        if (!_auditCapabilityResolved)
+        {
+            StartAuditCapabilityProbe(tenantId, generation);
+        }
+
         _memberPageLoadInFlight = true;
         TenantUsersSnapshot retained = _tenantUsersSnapshot;
         _tenantUsersSnapshot = TenantUsersSnapshot.Refreshing(retained);

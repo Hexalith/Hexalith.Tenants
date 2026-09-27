@@ -1042,6 +1042,30 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-back']").TextContent.ShouldContain("tenant detail");
     }
 
+    [Theory]
+    [InlineData("/tenants/my", "tenants-my-row-tenant.alpha", "your tenants")]
+    [InlineData("/tenants/users?userId=user.alpha", "tenants-user-row-tenant.alpha", "user lookup")]
+    [InlineData("/tenants?tab=users&userId=user.alpha", "tenants-user-row-tenant.alpha", "user lookup")]
+    [InlineData("/tenants?tab=tenants&scope=mine", "tenants-my-row-tenant.alpha", "your tenants")]
+    [InlineData("/tenants?search=alpha", "tenant-row-tenant.alpha", "the tenant list")]
+    [InlineData("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha", "tenants-member-user.alpha", "tenant detail")]
+    public void Audit_back_and_return_context_name_the_validated_origin(string returnUrl, string returnFocus, string origin)
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants/tenant.alpha/audit?returnUrl=" + Uri.EscapeDataString(returnUrl)
+            + "&returnFocus=" + Uri.EscapeDataString(returnFocus));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-back']").TextContent.Trim().ShouldBe($"Back to {origin}");
+        string context = cut.Find("[data-testid='tenants-audit-return-context']").TextContent.Trim();
+        context.ShouldStartWith($"Return to {origin}.");
+        context.ShouldNotContain(returnFocus);
+    }
+
     [Fact]
     public void Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher()
     {

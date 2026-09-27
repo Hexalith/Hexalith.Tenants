@@ -94,6 +94,8 @@
                                      ReturnUrl="@ReturnUrl"
                                      ReturnFocus="@($"{SelectorPrefix}-row-{context.TenantId}")"
                                      IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
+                                     AuthorityPending="@AuditReadPending"
+                                     UnavailableReason="@AuditUnavailableReason"
                                      OnRefresh="@OnAuditRefresh" />
         </TemplateColumn>
         }
@@ -127,6 +129,12 @@
 
     [Parameter]
     public bool AuditReadDenied { get; set; }
+
+    [Parameter]
+    public bool AuditReadPending { get; set; }
+
+    [Parameter]
+    public string? AuditUnavailableReason { get; set; }
 
     [Parameter]
     public EventCallback OnAuditRefresh { get; set; }

@@ -108,10 +108,10 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldContain("data-testid=\"tenants-audit-context\"");
         markup.ShouldContain("operator.support-01");
         markup.ShouldContain("data-testid=\"tenants-audit-return-context\"");
-        markup.ShouldContain("Return to a member row");
+        markup.ShouldContain("Return to tenant detail");
         markup.ShouldContain("data-testid=\"tenants-audit-back\"");
         markup.ShouldContain("href=\"/tenants/tenant.alpha?returnUrl=");
-        markup.ShouldContain("selected=tenant.alpha");
+        markup.ShouldContain("selected%3Dtenant.alpha");
         markup.ShouldContain("auditFocus=tenants-member-operator.support-01");
         markup.ShouldContain(TenantsAuditUnauthorizedMarker);
         markup.ShouldContain("Audit access unavailable");

@@ -46,6 +46,55 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Ready_receipt_inspect_navigates_to_the_scoped_audit_route_with_the_detail_return()
+    {
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemovalWithAuditReturn(
+            "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha", composition);
+
+        EventCallback inspect = cut.FindComponent<AuditEvidenceReceipt>().Instance.OnInspectAudit;
+        inspect.HasDelegate.ShouldBeTrue();
+        await cut.InvokeAsync(() => inspect.InvokeAsync());
+
+        string navigated = Services.GetRequiredService<NavigationManager>().Uri;
+        Uri.UnescapeDataString(navigated).ShouldBe(
+            "http://localhost/tenants/tenant.alpha/audit?targetUserId=reader-user&source=command-result"
+            + "&returnUrl=/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha&returnFocus=tenants-remove-member-lifecycle");
+        navigated.ShouldNotContain("supportSafeCommandReference");
+        navigated.ShouldNotContain("message-1");
+    }
+
+    [Fact]
+    public void Ready_receipt_for_a_denied_caller_offers_no_audit_handoff_or_invalid_context_reason()
+    {
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemovalWithAuditReturn(
+            "/tenants/tenant.alpha", composition, auditReadAvailable: false, auditReadDenied: true);
+
+        cut.FindComponent<AuditEvidenceReceipt>().Instance.OnInspectAudit.HasDelegate.ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-remove-member-inspect-unavailable']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-command-audit-entrypoint']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Ready_receipt_with_unconfirmed_audit_access_explains_access_instead_of_invalid_context()
+    {
+        const string unconfirmed = "Audit access could not be confirmed for the current tenant scope. Refresh to try again.";
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemovalWithAuditReturn(
+            "/tenants/tenant.alpha", composition, auditReadAvailable: false, auditReadUnavailableReason: unconfirmed);
+
+        cut.Find("[data-testid='tenants-remove-member-inspect-unavailable']").TextContent.ShouldBe(unconfirmed);
+        cut.Find("[data-testid='tenants-command-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        cut.Find(".tenants-audit-entrypoint__reason").TextContent.ShouldBe(unconfirmed);
+        cut.Markup.ShouldNotContain("The audit context is invalid");
+    }
+
+    [Fact]
     public async Task Ready_receipt_rechecks_live_audit_connection_before_inspect()
     {
         bool connected = true;
@@ -1298,7 +1347,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
     private IRenderedComponent<RemoveTenantMemberFlow> RenderConfirmedRemovalWithAuditReturn(
         string returnUrl,
-        ITenantsBffComposition composition)
+        ITenantsBffComposition composition,
+        bool auditReadAvailable = true,
+        bool auditReadDenied = false,
+        string? auditReadUnavailableReason = null)
     {
         StubTenantCommandGateway gateway = CompletedGateway();
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
@@ -1314,8 +1366,14 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadDenied")
+            .Add(p => p.Value, auditReadDenied)
+            .AddChildContent<CascadingValue<string?>>(reason => reason
+            .Add(p => p.Name, "AuditReadUnavailableReason")
+            .Add(p => p.Value, auditReadUnavailableReason)
+            .AddChildContent<CascadingValue<bool>>(available => available
             .Add(p => p.Name, "AuditReadAvailable")
-            .Add(p => p.Value, true)
+            .Add(p => p.Value, auditReadAvailable)
             .AddChildContent<CascadingValue<string>>(nested => nested
                 .Add(p => p.Name, "DetailAuditReturnUrl")
                 .Add(p => p.Value, returnUrl)
@@ -1335,7 +1393,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                             new TenantMember("owner-user", TenantRole.TenantOwner),
                             new TenantMember("second-owner", TenantRole.TenantOwner),
                         ]));
-                    }))));
+                    }))))));
         IRenderedComponent<RemoveTenantMemberFlow> cut = wrapper.FindComponent<RemoveTenantMemberFlow>();
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();

@@ -169,6 +169,8 @@
                                              ReturnUrl="@MemberReturnUrl"
                                              ReturnFocus="@($"tenants-member-{context.Member.UserId}")"
                                              IsAvailable="@CanOpenMemberAudit"
+                                             AuthorityPending="@AuditReadPending"
+                                             UnavailableReason="@AuditReadUnavailableReason"
                                              OnRefresh="@RefreshMemberAuditAsync" />
                 </TemplateColumn>
                 }
@@ -528,6 +530,12 @@
 
     [Parameter]
     public bool AuditReadDenied { get; set; }
+
+    [CascadingParameter(Name = "AuditReadPending")]
+    public bool AuditReadPending { get; set; }
+
+    [CascadingParameter(Name = "AuditReadUnavailableReason")]
+    public string? AuditReadUnavailableReason { get; set; }
 
     private bool ActionsAreEvidenceBacked
         => SurfaceKind is TenantDetailSurfaceKind.Ready

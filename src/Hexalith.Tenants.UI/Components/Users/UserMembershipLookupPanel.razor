@@ -163,6 +163,8 @@
                                                && _snapshot.Freshness is ReadModelFreshnessState.Current
                                                && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
                                            AuditReadDenied="@AuditReadDenied"
+                                           AuditReadPending="@(!AuditReadResolved)"
+                                           AuditUnavailableReason="@AuditUnavailableReason"
                                            OnAuditRefresh="@RefreshAuditAsync" />
 
                         <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
@@ -219,6 +221,13 @@
 
     [Parameter]
     public bool AuditReadResolved { get; set; }
+
+    // Resolved authority that is neither authorized nor proven denied is indeterminate: say so rather than
+    // blaming tenant scope. Pending authority and disconnection have their own entry-point copy.
+    private string? AuditUnavailableReason
+        => AuditReadResolved && !AuditReadAvailable && !AuditReadDenied
+            ? Localizer["Tenants.Audit.EntryPoint.Unavailable.AccessUnconfirmed"].Value
+            : null;
 
     [Parameter]
     public string? AuditFocus { get; set; }

@@ -192,6 +192,34 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Create_audit_return_state_is_scoped_to_a_circuit()
+    {
+        // Component tests construct or register this state themselves, so only this pin catches a missing
+        // registration (restoration silently disabled) or a singleton (one caller's create state in another circuit).
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor descriptor = services.Single(static candidate =>
+            candidate.ServiceType == typeof(TenantCreateAuditReturnState));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantCreateAuditReturnState first = firstScope.ServiceProvider
+            .GetRequiredService<TenantCreateAuditReturnState>();
+        TenantCreateAuditReturnState firstAgain = firstScope.ServiceProvider
+            .GetRequiredService<TenantCreateAuditReturnState>();
+        TenantCreateAuditReturnState second = secondScope.ServiceProvider
+            .GetRequiredService<TenantCreateAuditReturnState>();
+
+        firstAgain.ShouldBeSameAs(first);
+        second.ShouldNotBeSameAs(first);
+    }
+
+    [Fact]
     public void Remove_configuration_attempt_tracker_is_scoped_to_a_circuit()
     {
         // Nothing else pins this registration: every remove component test supplies its own tracker, so a

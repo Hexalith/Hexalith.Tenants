@@ -179,17 +179,21 @@
                                         OnRefresh="RefreshStatusAsync"
                                         OnContinueReadOnly="ContinueReadOnlyAsync">
                     <InspectAuditAction>
-                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
-                                                 TargetUserId="@Member.UserId"
-                                                 SourceKind="command-result"
-                                                 SourceTestId="tenants-command-audit-entrypoint"
-                                                 Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
-                                                 ReturnUrl="@CommandAuditReturnUrl"
-                                                 ReturnFocus="tenants-remove-member-lifecycle"
-                                                 AvailabilityText="@AuditText"
-                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]"
-                                                 IsAvailable="@AuditReadAvailable" />
+                        @if (!AuditReadDenied)
+                        {
+                            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                                     TargetUserId="@Member.UserId"
+                                                     SourceKind="command-result"
+                                                     SourceTestId="tenants-command-audit-entrypoint"
+                                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                     ReturnUrl="@CommandAuditReturnUrl"
+                                                     ReturnFocus="tenants-remove-member-lifecycle"
+                                                     AvailabilityText="@AuditText"
+                                                     AuthorityPending="@AuditReadPending"
+                                                     UnavailableReason="@AuditReadUnavailableReason"
+                                                     IsAvailable="@AuditReadAvailable" />
+                        }
                     </InspectAuditAction>
                 </AuditAvailabilityState>
             }
@@ -202,7 +206,7 @@
                                       OnRetry="RefreshStatusAsync"
                                       OnClose="DismissReceiptAsync"
                                       OnInspectAudit="@(CanInspectAudit ? EventCallback.Factory.Create(this, InspectAuditAsync) : default(EventCallback))" />
-                @if (!CanInspectAudit)
+                @if (!CanInspectAudit && !AuditReadDenied)
                 {
                     <p role="status" data-testid="tenants-remove-member-inspect-unavailable">@InspectAuditUnavailableReason</p>
                 }
@@ -230,6 +234,15 @@
 @code {
     [CascadingParameter(Name = "AuditReadAvailable")]
     public bool AuditReadAvailable { get; set; }
+
+    [CascadingParameter(Name = "AuditReadPending")]
+    public bool AuditReadPending { get; set; }
+
+    [CascadingParameter(Name = "AuditReadDenied")]
+    public bool AuditReadDenied { get; set; }
+
+    [CascadingParameter(Name = "AuditReadUnavailableReason")]
+    public string? AuditReadUnavailableReason { get; set; }
 
     [CascadingParameter(Name = "DetailAuditReturnUrl")]
     public string? DetailAuditReturnUrl { get; set; }
@@ -504,10 +517,16 @@
             && TenantAuditNavigationSafety.SafeReturnUrlForTenant(CommandAuditReturnUrl, Detail.TenantId, out _) is { } safe
             && TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, "tenants-remove-member-lifecycle");
 
+    // Matches the entry point's precedence: disconnection, pending authority, and resolved-but-unconfirmed
+    // access each keep their own reason, so only an otherwise usable read reports an invalid return context.
     private string InspectAuditUnavailableReason
-        => Services.GetService<ITenantsBffComposition>()?.IsReadSurfaceConnected is true
-            ? Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"]
-            : Localizer["Tenants.Audit.EntryPoint.Unavailable.Disconnected"];
+        => Services.GetService<ITenantsBffComposition>()?.IsReadSurfaceConnected is not true
+            ? Localizer["Tenants.Audit.EntryPoint.Unavailable.Disconnected"]
+            : AuditReadPending
+                ? Localizer["Tenants.Audit.EntryPoint.Unavailable.Pending"]
+                : !AuditReadAvailable
+                    ? AuditReadUnavailableReason ?? Localizer["Tenants.Audit.EntryPoint.Unavailable.StaleScope"]
+                    : Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"];
 
     private string RecoveryText
         => Localizer[$"Tenants.RemoveMember.Recovery.{_snapshot.State}"];

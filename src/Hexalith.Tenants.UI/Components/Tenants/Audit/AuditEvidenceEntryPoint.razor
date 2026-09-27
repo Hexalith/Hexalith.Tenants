@@ -88,6 +88,9 @@ else
     public string? UnavailableReason { get; set; }
 
     [Parameter]
+    public bool AuthorityPending { get; set; }
+
+    [Parameter]
     public string? AvailabilityText { get; set; }
 
     private bool HasTenantScope
@@ -129,6 +132,8 @@ else
                 ? Localizer["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"]
                 : !IsReadConnected
                     ? Localizer["Tenants.Audit.EntryPoint.Unavailable.Disconnected"]
+                : AuthorityPending
+                    ? Localizer["Tenants.Audit.EntryPoint.Unavailable.Pending"]
                 : string.IsNullOrWhiteSpace(UnavailableReason)
                 ? Localizer["Tenants.Audit.EntryPoint.Unavailable.StaleScope"]
                 : UnavailableReason;

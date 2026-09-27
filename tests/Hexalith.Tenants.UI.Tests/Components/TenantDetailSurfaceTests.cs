@@ -1573,6 +1573,97 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_partial_return_keeps_notice_when_marker_cleanup_fails()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler cleanup = module.SetupVoid("consumeReturnMarkers");
+        cleanup.SetException(new Microsoft.JSInterop.JSException("Marker cleanup unavailable."));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/tenant.alpha?auditPartialReturn=true");
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForAssertion(() => cleanup.Invocations.Count.ShouldBe(1));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        cut.Find("[data-testid='tenants-audit-partial-return']");
+    }
+
+    [Theory]
+    [InlineData("-tenant")]
+    [InlineData("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvcGVyYXRvciJ9.c2lnbmF0dXJl")]
+    public async Task Unsafe_direct_detail_route_performs_no_read_audit_probe_or_subscription(string tenantId)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backendSubscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton(backendSubscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, tenantId));
+        cut.WaitForElement("[data-testid='tenants-detail-error']");
+        cut.Render();
+
+        await backendSubscription.DidNotReceiveWithAnyArgs().SubscribeAsync(default!, default!, default);
+        await queryGateway.DidNotReceiveWithAnyArgs().GetTenantAsync(default!, default, default);
+        await queryGateway.DidNotReceiveWithAnyArgs().GetTenantAuditAsync(default!, default, default);
+        cut.Markup.ShouldNotContain(tenantId);
+    }
+
+    [Fact]
+    public void Detail_lifecycle_command_audit_link_uses_the_page_availability_and_return_cascades()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        TenantDetail active = Detail("tenant.alpha");
+        queryGateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(active, ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        queryGateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(active) with { ProjectionVersion = "tenant-sequence:41" }));
+        queryGateway.GetLifecycleProjectionProofAsync(Arg.Any<TenantLifecycleCommandRequest>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(active, ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        ConfigureAuthoritativeAuditCapability(queryGateway);
+        var commandGateway = new TrackingLifecycleCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
+        Services.AddSingleton(queryGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<TenantLifecycleAttemptTracker>();
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha");
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-lifecycle-disable']")
+            .GetAttribute("disabled").ShouldBeNull());
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-lifecycle-command-flow'] form").Submit();
+
+        string href = cut.WaitForElement("[data-testid='tenants-command-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull();
+        Uri.UnescapeDataString(href).ShouldBe(
+            "/tenants/tenant.alpha/audit?source=command-result&returnUrl=/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha&returnFocus=tenants-lifecycle-lifecycle");
+    }
+
+    [Fact]
     public void Detail_audit_waits_for_initial_caller_before_capability_read()
     {
         var pending = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);

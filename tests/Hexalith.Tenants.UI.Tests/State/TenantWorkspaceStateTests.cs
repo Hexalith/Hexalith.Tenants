@@ -406,4 +406,27 @@ public sealed class TenantWorkspaceStateTests
         users.ToCanonicalUrl().ShouldBe("/tenants?tab=users&userId=user%2Ftarget&sort=name");
         users.ToCanonicalUrl(routeBacked: true).ShouldBe("/tenants/workspace-users?userId=user%2Ftarget&sort=name");
     }
+
+    [Fact]
+    public void Route_backed_canonical_urls_carry_the_tab_in_the_path_instead_of_the_query()
+    {
+        TenantWorkspaceState tenants = TenantWorkspaceState.FromQuery(
+            tab: "tenants",
+            scope: "all",
+            userId: null,
+            search: null,
+            status: TenantStatus.Active.ToString(),
+            sort: TenantListSortColumns.Name,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: null,
+            anchor: null);
+        TenantWorkspaceState mine = tenants.WithScope(TenantWorkspaceState.MyScope);
+        TenantWorkspaceState users = tenants.WithTab(TenantWorkspaceState.UsersTab).WithUserId("user.target");
+
+        tenants.ToCanonicalUrl(routeBacked: true).ShouldBe("/tenants/tenants?status=Active&sort=name");
+        mine.ToCanonicalUrl(routeBacked: true).ShouldBe("/tenants/tenants?scope=mine");
+        users.ToCanonicalUrl(routeBacked: true).ShouldBe("/tenants/workspace-users?userId=user.target&sort=name");
+        users.ToCanonicalUrl().ShouldBe("/tenants?tab=users&userId=user.target&sort=name");
+    }
 }

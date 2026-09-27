@@ -432,16 +432,8 @@
                     : "/tenants?auditReturnUnavailable=true";
             }
 
-            string? anchor = TenantAuditNavigationSafety.ReturnQueryValue(safe, "anchor");
+            // SafeBackReturnUrl already rejected a return focus that conflicts with the route, anchor, or nested focus.
             string? existingFocus = TenantAuditNavigationSafety.ReturnQueryValue(safe, "auditFocus");
-            if (ReturnFocus is not null
-                && (!TenantAuditNavigationSafety.IsFocusForReturnUrl(safe, ReturnFocus)
-                    || (anchor is not null && !string.Equals(anchor, ReturnFocus, StringComparison.Ordinal))
-                    || (existingFocus is not null && !string.Equals(existingFocus, ReturnFocus, StringComparison.Ordinal))))
-            {
-                return "/tenants?auditReturnUnavailable=true";
-            }
-
             if (ReturnFocus is not null && existingFocus is null)
             {
                 safe += (safe.Contains('?', StringComparison.Ordinal) ? "&" : "?")

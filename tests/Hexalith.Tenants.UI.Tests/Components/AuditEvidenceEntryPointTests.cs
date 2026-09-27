@@ -232,6 +232,35 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     }
 
     [Fact]
+    public void Unavailable_grid_entry_names_pending_or_unconfirmed_access_instead_of_tenant_scope()
+    {
+        RegisterFluentServices();
+        UserTenantMembershipRow row = new("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current);
+
+        IRenderedComponent<MyTenantsDataGrid> cut = Render<MyTenantsDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [row])
+            .Add(component => component.AuditReadAvailable, false)
+            .Add(component => component.AuditReadPending, true)
+            .Add(component => component.ReturnUrl, "/tenants/my")
+            .Add(component => component.OnAuditRefresh, () => { }));
+
+        cut.Find(".tenants-audit-entrypoint__reason").TextContent.ShouldBe("Checking audit access…");
+        EntryPointFromMarker(cut, "tenants-my-audit-entrypoint").GetAttribute("href").ShouldBeNull();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.AuditReadPending, false)
+            .Add(component => component.AuditUnavailableReason,
+                "Audit access could not be confirmed for the current tenant scope. Refresh to try again."));
+        cut.Find(".tenants-audit-entrypoint__reason").TextContent
+            .ShouldBe("Audit access could not be confirmed for the current tenant scope. Refresh to try again.");
+        cut.Find("[data-testid='tenants-audit-entrypoint-refresh']");
+
+        cut.Render(parameters => parameters.Add(component => component.AuditUnavailableReason, (string?)null));
+        cut.Find(".tenants-audit-entrypoint__reason").TextContent
+            .ShouldBe("Refresh tenant scope before opening audit evidence.");
+    }
+
+    [Fact]
     public void User_lookup_grid_carries_target_user_context_without_primary_users_navigation()
     {
         RegisterFluentServices();
@@ -465,6 +494,8 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
             ["Tenants.Audit.EntryPoint.Unavailable.Disconnected"] = "The audit read service is disconnected. Refresh when the connection returns.",
+            ["Tenants.Audit.EntryPoint.Unavailable.Pending"] = "Checking audit access…",
+            ["Tenants.Audit.EntryPoint.Unavailable.AccessUnconfirmed"] = "Audit access could not be confirmed for the current tenant scope. Refresh to try again.",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.Eyebrow"] = "Tenant audit trail",
             ["Tenants.Audit.Filter.Category"] = "Category",

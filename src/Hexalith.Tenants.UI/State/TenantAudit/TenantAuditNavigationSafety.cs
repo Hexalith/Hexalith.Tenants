@@ -14,6 +14,13 @@ public static partial class TenantAuditNavigationSafety
         "auditFocus", "auditPartialReturn", "returnUrl",
     };
 
+    private static readonly string[] _focusPrefixes =
+    [
+        "tenant-row-", "tenants-my-row-", "tenants-my-detail-", "tenants-user-row-", "tenants-member-",
+        "tenants-detail-", "tenants-create-", "tenants-add-", "tenants-change-", "tenants-remove-",
+        "tenants-edit-", "tenants-lifecycle-", "tenants-config-",
+    ];
+
     private static readonly HashSet<string> _sources = new(StringComparer.Ordinal)
     {
         "tenant-list", "tenant-detail", "my-tenants", "user-lookup", "member-row", "command-result",
@@ -39,23 +46,15 @@ public static partial class TenantAuditNavigationSafety
         => source is not null && _sources.Contains(source);
 
     /// <summary>Returns whether a known launcher's focus identifier is safe.</summary>
+    /// <remarks>
+    /// The identifier rules apply to the part after the launcher prefix, so a focus derived from a valid
+    /// 256-character tenant or user identifier stays valid.
+    /// </remarks>
     public static bool IsSafeFocus(string? focus)
         => focus is not null
             && focus.Length <= 512
-            && (focus.StartsWith("tenant-row-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-my-row-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-my-detail-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-user-row-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-member-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-detail-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-create-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-add-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-change-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-remove-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-edit-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-lifecycle-", StringComparison.Ordinal)
-                || focus.StartsWith("tenants-config-", StringComparison.Ordinal))
-            && IsSafeIdentifier(focus);
+            && _focusPrefixes.FirstOrDefault(prefix => focus.StartsWith(prefix, StringComparison.Ordinal)) is { } prefix
+            && IsSafeIdentifier(focus[prefix.Length..]);
 
     /// <summary>Canonicalizes an approved return route, dropping a protected cursor and reporting partial restoration.</summary>
     public static string? SafeReturnUrl(string? value, out bool partial)
@@ -201,8 +200,9 @@ public static partial class TenantAuditNavigationSafety
     }
 
     /// <summary>Returns whether a support-safe, non-credential hint can be displayed.</summary>
+    /// <remarks>Applies the same approved-reference rule that audit receipts use for the same value.</remarks>
     public static bool IsSafeHint(string? value)
-        => IsSafeIdentifier(value);
+        => IsSafeIdentifier(value) && TenantAuditSupportSafety.SafeApprovedReference(value) is not null;
 
     private static bool IsApprovedPath(string path)
     {
