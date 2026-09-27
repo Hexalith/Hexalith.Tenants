@@ -87,6 +87,7 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         int ownerRefreshes = 0;
         int ownerCompletions = 0;
         int cascadedProbes = 0;
+        long ownerProbeVersion = 0;
         IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
             .Add(p => p.AuditState, TenantCommandAuditState.AuditUnavailable)
             .Add(p => p.OwnerRefreshIncludesAuditAuthority, ownerStartsAuthorityProbe)
@@ -94,8 +95,13 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             {
                 ownerRefreshes++;
                 await owner.Task.ConfigureAwait(false);
+                if (ownerStartsAuthorityProbe)
+                {
+                    Interlocked.Increment(ref ownerProbeVersion);
+                }
                 ownerCompletions++;
             })));
+        cut.Instance.AuditAuthorityRefreshVersion = () => Volatile.Read(ref ownerProbeVersion);
         cut.Instance.AuditAuthorityRefresh = () =>
         {
             cascadedProbes++;
@@ -109,6 +115,29 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
 
         cut.WaitForAssertion(() => ownerCompletions.ShouldBe(1));
         cut.WaitForAssertion(() => cascadedProbes.ShouldBe(expectedCascadeProbes));
+    }
+
+    [Fact]
+    public void Terminal_owner_refresh_that_skips_projection_retries_audit_capability_once()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int cascadedProbes = 0;
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(p => p.AuditState, TenantCommandAuditState.AuditUnavailable)
+            .Add(p => p.OwnerRefreshIncludesAuditAuthority, true)
+            .Add(p => p.OnRefresh, EventCallback.Factory.Create(this, () => owner.Task)));
+        cut.Instance.AuditAuthorityRefreshVersion = () => 0;
+        cut.Instance.AuditAuthorityRefresh = () =>
+        {
+            cascadedProbes++;
+            return Task.CompletedTask;
+        };
+
+        cut.Find("[data-recovery-verb='refresh']").Click();
+        cascadedProbes.ShouldBe(0);
+        owner.SetResult();
+        cut.WaitForAssertion(() => cascadedProbes.ShouldBe(1));
     }
 
     [Fact]

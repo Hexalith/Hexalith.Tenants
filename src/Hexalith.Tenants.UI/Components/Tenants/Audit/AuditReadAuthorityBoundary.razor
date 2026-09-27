@@ -48,6 +48,9 @@
         }
         catch
         {
+            Interlocked.Increment(ref _callerVersion);
+            Interlocked.Exchange(ref _pendingCallerVersion, 0);
+            Interlocked.Increment(ref _version);
             IsAvailable = false;
             IsDenied = false;
             IsResolved = true;

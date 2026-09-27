@@ -83,7 +83,9 @@
         }
 
         <MyTenantsDataGrid Rows="@_snapshot.Rows" DetailHref="DetailHrefFor" ReturnUrl="@EffectiveReturnUrl"
-                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready)"
+                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready
+                               && _snapshot.Freshness is ReadModelFreshnessState.Current
+                               && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
                            AuditReadDenied="@AuditReadDenied" OnAuditRefresh="@RefreshAuditAsync" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">

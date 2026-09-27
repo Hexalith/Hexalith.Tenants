@@ -78,6 +78,51 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Standalone_lookup_focus_timeout_shows_missing_origin_notice()
+    {
+        RegisterServices(UserTenantMembershipSnapshot.Empty(
+            isAuthorizationScoped: true, ReadModelFreshnessState.Current, eTag: null, targetUserId: null));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<string>("restoreAuditFocus", _ => true)
+            .SetException(new TaskCanceledException("Focus helper timed out."));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/users?auditFocus=tenants-user-row-tenant.alpha");
+
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("[data-testid='tenants-user-lookup-page-header']");
+    }
+
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Current)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown)]
+    public void Current_lookup_row_cannot_open_audit_from_uncertain_containing_page(
+        ReadModelFreshnessState pageFreshness,
+        ProjectionLifecycleState pageLifecycle)
+    {
+        RegisterServices(_ => Task.FromResult(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+            targetUserId: "user.alpha") with
+        {
+            Freshness = pageFreshness,
+            Lifecycle = pageLifecycle,
+        }));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(p => p.InitialUserId, "user.alpha")
+            .Add(p => p.AuditReadAvailable, true));
+
+        cut.WaitForElement("[data-testid='tenants-user-audit-entrypoint']");
+        cut.Find("[data-testid='tenants-user-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+    }
+
+    [Fact]
     public void Standalone_user_lookup_route_queries_and_canonicalizes()
     {
         List<UserTenantMembershipRequest> requests = [];
@@ -609,7 +654,10 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
                 ? ReadModelFreshnessState.Stale
                 : ReadModelFreshnessState.Current,
-            targetUserId: targetUserId);
+            targetUserId: targetUserId) with
+        {
+            Lifecycle = ProjectionLifecycleState.Current,
+        };
 
     private static UserTenantMembershipRow Row(
         string tenantId,

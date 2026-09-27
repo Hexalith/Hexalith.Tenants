@@ -97,10 +97,31 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
 
         entryPoint.TagName.ShouldBe("FLUENT-BUTTON");
         entryPoint.HasAttribute("disabled").ShouldBeTrue();
-        entryPoint.TextContent.ShouldContain("Tenant scope is required before audit evidence can be opened.");
         string reasonId = RequiredAttribute(entryPoint, "aria-describedby");
-        cut.Find("#" + reasonId).TextContent.ShouldBe("Tenant scope is required before audit evidence can be opened.");
+        AngleSharp.Dom.IElement reason = cut.Find("#" + reasonId);
+        reason.TextContent.ShouldBe("Tenant scope is required before audit evidence can be opened.");
+        reason.ParentElement.ShouldBe(entryPoint.ParentElement);
+        reason.GetAttribute("tabindex").ShouldBe("0");
+        reason.GetAttribute("role").ShouldBe("note");
         cut.FindAll("a").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("anchor")]
+    [InlineData("auditFocus")]
+    public void Conflicting_explicit_return_focus_disables_otherwise_available_entry(string marker)
+    {
+        RegisterLocalizer();
+        string returnUrl = "/tenants/tenant.alpha?" + marker + "=tenants-detail-identity";
+        IRenderedComponent<AuditEvidenceEntryPoint> cut = Render<AuditEvidenceEntryPoint>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha")
+            .Add(p => p.SourceKind, "command-result")
+            .Add(p => p.ReturnUrl, returnUrl)
+            .Add(p => p.ReturnFocus, "tenants-config-set-lifecycle")
+            .Add(p => p.IsAvailable, true));
+
+        cut.Find("[data-testid='tenants-audit-entrypoint']").GetAttribute("href").ShouldBeNull();
+        cut.Find("[role='note']").TextContent.ShouldContain("InvalidContext");
     }
 
     [Fact]

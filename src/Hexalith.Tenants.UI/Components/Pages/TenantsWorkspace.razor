@@ -15,6 +15,7 @@
 
 <CascadingValue Value="@AuditReadAvailable" Name="AuditReadAvailable">
 <CascadingValue Value="@((Func<Task>)RefreshAuditAuthorityAsync)" Name="AuditAuthorityRefresh">
+<CascadingValue Value="@((Func<long>)(() => Volatile.Read(ref _auditRefreshVersion)))" Name="AuditAuthorityRefreshVersion">
 <span hidden data-audit-focus-page-terminal="@(_auditAuthorityResolved && (IsUsersTab || _snapshot.Kind is not TenantListSurfaceKind.Loading))"
       data-audit-focus-heading="tenants-list-heading"
       data-audit-focus-active-origin="@ActiveAuditOrigin"></span>
@@ -264,7 +265,9 @@
                     @if (IsRetainedTenantListView && ShowList)
                     {
                         <TenantDataGrid Rows="@_visibleRows"
-                                        AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is TenantListSurfaceKind.Ready)"
+                                        AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is TenantListSurfaceKind.Ready
+                                            && _snapshot.Freshness is ReadModelFreshnessState.Current
+                                            && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
                                         AuditReadDenied="@_auditReadDenied"
                                         OnAuditRefresh="@RefreshAsync"
                                         DetailHref="CreateDetailHref"
@@ -317,10 +320,12 @@
 </FcAggregateListPage>
 </CascadingValue>
 </CascadingValue>
+</CascadingValue>
 
 @code {
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private long _auditRefreshVersion;
     private TenantListSnapshot? _lastConfirmedSnapshot;
     private TenantWorkspaceState _workspaceState = TenantWorkspaceState.FromQuery(
         tab: null,
@@ -675,6 +680,7 @@
 
     private void StartGlobalAdministratorsEntryResolution()
     {
+        Interlocked.Increment(ref _auditRefreshVersion);
         if (_authenticationStateProvider is null)
         {
             _canReviewGlobalAdministrators = false;
@@ -772,6 +778,9 @@
         }
         catch
         {
+            Interlocked.Increment(ref _auditCallerVersion);
+            Interlocked.Exchange(ref _pendingAuditCallerVersion, 0);
+            Interlocked.Increment(ref _authorizationVersion);
             _canReviewGlobalAdministrators = false;
             _auditReadDenied = false;
             _auditAuthorityResolved = true;
@@ -977,6 +986,13 @@
         {
             // Navigation ended before focus restoration.
         }
+        catch (Exception exception) when (exception is JSException or TaskCanceledException)
+        {
+            if (!_disposed && string.Equals(QueryAnchor, focus, StringComparison.Ordinal))
+            {
+                await InvokeAsync(() => { _auditReturnNotice = true; _auditStalledNotice = false; StateHasChanged(); });
+            }
+        }
     }
 
     private async Task RestoreAuditFocusAsync(string focus)
@@ -986,9 +1002,9 @@
             : focus.StartsWith("tenants-my-row-", StringComparison.Ordinal)
                 ? "tenants-my-page"
                 : "tenants-workspace-tenants-panel-content";
+        string? targetUserId = origin == "tenants-user-lookup" ? _usersWorkspaceState.UserId : null;
         try
         {
-            string? targetUserId = origin == "tenants-user-lookup" ? _usersWorkspaceState.UserId : null;
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
             string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, origin,
                 "tenants-list-heading", targetUserId);
@@ -1017,6 +1033,14 @@
         catch (JSDisconnectedException)
         {
             // The browser circuit ended before focus restoration.
+        }
+        catch (Exception exception) when (exception is JSException or TaskCanceledException)
+        {
+            if (!_disposed && string.Equals(QueryAuditFocus, focus, StringComparison.Ordinal)
+                && (origin != "tenants-user-lookup" || string.Equals(_usersWorkspaceState.UserId, targetUserId, StringComparison.Ordinal)))
+            {
+                await InvokeAsync(() => { _auditReturnNotice = true; _auditStalledNotice = false; StateHasChanged(); });
+            }
         }
     }
 

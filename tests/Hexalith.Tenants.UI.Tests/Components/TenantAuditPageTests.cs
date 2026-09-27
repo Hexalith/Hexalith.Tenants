@@ -1039,6 +1039,7 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href")
             .ShouldBe("/tenants/tenant.alpha");
+        cut.Find("[data-testid='tenants-audit-back']").TextContent.ShouldContain("tenant detail");
     }
 
     [Fact]

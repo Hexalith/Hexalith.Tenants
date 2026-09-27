@@ -21,6 +21,7 @@
 
 <CascadingValue Value="@DetailAuditReadAvailable" Name="AuditReadAvailable">
 <CascadingValue Value="@((Func<Task>)RefreshAuditCapabilityAsync)" Name="AuditAuthorityRefresh">
+<CascadingValue Value="@((Func<long>)(() => Volatile.Read(ref _auditRefreshVersion)))" Name="AuditAuthorityRefreshVersion">
 <CascadingValue Value="@DetailReturnUrl" Name="DetailAuditReturnUrl">
 <div data-testid="tenants-detail-audit-origin" data-audit-focus-terminal="@IsAuditFocusTerminal">
 @if (_auditReturnNotice)
@@ -48,6 +49,8 @@
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Loading.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Loading.Message"]"
+                          HeadingId="tenants-detail-identity"
+                          HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
     </LoadingContent>
@@ -56,6 +59,8 @@
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Unauthorized.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Unauthorized.Message"]"
+                          HeadingId="tenants-detail-identity"
+                          HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
     </UnauthorizedContent>
@@ -64,6 +69,8 @@
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.NotFound.Title"]"
                           Description="@Localizer["Tenants.Detail.State.NotFound.Message"]"
+                          HeadingId="tenants-detail-identity"
+                          HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
     </NotFoundContent>
@@ -72,6 +79,8 @@
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Unavailable.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Unavailable.Message"]"
+                          HeadingId="tenants-detail-identity"
+                          HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
     </UnavailableContent>
@@ -281,12 +290,14 @@
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>
+</CascadingValue>
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
     private TenantUsersSnapshot _tenantUsersSnapshot = TenantUsersSnapshot.Loading();
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private bool _auditProofCapabilityAvailable;
+    private long _auditRefreshVersion;
     private bool _auditCapabilityResolved;
     private bool _auditReadDenied;
     private string? _pendingAuditFocus;
@@ -1090,9 +1101,9 @@
 
     private async Task RestoreAuditFocusAsync(string focus)
     {
+        string tenantId = TenantId;
         try
         {
-            string tenantId = TenantId;
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
             string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, "tenants-detail-audit-origin", "tenants-detail-identity");
             if (outcome != "cancelled" && !_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
@@ -1117,6 +1128,14 @@
         catch (JSDisconnectedException)
         {
             // The browser circuit ended before focus restoration.
+        }
+        catch (Exception exception) when (exception is JSException or TaskCanceledException)
+        {
+            if (!_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(_handledAuditFocus, focus, StringComparison.Ordinal))
+            {
+                await InvokeAsync(() => { _auditReturnNotice = true; _auditStalledNotice = false; StateHasChanged(); });
+            }
         }
     }
 
@@ -1314,6 +1333,8 @@
         }
         catch
         {
+            Interlocked.Increment(ref _auditCallerVersion);
+            Interlocked.Exchange(ref _pendingAuditCallerVersion, 0);
             _auditProofCapabilityAvailable = false;
             _auditReadDenied = false;
             _auditCapabilityResolved = true;
@@ -1988,6 +2009,7 @@
 
     private void StartAuditCapabilityProbe(string tenantId, long generation, bool force = false)
     {
+        Interlocked.Increment(ref _auditRefreshVersion);
         long callerVersion = Volatile.Read(ref _auditCallerVersion);
         if (!force && _lastAuditProbeGeneration == generation && _lastAuditProbeCallerVersion == callerVersion)
         {

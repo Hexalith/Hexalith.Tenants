@@ -14,8 +14,11 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -23,6 +26,34 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class AddTenantMemberFlowTests : FluentBunitContext
 {
+    [Fact]
+    public void Audit_entry_with_invalid_detail_return_stays_disabled_instead_of_using_bare_detail()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
+        IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadAvailable")
+            .Add(p => p.Value, true)
+            .AddChildContent<AddTenantMemberFlow>(child => child
+                .Add(p => p.Detail, Detail("tenant.alpha"))
+                .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                .Add(p => p.Freshness, ReadModelFreshnessState.Current)));
+        IRenderedComponent<AddTenantMemberFlow> cut = wrapper.FindComponent<AddTenantMemberFlow>();
+        typeof(AddTenantMemberFlow).GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, TenantAddMemberCommandSnapshot.Idle() with
+            {
+                AuditState = TenantCommandAuditState.AuditPending,
+            });
+        cut.Render();
+
+        AngleSharp.Dom.IElement entry = cut.Find("[data-testid='tenants-audit-entrypoint']");
+        entry.GetAttribute("href").ShouldBeNull();
+        cut.Find("#" + entry.GetAttribute("aria-describedby")).TextContent
+            .ShouldContain("invalid", Case.Insensitive);
+    }
+
     [Fact]
     public void Add_member_flow_renders_stable_selectors_and_assignable_roles_only()
     {
@@ -660,6 +691,8 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
+            ["Tenants.Audit.Availability.Accessible.Available"] = "Audit evidence is available; support-safe proof may be inspected or copied.",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
         };
 
         public LocalizedString this[string name]

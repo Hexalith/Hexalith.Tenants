@@ -32,8 +32,8 @@ else
         {
             <span class="tenants-audit-entrypoint__state">@AvailabilityText</span>
         }
-        <span id="@_reasonId" class="tenants-audit-entrypoint__reason">@UnavailableText</span>
     </FluentButton>
+    <span id="@_reasonId" class="tenants-audit-entrypoint__reason" role="note" tabindex="0">@UnavailableText</span>
     @if ((OnRefresh.HasDelegate || AuditAuthorityRefresh is not null) && HasSafeContext)
     {
         <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="RefreshAsync" data-testid="tenants-audit-entrypoint-refresh">
@@ -107,7 +107,12 @@ else
                 && (TargetUserId is null || TenantAuditNavigationSafety.IsSafeIdentifier(TargetUserId))
                 && (SupportSafeCommandReference is null || TenantAuditNavigationSafety.IsSafeHint(SupportSafeCommandReference))
                 && safeReturn is not null
-                && (ReturnFocus is null || TenantAuditNavigationSafety.IsFocusForReturnUrl(safeReturn, ReturnFocus));
+                && (ReturnFocus is null ||
+                    (TenantAuditNavigationSafety.IsFocusForReturnUrl(safeReturn, ReturnFocus)
+                    && (TenantAuditNavigationSafety.ReturnQueryValue(safeReturn, "anchor") is not { } anchor
+                        || string.Equals(anchor, ReturnFocus, StringComparison.Ordinal))
+                    && (TenantAuditNavigationSafety.ReturnQueryValue(safeReturn, "auditFocus") is not { } existingFocus
+                        || string.Equals(existingFocus, ReturnFocus, StringComparison.Ordinal))));
         }
     }
 

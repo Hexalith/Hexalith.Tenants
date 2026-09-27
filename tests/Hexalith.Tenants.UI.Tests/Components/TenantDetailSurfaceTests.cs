@@ -61,6 +61,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
         Services.AddSingleton(new TenantHighImpactViewportObservation(TenantHighImpactViewportState.Safe));
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
     }
 
     [Fact]
@@ -84,6 +85,24 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         navigation.NavigateTo("/tenants/tenant.alpha?auditFocus=tenants-detail-identity");
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
+    }
+
+    [Fact]
+    public void Detail_audit_focus_timeout_shows_missing_origin_notice()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail(
+            "tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active, []))));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<string>("restoreAuditFocus", _ => true)
+            .SetException(new TaskCanceledException("Focus helper timed out."));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha?auditFocus=tenants-detail-identity");
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("#tenants-detail-identity").GetAttribute("tabindex").ShouldBe("-1");
     }
 
     [Fact]
@@ -1574,11 +1593,40 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Detail_without_authentication_provider_keeps_audit_closed()
+    public void Synchronous_initial_caller_failure_requires_reacquisition_before_detail_capability()
     {
-        Services.RemoveAll<AuthenticationStateProvider>();
+        AuthenticationStateProvider caller = Substitute.For<AuthenticationStateProvider>();
+        int callerReads = 0;
+        caller.GetAuthenticationStateAsync().Returns(_ => ++callerReads == 1
+            ? throw new InvalidOperationException("Authentication is unavailable.")
+            : Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+        Services.AddSingleton(caller);
         RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
             Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        _ = gateway.DidNotReceive().GetTenantAuditAsync(
+            Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>());
+        cut.Find("[data-testid='tenants-detail-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+
+        cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+        callerReads.ShouldBe(2);
+        _ = gateway.Received(1).GetTenantAuditAsync(
+            Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Detail_without_authentication_provider_keeps_audit_closed()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")));
+        Services.RemoveAll<AuthenticationStateProvider>();
         ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
@@ -1767,6 +1815,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 ProjectionLifecycleState.Current,
                 "tenant-sequence:41")),
             composition);
+        Services.RemoveAll<AuthenticationStateProvider>();
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -2790,6 +2839,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForElement($"[data-testid='{selector}']");
 
         cut.Find($"[data-testid='{selector}']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+        cut.Find("#tenants-detail-identity").GetAttribute("tabindex").ShouldBe("-1");
 
         // The denial must be announced, not merely rendered. The only assertion covering this lived in the
         // Tier 3 route-smoke class, which carries [DaprFact] + SkipIfUnavailable() and runs

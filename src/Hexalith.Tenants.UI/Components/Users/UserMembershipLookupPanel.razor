@@ -159,7 +159,9 @@
                                            TargetUserId="@_targetUserId"
                                            SourceKind="user-lookup"
                                            ReturnUrl="@UserLookupReturnUrl"
-                                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready)"
+                                           AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready
+                                               && _snapshot.Freshness is ReadModelFreshnessState.Current
+                                               && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
                                            AuditReadDenied="@AuditReadDenied"
                                            OnAuditRefresh="@RefreshAuditAsync" />
 

@@ -1975,6 +1975,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None) with { Lifecycle = ProjectionLifecycleState.Current }]) with
         {
             ETag = eTagSentinel,
+            Lifecycle = ProjectionLifecycleState.Current,
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
             $"/tenants?status=Active&sort=name&desc=True&cursor={cursorSentinel}");

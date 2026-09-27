@@ -317,8 +317,7 @@
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
-    private string CommandAuditReturnUrl
-        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+    private string? CommandAuditReturnUrl => DetailAuditReturnUrl;
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";

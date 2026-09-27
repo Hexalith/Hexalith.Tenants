@@ -318,6 +318,29 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
+    public void Workspace_audit_focus_interop_failure_shows_missing_origin_notice()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<string>("restoreAuditFocus", _ => true)
+            .SetException(new Microsoft.JSInterop.JSException("Focus helper unavailable."));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants?auditFocus=tenant-row-tenant.alpha");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("[data-testid='tenants-list-page-header']");
+    }
+
+    [Fact]
     public void Users_tab_shows_missing_origin_and_partial_return_notices_outside_inactive_tenants_panel()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -598,6 +621,61 @@ public sealed class TenantsWorkspaceTests : BunitContext
             cut.Find("[data-testid='tenants-list-refresh']");
             cut.Markup.ShouldNotContain("unsafe event detail");
         });
+    }
+
+    [Fact]
+    public void Synchronous_initial_caller_failure_requires_reacquisition_before_workspace_authority()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Current)));
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        int callerReads = 0;
+        authentication.GetAuthenticationStateAsync().Returns(_ => ++callerReads == 1
+            ? throw new InvalidOperationException("Authentication is unavailable.")
+            : Task.FromResult(new AuthenticationState(AdministratorPrincipal())));
+        Services.AddSingleton(authentication);
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
+        callerReads.ShouldBe(1);
+
+        cut.Find("[data-testid='tenants-list-refresh']").Click();
+        cut.WaitForElement("[data-testid='tenants-global-administrators-entry']");
+        callerReads.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Current)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown)]
+    public void Current_tenant_row_cannot_open_audit_from_uncertain_list_page(
+        ReadModelFreshnessState pageFreshness,
+        ProjectionLifecycleState pageLifecycle)
+    {
+        TenantListRow row = TenantListRow.FromSummary(new Hexalith.Tenants.Contracts.Queries.TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))
+            with { Freshness = ReadModelFreshnessState.Current, Lifecycle = ProjectionLifecycleState.Current };
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Ready([row], null, false, "etag", pageFreshness, false) with
+            {
+                Lifecycle = pageLifecycle,
+            }));
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForElement("[data-testid='tenants-list-audit-entrypoint']");
+        cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
     }
 
     [Fact]

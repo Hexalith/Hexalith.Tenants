@@ -349,7 +349,7 @@
     private string StateText => Localizer[$"Tenants.Configuration.Set.State.{LocalizedCommandState(_snapshot.State)}"];
     private string AuditText => Localizer[$"Tenants.Configuration.Set.Audit.{LocalizedAuditState(_snapshot.AuditState)}"];
     private bool ShouldRenderAuditEntryPoint => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
-    private string CommandAuditReturnUrl => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Context.TenantId)}";
+    private string? CommandAuditReturnUrl => DetailAuditReturnUrl;
     private string RecoveryText => Localizer[$"Tenants.Configuration.Set.Recovery.{LocalizedCommandState(_snapshot.State)}"];
     private string LiveRegionMode => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
     private string KeyDescribedBy => DescribedBy("tenants-config-set-key-help");

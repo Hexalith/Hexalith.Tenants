@@ -62,6 +62,9 @@
     [CascadingParameter(Name = "AuditAuthorityRefresh")]
     public Func<Task>? AuditAuthorityRefresh { get; set; }
 
+    [CascadingParameter(Name = "AuditAuthorityRefreshVersion")]
+    public Func<long>? AuditAuthorityRefreshVersion { get; set; }
+
     [Parameter]
     public EventCallback OnInspectAudit { get; set; }
 
@@ -167,8 +170,11 @@
             case TenantAuditRecoveryVerb.Wait:
                 break;
             case TenantAuditRecoveryVerb.Refresh:
+                long? probeVersion = AuditAuthorityRefreshVersion?.Invoke();
                 await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
-                if (AuditAuthorityRefresh is not null && !OwnerRefreshIncludesAuditAuthority)
+                if (AuditAuthorityRefresh is not null
+                    && (!OwnerRefreshIncludesAuditAuthority || probeVersion is null
+                        || AuditAuthorityRefreshVersion?.Invoke() == probeVersion))
                 {
                     await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
                 }

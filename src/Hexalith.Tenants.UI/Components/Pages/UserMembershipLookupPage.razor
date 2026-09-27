@@ -1,4 +1,5 @@
 @page "/tenants/users"
+@implements IDisposable
 @using Hexalith.Tenants.UI.Components.Users
 @using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -51,6 +52,7 @@
     private bool _stalledOrigin;
     private bool _partialReturn;
     private bool _consumedFocuslessReturn;
+    private bool _disposed;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "auditFocus")]
@@ -102,10 +104,10 @@
         }
 
         _pendingFocus = null;
+        string? targetUserId = QueryUserId;
         try
         {
             await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
-            string? targetUserId = QueryUserId;
             string? outcome = await module.InvokeAsync<string>("restoreAuditFocus", focus, "tenants-user-lookup", "tenants-user-lookup-heading", targetUserId);
             if (outcome != "cancelled" && string.Equals(QueryUserId, targetUserId, StringComparison.Ordinal)
                 && string.Equals(_handledFocus, focus, StringComparison.Ordinal))
@@ -125,10 +127,20 @@
         {
             // The browser circuit ended before focus restoration.
         }
+        catch (Exception exception) when (exception is JSException or TaskCanceledException)
+        {
+            if (!_disposed && string.Equals(QueryUserId, targetUserId, StringComparison.Ordinal)
+                && string.Equals(_handledFocus, focus, StringComparison.Ordinal))
+            {
+                await InvokeAsync(() => { _missingOrigin = true; _stalledOrigin = false; StateHasChanged(); });
+            }
+        }
     }
 
     private Task RefreshAuditAuthorityAsync()
         => _auditAuthority?.RefreshAsync() ?? Task.CompletedTask;
+
+    public void Dispose() => _disposed = true;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "userId")]

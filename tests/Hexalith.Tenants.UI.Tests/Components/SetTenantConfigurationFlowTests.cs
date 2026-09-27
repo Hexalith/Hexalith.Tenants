@@ -24,6 +24,26 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
+    public void Audit_entry_with_invalid_detail_return_stays_disabled_instead_of_using_bare_detail()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway, Context(["billing"]), intent => Preview(intent, TenantSetConfigurationCurrentState.Absent));
+        typeof(SetTenantConfigurationFlow).GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, TenantSetConfigurationCommandSnapshot.Idle() with
+            {
+                AuditState = TenantCommandAuditState.AuditAvailable,
+            });
+        cut.Render();
+
+        AngleSharp.Dom.IElement entry = cut.Find("[data-testid='tenants-command-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull();
+        entry.GetAttribute("href").ShouldBeNull();
+        cut.Find("#" + entry.GetAttribute("aria-describedby")).TextContent
+            .ShouldContain("invalid", Case.Insensitive);
+    }
+
+    [Fact]
     public void Namespace_and_suffix_are_composed_once_with_literal_case_and_preview_is_ten_fact_redacted()
     {
         StubTenantCommandGateway gateway = RegisterServices();

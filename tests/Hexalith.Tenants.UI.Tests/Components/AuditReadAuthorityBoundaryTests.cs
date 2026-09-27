@@ -103,6 +103,28 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
     }
 
     [Fact]
+    public void Synchronous_initial_caller_failure_requires_reacquisition_before_standalone_authority()
+    {
+        var authentication = new ThrowingInitialAuthenticationStateProvider();
+        ITenantsBffComposition bff = Substitute.For<ITenantsBffComposition>();
+        bff.IsReadSurfaceConnected.Returns(true);
+        bff.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Register(authentication, bff);
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
+        _ = bff.DidNotReceive().ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
+
+        cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+        authentication.Reads.ShouldBe(2);
+        _ = bff.Received(1).ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void OlderCallerAuthorityCompletionCannotEnableStandaloneLink()
     {
         MutableAuthenticationStateProvider authentication = new();
@@ -184,7 +206,10 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
             .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
                 [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader,
                     ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
-                nextCursor: null, hasMore: false, eTag: null, freshness: ReadModelFreshnessState.Current)));
+                nextCursor: null, hasMore: false, eTag: null, freshness: ReadModelFreshnessState.Current) with
+            {
+                Lifecycle = ProjectionLifecycleState.Current,
+            }));
         Services.AddSingleton(gateway);
         Services.AddSingleton(bff);
         if (authentication is not null)
@@ -218,6 +243,16 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
         public override Task<AuthenticationState> GetAuthenticationStateAsync() => _pending.Task;
 
         public void Resolve() => _pending.SetResult(new AuthenticationState(new ClaimsPrincipal()));
+    }
+
+    private sealed class ThrowingInitialAuthenticationStateProvider : AuthenticationStateProvider
+    {
+        public int Reads { get; private set; }
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            => ++Reads == 1
+                ? throw new InvalidOperationException("Authentication is unavailable.")
+                : Task.FromResult(new AuthenticationState(new ClaimsPrincipal()));
     }
 
 }

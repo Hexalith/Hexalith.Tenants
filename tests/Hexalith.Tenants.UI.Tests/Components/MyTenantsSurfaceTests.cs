@@ -5,6 +5,7 @@ using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -213,6 +214,66 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 
         navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
+    }
+
+    [Fact]
+    public void Standalone_audit_focus_interop_failure_shows_missing_origin_notice()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<string>("restoreAuditFocus", _ => true)
+            .SetException(new Microsoft.JSInterop.JSException("Focus helper unavailable."));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
+        cut.Find("[data-testid='tenants-my-page-header']");
+    }
+
+    [Fact]
+    public void Focusless_partial_return_keeps_notice_when_marker_cleanup_fails()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.SetupVoid("consumeReturnMarkers")
+            .SetException(new Microsoft.JSInterop.JSException("Marker cleanup unavailable."));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/my?auditPartialReturn=true");
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+
+        cut.WaitForElement("[data-testid='tenants-audit-partial-return']");
+        cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Current)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown)]
+    public void Current_my_tenants_row_cannot_open_audit_from_uncertain_containing_page(
+        ReadModelFreshnessState pageFreshness,
+        ProjectionLifecycleState pageLifecycle)
+    {
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)]) with
+        {
+            Freshness = pageFreshness,
+            Lifecycle = pageLifecycle,
+        });
+
+        IRenderedComponent<MyTenantsPanel> cut = Render<MyTenantsPanel>(parameters => parameters
+            .Add(p => p.AuditReadAvailable, true));
+
+        cut.WaitForElement("[data-testid='tenants-my-audit-entrypoint']");
+        cut.Find("[data-testid='tenants-my-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
     }
 
     [Fact]

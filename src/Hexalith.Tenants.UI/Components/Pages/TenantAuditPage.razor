@@ -391,7 +391,11 @@
             string? safe = SafeBackReturnUrl;
             if (safe is null)
             {
-                return Localizer["Tenants.Audit.Context.SourceKind.TenantList"];
+                return ReturnUrl is null && ReturnFocus is null
+                    && TenantAuditNavigationSafety.IsSafeTenantId(TenantId)
+                    && TenantId is not ("my" or "users")
+                    ? Localizer["Tenants.Audit.Context.SourceKind.TenantDetail"]
+                    : Localizer["Tenants.Audit.Context.SourceKind.TenantList"];
             }
 
             string path = safe.Split('?', 2)[0];

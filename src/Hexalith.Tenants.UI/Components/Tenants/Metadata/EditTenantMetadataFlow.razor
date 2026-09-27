@@ -379,8 +379,7 @@
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
-    private string CommandAuditReturnUrl
-        => DetailAuditReturnUrl ?? $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
+    private string? CommandAuditReturnUrl => DetailAuditReturnUrl;
 
     private string RecoveryText
         => Localizer[$"Tenants.EditMetadata.Recovery.{_snapshot.State}"];
