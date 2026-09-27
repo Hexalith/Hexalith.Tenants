@@ -3207,3 +3207,11 @@ Story range `fc147e3e..f17027ac`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
   summary: Replace the historical unauthenticated hosted route smoke with an authenticated FrontComposer route fixture.
   evidence: With the repository development JWT issuer, audience, and key supplied temporarily, Aspire EventStore starts and all six `TenantsUiRouteSmokeTests` reach their assertions, but each fails because the unauthenticated shell prerenders `data-testid="fc-scope-blocked"` instead of the expected page marker. Without those temporary settings, the fixture times out at EventStore `/alive` before assertions. The route tests need a valid caller and scope to inspect the pages.
+
+## Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-27)
+
+Story range `fc147e3e..HEAD`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+  summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.
+  evidence: Decision 2026-09-27 ("Declare + enable CI gate"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit.

@@ -126,8 +126,10 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
 
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
-        string statusReference = cut.Find("[data-testid='tenants-user-lookup-status']")
-            .GetAttribute("blazor:elementreference").ShouldNotBeNull();
+        object panel = cut.FindComponent<UserMembershipLookupPanel>().Instance;
+        string statusReference = ((ElementReference)(panel.GetType()
+            .GetField("_statusElement", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.GetValue(panel) ?? throw new InvalidOperationException("The lookup status reference was not captured."))).Id;
 
         // The lookup status must not compete with the audit launcher that is being restored.
         StatusFocusRequests(statusReference).ShouldBe(0);

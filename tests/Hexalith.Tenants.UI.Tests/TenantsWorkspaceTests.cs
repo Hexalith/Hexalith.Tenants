@@ -7,6 +7,7 @@ using AngleSharp.Dom;
 
 using Bunit;
 
+using Hexalith.FrontComposer.Shell.Components.Layout;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -341,7 +342,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-audit-return-notice']").TextContent.ShouldNotBeNullOrWhiteSpace();
         Services.GetRequiredService<NavigationManager>().Uri.ShouldEndWith("/tenants?auditReturnUnavailable=true");
-        string headingReference = cut.Find("#tenants-list-heading").GetAttribute("blazor:elementreference").ShouldNotBeNull();
+        string headingReference = HeadingReferenceId(cut);
         cut.WaitForAssertion(() => HeadingFocusRequests(headingReference).ShouldBe(1));
 
         Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants");
@@ -998,7 +999,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             .GetAttribute("href").ShouldNotBeNull();
         href.ShouldStartWith("/tenants/tenant.alpha/audit?");
         href.ShouldContain("source=my-tenants");
-        href.ShouldContain("returnUrl=%2Ftenants%3Ftab%3Dtenants%26scope%3Dmine");
+        href.ShouldContain("returnUrl=" + Uri.EscapeDataString("/tenants/tenants?scope=mine"));
         href.ShouldContain("returnFocus=tenants-my-row-tenant.alpha");
     }
 
@@ -1031,7 +1032,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         href.ShouldStartWith("/tenants/tenant.beta/audit?");
         href.ShouldContain("targetUserId=user.target-01");
         href.ShouldContain("source=user-lookup");
-        href.ShouldContain("returnUrl=%2Ftenants%3Ftab%3Dusers%26userId%3Duser.target-01");
+        href.ShouldContain("returnUrl=" + Uri.EscapeDataString("/tenants/workspace-users?userId=user.target-01"));
         href.ShouldContain("returnFocus=tenants-user-row-tenant.beta");
     }
 
@@ -1068,7 +1069,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.WaitForAssertion(() => detailFocus.Invocations.Count.ShouldBe(1));
         detailFocus.Invocations.Single().Arguments.ShouldBe(
             ["tenants-my-detail-tenant.alpha", "tenants-my-page", "tenants-list-heading"]);
-        string headingReference = cut.Find("#tenants-list-heading").GetAttribute("blazor:elementreference").ShouldNotBeNull();
+        string headingReference = HeadingReferenceId(cut);
         HeadingFocusRequests(headingReference).ShouldBe(0);
         cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();
     }
@@ -1100,7 +1101,30 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.UsersTab);
         gateway.DidNotReceive()
             .ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users?userId=user.target-01");
+        gateway.Received(1).GetUserTenantsAsync(
+            Arg.Is<UserTenantMembershipRequest>(request => request.TargetUserId == "user.target-01"),
+            Arg.Any<UserTenantMembershipSnapshot?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Route_backed_tenants_path_opens_the_tenants_tab_and_keeps_its_route()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants/tenants?status=Active&sort=name");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForElement("[data-testid='tenants-list-refresh']");
+        cut.FindComponent<FluentTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.TenantsTab);
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/tenants?status=Active&sort=name");
     }
 
     [Fact]
@@ -1442,6 +1466,15 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
     private static ClaimsPrincipal NonAdministratorPrincipal()
         => new(new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test"));
+
+    private static string HeadingReferenceId(IRenderedComponent<TenantsWorkspace> cut)
+    {
+        FcPageHeader header = cut.FindComponent<FcPageHeader>().Instance;
+        return ((ElementReference)(typeof(FcPageHeader)
+            .GetField("_headingElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?.GetValue(header)
+            ?? throw new InvalidOperationException("The list heading reference was not captured."))).Id;
+    }
 
     private static T PrivateField<T>(TenantsWorkspace instance, string name)
         => (T)(typeof(TenantsWorkspace)

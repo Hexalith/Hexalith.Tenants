@@ -548,6 +548,21 @@ context:
 - Review 2 blind 10 — false: the disabled-to-enabled entry switches rendered component types, so the claimed in-place attribute mutation does not occur in this application.
 - Review 2 blind 11 — false: workspace and every detail state render an `FcPageHeader` heading; the claimed missing-heading case is not reachable on these return routes.
 
+## File List
+
+_Submodule pointers declared per the 2026-09-27 code-review gitlink decision. The guard compares `fc147e3..HEAD`, so it also sees pointer moves carried by commits that are not Story 5.2 work; each entry says which commit moved it. None of these moves is a Story 5.2 product change._
+
+- `references/Hexalith.EventStore`
+  - Story commit `3ba48896` moved it from `4fafcb9` to `1cc6b44` without mentioning it in its message. Non-story commits `8431d992`, `04f68c60`, `dfa78e10`, `45be8deb`, and `40de0a4e` also move it.
+- `references/Hexalith.FrontComposer`
+  - Story commit `3ba48896` moved it from `07bfc22` to `812de2f` without mentioning it in its message. Non-story commits `8431d992` and `dfa78e10` also move it.
+- `references/Hexalith.Builds`
+  - Moved only by non-story commits `8431d992`, `04f68c60`, and `45be8deb`.
+- `references/Hexalith.Commons`
+  - Moved only by non-story commit `45be8deb`.
+
+Source and test files are the `src/` and `tests/` changes in the story commits (`f17027ac`, `3ba48896`, `d30c13b3`, `bf164a9d`, `f245ab90`) plus the 2026-09-27 review patches.
+
 ## Verification
 
 **Observed, Review 17 (2026-09-27):** Review patches close synchronous caller-provider retry gaps, conflicting return focus, invalid command return origins, owner Refresh capability retries, containing-page evidence gates, direct-audit Back labeling, keyboard access to disabled-entry reasons, and interop failure notices. The focused 14-class Release UI run passed 726/726; after correcting two stale test fixtures and an unreachable test state, the final serial Release UI suite passed 3,171/3,171 with zero skips. The exact focused verification commands passed 16/16 `AuditEvidenceEntryPointTests` and 101/101 `TenantAuditPageTests`. Release UI and integration test project builds passed with zero warnings or errors. The Google Chrome shipped-module and mutation fixture passed, and `git diff --check` passed. Two pre-existing issues were deferred in `deferred-work.md`: same-circuit audit-page caller-change evidence retention and the hosted route smoke fixture's unauthenticated FrontComposer assertions. The hosted six-case run remains outside passing acceptance evidence for the reasons recorded below.
@@ -577,76 +592,90 @@ The frozen matrix is covered by executed passing tests: scoped current-row and d
 
 Code review 2026-09-27 of `fc147e3e..40de0a4e` (src/tests/slnx: 51 files, +4690/−280), full mode, 4 layers (blind, edge, verification-gap, acceptance). No layer failed. Seven patches marked `[x]` in the 2026-09-26 findings below never reached the code; they reappear here as P2 (pending copy and denied command entries), P8, P9, P12, P13, P14, and P15.
 
-- [ ] [Review][Patch] Declare the story's gitlink moves in a File List and record the CI-gate un-defer [_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md:1]
+- [x] [Review][Patch] Declare the story's gitlink moves in a File List and record the CI-gate un-defer [_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md:1]
   - Resolved from decision (2026-09-27, "Declare + enable CI gate"): `python3 scripts/validate-story-gitlinks.py` exits 1 over `fc147e3..HEAD`.
   - Story commit `3ba48896` moves EventStore `4fafcb9→1cc6b44` and FrontComposer `07bfc22→812de2f` without saying so.
   - The Builds, Commons, and later EventStore moves come from non-story commits `8431d992`, `04f68c60`, `dfa78e10`, `45be8deb`, and `40de0a4e`.
   - Add a File List entry for each path, and say which commit carried it and whether it belongs to this story.
   - This is the 5th occurrence. Record un-deferring the CI gitlink gate as a tracked follow-up. (medium; gitlink guard)
-- [ ] [Review][Patch] Re-arm create-flow audit return retention after the restored markers are consumed [src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:294]
+- [x] [Review][Patch] Re-arm create-flow audit return retention after the restored markers are consumed [src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:294]
   - Resolved from decision (2026-09-27, "Re-arm after consume"): after `Take()`, `_returnStateConsumed` stays true, so every later render calls `Clear()`.
   - A second create → audit → Back trip therefore loses the lifecycle panel and shows the missing-origin notice.
   - Reset the flag once the restored return markers are consumed, so `Remember` retains the latest create state again.
   - A replay can then only restore the current caller's latest state. Add a two-trip test. (medium; edge)
-- [ ] [Review][Patch] JS interop that clears return markers without a focus target is unguarded on three pages, so an interop failure can end the circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1082]
+- [x] [Review][Patch] JS interop that clears return markers without a focus target is unguarded on three pages, so an interop failure can end the circuit [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1082]
   - `TenantDetailPage.razor:1082-1087`, `TenantsWorkspace.razor:896-904`, and `UserMembershipLookupPage.razor:96-102` await `import` and `consumeReturnMarkers` in `OnAfterRenderAsync` without try/catch.
   - A `JSException` or `TaskCanceledException` escapes and tears down the Blazor Server circuit. On the detail page it also skips `EnsureReadRefreshLeaseAsync`.
   - Adopt `MyTenantsPage`'s guard, and add one cleanup-failure test per page. (medium; blind+edge+verification+acceptance)
-- [ ] [Review][Patch] The typed audit authority (pending, indeterminate, denied) does not reach entry-point copy or visibility [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceEntryPoint.razor:125]
+- [x] [Review][Patch] The typed audit authority (pending, indeterminate, denied) does not reach entry-point copy or visibility [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceEntryPoint.razor:125]
   - The 2026-09-26 Option 1 decision was only partly applied:
     - List, My Tenants, lookup, member, and detail-header entries fall back to `StaleScope` ("Refresh tenant scope…") while authority is pending or indeterminate. No "Checking audit access…" key exists.
     - All eight command flows show `CommandReason` ("open the tenant audit list…") whenever the entry is disabled.
     - On detail, command-result entries still render for a proven-denied caller, because only `AuditReadAvailable` is cascaded.
     - The remove-member receipt says "The audit context is invalid" whenever the read surface is connected (`RemoveTenantMemberFlow.razor:507`).
   - Non-global-administrator tenant owners meet this on every command result. (medium; acceptance+edge+blind)
-- [ ] [Review][Patch] The page consumes a return marker without re-rendering, so the lookup panel keeps a stale `AuditFocus` [src/Hexalith.Tenants.UI/Components/Pages/UserMembershipLookupPage.razor:124]
+- [x] [Review][Patch] The page consumes a return marker without re-rendering, so the lookup panel keeps a stale `AuditFocus` [src/Hexalith.Tenants.UI/Components/Pages/UserMembershipLookupPage.razor:124]
   - `UserMembershipLookupPage` (:124-126) and `TenantsWorkspace` (:1013-1017) null the `[SupplyParameterFromQuery]` properties after `history.replaceState`, but never call `StateHasChanged`.
   - The panel therefore keeps the old `AuditFocus`/`AuditPartialReturn`. Every later lookup, page, or sort:
     - appends the markers back into the URL through `UserLookupNavigationUrl` (:318-340), so a reload replays focus and notices;
     - keeps `_focusStatusPending` false (:490, :538), so results never receive status focus.
   - Re-render after clearing, and land this with the accordion latch patch. (medium; edge+blind)
-- [ ] [Review][Patch] The create accordion's `Expanded` is bound to the one-shot `auditFocus` marker [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171]
+- [x] [Review][Patch] The create accordion's `Expanded` is bound to the one-shot `auditFocus` marker [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:171]
   - `IsCreateAuditReturn` becomes false once `QueryAuditFocus` is cleared (:1015). The next workspace render, such as the create lifecycle's Refresh through `OnProjectionRefreshRequested="RefreshAsync"`, pushes `Expanded=false` and collapses the flow around the just-focused launcher.
   - Latch the expansion in `CaptureAuditReturn`. (medium; acceptance+edge)
-- [ ] [Review][Patch] The create-flow audit return drops the workspace search, sort, and status despite the checked Review 11 task [src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:119]
+- [x] [Review][Patch] The create-flow audit return drops the workspace search, sort, and status despite the checked Review 11 task [src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:119]
   - `ReturnUrl="/tenants"` is still hard-coded, and `TenantCreateAuditReturnState` keeps only the command fields.
   - Supply the canonical workspace URL through a cascade, following the `DetailAuditReturnUrl` pattern, rather than a new public parameter. (medium; acceptance)
-- [ ] [Review][Patch] An unsafe direct detail route still subscribes read-refresh notifications with the unsafe id, and no test covers the rejection [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1176]
+- [x] [Review][Patch] An unsafe direct detail route still subscribes read-refresh notifications with the unsafe id, and no test covers the rejection [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1176]
   - `OnParametersSetAsync` returns early for an unsafe `TenantId`, but `OnAfterRenderAsync` then calls `EnsureReadRefreshLeaseAsync(TenantId)`. Its guard lacks `IsSafeTenantId`, so the page subscribes with the unsafe id.
   - The hostile-id detail test was switched to `tenant.alpha` with no replacement. This violates the task "reject an unsafe direct detail route before any BFF work".
   - Add the guard and a no-query/no-subscribe test. (medium; edge+blind)
-- [ ] [Review][Patch] The hosted smoke test expects text the audit page never renders, and nothing else checks the origin labels [tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs:111]
+- [x] [Review][Patch] The hosted smoke test expects text the audit page never renders, and nothing else checks the origin labels [tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs:111]
   - It expects "Return to a member row" and `selected=tenant.alpha`.
   - For that `/tenants/tenant.alpha?returnUrl=…` return, `BackOriginLabel` renders "Return to tenant detail", and the nested `selected` is re-escaped to `selected%3D…`.
   - `BackOriginLabel`'s path mapping (/tenants/my, /tenants/users, tab=users, scope=mine, detail) has no bUnit coverage. Correct the expectations and add a `TenantAuditPageTests` theory. (medium; blind+acceptance+edge+verification)
-- [ ] [Review][Patch] Test gap: detail command-flow audit links are never shown enabled through `TenantDetailPage`'s `AuditReadAvailable`/`DetailAuditReturnUrl` cascades [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1]
+- [x] [Review][Patch] Test gap: detail command-flow audit links are never shown enabled through `TenantDetailPage`'s `AuditReadAvailable`/`DetailAuditReturnUrl` cascades [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1]
   - Renaming either cascade silently disables every detail command handoff.
   - Assert an enabled command link with the nested `returnUrl` and the lifecycle `returnFocus`. (medium; verification)
-- [ ] [Review][Patch] Test gap: no test asserts a successful remove-member receipt "Inspect audit" navigation [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:853]
+- [x] [Review][Patch] Test gap: no test asserts a successful remove-member receipt "Inspect audit" navigation [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:853]
   - Every current test asserts no navigation.
   - Assert the path, `targetUserId`, `source=command-result`, the detail `returnUrl`, and `returnFocus`. (medium; verification)
-- [ ] [Review][Patch] Test gap: no rendered test asserts an enabled workspace My Tenants or Users-tab audit link [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:731]
+- [x] [Review][Patch] Test gap: no rendered test asserts an enabled workspace My Tenants or Users-tab audit link [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:731]
   - The scope=mine assertion was flipped to a null `href`, and the page-level lookup target-switch focus test named by a checked task is also absent.
   - Add authorized-composition cases for both tabs. (medium; verification+acceptance)
-- [ ] [Review][Patch] Test gap: the workspace My Tenants detail return is untested [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:756]
+- [x] [Review][Patch] Test gap: the workspace My Tenants detail return is untested [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:756]
   - The path is the `tenants-my-detail-` anchor, `restoreDetailFocus`, and no heading focus. The only test uses the old `tenants-my-row-` anchor. (medium; verification)
-- [ ] [Review][Patch] Test gap: `TenantCreateAuditReturnState`'s scoped registration is not pinned in `TenantsUiCompositionTests` [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:1]
+- [x] [Review][Patch] Test gap: `TenantCreateAuditReturnState`'s scoped registration is not pinned in `TenantsUiCompositionTests` [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:1]
   - A Singleton registration would share create state across circuits. (medium; verification)
-- [ ] [Review][Patch] Test gap: `Missing_audit_return_handoff_shows_notice_and_requests_heading_focus` never asserts the heading-focus invocation [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:299] (medium; verification)
-- [ ] [Review][Patch] Test gap: the lookup status-focus suppression during an audit return (`_focusStatusPending`) is unverified [tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs:1] (medium; verification)
-- [ ] [Review][Patch] Member paging supersedes an in-flight audit capability probe without restarting it [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1599]
+- [x] [Review][Patch] Test gap: `Missing_audit_return_handoff_shows_notice_and_requests_heading_focus` never asserts the heading-focus invocation [tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs:299] (medium; verification)
+- [x] [Review][Patch] Test gap: the lookup status-focus suppression during an audit return (`_focusStatusPending`) is unverified [tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs:1] (medium; verification)
+- [x] [Review][Patch] Member paging supersedes an in-flight audit capability probe without restarting it [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1599]
   - `LoadMemberPageAsync` calls `BeginLoad` but not `StartAuditCapabilityProbe`, so a dropped probe leaves detail audit links disabled until Refresh. (low; edge)
-- [ ] [Review][Patch] `supportSafeCommandReference` renders any identifier-shaped value, including a raw ULID, in the audit banner [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs:204]
+- [x] [Review][Patch] `supportSafeCommandReference` renders any identifier-shaped value, including a raw ULID, in the audit banner [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs:204]
   - `IsSafeHint` is only `IsSafeIdentifier`. Also require `TenantAuditSupportSafety.SafeApprovedReference`, as receipts do. (low; acceptance)
-- [ ] [Review][Patch] `IsSafeFocus` applies the 256-character identifier cap to the whole focus string (prefix + id) [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs:58]
+- [x] [Review][Patch] `IsSafeFocus` applies the 256-character identifier cap to the whole focus string (prefix + id) [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs:58]
   - User ids up to 256 characters are valid (`GlobalAdministratorUserId.MaximumLength`), but `tenants-member-{id}` over 256 characters disables that member's entry.
   - Validate the suffix instead. (low; edge)
-- [ ] [Review][Patch] The 10 new French audit strings lose their accents, and the French partial-return notice uses the internal term "curseur protégé" [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3689]
+- [x] [Review][Patch] The 10 new French audit strings lose their accents, and the French partial-return notice uses the internal term "curseur protégé" [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3689]
   - Examples: "reference", "filtree", "controle", "a ete". 899 of 1,602 existing French values use accents.
   - The English says "paging position", but the French `Tenants.Audit.Return.Partial` says "curseur protégé" ("protected cursor"). (low; blind+acceptance)
-- [ ] [Review][Patch] Test gap: the new `/tenants/tenants` and `/tenants/workspace-users` routes, `RouteTabFromLocation`, and `ToCanonicalUrl(routeBacked: true)` have no tests [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:3] (low; verification)
-- [ ] [Review][Patch] `BackHref` repeats `SafeBackReturnUrl`'s focus-mismatch check, and the repeat is unreachable [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:434]
+- [x] [Review][Patch] Test gap: the new `/tenants/tenants` and `/tenants/workspace-users` routes, `RouteTabFromLocation`, and `ToCanonicalUrl(routeBacked: true)` have no tests [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:3] (low; verification)
+- [x] [Review][Patch] `BackHref` repeats `SafeBackReturnUrl`'s focus-mismatch check, and the repeat is unreachable [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:434]
   - `SafeBackReturnUrl` has already returned null for that case, so the second check never fires. Delete it. (low; blind)
+
+**Patches applied 2026-09-27 (all 22):**
+- A concurrent session committed the in-progress source and test patches as `bf164a9d` and `f245ab90`, then rebased them onto upstream `72c0d95f`. The follow-up test fixes, this record, and `deferred-work.md` remain uncommitted.
+- **Scope notes:**
+  - The typed-authority patch keeps Refresh visible while authority is pending. Later review loops require a pending Refresh to be safe, and `AuditReadAuthorityBoundaryTests` exercises it; only the copy changes to "Checking audit access…".
+  - The command-reference patch aligns the banner with the receipts' `SafeApprovedReference` rule, which rejects `eyJ…`, `messageid`, and `correlation` shapes. A bare ULID still passes both rules.
+  - The member-paging probe fix has no dedicated test.
+  - `Tenants.Audit.EntryPoint.CommandReason` is now unused, but stays in the resx because eight localizer doubles pin it.
+- **Verification** (commands from the repository root):
+  - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -m:1` and the integration-test project build both passed with zero warnings or errors.
+  - The focused 13-class run passed every new or changed test.
+  - Serial `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -parallelMode none` ran 3,207 tests with 13 failures and zero skips. All 13 are upstream `72c0d95f` workspace-routing tests (7 `TenantListSurfaceTests`, 6 `TenantsWorkspaceTests`). They expect a `workspace-users` tab id and route-backed canonical URLs that `fd10bc4d` had already reverted. No review patch touches tab ids or canonical-URL routing.
+  - The run used concurrently fast-forwarded FrontComposer (`805a261`) and EventStore (`e29b44a`) checkouts. `72c0d95f`'s tests need FrontComposer's `NavigationFailureNotifier` (`932e5485`), which the pinned `812de2f` lacks.
+  - `validate-story-gitlinks.py` passes. `tenantsFocus.js` was not changed, so the Chrome fixture was not rerun. The hosted smoke expectation was corrected and compiles, but was not executed.
 
 **Rejected** (25):
 - The return-focus and authority logic is duplicated across pages — low: the harmful drift is the unguarded-interop patch above; merging the copies is a refactor, not a fix.
