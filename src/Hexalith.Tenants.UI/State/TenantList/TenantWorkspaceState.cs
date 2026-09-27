@@ -263,12 +263,17 @@ public sealed record TenantWorkspaceState(
     /// <summary>
     /// Serializes the normalized state to the canonical workspace URL.
     /// </summary>
-    public string ToCanonicalUrl()
+    public string ToCanonicalUrl(bool routeBacked = false)
     {
-        StringBuilder builder = new("/tenants");
+        StringBuilder builder = new(routeBacked
+            ? Tab == UsersTab ? "/tenants/workspace-users" : "/tenants/tenants"
+            : "/tenants");
         if (Tab == UsersTab)
         {
-            AppendQuery(builder, "tab", UsersTab);
+            if (!routeBacked)
+            {
+                AppendQuery(builder, "tab", UsersTab);
+            }
             AppendQuery(builder, "userId", UserId);
             AppendQuery(builder, "sort", Sort == UserTenantMembershipSortColumns.Tenant ? null : Sort);
             AppendQuery(builder, "cursor", Cursor);
@@ -277,7 +282,10 @@ public sealed record TenantWorkspaceState(
 
         if (Scope == MyScope)
         {
-            AppendQuery(builder, "tab", TenantsTab);
+            if (!routeBacked)
+            {
+                AppendQuery(builder, "tab", TenantsTab);
+            }
             AppendQuery(builder, "scope", MyScope);
             AppendQuery(builder, "cursor", Cursor);
             AppendQuery(builder, "selected", SelectedTenantId);
@@ -487,7 +495,7 @@ public sealed record TenantWorkspaceState(
             return;
         }
 
-        _ = builder.Append(builder.Length > "/tenants".Length ? '&' : '?');
+        _ = builder.Append(builder.ToString().Contains('?', StringComparison.Ordinal) ? '&' : '?');
         _ = builder.Append(Uri.EscapeDataString(key));
         _ = builder.Append('=');
         _ = builder.Append(Uri.EscapeDataString(value));
