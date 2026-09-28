@@ -33,8 +33,11 @@
                     <FluentButton Appearance="ButtonAppearance.Primary"
                                   Class="tenants-audit-availability__action"
                                   data-recovery-verb="@VerbCss(verb)"
+                                  data-testid="@(RecoveryTestIdPrefix is null ? null : $"{RecoveryTestIdPrefix}-{VerbCss(verb)}")"
                                   OnClick="() => InvokeRecoveryAsync(verb)">
-                        @Localizer[$"Tenants.Audit.Availability.Action.{verb}"]
+                        @Localizer[verb is TenantAuditRecoveryVerb.Refresh && RefreshLabelResourceKey is not null
+                            ? RefreshLabelResourceKey
+                            : $"Tenants.Audit.Availability.Action.{verb}"]
                     </FluentButton>
                 }
             }
@@ -49,6 +52,15 @@
 
     [Parameter]
     public string StateTestId { get; set; } = "tenants-audit-availability-state";
+
+    [Parameter]
+    public string? RecoveryTestIdPrefix { get; set; }
+
+    [Parameter]
+    public string? RefreshLabelResourceKey { get; set; }
+
+    [Parameter]
+    public bool IsReceiptAuditRead { get; set; }
 
     [Parameter]
     public RenderFragment? InspectAuditAction { get; set; }
@@ -91,11 +103,15 @@
     private string AccessibleLabel
         => Availability.State is null
             ? string.Empty
-            : Localizer[$"Tenants.Audit.Availability.Accessible.{Availability.State}{RecoveryCopySuffix}"];
+            : Localizer[IsReceiptAuditRead && Availability.State is TenantAuditAvailabilityState.Unavailable
+                ? "Tenants.Audit.Receipt.Availability.Unavailable.Accessible"
+                : $"Tenants.Audit.Availability.Accessible.{Availability.State}{RecoveryCopySuffix}"];
 
     private string ReasonText
         => Availability.State is TenantAuditAvailabilityState.Unavailable or TenantAuditAvailabilityState.MissingSupport
-            ? Localizer[$"Tenants.Audit.Availability.Reason.{Availability.State}{RecoveryCopySuffix}"]
+            ? Localizer[IsReceiptAuditRead && Availability.State is TenantAuditAvailabilityState.Unavailable
+                ? "Tenants.Audit.Receipt.Availability.Unavailable.Reason"
+                : $"Tenants.Audit.Availability.Reason.{Availability.State}{RecoveryCopySuffix}"]
             : string.Empty;
 
     private IReadOnlyList<TenantAuditRecoveryVerb> RenderableRecoveryVerbs

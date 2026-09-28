@@ -22,4 +22,37 @@ public sealed class TenantAuditSupportSafetyTests
     [Fact]
     public void Ordinary_visible_reference_remains_support_safe()
         => TenantAuditSupportSafety.SafeApprovedReference("event-visible-1").ShouldBe("event-visible-1");
+
+    [Theory]
+    [InlineData("person@example.test")]
+    [InlineData("person＠example.test")]
+    [InlineData("+1-202-555-0100")]
+    [InlineData("202\u00A0555\u00A00100")]
+    [InlineData("٢٠٢٥٥٥٠١٠٠")]
+    [InlineData("user|Actor: false")]
+    [InlineData("user\uFF5Ctarget")]
+    [InlineData("user\u2223target")]
+    [InlineData("user\u2225target")]
+    [InlineData("user\u2016target")]
+    [InlineData("user\u2502target")]
+    [InlineData("user\u2758target")]
+    [InlineData("user\u2759target")]
+    [InlineData("user\u2028target")]
+    public void Pii_and_visual_field_boundaries_are_rejected_before_typed_mapping(string value)
+    {
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
+    }
+
+    [Fact]
+    public void Visible_non_pii_unicode_identifier_remains_usable()
+        => TenantAuditSupportSafety.SafeIdentifier("équipe-α", SupportSafeCopyValueKind.UserId).ShouldBe("équipe-α");
+
+    [Fact]
+    public void Malformed_utf16_identifier_fails_closed_without_throwing()
+    {
+        string value = "user" + new string('\uD800', 1) + "target";
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
+    }
 }

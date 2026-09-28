@@ -3425,7 +3425,7 @@
     <value>Wait for audit evidence</value>
   </data>
   <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
-    <value>Copy audit receipt reference</value>
+    <value>Copy full audit receipt summary</value>
   </data>
   <data name="Tenants.Audit.Receipt.ReferenceLiteral" xml:space="preserve">
     <value>Audit reference: {0}</value>
@@ -4258,4 +4258,70 @@
   <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue.</value></data>
   <data name="Tenants.Generated.CommandPreview" xml:space="preserve"><value>Generated form preview. Use the Tenants workspace to create a tenant.</value></data>
   <data name="Tenants.Generated.ProjectionPreview" xml:space="preserve"><value>Generated view of the first authorized tenant page. Use the Tenants workspace for paging and actions.</value></data>
+  <data name="Tenants.Audit.Receipt.Close" xml:space="preserve">
+    <value>Close receipt</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.CopyBlocked" xml:space="preserve">
+    <value>The receipt summary cannot be copied safely. Continue read-only or contact support.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.MissingCheckedPage" xml:space="preserve">
+    <value>The requested event is not on this checked audit page. Inspect other pages or refresh.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Error" xml:space="preserve">
+    <value>The audit read failed; this requested event could not be verified.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Loading" xml:space="preserve">
+    <value>The audit page is loading; this requested event has not been verified.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.InvalidCursor" xml:space="preserve">
+    <value>The audit page cursor is invalid. Restart at page one before inspecting this event.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.RefreshAudit" xml:space="preserve">
+    <value>Retry audit read</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Reset" xml:space="preserve">
+    <value>Reset audit filters</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Summary" xml:space="preserve">
+    <value>Actor: {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserAddedToTenant" xml:space="preserve">
+    <value>User added to tenant</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserRemovedFromTenant" xml:space="preserve">
+    <value>User removed from tenant</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserRoleChanged" xml:space="preserve">
+    <value>User role changed</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.GlobalAdministratorSet" xml:space="preserve">
+    <value>Global administrator granted</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.GlobalAdministratorRemoved" xml:space="preserve">
+    <value>Global administrator removed</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantCreated" xml:space="preserve">
+    <value>Tenant created</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantUpdated" xml:space="preserve">
+    <value>Tenant updated</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantDisabled" xml:space="preserve">
+    <value>Tenant disabled</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantEnabled" xml:space="preserve">
+    <value>Tenant enabled</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationSet" xml:space="preserve">
+    <value>Tenant configuration set</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationRemoved" xml:space="preserve">
+    <value>Tenant configuration removed</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Accessible" xml:space="preserve">
+    <value>Audit evidence is unavailable; retry the audit read or continue read-only.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Reason" xml:space="preserve">
+    <value>This audit read cannot verify the requested evidence. Retry the audit read or continue read-only; escalate with support-safe information if it persists.</value>
+  </data>
 </root>

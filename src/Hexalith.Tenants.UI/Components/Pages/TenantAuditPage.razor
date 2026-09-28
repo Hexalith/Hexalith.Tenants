@@ -225,14 +225,6 @@
                            CorrectionIntentProvider="CreateCorrectionIntent"
                            OnRoleSelected="SelectCorrectionRoleAsync"
                            OnStartCorrection="OpenCorrectionAsync" />
-            @if (_selectedReceipt is not null)
-            {
-                <AuditEvidenceReceipt Receipt="@_selectedReceipt"
-                                      CorrectionIntent="@_selectedReceiptCorrectionIntent"
-                                      OnStartCorrection="OpenCorrectionAsync"
-                                      OnRetry="RefreshAsync"
-                                      OnClose="CloseReceiptAsync" />
-            }
             @if (_activeCorrectionIntent is not null)
             {
                 @if (_activeCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
@@ -268,6 +260,16 @@
             </nav>
         </section>
     }
+    @if (_selectedReceipt is not null)
+    {
+        <AuditEvidenceReceipt Receipt="@_selectedReceipt"
+                              CorrectionIntent="@_selectedReceiptCorrectionIntent"
+                              OnStartCorrection="OpenCorrectionAsync"
+                              OnRetry="RefreshAsync"
+                              OnReset="ResetFiltersAsync"
+                              UseResetRecovery="@HasFilterValidation"
+                              OnClose="CloseReceiptAsync" />
+    }
     </FluentStack>
 </FcPageLayout>
 
@@ -295,6 +297,12 @@
     private string? _toValidationKey;
     private string? _categoryValidationKey;
     private TenantAuditReceipt? _selectedReceipt;
+    private string? _selectedReceiptReference;
+    private string? _lastRouteReceiptReference;
+    private string? _dismissedReceiptReference;
+    private bool _selectedReceiptFromLauncher;
+    private string? _pendingReceiptFocus;
+    private long _receiptFocusGeneration;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
     private int _correctionOpenGeneration;
@@ -303,6 +311,7 @@
     private long _globalAdministratorsProjectionGeneration;
     private IAsyncDisposable? _readRefreshLease;
     private string? _loadedTenantId;
+    private string? _initialLoadStartedTenantId;
     private string? _subscriptionTenantId;
     private bool _readRefreshSubscriptionInFlight;
     private string? _pendingSubscriptionTenantId;
@@ -647,6 +656,8 @@
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest("invalid"));
                 _loadedTenantId = null;
+                _initialLoadStartedTenantId = null;
+                ResolveReceiptSelection();
                 StateHasChanged();
             }).ConfigureAwait(false);
             if (invalidLease is not null)
@@ -657,6 +668,7 @@
         }
 
         bool tenantChanged = !string.Equals(_loadedTenantId, tenantId, StringComparison.Ordinal);
+        bool receiptRouteChanged = !string.Equals(_lastRouteReceiptReference, ReceiptReference, StringComparison.Ordinal);
         if (tenantChanged)
         {
             IAsyncDisposable? previousLease = _readRefreshLease;
@@ -670,6 +682,16 @@
                 _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
                 _loadedTenantId = tenantId;
+                _initialLoadStartedTenantId = null;
+                _dismissedReceiptReference = null;
+                _selectedReceiptReference = null;
+                _selectedReceiptFromLauncher = false;
+                _lastRouteReceiptReference = ReceiptReference;
+                ResolveReceiptSelection();
+                if (ReceiptReference is not null)
+                {
+                    ScheduleReceiptHeadingFocus();
+                }
                 StateHasChanged();
             }).ConfigureAwait(false);
             if (previousLease is not null)
@@ -682,21 +704,83 @@
             }
         }
 
+        bool needsInitialLoad = !string.Equals(_initialLoadStartedTenantId, tenantId, StringComparison.Ordinal);
+        if (!tenantChanged)
+        {
+            if (receiptRouteChanged)
+            {
+                bool hadReceipt = _selectedReceipt is not null;
+                string? previousReference = _selectedReceiptReference;
+                _lastRouteReceiptReference = ReceiptReference;
+                _dismissedReceiptReference = null;
+                _selectedReceiptReference = null;
+                _selectedReceiptFromLauncher = false;
+                ResolveReceiptSelection();
+                if (ReceiptReference is null && hadReceipt)
+                {
+                    ScheduleReceiptFocus(previousReference);
+                }
+                else if (ReceiptReference is not null)
+                {
+                    ScheduleReceiptHeadingFocus();
+                }
+            }
+
+            if (!needsInitialLoad)
+            {
+                return;
+            }
+        }
+
         // Only a tenant change may discard the retained validator and blank the grid. The route carries six
         // [SupplyParameterFromQuery] parameters, none of which feed CreateRequest -- it is built from the
         // filter fields (_fromText/_toText/_categoryText) -- so the member "open audit for this user" entry
         // point re-enters here with an unchanged TenantId and an identical request. Re-reading
         // unconditionally discarded the conditional-read validator, reset the grid to Loading and cancelled
         // any in-flight notification or paging load on every such navigation.
+        _initialLoadStartedTenantId = tenantId;
         await LoadAsync(
-            reuseETag: !tenantChanged,
-            retainConfirmed: !tenantChanged,
+            reuseETag: false,
+            retainConfirmed: false,
             requestedTenantId: tenantId).ConfigureAwait(false);
         await EnsureReadRefreshSubscriptionAsync(tenantId).ConfigureAwait(false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_pendingReceiptFocus is { } pendingReceiptFocus)
+        {
+            _pendingReceiptFocus = null;
+            long focusGeneration = _receiptFocusGeneration;
+            try
+            {
+                IJSObjectReference focusModule = _focusModule
+                    ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
+                if (focusGeneration == _receiptFocusGeneration)
+                {
+                    bool focused = pendingReceiptFocus is "heading"
+                        ? await focusModule.InvokeAsync<bool>("focusElementById", "tenants-audit-receipt-heading").ConfigureAwait(false)
+                        : await focusModule.InvokeAsync<bool>("focusElementById", pendingReceiptFocus).ConfigureAwait(false);
+                    if (focusGeneration == _receiptFocusGeneration && !focused)
+                    {
+                        _ = await focusModule.InvokeAsync<bool>("focusElementById", "tenant-audit-heading").ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // Focus is no longer observable after the circuit disconnects.
+            }
+            catch (JSException)
+            {
+                // The audit read remains usable if the focus module is unavailable.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Navigation disposed the focus module during the handoff.
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(_pendingCorrectionFocusReference))
         {
             return;
@@ -743,6 +827,7 @@
         CancellationToken cancellationToken = operation.CancellationToken;
         if (!retainConfirmed)
         {
+            await CaptureReceiptFocusForReplacementAsync().ConfigureAwait(false);
             // Marshalled and generation-guarded like every other _snapshot write in this file. Callers reach
             // here from ConfigureAwait(false) continuations, so a manual Refresh or filter change running on
             // the dispatcher could interleave between this call's BeginLoad and this write and have its
@@ -753,6 +838,7 @@
                 if (CanApply(tenantId, generation))
                 {
                     _snapshot = TenantAuditSnapshot.Loading(tenantId);
+                    ResolveReceiptSelection();
                 }
             }).ConfigureAwait(false);
         }
@@ -774,18 +860,25 @@
             return null;
         }
 
+        if (_selectedReceipt is not null && ReceiptStateForSnapshot(result) != _selectedReceipt.State)
+        {
+            await CaptureReceiptFocusForReplacementAsync().ConfigureAwait(false);
+        }
+
         // Re-checked inside the dispatcher callback: the CanApply above ran on a thread-pool continuation,
         // so a newer load can win between that check and this write.
         await InvokeAsync(() =>
         {
             if (CanApply(tenantId, generation))
             {
+                CaptureCorrectionAuthority(result);
                 if (result.Kind is TenantAuditSurfaceKind.ListRefreshed or TenantAuditSurfaceKind.InvalidCursor)
                 {
                     ClearPaging();
                 }
 
                 _snapshot = result;
+                ResolveReceiptSelection();
             }
         }).ConfigureAwait(false);
 
@@ -1222,6 +1315,7 @@
             Interlocked.Increment(ref _loadGeneration);
             CancelActiveCancellation();
             _snapshot = TenantAuditSnapshot.Error(new TenantAuditRequest(tenantId), TenantAuditReason.InvalidFilters);
+            ResolveReceiptSelection();
             request = null;
             return false;
         }
@@ -1243,8 +1337,6 @@
         _pagingHistoryTruncated = false;
         _pagingJumpedToFirstPage = false;
         _currentCursor = null;
-        _selectedReceipt = null;
-        _selectedReceiptCorrectionIntent = null;
         _activeCorrectionIntent = null;
         _activeCorrectionFocusReference = null;
         _selectedCorrectionRoles.Clear();
@@ -1252,15 +1344,30 @@
 
     private Task OpenReceiptAsync(TenantAuditRow row)
     {
-        _selectedReceipt = TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind);
-        _selectedReceiptCorrectionIntent = CreateCorrectionIntent(row);
+        TenantAuditRow? currentRow = _snapshot.Rows.FirstOrDefault(candidate =>
+            string.Equals(candidate.EventReference, row.EventReference, StringComparison.Ordinal));
+        if (currentRow is null || !ShouldRenderRows
+            || TenantAuditSupportSafety.SafeApprovedReference(currentRow.EventReference) is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        _selectedReceiptReference = currentRow.EventReference;
+        _selectedReceiptFromLauncher = true;
+        ResolveReceiptSelection();
+        ScheduleReceiptHeadingFocus();
         return Task.CompletedTask;
     }
 
     private Task CloseReceiptAsync()
     {
+        string? closedReference = _selectedReceiptReference;
+        _dismissedReceiptReference = ReceiptReference;
+        _selectedReceiptReference = null;
+        _selectedReceiptFromLauncher = false;
         _selectedReceipt = null;
         _selectedReceiptCorrectionIntent = null;
+        ScheduleReceiptFocus(closedReference);
         return Task.CompletedTask;
     }
 
@@ -1300,20 +1407,23 @@
                 return; // A newer correction open superseded this one while its projection refreshed.
             }
 
+            TenantAuditRow? sourceRow = _snapshot.Rows.FirstOrDefault(row =>
+                string.Equals(row.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
+            if (sourceRow is null
+                || TenantAuditReceipt.FromRow(sourceRow, surfaceKind: _snapshot.Kind).State is not TenantAuditReceiptState.Ready)
+            {
+                return;
+            }
+
             if (globalSnapshot is not null)
             {
                 _globalAdministratorsSnapshot = globalSnapshot;
             }
 
-            TenantCorrectionStartIntent refreshedIntent = intent;
-            if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
+            TenantCorrectionStartIntent refreshedIntent = CreateCorrectionIntent(sourceRow);
+            if (!refreshedIntent.IsAvailable)
             {
-                TenantAuditRow? sourceRow = _snapshot.Rows.FirstOrDefault(row =>
-                    string.Equals(row.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
-                if (sourceRow is not null)
-                {
-                    refreshedIntent = CreateGlobalAdministratorCorrectionIntent(sourceRow);
-                }
+                return;
             }
 
             _activeCorrectionIntent = refreshedIntent;
@@ -1332,37 +1442,117 @@
 
     private void ResolveReceiptSelection()
     {
-        if (!ShouldRenderRows && string.IsNullOrWhiteSpace(ReceiptReference))
+        if (_selectedReceiptReference is null
+            && !_selectedReceiptFromLauncher
+            && ReceiptReference is not null
+            && !string.Equals(_dismissedReceiptReference, ReceiptReference, StringComparison.Ordinal))
+        {
+            _selectedReceiptReference = TenantAuditSupportSafety.SafeApprovedReference(ReceiptReference);
+            if (_selectedReceiptReference is null)
+            {
+                _selectedReceipt = TenantAuditReceipt.Unavailable(null, TenantId,
+                    surfaceKind: _snapshot.Kind, checkedPage: false);
+                _selectedReceiptCorrectionIntent = null;
+                return;
+            }
+        }
+
+        if (_selectedReceiptReference is null)
         {
             _selectedReceipt = null;
-            _selectedReceiptCorrectionIntent = null;
-            _activeCorrectionIntent = null;
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(ReceiptReference))
-        {
-            TenantAuditRow? requestedRow = _snapshot.Rows.FirstOrDefault(row =>
-                string.Equals(row.EventReference, ReceiptReference, StringComparison.Ordinal));
-            _selectedReceipt = requestedRow is null
-                ? TenantAuditReceipt.Unavailable(ReceiptReference, TenantId, SupportSafeCommandReference)
-                : TenantAuditReceipt.FromRow(requestedRow, SupportSafeCommandReference, _snapshot.Kind);
-            _selectedReceiptCorrectionIntent = requestedRow is null ? null : CreateCorrectionIntent(requestedRow);
-            return;
-        }
-
-        if (_selectedReceipt is null)
-        {
             _selectedReceiptCorrectionIntent = null;
             return;
         }
 
         TenantAuditRow? selectedRow = _snapshot.Rows.FirstOrDefault(row =>
-            string.Equals(row.EventReference, _selectedReceipt.AuditReference, StringComparison.Ordinal));
+            string.Equals(row.EventReference, _selectedReceiptReference, StringComparison.Ordinal));
         _selectedReceipt = selectedRow is null
-            ? null
-            : TenantAuditReceipt.FromRow(selectedRow, SupportSafeCommandReference, _snapshot.Kind);
-        _selectedReceiptCorrectionIntent = selectedRow is null ? null : CreateCorrectionIntent(selectedRow);
+            ? TenantAuditReceipt.Unavailable(_selectedReceiptReference, TenantId,
+                surfaceKind: _snapshot.Kind, checkedPage: IsCheckedPage(_snapshot.Kind))
+            : TenantAuditReceipt.FromRow(selectedRow, surfaceKind: _snapshot.Kind);
+        _selectedReceiptCorrectionIntent = selectedRow is null || _selectedReceipt.State is not TenantAuditReceiptState.Ready
+            ? null : CreateCorrectionIntent(selectedRow);
+        CaptureCorrectionAuthority(_snapshot);
+    }
+
+    private static bool IsCheckedPage(TenantAuditSurfaceKind kind)
+        => kind is TenantAuditSurfaceKind.Ready or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded or TenantAuditSurfaceKind.ListRefreshed;
+
+    private TenantAuditReceiptState ReceiptStateForSnapshot(TenantAuditSnapshot snapshot)
+    {
+        TenantAuditRow? row = snapshot.Rows.FirstOrDefault(candidate =>
+            string.Equals(candidate.EventReference, _selectedReceiptReference, StringComparison.Ordinal));
+        return row is null
+            ? TenantAuditReceipt.Unavailable(_selectedReceiptReference, TenantId,
+                surfaceKind: snapshot.Kind, checkedPage: IsCheckedPage(snapshot.Kind)).State
+            : TenantAuditReceipt.FromRow(row, surfaceKind: snapshot.Kind).State;
+    }
+
+    private void CaptureCorrectionAuthority(TenantAuditSnapshot snapshot)
+    {
+        if (_activeCorrectionIntent is null)
+        {
+            return;
+        }
+
+        TenantAuditRow? source = snapshot.Rows.FirstOrDefault(row =>
+            string.Equals(row.EventReference, _activeCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal));
+        if (source is not null && TenantAuditReceipt.FromRow(source, surfaceKind: snapshot.Kind).State is TenantAuditReceiptState.Ready)
+        {
+            return;
+        }
+
+        _correctionOpenGeneration++;
+        _activeCorrectionIntent = null;
+        _activeCorrectionFocusReference = null;
+    }
+
+    private void ScheduleReceiptHeadingFocus()
+    {
+        _receiptFocusGeneration++;
+        _pendingReceiptFocus = "heading";
+    }
+
+    private void ScheduleReceiptFocus(string? reference)
+    {
+        _receiptFocusGeneration++;
+        int index = reference is null ? -1 : _snapshot.Rows.ToList().FindIndex(row =>
+            string.Equals(row.EventReference, reference, StringComparison.Ordinal));
+        _pendingReceiptFocus = index >= 0 && ShouldRenderRows
+            ? $"tenants-audit-receipt-launcher-{index}"
+            : "tenant-audit-heading";
+    }
+
+    private async Task CaptureReceiptFocusForReplacementAsync()
+    {
+        if (_selectedReceipt is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IJSObjectReference focusModule = _focusModule
+                ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
+            if (await focusModule.InvokeAsync<bool>("isFocusInsideAuditReceipt").ConfigureAwait(false))
+            {
+                await InvokeAsync(ScheduleReceiptHeadingFocus).ConfigureAwait(false);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // No focus handoff is observable after circuit loss.
+        }
+        catch (JSException)
+        {
+            // Focus failure must not block the audit read.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The component was disposed while checking focus.
+        }
     }
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)

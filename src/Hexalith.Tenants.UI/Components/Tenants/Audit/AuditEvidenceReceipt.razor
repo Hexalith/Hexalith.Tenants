@@ -1,10 +1,11 @@
 @using System.Globalization
+@using System.Text.RegularExpressions
 @using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
 
 @if (Receipt is not null)
 {
-    string? receiptReferenceLiteral = ReceiptReferenceLiteral(Receipt);
+    string? receiptSummary = SafeReceiptSummary(Receipt);
     <section class="audit-evidence-receipt audit-evidence-receipt--@StateCss"
              role="region"
              aria-labelledby="tenants-audit-receipt-heading"
@@ -12,7 +13,7 @@
              data-testid="tenants-audit-receipt">
         <header class="audit-evidence-receipt__header">
             <div>
-                <h3 id="tenants-audit-receipt-heading">@Localizer["Tenants.Audit.Receipt.Title"]</h3>
+                <h3 id="tenants-audit-receipt-heading" tabindex="-1">@Localizer["Tenants.Audit.Receipt.Title"]</h3>
                 @if (ReceiptAuditState is null)
                 {
                     <p class="audit-evidence-receipt__state"
@@ -21,51 +22,64 @@
                         @Localizer[$"Tenants.Audit.Receipt.State.{Receipt.State}"]
                     </p>
                 }
+                @if (Receipt.IsRequestedReferenceMissing)
+                {
+                    <p data-testid="tenants-audit-receipt-missing" role="status">@Localizer["Tenants.Audit.Receipt.MissingCheckedPage"]</p>
+                }
             </div>
-            @if (receiptReferenceLiteral is not null)
+            <FluentButton Appearance="ButtonAppearance.Subtle"
+                          data-testid="tenants-audit-receipt-close"
+                          OnClick="() => OnClose.InvokeAsync()">@Localizer["Tenants.Audit.Receipt.Close"]</FluentButton>
+            @if (receiptSummary is not null)
             {
-                <SupportSafeCopyButton Value="@receiptReferenceLiteral"
+                <SupportSafeCopyButton Value="@receiptSummary"
                                        ValueKind="SupportSafeCopyValueKind.ApprovedReference"
                                        IsApproved="true"
                                        AccessibleName="@Localizer["Tenants.Audit.Receipt.Copy"]"
                                        TestId="tenants-audit-receipt-copy" />
             }
+            else if (Receipt.State is TenantAuditReceiptState.Ready)
+            {
+                <p role="alert" aria-live="assertive" data-testid="tenants-audit-receipt-copy-blocked">
+                    @Localizer["Tenants.Audit.Receipt.CopyBlocked"]
+                </p>
+            }
         </header>
 
         <dl class="audit-evidence-receipt__fields">
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-actor">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Actor"]</dt>
-                <dd>@FieldValue(Receipt.Actor)</dd>
+                <dd>@FieldValue(TenantAuditSupportSafety.SafeIdentifier(Receipt.Actor, SupportSafeCopyValueKind.UserId))</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-target">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Target"]</dt>
-                <dd>@FieldValue(Receipt.Target)</dd>
+                <dd>@FieldValue(SafeTargetForDisplay(Receipt.Target))</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-scope">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Scope"]</dt>
-                <dd>@FieldValue(Receipt.Scope)</dd>
+                <dd>@FieldValue(TenantAuditSupportSafety.SafeIdentifier(Receipt.Scope, SupportSafeCopyValueKind.TenantId))</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-outcome">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Outcome"]</dt>
-                <dd>@FieldValue(Receipt.Outcome)</dd>
+                <dd>@FieldValue(LocalizedOutcome(Receipt.Outcome))</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-timestamp">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Timestamp"]</dt>
-                <dd>@FieldValue(Receipt.TimestampLabel)</dd>
+                <dd>@FieldValue(Receipt.Timestamp is { Offset: var offset } && offset == TimeSpan.Zero ? Receipt.TimestampLabel : null)</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-projection">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.ProjectionMarker"]</dt>
-                <dd>@Localizer[$"Tenants.Audit.Freshness.{Receipt.ProjectionMarker}"]</dd>
+                <dd>@FieldValue(LocalizedProjection(Receipt.ProjectionMarker))</dd>
             </div>
-            <div class="audit-evidence-receipt__field">
+            <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-audit-reference">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Reference"]</dt>
-                <dd data-testid="tenants-audit-receipt-reference">@(receiptReferenceLiteral ?? SafeReferenceFallback(Receipt.AuditReference))</dd>
+                <dd data-testid="tenants-audit-receipt-reference">@SafeReferenceFallback(Receipt.AuditReference)</dd>
             </div>
-            @if (!string.IsNullOrWhiteSpace(Receipt.CommandReference))
+            @if (TenantAuditSupportSafety.SafeApprovedReference(Receipt.CommandReference) is { } safeCommandReference)
             {
                 <div class="audit-evidence-receipt__field">
                     <dt>@Localizer["Tenants.Audit.Receipt.Field.CommandReference"]</dt>
-                    <dd>@Receipt.CommandReference</dd>
+                    <dd>@safeCommandReference</dd>
                 </div>
             }
         </dl>
@@ -74,6 +88,9 @@
         {
             <AuditAvailabilityState AuditState="@ReceiptAuditState.Value"
                                     StateTestId="tenants-audit-receipt-state"
+                                    RecoveryTestIdPrefix="tenants-audit-receipt-recovery"
+                                    RefreshLabelResourceKey="Tenants.Audit.Receipt.Action.RefreshAudit"
+                                    IsReceiptAuditRead="true"
                                     OnRefresh="OnRetry"
                                     OnInspectAudit="OnInspectAudit"
                                     OnContinueReadOnly="OnClose" />
@@ -110,6 +127,7 @@
                     {
                         <FluentButton Appearance="ButtonAppearance.Outline"
                                       Class="audit-evidence-receipt__action"
+                                      data-testid="@RecoveryTestId(action)"
                                       OnClick="() => InvokeActionAsync(action)">
                             @Localizer[action]
                         </FluentButton>
@@ -126,6 +144,12 @@
 
     [Parameter]
     public EventCallback OnRetry { get; set; }
+
+    [Parameter]
+    public EventCallback OnReset { get; set; }
+
+    [Parameter]
+    public bool UseResetRecovery { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }
@@ -147,30 +171,117 @@
             && Receipt?.State is TenantAuditReceiptState.Ready
             && (CorrectionIntent.IsAvailable || HasRenderableUnavailableReason);
 
-    private string? ReceiptReferenceLiteral(TenantAuditReceipt receipt)
+    private string? SafeReceiptSummary(TenantAuditReceipt receipt)
     {
         if (receipt.State is not TenantAuditReceiptState.Ready)
         {
             return null;
         }
 
-        string? auditReference = TenantAuditSupportSafety.SafeApprovedReference(receipt.AuditReference);
-        if (auditReference is null)
+        string? outcome = LocalizedOutcome(receipt.Outcome);
+        string? projection = LocalizedProjection(receipt.ProjectionMarker);
+        string[] values = [receipt.Actor, receipt.Target, receipt.Scope, outcome ?? string.Empty,
+            receipt.TimestampLabel, projection ?? string.Empty, receipt.AuditReference];
+        if (values.Any(static value => string.IsNullOrWhiteSpace(value)
+            || value.Length > 256 || TenantAuditSupportSafety.ContainsFieldBoundary(value)
+            || value.Contains('{', StringComparison.Ordinal) || value.Contains('}', StringComparison.Ordinal))
+            || !TenantAuditSupportSafety.IsSafe(receipt.Actor, SupportSafeCopyValueKind.UserId)
+            || !(TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.UserId)
+                || TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.ConfigurationKey)
+                || TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.TenantId))
+            || !TenantAuditSupportSafety.IsSafe(receipt.Scope, SupportSafeCopyValueKind.TenantId)
+            || TenantAuditSupportSafety.SafeApprovedReference(receipt.AuditReference) is null
+            || receipt.Timestamp is null || receipt.Timestamp.Value == default
+            || receipt.Timestamp.Value.Offset != TimeSpan.Zero
+            || receipt.ProjectionMarker is not Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current)
         {
             return null;
         }
 
-        string localizedReference = Localizer["Tenants.Audit.Receipt.ReferenceLiteral", auditReference].Value;
+        string templateKey = "Tenants.Audit.Receipt.Summary";
+        var templateResource = Localizer[templateKey];
+        string template = templateResource.Value;
+        if (templateResource.ResourceNotFound || template == templateKey || template.Length > 512
+            || TenantAuditSupportSafety.ContainsFieldBoundary(template.Replace(" | ", string.Empty, StringComparison.Ordinal))
+            || !TenantAuditSupportSafety.IsSafe(template.Replace(" | ", " ", StringComparison.Ordinal), SupportSafeCopyValueKind.ApprovedReference))
+        {
+            return null;
+        }
 
-        // A missing or placeholder-less resource makes IStringLocalizer return the key itself, which the
-        // safety policy would accept: refuse any literal that does not actually carry the audit reference.
-        return localizedReference.Contains(auditReference, StringComparison.Ordinal)
-            ? TenantAuditSupportSafety.SafeApprovedReference(localizedReference)
-            : null;
+        string[] names = ["actor", "target", "scope", "outcome", "timestamp", "projection", "auditReference"];
+        string[] labelKeys = ["Actor", "Target", "Scope", "Outcome", "Timestamp", "ProjectionMarker", "Reference"];
+        string[] segments = template.Split(" | ", StringSplitOptions.None);
+        MatchCollection matches = Regex.Matches(template, @"\{([a-zA-Z]+)\}");
+        if (segments.Length != names.Length
+            || Enumerable.Range(0, names.Length).Any(index =>
+            {
+                string labelKey = $"Tenants.Audit.Receipt.Field.{labelKeys[index]}";
+                var label = Localizer[labelKey];
+                return label.ResourceNotFound || label.Value == labelKey
+                    || !segments[index].Contains(label.Value, StringComparison.Ordinal)
+                    || !segments[index].Contains("{" + names[index] + "}", StringComparison.Ordinal);
+            })
+            || matches.Count != names.Length || names.Any(name => matches.Count(match =>
+            string.Equals(match.Groups[1].Value, name, StringComparison.Ordinal)) != 1)
+            || Regex.Replace(template, @"\{[a-zA-Z]+\}", string.Empty).Contains('{', StringComparison.Ordinal)
+            || Regex.Replace(template, @"\{[a-zA-Z]+\}", string.Empty).Contains('}', StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string summary = template;
+        for (int index = 0; index < names.Length; index++)
+        {
+            summary = summary.Replace("{" + names[index] + "}", values[index], StringComparison.Ordinal);
+        }
+
+        return summary.Length <= 2048 ? summary : null;
+    }
+
+    private string? LocalizedOutcome(string outcome)
+    {
+        if (!TenantAuditReceipt.IsKnownOutcome(outcome,
+            outcome is "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
+                or "TenantConfigurationSet" or "TenantConfigurationRemoved"
+                ? Hexalith.Tenants.Contracts.Enums.AuditEventCategory.Administrative
+                : Hexalith.Tenants.Contracts.Enums.AuditEventCategory.Access))
+        {
+            return null;
+        }
+
+        string key = $"Tenants.Audit.Receipt.Outcome.{outcome}";
+        var resource = Localizer[key];
+        return resource.ResourceNotFound || resource.Value == key
+            || !TenantAuditSupportSafety.IsSafe(resource.Value, SupportSafeCopyValueKind.ApprovedReference)
+            ? null : resource.Value;
+    }
+
+    private string? LocalizedProjection(Hexalith.EventStore.Client.Projections.ReadModelFreshnessState marker)
+    {
+        string key = $"Tenants.Audit.Freshness.{marker}";
+        var resource = Localizer[key];
+        return resource.ResourceNotFound || resource.Value == key
+            || !TenantAuditSupportSafety.IsSafe(resource.Value, SupportSafeCopyValueKind.ApprovedReference)
+            ? null : resource.Value;
     }
 
     private static string SafeReferenceFallback(string? auditReference)
         => FieldValue(TenantAuditSupportSafety.SafeApprovedReference(auditReference));
+
+    private static string SafeTargetForDisplay(string? target)
+        => TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.UserId)
+            || TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.ConfigurationKey)
+            || TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.TenantId)
+                ? target! : string.Empty;
+
+    private static string RecoveryTestId(string action)
+        => action switch
+        {
+            "Tenants.Audit.Receipt.Action.InspectAudit" => "tenants-audit-receipt-recovery-inspect",
+            "Tenants.Audit.Receipt.Action.ContinueReadOnly" => "tenants-audit-receipt-recovery-continue",
+            "Tenants.Audit.Receipt.Action.Reset" => "tenants-audit-receipt-recovery-reset",
+            _ => "tenants-audit-receipt-recovery-refresh",
+        };
 
     private bool HasRenderableUnavailableReason
         => CorrectionIntent is not null
@@ -216,7 +327,9 @@
         };
 
     private IReadOnlyList<string> ActionResourceKeys
-        => Receipt?.State switch
+        => UseResetRecovery && OnReset.HasDelegate
+            ? ["Tenants.Audit.Receipt.Action.Reset"]
+            : Receipt?.State switch
         {
             // A Ready receipt must never fall through to the trailing Refresh arm. Offering "retry status
             // lookup" on evidence the receipt has just reported as ready contradicts the state itself; when
@@ -231,6 +344,9 @@
                     (OnRetry.HasDelegate, "Tenants.Audit.Receipt.Action.Refresh")),
             TenantAuditReceiptState.Unauthorized when OnClose.HasDelegate
                 => ["Tenants.Audit.Receipt.Action.ContinueReadOnly"],
+            TenantAuditReceiptState.Error or TenantAuditReceiptState.InvalidCursor or TenantAuditReceiptState.Loading
+                when OnRetry.HasDelegate
+                => ["Tenants.Audit.Receipt.Action.Refresh"],
             TenantAuditReceiptState.Stale or TenantAuditReceiptState.Degraded or TenantAuditReceiptState.Partial
                 when OnRetry.HasDelegate
                 => ["Tenants.Audit.Receipt.Action.Refresh"],
@@ -256,6 +372,11 @@
 
     private async Task InvokeActionAsync(string actionResourceKey)
     {
+        if (actionResourceKey is "Tenants.Audit.Receipt.Action.Reset")
+        {
+            await InvokeAsync(() => OnReset.InvokeAsync()).ConfigureAwait(false);
+            return;
+        }
         if (actionResourceKey is "Tenants.Audit.Receipt.Action.InspectAudit")
         {
             await InvokeAsync(() => OnInspectAudit.InvokeAsync()).ConfigureAwait(false);

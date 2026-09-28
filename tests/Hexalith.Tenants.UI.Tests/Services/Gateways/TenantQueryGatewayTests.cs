@@ -3596,12 +3596,37 @@ public sealed class TenantQueryGatewayTests
             .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
 
         TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Target.ShouldBe("target-user");
         row.ReferenceContext.ShouldContain("userId: target-user");
         row.ReferenceContext.ShouldContain("key: billing.mode");
         row.ReferenceContext.ShouldNotContain("raw payload", Case.Insensitive);
         row.ReferenceContext.ShouldNotContain("token", Case.Insensitive);
         row.ReferenceContext.ShouldNotContain("correlation-123", Case.Insensitive);
         row.ReferenceContext.ShouldNotContain("etag", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("person@example.test")]
+    [InlineData("person＠example.test")]
+    [InlineData("+1-202-555-0100")]
+    [InlineData("202\u00A0555\u00A00100")]
+    [InlineData("user\u2502spoof")]
+    public async Task Get_tenant_audit_rejects_pii_and_boundary_user_ids_before_target_fallback(string unsafeUserId)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [new TenantAuditEntry("event-safe-reference", "TenantConfigurationSet", AuditEventCategory.Administrative,
+                "actor-user", DateTimeOffset.UtcNow, "tenant.alpha",
+                new Dictionary<string, string> { ["userId"] = unsafeUserId, ["key"] = "billing.mode" })],
+            null, false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Target.ShouldBe("billing.mode");
+        row.Narrative.ShouldNotBeNull().UserId.ShouldBeNull();
+        row.ReferenceContext.ShouldNotContain(unsafeUserId);
     }
 
     [Fact]

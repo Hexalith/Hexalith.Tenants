@@ -6,6 +6,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 
 using Shouldly;
 
@@ -25,13 +26,13 @@ public sealed class TenantAuditReceiptTests
             ReadModelFreshnessState.Current,
             supportSafeCommandReference: "command-safe-reference");
 
-        receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
+        receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
         receipt.Actor.ShouldBe("actor-user");
         receipt.Target.ShouldBe("target-user");
         receipt.Scope.ShouldBe("tenant.alpha");
-        receipt.Outcome.ShouldBe("UserAddedToTenant (Access)");
+        receipt.Outcome.ShouldBe("UserAddedToTenant");
         receipt.AuditReference.ShouldBe("event-safe-reference");
-        receipt.CommandReference.ShouldBe("command-safe-reference");
+        receipt.CommandReference.ShouldBeNull();
         receipt.ProjectionMarker.ShouldBe(ReadModelFreshnessState.Current);
         receipt.TimestampLabel.ShouldBe("2026-06-01 10:00:00 UTC");
     }
@@ -48,10 +49,10 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>
         {
             ["key"] = "billing.mode",
-        }), ReadModelFreshnessState.Current).Target.ShouldBeEmpty();
+        }), ReadModelFreshnessState.Current).Target.ShouldBe("billing.mode");
 
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>()), ReadModelFreshnessState.Current)
-            .Target.ShouldBeEmpty();
+            .Target.ShouldBe("tenant.alpha");
 
         TenantAuditEntry administrative = new(
             "event-administrative",
@@ -104,9 +105,9 @@ public sealed class TenantAuditReceiptTests
     [InlineData(TenantAuditSurfaceKind.Stale, TenantAuditReceiptState.Stale)]
     [InlineData(TenantAuditSurfaceKind.Degraded, TenantAuditReceiptState.Degraded)]
     [InlineData(TenantAuditSurfaceKind.Unauthorized, TenantAuditReceiptState.Unauthorized)]
-    [InlineData(TenantAuditSurfaceKind.InvalidCursor, TenantAuditReceiptState.InvalidReference)]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, TenantAuditReceiptState.InvalidCursor)]
     [InlineData(TenantAuditSurfaceKind.Unavailable, TenantAuditReceiptState.Unavailable)]
-    [InlineData(TenantAuditSurfaceKind.Error, TenantAuditReceiptState.Unavailable)]
+    [InlineData(TenantAuditSurfaceKind.Error, TenantAuditReceiptState.Error)]
     public void Receipt_maps_audit_surface_states_without_false_success(TenantAuditSurfaceKind surfaceKind, TenantAuditReceiptState expected)
     {
         TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row(), surfaceKind: surfaceKind);
@@ -139,8 +140,7 @@ public sealed class TenantAuditReceiptTests
         receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
     }
 
-    // Actor and target are caller-supplied user identifiers, so the identifier policy deliberately
-    // admits an e-mail shape there; the approved-reference policy must still refuse it.
+    // Navigation hints have no authoritative event association.
     [Fact]
     public void Receipt_blocks_a_pii_shaped_command_reference()
         => TenantAuditReceipt
@@ -164,6 +164,38 @@ public sealed class TenantAuditReceiptTests
         receipt.State.ShouldBe(TenantAuditReceiptState.InvalidReference);
         receipt.Timestamp.ShouldBeNull();
         receipt.TimestampLabel.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Ready_requires_current_projection_backed_absolute_evidence()
+    {
+        TenantAuditRow row = Row();
+        TenantAuditReceipt.FromRow(row).State.ShouldBe(TenantAuditReceiptState.Ready);
+        TenantAuditReceipt.FromRow(row with { Timestamp = default }).State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditReceipt.FromRow(row with { Timestamp = row.Timestamp.ToOffset(TimeSpan.FromHours(2)) }).State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditReceipt.FromRow(row with { Freshness = ReadModelFreshnessState.Unknown }).State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditReceipt.FromRow(row with { Lifecycle = ProjectionLifecycleState.Unknown }).State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditReceipt.FromRow(row with { Provenance = QueryResponseProvenance.Unknown }).State.ShouldBe(TenantAuditReceiptState.Partial);
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Ready, true, TenantAuditReceiptState.InvalidReference)]
+    [InlineData(TenantAuditSurfaceKind.Stale, true, TenantAuditReceiptState.Stale)]
+    [InlineData(TenantAuditSurfaceKind.Degraded, true, TenantAuditReceiptState.Degraded)]
+    [InlineData(TenantAuditSurfaceKind.Error, false, TenantAuditReceiptState.Error)]
+    [InlineData(TenantAuditSurfaceKind.Unavailable, false, TenantAuditReceiptState.Unavailable)]
+    [InlineData(TenantAuditSurfaceKind.Unauthorized, false, TenantAuditReceiptState.Unauthorized)]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, false, TenantAuditReceiptState.InvalidCursor)]
+    [InlineData(TenantAuditSurfaceKind.Loading, false, TenantAuditReceiptState.Loading)]
+    public void Missing_requested_row_is_claimed_only_after_a_checked_page(
+        TenantAuditSurfaceKind surface,
+        bool expectedMissing,
+        TenantAuditReceiptState expectedState)
+    {
+        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested", "tenant.alpha", surfaceKind: surface);
+        receipt.State.ShouldBe(expectedState);
+        receipt.IsRequestedReferenceMissing.ShouldBe(expectedMissing);
+        receipt.Timestamp.ShouldBeNull();
     }
 
     [Fact]
@@ -212,5 +244,8 @@ public sealed class TenantAuditReceiptTests
             "tenant.alpha",
             "UserAddedToTenant",
             referenceContext,
-            freshness);
+            freshness,
+            ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: target));
 }

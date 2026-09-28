@@ -52,10 +52,7 @@ public sealed record TenantAuditRow(
             throw new ArgumentException("An approved audit event reference is required.", nameof(entry));
         }
 
-        bool requiresUserTarget = entry.Category is AuditEventCategory.Access;
-        string target = requiresUserTarget
-            ? narrative.UserId ?? string.Empty
-            : narrative.ConfigurationKey ?? tenantId;
+        string target = narrative.UserId ?? narrative.ConfigurationKey ?? tenantId;
 
         return new(
             eventReference,

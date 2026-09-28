@@ -1,25 +1,25 @@
 using System.Globalization;
 
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.SupportSafety;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
-public enum TenantAuditReceiptState {
-    Ready,
-    Partial,
-    Pending,
-    Delayed,
-    Unavailable,
-    MissingSupport,
-    Stale,
-    Degraded,
-    Unauthorized,
-    InvalidReference,
-}
-
+/// <summary>Only the approved presentation facts of a tenant audit event.</summary>
+/// <param name="Actor">Approved actor ID.</param>
+/// <param name="Target">Approved target ID or key.</param>
+/// <param name="Scope">Approved tenant scope.</param>
+/// <param name="Outcome">Supported event type token.</param>
+/// <param name="Timestamp">Absolute audit event time.</param>
+/// <param name="ProjectionMarker">Safe freshness marker.</param>
+/// <param name="AuditReference">Approved event reference.</param>
+/// <param name="CommandReference">Only a proven command reference, when available.</param>
+/// <param name="State">Receipt availability.</param>
+/// <param name="IsRequestedReferenceMissing">Whether an authorized checked page lacks the requested row.</param>
 public sealed record TenantAuditReceipt(
     string Actor,
     string Target,
@@ -29,122 +29,139 @@ public sealed record TenantAuditReceipt(
     ReadModelFreshnessState ProjectionMarker,
     string AuditReference,
     string? CommandReference,
-    TenantAuditReceiptState State) {
+    TenantAuditReceiptState State,
+    bool IsRequestedReferenceMissing = false)
+{
+    /// <summary>Formats the event time as absolute UTC using the current culture.</summary>
     public string TimestampLabel
         => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture) ?? string.Empty;
 
+    /// <summary>Builds a receipt from an authorized audit entry.</summary>
     public static TenantAuditReceipt FromEntry(
         TenantAuditEntry entry,
         ReadModelFreshnessState freshness,
         string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
-        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted) {
+        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
+    {
         ArgumentNullException.ThrowIfNull(entry);
-
         return FromRow(TenantAuditRow.FromEntry(entry, freshness), supportSafeCommandReference, surfaceKind, auditState);
     }
 
+    /// <summary>Builds a receipt from a current BFF-mapped audit row.</summary>
     public static TenantAuditReceipt FromRow(
         TenantAuditRow row,
         string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
-        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted) {
+        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
+    {
         ArgumentNullException.ThrowIfNull(row);
-
-        string outcome = $"{row.EventType} ({row.Category})";
-        TenantAuditReceiptState state = ResolveState(row, outcome, surfaceKind, auditState);
-        string? commandReference = TenantAuditSupportSafety.SafeApprovedReference(supportSafeCommandReference);
-
-        return new(
-            TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId),
-            SafeTarget(row),
-            TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId),
-            outcome,
-            row.Timestamp,
-            row.Freshness,
-            TenantAuditSupportSafety.SafeApprovedReference(row.EventReference) ?? string.Empty,
-            commandReference,
-            state);
+        _ = supportSafeCommandReference; // Navigation hints have no authoritative row-to-command association.
+        string actor = TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId);
+        string target = TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));
+        string scope = TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId);
+        string reference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference) ?? string.Empty;
+        string outcome = IsKnownOutcome(row.EventType, row.Category) ? row.EventType : string.Empty;
+        DateTimeOffset? timestamp = row.Timestamp != default && row.Timestamp.Offset == TimeSpan.Zero
+            ? row.Timestamp : null;
+        bool complete = actor.Length > 0 && target.Length > 0 && scope.Length > 0
+            && reference.Length > 0 && outcome.Length > 0 && timestamp is not null
+            && row.Freshness is ReadModelFreshnessState.Current
+            && row.Lifecycle is ProjectionLifecycleState.Current
+            && row.Provenance is QueryResponseProvenance.ProjectionBacked;
+        TenantAuditReceiptState state = ResolveState(surfaceKind, auditState, row.Freshness, complete);
+        return new(actor, target, scope, outcome, timestamp,
+            row.Freshness, reference, null, state);
     }
 
+    /// <summary>Builds an unverified requested-reference state without claiming event proof.</summary>
     public static TenantAuditReceipt Unavailable(
         string? requestedReference,
         string tenantId,
-        string? supportSafeCommandReference = null) {
-        string auditReference = TenantAuditSupportSafety.SafeApprovedReference(requestedReference) ?? string.Empty;
+        string? supportSafeCommandReference = null,
+        TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
+        bool checkedPage = true)
+    {
+        _ = supportSafeCommandReference;
+        string reference = TenantAuditSupportSafety.SafeApprovedReference(requestedReference) ?? string.Empty;
         string scope = TenantAuditSupportSafety.SafeIdentifier(tenantId, SupportSafeCopyValueKind.TenantId);
-        string? commandReference = TenantAuditSupportSafety.SafeApprovedReference(supportSafeCommandReference);
-
-        return new(
-            string.Empty,
-            string.Empty,
-            scope,
-            string.Empty,
-            null,
-            ReadModelFreshnessState.Unknown,
-            auditReference,
-            commandReference,
-            TenantAuditReceiptState.InvalidReference);
-    }
-
-    private static TenantAuditReceiptState ResolveState(
-        TenantAuditRow row,
-        string outcome,
-        TenantAuditSurfaceKind surfaceKind,
-        TenantCommandAuditState auditState) {
-        TenantAuditReceiptState surfaceState = surfaceKind switch {
+        bool missing = checkedPage && surfaceKind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.ListRefreshed;
+        TenantAuditReceiptState state = surfaceKind switch
+        {
+            TenantAuditSurfaceKind.Loading => TenantAuditReceiptState.Loading,
+            TenantAuditSurfaceKind.Error => TenantAuditReceiptState.Error,
+            TenantAuditSurfaceKind.Unavailable => TenantAuditReceiptState.Unavailable,
+            TenantAuditSurfaceKind.Unauthorized => TenantAuditReceiptState.Unauthorized,
+            TenantAuditSurfaceKind.InvalidCursor => TenantAuditReceiptState.InvalidCursor,
             TenantAuditSurfaceKind.Stale => TenantAuditReceiptState.Stale,
             TenantAuditSurfaceKind.Degraded => TenantAuditReceiptState.Degraded,
-            TenantAuditSurfaceKind.Unauthorized => TenantAuditReceiptState.Unauthorized,
-            TenantAuditSurfaceKind.InvalidCursor => TenantAuditReceiptState.InvalidReference,
-            TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error => TenantAuditReceiptState.Unavailable,
-            TenantAuditSurfaceKind.Loading or TenantAuditSurfaceKind.Empty or TenantAuditSurfaceKind.FilteredEmpty => TenantAuditReceiptState.Unavailable,
-            _ => TenantAuditReceiptState.Ready,
+            _ => TenantAuditReceiptState.InvalidReference,
+        };
+        return new(string.Empty, string.Empty, scope, string.Empty, null,
+            ReadModelFreshnessState.Unknown, reference, null, state, missing);
+    }
+
+    /// <summary>Checks whether a known event has a supported outcome translation.</summary>
+    public static bool IsKnownOutcome(string? eventType, AuditEventCategory category)
+        => eventType switch
+        {
+            "UserAddedToTenant" or "UserRemovedFromTenant" or "UserRoleChanged"
+                => category is AuditEventCategory.Access,
+            "GlobalAdministratorSet" or "GlobalAdministratorRemoved"
+                => category is AuditEventCategory.Access or AuditEventCategory.Administrative,
+            "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
+                or "TenantConfigurationSet" or "TenantConfigurationRemoved"
+                => category is AuditEventCategory.Administrative,
+            _ => false,
         };
 
-        if (surfaceState is not TenantAuditReceiptState.Ready) {
+    private static TenantAuditReceiptState ResolveState(
+        TenantAuditSurfaceKind surfaceKind,
+        TenantCommandAuditState auditState,
+        ReadModelFreshnessState freshness,
+        bool complete)
+    {
+        TenantAuditReceiptState surfaceState = surfaceKind switch
+        {
+            TenantAuditSurfaceKind.Loading => TenantAuditReceiptState.Loading,
+            TenantAuditSurfaceKind.Error => TenantAuditReceiptState.Error,
+            TenantAuditSurfaceKind.Unavailable => TenantAuditReceiptState.Unavailable,
+            TenantAuditSurfaceKind.Unauthorized => TenantAuditReceiptState.Unauthorized,
+            TenantAuditSurfaceKind.InvalidCursor => TenantAuditReceiptState.InvalidCursor,
+            TenantAuditSurfaceKind.Stale => TenantAuditReceiptState.Stale,
+            TenantAuditSurfaceKind.Degraded => TenantAuditReceiptState.Degraded,
+            _ => TenantAuditReceiptState.Ready,
+        };
+        if (surfaceState is not TenantAuditReceiptState.Ready)
+        {
             return surfaceState;
         }
 
-        TenantAuditReceiptState auditReceiptState = TenantAuditAvailability.FromCommandAuditState(auditState).State switch {
+        TenantAuditReceiptState auditReceiptState = TenantAuditAvailability.FromCommandAuditState(auditState).State switch
+        {
             TenantAuditAvailabilityState.Pending => TenantAuditReceiptState.Pending,
             TenantAuditAvailabilityState.Delayed => TenantAuditReceiptState.Delayed,
             TenantAuditAvailabilityState.Unavailable => TenantAuditReceiptState.Unavailable,
             TenantAuditAvailabilityState.MissingSupport => TenantAuditReceiptState.MissingSupport,
             _ => TenantAuditReceiptState.Ready,
         };
-
-        if (auditReceiptState is not TenantAuditReceiptState.Ready) {
+        if (auditReceiptState is not TenantAuditReceiptState.Ready)
+        {
             return auditReceiptState;
         }
 
-        if (row.Freshness is ReadModelFreshnessState.Stale) {
-            return TenantAuditReceiptState.Stale;
-        }
-
-        return HasRequiredFields(row, outcome)
-            ? TenantAuditReceiptState.Ready
-            : TenantAuditReceiptState.Partial;
+        return freshness is ReadModelFreshnessState.Stale
+            ? TenantAuditReceiptState.Stale
+            : complete ? TenantAuditReceiptState.Ready : TenantAuditReceiptState.Partial;
     }
 
-    private static bool HasRequiredFields(TenantAuditRow row, string outcome)
-        => !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeApprovedReference(row.EventReference))
-            && !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId))
-            && !string.IsNullOrWhiteSpace(SafeTarget(row))
-            && !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId))
-            && !string.IsNullOrWhiteSpace(outcome);
-
-    private static string SafeTarget(TenantAuditRow row)
-        => TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));
-
-    private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row) {
-        if (!string.IsNullOrWhiteSpace(row.Narrative?.UserId)) {
-            return SupportSafeCopyValueKind.UserId;
-        }
-
-        return !string.IsNullOrWhiteSpace(row.Narrative?.ConfigurationKey)
-            ? SupportSafeCopyValueKind.ConfigurationKey
-            : SupportSafeCopyValueKind.TenantId;
-    }
-
+    private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row)
+        => !string.IsNullOrWhiteSpace(row.Narrative?.UserId)
+            ? SupportSafeCopyValueKind.UserId
+            : !string.IsNullOrWhiteSpace(row.Narrative?.ConfigurationKey)
+                ? SupportSafeCopyValueKind.ConfigurationKey
+                : SupportSafeCopyValueKind.TenantId;
 }

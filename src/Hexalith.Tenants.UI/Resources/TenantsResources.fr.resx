@@ -3425,7 +3425,7 @@
     <value>Attendre la preuve d'audit</value>
   </data>
   <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
-    <value>Copier la reference du recu d'audit</value>
+    <value>Copier le résumé complet du reçu d’audit</value>
   </data>
   <data name="Tenants.Audit.Receipt.ReferenceLiteral" xml:space="preserve">
     <value>Reference d'audit : {0}</value>
@@ -3437,16 +3437,16 @@
     <value>Reference de commande</value>
   </data>
   <data name="Tenants.Audit.Receipt.Field.Outcome" xml:space="preserve">
-    <value>Resultat</value>
+    <value>Résultat</value>
   </data>
   <data name="Tenants.Audit.Receipt.Field.ProjectionMarker" xml:space="preserve">
     <value>Marqueur de projection</value>
   </data>
   <data name="Tenants.Audit.Receipt.Field.Reference" xml:space="preserve">
-    <value>Reference d'audit</value>
+    <value>Référence d’audit</value>
   </data>
   <data name="Tenants.Audit.Receipt.Field.Scope" xml:space="preserve">
-    <value>Portee locataire</value>
+    <value>Portée locataire</value>
   </data>
   <data name="Tenants.Audit.Receipt.Field.Target" xml:space="preserve">
     <value>Cible</value>
@@ -4258,4 +4258,70 @@
   <data name="Tenants.Audit.Mobile.ReadOnly" xml:space="preserve"><value>Cette correction prise en charge est en lecture seule sur téléphone. Utilisez une fenêtre de tablette ou d’ordinateur mesurée pour continuer.</value></data>
   <data name="Tenants.Generated.CommandPreview" xml:space="preserve"><value>Aperçu du formulaire généré. Utilisez l’espace de travail Locataires pour créer un locataire.</value></data>
   <data name="Tenants.Generated.ProjectionPreview" xml:space="preserve"><value>Vue générée de la première page de locataires autorisée. Utilisez l’espace de travail Locataires pour la pagination et les actions.</value></data>
+  <data name="Tenants.Audit.Receipt.Close" xml:space="preserve">
+    <value>Fermer le reçu</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.CopyBlocked" xml:space="preserve">
+    <value>Le résumé du reçu ne peut pas être copié sans risque. Continuez en lecture seule ou contactez l’assistance.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.MissingCheckedPage" xml:space="preserve">
+    <value>L’événement demandé ne figure pas sur cette page d’audit vérifiée. Consultez les autres pages ou actualisez.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Error" xml:space="preserve">
+    <value>La lecture de l’audit a échoué ; cet événement demandé ne peut pas être vérifié.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Loading" xml:space="preserve">
+    <value>La page d’audit se charge ; cet événement demandé n’est pas encore vérifié.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.InvalidCursor" xml:space="preserve">
+    <value>Le curseur de la page d’audit est invalide. Reprenez à la première page avant d’inspecter cet événement.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.RefreshAudit" xml:space="preserve">
+    <value>Réessayer la lecture de l’audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Reset" xml:space="preserve">
+    <value>Réinitialiser les filtres d’audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Summary" xml:space="preserve">
+    <value>Acteur : {actor} | Cible : {target} | Portée locataire : {scope} | Résultat : {outcome} | Horodatage : {timestamp} | Marqueur de projection : {projection} | Référence d’audit : {auditReference}</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserAddedToTenant" xml:space="preserve">
+    <value>Utilisateur ajouté au locataire</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserRemovedFromTenant" xml:space="preserve">
+    <value>Utilisateur retiré du locataire</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.UserRoleChanged" xml:space="preserve">
+    <value>Rôle de l’utilisateur modifié</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.GlobalAdministratorSet" xml:space="preserve">
+    <value>Administrateur global accordé</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.GlobalAdministratorRemoved" xml:space="preserve">
+    <value>Administrateur global retiré</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantCreated" xml:space="preserve">
+    <value>Locataire créé</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantUpdated" xml:space="preserve">
+    <value>Locataire modifié</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantDisabled" xml:space="preserve">
+    <value>Locataire désactivé</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantEnabled" xml:space="preserve">
+    <value>Locataire activé</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationSet" xml:space="preserve">
+    <value>Configuration du locataire définie</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationRemoved" xml:space="preserve">
+    <value>Configuration du locataire supprimée</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Accessible" xml:space="preserve">
+    <value>La preuve d’audit est indisponible ; réessayez la lecture de l’audit ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Reason" xml:space="preserve">
+    <value>Cette lecture de l’audit ne peut pas vérifier la preuve demandée. Réessayez ou continuez en lecture seule ; escaladez avec des informations sûres pour l’assistance si le problème persiste.</value>
+  </data>
 </root>

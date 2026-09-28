@@ -34,6 +34,10 @@ export function focusElementById(elementId) {
   return document.activeElement === target;
 }
 
+export function isFocusInsideAuditReceipt() {
+  return Boolean(document.activeElement?.closest('[data-testid="tenants-audit-receipt"]'));
+}
+
 const activeDetailFocus = new Map();
 
 export function restoreDetailFocus(focusId, originTestId, headingId) {

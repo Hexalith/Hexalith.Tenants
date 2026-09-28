@@ -88,7 +88,7 @@ internal static class TenantAuditSupportSafety
             return false;
         }
 
-        if (ContainsInvisibleOrControl(value))
+        if (ContainsInvisibleOrControl(value) || ContainsFieldBoundary(value))
         {
             return false;
         }
@@ -98,11 +98,29 @@ internal static class TenantAuditSupportSafety
             : StrictUnsafeFragments;
         string candidate = CanonicalizeForInspection(value);
         if (ContainsInvisibleOrControl(candidate)
+            || ContainsFieldBoundary(candidate)
             || candidate.Contains('%', StringComparison.Ordinal)
             || (kind is SupportSafeCopyValueKind.TenantId
                 or SupportSafeCopyValueKind.UserId
                 or SupportSafeCopyValueKind.ConfigurationKey
                 && candidate.Contains(';', StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        try
+        {
+            candidate = candidate.Normalize(NormalizationForm.FormKC);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+
+        if (ContainsInvisibleOrControl(candidate)
+            || ContainsFieldBoundary(candidate)
+            || candidate.Contains('@', StringComparison.Ordinal)
+            || LooksLikePhoneNumber(candidate))
         {
             return false;
         }
@@ -127,15 +145,54 @@ internal static class TenantAuditSupportSafety
             return true;
         }
 
-        foreach (Rune rune in value.EnumerateRunes())
+        for (int index = 0; index < value.Length; index++)
         {
+            if (!Rune.TryGetRuneAt(value, index, out Rune rune))
+            {
+                return true;
+            }
+
             if (Rune.GetUnicodeCategory(rune) is UnicodeCategory.Format)
             {
                 return true;
             }
+
+            index += rune.Utf16SequenceLength - 1;
         }
 
         return false;
+    }
+
+    /// <summary>Rejects characters that can split or visually spoof a copied field.</summary>
+    internal static bool ContainsFieldBoundary(string value)
+        => value.Any(character => character is '|' or '\r' or '\n' or '\u2028' or '\u2029'
+            or '\uFF5C' or '\u2223' or '\u2225' or '\u2758' or '\u2759' or '\u2016' or '\u2502');
+
+    private static bool LooksLikePhoneNumber(string value)
+    {
+        int digits = 0;
+        bool first = true;
+        foreach (Rune rune in value.EnumerateRunes())
+        {
+            if (Rune.GetUnicodeCategory(rune) is UnicodeCategory.DecimalDigitNumber)
+            {
+                digits++;
+            }
+            else if ((first && rune.Value == '+')
+                || rune.Value is '-' or '(' or ')'
+                || Rune.GetUnicodeCategory(rune) is UnicodeCategory.SpaceSeparator)
+            {
+                // Phone punctuation is accepted only for detection, never as evidence of a safe ID.
+            }
+            else
+            {
+                return false;
+            }
+
+            first = false;
+        }
+
+        return digits is >= 7 and <= 15;
     }
 
     private static string CanonicalizeForInspection(string value)

@@ -83,12 +83,16 @@
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Receipt"]"
                         ColumnId="audit-receipt"
                         Width="150px">
-            <FluentButton Appearance="ButtonAppearance.Primary"
-                          Class="audit-data-grid__receipt-open"
-                          data-testid="tenants-audit-receipt-open"
-                          OnClick="() => OpenReceiptAsync(context)">
-                @Localizer["Tenants.Audit.Receipt.Open"]
-            </FluentButton>
+            @if (TenantAuditSupportSafety.SafeApprovedReference(context.EventReference) is not null)
+            {
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Class="audit-data-grid__receipt-open"
+                              id="@($"tenants-audit-receipt-launcher-{RowIndex(context)}")"
+                              data-testid="tenants-audit-receipt-open"
+                              OnClick="() => OpenReceiptAsync(context)">
+                    @Localizer["Tenants.Audit.Receipt.Open"]
+                </FluentButton>
+            }
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Correction"]"
                         ColumnId="audit-correction"
@@ -197,6 +201,19 @@
         => SupportSafeReferenceLabel(row) is null
             ? null
             : TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
+
+    private int RowIndex(TenantAuditRow row)
+    {
+        for (int index = 0; index < Rows.Count; index++)
+        {
+            if (string.Equals(Rows[index].EventReference, row.EventReference, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
 
     // Render in UTC: Blazor InteractiveServer runs server-side, so ToLocalTime() would bind the
     // displayed timestamp to the server's timezone (non-deterministic across deployments) and
