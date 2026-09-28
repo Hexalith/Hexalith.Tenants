@@ -6,6 +6,9 @@ updated: 2026-07-19
 ---
 
 # PRD: Tenants Management UI
+
+**Approved McpCli course correction (2026-09-27):** `Hexalith.McpCli` is the target Hexalith-owned CLI/MCP surface for Tenants operations that pass contract enrollment and authorization. Any proprietary module CLI, MCP host, plug-in, or planned adapter described below is an obsolete migration source or historical design, not a new target. The module retains its domain, UI, and security semantics; replacement or approved withdrawal and parity evidence precede retirement. External development CLIs are unaffected.
+
 *Working title — confirm.*
 
 ## 0. Document Purpose
