@@ -27,7 +27,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), supportSafeCommandReference: "command-safe-reference"))
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
             .Add(component => component.OnInspectAudit, () => { }));
 
         cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("role").ShouldBe("region");
@@ -42,8 +42,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
         cut.Find("dl").TextContent.ShouldContain("Actor");
-        cut.FindAll("dt").Count.ShouldBeGreaterThanOrEqualTo(7);
-        cut.FindAll("dd").Count.ShouldBeGreaterThanOrEqualTo(7);
+        cut.FindAll("dt").Count.ShouldBe(7);
+        cut.FindAll("dd").Count.ShouldBe(7);
         cut.Find("[data-testid='tenants-audit-receipt']").HasAttribute("aria-live").ShouldBeFalse();
         cut.Find("[data-testid='tenants-audit-receipt-state']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find(".audit-evidence-receipt__action").NodeName.ShouldBe("FLUENT-BUTTON");
@@ -180,7 +180,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable(
-            "event-requested", "tenant.alpha", surfaceKind: surface, checkedPage: true);
+            surfaceKind: surface, checkedPage: true);
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, receipt));
 
@@ -219,19 +219,41 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
 
-    // The disclosure surface for a PII-shaped command reference is the rendered receipt, not the model:
-    // the visible reference proves the assertion can fail if the value were ever admitted.
     [Fact]
-    public void Receipt_component_never_renders_a_pii_shaped_command_reference()
+    public void Receipt_component_rechecks_the_completed_summary_across_placeholder_boundaries()
     {
-        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        const string template = "Actor: to{actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome}"
+            + " | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}";
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer(template));
+        TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference") with
+        {
+            Actor = "ken-user",
+        };
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), supportSafeCommandReference: "person@example.test")));
+            .Add(component => component.Receipt, receipt));
 
-        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
-        cut.Markup.ShouldNotContain("person@example.test", Case.Insensitive);
-        cut.Markup.ShouldNotContain("Command reference");
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-copy-blocked']")
+            .GetAttribute("role").ShouldBe("alert");
+    }
+
+    [Theory]
+    [InlineData(256, true)]
+    [InlineData(257, false)]
+    public void Receipt_summary_copy_enforces_the_256_character_field_boundary(
+        int referenceLength,
+        bool expectedCopy)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(
+            Row(eventReference: new string('r', referenceLength)));
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").Count.ShouldBe(expectedCopy ? 1 : 0);
+        cut.FindAll("[data-testid='tenants-audit-receipt-copy-blocked']").Count.ShouldBe(expectedCopy ? 0 : 1);
     }
 
     // A missing resource makes IStringLocalizer echo the key, which carries no placeholder and would
@@ -306,6 +328,46 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
+    public void Loading_receipt_is_polite_pending_and_has_no_recovery_action()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable(
+            surfaceKind: TenantAuditSurfaceKind.Loading,
+            checkedPage: false);
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt)
+            .Add(component => component.OnRetry, () => { })
+            .Add(component => component.UseResetRecovery, true)
+            .Add(component => component.OnReset, () => { }));
+
+        var state = cut.Find("[data-testid='tenants-audit-receipt-state']");
+        state.GetAttribute("role").ShouldBe("status");
+        state.GetAttribute("aria-live").ShouldBe("polite");
+        state.QuerySelector(".audit-evidence-receipt__state-icon")!.TextContent.ShouldBe("...");
+        cut.FindAll(".audit-evidence-receipt__action").ShouldBeEmpty();
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void User_typed_target_that_strict_configuration_policy_rejects_stays_ready_and_copyable()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditRow row = Row() with
+        {
+            Target = "infrastructure-admin",
+            ReferenceContext = "userId: infrastructure-admin",
+            Narrative = new TenantAuditNarrative(UserId: "infrastructure-admin"),
+        };
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, receipt));
+
+        receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
+        cut.Find("[data-testid='tenants-audit-receipt-target'] dd").TextContent.ShouldBe("infrastructure-admin");
+        cut.Find("[data-surface-testid='tenants-audit-receipt-copy']");
+    }
+
+    [Fact]
     public void Receipt_component_recovery_actions_invoke_refresh_or_close_callbacks()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -343,7 +405,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         int retries = 0;
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt,
-                TenantAuditReceipt.Unavailable("event-requested", "tenant.alpha", surfaceKind: TenantAuditSurfaceKind.Unavailable))
+                TenantAuditReceipt.Unavailable(surfaceKind: TenantAuditSurfaceKind.Unavailable))
             .Add(component => component.OnRetry, () => retries++));
 
         var retry = cut.Find("[data-testid='tenants-audit-receipt-recovery-refresh']");
@@ -351,6 +413,42 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Find("[data-testid='tenants-audit-availability']").TextContent.ShouldNotContain("status lookup");
         retry.Click();
         retries.ShouldBe(1);
+    }
+
+    [Fact]
+    public void French_unavailable_receipt_renders_receipt_specific_recovery_copy_and_retries()
+    {
+        CultureInfo previousCulture = CultureInfo.CurrentCulture;
+        CultureInfo previousUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
+            Services.AddLocalization();
+            int retries = 0;
+            IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+                .Add(component => component.Receipt,
+                    TenantAuditReceipt.Unavailable(surfaceKind: TenantAuditSurfaceKind.Unavailable))
+                .Add(component => component.OnRetry, () => retries++));
+
+            var availability = cut.Find("[data-testid='tenants-audit-availability']");
+            availability.GetAttribute("aria-label").ShouldBe(
+                "La preuve d’audit est indisponible ; réessayez la lecture de l’audit ou continuez en lecture seule.");
+            availability.QuerySelector(".tenants-audit-availability__reason")!.TextContent.ShouldBe(
+                "Cette lecture de l’audit ne peut pas vérifier la preuve demandée. Réessayez ou continuez en lecture seule ; "
+                + "escaladez avec des informations sûres pour l’assistance si le problème persiste.");
+            var retry = cut.Find("[data-testid='tenants-audit-receipt-recovery-refresh']");
+            retry.TextContent.Trim().ShouldBe("Réessayer la lecture de l’audit");
+
+            retry.Click();
+
+            retries.ShouldBe(1);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
     }
 
     [Fact]
@@ -371,6 +469,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         action.TextContent.ShouldContain("restore intended access");
         action.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("restore intended access");
         action.NodeName.ShouldBe("FLUENT-BUTTON");
+        action.ParentElement!.GetAttribute("class").ShouldNotBeNull()
+            .ShouldContain("audit-evidence-receipt__correction");
 
         action.Click();
 
@@ -474,7 +574,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     public void Receipt_component_keeps_non_ready_states_distinct_from_success(TenantAuditReceiptState state)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
-        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested-reference", "tenant.alpha") with { State = state };
+        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable() with { State = state };
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, receipt));
@@ -606,7 +706,6 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.Outcome.TenantEnabled"] = "Tenant enabled",
             ["Tenants.Audit.Receipt.Outcome.TenantConfigurationSet"] = "Tenant configuration set",
             ["Tenants.Audit.Receipt.Outcome.TenantConfigurationRemoved"] = "Tenant configuration removed",
-            ["Tenants.Audit.Receipt.ReferenceLiteral"] = "Audit reference: {0}",
             ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
             ["Tenants.Audit.Receipt.Field.CommandReference"] = "Command reference",
             ["Tenants.Audit.Receipt.Field.Outcome"] = "Outcome",
@@ -618,6 +717,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.State.Degraded"] = "Audit evidence is degraded. Use the reference only with this limitation.",
             ["Tenants.Audit.Receipt.State.Delayed"] = "Audit evidence is delayed. Inspect audit or retry before citing proof.",
             ["Tenants.Audit.Receipt.State.InvalidReference"] = "The requested receipt reference is not loaded in the current tenant-scoped audit result.",
+            ["Tenants.Audit.Receipt.State.Loading"] = "The audit page is loading; this requested event has not been verified.",
             ["Tenants.Audit.Receipt.State.MissingSupport"] = "Audit evidence support is missing. Escalate with the support-safe reference.",
             ["Tenants.Audit.Receipt.State.Partial"] = "Audit evidence is partial. The receipt cannot cite a complete proof.",
             ["Tenants.Audit.Receipt.State.Pending"] = "Audit evidence is pending. Wait or refresh before citing proof.",

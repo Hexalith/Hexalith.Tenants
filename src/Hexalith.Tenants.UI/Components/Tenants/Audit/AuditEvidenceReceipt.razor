@@ -230,14 +230,31 @@
             return null;
         }
 
-        string summary = template;
+        string[] completedSegments = new string[segments.Length];
         for (int index = 0; index < names.Length; index++)
         {
-            summary = summary.Replace("{" + names[index] + "}", values[index], StringComparison.Ordinal);
+            completedSegments[index] = segments[index]
+                .Replace("{" + names[index] + "}", values[index], StringComparison.Ordinal);
+            if (!IsSafeCompletedSummarySegment(index, completedSegments[index]))
+            {
+                return null;
+            }
         }
 
+        string summary = string.Join(" | ", completedSegments);
         return summary.Length <= 2048 ? summary : null;
     }
+
+    private static bool IsSafeCompletedSummarySegment(int index, string segment)
+        => index switch
+        {
+            0 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.UserId),
+            1 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.UserId)
+                || TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ConfigurationKey)
+                || TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.TenantId),
+            2 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.TenantId),
+            _ => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ApprovedReference),
+        };
 
     private string? LocalizedOutcome(string outcome)
     {
@@ -311,7 +328,7 @@
 
     private string LiveRegion
         => ReceiptAuditAvailability?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Polite
-            || Receipt?.State is TenantAuditReceiptState.Ready
+            || Receipt?.State is TenantAuditReceiptState.Ready or TenantAuditReceiptState.Loading
             ? "polite"
             : "assertive";
 
@@ -319,6 +336,7 @@
         => Receipt?.State switch
         {
             TenantAuditReceiptState.Ready => "OK",
+            TenantAuditReceiptState.Loading => "...",
             TenantAuditReceiptState.Pending => "...",
             TenantAuditReceiptState.Delayed => "!",
             TenantAuditReceiptState.Stale => "!",
@@ -328,7 +346,9 @@
         };
 
     private IReadOnlyList<string> ActionResourceKeys
-        => UseResetRecovery && OnReset.HasDelegate
+        => Receipt?.State is TenantAuditReceiptState.Loading
+            ? []
+            : UseResetRecovery && OnReset.HasDelegate
             ? ["Tenants.Audit.Receipt.Action.Reset"]
             : Receipt?.State switch
         {
@@ -345,7 +365,7 @@
                     (OnRetry.HasDelegate, "Tenants.Audit.Receipt.Action.Refresh")),
             TenantAuditReceiptState.Unauthorized when OnClose.HasDelegate
                 => ["Tenants.Audit.Receipt.Action.ContinueReadOnly"],
-            TenantAuditReceiptState.Error or TenantAuditReceiptState.InvalidCursor or TenantAuditReceiptState.Loading
+            TenantAuditReceiptState.Error or TenantAuditReceiptState.InvalidCursor
                 when OnRetry.HasDelegate
                 => ["Tenants.Audit.Receipt.Action.Refresh"],
             TenantAuditReceiptState.Stale or TenantAuditReceiptState.Degraded or TenantAuditReceiptState.Partial

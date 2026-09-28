@@ -3427,9 +3427,6 @@
   <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
     <value>Copy full audit receipt summary</value>
   </data>
-  <data name="Tenants.Audit.Receipt.ReferenceLiteral" xml:space="preserve">
-    <value>Audit reference: {0}</value>
-  </data>
   <data name="Tenants.Audit.Receipt.Field.Actor" xml:space="preserve">
     <value>Actor</value>
   </data>
@@ -3456,6 +3453,9 @@
   </data>
   <data name="Tenants.Audit.Receipt.Open" xml:space="preserve">
     <value>View receipt</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.OpenAccessible" xml:space="preserve">
+    <value>View receipt for audit event {0}</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.Degraded" xml:space="preserve">
     <value>Audit evidence is degraded. Use the reference only with this limitation.</value>

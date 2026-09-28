@@ -3,17 +3,20 @@ export function focusCorrectionLauncher(auditReference) {
     return false;
   }
 
-  const candidates = document.querySelectorAll('[data-correction-focus-reference], [data-audit-reference]');
-  for (const candidate of candidates) {
-    const correctionReference = candidate.getAttribute('data-correction-focus-reference');
-    const auditRowReference = candidate.getAttribute('data-audit-reference');
-    if (correctionReference === auditReference || auditRowReference === auditReference) {
-      if (!candidate.hasAttribute('tabindex')) {
-        candidate.setAttribute('tabindex', '-1');
+  const launcherAttributes = ['data-correction-focus-reference', 'data-receipt-focus-reference'];
+  for (const attribute of launcherAttributes) {
+    for (const candidate of document.querySelectorAll(`[${attribute}]`)) {
+      if (candidate.getAttribute(attribute) !== auditReference
+          || candidate.closest('[hidden], [aria-hidden="true"]')
+          || candidate.matches(':disabled, [disabled], [aria-disabled="true"]')
+          || candidate.getClientRects().length === 0) {
+        continue;
       }
 
       candidate.focus({ preventScroll: false });
-      return true;
+      if (document.activeElement === candidate) {
+        return true;
+      }
     }
   }
 
@@ -35,7 +38,9 @@ export function focusElementById(elementId) {
 }
 
 export function isFocusInsideAuditReceipt() {
-  return Boolean(document.activeElement?.closest('[data-testid="tenants-audit-receipt"]'));
+  const active = document.activeElement;
+  return active?.id !== 'tenants-audit-receipt-heading'
+    && Boolean(active?.closest('[data-testid="tenants-audit-receipt"]'));
 }
 
 export function isFocusInsideAuditReceiptCorrection() {

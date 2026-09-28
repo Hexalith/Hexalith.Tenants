@@ -40,23 +40,20 @@ public sealed record TenantAuditReceipt(
     public static TenantAuditReceipt FromEntry(
         TenantAuditEntry entry,
         ReadModelFreshnessState freshness,
-        string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
         TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        return FromRow(TenantAuditRow.FromEntry(entry, freshness), supportSafeCommandReference, surfaceKind, auditState);
+        return FromRow(TenantAuditRow.FromEntry(entry, freshness), surfaceKind, auditState);
     }
 
     /// <summary>Builds a receipt from a current BFF-mapped audit row.</summary>
     public static TenantAuditReceipt FromRow(
         TenantAuditRow row,
-        string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
         TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
     {
         ArgumentNullException.ThrowIfNull(row);
-        _ = supportSafeCommandReference; // Navigation hints have no authoritative row-to-command association.
         string actor = TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId);
         string target = TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));
         string scope = TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId);
@@ -66,6 +63,8 @@ public sealed record TenantAuditReceipt(
             ? row.Timestamp : null;
         bool complete = actor.Length > 0 && target.Length > 0 && scope.Length > 0
             && reference.Length > 0 && outcome.Length > 0 && timestamp is not null
+            && (row.Category is not AuditEventCategory.Access
+                || TenantAuditSupportSafety.IsSafe(row.Narrative?.UserId, SupportSafeCopyValueKind.UserId))
             && row.Freshness is ReadModelFreshnessState.Current
             && row.Lifecycle is ProjectionLifecycleState.Current
             && row.Provenance is QueryResponseProvenance.ProjectionBacked;
@@ -76,15 +75,9 @@ public sealed record TenantAuditReceipt(
 
     /// <summary>Builds an unverified requested-reference state without claiming event proof.</summary>
     public static TenantAuditReceipt Unavailable(
-        string? requestedReference,
-        string tenantId,
-        string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
         bool checkedPage = true)
     {
-        _ = requestedReference; // A URL hint is not an audited event reference.
-        _ = tenantId; // The route is not evidence of the event's scope.
-        _ = supportSafeCommandReference;
         bool missing = checkedPage && surfaceKind is TenantAuditSurfaceKind.Ready
             or TenantAuditSurfaceKind.Empty or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.Stale or TenantAuditSurfaceKind.Degraded

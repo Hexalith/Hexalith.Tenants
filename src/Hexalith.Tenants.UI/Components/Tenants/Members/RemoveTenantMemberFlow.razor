@@ -1084,7 +1084,6 @@
                         // attempt began, but the audit contract does not carry command causation. Do not
                         // stamp the current attempt's tracking id onto evidence that may belong to a
                         // concurrent operator; command context remains available through Inspect audit.
-                        supportSafeCommandReference: null,
                         surfaceKind: TenantAuditSurfaceKind.Ready,
                         auditState: TenantCommandAuditState.AuditAvailable);
                     bool receiptReady = receipt.State is TenantAuditReceiptState.Ready;

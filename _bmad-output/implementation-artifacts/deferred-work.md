@@ -3215,12 +3215,14 @@ Story range `fc147e3e..HEAD`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
   summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.
   evidence: Decision 2026-09-27 ("Declare + enable CI gate"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit.
-- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+
+## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-27)
+
+Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Revisit strict opaque audit reference classification for incidental secret-shaped substrings.
   evidence: The pre-existing gateway and reference classifier reject an otherwise valid opaque event ID when it happens to contain `jwt` or `eyj`; this story did not introduce that policy.
-- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
-  summary: Make the historical audit grid reference copy match its reference-only label.
-  evidence: The pre-existing grid copy combines the event reference with typed narrative context while its action is labeled as copying a reference; the receipt change does not alter that copy path.
 
 ## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)
 
@@ -3235,3 +3237,12 @@ Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Move typed audit identifiers from a deny-list to an allow-listed character set with a confusable-skeleton check.
   evidence: Decision D5 (2026-09-28): stop adding characters one at a time; this was the seventh round. `TenantAuditSupportSafety.IsSafe` still admits phone numbers written with `.`, `/`, `tel:` or a leading space (`202.555.0100`); a fullwidth `％40` (NFKC turns it into `%40` only after the `%` check); and the dividers U+2503, U+275A, U+01C0, U+23D0, U+204F and U+061B. These values can reach the grid target, the receipt and the copied summary.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Bind an in-flight correction open to the tenant route that initiated it.
+  evidence: `OpenCorrectionAsync` captures only `_correctionOpenGeneration`; a tenant route change clears page state without incrementing that generation, so a late projection result can reuse a same-reference row from the new tenant. This behavior predates Story 5.3.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Restore visible focus when a viewport downgrade removes an active correction panel.
+  evidence: `RenderViewportChangeAsync` clears `_activeCorrectionIntent` and its focus reference without scheduling a return to the launcher. The panel-removal behavior predates Story 5.3.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Harden the legacy correction-launcher focus return against JS failure and teardown exceptions.
+  evidence: The correction-focus branch in `OnAfterRenderAsync` catches only `JSDisconnectedException`; `JSException`, cancellation, or disposal can fault the render lifecycle. This path predates Story 5.3.

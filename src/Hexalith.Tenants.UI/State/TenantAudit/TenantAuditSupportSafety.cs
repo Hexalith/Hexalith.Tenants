@@ -115,8 +115,9 @@ internal static class TenantAuditSupportSafety
 
         if (ContainsInvisibleOrControl(candidate)
             || ContainsFieldBoundary(candidate)
-            || candidate.Contains('@', StringComparison.Ordinal)
-            || LooksLikePhoneNumber(candidate))
+            || (kind is SupportSafeCopyValueKind.UserId
+                && (candidate.Contains('@', StringComparison.Ordinal)
+                    || LooksLikePhoneNumber(candidate))))
         {
             return false;
         }

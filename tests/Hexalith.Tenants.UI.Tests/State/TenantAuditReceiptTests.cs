@@ -23,8 +23,7 @@ public sealed class TenantAuditReceiptTests
                 ["userId"] = "target-user",
                 ["key"] = "billing.mode",
             }),
-            ReadModelFreshnessState.Current,
-            supportSafeCommandReference: "command-safe-reference");
+            ReadModelFreshnessState.Current);
 
         receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
         receipt.Actor.ShouldBe("actor-user");
@@ -131,7 +130,7 @@ public sealed class TenantAuditReceiptTests
             target: unsafeValue,
             referenceContext: $"userId: {unsafeValue}; key: billing.mode");
 
-        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row, supportSafeCommandReference: unsafeValue);
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
 
         receipt.Actor.ShouldBeEmpty();
         receipt.Target.ShouldBeEmpty();
@@ -139,14 +138,6 @@ public sealed class TenantAuditReceiptTests
         receipt.AuditReference.ShouldBe("event-safe-reference");
         receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
     }
-
-    // Navigation hints have no authoritative event association.
-    [Fact]
-    public void Receipt_blocks_a_pii_shaped_command_reference()
-        => TenantAuditReceipt
-            .FromRow(Row(), supportSafeCommandReference: "person@example.test")
-            .CommandReference
-            .ShouldBeNull();
 
     [Fact]
     public void Receipt_with_missing_required_fields_is_partial_and_not_copyable()
@@ -159,7 +150,7 @@ public sealed class TenantAuditReceiptTests
     [Fact]
     public void Unavailable_receipt_does_not_fabricate_timestamp_evidence()
     {
-        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested-reference", "tenant.alpha");
+        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable();
 
         receipt.State.ShouldBe(TenantAuditReceiptState.InvalidReference);
         receipt.Actor.ShouldBeEmpty();
@@ -184,6 +175,29 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt.FromRow(row with { Provenance = QueryResponseProvenance.Unknown }).State.ShouldBe(TenantAuditReceiptState.Partial);
     }
 
+    [Fact]
+    public void Access_receipt_keeps_target_fallbacks_visible_but_requires_a_safe_typed_user_for_ready_evidence()
+    {
+        TenantAuditRow configurationFallback = Row(target: "configuration.mode") with
+        {
+            ReferenceContext = "key: configuration.mode",
+            Narrative = new TenantAuditNarrative(ConfigurationKey: "configuration.mode"),
+        };
+        TenantAuditRow tenantFallback = Row(target: "tenant.alpha") with
+        {
+            ReferenceContext = string.Empty,
+            Narrative = new TenantAuditNarrative(),
+        };
+
+        TenantAuditReceipt configurationReceipt = TenantAuditReceipt.FromRow(configurationFallback);
+        TenantAuditReceipt tenantReceipt = TenantAuditReceipt.FromRow(tenantFallback);
+
+        configurationReceipt.Target.ShouldBe("configuration.mode");
+        configurationReceipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+        tenantReceipt.Target.ShouldBe("tenant.alpha");
+        tenantReceipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+    }
+
     [Theory]
     [InlineData(TenantAuditSurfaceKind.Ready, true, TenantAuditReceiptState.InvalidReference)]
     [InlineData(TenantAuditSurfaceKind.Stale, true, TenantAuditReceiptState.Stale)]
@@ -198,7 +212,7 @@ public sealed class TenantAuditReceiptTests
         bool expectedMissing,
         TenantAuditReceiptState expectedState)
     {
-        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested", "tenant.alpha", surfaceKind: surface);
+        TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable(surfaceKind: surface);
         receipt.State.ShouldBe(expectedState);
         receipt.IsRequestedReferenceMissing.ShouldBe(expectedMissing);
         receipt.Scope.ShouldBeEmpty();

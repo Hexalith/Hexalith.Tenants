@@ -36,6 +36,11 @@
     min-width: 0;
 }
 
+.audit-data-grid__context {
+    grid-column: 1;
+    overflow-wrap: anywhere;
+}
+
 .audit-data-grid__receipt-open,
 .audit-data-grid__correction-start {
     min-height: 2.25rem;

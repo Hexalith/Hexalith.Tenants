@@ -55,6 +55,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
         TenantAuditRow row = Row("UserRemovedFromTenant") with
         {
             ReferenceContext = "userId: target-user; role: TenantReader",
+            Narrative = new TenantAuditNarrative(UserId: "target-user", Role: TenantRole.TenantReader),
         };
         IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
@@ -63,12 +64,37 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             .Add(component => component.CorrectionIntentProvider,
                 value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader))));
 
-        cut.Find("[data-testid='tenants-audit-row-reference']").TextContent.ShouldContain("event-safe-reference");
-        cut.Find("[data-testid='tenants-audit-row-reference']").TextContent.ShouldNotContain("role: TenantReader");
+        cut.Find("[data-testid='tenants-audit-row-reference'] > .audit-data-grid__wrap")
+            .TextContent.ShouldBe("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-row-context']")
+            .TextContent.ShouldBe("userId: target-user; role: TenantReader");
         cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference")
             .ShouldBe("event-safe-reference");
         cut.Find("[data-testid='tenants-audit-receipt-open']");
         cut.Find("[data-testid='tenants-correction-start']");
+    }
+
+    [Fact]
+    public void Receipt_launchers_are_named_and_focusable_by_their_approved_event_reference()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantAuditRow first = Row("UserAddedToTenant") with { EventReference = "event-first" };
+        TenantAuditRow second = Row("UserAddedToTenant") with { EventReference = "event-second" };
+
+        IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [first, second]));
+
+        var launchers = cut.FindAll("[data-testid='tenants-audit-receipt-open']");
+        launchers.Select(element => element.GetAttribute("aria-label"))
+            .ShouldBe([
+                "View receipt for audit event event-first",
+                "View receipt for audit event event-second",
+            ]);
+        launchers.Select(element => element.GetAttribute("data-receipt-focus-reference"))
+            .ShouldBe(["event-first", "event-second"]);
+        launchers.Select(element => element.TextContent.Trim()).ShouldAllBe(label => label == "View receipt");
     }
 
     [Fact]
@@ -205,6 +231,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             ["Tenants.Audit.Freshness.Current"] = "Current",
             ["Tenants.Audit.Mobile.ReadOnly"] = "This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue.",
             ["Tenants.Audit.Receipt.Open"] = "View receipt",
+            ["Tenants.Audit.Receipt.OpenAccessible"] = "View receipt for audit event {0}",
             ["Tenants.Audit.Viewport.Pending"] = "Correction controls remain read-only until the browser viewport is measured.",
             ["Tenants.Correction.Action.RestoreAccess"] = "restore intended access",
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",

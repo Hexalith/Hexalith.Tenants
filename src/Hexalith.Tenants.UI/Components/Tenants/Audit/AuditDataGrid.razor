@@ -66,7 +66,8 @@
                         Class="tenants-audit-critical tenants-audit-critical--reference"
                         Width="260px">
             @{
-                string? supportSafeReference = SupportSafeReferenceLabel(context);
+                string? supportSafeReference = SupportSafeReference(context);
+                string? supportSafeContext = SupportSafeReferenceContext(context);
             }
             <div class="audit-data-grid__reference" data-testid="tenants-audit-row-reference">
                 <span class="audit-data-grid__wrap">@(supportSafeReference ?? Localizer["Tenants.Audit.Reference.Unavailable"].Value)</span>
@@ -78,17 +79,23 @@
                                            AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", supportSafeReference]"
                                            TestId="tenants-audit-copy-reference" />
                 }
+                @if (supportSafeContext is not null)
+                {
+                    <span class="audit-data-grid__context" data-testid="tenants-audit-row-context">@supportSafeContext</span>
+                }
             </div>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Receipt"]"
                         ColumnId="audit-receipt"
                         Width="150px">
-            @if (TenantAuditSupportSafety.SafeApprovedReference(context.EventReference) is not null)
+            @if (TenantAuditSupportSafety.SafeApprovedReference(context.EventReference) is { } safeReceiptReference)
             {
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               Class="audit-data-grid__receipt-open"
                               id="@($"tenants-audit-receipt-launcher-{RowIndex(context)}")"
                               data-testid="tenants-audit-receipt-open"
+                              data-receipt-focus-reference="@safeReceiptReference"
+                              aria-label="@Localizer["Tenants.Audit.Receipt.OpenAccessible", safeReceiptReference]"
                               OnClick="() => OpenReceiptAsync(context)">
                     @Localizer["Tenants.Audit.Receipt.Open"]
                 </FluentButton>
@@ -98,7 +105,7 @@
                         ColumnId="audit-correction"
                         Width="190px">
             @{
-                string? supportSafeReference = SupportSafeReferenceLabel(context);
+                string? supportSafeReference = SupportSafeReference(context);
                 TenantCorrectionStartIntent? correctionIntent = supportSafeReference is null
                     ? null
                     : CorrectionIntentFor(context);
@@ -186,35 +193,20 @@
         TenantRole.TenantReader,
     ];
 
-    // Gate the bare event reference first: a composed "{reference} - {context}" literal can satisfy the
-    // policy while the reference itself is missing or unsafe, which would render and copy a
-    // reference-less literal and leave the row without its data-audit-reference anchor.
-    private static string? SupportSafeReferenceLabel(TenantAuditRow row)
+    private static string? SupportSafeReference(TenantAuditRow row)
+        => TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
+
+    private static string? SupportSafeReferenceContext(TenantAuditRow row)
     {
-        string? reference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
-        if (reference is null || string.IsNullOrWhiteSpace(row.ReferenceContext))
-        {
-            return reference;
-        }
-
-        string? composed = TenantAuditSupportSafety.SafeApprovedReference($"{reference} - {row.ReferenceContext}");
-        if (composed is not null)
-        {
-            return composed;
-        }
-
-        // Structured narrative uses semicolons between otherwise safe fields. Keep the approved event
-        // reference alone only when every individual field is safe; a secret in any field hides the row anchor.
-        return row.ReferenceContext.Contains(';', StringComparison.Ordinal)
-            && row.ReferenceContext.Split(';').All(part =>
-                TenantAuditSupportSafety.IsSafe(part.Trim(), SupportSafeCopyValueKind.ApprovedReference))
-            ? reference : null;
+        string? typedContext = row.Narrative?.ToDisplayString();
+        return !string.IsNullOrWhiteSpace(typedContext)
+            && string.Equals(row.ReferenceContext, typedContext, StringComparison.Ordinal)
+                ? typedContext
+                : null;
     }
 
     private static string? SupportSafeRowMarker(TenantAuditRow row)
-        => SupportSafeReferenceLabel(row) is null
-            ? null
-            : TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
+        => SupportSafeReference(row);
 
     private int RowIndex(TenantAuditRow row)
     {

@@ -29,6 +29,10 @@ public sealed class TenantAuditSupportSafetyTests
     [InlineData("+1-202-555-0100")]
     [InlineData("202\u00A0555\u00A00100")]
     [InlineData("٢٠٢٥٥٥٠١٠٠")]
+    public void Pii_shaped_values_are_rejected_for_user_ids(string value)
+        => TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+
+    [Theory]
     [InlineData("user|Actor: false")]
     [InlineData("user\uFF5Ctarget")]
     [InlineData("user\u2223target")]
@@ -42,10 +46,34 @@ public sealed class TenantAuditSupportSafetyTests
     [InlineData("user\u00A6target")]
     [InlineData("user\u2551target")]
     [InlineData("user\u2028target")]
-    public void Pii_and_visual_field_boundaries_are_rejected_before_typed_mapping(string value)
+    public void Visual_field_boundaries_are_rejected_before_typed_mapping(string value)
     {
         TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
         TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("1234567")]
+    [InlineData("+1-202-555-0100")]
+    [InlineData("202\u00A0555\u00A00100")]
+    [InlineData("٢٠٢٥٥٥٠١٠٠")]
+    public void Phone_shaped_values_keep_the_existing_non_user_field_policy(string value)
+    {
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.TenantId).ShouldBe(value);
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.ConfigurationKey).ShouldBe(value);
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBe(value);
+    }
+
+    [Fact]
+    public void At_sign_rejection_is_user_specific_beyond_the_existing_strict_reference_policy()
+    {
+        TenantAuditSupportSafety.SafeIdentifier("tenant@alpha", SupportSafeCopyValueKind.TenantId)
+            .ShouldBe("tenant@alpha");
+        TenantAuditSupportSafety.SafeIdentifier("tenant@alpha", SupportSafeCopyValueKind.UserId)
+            .ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeIdentifier("key@alpha", SupportSafeCopyValueKind.ConfigurationKey)
+            .ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeApprovedReference("event@alpha").ShouldBeNull();
     }
 
     [Fact]

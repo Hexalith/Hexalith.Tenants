@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Tenants focus module browser validation</title>
     <link rel="stylesheet" href="./correction.css">
+    <link rel="stylesheet" href="./receipt.css">
     <link id="page-stylesheet" rel="stylesheet" href="./global-admins.css">
     <style>#background-surface { position: fixed; inset: 0; z-index: 1; }</style>
 </head>
@@ -21,12 +22,18 @@
         <input id="remove-acknowledgement" aria-label="Removal acknowledgement">
     </section>
     <section id="remove-lifecycle" tabindex="-1">Removal lifecycle</section>
+    <header id="receipt-header" class="audit-evidence-receipt__header">
+        <div><h3>Audit evidence receipt</h3><p>Audit evidence is ready to cite.</p></div>
+        <button>Close receipt</button>
+        <button>Copy receipt</button>
+    </header>
     <output id="validation-report">RUNNING</output>
     <script type="module">
         const cancelButtonId = "tenants-global-admin-remove-cancel-button";
         const parameters = new URLSearchParams(window.location.search);
         const modulePath = parameters.get("module") ?? "./tenantsFocus.js";
         const pageCssPath = parameters.get("css") ?? "./global-admins.css";
+        const expectedViewport = parameters.get("viewport") ?? "narrow";
         if (pageCssPath !== "./global-admins.css") {
             const stylesheet = document.getElementById("page-stylesheet");
             await new Promise((resolve, reject) => {
@@ -38,7 +45,7 @@
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
-        const { focusElementById, isFocusInsideAuditReceipt, isFocusInsideAuditReceiptCorrection, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
+        const { focusCorrectionLauncher, focusElementById, isFocusInsideAuditReceipt, isFocusInsideAuditReceiptCorrection, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
         const report = document.getElementById("validation-report");
         const acknowledgement = document.getElementById("remove-acknowledgement");
         const lifecycle = document.getElementById("remove-lifecycle");
@@ -80,6 +87,8 @@
             auditReceipt.querySelector("button").focus();
             if (!isFocusInsideAuditReceipt()) throw new Error("receipt control focus was not detected");
             if (isFocusInsideAuditReceiptCorrection()) throw new Error("receipt copy focus was misclassified as correction focus");
+            document.getElementById("tenants-audit-receipt-heading").focus();
+            if (isFocusInsideAuditReceipt()) throw new Error("receipt heading was misclassified as a replacement control");
             document.getElementById("receipt-correction").focus();
             if (!isFocusInsideAuditReceiptCorrection()) throw new Error("receipt correction focus was not detected");
             auditFilter.focus();
@@ -91,7 +100,29 @@
             if (!focusElementById("tenant-audit-heading")) throw new Error("missing receipt launcher did not fall back to page heading");
             assertActiveElement(auditPageHeading, "missing-receipt-launcher-heading");
 
+            const correctionInvalidation = document.createElement("section");
+            correctionInvalidation.innerHTML = '<span id="clipped-row-marker" tabindex="-1" data-audit-reference="event-current"></span><button id="current-correction" data-correction-focus-reference="event-current">Correct</button><button id="current-receipt" data-receipt-focus-reference="event-current">View receipt</button>';
+            document.body.append(correctionInvalidation);
+            const currentCorrection = document.getElementById("current-correction");
+            const currentReceipt = document.getElementById("current-receipt");
+            if (!focusCorrectionLauncher("event-current")) {
+                throw new Error("visible correction launcher was not focused");
+            }
+            assertActiveElement(currentCorrection, "current-correction-launcher");
+            currentCorrection.remove();
+            if (!focusCorrectionLauncher("event-current")) {
+                throw new Error("visible receipt launcher was not used after correction invalidation");
+            }
+            assertActiveElement(currentReceipt, "current-receipt-launcher");
+            currentReceipt.remove();
+            if (focusCorrectionLauncher("event-current")
+                || document.activeElement === document.getElementById("clipped-row-marker")) {
+                throw new Error("clipped row marker was treated as a focus launcher");
+            }
+            observations.push("correction-invalidation-prefers-visible-launchers");
+
             const correctionCss = await (await fetch("./correction.css")).text();
+            const receiptCss = await (await fetch("./receipt.css")).text();
             const pageCss = await (await fetch(pageCssPath)).text();
             const pageScope = pageCss.match(/\.global-admins__remove-preview\[([a-z0-9-]+)\]/)?.[1];
             if (!pageScope) {
@@ -123,18 +154,50 @@
             }
             observations.push("remove-dialog-computed-fixed-visible-bounded-foreground");
 
+            const receiptScope = receiptCss.match(/\.audit-evidence-receipt__header\[([a-z0-9-]+)\]/)?.[1];
+            if (!receiptScope) {
+                throw new Error("receipt-header-style: compiled receipt CSS scope missing");
+            }
+            const receiptHeader = document.getElementById("receipt-header");
+            receiptHeader.setAttribute(receiptScope, "");
+            await document.fonts.ready;
+            const receiptChildren = Array.from(receiptHeader.children);
+            const receiptTops = receiptChildren.map(child => child.getBoundingClientRect().top);
+            const receiptStyle = getComputedStyle(receiptHeader);
+            if (receiptStyle.display !== "grid" || receiptChildren.length !== 3) {
+                throw new Error("receipt-header-style: production-equivalent three-child grid was not rendered");
+            }
+            if (expectedViewport === "narrow") {
+                if (window.innerWidth > 767
+                    || !(receiptTops[0] < receiptTops[1] && receiptTops[1] < receiptTops[2])) {
+                    throw new Error(`receipt-header-style: narrow header did not stack; width=${window.innerWidth};tops=${receiptTops.join(",")}`);
+                }
+                observations.push("receipt-header-three-children-narrow-stacked");
+            }
+            else {
+                if (window.innerWidth <= 767
+                    || receiptTops.some(top => Math.abs(top - receiptTops[0]) > 1)) {
+                    throw new Error(`receipt-header-style: desktop header did not stay on one row; width=${window.innerWidth};tops=${receiptTops.join(",")}`);
+                }
+                observations.push("receipt-header-three-children-desktop-row");
+            }
+
             const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];
-            if (!scope || window.innerWidth > 767) {
-                throw new Error(`correction CSS scope or narrow viewport missing: ${scope ?? "none"};${window.innerWidth}`);
+            if (!scope) {
+                throw new Error("correction CSS scope missing");
             }
             document.getElementById("correction-panel").setAttribute(scope, "");
             await document.fonts.ready;
             const retry = document.getElementById("correction-retry");
-            if (!retry.isConnected || getComputedStyle(retry).display !== "none"
+            if (!retry.isConnected
+                || (expectedViewport === "narrow" && getComputedStyle(retry).display !== "none")
+                || (expectedViewport === "desktop" && getComputedStyle(retry).display === "none")
                 || getComputedStyle(document.getElementById("correction-status")).display === "none") {
                 throw new Error("mounted correction retry must be hidden while read-only status remains visible");
             }
-            observations.push("narrow-correction-retry-hidden");
+            observations.push(expectedViewport === "narrow"
+                ? "narrow-correction-retry-hidden"
+                : "desktop-correction-retry-visible");
 
             startSentinel.focus();
             const exactCancel = document.getElementById(cancelButtonId);

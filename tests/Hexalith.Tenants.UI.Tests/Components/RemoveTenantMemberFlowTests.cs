@@ -851,7 +851,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                     "userId: reader-user",
                     ReadModelFreshnessState.Current,
                     ProjectionLifecycleState.Current,
-                    QueryResponseProvenance.ProjectionBacked);
+                    QueryResponseProvenance.ProjectionBacked,
+                    new TenantAuditNarrative(UserId: "reader-user"));
                 return TenantAuditSnapshot.Ready(
                     [match],
                     nextCursor: null,
@@ -864,6 +865,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                 };
             });
         RegisterServices(gateway, queryGateway);
+        BunitJSModuleInterop clipboard = JSInterop.SetupModule("./js/tenantsClipboard.js");
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
@@ -897,11 +899,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.FindComponent<AuditEvidenceReceipt>().Instance.Receipt!.CommandReference.ShouldBeNull();
         cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("available");
 
-        cut.Find("[data-testid='tenants-audit-receipt'] .audit-evidence-receipt__action").Click();
-        Uri auditUri = new(Services.GetRequiredService<NavigationManager>().Uri);
-        auditUri.AbsolutePath.ShouldBe("/");
-        cut.Find("[data-testid='tenants-command-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
+        cut.WaitForAssertion(() => clipboard.Invocations.Count(invocation => invocation.Identifier is "writeText")
+            .ShouldBe(1));
+        string copied = clipboard.Invocations.Single(invocation => invocation.Identifier is "writeText")
+            .Arguments[0]!.ToString()!;
+        copied.ShouldContain("Actor: actor-1");
+        copied.ShouldContain("Target: reader-user");
+        copied.ShouldContain("Outcome: User removed from tenant");
+        copied.ShouldContain("Audit reference: evt-remove-1");
+
+        cut.Find("[data-testid='tenants-audit-receipt-close']").Click();
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("message-1");
     }
 
@@ -1439,7 +1448,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             "userId: reader-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
-            QueryResponseProvenance.ProjectionBacked);
+            QueryResponseProvenance.ProjectionBacked,
+            new TenantAuditNarrative(UserId: "reader-user"));
     }
 
     private static string RepoRoot()
@@ -1728,7 +1738,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
             ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
             ["Tenants.Audit.Receipt.Copy"] = "Copy full audit receipt summary",
-            ["Tenants.Audit.Receipt.ReferenceLiteral"] = "Audit reference: {0}",
+            ["Tenants.Audit.Receipt.Close"] = "Close receipt",
+            ["Tenants.Audit.Receipt.Summary"] = "Actor: {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}",
+            ["Tenants.Audit.Receipt.Outcome.UserRemovedFromTenant"] = "User removed from tenant",
             ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
             ["Tenants.Audit.Receipt.Field.Target"] = "Target",
             ["Tenants.Audit.Receipt.Field.Scope"] = "Tenant scope",
