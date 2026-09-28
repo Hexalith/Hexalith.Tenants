@@ -76,6 +76,46 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
     }
 
     [Fact]
+    public void Merged_tenants_manifest_maps_every_legacy_workspace_url_to_its_route_backed_tab()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["EventStore:BaseAddress"] = "https://eventstore.invalid",
+            })
+            .Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddLogging();
+
+        services.AddHexalithFrontComposerQuickstart(
+            options => options.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
+        services.AddHexalithDomain<TenantsFrontComposerDomain>();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        DomainManifest manifest = provider.GetRequiredService<IFrontComposerRegistry>().GetManifests()
+            .Where(static entry => entry.BoundedContext == "tenants")
+            .ShouldHaveSingleItem();
+
+        // FrontComposer confirms a palette activation of a legacy URL only when the workspace's
+        // redirect lands on the declared canonical child, so both repositories must agree.
+        manifest.CanonicalRouteAliases.Keys.ShouldBe(
+            ["/", "/?tab=users", "/?tab=workspace-users", "/tenants", "/tenants?tab=users", "/tenants?tab=workspace-users"],
+            ignoreOrder: true);
+        foreach ((string source, string target) in manifest.CanonicalRouteAliases)
+        {
+            bool usersTab = source.EndsWith("?tab=users", StringComparison.Ordinal)
+                || source.EndsWith("?tab=workspace-users", StringComparison.Ordinal);
+            string expected = TenantWorkspaceState.FromQuery(
+                    usersTab ? TenantWorkspaceState.UsersTab : TenantWorkspaceState.TenantsTab,
+                    null, null, null, null, null, null, null, null, null)
+                .ToCanonicalUrl(routeBacked: true);
+            target.ShouldBe(expected, $"alias '{source}'");
+        }
+    }
+
+    [Fact]
     public async Task Three_call_host_renders_generated_projection_route()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
