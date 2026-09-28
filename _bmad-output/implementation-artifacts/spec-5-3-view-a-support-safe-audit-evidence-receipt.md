@@ -2,7 +2,7 @@
 title: 'View a support-safe audit evidence receipt'
 type: 'feature'
 created: '2026-09-27'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 5
 baseline_commit: 33d6dcca278952eaf65764e24b21000a9baa32d8
@@ -233,3 +233,57 @@ context:
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -m:1 --no-restore` -- zero errors and warnings.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -parallelMode none` -- all UI tests pass; use focused `-class` during development.
 - `git diff --check` -- no whitespace errors.
+
+### Review Findings
+
+Code review 2026-09-28 of `33d6dcca..7ac52e8d`. Mid-review, a concurrent session rebased the range to `051f9f30..f8223524`. The rebase dropped only the two out-of-scope workspace test hunks, and the second commit is patch-identical. All four review layers completed. Independent verification:
+
+- The Release UI test build had 0 warnings and 0 errors, and the UI suite passed 3,290/3,290 at both `7ac52e8d` and `f8223524`.
+- `git diff --check` was clean.
+- `validate-story-gitlinks.py` exited with 1 (4 UNDECLARED).
+- A temporary bUnit probe, since removed, reproduced the prerender JS-interop call path.
+
+- [ ] [Review][Patch] Declare the four submodule pointer moves forward-only (decision D1, following the 5.2 precedent): add a `## File List` whose bare list items are `references/Hexalith.AI.Tools`, `references/Hexalith.EventStore`, `references/Hexalith.FrontComposer` and `references/Hexalith.Memories`, with provenance notes that contain no `->` arrows, and a note explaining why they rode in `7ac52e8d`. Then rerun `validate-story-gitlinks.py` [_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md:1]
+- [ ] [Review][Patch] An Access-category receipt is Ready only when the row has a safe typed narrative `userId` (decision D2). The `userId` → `key` → `TenantId` fallback stays for display; otherwise the receipt is Partial, with no Copy or correction [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:67]
+- [ ] [Review][Patch] Render the grid row's narrative context as separate visible text, and make the reference copy button copy the approved event reference only (decision D3; this also resolves the deferred reference-only-copy item). Correct the false Story 5.3 deferred-work note [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor:192]
+- [ ] [Review][Patch] Limit the new `@` and phone-shape rejection to `SupportSafeCopyValueKind.UserId` (the narrative user ID and the actor). TenantId, ConfigurationKey and ApprovedReference return to the prior policy, which restores numeric tenant IDs and the removal and update proof matching for them (decision D4) [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs:116]
+- [x] [Review][Defer] The deny-list safety policy still admits PII and separator lookalikes [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs:163] — deferred (decision D5): stop adding characters one at a time inside this story, and move typed user IDs to an allow-listed character set with a confusable-skeleton check as a design item. Known open bypasses: phone numbers written with `.`, `/`, `tel:` or a leading space; a fullwidth `％40`; and U+2503, U+275A, U+01C0, U+23D0, U+204F and U+061B.
+- [ ] [Review][Patch] Receipt deep links crash prerender: `OnParametersSetAsync` → `LoadAsync` → `CaptureReceiptFocusForReplacementAsync` issues JS interop during static rendering, and the resulting `InvalidOperationException` is not caught. Return early when `!RendererInfo.IsInteractive`, and add a prerender regression test [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1561]
+- [ ] [Review][Patch] Loading never paints while a receipt is open: the focus probe yields first and the Loading write has no `StateHasChanged`, so Refresh, Apply and paging leave the pre-read Ready receipt (with Copy and Start correction) interactive for the whole read. Render inside the Loading write, and add the pending-probe plus pending-read test [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:850]
+- [ ] [Review][Patch] Start correction silently does nothing when the refreshed intent is unavailable. The receipt's cached `_selectedReceiptCorrectionIntent` stays enabled, so every click refreshes the projection and returns without showing a reason. Re-resolve the receipt intent and render the unavailable reason [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1443]
+- [ ] [Review][Patch] The Loading receipt state is announced assertively (`role="alert"`) on every refresh with an open receipt, shows a `?` glyph, and offers a Refresh that restarts the in-flight read. Make Loading polite, give it the pending glyph, and offer no action [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:312]
+- [ ] [Review][Patch] Add the typed target-policy regression test claimed by task 57: a user target that the UserId policy accepts but the ConfigurationKey rules reject (for example `infrastructure-admin`) stays visible, Ready and copyable [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:272]
+- [ ] [Review][Patch] Test that removing a safe, loaded receipt from the URL returns focus to its launcher (`tenants-audit-receipt-launcher-1`), not to the page heading [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:731]
+- [ ] [Review][Patch] Test the post-refresh guards in `OpenCorrectionAsync`: no panel opens when the source row is removed or stops being Ready, or when the refreshed intent becomes unavailable, while the projection read is pending [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1431]
+- [ ] [Review][Patch] Test the correction focus hand-off after enrichment: with the same row, a detail refresh that makes the correction unavailable while focus is on Start correction moves focus to the receipt heading [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:936]
+- [ ] [Review][Patch] A correction panel invalidated by `CaptureCorrectionAuthority` drops keyboard focus to `<body>`. Hand focus back the way `CloseCorrectionAsync` does [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1526]
+- [ ] [Review][Patch] The receipt header grid has two columns but now three children, so Copy (or the copy-blocked alert) wraps under the title [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor.css:16]
+- [ ] [Review][Patch] The member-removal flow shares the receipt, but its tests' stub localizer lacks the Summary, Outcome and Close keys. A Ready removal receipt therefore renders copy-blocked with a raw-key Close label, and no test notices. Add the keys and assert the summary copy and Close [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:1731]
+- [ ] [Review][Patch] Remove the discarded receipt parameters (`supportSafeCommandReference`, `requestedReference`, `tenantId`) and the page's pass-through of them, plus the unused `Tenants.Audit.Receipt.ReferenceLiteral` resource and its stub entries [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:59]
+- [ ] [Review][Patch] Assert exactly seven receipt fields (`ShouldBe(7)`) instead of at least seven [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:45]
+- [ ] [Review][Patch] Read and clear `_pendingCorrectionFocusReference` before the receipt-focus `ConfigureAwait(false)` awaits in `OnAfterRenderAsync`, not off the dispatcher after them [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:799]
+- [ ] [Review][Patch] Re-entering the same tenant's route no longer retries a failed read-refresh subscription. Call `EnsureReadRefreshSubscriptionAsync` before the early return [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:739]
+- [ ] [Review][Patch] Assert that the production receipt renders `tenants-correction-start` inside `.audit-evidence-receipt__correction`, the class the JS focus probe depends on [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:103]
+- [ ] [Review][Patch] The Story 5.3 deferred-work entries sit under the Story 5.2 heading with relative `source_spec` paths. Give them their own heading [_bmad-output/implementation-artifacts/deferred-work.md:3218]
+- [x] [Review][Defer] Unaccented French receipt strings (`prete a citer`, `perimee`, `Reference de commande`, …) and mixed apostrophes [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3430] — deferred: pre-existing since 2026-06-06; this story accented only the strings it touched.
+- [x] [Review][Defer] The receipt timestamp uses the fixed pattern `yyyy-MM-dd HH:mm:ss 'UTC'` rather than culture-aware formatting [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:37] — deferred: pre-existing Story 5.1 UTC convention, shared with the grid.
+
+#### Rejected
+
+- Unrelated workspace-routing test rewrites (blind, auditor) — false: the rebase onto `051f9f30` dropped those hunks, and the story commits at `f8223524` no longer touch `TenantListSurfaceTests` or `TenantsWorkspaceTests`.
+- Spec `status: 'done'` while sprint-status says `review` (auditor) — low: the review-completion step reconciles it.
+- Receipt state never written to the URL (blind) — false: dismissal lasting until the URL or tenant changes is the specified behavior, and a deep link that reopens on reload is expected.
+- Stale `OnParametersSetAsync` comment (blind) — false: the comment still correctly explains why a same-tenant re-entry must not re-read.
+- Same-tenant query-only navigation no longer re-reads (auditor) — low: none of the six query parameters feed the request, so a re-read returned the same data; freshness comes from the notification subscription.
+- Event-type allow-lists and checked-page lists duplicated in four places (blind) — low: no path where they currently diverge was shown; a consolidation refactor is not worth it now.
+- Focus-module import races and the leaked `IJSObjectReference` (blind, edge) — low: at most one extra module reference per circuit, released when the circuit ends; the fix adds a cached-task field.
+- Probe `TaskCanceledException` (JS interop timeout) aborts the read (edge) — low: needs a client unresponsive for 60 seconds; the fix is a guard for an undemonstrated state.
+- `ReferenceEquals` probe skip when a concurrent resolve replaces the receipt (edge) — low: needs a second dispatcher event inside the probe round trip, and the fix changes the stale-probe guard's meaning.
+- Index-based launcher focus after rows change between Close and render (edge) — low: needs a load to apply inside the focus import await; the fix means resolving the reference at focus time.
+- Empty `?receiptReference=` opens an unavailable receipt (edge) — low: an empty requested reference is an invalid request, and reporting it as not loaded is honest (the same rule rejected BH6-5).
+- Degraded/Stale wording beside the missing-row notice (auditor) — low: only degraded results with a missing row are affected, the notice already discloses the absence, and a distinct state adds a branch plus resources.
+- Invalid filters reported as a failed read (auditor, edge) — low: the page's state section names the invalid filters, the receipt offers the correct Reset, and distinct copy would add a branch plus resources.
+- Recovery selectors `-continue` vs `-continuereadonly` (auditor) — low: each is stable per state, and renaming the shared `AuditAvailabilityState` IDs would break the other flows' selectors.
+- Receipt Unavailable copy mentions escalation without an Escalate button (edge) — low: the page renders its configured escalation link for Unavailable and Error.
+- Summaries over 2,048 characters block copy with a misleading message (blind) — low: needs identifiers near the 256-character limit in every field.
+- Browser harness leaves its receipt fixtures in the DOM (blind) — low: no later harness assertion queries those IDs, and the harness passes.

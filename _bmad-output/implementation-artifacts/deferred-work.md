@@ -3221,3 +3221,17 @@ Story range `fc147e3e..HEAD`.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Make the historical audit grid reference copy match its reference-only label.
   evidence: The pre-existing grid copy combines the event reference with typed narrative context while its action is labeled as copying a reference; the receipt change does not alter that copy path.
+
+## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)
+
+Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.
+  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`, `Reference d'audit`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
+  evidence: `TenantAuditReceipt.TimestampLabel` and the grid both use the fixed `yyyy-MM-dd HH:mm:ss 'UTC'` pattern from the Story 5.1 UTC correction; the French receipt renders the same string.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Move typed audit identifiers from a deny-list to an allow-listed character set with a confusable-skeleton check.
+  evidence: Decision D5 (2026-09-28): stop adding characters one at a time; this was the seventh round. `TenantAuditSupportSafety.IsSafe` still admits phone numbers written with `.`, `/`, `tel:` or a leading space (`202.555.0100`); a fullwidth `％40` (NFKC turns it into `%40` only after the `%` check); and the dividers U+2503, U+275A, U+01C0, U+23D0, U+204F and U+061B. These values can reach the grid target, the receipt and the copied summary.
