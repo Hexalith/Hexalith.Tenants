@@ -82,9 +82,9 @@ public sealed record TenantAuditReceipt(
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
         bool checkedPage = true)
     {
+        _ = requestedReference; // A URL hint is not an audited event reference.
+        _ = tenantId; // The route is not evidence of the event's scope.
         _ = supportSafeCommandReference;
-        string reference = TenantAuditSupportSafety.SafeApprovedReference(requestedReference) ?? string.Empty;
-        string scope = TenantAuditSupportSafety.SafeIdentifier(tenantId, SupportSafeCopyValueKind.TenantId);
         bool missing = checkedPage && surfaceKind is TenantAuditSurfaceKind.Ready
             or TenantAuditSurfaceKind.Empty or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.Stale or TenantAuditSurfaceKind.Degraded
@@ -100,8 +100,8 @@ public sealed record TenantAuditReceipt(
             TenantAuditSurfaceKind.Degraded => TenantAuditReceiptState.Degraded,
             _ => TenantAuditReceiptState.InvalidReference,
         };
-        return new(string.Empty, string.Empty, scope, string.Empty, null,
-            ReadModelFreshnessState.Unknown, reference, null, state, missing);
+        return new(string.Empty, string.Empty, string.Empty, string.Empty, null,
+            ReadModelFreshnessState.Unknown, string.Empty, null, state, missing);
     }
 
     /// <summary>Checks whether a known event has a supported outcome translation.</summary>

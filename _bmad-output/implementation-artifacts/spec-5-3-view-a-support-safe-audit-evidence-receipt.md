@@ -2,7 +2,7 @@
 title: 'View a support-safe audit evidence receipt'
 type: 'feature'
 created: '2026-09-27'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 5
 baseline_commit: 33d6dcca278952eaf65764e24b21000a9baa32d8
@@ -77,7 +77,7 @@ context:
 - Review loop 3 reverted its code revision after independent review. Its Release build, full UI pass (3,251 tests), and browser focus harness pass are historical evidence for the discarded revision, not verification of the next revision.
 - Review loop 4 reverted its code revision after independent review. Its Release build, full UI pass (3,281 tests), and browser focus harness pass are historical evidence for the discarded revision, not verification of the next revision.
 - Review loop 5's revision passed the Release UI test project build with zero warnings and errors, the full UI suite (3,256 passed; zero failed or skipped), the Chrome 154 focus and responsive harness, and `git diff --check`. It was reverted after independent review; these are historical results, not verification of the next revision.
-- The current revision passed a zero-warning Release build, 3,271 UI tests after the six added route and focus regressions, the Chrome 154 focus harness, and `git diff --check`. A subsequent two-case missing-translation addition passed its focused component class (44/44) with a zero-warning rebuild; production code was unchanged after the 3,271-test run. Each frozen matrix row has passing coverage in receipt, page, gateway, or browser checks.
+- The final revision passed a zero-warning Release build, all 3,290 UI tests (zero failed or skipped), the Chrome 154 focus harness, and `git diff --check`. Review loop 6's receipt authority, focus, summary-boundary, localization, and invalid-route fixes have focused regressions. Each frozen matrix row has passing coverage in receipt, page, gateway, or browser checks. Two preexisting grid/reference safety concerns are recorded in the deferred-work ledger.
 
 ## Spec Change Log
 
@@ -204,6 +204,28 @@ context:
 | EC5-2 error says row absent | medium: Error, Unavailable, and Unauthorized set `IsRequestedReferenceMissing` without a checked page, confirming BH5-6. | bad_spec |
 | EC5-3 U+2759 separator | medium: U+2759 also passes the explicit divider set and can spoof a field boundary in grid or copied summary text. | bad_spec |
 | EC5-4 filter focus stolen | medium: any Ready-to-nonready transition schedules receipt heading focus, including filter validation while focus remains in the filter; the handoff must depend on focus being in a removed receipt control. | bad_spec |
+
+### Review loop 6
+
+| Finding | Verdict and evidence | Route |
+| --- | --- | --- |
+| BH6-1 compatibility semicolon | medium: a fullwidth semicolon survives the pre-normalization identifier-only check and becomes an unchecked ASCII semicolon after FormKC normalization. | patch |
+| BH6-2 remaining visual dividers | medium: U+00A6 and U+2551 pass the current explicit divider set and can visibly split copied fields. Adding these characters to the existing set is a direct correction. | patch |
+| BH6-3 incidental secret substrings in event IDs | medium: the strict reference classifier can reject an otherwise valid opaque ID containing `jwt` or `eyj`; the same strict fragments and gateway row validation existed before this story. | defer |
+| BH6-4 grid reference copy includes context | medium: the existing grid copy combines a reference with typed narrative context while labeling it a reference; this behavior predates this receipt story and the diff does not change that copy path. | defer |
+| BH6-5 unsafe URL says not loaded | low: a rejected reference is indeed not in the loaded result, but the message does not distinguish invalid input from an absent row. Unsafe URL input is uncommon, and a distinct state/copy branch adds complexity without changing proof or recovery. | reject |
+| BH6-6 unverified hint in evidence field | medium: `Unavailable` retains the URL hint and the component labels it “Audit reference”; degraded copy also says to use the reference. The missing-row notice helps but does not separate request from verified evidence. | patch |
+| BH6-7 whole receipt live region | medium: the existing section-level live region now encloses the new fields and feedback plus nested live regions, so state changes can reannounce controls and duplicate feedback. A state-only live region is a direct markup fix. | patch |
+| BH6-8 same-state control removal focus | medium: page-load projection enrichment can change correction action availability while receipt State remains Ready, and viewport changes can remove that action; the state-change-only focus probe misses both demonstrated paths. | patch |
+| BH6-9 grid correction survives Loading | medium: Loading calls `ResolveReceiptSelection`, whose no-selection return precedes `CaptureCorrectionAuthority`; a grid-started correction panel can keep stale authority until a later result. | patch |
+| BH6-10 FromEntry is Partial without provenance | false: `FromEntry` lacks lifecycle and provenance inputs, so Partial is the truthful result; a public helper cannot claim Ready without those required facts, and production receipt selection uses mapped rows. | reject |
+| BH6-11 synthetic browser receipt | false: carried from BH2-12; bUnit checks production receipt/page markup and the browser harness checks shipped focus JavaScript, with their combined coverage exercising the stated handoff. | reject |
+| EC6-1 URL hint and scope as evidence | medium: `Unavailable` puts requested route values into labeled receipt evidence fields without a matched row, confirming BH6-6. | patch |
+| EC6-2 invalid tenant retains prior reference | medium: the invalid-tenant branch changes the snapshot but retains `_selectedReceiptReference`, so reconciliation can display a prior tenant's URL/reference on an invalid route. | patch |
+| EC6-3 late focus probe after Close | medium: `CaptureReceiptFocusForReplacementAsync` awaits JS without rechecking its generation or selected receipt before scheduling heading focus, so it can override Close. | patch |
+| EC6-4 Unauthorized wording | medium: the English and French Unauthorized receipt state text omits that the requested event could not be verified, contrary to the explicit task; adding that clause is a direct resource correction. | patch |
+| VG6-1 French runtime copy gap | medium: parity and outcome tests read French resource values, but no component test executes the French seven-field template and clipboard path, so a broken French slot could hide Copy unnoticed. | patch |
+| Root6-1 semicolon in copied summary | medium: the shared field-boundary set omits ASCII semicolon for approved references and summary values; a copied reference can carry a field-looking semicolon segment. | patch |
 
 ## Verification
 

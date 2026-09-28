@@ -294,7 +294,7 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public void Tenant_audit_page_renders_grid_filters_paging_and_support_safe_rows()
     {
-        const string visibleReference = "event-safe-reference - userId: target-user; role: TenantReader";
+        const string visibleReference = "event-safe-reference";
         TenantAuditSnapshot snapshot = ReadySnapshot(
             [
                 Row("event-safe-reference", AuditEventCategory.Access, "userId: target-user; role: TenantReader"),
@@ -441,7 +441,9 @@ public sealed class TenantAuditPageTests : BunitContext
 
         gateway.Requests.Count.ShouldBe(1);
         cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("not loaded");
-        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-not-loaded");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("-");
+        cut.Find("[data-testid='tenants-audit-receipt-scope'] dd").TextContent.ShouldBe("-");
+        cut.Markup.ShouldNotContain("event-not-loaded");
         // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
@@ -515,7 +517,7 @@ public sealed class TenantAuditPageTests : BunitContext
         navigation.NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-b");
         cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
 
-        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-b");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("-");
         cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("loading", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-audit-receipt-missing']").ShouldBeEmpty();
         cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
@@ -700,6 +702,124 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Viewport_removal_hands_off_only_a_focused_receipt_correction_control(bool correctionHasFocus)
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        RegisterServices(viewport, ReadySnapshot([Row("event-role-change", AuditEventCategory.Access,
+            "userId: target-user; oldRole: TenantReader", eventType: "UserRoleChanged")]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        JSRuntimeInvocationHandler<bool> insideCorrection = module.Setup<bool>("isFocusInsideAuditReceiptCorrection");
+        insideCorrection.SetResult(correctionHasFocus);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        int priorFocus = focus.Invocations.Count;
+
+        viewport.Observe(ViewportTier.Phone);
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']")
+            .ShouldBeEmpty());
+        cut.WaitForAssertion(() => insideCorrection.Invocations.Count.ShouldBe(1));
+        if (correctionHasFocus)
+        {
+            cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(priorFocus + 1));
+            focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
+        }
+        else
+        {
+            focus.Invocations.Count.ShouldBe(priorFocus);
+        }
+    }
+
+    [Fact]
+    public async Task Same_state_notification_probes_focus_only_when_a_receipt_correction_control_disappears()
+    {
+        TenantAuditRow correctable = Row("event-role-change", AuditEventCategory.Access,
+            "userId: target-user; oldRole: TenantReader", eventType: "UserRoleChanged");
+        TenantAuditRow uncorrectable = Row("event-role-change", AuditEventCategory.Access,
+            eventType: "UserAddedToTenant");
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([correctable]), ReadySnapshot([correctable]), ReadySnapshot([uncorrectable]));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        JSRuntimeInvocationHandler<bool> insideCorrection = module.Setup<bool>("isFocusInsideAuditReceiptCorrection");
+        insideCorrection.SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>());
+        cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        int priorFocus = focus.Invocations.Count;
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(2);
+            cut.FindAll("[data-testid='tenants-audit-notification-refreshing']").ShouldBeEmpty();
+        });
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
+        insideCorrection.Invocations.ShouldBeEmpty();
+        focus.Invocations.Count.ShouldBe(priorFocus);
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(
+            GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(3);
+            cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']")
+                .ShouldBeEmpty();
+            insideCorrection.Invocations.Count.ShouldBeGreaterThan(0);
+            focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
+        });
+    }
+
+    [Fact]
+    public async Task Delayed_receipt_focus_probe_cannot_refocus_the_receipt_after_close()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-a", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-a", AuditEventCategory.Access)]));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        JSRuntimeInvocationHandler<bool> pendingProbe = module.Setup<bool>("isFocusInsideAuditReceipt");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => pendingProbe.Invocations.Count.ShouldBe(1));
+        cut.Find("[data-testid='tenants-audit-receipt-close']").Click();
+        cut.WaitForAssertion(() => focus.Invocations.Last().Arguments[0]
+            .ShouldBe("tenants-audit-receipt-launcher-0"));
+        int focusCount = focus.Invocations.Count;
+
+        pendingProbe.SetResult(true);
+        await refresh;
+        focus.Invocations.Count.ShouldBe(focusCount);
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+        gateway.Requests.Count.ShouldBe(2);
+    }
+
+    [Theory]
     [InlineData(TenantAuditSurfaceKind.Stale, true)]
     [InlineData(TenantAuditSurfaceKind.Degraded, true)]
     [InlineData(TenantAuditSurfaceKind.Error, false)]
@@ -820,6 +940,55 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Grid_started_correction_is_invalidated_on_loading_and_does_not_remount_on_the_same_row()
+    {
+        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"), evidence);
+        var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        gateway.QueueResponse(pending.Task);
+
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForElement("[data-testid='tenants-audit-loading']");
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        pending.SetResult(evidence);
+        await refresh;
+
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        gateway.Requests.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Invalid_tenant_route_clears_the_previous_receipt_and_correction_selection()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-global-admin");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.Find("[data-testid='tenants-audit-receipt']");
+
+        navigation.NavigateTo("/tenants/Bearer%20raw-token/audit?receiptReference=event-global-admin");
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "Bearer raw-token"));
+
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("event-global-admin");
+        gateway.Requests.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -2471,7 +2640,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Receipt.State.Pending"] = "Audit evidence is pending. Wait or refresh before citing proof.",
             ["Tenants.Audit.Receipt.State.Ready"] = "Audit evidence is ready to cite.",
             ["Tenants.Audit.Receipt.State.Stale"] = "Audit evidence is stale. Refresh before treating it as current.",
-            ["Tenants.Audit.Receipt.State.Unauthorized"] = "Audit evidence is not available for the current authorization scope.",
+            ["Tenants.Audit.Receipt.State.Unauthorized"] = "Audit evidence is not available for the current authorization scope. The requested event could not be verified.",
             ["Tenants.Audit.Receipt.State.Unavailable"] = "Audit evidence is unavailable. Continue read-only or retry later.",
             ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
             ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",

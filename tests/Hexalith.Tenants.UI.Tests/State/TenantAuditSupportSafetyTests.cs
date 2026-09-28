@@ -37,11 +37,24 @@ public sealed class TenantAuditSupportSafetyTests
     [InlineData("user\u2502target")]
     [InlineData("user\u2758target")]
     [InlineData("user\u2759target")]
+    [InlineData("user;target")]
+    [InlineData("user\uFF1Btarget")]
+    [InlineData("user\u00A6target")]
+    [InlineData("user\u2551target")]
     [InlineData("user\u2028target")]
     public void Pii_and_visual_field_boundaries_are_rejected_before_typed_mapping(string value)
     {
         TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
         TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
+    }
+
+    [Fact]
+    public void Summary_field_boundary_check_rejects_ascii_semicolon_and_visual_dividers()
+    {
+        TenantAuditSupportSafety.ContainsFieldBoundary("actor; target").ShouldBeTrue();
+        TenantAuditSupportSafety.ContainsFieldBoundary("actor\u00A6target").ShouldBeTrue();
+        TenantAuditSupportSafety.ContainsFieldBoundary("actor\u2551target").ShouldBeTrue();
+        TenantAuditSupportSafety.SafeApprovedReference("event\uFF1Bactor").ShouldBeNull();
     }
 
     [Fact]

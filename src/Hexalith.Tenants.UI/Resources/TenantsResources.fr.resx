@@ -3485,7 +3485,7 @@
     <value>La preuve d'audit est perimee. Actualisez avant de la traiter comme actuelle.</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.Unauthorized" xml:space="preserve">
-    <value>La preuve d'audit n'est pas disponible dans la portee d'autorisation actuelle.</value>
+    <value>La preuve d'audit n'est pas disponible dans la portée d'autorisation actuelle. L'événement demandé n'a pas pu être vérifié.</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.Unavailable" xml:space="preserve">
     <value>La preuve d'audit est indisponible. Continuez en lecture seule ou reessayez plus tard.</value>

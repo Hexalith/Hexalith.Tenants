@@ -38,7 +38,7 @@
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
-        const { focusElementById, isFocusInsideAuditReceipt, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
+        const { focusElementById, isFocusInsideAuditReceipt, isFocusInsideAuditReceiptCorrection, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
         const report = document.getElementById("validation-report");
         const acknowledgement = document.getElementById("remove-acknowledgement");
         const lifecycle = document.getElementById("remove-lifecycle");
@@ -70,7 +70,7 @@
         try {
             const auditReceipt = document.createElement("section");
             auditReceipt.dataset.testid = "tenants-audit-receipt";
-            auditReceipt.innerHTML = '<h3 id="tenants-audit-receipt-heading" tabindex="-1">Audit receipt</h3><button id="receipt-copy">Copy</button>';
+            auditReceipt.innerHTML = '<h3 id="tenants-audit-receipt-heading" tabindex="-1">Audit receipt</h3><button id="receipt-copy">Copy</button><div class="audit-evidence-receipt__correction"><button id="receipt-correction">Correct</button></div>';
             const auditFilter = document.createElement("input");
             auditFilter.id = "audit-filter";
             const auditPageHeading = document.createElement("h1");
@@ -79,8 +79,12 @@
             document.body.append(auditReceipt, auditFilter, auditPageHeading);
             auditReceipt.querySelector("button").focus();
             if (!isFocusInsideAuditReceipt()) throw new Error("receipt control focus was not detected");
+            if (isFocusInsideAuditReceiptCorrection()) throw new Error("receipt copy focus was misclassified as correction focus");
+            document.getElementById("receipt-correction").focus();
+            if (!isFocusInsideAuditReceiptCorrection()) throw new Error("receipt correction focus was not detected");
             auditFilter.focus();
             if (isFocusInsideAuditReceipt()) throw new Error("audit filter focus was misclassified as receipt focus");
+            if (isFocusInsideAuditReceiptCorrection()) throw new Error("audit filter focus was misclassified as correction focus");
             if (focusElementById("tenants-audit-receipt-launcher-missing")) {
                 throw new Error("missing receipt launcher was reported focused");
             }

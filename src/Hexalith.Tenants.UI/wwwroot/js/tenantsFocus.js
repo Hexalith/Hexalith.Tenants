@@ -38,6 +38,10 @@ export function isFocusInsideAuditReceipt() {
   return Boolean(document.activeElement?.closest('[data-testid="tenants-audit-receipt"]'));
 }
 
+export function isFocusInsideAuditReceiptCorrection() {
+  return Boolean(document.activeElement?.closest('.audit-evidence-receipt__correction'));
+}
+
 const activeDetailFocus = new Map();
 
 export function restoreDetailFocus(focusId, originTestId, headingId) {

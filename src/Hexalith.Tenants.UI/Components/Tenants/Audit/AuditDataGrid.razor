@@ -192,9 +192,23 @@
     private static string? SupportSafeReferenceLabel(TenantAuditRow row)
     {
         string? reference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
-        return reference is null || string.IsNullOrWhiteSpace(row.ReferenceContext)
-            ? reference
-            : TenantAuditSupportSafety.SafeApprovedReference($"{reference} - {row.ReferenceContext}");
+        if (reference is null || string.IsNullOrWhiteSpace(row.ReferenceContext))
+        {
+            return reference;
+        }
+
+        string? composed = TenantAuditSupportSafety.SafeApprovedReference($"{reference} - {row.ReferenceContext}");
+        if (composed is not null)
+        {
+            return composed;
+        }
+
+        // Structured narrative uses semicolons between otherwise safe fields. Keep the approved event
+        // reference alone only when every individual field is safe; a secret in any field hides the row anchor.
+        return row.ReferenceContext.Contains(';', StringComparison.Ordinal)
+            && row.ReferenceContext.Split(';').All(part =>
+                TenantAuditSupportSafety.IsSafe(part.Trim(), SupportSafeCopyValueKind.ApprovedReference))
+            ? reference : null;
     }
 
     private static string? SupportSafeRowMarker(TenantAuditRow row)

@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 07-19-2026 16:57
-last_updated: 09-27-2026
+last_updated: 09-28-2026
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -75,7 +75,7 @@ development_status:
   epic-5: in-progress
   5-1-browse-tenant-audit-trail: done
   5-2-reach-scoped-audit-evidence-from-context: done
-  5-3-view-a-support-safe-audit-evidence-receipt: in-progress
+  5-3-view-a-support-safe-audit-evidence-receipt: review
   5-4-understand-audit-availability-and-recovery: backlog
   5-5-start-a-forward-tenant-correction-from-audit-evidence: backlog
   5-6-preview-confirm-and-link-a-tenant-correction: backlog

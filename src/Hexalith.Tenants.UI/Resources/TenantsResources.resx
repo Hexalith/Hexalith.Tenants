@@ -3485,7 +3485,7 @@
     <value>Audit evidence is stale. Refresh before treating it as current.</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.Unauthorized" xml:space="preserve">
-    <value>Audit evidence is not available for the current authorization scope.</value>
+    <value>Audit evidence is not available for the current authorization scope. The requested event could not be verified.</value>
   </data>
   <data name="Tenants.Audit.Receipt.State.Unavailable" xml:space="preserve">
     <value>Audit evidence is unavailable. Continue read-only or retry later.</value>

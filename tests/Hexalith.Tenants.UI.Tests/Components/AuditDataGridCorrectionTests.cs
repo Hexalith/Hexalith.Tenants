@@ -47,6 +47,31 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
     }
 
     [Fact]
+    public void Audit_grid_keeps_the_approved_event_reference_when_optional_context_has_a_field_boundary()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantAuditRow row = Row("UserRemovedFromTenant") with
+        {
+            ReferenceContext = "userId: target-user; role: TenantReader",
+        };
+        IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, true)
+            .Add(component => component.IsCorrectionViewportSafe, true)
+            .Add(component => component.CorrectionIntentProvider,
+                value => TenantCorrectionStartIntent.Evaluate(Context(value, TenantRole.TenantReader))));
+
+        cut.Find("[data-testid='tenants-audit-row-reference']").TextContent.ShouldContain("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-row-reference']").TextContent.ShouldNotContain("role: TenantReader");
+        cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference")
+            .ShouldBe("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-receipt-open']");
+        cut.Find("[data-testid='tenants-correction-start']");
+    }
+
+    [Fact]
     public void Audit_grid_renders_safe_unavailable_reason_for_correctable_blocked_row()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;

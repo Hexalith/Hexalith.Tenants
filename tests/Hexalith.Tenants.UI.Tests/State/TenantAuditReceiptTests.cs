@@ -162,6 +162,12 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested-reference", "tenant.alpha");
 
         receipt.State.ShouldBe(TenantAuditReceiptState.InvalidReference);
+        receipt.Actor.ShouldBeEmpty();
+        receipt.Target.ShouldBeEmpty();
+        receipt.Scope.ShouldBeEmpty();
+        receipt.Outcome.ShouldBeEmpty();
+        receipt.AuditReference.ShouldBeEmpty();
+        receipt.CommandReference.ShouldBeNull();
         receipt.Timestamp.ShouldBeNull();
         receipt.TimestampLabel.ShouldBeEmpty();
     }
@@ -195,6 +201,8 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt receipt = TenantAuditReceipt.Unavailable("requested", "tenant.alpha", surfaceKind: surface);
         receipt.State.ShouldBe(expectedState);
         receipt.IsRequestedReferenceMissing.ShouldBe(expectedMissing);
+        receipt.Scope.ShouldBeEmpty();
+        receipt.AuditReference.ShouldBeEmpty();
         receipt.Timestamp.ShouldBeNull();
     }
 

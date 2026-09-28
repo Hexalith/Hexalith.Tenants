@@ -9,7 +9,6 @@
     <section class="audit-evidence-receipt audit-evidence-receipt--@StateCss"
              role="region"
              aria-labelledby="tenants-audit-receipt-heading"
-             aria-live="@LiveRegion"
              data-testid="tenants-audit-receipt">
         <header class="audit-evidence-receipt__header">
             <div>
@@ -17,6 +16,8 @@
                 @if (ReceiptAuditState is null)
                 {
                     <p class="audit-evidence-receipt__state"
+                       role="@(LiveRegion == "assertive" ? "alert" : "status")"
+                       aria-live="@LiveRegion"
                        data-testid="tenants-audit-receipt-state">
                         <span class="audit-evidence-receipt__state-icon" aria-hidden="true">@StateGlyph</span>
                         @Localizer[$"Tenants.Audit.Receipt.State.{Receipt.State}"]

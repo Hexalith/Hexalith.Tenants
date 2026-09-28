@@ -99,11 +99,7 @@ internal static class TenantAuditSupportSafety
         string candidate = CanonicalizeForInspection(value);
         if (ContainsInvisibleOrControl(candidate)
             || ContainsFieldBoundary(candidate)
-            || candidate.Contains('%', StringComparison.Ordinal)
-            || (kind is SupportSafeCopyValueKind.TenantId
-                or SupportSafeCopyValueKind.UserId
-                or SupportSafeCopyValueKind.ConfigurationKey
-                && candidate.Contains(';', StringComparison.Ordinal)))
+            || candidate.Contains('%', StringComparison.Ordinal))
         {
             return false;
         }
@@ -165,8 +161,9 @@ internal static class TenantAuditSupportSafety
 
     /// <summary>Rejects characters that can split or visually spoof a copied field.</summary>
     internal static bool ContainsFieldBoundary(string value)
-        => value.Any(character => character is '|' or '\r' or '\n' or '\u2028' or '\u2029'
-            or '\uFF5C' or '\u2223' or '\u2225' or '\u2758' or '\u2759' or '\u2016' or '\u2502');
+        => value.Any(character => character is '|' or ';' or '\r' or '\n' or '\u2028' or '\u2029'
+            or '\u00A6' or '\uFF5C' or '\u2223' or '\u2225' or '\u2758' or '\u2759'
+            or '\u2016' or '\u2502' or '\u2551');
 
     private static bool LooksLikePhoneNumber(string value)
     {

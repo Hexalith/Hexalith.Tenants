@@ -3215,3 +3215,9 @@ Story range `fc147e3e..HEAD`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
   summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.
   evidence: Decision 2026-09-27 ("Declare + enable CI gate"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Revisit strict opaque audit reference classification for incidental secret-shaped substrings.
+  evidence: The pre-existing gateway and reference classifier reject an otherwise valid opaque event ID when it happens to contain `jwt` or `eyj`; this story did not introduce that policy.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Make the historical audit grid reference copy match its reference-only label.
+  evidence: The pre-existing grid copy combines the event reference with typed narrative context while its action is labeled as copying a reference; the receipt change does not alter that copy path.
