@@ -184,7 +184,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         // The entry point names the state with the shared label and never repeats it as visible text.
         AngleSharp.Dom.IElement entryPoint = audit.QuerySelector("[data-testid='tenants-audit-entrypoint']").ShouldNotBeNull();
-        entryPoint.GetAttribute("aria-label").ShouldBe("Open audit evidence for tenant Tenant.Mixed-01 (Audit pending)");
+        entryPoint.GetAttribute("aria-label").ShouldBe("Inspect audit for tenant Tenant.Mixed-01 (Audit pending)");
+        entryPoint.TextContent.Trim().ShouldBe("Inspect audit");
         // The browser harness measures this inner control inside the recovery shell at 390px.
         entryPoint.ClassList.ShouldContain("tenants-audit-entrypoint");
         entryPoint.ParentElement.ShouldNotBeNull().ClassList.ShouldContain("tenants-audit-availability__action-shell");
@@ -309,6 +310,40 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldContain("provenance could not be verified");
+
+        // The projection was read but did not prove this create, and no audit read happened: the audit record
+        // the Completed status established stays pending.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+    }
+
+    [Fact]
+    public void A_failed_projection_read_keeps_the_audit_record_pending()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.BaselineProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionEvidenceProvider, _ => throw new InvalidOperationException("raw projection failure")));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        // A failed projection read is projection truth only: the command is unverified, the audit record is
+        // still pending, and neither dimension rewrites the other.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Create.Confirm.UnableToVerify.MissingProvenance");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        cut.Find("[data-testid='tenants-create-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("pending");
+        cut.Markup.ShouldNotContain("raw projection failure", Case.Insensitive);
     }
 
     [Fact]
@@ -698,6 +733,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         gateway.CreateTenantCallCount.ShouldBe(1);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]
@@ -810,7 +846,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             ["Tenants.Create.State.Failed"] = "Command submission failed.",
             ["Tenants.Create.State.Degraded"] = "Command result is degraded and needs review.",
             ["Tenants.Create.State.UnableToVerify"] = "Unable to verify command result.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

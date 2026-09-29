@@ -210,7 +210,10 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline");
-        result.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        // A missing baseline is a provenance failure: no audit read happened, so the audit dimension keeps what
+        // the Completed status established.
+        result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
         result.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
     }
 

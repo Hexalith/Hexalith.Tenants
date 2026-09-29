@@ -13,6 +13,9 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// <see cref="TenantCommandAuditState.AuditAvailable"/>. Only a complete, redacted
 /// <see cref="TenantAuditReceipt"/> in the <see cref="TenantAuditReceiptState.Ready"/> state that was matched to
 /// the attempt does, through <see cref="FromConfirmationEvidence(TenantAuditReceipt?)"/>.
+/// A projection read that fails, or a projection that is read but cannot prove the attempt (missing provenance,
+/// baseline, target, or proof reader), never rewrites the audit dimension: no audit read happened, so the
+/// attempt keeps the audit state its command status established.
 /// </remarks>
 public static class TenantCommandAuditStates
 {
@@ -66,6 +69,27 @@ public static class TenantCommandAuditStates
             CommandStatus.Rejected => NotStarted,
             _ => Unverifiable,
         };
+
+    /// <summary>Derives the audit dimension from one command status lookup of a dispatched attempt.</summary>
+    /// <param name="status">The status lookup result.</param>
+    /// <param name="current">The attempt's audit state before this lookup.</param>
+    /// <returns>
+    /// The current audit state when the lookup is a wait (a 404 before the first status, reported as
+    /// <see cref="TenantCommandStatusResult.IsPending"/> with no status); otherwise the canonical state for the
+    /// returned status, where a missing, unknown, or unverifiable status is <see cref="Unverifiable"/>.
+    /// </returns>
+    public static TenantCommandAuditState FromStatusLookup(
+        TenantCommandStatusResult status,
+        TenantCommandAuditState current)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+
+        // The status store has not recorded the attempt yet. That is propagation lag, not an unreadable status,
+        // so the audit dimension keeps what earlier evidence established.
+        return status.Status is null && status.IsPending
+            ? current
+            : FromCommandStatus(status.Status, status.EventCount);
+    }
 
     /// <summary>Derives the audit dimension from a command submission result.</summary>
     /// <param name="result">The gateway submission result.</param>

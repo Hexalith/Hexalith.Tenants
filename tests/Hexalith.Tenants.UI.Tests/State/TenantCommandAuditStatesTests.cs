@@ -89,6 +89,65 @@ public sealed class TenantCommandAuditStatesTests
         TenantCommandAuditStates.FromCommandStatus(CommandStatus.EventsStored, eventCount: 0).ShouldBe(TenantCommandAuditState.AuditPending);
         TenantCommandAuditStates.FromCommandStatus((CommandStatus)99).ShouldBe(TenantCommandAuditState.AuditUnavailable);
         Enum.GetValues<CommandStatus>().Length.ShouldBe(CanonicalStatusTable.Length, "a new status needs a canonical row");
+
+        // A status lookup follows the same table, except that a 404 before the first status is a wait that keeps
+        // the current audit state. Any other missing, unknown, or unverifiable status after dispatch is unavailable.
+        foreach (TenantCommandAuditState current in Enum.GetValues<TenantCommandAuditState>())
+        {
+            TenantCommandAuditStates.FromStatusLookup(TenantCommandStatusResult.Pending("Status is propagating."), current)
+                .ShouldBe(current, $"404 lag from {current}");
+            TenantCommandAuditStates.FromStatusLookup(TenantCommandStatusResult.Unknown("Status could not be read."), current)
+                .ShouldBe(TenantCommandAuditState.AuditUnavailable, $"unknown status from {current}");
+            TenantCommandAuditStates.FromStatusLookup(TenantCommandStatusResult.RetryableFailure("Status read failed."), current)
+                .ShouldBe(TenantCommandAuditState.AuditUnavailable, $"failed status read from {current}");
+            foreach ((CommandStatus status, TenantCommandAuditState expected) in CanonicalStatusTable)
+            {
+                TenantCommandAuditStates.FromStatusLookup(new TenantCommandStatusResult(status, EventCount: 1), current)
+                    .ShouldBe(expected, $"status {status} from {current}");
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Flows))]
+    public void A_status_lag_before_the_first_status_keeps_the_audit_state(string flow)
+    {
+        // A 404 before the first status is a wait: nothing implied before dispatch evidence, and the pending
+        // audit record after stored events stays pending instead of turning unavailable.
+        TenantCommandStatusResult lag = TenantCommandStatusResult.Pending("Status is propagating.");
+        Accept(flow).ShouldBe(TenantCommandAuditState.NotStarted);
+        ApplyStatus(flow, lag).ShouldBe(TenantCommandAuditState.NotStarted);
+
+        TenantCommandStatusResult stored = new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true);
+        ApplyStatus(flow, stored).ShouldBe(TenantCommandAuditState.AuditPending);
+        ApplyStatuses(flow, stored, lag).ShouldBe(TenantCommandAuditState.AuditPending);
+
+        // Any other missing status after stored events is unverifiable.
+        ApplyStatuses(flow, stored, TenantCommandStatusResult.Unknown("Status could not be read."))
+            .ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Theory]
+    [InlineData("create")]
+    [InlineData("add-member-baseline-met")]
+    [InlineData("add-member-baseline-missing")]
+    [InlineData("change-role-missing-target")]
+    [InlineData("change-role-missing-baseline")]
+    [InlineData("remove-member-missing-baseline")]
+    [InlineData("edit-metadata-missing-baseline")]
+    [InlineData("edit-metadata-missing-provenance")]
+    [InlineData("lifecycle-missing-baseline")]
+    [InlineData("lifecycle-unknown-status")]
+    [InlineData("lifecycle-no-proof-reader")]
+    public void A_projection_that_cannot_prove_the_attempt_keeps_the_audit_state(string failure)
+    {
+        // The projection was read but did not prove this attempt, and no audit read happened: the command is
+        // unverified, and the audit dimension keeps what the Completed status established.
+        (TenantCommandLifecycleState state, TenantCommandAuditState before, TenantCommandAuditState after) = ProvenanceFailure(failure);
+
+        before.ShouldBe(TenantCommandAuditState.AuditPending);
+        state.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        after.ShouldBe(before);
     }
 
     [Fact]
@@ -439,6 +498,170 @@ public sealed class TenantCommandAuditStatesTests
                 return (removeConfiguration.State, removeConfiguration.AuditState);
             default:
                 throw new ArgumentOutOfRangeException(nameof(flow), flow, null);
+        }
+    }
+
+    private static TenantCommandAuditState ApplyStatuses(string flow, TenantCommandStatusResult first, TenantCommandStatusResult second)
+        => flow switch
+        {
+            "create" => CreateAccepted().ApplyStatus(first).ApplyStatus(second).AuditState,
+            "add-member" => AddAccepted().ApplyStatus(first).ApplyStatus(second).AuditState,
+            "change-role" => ChangeAccepted().ApplyStatus(first).ApplyStatus(second).AuditState,
+            "remove-member" => RemoveAccepted().ApplyStatus(first).ApplyStatus(second).AuditState,
+            "edit-metadata" => MetadataAccepted().ApplyStatus(first).ApplyStatus(second).AuditState,
+            "lifecycle" => LifecycleStarted()
+                .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                .ApplyStatus(first)
+                .ApplyStatus(second)
+                .AuditState,
+            "set-configuration" => SetRequestSent()
+                .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                .ApplyStatus(first)
+                .ApplyStatus(second)
+                .AuditState,
+            "remove-configuration" => RemoveRequestSent()
+                .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                .ApplyStatus(first)
+                .ApplyStatus(second)
+                .AuditState,
+            _ => throw new ArgumentOutOfRangeException(nameof(flow), flow, null),
+        };
+
+    private static (TenantCommandLifecycleState State, TenantCommandAuditState Before, TenantCommandAuditState After) ProvenanceFailure(string failure)
+    {
+        var completed = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
+        switch (failure)
+        {
+            case "create":
+            {
+                // The tenant already existed at baseline, so a matching projection cannot prove this create.
+                TenantCreateCommandSnapshot pending = TenantCreateCommandSnapshot.Idle()
+                    .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), "projection-v1", baselineTenantAbsent: false)
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantCreateCommandSnapshot result = pending.ConfirmProjection(
+                    new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), null, "projection-v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "add-member-baseline-met":
+            case "add-member-baseline-missing":
+            {
+                TenantAddMemberCommandSnapshot pending = TenantAddMemberCommandSnapshot.Idle()
+                    .RequestSent(
+                        new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
+                        baselineProjectionVersion: failure == "add-member-baseline-missing" ? null : "v1",
+                        baselinePostconditionMet: failure == "add-member-baseline-met")
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantAddMemberCommandSnapshot result = pending.ConfirmProjection(
+                    MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)), "v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "change-role-missing-target":
+            {
+                TenantChangeRoleCommandSnapshot pending = ChangeAccepted().ApplyStatus(completed);
+                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(MemberDetail(), "v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "change-role-missing-baseline":
+            {
+                TenantChangeRoleCommandSnapshot pending = TenantChangeRoleCommandSnapshot.Idle()
+                    .RequestSent(
+                        new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
+                        TenantRole.TenantReader,
+                        ownerCount: 1,
+                        baselineProjectionVersion: null)
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(
+                    MemberDetail(new TenantMember("literal-user", TenantRole.TenantContributor)), "v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "remove-member-missing-baseline":
+            {
+                TenantRemoveMemberCommandSnapshot pending = TenantRemoveMemberCommandSnapshot.Idle()
+                    .Previewed(
+                        new RemoveUserFromTenant("tenant.alpha", "literal-user"),
+                        TenantRole.TenantReader,
+                        ownerCount: 1,
+                        targetGlobalAdministratorFriction: false,
+                        MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)))
+                    .RequestSent(baselineProjectionVersion: null)
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantRemoveMemberCommandSnapshot result = pending.ConfirmProjection(MemberDetail(), "v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "edit-metadata-missing-baseline":
+            {
+                TenantUpdateMetadataCommandSnapshot pending = TenantUpdateMetadataCommandSnapshot.Idle("Original", "Original description")
+                    .RequestSent(new UpdateTenant("tenant.alpha", "Updated", "submitted"), baselineProjectionVersion: null, AttemptStartedAtUtc)
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(MetadataDetail("Updated", "submitted"), "v2");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "edit-metadata-missing-provenance":
+            {
+                // Identical values need attempt-specific audit provenance; a non-matching row proves nothing.
+                TenantUpdateMetadataCommandSnapshot pending = TenantUpdateMetadataCommandSnapshot.Idle("Updated", "submitted")
+                    .RequestSent(new UpdateTenant("tenant.alpha", "Updated", "submitted"), baselineProjectionVersion: "v1", AttemptStartedAtUtc)
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(
+                    MetadataDetail("Updated", "submitted"),
+                    "v2",
+                    UpdateRow(AttemptStartedAtUtc.AddSeconds(1)) with { EventReference = "another-message" });
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "lifecycle-missing-baseline":
+            {
+                TenantLifecycleCommandSnapshot pending = LifecycleStarted()
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed) with { BaselineProjectionVersion = null };
+                TenantLifecycleCommandSnapshot result = pending.ConfirmProjection(TenantDetailSnapshot.Ready(
+                    LifecycleDetail(TenantStatus.Disabled),
+                    eTag: null,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:42"));
+                result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.MissingBaseline");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "lifecycle-unknown-status":
+            {
+                TenantLifecycleCommandSnapshot pending = LifecycleStarted()
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantLifecycleCommandSnapshot result = pending.ConfirmProjection(TenantDetailSnapshot.Ready(
+                    LifecycleDetail(TenantStatus.Unknown),
+                    eTag: null,
+                    ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current,
+                    "tenant-sequence:42"));
+                result.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.ProofRead");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            case "lifecycle-no-proof-reader":
+            {
+                TenantLifecycleCommandSnapshot pending = LifecycleStarted()
+                    .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+                    .ApplyStatus(completed);
+                TenantLifecycleCommandSnapshot result = pending.ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.ProofRead");
+                return (result.State, pending.AuditState, result.AuditState);
+            }
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(failure), failure, null);
         }
     }
 

@@ -3503,7 +3503,7 @@
     <value>une autre surface locataire</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
-    <value>Ouvrir les preuves d'audit du locataire {1} ({0})</value>
+    <value>Inspecter l’audit du locataire {1} ({0})</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
     <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>

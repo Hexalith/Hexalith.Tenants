@@ -276,7 +276,7 @@
         => @<AuditEvidenceEntryPoint TenantId="@_tenantId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, _tenantId ?? string.Empty]"
                                      ReturnUrl="@(WorkspaceAuditReturnUrl ?? "/tenants")"
                                      ReturnFocus="tenants-create-lifecycle"
@@ -631,13 +631,14 @@
         }
     }
 
+    // A failed projection read is projection truth only: the command stays unverified, and the audit dimension
+    // keeps what command status established, because no audit read happened.
     private TenantCreateCommandSnapshot UnableToVerifyProjection()
         => _snapshot with
         {
             State = TenantCommandLifecycleState.UnableToVerify,
             SafeMessage = null,
             SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
-            AuditState = TenantCommandAuditStates.Unverifiable,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };

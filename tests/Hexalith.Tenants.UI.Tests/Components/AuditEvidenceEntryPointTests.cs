@@ -492,7 +492,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.Context.SourceKind.Default"] = "another tenant surface",
             ["Tenants.Audit.ControlsLabel"] = "Tenant audit filters and paging controls",
             ["Tenants.Audit.Description"] = "Read-only tenant audit evidence from the server-side query gateway.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.Accessible.Member"] = "Open audit evidence for user {0} in tenant {1}",
             ["Tenants.Audit.EntryPoint.Accessible.Tenant"] = "Open audit evidence for tenant {0} from {1}",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",

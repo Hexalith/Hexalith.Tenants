@@ -876,6 +876,123 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Tracker_refusal_of_a_live_attempt_is_abandonment_with_an_unavailable_audit_record()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        TenantRemoveConfigurationPreview preview = Preview(new TenantRemoveConfigurationIntent("tenant.alpha", "billing", "billing.mode"));
+        TenantRemoveConfigurationAttemptTracker tracker = Services.GetRequiredService<TenantRemoveConfigurationAttemptTracker>();
+        tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, "01ARZ3NDEKTSV4RRFFQ69G5FAA", DateTimeOffset.UtcNow)).ShouldBeTrue();
+        TenantRemoveConfigurationCommandSnapshot live = TenantRemoveConfigurationCommandSnapshot.Idle()
+            .Previewed(preview)
+            .RequestSent(preview, "01ARZ3NDEKTSV4RRFFQ69G5FAV", DateTimeOffset.UtcNow);
+        MethodInfo setSnapshot = typeof(RemoveTenantConfigurationFlow)
+            .GetMethod("SetSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        cut.InvokeAsync(() => setSnapshot.Invoke(cut.Instance, [live]));
+
+        // The tracker refuses a live attempt that another identity already owns. That is not retention expiry:
+        // the attempt is abandoned, and its status after dispatch stays unverifiable rather than delayed.
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Fact]
+    public void Abandoning_a_retained_attempt_stays_unavailable_and_continue_read_only_then_closes_the_dialog()
+    {
+        int closeRequests = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Ambiguous(
+                "stub-message-id",
+                "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnCloseRequested, () => closeRequests++));
+        const string audit = "[data-testid='tenants-config-remove-audit']";
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        // The retained ambiguous attempt can be re-queried and cannot be dismissed: Refresh is offered,
+        // Continue read-only is not.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        cut.FindAll($"{audit} [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+
+        // Operator abandonment is not retention expiry: the audit record stays unavailable, never delayed.
+        cut.Find("[data-testid='tenants-config-remove-abandon']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse(), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-recovery-verb='refresh']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        cut.Find($"{audit} [data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("unavailable");
+        cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
+
+        cut.WaitForAssertion(() => closeRequests.ShouldBe(1), TimeSpan.FromSeconds(5));
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_and_never_exhaust_the_retry_limit()
+    {
+        TaskCompletionSource<TenantCommandStatusResult> releaseLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Ambiguous(
+                "stub-message-id",
+                "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous"),
+            StatusGate = releaseLookup,
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        const string refresh = "[data-testid='tenants-config-remove-audit'] [data-recovery-verb='refresh']";
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
+        Task nudge = cut.InvokeAsync(() => cut.Instance.ApplySignalRNudgeAsync());
+        SpinWait.SpinUntil(() => gateway.GetStatusCallCount == 1, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseLookup.SetResult(TenantCommandStatusResult.Pending("Status is propagating."));
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        gateway.GetStatusCallCount.ShouldBe(1);
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void Cancel_and_escape_close_without_committing_action()
     {
         StubTenantCommandGateway gateway = new();
@@ -1463,7 +1580,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Remove.State.Failed"] = "Configuration removal submission failed.",
             ["Tenants.Configuration.Remove.State.Degraded"] = "Configuration removal result is degraded and needs review.",
             ["Tenants.Configuration.Remove.State.UnableToVerify"] = "Unable to verify the configuration removal result.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

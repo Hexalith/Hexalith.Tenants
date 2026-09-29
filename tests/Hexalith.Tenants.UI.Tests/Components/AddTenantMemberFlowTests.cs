@@ -558,6 +558,228 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .ShouldContain("not authorized", Case.Insensitive);
     }
 
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_its_replay_and_never_exhaust_the_retry_limit()
+    {
+        TaskCompletionSource nudgeLookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseNudgeLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            StatusAsync = async _ =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 2)
+                {
+                    nudgeLookupStarted.SetResult();
+                    await releaseNudgeLookup.Task.ConfigureAwait(false);
+                }
+
+                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        const string refresh = "[data-testid='tenants-add-member-audit'] [data-recovery-verb='refresh']";
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
+        Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup and its replay, so the repeated clicks are one pending
+        // recovery: none of them counted as an unchanged retry while the lookup was still running.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseNudgeLookup.SetResult();
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        SpinWait.SpinUntil(() => Volatile.Read(ref statusCalls) == 3, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Refresh_is_offered_only_while_the_attempt_can_be_requeried(bool requeryable)
+    {
+        // A failure reported after the message was sent carries no correlation id, so nothing can be re-queried.
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = requeryable
+                ? TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")
+                : TenantCommandSubmissionResult.Failed("Submission failed before it could be verified.") with
+                {
+                    MessageId = "message-1",
+                },
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(requeryable
+            ? TenantCommandAuditState.AuditPending
+            : TenantCommandAuditState.AuditUnavailable));
+        cut.WaitForAssertion(
+            () => cut.FindAll("[data-testid='tenants-add-member-audit'] [data-recovery-verb='refresh']").Count.ShouldBe(requeryable ? 1 : 0),
+            TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-add-member-audit'] [data-testid='tenants-audit-availability']");
+    }
+
+    [Fact]
+    public void Continue_read_only_after_confirmation_moves_focus_to_the_lifecycle_section()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+            .Add(p => p.ProjectionEvidenceProvider, request =>
+            {
+                liveProjectionVersion = "v2";
+                return Task.FromResult<TenantDetail?>(Detail(
+                    request.TenantId,
+                    [
+                        new TenantMember("owner-user", TenantRole.TenantOwner),
+                        new TenantMember(request.UserId, request.Role),
+                    ]));
+            }));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport));
+
+        cut.Find("[data-testid='tenants-add-member-audit'] [data-recovery-verb='continuereadonly']").Click();
+
+        // Continue read-only unmounts the control and the focused button; focus lands on the lifecycle section.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
+        cut.FindAll("[data-testid='tenants-add-member-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        string lifecycleReferenceId = ((ElementReference)typeof(AddTenantMemberFlow)
+            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        cut.WaitForAssertion(() => LastFocusedReferenceId().ShouldBe(lifecycleReferenceId));
+    }
+
+    [Theory]
+    [InlineData(true, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, TenantCommandAuditState.NotStarted)]
+    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable(
+        bool isRetry,
+        TenantCommandAuditState expectedAuditState)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || (isRetry && ++acquisitions == 1))));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+
+        if (isRetry)
+        {
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        }
+
+        // The retry reuses an identity that may already have reached the server; the refused lease blocks it
+        // before dispatch, and the audit dimension reports the unknown status instead of "not started". A first
+        // attempt refused before dispatch sent nothing, so no audit state is implied.
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
+        cut.FindAll("[data-testid='tenants-add-member-audit'] [data-testid='tenants-audit-availability']").Count
+            .ShouldBe(isRetry ? 1 : 0);
+        gateway.AddMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+    }
+
+    [Fact]
+    public void Retry_whose_command_gateway_disappears_after_the_lease_reports_the_possibly_delivered_attempt_as_unverifiable()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        bool gatewayAvailable = true;
+        Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? gateway : null!);
+        int acquisitions = 0;
+        IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                // The retry takes the lease, and the command surface disappears before dispatch.
+                if (active && ++acquisitions == 2)
+                {
+                    gatewayAvailable = false;
+                }
+
+                return Task.FromResult(true);
+            }));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+
+        cut.Find("form").Submit();
+
+        // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.AddMemberCallCount.ShouldBe(1);
+    }
+
+    private string LastFocusedReferenceId()
+        => JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .LastOrDefault()
+            .Id ?? string.Empty;
+
     private void RegisterServices(StubTenantCommandGateway gateway)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -668,7 +890,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             ["Tenants.AddMember.State.UnableToVerify"] = "Unable to verify the add-member command result.",
             ["Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance"] = "Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.",
             ["Tenants.AddMember.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

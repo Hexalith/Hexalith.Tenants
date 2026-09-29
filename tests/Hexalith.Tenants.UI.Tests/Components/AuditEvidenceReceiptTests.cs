@@ -618,7 +618,6 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Find("[data-testid='tenants-audit-receipt']").HasAttribute("aria-live").ShouldBeFalse();
         cut.Find("[data-testid='tenants-audit-availability-announcement']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
         cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-audit-source").ShouldBe("audit-receipt");
-        cut.FindAll("[data-recovery-verb='escalate']").ShouldBeEmpty();
         cut.FindAll("[data-recovery-verb='wait']").ShouldBeEmpty();
     }
 

@@ -835,7 +835,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     [Theory]
     [InlineData("dispatch", 0, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
     [InlineData("status", 1, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
-    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead", TenantCommandAuditState.AuditUnavailable)]
+    // A timed-out proof read is a projection read: the audit dimension keeps what the Completed status established.
+    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead", TenantCommandAuditState.AuditPending)]
     public void Attempt_deadline_terminalizes_and_releases_activity_for_never_completing_io(
         string stage,
         int expectedStatusCalls,
@@ -1605,6 +1606,171 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
                 .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
                 .Add(component => component.OnCommandActivityChanged, active => activityEvents.Add(active)));
+    }
+
+    [Fact]
+    public void Retained_attempt_without_projection_provider_keeps_its_pending_audit_record()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        TenantLifecycleAttemptTracker tracker = new();
+        tracker.Remember(PendingLifecycleAttempt()).ShouldBeTrue();
+        RegisterServices(gateway, tracker);
+
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(component => component.TenantId, "tenant.alpha")
+            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.ProjectionVersion, "tenant-sequence:41")
+            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+            .Add(component => component.IsCommandSurfaceConnected, true)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
+
+        // No proof reader is a provenance failure, not a failed audit read: the stored events keep their pending
+        // audit record while the command itself is unverified.
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
+            .Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.ProofRead"), TimeSpan.FromSeconds(5));
+        TenantLifecycleCommandSnapshot snapshot = cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot;
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+    }
+
+    [Fact]
+    public void Ambiguous_dispatch_offers_refresh_but_no_continue_read_only_until_the_attempt_is_released()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionException = new InvalidOperationException("raw dispatch failure"),
+        };
+        List<bool> activity = [];
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = RenderLifecycleAvailability(activity);
+        const string audit = "[data-testid='tenants-lifecycle-audit']";
+
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+
+        // The retained ambiguous attempt can be re-queried, and it cannot be closed: Refresh is offered, Continue
+        // read-only is not.
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
+            .Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        cut.FindAll($"{audit} [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+
+        // Abandoning releases the attempt: nothing is left to re-query, and Continue read-only closes the dialog.
+        cut.Find("[data-testid='tenants-lifecycle-abandon']").Click();
+
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
+            .Instance.Snapshot.RetainsAttempt.ShouldBeFalse());
+        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.AuditState
+            .ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-recovery-verb='refresh']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='continuereadonly']"), TimeSpan.FromSeconds(5));
+        cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty());
+        gateway.DisableSubmissions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_its_replay_and_never_exhaust_the_retry_limit()
+    {
+        TaskCompletionSource nudgeLookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseNudgeLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored-by-stub", "correlation-life"),
+            StatusProvider = async (_, _) =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 2)
+                {
+                    nudgeLookupStarted.SetResult();
+                    await releaseNudgeLookup.Task.ConfigureAwait(false);
+                }
+
+                return new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true);
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = RenderLifecycleFlow();
+        const string refresh = "[data-testid='tenants-lifecycle-audit'] [data-recovery-verb='refresh']";
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
+        Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup and its replay; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseNudgeLookup.SetResult();
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        SpinWait.SpinUntil(() => Volatile.Read(ref statusCalls) == 3, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        gateway.DisableSubmissions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_redispatch_wait_for_it_and_never_exhaust_the_retry_limit()
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionException = new InvalidOperationException("raw dispatch failure"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = RenderLifecycleFlow();
+        const string refresh = "[data-testid='tenants-lifecycle-audit'] [data-recovery-verb='refresh']";
+
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // The running refresh re-dispatches the retained RequestSent attempt, and that dispatch hangs.
+        TaskCompletionSource dispatchStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseDispatch = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.SubmissionException = null;
+        gateway.SubmissionProvider = async (_, messageId, _) =>
+        {
+            dispatchStarted.TrySetResult();
+            await releaseDispatch.Task.ConfigureAwait(false);
+            return TenantCommandSubmissionResult.Ambiguous(messageId, "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        };
+        Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await dispatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The click merged into the running re-dispatch waits for it; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseDispatch.SetResult();
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.DisableSubmissions.ShouldBeGreaterThanOrEqualTo(2);
     }
 
     [Fact]
@@ -3364,7 +3530,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

@@ -132,6 +132,7 @@
                                         Source="edit-metadata"
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))"
+                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseEditorAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
@@ -173,6 +174,7 @@
     private bool _isOpen;
     private bool _isSubmitting;
     private bool _isRefreshing;
+    private TaskCompletionSource? _refreshCompletion;
     private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
     private FluentTextInput _nameElement = default!;
@@ -323,6 +325,12 @@
     private bool CanRequeryAudit
         => !string.IsNullOrWhiteSpace(_snapshot.MessageId) && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId);
 
+    // Continue read-only closes the editor through the Cancel path, and is offered only while the editor is open
+    // and no owned command is in flight, so it never renders as a control that does nothing or leaves a retained
+    // attempt behind.
+    private bool CanContinueReadOnly
+        => _isOpen && !IsOwnedCommandInFlight;
+
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
@@ -331,7 +339,7 @@
         => @<AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Detail.TenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl"
                                      ReturnFocus="tenants-edit-metadata-lifecycle"
@@ -453,7 +461,17 @@
         if (_focusOpenPending)
         {
             _focusOpenPending = false;
-            await _openElement.FocusAsync().ConfigureAwait(false);
+
+            // Closing (Cancel or Continue read-only) returns focus to Open, which renders only while the editor can
+            // open again; otherwise the lifecycle section keeps focus inside the flow.
+            if (CanOpen)
+            {
+                await _openElement.FocusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            }
         }
 
         if (_focusNamePending)
@@ -658,7 +676,13 @@
             _isSubmitting = false;
             SetSnapshot(BlockCurrentSnapshot(
                 Localizer["Tenants.Commands.Unavailable.AggregateInFlight"].Value,
-                TenantCommandFocusTarget.Submit));
+                TenantCommandFocusTarget.Submit) with
+            {
+                // A retry reuses an identity that may already have reached the server, so its status is unknown.
+                AuditState = retryMessageId is null
+                    ? TenantCommandAuditStates.NotStarted
+                    : TenantCommandAuditStates.Unverifiable,
+            });
             return;
         }
 
@@ -669,7 +693,13 @@
             {
                 SetSnapshot(BlockCurrentSnapshot(
                     Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit));
+                    TenantCommandFocusTarget.Submit) with
+                {
+                    // A retry reuses an identity that may already have reached the server, so its status is unknown.
+                    AuditState = retryMessageId is null
+                        ? TenantCommandAuditStates.NotStarted
+                        : TenantCommandAuditStates.Unverifiable,
+                });
                 return;
             }
 
@@ -705,14 +735,27 @@
         }
     }
 
-    private async Task RefreshStatusAsync()
+    // A user-initiated refresh that arrives while one is running waits for it, so the shared control's bounded
+    // Refresh never counts a merged click as an unchanged retry. SignalR nudges, and anything reachable from inside
+    // a running refresh, must pass false: waiting there would deadlock.
+    private Task RefreshStatusAsync()
+        => RefreshAttemptStatusAsync(waitForRunningRefresh: true);
+
+    private async Task RefreshAttemptStatusAsync(bool waitForRunningRefresh)
     {
         if (_isRefreshing)
         {
+            if (waitForRunningRefresh && _refreshCompletion is { } running)
+            {
+                await running.Task.ConfigureAwait(false);
+            }
+
             return;
         }
 
         _isRefreshing = true;
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _refreshCompletion = completion;
         try
         {
             if (string.IsNullOrWhiteSpace(_snapshot.MessageId) || string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
@@ -773,12 +816,13 @@
                 string? confirmationUnavailableReason = ProjectionConfirmationUnavailableReason;
                 if (!string.IsNullOrWhiteSpace(confirmationUnavailableReason))
                 {
+                    // The projection surface cannot confirm right now; no audit read happened, so the audit
+                    // dimension keeps what command status established.
                     SetSnapshot(_snapshot with
                     {
                         State = TenantCommandLifecycleState.UnableToVerify,
                         SafeMessage = confirmationUnavailableReason,
                         SafeMessageKey = null,
-                        AuditState = TenantCommandAuditStates.Unverifiable,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     });
@@ -787,7 +831,7 @@
 
                 if (ProjectionEvidenceProvider is null)
                 {
-                    SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+                    SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
                     return;
                 }
 
@@ -795,7 +839,7 @@
                 TenantDetail? evidence = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
                 if (evidence is null)
                 {
-                    SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+                    SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
                     return;
                 }
 
@@ -819,16 +863,29 @@
             }
             catch (Exception)
             {
-                SetUnableToVerify("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
+                SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
             }
         }
         finally
         {
             _isRefreshing = false;
-            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            try
+            {
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                if (ReferenceEquals(_refreshCompletion, completion))
+                {
+                    _refreshCompletion = null;
+                }
+
+                completion.TrySetResult();
+            }
         }
     }
 
+    // A failed command status read: the status after dispatch cannot be verified.
     private void SetUnableToVerify(string safeMessageKey)
         => SetSnapshot(_snapshot with
         {
@@ -837,6 +894,19 @@
             SafeMessageKey = safeMessageKey,
             RejectionCode = null,
             AuditState = TenantCommandAuditStates.Unverifiable,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        });
+
+    // A projection or proof read that failed, or that could not prove this attempt: the command stays unverified,
+    // and the audit dimension keeps what command status established, because no audit read happened.
+    private void SetProjectionUnverified(string safeMessageKey)
+        => SetSnapshot(_snapshot with
+        {
+            State = TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage = null,
+            SafeMessageKey = safeMessageKey,
+            RejectionCode = null,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         });

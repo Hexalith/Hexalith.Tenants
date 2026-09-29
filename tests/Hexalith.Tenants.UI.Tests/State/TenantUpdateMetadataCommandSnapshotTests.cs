@@ -219,7 +219,11 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
 
         unable.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         unable.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
-        unable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        // The projection was read but did not prove this attempt, and no audit read happened: the audit
+        // dimension keeps what the Completed status established.
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        unable.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]

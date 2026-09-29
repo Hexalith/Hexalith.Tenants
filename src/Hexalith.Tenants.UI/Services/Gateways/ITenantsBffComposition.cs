@@ -17,7 +17,11 @@ public interface ITenantsBffComposition {
     /// <summary>Gets an approved local destination for requesting audit access, if configured.</summary>
     string? AuditPermissionRecoveryHref => null;
 
-    /// <summary>Gets an approved local destination for escalating audit read failures, if configured.</summary>
+    /// <summary>
+    /// Gets an approved local destination for escalation, if configured. It serves both failed audit reads (the audit
+    /// page and its receipt) and the Escalate recovery of a command's audit availability control when the audit
+    /// record is delayed, unavailable, or has no in-panel verification support.
+    /// </summary>
     string? AuditEscalationRecoveryHref => null;
 
     /// <summary>Gets whether fixed-scope command dispatch is connected.</summary>

@@ -684,6 +684,10 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             sources.Add(control.Groups["source"].Value).ShouldBeTrue($"{flow} reuses another flow's Source.");
 
             source.ShouldContain("\"Tenants.Audit.EntryPoint.Accessible.Command\", AuditStateLabel,", Case.Sensitive, flow);
+
+            // The Inspect-audit recovery shows the canonical verb, never the "Audit evidence" noun.
+            source.ShouldContain("Label=\"@Localizer[\"Tenants.Audit.Availability.Action.InspectAudit\"]\"", Case.Sensitive, flow);
+            source.ShouldNotContain("Tenants.Audit.EntryPoint.Label", Case.Sensitive, flow);
             source.ShouldContain("TenantAuditAvailability.StateLabelKeyFor(_snapshot.AuditState)", Case.Sensitive, flow);
             source.ShouldNotContain("AvailabilityText", Case.Sensitive, flow);
             source.ShouldContain("InspectAuditAction=\"@CommandAuditEntryPoint\"", Case.Sensitive, flow);

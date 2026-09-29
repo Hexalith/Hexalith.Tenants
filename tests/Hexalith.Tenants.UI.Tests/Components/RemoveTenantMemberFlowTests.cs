@@ -625,6 +625,48 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Retry_whose_command_gateway_disappears_after_the_lease_reports_the_possibly_delivered_attempt_as_unverifiable()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        bool gatewayAvailable = true;
+        Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? gateway : null!);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                // The retry takes the lease, and the command surface disappears before dispatch.
+                if (active && ++acquisitions == 2)
+                {
+                    gatewayAvailable = false;
+                }
+
+                return Task.FromResult(true);
+            }));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+
+        cut.Find("form").Submit();
+
+        // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void Programmatic_submit_while_unable_to_verify_recovers_status_without_dispatching()
     {
         StubTenantCommandGateway gateway = new()
@@ -1345,6 +1387,106 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData("unavailable", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("error", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("throws", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("invalid-cursor", TenantCommandAuditState.AuditDelayed)]
+    [InlineData("loading", TenantCommandAuditState.AuditDelayed)]
+    public void Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(
+        string auditOutcome,
+        TenantCommandAuditState expectedAuditState)
+    {
+        StubTenantCommandGateway gateway = CompletedGateway();
+        ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
+        queryGateway.GetTenantAuditAsync(
+                Arg.Any<TenantAuditRequest>(),
+                Arg.Any<TenantAuditSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                TenantAuditRequest request = call.ArgAt<TenantAuditRequest>(0);
+                return auditOutcome switch
+                {
+                    "unavailable" => TenantAuditSnapshot.Unavailable(request),
+                    "error" => TenantAuditSnapshot.Error(request),
+                    "throws" => throw new InvalidOperationException("The audit read failed."),
+                    "invalid-cursor" => TenantAuditSnapshot.InvalidCursor(request),
+                    "loading" => TenantAuditSnapshot.Loading(request.TenantId),
+                    _ => throw new ArgumentOutOfRangeException(nameof(auditOutcome), auditOutcome, null),
+                };
+            });
+        RegisterServices(gateway, queryGateway);
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemoval(gateway);
+
+        // A read that failed leaves the audit status unreadable (Severe, assertive); a page that is not ready yet
+        // only delays the proof (Warning, polite). The confirmed removal itself never changes.
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
+        });
+        cut.Find("[data-testid='tenants-remove-member-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state")
+            .ShouldBe(expectedAuditState is TenantCommandAuditState.AuditUnavailable ? "unavailable" : "delayed");
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_its_replay_and_never_exhaust_the_retry_limit()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        const string refresh = "[data-testid='tenants-remove-member-audit'] [data-recovery-verb='refresh']";
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        TaskCompletionSource nudgeLookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseNudgeLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusReads = 0;
+        gateway.StatusAsync = async (_, _) =>
+        {
+            if (Interlocked.Increment(ref statusReads) == 1)
+            {
+                nudgeLookupStarted.SetResult();
+                await releaseNudgeLookup.Task.ConfigureAwait(false);
+            }
+
+            return new TenantCommandStatusResult(CommandStatus.EventsStored);
+        };
+
+        // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
+        Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup and its replay; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseNudgeLookup.SetResult();
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        SpinWait.SpinUntil(() => Volatile.Read(ref statusReads) == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+    }
+
     private void RegisterServices(StubTenantCommandGateway gateway, ITenantQueryGateway? queryGateway = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -1746,7 +1888,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             ["Tenants.RemoveMember.State.Failed"] = "Remove-member command submission failed.",
             ["Tenants.RemoveMember.State.Degraded"] = "Remove-member command result is degraded and needs review.",
             ["Tenants.RemoveMember.State.UnableToVerify"] = "Unable to verify the remove-member command result.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

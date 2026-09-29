@@ -486,21 +486,29 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
-    [Fact]
-    public void Unavailable_audit_read_escalates_once_from_the_page_never_again_from_its_receipt()
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Unavailable)]
+    [InlineData(TenantAuditSurfaceKind.Error)]
+    public void Unavailable_audit_read_escalates_once_from_the_page_never_again_from_its_receipt(TenantAuditSurfaceKind kind)
     {
-        RegisterServices(SnapshotFor(TenantAuditSurfaceKind.Unavailable));
+        RegisterServices(SnapshotFor(kind));
         Services.GetRequiredService<NavigationManager>()
             .NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-not-loaded");
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
 
-        cut.WaitForElement("[data-testid='tenants-audit-receipt'] [data-testid='tenants-audit-availability']");
-        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-audit-availability']")
-            .GetAttribute("data-state").ShouldBe("unavailable");
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        if (kind is TenantAuditSurfaceKind.Unavailable)
+        {
+            cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-audit-availability']")
+                .GetAttribute("data-state").ShouldBe("unavailable");
+        }
+
         cut.Find("[data-testid='tenants-audit-recovery-escalate']").GetAttribute("href").ShouldBe("/support/audit-incident");
 
-        // The page already escalates the failed read, so the receipt's shared control suppresses its own link.
+        // The page already escalates the failed read, and hands the receipt the very condition it rendered the
+        // link from, so the receipt never offers a second escalation for the same failure.
+        cut.FindComponent<AuditEvidenceReceipt>().Instance.HostEscalatesFailedRead.ShouldBeTrue();
         cut.FindAll("[data-testid='tenants-audit-receipt-recovery-escalate']").ShouldBeEmpty();
         cut.FindAll("[href='/support/audit-incident']").Count.ShouldBe(1);
     }

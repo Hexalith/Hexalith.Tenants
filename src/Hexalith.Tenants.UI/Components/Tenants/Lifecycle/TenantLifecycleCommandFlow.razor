@@ -127,6 +127,7 @@
                                         Source="lifecycle"
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusFromUiAsync) : default(EventCallback))"
+                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
@@ -180,6 +181,8 @@
     private bool _refreshRetainedAttemptPending;
     private int _submitGate;
     private int _refreshGate;
+    private readonly Lock _refreshSync = new();
+    private TaskCompletionSource? _refreshCompletion;
     private int _refreshReplayRequested;
     private int _pendingProjectionRefreshRequested;
     private bool _focusConfirmationPending;
@@ -401,6 +404,11 @@
     private bool CanRequeryAudit
         => _snapshot.RetainsAttempt;
 
+    // Continue read-only closes the dialog through the Cancel path, which refuses while an attempt is retained or a
+    // submit is running; the control is offered only while that path actually closes, never as a dead control.
+    private bool CanContinueReadOnly
+        => !_isSubmitting && !_snapshot.RetainsAttempt;
+
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
@@ -409,7 +417,7 @@
         => @<AuditEvidenceEntryPoint TenantId="@PreviewTenantId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, PreviewTenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl"
                                      ReturnFocus="tenants-lifecycle-lifecycle"
@@ -838,7 +846,7 @@
         ApplySignalRNudge();
         if (_snapshot.RetainsAttempt)
         {
-            await RefreshStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+            await RefreshStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
         }
     }
 
@@ -1354,7 +1362,7 @@
         return TenantHighImpactActionAvailabilityEvaluator.Evaluate(evidence);
     }
 
-    private async Task RefreshStatusAsync(bool requestProjectionRefresh = true)
+    private async Task RefreshStatusAsync(bool requestProjectionRefresh = true, bool waitForRunningRefresh = true)
     {
         if (_disposed)
         {
@@ -1369,6 +1377,13 @@
             }
 
             Volatile.Write(ref _refreshReplayRequested, 1);
+
+            // A submit re-dispatched by the running refresh consumes this replay; wait for that refresh.
+            if (waitForRunningRefresh && RunningRefresh() is { } runningSubmitRefresh)
+            {
+                await runningSubmitRefresh.ConfigureAwait(false);
+            }
+
             return;
         }
 
@@ -1379,33 +1394,89 @@
 
         Volatile.Write(ref _refreshReplayRequested, 1);
 
-        while (!_disposed)
+        TaskCompletionSource? owned = null;
+        try
         {
-            if (Interlocked.Exchange(ref _refreshGate, 1) != 0)
+            while (!_disposed)
             {
-                return;
-            }
-
-            try
-            {
-                await RenderIfAliveAsync().ConfigureAwait(false);
-                while (!_disposed && Interlocked.Exchange(ref _refreshReplayRequested, 0) != 0)
+                Task? running = null;
+                lock (_refreshSync)
                 {
-                    bool shouldRequestProjectionRefresh
-                        = Interlocked.Exchange(ref _pendingProjectionRefreshRequested, 0) != 0;
-                    await RefreshStatusCoreAsync(shouldRequestProjectionRefresh).ConfigureAwait(false);
+                    if (_refreshGate != 0)
+                    {
+                        running = _refreshCompletion?.Task ?? Task.CompletedTask;
+                    }
+                    else
+                    {
+                        _refreshGate = 1;
+                        owned ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _refreshCompletion = owned;
+                    }
+                }
+
+                if (running is not null)
+                {
+                    // Merged into the refresh already running, which consumes the replay requested above. Waiting
+                    // for it keeps the caller (for example the shared audit control's bounded Refresh) from
+                    // observing an unchanged state before that replay has run. A SignalR nudge does not wait,
+                    // but a refresh that already served its own waiters always waits for the one that took over.
+                    if (waitForRunningRefresh || owned is not null)
+                    {
+                        await running.ConfigureAwait(false);
+                    }
+
+                    return;
+                }
+
+                try
+                {
+                    await RenderIfAliveAsync().ConfigureAwait(false);
+                    while (!_disposed && Interlocked.Exchange(ref _refreshReplayRequested, 0) != 0)
+                    {
+                        bool shouldRequestProjectionRefresh
+                            = Interlocked.Exchange(ref _pendingProjectionRefreshRequested, 0) != 0;
+                        await RefreshStatusCoreAsync(shouldRequestProjectionRefresh).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    lock (_refreshSync)
+                    {
+                        _refreshGate = 0;
+                    }
+
+                    await RenderIfAliveAsync().ConfigureAwait(false);
+                }
+
+                if (Volatile.Read(ref _refreshReplayRequested) == 0)
+                {
+                    return;
                 }
             }
-            finally
+        }
+        finally
+        {
+            if (owned is not null)
             {
-                Volatile.Write(ref _refreshGate, 0);
-                await RenderIfAliveAsync().ConfigureAwait(false);
-            }
+                lock (_refreshSync)
+                {
+                    if (ReferenceEquals(_refreshCompletion, owned))
+                    {
+                        _refreshCompletion = null;
+                    }
+                }
 
-            if (Volatile.Read(ref _refreshReplayRequested) == 0)
-            {
-                return;
+                owned.TrySetResult();
             }
+        }
+    }
+
+    // The refresh currently holding the gate, or null when none runs.
+    private Task? RunningRefresh()
+    {
+        lock (_refreshSync)
+        {
+            return _refreshGate != 0 ? _refreshCompletion?.Task : null;
         }
     }
 
@@ -1568,7 +1639,7 @@
 
         if (ProjectionEvidenceProvider is null && _snapshot.RetainsAttempt)
         {
-            SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.ProofRead"));
+            SetSnapshot(_snapshot.ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.ProofRead"));
             await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
             return;
         }
@@ -1631,7 +1702,7 @@
             catch (TimeoutException exception)
             {
                 LogLifecycleFailure("lifecycle-proof-timeout", exception);
-                SetSnapshot(_snapshot.UnableToVerify(
+                SetSnapshot(_snapshot.ProjectionUnverified(
                     "Tenants.Lifecycle.UnableToVerify.ProofRead"));
             }
             catch (Exception exception)

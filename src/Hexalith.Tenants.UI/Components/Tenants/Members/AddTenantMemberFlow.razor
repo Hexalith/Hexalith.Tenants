@@ -161,7 +161,7 @@
     private bool _focusUserIdPending;
     private bool _focusRolePending;
     private bool _focusLifecyclePending;
-    private int _refreshInFlight;
+    private TaskCompletionSource? _refreshCompletion;
     private int _refreshPending;
     private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
 
@@ -286,7 +286,7 @@
                                      TargetUserId="@_userId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Detail.TenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl"
                                      ReturnFocus="tenants-add-member-lifecycle"
@@ -384,7 +384,7 @@
             return;
         }
 
-        await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+        await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
     internal void ApplyProjectionEvidence(TenantDetail? detail)
@@ -488,7 +488,13 @@
             _isSubmitting = false;
             SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
                 CommandSurfaceUnavailableReason ?? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value,
-                TenantCommandFocusTarget.Submit));
+                TenantCommandFocusTarget.Submit) with
+            {
+                // A retry reuses an identity that may already have reached the server, so its status is unknown.
+                AuditState = retryMessageId is null
+                    ? TenantCommandAuditStates.NotStarted
+                    : TenantCommandAuditStates.Unverifiable,
+            });
             return;
         }
 
@@ -499,7 +505,13 @@
             {
                 SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
                     Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit));
+                    TenantCommandFocusTarget.Submit) with
+                {
+                    // A retry reuses an identity that may already have reached the server, so its status is unknown.
+                    AuditState = retryMessageId is null
+                        ? TenantCommandAuditStates.NotStarted
+                        : TenantCommandAuditStates.Unverifiable,
+                });
                 return;
             }
 
@@ -538,33 +550,53 @@
     private Task RefreshStatusAsync()
         => RefreshCommandStatusAsync(requestProjectionRefresh: true);
 
-    private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
+    private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh, bool waitForRunningRefresh = true)
     {
-        if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
+        // The running refresh doubles as the in-flight gate, so a merged request can wait for exactly the
+        // refresh (and replay) that will serve it. The replay request is written before the gate is tried: an
+        // owner finishing between a failed gate and a later write would release this caller without running it.
+        // An owner clears it before its first lookup.
+        Volatile.Write(ref _refreshPending, 1);
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (Interlocked.CompareExchange(ref _refreshCompletion, completion, null) is { } running)
         {
-            Volatile.Write(ref _refreshPending, 1);
+            // A request merged into the refresh already running is served by that refresh's replay. Waiting for
+            // it keeps the caller (for example the shared audit control's bounded Refresh) from observing an
+            // unchanged state before the replay has run. A SignalR nudge does not wait.
+            if (waitForRunningRefresh)
+            {
+                await running.Task.ConfigureAwait(false);
+            }
+
             return;
         }
 
         try
         {
-            bool refreshProjection = requestProjectionRefresh;
-            do
+            try
             {
-                Volatile.Write(ref _refreshPending, 0);
-                await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
-                refreshProjection = false;
+                bool refreshProjection = requestProjectionRefresh;
+                do
+                {
+                    Volatile.Write(ref _refreshPending, 0);
+                    await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
+                    refreshProjection = false;
+                }
+                while (Interlocked.Exchange(ref _refreshPending, 0) != 0);
             }
-            while (Interlocked.Exchange(ref _refreshPending, 0) != 0);
+            finally
+            {
+                Volatile.Write(ref _refreshCompletion, null);
+            }
+
+            if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
+            {
+                await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+            }
         }
         finally
         {
-            Volatile.Write(ref _refreshInFlight, 0);
-        }
-
-        if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
-        {
-            await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+            completion.TrySetResult();
         }
     }
 
@@ -629,6 +661,10 @@
     private async Task ContinueReadOnlyAsync()
     {
         SetSnapshot(TenantAddMemberCommandSnapshot.Idle());
+
+        // The polite Idle snapshot unmounts the shared control and the button that had focus, so focus moves to
+        // the lifecycle section instead of falling back to the document body.
+        _focusLifecyclePending = true;
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
     }
 

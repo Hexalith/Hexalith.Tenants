@@ -163,6 +163,7 @@
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="set-configuration" OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))" OwnerRefreshIncludesAuditAuthority="true"
+                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseEditorAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
@@ -203,6 +204,7 @@
     private bool _isOpen;
     private bool _isSubmitting;
     private bool _isRefreshing;
+    private TaskCompletionSource? _refreshCompletion;
     private bool _hasRaisedCommandActivity;
     private bool _adoptAndRefreshPending;
     private bool _previewEvidenceUnavailable;
@@ -356,6 +358,11 @@
     private bool CanRequeryAudit
         => _snapshot.RetainsAttempt;
 
+    // Continue read-only closes the editor through the Cancel path, which refuses while an attempt is retained;
+    // the control is offered only while the editor is open and that path actually closes, never as a dead control.
+    private bool CanContinueReadOnly
+        => _isOpen && !_snapshot.RetainsAttempt;
+
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
@@ -363,7 +370,7 @@
     private RenderFragment CommandAuditEntryPointTemplate
         => @<AuditEvidenceEntryPoint TenantId="@Context.TenantId" SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Context.TenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl" ReturnFocus="tenants-config-set-lifecycle"
                                      AuthorityPending="@AuditReadPending"
@@ -446,7 +453,7 @@
     {
         if (!_snapshot.RetainsAttempt) return;
         SetSnapshot(_snapshot.SignalRNudge());
-        await RefreshStatusAsync().ConfigureAwait(false);
+        await RefreshAttemptStatusAsync(waitForRunningRefresh: false).ConfigureAwait(false);
     }
     internal void ApplySignalRNudge() => SetSnapshot(_snapshot.SignalRNudge());
     internal void ApplyProjectionEvidence(TenantConfigurationProjectionProof? proof) => SetSnapshot(_snapshot.ConfirmProjection(proof));
@@ -730,14 +737,28 @@
         }
     }
 
-    private async Task RefreshStatusAsync()
+    // A user-initiated refresh that arrives while one is running waits for it, so the shared control's bounded
+    // Refresh never counts a merged click as an unchanged retry. SignalR nudges, and anything reachable from inside
+    // a running refresh, must pass false: waiting there would deadlock.
+    private Task RefreshStatusAsync()
+        => RefreshAttemptStatusAsync(waitForRunningRefresh: true);
+
+    private async Task RefreshAttemptStatusAsync(bool waitForRunningRefresh)
     {
-        if (_isRefreshing || !_snapshot.RetainsAttempt || _snapshot.Intent is null) return;
+        if (_isRefreshing)
+        {
+            if (waitForRunningRefresh && _refreshCompletion is { } running) await running.Task.ConfigureAwait(false);
+            return;
+        }
+
+        if (!_snapshot.RetainsAttempt || _snapshot.Intent is null) return;
         string tenantId = _snapshot.Intent.TenantId;
         string? messageId = _snapshot.MessageId;
         long attemptGeneration = _attemptGeneration;
         if (string.IsNullOrWhiteSpace(messageId)) return;
         _isRefreshing = true;
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _refreshCompletion = completion;
         try
         {
             if (_snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
@@ -831,9 +852,17 @@
         finally
         {
             _isRefreshing = false;
-            if (string.Equals(Context.TenantId, tenantId, StringComparison.Ordinal))
+            try
             {
-                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                if (string.Equals(Context.TenantId, tenantId, StringComparison.Ordinal))
+                {
+                    await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (ReferenceEquals(_refreshCompletion, completion)) _refreshCompletion = null;
+                completion.TrySetResult();
             }
         }
     }

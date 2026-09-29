@@ -158,6 +158,7 @@
                                         Source="remove-configuration"
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))"
+                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
@@ -200,6 +201,7 @@
     private readonly object _formModel = new();
     private TenantRemoveConfigurationCommandSnapshot _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle();
     private bool _isRefreshing;
+    private TaskCompletionSource? _refreshCompletion;
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
@@ -456,6 +458,11 @@
     private bool CanRequeryAudit
         => _snapshot.RetainsAttempt && _snapshot.CorrelationId is not null;
 
+    // Continue read-only dismisses the dialog through the Cancel path, which refuses while an attempt is retained
+    // or a submit is running; the control is offered only while that path actually closes, never as a dead control.
+    private bool CanContinueReadOnly
+        => !_isSubmitting && !_snapshot.RetainsAttempt;
+
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
@@ -464,7 +471,7 @@
         => @<AuditEvidenceEntryPoint TenantId="@Context.TenantId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Context.TenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl"
                                      ReturnFocus="tenants-config-remove-lifecycle"
@@ -740,7 +747,7 @@
         }
 
         SetSnapshot(_snapshot.SignalRNudge());
-        await RefreshStatusAsync().ConfigureAwait(false);
+        await RefreshAttemptStatusAsync(waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
     private void OnConfirmationInput(string? value)
@@ -972,9 +979,25 @@
         }
     }
 
-    private async Task RefreshStatusAsync()
+    // A user-initiated refresh that arrives while one is running waits for it, so the shared control's bounded
+    // Refresh never counts a merged click as an unchanged retry. SignalR nudges, and anything reachable from inside
+    // a running refresh, must pass false: waiting there would deadlock.
+    private Task RefreshStatusAsync()
+        => RefreshAttemptStatusAsync(waitForRunningRefresh: true);
+
+    private async Task RefreshAttemptStatusAsync(bool waitForRunningRefresh)
     {
-        if (_isRefreshing || !_snapshot.RetainsAttempt || _snapshot.Intent is null)
+        if (_isRefreshing)
+        {
+            if (waitForRunningRefresh && _refreshCompletion is { } running)
+            {
+                await running.Task.ConfigureAwait(false);
+            }
+
+            return;
+        }
+
+        if (!_snapshot.RetainsAttempt || _snapshot.Intent is null)
         {
             return;
         }
@@ -988,6 +1011,8 @@
         }
 
         _isRefreshing = true;
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        _refreshCompletion = completion;
         using CancellationTokenSource operationCancellation = CreateBoundedAttemptOperation();
         CancellationToken cancellationToken = operationCancellation.Token;
         try
@@ -1099,6 +1124,15 @@
             }
             catch (Exception)
             {
+            }
+            finally
+            {
+                if (ReferenceEquals(_refreshCompletion, completion))
+                {
+                    _refreshCompletion = null;
+                }
+
+                completion.TrySetResult();
             }
         }
     }

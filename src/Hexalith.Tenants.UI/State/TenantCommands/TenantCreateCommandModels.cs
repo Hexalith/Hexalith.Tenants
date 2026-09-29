@@ -257,7 +257,8 @@ public sealed record TenantCreateCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(null),
+                // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -411,7 +412,7 @@ public sealed record TenantCreateCommandSnapshot(
             State = TenantCommandLifecycleState.UnableToVerify,
             SafeMessage = null,
             SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
-            AuditState = TenantCommandAuditStates.Unverifiable,
+            // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
@@ -485,7 +486,8 @@ public sealed record TenantAddMemberCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(null),
+                // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -570,7 +572,7 @@ public sealed record TenantAddMemberCommandSnapshot(
                 LastConfirmedMemberProjection = detailEvidence,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance",
-                AuditState = TenantCommandAuditStates.Unverifiable,
+                // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -690,7 +692,8 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(null),
+                // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -781,7 +784,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget",
-                AuditState = TenantCommandAuditStates.Unverifiable,
+                // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -810,7 +813,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 LastConfirmedMemberProjection = detailEvidence,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline",
-                AuditState = TenantCommandAuditStates.Unverifiable,
+                // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -971,7 +974,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(null),
+                // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -1071,7 +1075,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                     LastConfirmedMemberProjection = detailEvidence,
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline",
-                    AuditState = TenantCommandAuditStates.Unverifiable,
+                    // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 };
@@ -1296,7 +1300,8 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(null),
+                // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -1409,7 +1414,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.EditMetadata.Confirm.UnableToVerify.MissingBaseline",
                 RejectionCode = null,
-                AuditState = TenantCommandAuditStates.Unverifiable,
+                // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -1439,7 +1444,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance",
                 RejectionCode = null,
-                AuditState = TenantCommandAuditStates.Unverifiable,
+                // The projection was read but did not prove this attempt, and no audit read happened: AuditState is kept.
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
@@ -1946,7 +1951,7 @@ public sealed record TenantLifecycleCommandSnapshot(
         if (!Enum.IsDefined(detailEvidence!.Status)
             || detailEvidence.Status is TenantStatus.Unknown)
         {
-            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.ProofRead");
+            return ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.ProofRead");
         }
 
         TenantStatus intendedStatus = Intent.Operation is TenantLifecycleOperation.EnableTenant
@@ -1965,7 +1970,7 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         if (string.IsNullOrWhiteSpace(BaselineProjectionVersion))
         {
-            return UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingBaseline");
+            return ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.MissingBaseline");
         }
 
         if (!HasCommandEventEvidence)
@@ -2040,6 +2045,19 @@ public sealed record TenantLifecycleCommandSnapshot(
         => UnableToVerify("Tenants.Lifecycle.UnableToVerify.StatusTimeout") with
         {
             AuditState = TenantCommandAuditStates.Delayed,
+        };
+
+    /// <summary>
+    /// Records a projection proof read that failed, or that was read but could not prove the attempt (missing
+    /// baseline, unknown status, or no proof reader). The command stays unverified, and the audit dimension keeps
+    /// what command status established, because no audit read happened.
+    /// </summary>
+    /// <param name="safeMessageKey">Whole-string localized failure key.</param>
+    /// <returns>The unable-to-verify snapshot with its audit dimension unchanged.</returns>
+    public TenantLifecycleCommandSnapshot ProjectionUnverified(string safeMessageKey)
+        => UnableToVerify(safeMessageKey) with
+        {
+            AuditState = AuditState,
         };
 
     /// <summary>

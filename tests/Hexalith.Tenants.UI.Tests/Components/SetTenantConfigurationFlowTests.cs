@@ -251,18 +251,31 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
-    [Fact]
-    public void A_failed_projection_read_after_events_are_stored_keeps_the_audit_record_pending()
+    [Theory]
+    [InlineData("proof-read-throws")]
+    [InlineData("proof-read-cancelled")]
+    [InlineData("projection-refresh-throws")]
+    public void A_failed_projection_read_after_events_are_stored_keeps_the_audit_record_pending(string failure)
     {
         StubTenantCommandGateway gateway = RegisterServices();
         gateway.StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(
             CommandStatus.EventsStored,
             HasVerifiedCommandIdentity: true));
-        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
-            gateway,
-            Context(["billing"]),
-            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
-            _ => throw new InvalidOperationException("Projection read failed."));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context(["billing"]))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.PreviewEvidenceProvider, intent => Task.FromResult(Preview(intent, TenantSetConfigurationCurrentState.Different)))
+            .Add(p => p.OnProjectionRefreshRequested, (Func<Task>)(() => failure == "projection-refresh-throws"
+                ? Task.FromException(new InvalidOperationException("Projection refresh failed."))
+                : Task.CompletedTask))
+            .Add(p => p.ProjectionEvidenceProvider, intent => failure switch
+            {
+                "proof-read-throws" => throw new InvalidOperationException("Projection read failed."),
+                "proof-read-cancelled" => Task.FromCanceled<TenantConfigurationProjectionProof>(new CancellationToken(canceled: true)),
+                _ => Task.FromResult(Proof(intent, TenantConfigurationProjectionProofKind.SetNotConfirmed, "tenant-sequence:41")),
+            }));
 
         CompleteForm(cut, "mode", "value");
         cut.Find("form").Submit();
@@ -304,6 +317,99 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-audit'] [data-testid='tenants-audit-availability']")
             .GetAttribute("data-state").ShouldBe("delayed");
         cut.FindAll("[data-testid='tenants-config-set-audit'] [data-recovery-verb='refresh']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Abandoning_a_retained_attempt_stays_unavailable_and_continue_read_only_then_closes_the_editor()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(
+            messageId,
+            "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        gateway.StatusAsync = _ => Task.FromResult(TenantCommandStatusResult.Pending("Status is propagating."));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        const string audit = "[data-testid='tenants-config-set-audit']";
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+
+        // The retained ambiguous attempt can be re-queried and cannot be closed: Refresh is offered, Continue
+        // read-only is not.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue();
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        cut.FindAll($"{audit} [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+
+        // Operator abandonment is not retention expiry: the audit record stays unavailable, never delayed.
+        cut.Find("[data-testid='tenants-config-set-abandon']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse(), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-recovery-verb='refresh']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        cut.Find($"{audit} [data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("unavailable");
+        cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-config-set-key-suffix']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+
+        // With the editor closed there is nothing left to continue from, so the recovery is withdrawn.
+        cut.WaitForAssertion(
+            () => cut.FindAll($"{audit} [data-recovery-verb='continuereadonly']").ShouldBeEmpty(),
+            TimeSpan.FromSeconds(5));
+        cut.Find($"{audit} [data-testid='tenants-audit-availability']");
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_and_never_exhaust_the_retry_limit()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(
+            messageId,
+            "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        TaskCompletionSource lookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        gateway.StatusAsync = async _ =>
+        {
+            if (Interlocked.Increment(ref statusCalls) == 1)
+            {
+                lookupStarted.SetResult();
+                await releaseLookup.Task.ConfigureAwait(false);
+            }
+
+            return TenantCommandStatusResult.Pending("Status is propagating.");
+        };
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        const string refresh = "[data-testid='tenants-config-set-audit'] [data-recovery-verb='refresh']";
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
+        Task nudge = cut.InvokeAsync(() => cut.Instance.ApplySignalRNudgeAsync());
+        await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseLookup.SetResult();
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        statusCalls.ShouldBe(1);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
     }
 
     [Fact]

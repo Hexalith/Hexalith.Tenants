@@ -188,9 +188,9 @@
                                 @Localizer["Tenants.Audit.Recovery.Action.RequestPermission"]
                             </a>
                         }
-                        @if ((_snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error) && EscalationRecoveryHref is { } escalationHref)
+                        @if (EscalatesFailedRead)
                         {
-                            <a href="@escalationHref" data-testid="tenants-audit-recovery-escalate">
+                            <a href="@EscalationRecoveryHref" data-testid="tenants-audit-recovery-escalate">
                                 @Localizer["Tenants.Audit.Recovery.Action.Escalate"]
                             </a>
                         }
@@ -465,10 +465,12 @@
     private string? EscalationRecoveryHref
         => TenantAuditNavigationSafety.SafeRecoveryHref(BffComposition.AuditEscalationRecoveryHref);
 
-    // Mirrors the page-level escalation link condition, so the receipt never offers a second link for the
-    // same failed read.
+    // The one condition under which the page renders its escalation link for a failed read. The markup renders
+    // the link from this property, and the receipt receives it, so the receipt never offers a second link for
+    // the same failure and never drops the only one.
     private bool EscalatesFailedRead
-        => _snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error
+        => HasStateRecovery
+            && _snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error
             && EscalationRecoveryHref is not null;
 
     // Never echo an unsafe direct-route identifier into the heading or document title.

@@ -247,7 +247,7 @@
     private bool _focusConfirmationPending;
     private bool _focusCancelPending;
     private bool _focusLifecyclePending;
-    private int _refreshInFlight;
+    private TaskCompletionSource? _refreshCompletion;
     private int _refreshPending;
     private int _projectionRefreshPending;
     private readonly Lock _proofCancellationLock = new();
@@ -502,7 +502,7 @@
                                      TargetUserId="@Member.UserId"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
                                      AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Detail.TenantId]"
                                      ReturnUrl="@CommandAuditReturnUrl"
                                      ReturnFocus="tenants-remove-member-lifecycle"
@@ -695,7 +695,7 @@
             return;
         }
 
-        await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+        await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
     internal void ApplyProjectionEvidence(TenantDetail? detail)
@@ -842,7 +842,13 @@
             {
                 SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
                     Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit));
+                    TenantCommandFocusTarget.Submit) with
+                {
+                    // A retry reuses an identity that may already have reached the server, so its status is unknown.
+                    AuditState = retryMessageId is null
+                        ? TenantCommandAuditStates.NotStarted
+                        : TenantCommandAuditStates.Unverifiable,
+                });
                 return;
             }
 
@@ -881,14 +887,27 @@
     private Task RefreshStatusAsync()
         => RefreshCommandStatusAsync(requestProjectionRefresh: true);
 
-    private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
+    private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh, bool waitForRunningRefresh = true)
     {
-        if (Interlocked.CompareExchange(ref _refreshInFlight, 1, 0) != 0)
+        // The running refresh doubles as the in-flight gate, so a merged request can wait for exactly the
+        // refresh (and replay) that will serve it. The replay requests are written before the gate is tried: an
+        // owner finishing between a failed gate and a later write would release this caller without running it.
+        // An owner consumes them in its own loop.
+        Volatile.Write(ref _refreshPending, 1);
+        if (requestProjectionRefresh)
         {
-            Volatile.Write(ref _refreshPending, 1);
-            if (requestProjectionRefresh)
+            Volatile.Write(ref _projectionRefreshPending, 1);
+        }
+
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (Interlocked.CompareExchange(ref _refreshCompletion, completion, null) is { } running)
+        {
+            // A request merged into the refresh already running is served by that refresh's replay. Waiting for
+            // it keeps the caller (for example the shared audit control's bounded Refresh) from observing an
+            // unchanged state before the replay has run. A SignalR nudge does not wait.
+            if (waitForRunningRefresh)
             {
-                Volatile.Write(ref _projectionRefreshPending, 1);
+                await running.Task.ConfigureAwait(false);
             }
 
             return;
@@ -896,29 +915,36 @@
 
         try
         {
-            bool refreshProjection = requestProjectionRefresh;
-            while (true)
+            try
             {
-                refreshProjection |= Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
-                Volatile.Write(ref _refreshPending, 0);
-                await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
-                bool refreshPending = Interlocked.Exchange(ref _refreshPending, 0) != 0;
-                refreshProjection = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
-                if (!refreshPending && !refreshProjection)
+                bool refreshProjection = requestProjectionRefresh;
+                while (true)
                 {
-                    break;
+                    refreshProjection |= Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
+                    Volatile.Write(ref _refreshPending, 0);
+                    await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
+                    bool refreshPending = Interlocked.Exchange(ref _refreshPending, 0) != 0;
+                    refreshProjection = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
+                    if (!refreshPending && !refreshProjection)
+                    {
+                        break;
+                    }
                 }
+            }
+            finally
+            {
+                Volatile.Write(ref _refreshCompletion, null);
+            }
+
+            bool followUpProjectionRefresh = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
+            if (Interlocked.Exchange(ref _refreshPending, 0) != 0 || followUpProjectionRefresh)
+            {
+                await RefreshCommandStatusAsync(followUpProjectionRefresh).ConfigureAwait(false);
             }
         }
         finally
         {
-            Volatile.Write(ref _refreshInFlight, 0);
-        }
-
-        bool followUpProjectionRefresh = Interlocked.Exchange(ref _projectionRefreshPending, 0) != 0;
-        if (Interlocked.Exchange(ref _refreshPending, 0) != 0 || followUpProjectionRefresh)
-        {
-            await RefreshCommandStatusAsync(followUpProjectionRefresh).ConfigureAwait(false);
+            completion.TrySetResult();
         }
     }
 
@@ -1060,7 +1086,11 @@
                     or TenantAuditSurfaceKind.InvalidCursor
                     or TenantAuditSurfaceKind.Loading)
                 {
+                    // A read that failed (unauthorized, unavailable, or errored) leaves the audit status unreadable.
+                    // A page that is still loading or whose cursor was refused is not ready yet, so proof is delayed.
                     TenantCommandAuditState failure = audit.Kind is TenantAuditSurfaceKind.Unauthorized
+                            or TenantAuditSurfaceKind.Unavailable
+                            or TenantAuditSurfaceKind.Error
                         ? TenantCommandAuditState.AuditUnavailable
                         : TenantCommandAuditState.AuditDelayed;
                     SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(failure));
@@ -1139,6 +1169,7 @@
         }
         catch (OperationCanceledException) when (source.IsCancellationRequested)
         {
+            // A superseded walk is not a read failure: the proof is only delayed.
             if (CanApplyProof(proofGeneration, intent))
             {
                 SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
@@ -1146,9 +1177,10 @@
         }
         catch
         {
+            // The audit read itself failed, so the audit status could not be read.
             if (CanApplyProof(proofGeneration, intent))
             {
-                SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
+                SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable));
             }
         }
         finally

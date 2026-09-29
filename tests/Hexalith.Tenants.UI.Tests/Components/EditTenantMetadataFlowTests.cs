@@ -16,6 +16,7 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -555,6 +556,11 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
         activity.ShouldBe([true, false]);
+
+        // A null proof is a provenance failure, not a failed audit read: the zero-event command implied no audit
+        // record, and the missing proof does not invent one.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -626,6 +632,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
             .ShouldContain("provenance could not be verified", Case.Insensitive);
         activity.ShouldBe([true, false]);
+
+        // No proof reader is a provenance failure, not a failed audit read: the audit dimension keeps what the
+        // Completed status established.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]
@@ -760,6 +770,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         cut.Instance.Snapshot.SafeMessage.ShouldNotBeNull().ShouldContain("refresh current tenant detail", Case.Insensitive);
+
+        // The projection surface could not confirm, and no audit read happened: the audit record stays pending.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]
@@ -841,6 +854,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
         cut.Markup.ShouldNotContain("raw audit failure", Case.Insensitive);
+
+        // A failed proof read never rewrites the audit dimension.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
     [Fact]
@@ -870,6 +886,11 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
             .ShouldContain("projection proof could not be verified", Case.Insensitive);
         cut.Markup.ShouldNotContain("raw proof failure", Case.Insensitive);
+
+        // A failed projection read is projection truth only: the audit dimension keeps its pending record.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("pending");
     }
 
     [Fact]
@@ -902,6 +923,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .ShouldContain("command status could not be verified", Case.Insensitive);
         cut.Markup.ShouldNotContain("raw status failure", Case.Insensitive);
         activity.ShouldBe([true, false]);
+
+        // Unlike a projection read, a failed status read after dispatch leaves the audit status unverifiable.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
     }
 
     [Theory]
@@ -1060,6 +1084,11 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         activity.Last().ShouldBeFalse();
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
             .ShouldContain("already in progress", Case.Insensitive);
+
+        // The dispatched attempt lost its tracking, so its status after dispatch cannot be verified.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
     }
 
     [Fact]
@@ -1103,6 +1132,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         gateway.UpdateTenantCallCount.ShouldBe(1);
         gateway.StatusCallCount.ShouldBe(statusCallsAfterLostTracking);
         TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeFalse();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
     }
 
     [Theory]
@@ -1172,6 +1202,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-edit-metadata-state']").TextContent.ShouldContain("failed", Case.Insensitive);
         cut.Find("[data-testid='tenants-edit-metadata-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
@@ -1206,6 +1238,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
         cut.Instance.Snapshot.SafeMessage.ShouldBeNull();
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe(key);
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent
             .ShouldContain("tracking identifier", Case.Insensitive);
         cut.Markup.ShouldNotContain(key, Case.Sensitive);
@@ -1308,6 +1342,334 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 
         cut.WaitForAssertion(() => activity.ShouldContain(false));
     }
+
+    [Theory]
+    [InlineData("failed-after-send", TenantCommandLifecycleState.Failed, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("ambiguous", TenantCommandLifecycleState.RequestSent, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("rejected", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted)]
+    public void Submission_outcomes_derive_the_audit_dimension_from_the_canonical_table(
+        string outcome,
+        TenantCommandLifecycleState expectedState,
+        TenantCommandAuditState expectedAuditState)
+    {
+        // A failure reported after the message was sent carries its id and may have reached the server; a
+        // rejection dispatched nothing that could be audited.
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = outcome switch
+            {
+                "failed-after-send" => TenantCommandSubmissionResult.Failed("Metadata command submission failed.") with
+                {
+                    MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                },
+                "ambiguous" => TenantCommandSubmissionResult.Ambiguous(
+                    "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                    "Tenants.Commands.Unavailable.InvalidTrackingReference"),
+                "rejected" => TenantCommandSubmissionResult.Rejected("Metadata command rejected.", "InsufficientPermissions"),
+                _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(expectedState));
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").Count
+            .ShouldBe(expectedAuditState is TenantCommandAuditState.NotStarted ? 0 : 1);
+
+        // Without a correlation id nothing can be re-queried, so no Refresh recovery is offered.
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='refresh']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Refresh_is_offered_only_while_the_attempt_can_be_requeried(bool requeryable)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = requeryable
+                ? TenantCommandSubmissionResult.Accepted("message-1", "correlation-update")
+                : TenantCommandSubmissionResult.Failed("Metadata command submission failed.") with
+                {
+                    MessageId = "message-1",
+                },
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(requeryable
+            ? TenantCommandAuditState.AuditPending
+            : TenantCommandAuditState.AuditUnavailable));
+        cut.WaitForAssertion(
+            () => cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='refresh']").Count.ShouldBe(requeryable ? 1 : 0),
+            TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']");
+    }
+
+    [Theory]
+    [InlineData(true, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, TenantCommandAuditState.NotStarted)]
+    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable(
+        bool isRetry,
+        TenantCommandAuditState expectedAuditState)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Metadata command submission failed.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || (isRetry && ++acquisitions == 1))));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+
+        if (isRetry)
+        {
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        }
+
+        // The retry reuses an identity that may already have reached the server; the refused lease blocks it
+        // before dispatch, and the audit dimension reports the unknown status instead of "not started". A first
+        // attempt refused before dispatch sent nothing, so no audit state is implied.
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").Count
+            .ShouldBe(isRetry ? 1 : 0);
+        gateway.UpdateTenantCallCount.ShouldBe(isRetry ? 1 : 0);
+    }
+
+    [Fact]
+    public void Continue_read_only_closes_the_editor_once_no_command_is_in_flight()
+    {
+        int closeCount = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => "projection-v2")
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
+                Detail(request.TenantId, request.Name, request.Description)))
+            .Add(p => p.OnCloseRequested, () => closeCount++));
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport));
+
+        // Continue read-only runs the Cancel close path: the editor closes and the evidence stays on screen.
+        int focusCallsBeforeContinue = FocusCalls().Count;
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='continuereadonly']").Click();
+
+        cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+        closeCount.ShouldBe(1);
+
+        // With the editor closed there is nothing left to continue from, so the recovery is withdrawn, and focus
+        // returns to Open, which renders again.
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-edit-metadata-open']");
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeContinue), TimeSpan.FromSeconds(5));
+        FocusCalls().Last().ShouldBe(ElementReferenceId(cut.Instance, "_openElement"));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("missingsupport");
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Continue_read_only_is_withheld_while_the_owned_command_is_in_flight()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Ambiguous(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "Tenants.Commands.Unavailable.InvalidTrackingReference"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+
+        // The ambiguous submission keeps the attempt in flight with an unverifiable status: the control renders,
+        // but Continue read-only would leave the in-flight attempt behind, so it is not offered.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeTrue();
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']");
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Closing_the_editor_while_open_cannot_render_moves_focus_to_the_lifecycle_section()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+
+        // The host re-renders with stale freshness while the editor is open, so Open can no longer render.
+        cut.Render(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Stale)
+            .Add(p => p.ProjectionVersion, "v1"));
+        int focusCallsBeforeCancel = FocusCalls().Count;
+
+        cut.Find("[data-testid='tenants-edit-metadata-cancel']").Click();
+
+        cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeCancel), TimeSpan.FromSeconds(5));
+        FocusCalls().Last().ShouldBe(ElementReferenceId(cut.Instance, "_lifecycleElement"));
+    }
+
+    [Fact]
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_and_never_exhaust_the_retry_limit()
+    {
+        TaskCompletionSource lookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            StatusAsync = async _ =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 2)
+                {
+                    lookupStarted.SetResult();
+                    await releaseLookup.Task.ConfigureAwait(false);
+                }
+
+                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
+                Detail(request.TenantId, "Alpha", "Tenant alpha description"))));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        const string refresh = "[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='refresh']";
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // The editor's Refresh starts a slow lookup; the shared control's Refresh then merges into it.
+        cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
+        await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+        cut.Find(refresh).Click();
+
+        // The merged click waits for the running lookup; nothing counted as an unchanged retry yet.
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        releaseLookup.SetResult();
+        cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        statusCalls.ShouldBe(2);
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Retry_whose_command_gateway_disappears_after_the_lease_reports_the_possibly_delivered_attempt_as_unverifiable()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Metadata command submission failed.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        bool gatewayAvailable = true;
+        Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? gateway : null!);
+        int acquisitions = 0;
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                // The retry takes the lease, and the command surface disappears before dispatch.
+                if (active && ++acquisitions == 2)
+                {
+                    gatewayAvailable = false;
+                }
+
+                return Task.FromResult(true);
+            }));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+
+        cut.Find("form").Submit();
+
+        // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+    }
+
+    private List<string> FocusCalls()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Select(reference => reference.Id ?? string.Empty)];
+
+    private static string ElementReferenceId(EditTenantMetadataFlow flow, string fieldName)
+        => ((ElementReference)typeof(EditTenantMetadataFlow)
+            .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(flow)!).Id;
+
+    private IRenderedComponent<EditTenantMetadataFlow> RenderEditableFlow()
+        => Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "v1"));
 
     private void RegisterServices(StubTenantCommandGateway gateway)
     {
@@ -1453,7 +1815,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance"] = "Metadata projection matches the request, but update provenance could not be verified. Refresh status or continue read-only.",
             ["Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure"] = "Command status could not be verified. Retry status lookup or continue read-only.",
             ["Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure"] = "Metadata projection proof could not be verified. Refresh status or continue read-only.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Inspect audit for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",

@@ -4325,7 +4325,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
         metadataFlow.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
-        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        // Non-authoritative audit evidence is a provenance failure, not a failed audit read: the audit dimension
+        // keeps what the Completed status established.
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
 
@@ -4399,6 +4402,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
         projectionVersionProvider().ShouldBe("projection-v1");
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+
+        // A non-authoritative proof reaches the flow as no proof: a provenance failure, not a failed audit read,
+        // so the audit record the Completed status established stays pending.
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("pending"));
         _ = gateway.Received(1).GetUpdateMetadataProjectionProofAsync(
             Arg.Is<UpdateTenant>(request => request.TenantId == "tenant.alpha"),
             Arg.Any<CancellationToken>());

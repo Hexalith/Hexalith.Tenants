@@ -3503,7 +3503,7 @@
     <value>another tenant surface</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
-    <value>Open audit evidence for tenant {1} ({0})</value>
+    <value>Inspect audit for tenant {1} ({0})</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
     <value>Open audit evidence for user {0} in tenant {1}</value>

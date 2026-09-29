@@ -1606,14 +1606,15 @@ public sealed class TenantsUiCompositionTests
     [InlineData("TenantsResources.fr.resx")]
     public void Command_audit_entry_point_visible_label_is_contained_in_its_accessible_name(string resourceFile)
     {
-        // WCAG 2.5.3 label in name: the visible label must be a literal (case-insensitive) substring of the
-        // accessible name, including the apostrophe code point.
+        // WCAG 2.5.3 label in name: the command entry point shows the canonical Inspect-audit verb, and its
+        // accessible name starts with that exact label, including the apostrophe code point.
         Dictionary<string, string> resources = ReadResourceMap(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources", resourceFile));
-        string label = resources["Tenants.Audit.EntryPoint.Label"];
+        string label = resources["Tenants.Audit.Availability.Action.InspectAudit"];
         string accessibleName = resources["Tenants.Audit.EntryPoint.Accessible.Command"];
 
-        accessibleName.ShouldContain(label, Case.Insensitive);
+        accessibleName.ShouldStartWith(label, Case.Sensitive);
+        label.ShouldNotContain("'", Case.Sensitive);
     }
 
     [Fact]
