@@ -3279,3 +3279,29 @@ Review range `55f3dc63..1cdcc0a9`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
   summary: Decide once for the whole repo whether Severe (and Danger) status badges use `BadgeAppearance.Filled`, as DESIGN.md specifies.
   evidence: DESIGN.md `truth-state-badge` says "Tint (default) · Filled (Danger + Severe)". `AuditAvailabilityState.razor:27` and `TruthStateBadge.razor` both render Severe with `Tint`, and Story 5.4's spec asked for Tint. Changing only the audit badge would make it diverge from the freshness badge.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 3)
+
+Review range `1cdcc0a9..e077e65e` (delta only).
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Seventh undeclared-bump occurrence for the CI story gitlink gate tracked above (Story 5.2 entry, "Un-defer the CI story gitlink gate").
+  evidence: Commit `e077e65e` ("update audit availability and recovery specifications and sprint status") moved `references/Hexalith.Builds` `0610f783`→`85ca19bc`, `references/Hexalith.EventStore` `801f3e52`→`cc79c03a` and `references/Hexalith.FrontComposer` `7d3af61e`→`f86fb730` without a declaration. `validate-story-gitlinks.py` on the 5.4 spec exits 1, while `.github/workflows/story-guards.yml:35` runs only the guard's own regression suite, so CI stayed green.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. The G-6 validator tuple pins CommunityToolkit.Aspire.Hosting.Dapr `13.5.1-beta.767`, while the central catalog pins `.770`.
+  evidence: At Builds `85ca19bc`, `Tools/validate-runtime-toolchain-evidence.py:21` says `.767` and `Props/Directory.Packages.props:151` says `.770`, so a real `validate_baseline` run fails with central package pin drift. The self-test (`test-runtime-toolchain-evidence-validator.py:90-101`) builds its catalog from `EXPECTED_TUPLE` and never reads the real props, so Builds CI stays green. No Tenants workflow runs this validator.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. Correct the false and stale claims in the 6-1 G-4/G-6 story record.
+  evidence: `6-1-p0-deliver-g4-persisted-runner-and-evidence-tooling.md:2379` says the 2026-09-06 baseline "remains byte-identical at SHA-256 `525615c6…`", but `Tools/runtime-toolchain-baseline.json` hashes to `62a6a555…` at both `0610f783` and `85ca19bc` (commit `aada815` rewrote it). Line 2385 claims catalog alignment. The "review the fresh packet" and "seven bound changes remain uncommitted" statements are stale.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. The historical 2026-09-06 G-6 baseline and packet no longer validate, and the README still points at them.
+  evidence: `validate-runtime-toolchain-evidence.py:240` requires `approvedOn == "2026-09-27"`, and the schema pins the same date, so earlier evidence fails "Baseline approval date drift". `README.md:269` still names `Tools/runtime-toolchain-baseline.json` as the recorded exception. Keep a dated-baseline registry, or retire the old file explicitly.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. G-6 candidate and accepted evidence cannot be told apart.
+  evidence: `validate-runtime-toolchain-evidence.py:307-308` distinguishes the modes only by `packet["status"]`, and no named acceptance record (who, when, pending-packet hash) is required. The schema's `status` is `enum ["pending","accepted"]` with no mode condition. The 2026-09-27 baseline carries `approvedBy`/`approvedOn` although the record calls it a candidate pin.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. Strengthen the G-6 self-test mode checks.
+  evidence: `test-runtime-toolchain-evidence-validator.py:289-291` asserts only `returncode == 1`, so an uncaught-exception mutant passes. The checks are bare `assert` statements, which `python -O` strips, and `:382` prints a literal "22 scenarios". No tampering scenario runs with `candidate=True`.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Hand off to Hexalith.Builds. Record a disposition for the Aspire SDK split in the 2026-09-27 baseline.
+  evidence: `runtime-toolchain-baseline-2026-09-27.json:12` certifies `aspireSdk` `13.5.4` while `pinAudit.appHostProjects` lists five AppHosts at `13.5.3`, including `Hexalith.Tenants.AppHost`, with no `aspireSdk` disposition. `dispositions` also has the case-duplicate keys `dapr` (object) and `Dapr` (string).
