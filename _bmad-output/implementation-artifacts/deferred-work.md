@@ -3265,3 +3265,17 @@ Review range `55f3dc63..working tree`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
   summary: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.
   evidence: Strings such as `Tenants.EditMetadata.Recovery.Degraded`, `Tenants.Configuration.Set.Recovery.*`, `Tenants.Configuration.Remove.Recovery.*` and `Tenants.RemoveMember.Recovery.*` read "Wait, retry status lookup, inspect audit when available, or escalate." They render beside the control (for example `EditTenantMetadataFlow.razor:153`) whether or not Escalate, Inspect audit or Continue read-only exist. This flow lifecycle copy predates Story 5.4, which removed the same promise from the shared control.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 2)
+
+Review range `55f3dc63..1cdcc0a9`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Stop an unmatched RemoveMember proof walk from leaving the audit state pending indefinitely.
+  evidence: `ApplyRemovalProofMatch(matched: false)` keeps `AuditPending` (`TenantCreateCommandModels.cs:1151`) when the walk exhausts every page without a match. The new three-retry limit then withdraws Refresh, and the state stays pending until a host refresh changes it. The walk and its matching predate Story 5.4, and the frozen spec keeps them. A fix would move an unmatched attempt to Delayed after a bounded number of walks or after the attempt's retention window.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Treat a 404 status lag as a wait, not an assertive unable-to-verify with audit unavailable.
+  evidence: `TenantCommandGateway.GetStatusAsync` maps a 404 to `TenantCommandStatusResult.Pending` (null `Status`, `IsPending`). The `ApplyStatus` methods for Create, AddMember, ChangeRole, RemoveMember and Metadata send every null status to UnableToVerify plus `AuditUnavailable`, announced assertively (`TenantCreateCommandModels.cs:255` and siblings). The baseline did the same. Lifecycle and the configuration snapshots already handle `IsPending` and `IsRetryableFailure` as waits.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Decide once for the whole repo whether Severe (and Danger) status badges use `BadgeAppearance.Filled`, as DESIGN.md specifies.
+  evidence: DESIGN.md `truth-state-badge` says "Tint (default) · Filled (Danger + Severe)". `AuditAvailabilityState.razor:27` and `TruthStateBadge.razor` both render Severe with `Tint`, and Story 5.4's spec asked for Tint. Changing only the audit badge would make it diverge from the freshness badge.
