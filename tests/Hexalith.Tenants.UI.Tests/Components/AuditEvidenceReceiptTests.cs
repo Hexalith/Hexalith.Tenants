@@ -219,23 +219,50 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
 
-    [Fact]
-    public void Receipt_component_rechecks_the_completed_summary_across_placeholder_boundaries()
+    // Template text glued to a placeholder can complete a blocked fragment with an individually safe value.
+    // Each case starts from a copyable FromRow receipt, so only the completed-segment re-check can block it,
+    // and together the cases reach the actor, target, scope, and default (reference) branches.
+    [Theory]
+    [InlineData("Actor: {actor}", "Actor: to{actor}", "actor", "ken-user")]
+    [InlineData("Actor: {actor}", "Actor: t-o{actor}", "actor", "ken-user")]
+    [InlineData("Target: {target}", "Target: {target}ken", "target", "to")]
+    [InlineData("Tenant scope: {scope}", "Tenant scope: {scope}ken", "scope", "to")]
+    [InlineData("Audit reference: {auditReference}", "Audit reference: {auditReference}ken", "auditReference", "to")]
+    public void Receipt_component_rechecks_the_completed_summary_across_placeholder_boundaries(
+        string segment,
+        string gluedSegment,
+        string field,
+        string value)
     {
-        const string template = "Actor: to{actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome}"
-            + " | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}";
+        string template = StubTenantsLocalizer.DefaultSummary.Replace(segment, gluedSegment, StringComparison.Ordinal);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer(template));
-        TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference") with
-        {
-            Actor = "ken-user",
-        };
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, receipt));
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(RowWith(field, value))));
 
+        cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("ready", Case.Insensitive);
         cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-audit-receipt-copy-blocked']")
             .GetAttribute("role").ShouldBe("alert");
+    }
+
+    // The field label is trusted copy: its letters must not join a safe value's letters into a blocked
+    // fragment ("Target: agnes" -> "targetagnes" contains "etag"; "Tenant scope: yjx" contains "eyj").
+    [Theory]
+    [InlineData("target", "agnes")]
+    [InlineData("target", "agent-7")]
+    [InlineData("scope", "tagco")]
+    [InlineData("scope", "yjx-tenant")]
+    [InlineData("auditReference", "tag-001")]
+    public void Receipt_summary_copy_ignores_fragments_formed_only_with_the_field_label(string field, string value)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(RowWith(field, value))));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").Count.ShouldBe(1);
+        cut.FindAll("[data-testid='tenants-audit-receipt-copy-blocked']").ShouldBeEmpty();
     }
 
     [Theory]
@@ -621,6 +648,15 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ProjectionLifecycleState.Current,
             QueryResponseProvenance.ProjectionBacked,
             new TenantAuditNarrative(UserId: "target-user"));
+
+    private static TenantAuditRow RowWith(string field, string value)
+        => field switch
+        {
+            "actor" => Row() with { ActorId = value },
+            "target" => Row() with { Target = value, Narrative = new TenantAuditNarrative(UserId: value) },
+            "scope" => Row() with { TenantId = value, Scope = value },
+            _ => Row(eventReference: value),
+        };
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {

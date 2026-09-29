@@ -908,8 +908,14 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         copied.ShouldContain("Target: reader-user");
         copied.ShouldContain("Outcome: User removed from tenant");
         copied.ShouldContain("Audit reference: evt-remove-1");
+        cut.Find("[data-testid='tenants-audit-receipt-close']").TextContent.Trim().ShouldBe("Close receipt");
 
-        cut.Find("[data-testid='tenants-audit-receipt-close']").Click();
+        // The receipt's recovery action shares the Close callback: it dismisses in place and never navigates.
+        cut.Find("[data-testid='tenants-audit-receipt'] .audit-evidence-receipt__action").Click();
+        Uri auditUri = new(Services.GetRequiredService<NavigationManager>().Uri);
+        auditUri.AbsolutePath.ShouldBe("/");
+        cut.Find("[data-testid='tenants-command-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
         cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("message-1");
     }

@@ -1078,12 +1078,12 @@
                     bool currentLifecycleBackedRow = match.Freshness is ReadModelFreshnessState.Current
                         && match.Lifecycle is ProjectionLifecycleState.Current
                         && match.Provenance is QueryResponseProvenance.ProjectionBacked;
+                    // This authorized audit row proves that a matching removal occurred after the attempt
+                    // began, but the audit contract does not carry command causation, so the receipt carries
+                    // no command reference: the current attempt's tracking id may not belong to this evidence
+                    // (a concurrent operator's removal). Command context remains available through Inspect audit.
                     TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(
                         match,
-                        // This authorized audit row proves that a matching removal occurred after the
-                        // attempt began, but the audit contract does not carry command causation. Do not
-                        // stamp the current attempt's tracking id onto evidence that may belong to a
-                        // concurrent operator; command context remains available through Inspect audit.
                         surfaceKind: TenantAuditSurfaceKind.Ready,
                         auditState: TenantCommandAuditState.AuditAvailable);
                     bool receiptReady = receipt.State is TenantAuditReceiptState.Ready;

@@ -3,6 +3,14 @@ export function focusCorrectionLauncher(auditReference) {
     return false;
   }
 
+  // Only restore focus that the panel removal actually dropped. A still-rendered control, such as the
+  // audit Refresh that invalidated the panel or a receipt heading focused earlier in this render, keeps
+  // focus; report it handled so the caller does not fall back to a heading.
+  const active = document.activeElement;
+  if (active && active !== document.body && active !== document.documentElement && active.isConnected) {
+    return true;
+  }
+
   const launcherAttributes = ['data-correction-focus-reference', 'data-receipt-focus-reference'];
   for (const attribute of launcherAttributes) {
     for (const candidate of document.querySelectorAll(`[${attribute}]`)) {

@@ -1428,6 +1428,10 @@
         // renderer dispatcher) lets only the newest open apply its intent.
         int generation = ++_correctionOpenGeneration;
 
+        // Started on the dispatcher at activation time: if the refreshed intent turns unavailable, the receipt's
+        // Start correction is replaced by its reason, and focus must move to the receipt heading, not <body>.
+        Task<bool> receiptCorrectionFocusProbe = IsFocusInsideReceiptCorrectionAsync(intent.OriginalAuditReference);
+
         // Refresh the projection that actually governs this correction so the panel's preview,
         // last-administrator hard stop, and present/absent evaluation run against current evidence:
         // the fixed global-administrator projection for platform-authority corrections, tenant detail
@@ -1441,6 +1445,8 @@
         {
             await RefreshTenantProjectionAsync().ConfigureAwait(false);
         }
+
+        bool focusInReceiptCorrection = await receiptCorrectionFocusProbe.ConfigureAwait(false);
 
         // Marshal the parent field writes back onto the renderer's dispatcher: this method awaited a
         // projection refresh with ConfigureAwait(false), so the continuation runs off the Blazor sync
@@ -1457,8 +1463,7 @@
             if (sourceRow is null
                 || TenantAuditReceipt.FromRow(sourceRow, surfaceKind: _snapshot.Kind).State is not TenantAuditReceiptState.Ready)
             {
-                ResolveReceiptSelection();
-                StateHasChanged();
+                ReplaceUnavailableReceiptCorrection(focusInReceiptCorrection);
                 return;
             }
 
@@ -1470,8 +1475,7 @@
             TenantCorrectionStartIntent refreshedIntent = CreateCorrectionIntent(sourceRow);
             if (!refreshedIntent.IsAvailable)
             {
-                ResolveReceiptSelection();
-                StateHasChanged();
+                ReplaceUnavailableReceiptCorrection(focusInReceiptCorrection);
                 return;
             }
 
@@ -1479,6 +1483,51 @@
             _activeCorrectionFocusReference = refreshedIntent.OriginalAuditReference;
             StateHasChanged();
         }).ConfigureAwait(false);
+    }
+
+    // Re-resolves the receipt so a correction that became unavailable shows its reason instead of a stale,
+    // silently inert Start correction; hands focus to the receipt heading when that control held it.
+    private void ReplaceUnavailableReceiptCorrection(bool focusInReceiptCorrection)
+    {
+        if (focusInReceiptCorrection)
+        {
+            ScheduleReceiptHeadingFocus();
+        }
+
+        ResolveReceiptSelection();
+        StateHasChanged();
+    }
+
+    private async Task<bool> IsFocusInsideReceiptCorrectionAsync(string originalAuditReference)
+    {
+        if (!RendererInfo.IsInteractive
+            || !string.Equals(_selectedReceiptCorrectionIntent?.OriginalAuditReference, originalAuditReference, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            IJSObjectReference focusModule = _focusModule
+                ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
+            return await focusModule.InvokeAsync<bool>("isFocusInsideAuditReceiptCorrection").ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            return false;
+        }
+        catch (JSException)
+        {
+            return false;
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
     }
 
     private Task CloseCorrectionAsync()
@@ -1625,6 +1674,10 @@
                     if (IsCurrentReceiptFocusProbe(focusGeneration, receiptReference))
                     {
                         ScheduleReceiptHeadingFocus();
+
+                        // The Loading write may already have painted and removed the focused control; render
+                        // now so the heading takes focus instead of waiting for the read to finish.
+                        StateHasChanged();
                     }
                 }).ConfigureAwait(false);
             }

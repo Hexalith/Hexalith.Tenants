@@ -158,9 +158,6 @@ run_browser() {
     local window_width="${5:-390}"
     local viewport="${6:-narrow}"
     local window_size_argument="--window-size=${window_width},800"
-    if [[ "$window_width" == "390" ]]; then
-        window_size_argument="--window-size=390,800"
-    fi
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
     fi

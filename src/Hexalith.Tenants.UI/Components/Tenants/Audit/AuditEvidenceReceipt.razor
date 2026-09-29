@@ -41,7 +41,7 @@
             }
             else if (Receipt.State is TenantAuditReceiptState.Ready)
             {
-                <p role="alert" aria-live="assertive" data-testid="tenants-audit-receipt-copy-blocked">
+                <p class="audit-evidence-receipt__copy-blocked" role="alert" aria-live="assertive" data-testid="tenants-audit-receipt-copy-blocked">
                     @Localizer["Tenants.Audit.Receipt.CopyBlocked"]
                 </p>
             }
@@ -219,6 +219,7 @@
                 string labelKey = $"Tenants.Audit.Receipt.Field.{labelKeys[index]}";
                 var label = Localizer[labelKey];
                 return label.ResourceNotFound || label.Value == labelKey
+                    || string.IsNullOrWhiteSpace(label.Value)
                     || !segments[index].Contains(label.Value, StringComparison.Ordinal)
                     || !segments[index].Contains("{" + names[index] + "}", StringComparison.Ordinal);
             })
@@ -233,12 +234,21 @@
         string[] completedSegments = new string[segments.Length];
         for (int index = 0; index < names.Length; index++)
         {
-            completedSegments[index] = segments[index]
-                .Replace("{" + names[index] + "}", values[index], StringComparison.Ordinal);
-            if (!IsSafeCompletedSummarySegment(index, completedSegments[index]))
+            string placeholder = "{" + names[index] + "}";
+            string label = Localizer[$"Tenants.Audit.Receipt.Field.{labelKeys[index]}"].Value;
+
+            // The validated field label is trusted copy, but its letters would join the value's letters in the
+            // normalized fragment match ("Target: agnes" -> "targetagnes" -> "etag"). Strip it from the template
+            // segment before substituting, so only template text glued to the placeholder is re-checked.
+            string placeholderBoundary = segments[index]
+                .Replace(label, string.Empty, StringComparison.Ordinal)
+                .Replace(placeholder, values[index], StringComparison.Ordinal);
+            if (!IsSafeCompletedSummarySegment(index, placeholderBoundary))
             {
                 return null;
             }
+
+            completedSegments[index] = segments[index].Replace(placeholder, values[index], StringComparison.Ordinal);
         }
 
         string summary = string.Join(" | ", completedSegments);

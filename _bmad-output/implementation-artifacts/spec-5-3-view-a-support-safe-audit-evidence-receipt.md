@@ -326,6 +326,88 @@ Code review 2026-09-28 of `33d6dcca..7ac52e8d`. Mid-review, a concurrent session
 - Summaries over 2,048 characters block copy with a misleading message (blind) — low: needs identifiers near the 256-character limit in every field.
 - Browser harness leaves its receipt fixtures in the DOM (blind) — low: no later harness assertion queries those IDs, and the harness passes.
 
+### Review Findings (2026-09-29 re-review)
+
+This re-review covered `f8223524..38da46a6`: the patch commit for the 2026-09-28 findings, plus `20d524cd` and `a2070d9a`. Three unrelated commits were excluded: `beed402c`, `4fa38dad` and `051f9f30`. All four review layers completed. Independent verification ran on a clean tree at `38da46a6`:
+
+- The Release UI test build had 0 warnings and 0 errors.
+- The UI suite passed 3,311 of 3,311 tests.
+- `validate-story-gitlinks.py` exited 0 (4 declared).
+- All 21 of the 2026-09-28 `[x]` patches are present in the source.
+
+All 15 patches were applied on 2026-09-29, on top of `38da46a6`. Verification:
+
+- The Release UI test build had 0 warnings and 0 errors.
+- The UI suite passed 3,325 of 3,325 tests (14 new).
+- The Chrome 154 focus and layout harness passed at 390px and 1024px, and its mutation checks still reject bad modules.
+- `git diff --check` was clean, and `validate-story-gitlinks.py` passed.
+
+Each new regression was mutation-verified. Reverting the fix makes its test, or the harness, fail:
+
+- the D6 label strip
+- all four re-check branches
+- the probe render
+- the receipt-correction hand-off and re-resolve
+- the receipt-heading fallback
+- the two new catches
+- the JS live-focus guard
+- the header grid
+
+The old Final-EC6 test was vacuous: its `DirectReceipt` outcome (`UserAddedToTenant (Access)`) is not a known outcome, so copy was blocked with or without the re-check. It is now a five-case theory over copyable `FromRow` receipts.
+
+- [x] [Review][Patch] The summary re-check blocks copy for ordinary safe identifiers (decision D6, 2026-09-29: strip the label). `IsSafeCompletedSummarySegment` (Final-EC6) runs the letter-joining fragment match over each whole segment, label included. The label's tail and the value's head can therefore form a blocked fragment:
+  - `Target: agnes` normalizes to `targetagnes`, which contains `etag`.
+  - `Tenant scope: tagco` and `Audit reference: tag-001` also produce `etag`.
+  - A scope or reference starting with `yj` produces `eyj`.
+
+  A Ready receipt for such a target loses Copy and shows the assertive copy-blocked alert.
+
+  Fix: keep the label strings fetched during template validation, and remove the label from each template segment **before** substituting the value. Then run the unchanged `IsSafeCompletedSummarySegment` on the result, so the label never takes part in the check and the value is never altered. The copied text still comes from the unstripped segments.
+
+  A probe against the production class confirmed this option copies all five cases above and still blocks `to{actor}` + `ken-user`, `t-o{actor}` + `ken-user`, and `{target}ken` + `to`. Add those cases as regressions. They also cover the target, scope and default branches, which the current test leaves untested (only the actor boundary is covered), so this item absorbs the separate branch-coverage patch [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor:248]
+- [x] [Review][Patch] Receipt heading focus is deferred until the whole read finishes. The Loading paint now runs before the probe returns. The probe's `InvokeAsync` sets `_pendingReceiptFocus` without `StateHasChanged`, so the heading is focused only after the read, the enrichment and the click handler all complete. Clicking a receipt Refresh or Reset, or anything that removes Copy or Start correction, leaves keyboard focus on `<body>` for the whole read. Call `StateHasChanged()` after `ScheduleReceiptHeadingFocus()` in the probe callback [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1623]
+- [x] [Review][Patch] Correction-panel invalidation now moves focus unconditionally. `CaptureCorrectionAuthority` always sets `_pendingCorrectionFocusReference`, so the Loading write moves focus from the still-rendered toolbar Refresh, Apply or Reset button to `tenant-audit-heading`. This contradicts task 63 ("without stealing focus from an active audit filter"). When a receipt hand-off is pending in the same render, focus also moves twice. Hand off only when focus was actually lost (`document.activeElement` is `body` or null). The guard lives in `focusCorrectionLauncher`, which reports live focus as handled so the C# heading fallback does not run. The browser harness pins this. `Grid_started_correction_is_invalidated_on_loading_and_does_not_remount_on_the_same_row` still covers the C# lost-focus fallback [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1571]
+- [x] [Review][Patch] The receipt's Start correction silently drops focus when the refreshed intent becomes unavailable. The new `ResolveReceiptSelection(); StateHasChanged();` early returns replace the activated button with `tenants-correction-unavailable-reason`, a `<p>` with no live-region role. No focus hand-off is scheduled, so focus lands on `<body>` and the reason is never announced. Probe `isFocusInsideAuditReceiptCorrection` and schedule the receipt heading, as the enrichment path does [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1473]
+- [x] [Review][Patch] The receipt header's fixed three-track grid breaks in two ways:
+  - On a Ready receipt with copy blocked, the blocked-copy `<p role="alert">` sits in an `auto` track. It takes its full max-content width, and the `minmax(0, 1fr)` title column collapses (about 0px at a 720px card, one character per line).
+  - When there are only two header children (every non-Ready state), the empty third track keeps a 0.75rem gutter, so Close is offset from the edge.
+
+  Let the tracks follow the children (`grid-auto-flow: column` with auto columns), give the alert its own row (`grid-column: 1 / -1`), and update the stale "minmax(0, 1fr) auto" exception comment [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor.css:16]
+- [x] [Review][Patch] The French receipt launcher fails WCAG 2.5.3 (label in name). The visible text is `Voir le recu`, but the new accessible name `Voir le reçu pour l’événement d’audit {0}` does not contain it. Accent the visible label as `Voir le reçu` [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3455]
+- [x] [Review][Patch] Two Story 5.3 deferred-work entries describe state this delta already changed:
+  - The "Harden the legacy correction-launcher focus return" entry says the branch catches only `JSDisconnectedException`, but `TenantAuditPage.razor:823-838` now catches `JSException`, `ObjectDisposedException` and `OperationCanceledException`. Remove the entry.
+  - The French-accent entry lists `Reference d'audit`, whose only resource (`ReferenceLiteral`) was deleted. Drop that string from the entry.
+
+  [_bmad-output/implementation-artifacts/deferred-work.md:3246]
+- [x] [Review][Patch] Test the receipt-started correction whose refreshed intent becomes unavailable. `Pending_correction_open_renders_the_refreshed_unavailable_reason` clicks only the grid button, and the grid recomputes its intent on every render. Deleting `ResolveReceiptSelection()` at `TenantAuditPage.razor:1473` would leave every test green [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:1164]
+- [x] [Review][Patch] Test a pending focus probe that resolves `true` after the Loading write replaces the receipt, and assert `focusElementById("tenants-audit-receipt-heading")`. Reverting `IsCurrentReceiptFocusProbe` to `ReferenceEquals` would leave every test green [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:935]
+- [x] [Review][Patch] Test the correction-focus fallback to `tenants-audit-receipt-heading`. Use an open receipt with an active panel and a pending Refresh, with `focusCorrectionLauncher` returning false. The only existing test asserts `tenant-audit-heading` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:1093]
+- [x] [Review][Patch] Test the new `JSException`, `ObjectDisposedException` and `OperationCanceledException` catches on the correction-focus branch, mirroring `Receipt_heading_focus_cancellation_is_treated_as_renderer_teardown`. The theory covers `JSException` and `ObjectDisposedException`. A cancellation row cannot fail, because Blazor already treats a canceled after-render task as non-fatal [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:827]
+- [x] [Review][Patch] The removal-flow receipt test replaced its navigation assertions instead of adding to them. It dropped the checks that the receipt action keeps navigation at `/` and that the audit entrypoint has no `href`. Restore them alongside the new copy and Close assertions [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:902]
+- [x] [Review][Patch] The browser harness never exercises the new `focusCorrectionLauncher` guards. Add hidden, `aria-hidden`, disabled and zero-size launcher fixtures that carry the matching reference, and assert that they are skipped [tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html:104]
+- [x] [Review][Patch] Delete the dead `390` branch, which reassigns the value the previous line already set. The branch existed only to satisfy the `--window-size=390,800` source pin in `GlobalAdministratorsPageTests.RealChromiumFocusValidatorPinsActiveElementMovementAndFallbacks`, which now pins the `${5:-390}` default and the `${window_width},800` template [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:161]
+- [x] [Review][Patch] The comment about not stamping the attempt's tracking id now sits above `surfaceKind:`, because the `supportSafeCommandReference: null` argument it explained was removed. Reword it to explain why the receipt carries no command reference [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:1083]
+- [x] [Review][Defer] Two other paths remove an active correction panel without returning focus, leaving it on `<body>`. `ClearPaging()` on a `ListRefreshed` or `InvalidCursor` result drops the panel after `CaptureCorrectionAuthority` kept it, and `RenderViewportChangeAsync` does the same on a viewport downgrade [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:916] — deferred: pre-existing at baseline `33d6dcca`. It extends the existing viewport-downgrade ledger entry, and each path needs the same pending-focus assignment `CaptureCorrectionAuthority` now uses.
+- [x] [Review][Defer] `focusCorrectionLauncher` resolves its target by reference in document order. The grid renders before the receipt, so a panel opened from the receipt's Start correction returns focus to the grid's matching button. The new fallback prefers the grid's "View receipt" over the open receipt [src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:6] — deferred: the document-order resolution predates this delta. A fix needs the launch origin threaded through the page and the JS.
+
+#### Rejected (2026-09-29)
+
+- Spec-record accuracy: the deferral count in Implementation Notes, and the Final review table's missing date, range and closure trail (blind, auditor) — rejected: the fix edits the spec under review.
+- File List provenance cites `7ac52e8d`, which was rebased away, and omits the later `20d524cd`/`a2070d9a` pointer moves (blind, auditor, verification, edge) — rejected: the fix edits the spec under review. `validate-story-gitlinks.py` passes by path, and the declared pointer moves do not edit FrontComposer source.
+- The PII policy loosened in D4 and deferred in D5 without updating task text (auditor) — rejected: user decisions D4/D5, and the fix edits the spec under review.
+- Spec `status: 'done'` vs sprint `review` (blind) — false: this review's completion step syncs both.
+- The "culture-aware" timestamp is still the fixed pattern (auditor) — rejected: already deferred on 2026-09-28 with its rationale, and there is no new evidence.
+- The timestamp ledger entry misdescribes `CurrentCulture` calendars (blind) — false for the shipped EN/FR cultures, where the pattern renders identically.
+- The Final-BH3 ledger entry lacks its "high" severity (blind) — low: ledger entries carry no severity field, and the entry states the mechanism in full.
+- Closing a receipt during a pending read focuses the page heading (blind) — low: the launcher is absent during Loading, and the heading is the specified fallback. Re-focusing after the read would add deferred state.
+- The Loading render can beat the probe when the focus module is not yet imported (blind, edge) — low: the module is imported when a receipt opens, so the race needs an earlier import failure.
+- The correction fallback reads `_selectedReceipt` off-dispatcher and has no second fallback (blind, auditor, edge) — low: the receipt always renders while `_selectedReceipt` is set, and a wrong choice needs Close to land inside the JS round trip.
+- The enrichment focus test uses stubs that contradict each other (auditor) — low: the stubs isolate the post-enrichment `WillRemoveReceiptCorrectionControl` branch, which is the code both refresh paths share.
+- Right-hand placeholder boundary (`user-jw | Target` produces `jwt`) is unchecked (edge) — low: no secret is copied, and extra normalized boundary checks add label-driven false positives of the kind decision D6 removes.
+- The harness accepts an unknown `viewport` value (edge) — low: the script passes only `narrow` or `desktop`.
+- Clipped `tabindex="-1"` row markers no longer have a focus consumer (edge) — false: they are not in the Tab order and remain test anchors, so nothing breaks.
+- The `20d524cd` "chore" message also carries story artifacts (edge) — low: the commit is already on `origin/main`, and rewriting shared history is not warranted.
+
 ## File List
 
 - `references/Hexalith.AI.Tools`

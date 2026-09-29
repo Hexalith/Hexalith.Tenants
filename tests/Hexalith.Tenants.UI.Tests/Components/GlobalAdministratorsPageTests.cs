@@ -4361,7 +4361,9 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         runner.ShouldContain("global-admins-inflow.css");
         runner.ShouldContain("global-admins-hidden.css");
         runner.ShouldContain("remove-dialog-style");
-        runner.ShouldContain("--window-size=390,800");
+        // The narrow run takes the default 390px width; the desktop run passes its width explicitly.
+        runner.ShouldContain("local window_width=\"${5:-390}\"");
+        runner.ShouldContain("--window-size=${window_width},800");
         runner.ShouldContain("microsoft.fluentui.aspnetcore.components");
         runner.ShouldContain("tenantsFocus-return-true.js");
         runner.ShouldContain("data-validation-status=\"passed\"");

@@ -966,6 +966,42 @@ public sealed class TenantAuditPageTests : BunitContext
             .ShouldContain("ready", Case.Insensitive);
     }
 
+    // The Loading write replaces the receipt instance before the focus probe returns, and it removes Copy and
+    // the recovery actions. A probe that found focus inside the receipt must still move focus to the heading
+    // immediately, not after the authoritative read completes.
+    [Fact]
+    public async Task Loading_receipt_probe_that_found_receipt_focus_moves_it_to_the_heading_before_the_read_completes()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-a", AuditEventCategory.Access)]));
+        var pendingRead = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        JSRuntimeInvocationHandler<bool> pendingProbe = module.Setup<bool>("isFocusInsideAuditReceipt");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        gateway.QueueResponse(pendingRead.Task);
+
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => pendingProbe.Invocations.Count.ShouldBe(1));
+        pendingProbe.SetResult(true);
+
+        // The heading focus runs in OnAfterRenderAsync after the probe's render, and no later render occurs
+        // while the read is pending, so wait on the invocation itself rather than a render-driven assertion.
+        SpinWait.SpinUntil(() => focus.Invocations.Count == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
+        cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent
+            .ShouldContain("loading", Case.Insensitive);
+        SpinWait.SpinUntil(() => gateway.Requests.Count == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+
+        pendingRead.SetResult(ReadySnapshot([Row("event-a", AuditEventCategory.Access)]));
+        await refresh;
+    }
+
     [Theory]
     [InlineData(TenantAuditSurfaceKind.Stale, true)]
     [InlineData(TenantAuditSurfaceKind.Degraded, true)]
@@ -1121,6 +1157,72 @@ public sealed class TenantAuditPageTests : BunitContext
         gateway.Requests.Count.ShouldBe(2);
     }
 
+    // With a receipt open, an invalidated correction panel whose launchers are not rendered (Loading) returns
+    // focus to the still-rendered receipt heading, not the page heading.
+    [Fact]
+    public async Task Invalidated_correction_with_an_open_receipt_falls_back_to_the_receipt_heading()
+    {
+        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"), evidence);
+        var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BunitJSModuleInterop focusModule = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin");
+        launcher.SetResult(false);
+        JSRuntimeInvocationHandler<bool> focus = focusModule.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        cut.Find("[data-testid='tenants-audit-grid'] [data-testid='tenants-correction-start']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        int focusCount = focus.Invocations.Count;
+        gateway.QueueResponse(pending.Task);
+
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForElement("[data-testid='tenants-audit-loading']");
+        cut.WaitForAssertion(() => launcher.Invocations.Count.ShouldBe(1));
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(focusCount + 1));
+        focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
+
+        pending.SetResult(evidence);
+        await refresh;
+    }
+
+    // Cancellation is not listed: Blazor already treats a canceled after-render task as non-fatal.
+    [Theory]
+    [InlineData("js")]
+    [InlineData("disposed")]
+    public async Task Correction_focus_return_failures_do_not_fault_the_audit_page(string failure)
+    {
+        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"), evidence);
+        var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BunitJSModuleInterop focusModule = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin");
+        launcher.SetException<Exception>(failure is "js"
+            ? new Microsoft.JSInterop.JSException("Focus module failed.")
+            : new ObjectDisposedException("tenantsFocus"));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        gateway.QueueResponse(pending.Task);
+
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForElement("[data-testid='tenants-audit-loading']");
+        cut.WaitForAssertion(() => launcher.Invocations.Count.ShouldBe(1));
+        pending.SetResult(evidence);
+        await refresh;
+
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        gateway.Requests.Count.ShouldBe(2);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -1184,6 +1286,44 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-correction-unavailable-reason']")
             .TextContent.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    // The receipt caches its correction intent, unlike the grid, which recomputes on every render. A receipt
+    // Start correction whose refreshed intent is unavailable must be replaced by the reason, and the focus it
+    // held must move to the receipt heading instead of dropping to <body>.
+    [Fact]
+    public async Task Receipt_started_correction_that_becomes_unavailable_shows_its_reason_and_focuses_the_receipt_heading()
+    {
+        TenantAuditRow row = Row(
+            "event-role-change",
+            AuditEventCategory.Access,
+            "userId: target-user; oldRole: TenantReader",
+            eventType: "UserRoleChanged");
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([row]));
+        var pendingProjection = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
+        focus.SetResult(true);
+        module.Setup<bool>("isFocusInsideAuditReceiptCorrection").SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.WaitForElement("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        gateway.QueueDetailResponse(pendingProjection.Task);
+
+        Task open = cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.DetailRequests.Count.ShouldBe(2));
+        pendingProjection.SetResult(DetailSnapshot(TenantRole.TenantReader));
+        await open;
+
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-unavailable-reason']")
+            .TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
+        focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
     }
 
     [Fact]

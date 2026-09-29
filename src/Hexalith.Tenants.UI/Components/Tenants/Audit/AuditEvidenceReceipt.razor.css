@@ -8,12 +8,24 @@
 }
 
 /* fc-css-exception: content-sized header grid on a semantic <header> landmark; FluentGrid cannot
-   express content-sized columns like minmax(0, 1fr) auto for the title plus copy button. */
+   express a minmax(0, 1fr) title column followed by one implicit auto column per rendered action
+   (Close, and Copy only on a copyable Ready receipt), so no empty track leaves a trailing gutter. */
 .audit-evidence-receipt__header {
     align-items: start;
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-auto-columns: auto;
+    grid-auto-flow: column;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* fc-css-exception: places the blocked-copy alert on its own row under the title; in an auto track its
+   sentence would take its max-content width and collapse the minmax(0, 1fr) title column. */
+.audit-evidence-receipt__copy-blocked {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 /* fc-css-exception: zero-margin reset on semantic <h3>/<p> heading and state lines; no Fluent
@@ -92,7 +104,13 @@
     /* fc-css-exception: responsive breakpoint collapsing the content-sized header columns to one;
        no Fluent layout primitive expresses this content-sized column behaviour. */
     .audit-evidence-receipt__header {
+        grid-auto-flow: row;
         grid-template-columns: 1fr;
+    }
+
+    /* fc-css-exception: restores document order for the blocked-copy alert in the stacked header. */
+    .audit-evidence-receipt__copy-blocked {
+        grid-row: auto;
     }
 
     /* fc-css-exception: responsive breakpoint collapsing the content-sized field columns to one;

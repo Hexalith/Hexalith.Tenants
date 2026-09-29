@@ -3230,7 +3230,7 @@ Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.
-  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`, `Reference d'audit`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`.
+  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
   evidence: `TenantAuditReceipt.TimestampLabel` and the grid both use the fixed `yyyy-MM-dd HH:mm:ss 'UTC'` pattern from the Story 5.1 UTC correction; the French receipt renders the same string.
@@ -3243,6 +3243,14 @@ Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Restore visible focus when a viewport downgrade removes an active correction panel.
   evidence: `RenderViewportChangeAsync` clears `_activeCorrectionIntent` and its focus reference without scheduling a return to the launcher. The panel-removal behavior predates Story 5.3.
+
+## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-29)
+
+Re-review range `f8223524..38da46a6`.
+
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
-  summary: Harden the legacy correction-launcher focus return against JS failure and teardown exceptions.
-  evidence: The correction-focus branch in `OnAfterRenderAsync` catches only `JSDisconnectedException`; `JSException`, cancellation, or disposal can fault the render lifecycle. This path predates Story 5.3.
+  summary: Return focus when `ClearPaging()` or a viewport downgrade removes an active correction panel.
+  evidence: On a `ListRefreshed` or `InvalidCursor` result, `LoadAsync` runs `CaptureCorrectionAuthority` (which keeps a still-Ready source) and then `ClearPaging()`. `ClearPaging()` nulls `_activeCorrectionIntent` and `_activeCorrectionFocusReference` without setting `_pendingCorrectionFocusReference`, so focus falls to `<body>` (`TenantAuditPage.razor:914-918`, `:1379-1388`). `RenderViewportChangeAsync` has the same gap, already recorded in the 2026-09-28 viewport entry. Both predate baseline `33d6dcca`. Each needs the pending-focus assignment that `CaptureCorrectionAuthority` now uses, gated on focus actually being lost.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+  summary: Return correction focus to the control that launched the panel, not the first matching reference in document order.
+  evidence: `tenantsFocus.js` `focusCorrectionLauncher` searches `[data-correction-focus-reference]` and then `[data-receipt-focus-reference]` in document order. The grid renders before the receipt (`TenantAuditPage.razor:221`, `:265`), so a panel opened from the receipt's Start correction returns focus to the grid's matching button. The fallback added in `38da46a6` likewise prefers the grid's "View receipt" over the open receipt. A fix needs the launch origin threaded from `OpenCorrectionAsync` to the JS.

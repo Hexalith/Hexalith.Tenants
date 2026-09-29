@@ -3452,7 +3452,7 @@
     <value>Horodatage</value>
   </data>
   <data name="Tenants.Audit.Receipt.Open" xml:space="preserve">
-    <value>Voir le recu</value>
+    <value>Voir le reçu</value>
   </data>
   <data name="Tenants.Audit.Receipt.OpenAccessible" xml:space="preserve">
     <value>Voir le reçu pour l’événement d’audit {0}</value>

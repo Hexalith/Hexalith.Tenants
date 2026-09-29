@@ -27,6 +27,15 @@
         <button>Close receipt</button>
         <button>Copy receipt</button>
     </header>
+    <header id="receipt-header-blocked" class="audit-evidence-receipt__header">
+        <div><h3>Audit evidence receipt</h3><p>Audit evidence is ready to cite.</p></div>
+        <button>Close receipt</button>
+        <p class="audit-evidence-receipt__copy-blocked" role="alert">Copy is unavailable because this receipt summary could not be verified as support-safe. Cite the audit reference shown below instead.</p>
+    </header>
+    <header id="receipt-header-pair" class="audit-evidence-receipt__header">
+        <div><h3>Audit evidence receipt</h3><p>Audit evidence is loading.</p></div>
+        <button id="receipt-pair-close">Close receipt</button>
+    </header>
     <output id="validation-report">RUNNING</output>
     <script type="module">
         const cancelButtonId = "tenants-global-admin-remove-cancel-button";
@@ -105,6 +114,14 @@
             document.body.append(correctionInvalidation);
             const currentCorrection = document.getElementById("current-correction");
             const currentReceipt = document.getElementById("current-receipt");
+
+            // Focus that survived the panel removal (here the page heading, standing in for the audit Refresh
+            // that invalidated the panel) must stay put and be reported handled, so no heading fallback runs.
+            if (!focusCorrectionLauncher("event-current")) {
+                throw new Error("live focus outside the removed correction panel was reported lost");
+            }
+            assertActiveElement(auditPageHeading, "correction-handoff-keeps-live-focus");
+            document.activeElement.blur();
             if (!focusCorrectionLauncher("event-current")) {
                 throw new Error("visible correction launcher was not focused");
             }
@@ -120,6 +137,26 @@
                 throw new Error("clipped row marker was treated as a focus launcher");
             }
             observations.push("correction-invalidation-prefers-visible-launchers");
+
+            // Matching launchers that are hidden, aria-hidden, disabled, aria-disabled, or boxless must be
+            // skipped; the production launcher is a fluent-button host, so the usable target is one too.
+            const guardedLaunchers = document.createElement("section");
+            guardedLaunchers.innerHTML = '<div hidden><button id="hidden-launcher" data-correction-focus-reference="event-guarded">Hidden</button></div>'
+                + '<div aria-hidden="true"><button id="aria-hidden-launcher" data-correction-focus-reference="event-guarded">Aria hidden</button></div>'
+                + '<button id="disabled-launcher" disabled data-correction-focus-reference="event-guarded">Disabled</button>'
+                + '<button id="aria-disabled-launcher" aria-disabled="true" data-correction-focus-reference="event-guarded">Aria disabled</button>'
+                + '<button id="boxless-launcher" style="display: none" data-correction-focus-reference="event-guarded">Boxless</button>'
+                + '<fluent-button id="guarded-receipt" data-receipt-focus-reference="event-guarded">View receipt</fluent-button>';
+            document.body.append(guardedLaunchers);
+            const guardedReceipt = document.getElementById("guarded-receipt");
+            if (document.activeElement && document.activeElement !== document.body) {
+                document.activeElement.blur();
+            }
+            if (!focusCorrectionLauncher("event-guarded")) {
+                throw new Error("usable fluent-button receipt launcher was not focused past guarded launchers");
+            }
+            assertActiveElement(guardedReceipt, "guarded-launchers-skipped");
+            guardedLaunchers.remove();
 
             const correctionCss = await (await fetch("./correction.css")).text();
             const receiptCss = await (await fetch("./receipt.css")).text();
@@ -181,6 +218,31 @@
                 }
                 observations.push("receipt-header-three-children-desktop-row");
             }
+
+            // A Ready receipt whose copy is blocked renders the alert instead of Copy: the sentence must sit on
+            // its own row, never squeezing the title column. With only Close (every non-Ready state), no empty
+            // track may leave a gutter between Close and the header edge.
+            for (const header of [document.getElementById("receipt-header-blocked"), document.getElementById("receipt-header-pair")]) {
+                for (const element of [header, ...header.querySelectorAll("*")]) {
+                    element.setAttribute(receiptScope, "");
+                }
+            }
+            await document.fonts.ready;
+            const blockedHeader = document.getElementById("receipt-header-blocked");
+            const blockedHeaderBounds = blockedHeader.getBoundingClientRect();
+            const blockedTitleBounds = blockedHeader.children[0].getBoundingClientRect();
+            const blockedAlertBounds = blockedHeader.children[2].getBoundingClientRect();
+            if (blockedTitleBounds.width < blockedHeaderBounds.width / 2
+                || blockedAlertBounds.top < blockedTitleBounds.bottom) {
+                throw new Error(`receipt-header-style: blocked-copy alert squeezed the title; title=${blockedTitleBounds.width};header=${blockedHeaderBounds.width};alertTop=${blockedAlertBounds.top};titleBottom=${blockedTitleBounds.bottom}`);
+            }
+            observations.push("receipt-header-blocked-copy-own-row");
+            const pairHeaderBounds = document.getElementById("receipt-header-pair").getBoundingClientRect();
+            const pairCloseBounds = document.getElementById("receipt-pair-close").getBoundingClientRect();
+            if (Math.abs(pairHeaderBounds.right - pairCloseBounds.right) > 1) {
+                throw new Error(`receipt-header-style: close left a trailing gutter; header=${pairHeaderBounds.right};close=${pairCloseBounds.right}`);
+            }
+            observations.push("receipt-header-two-children-flush-close");
 
             const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];
             if (!scope) {
