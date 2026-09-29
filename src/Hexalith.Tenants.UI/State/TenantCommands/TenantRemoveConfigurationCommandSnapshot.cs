@@ -48,7 +48,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
         => new(
             TenantCommandLifecycleState.UnableToVerify,
             SafeMessage: safeMessage,
-            AuditState: TenantCommandAuditState.MissingSupport,
+            AuditState: TenantCommandAuditStates.NotStarted,
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
@@ -66,7 +66,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,
-            AuditState = TenantCommandAuditState.MissingSupport,
+            AuditState = TenantCommandAuditStates.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Submit,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
@@ -87,7 +87,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             MessageId = messageId,
             BaselineProjectionVersion = preview.ProjectionVersion,
             AttemptStartedAtUtc = attemptStartedAtUtc.ToUniversalTime(),
-            AuditState = TenantCommandAuditState.NotStarted,
+            AuditState = TenantCommandAuditStates.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
         };
     }
@@ -110,7 +110,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,
-            AuditState = TenantCommandAuditState.AuditPending,
+            AuditState = TenantCommandAuditStates.NotStarted,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
@@ -124,7 +124,8 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             CorrelationId = string.IsNullOrWhiteSpace(CorrelationId) ? MessageId : CorrelationId,
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
-            AuditState = TenantCommandAuditState.AuditDelayed,
+            // Dispatch was attempted but its delivery cannot be proven, so the status is unknown.
+            AuditState = TenantCommandAuditStates.Unverifiable,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
@@ -172,6 +173,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.EventsStored or CommandStatus.EventsPublished => this with
@@ -181,7 +183,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditState.AuditPending,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Completed when status.EventCount is not > 0 && !HasCommandEventEvidence
@@ -196,7 +198,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditState.AuditPending,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Rejected when HasCommandEventEvidence
@@ -211,7 +213,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Remove.Status.Rejected",
                 RejectionCode = status.RejectionCode,
-                AuditState = TenantCommandAuditState.AuditUnavailable,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
@@ -222,7 +224,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Remove.Status.PublishFailed",
-                AuditState = TenantCommandAuditState.AuditDelayed,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
@@ -230,10 +232,13 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 || State is TenantCommandLifecycleState.Degraded => this with
             {
                 StatusObservationCount = StatusObservationCount + 1,
+                // The lifecycle keeps its stronger event evidence, but a timed-out status still delays audit.
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
             },
             CommandStatus.TimedOut => UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.StatusTimeout") with
             {
                 StatusObservationCount = StatusObservationCount + 1,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
             },
             _ => UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.Status") with
             {
@@ -254,7 +259,8 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
         {
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
-            AuditState = TenantCommandAuditState.AuditDelayed,
+            // A failed projection read is projection truth only: the audit dimension is left untouched so
+            // command, projection, and audit evidence never collapse into one state.
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
@@ -297,7 +303,9 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = null,
                 RejectionCode = null,
-                AuditState = TenantCommandAuditState.AuditPending,
+                // A projection confirmation carries no attempt-specific audit proof, and this flow has no
+                // in-panel audit verification: report proof as unsupported rather than pending forever.
+                AuditState = TenantCommandAuditStates.ConfirmedWithoutProof,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             }
@@ -325,6 +333,14 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             AttemptStartedAtUtc = null,
         };
 
+    /// <summary>
+    /// Releases an attempt that outlived its retention window. The command stays unverified exactly as an
+    /// abandonment, but the audit dimension is delayed rather than unavailable.
+    /// </summary>
+    /// <returns>The released snapshot with a delayed audit dimension.</returns>
+    public TenantRemoveConfigurationCommandSnapshot ExpireRetention()
+        => Abandon() with { AuditState = TenantCommandAuditStates.Delayed };
+
     /// <summary>Returns a support-safe diagnostic shape without tracking or projection identifiers.</summary>
     /// <returns>A fixed description containing lifecycle classifications and Boolean evidence only.</returns>
     public override string ToString()
@@ -336,7 +352,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             State = TenantCommandLifecycleState.UnableToVerify,
             SafeMessage = null,
             SafeMessageKey = safeMessageKey,
-            AuditState = TenantCommandAuditState.AuditDelayed,
+            AuditState = TenantCommandAuditStates.Unverifiable,
             FocusTarget = TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };

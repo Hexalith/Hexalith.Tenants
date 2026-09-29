@@ -322,17 +322,22 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(component => component.SourceKind, "command-result")
             .Add(component => component.SourceTestId, "tenants-command-audit-entrypoint")
             .Add(component => component.Label, "Audit evidence")
-            .Add(component => component.AccessibleName, "Open audit evidence for audit evidence delayed in tenant tenant.alpha")
+            .Add(component => component.AccessibleName, "Open audit evidence for tenant tenant.alpha (Audit delayed)")
             .Add(component => component.ReturnUrl, "/tenants/tenant.alpha")
             .Add(component => component.ReturnFocus, "tenants-config-set-lifecycle")
-            .Add(component => component.IsAvailable, true)
-            .Add(component => component.AvailabilityText, "Audit evidence delayed."));
+            .Add(component => component.IsAvailable, true));
 
         string auditHref = RequiredAttribute(EntryPointFromMarker(cut, "tenants-command-audit-entrypoint"), "href");
 
         auditHref.ShouldContain("/tenants/tenant.alpha/audit?");
         auditHref.ShouldContain("source=command-result");
-        cut.Find("[data-testid='tenants-audit-entrypoint']").TextContent.ShouldContain("Audit evidence delayed.");
+
+        // The shared availability control already shows the state; the entry point carries it only in its
+        // accessible name and never repeats a flow-local state sentence visually.
+        AngleSharp.Dom.IElement entryPoint = cut.Find("[data-testid='tenants-audit-entrypoint']");
+        entryPoint.GetAttribute("aria-label").ShouldBe("Open audit evidence for tenant tenant.alpha (Audit delayed)");
+        entryPoint.TextContent.Trim().ShouldBe("Audit evidence");
+        entryPoint.QuerySelector(".tenants-audit-entrypoint__state").ShouldBeNull();
         cut.Markup.ShouldNotContain("receipt", Case.Insensitive);
         cut.Markup.ShouldNotContain("proof confirmed", Case.Insensitive);
     }
@@ -487,7 +492,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             ["Tenants.Audit.Context.SourceKind.Default"] = "another tenant surface",
             ["Tenants.Audit.ControlsLabel"] = "Tenant audit filters and paging controls",
             ["Tenants.Audit.Description"] = "Read-only tenant audit evidence from the server-side query gateway.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.Accessible.Member"] = "Open audit evidence for user {0} in tenant {1}",
             ["Tenants.Audit.EntryPoint.Accessible.Tenant"] = "Open audit evidence for tenant {0} from {1}",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",

@@ -8,51 +8,50 @@
     padding: 0.75rem;
 }
 
-/* fc-css-exception: inline icon+text row on a semantic <p> status line; keeping the paragraph
-   semantics precludes replacing it with a FluentStack wrapper. */
+/* The state line reserves its footprint so a badge update never reflows the card. It receives
+   programmatic focus (tabindex=-1) when Refresh is withdrawn at the retry bound. */
 .tenants-audit-availability__state {
-    align-items: center;
-    display: flex;
-    gap: 0.5rem;
     margin: 0;
     min-height: 2rem;
     overflow-wrap: anywhere;
 }
 
-/* fc-css-exception: status glyph badge centering for a single character; no Fluent badge primitive
-   adopted, to preserve the exact high-contrast border treatment. */
-.tenants-audit-availability__icon {
-    border: 1px solid CanvasText;
-    display: inline-grid;
-    flex: 0 0 1.75rem;
-    font-weight: 700;
-    height: 1.75rem;
-    place-items: center;
-    width: 1.75rem;
-}
-
-/* fc-css-exception: zero-margin reset on a semantic <p> reason line; no Fluent typography primitive
-   wraps this semantic element. */
-.tenants-audit-availability__reason {
+.tenants-audit-availability__reason,
+.tenants-audit-availability__limit {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
-.tenants-audit-availability__action {
+/* Fluent component roots never receive this component's scope attribute, so every rule that targets
+   the badge, the action stack, or an action control is anchored on the plain-HTML root with ::deep. */
+.tenants-audit-availability ::deep .tenants-audit-availability__badge {
+    max-inline-size: 100%;
+    white-space: normal;
+}
+
+.tenants-audit-availability ::deep .tenants-audit-availability__action {
     min-height: 2.5rem;
 }
 
-.tenants-audit-availability__action:focus-visible,
-.tenants-audit-availability__action-shell :focus-visible,
-.tenants-audit-availability:focus-visible {
+.tenants-audit-availability__state:focus-visible,
+.tenants-audit-availability ::deep .tenants-audit-availability__action:focus-visible,
+.tenants-audit-availability__action-shell ::deep :focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
 
 @media (max-width: 767px) {
-    .tenants-audit-availability__actions {
-        align-items: stretch;
-        flex-direction: column;
+    /* The action stack is a horizontal FluentStack (row direction from its Fluent class); narrow
+       widths stack every recovery full-width so nothing is clipped or scrolled off at 390px. */
+    .tenants-audit-availability ::deep .tenants-audit-availability__actions {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .tenants-audit-availability ::deep .tenants-audit-availability__action,
+    .tenants-audit-availability__action-shell,
+    .tenants-audit-availability__action-shell ::deep .tenants-audit-entrypoint {
+        inline-size: 100%;
     }
 }
 
@@ -65,8 +64,19 @@
 }
 
 @media (forced-colors: active) {
-    .tenants-audit-availability,
-    .tenants-audit-availability__icon {
+    /* The OS drops the badge fill; a system-colored outline keeps the chip delineated while its
+       per-state icon and text carry the meaning. */
+    .tenants-audit-availability {
         border-color: CanvasText;
+    }
+
+    .tenants-audit-availability ::deep .tenants-audit-availability__badge {
+        border: 1px solid CanvasText;
+        forced-color-adjust: auto;
+    }
+
+    .tenants-audit-availability__state:focus-visible,
+    .tenants-audit-availability ::deep .tenants-audit-availability__action:focus-visible {
+        outline-color: Highlight;
     }
 }

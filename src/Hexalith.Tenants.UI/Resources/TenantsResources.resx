@@ -1038,21 +1038,6 @@
   <data name="Tenants.Lifecycle.State.UnableToVerify" xml:space="preserve">
     <value>Lifecycle command outcome is unable to verify.</value>
   </data>
-  <data name="Tenants.Lifecycle.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence has not started.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending; no receipt is fabricated.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed; verify again later.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable for this result.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit support is missing for this visible state.</value>
-  </data>
   <data name="Tenants.Lifecycle.Recovery.Idle" xml:space="preserve">
     <value>Review the tenant projection before starting a lifecycle command.</value>
   </data>
@@ -1468,21 +1453,6 @@
   <data name="Tenants.Configuration.Set.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the configuration command result.</value>
   </data>
-  <data name="Tenants.Configuration.Set.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is missing until Epic 5 implements the evidence source.</value>
-  </data>
   <data name="Tenants.Configuration.Set.Recovery.Idle" xml:space="preserve">
     <value>Open the form when current projection evidence and namespace scope are available.</value>
   </data>
@@ -1715,21 +1685,6 @@
   </data>
   <data name="Tenants.Configuration.Remove.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the configuration removal result.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.MissingSupport" xml:space="preserve">
-    <value>Command-specific audit proof is not available in this flow; inspect tenant audit evidence separately.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Idle" xml:space="preserve">
     <value>Choose a visible key when current projection evidence and namespace scope are available.</value>
@@ -2070,18 +2025,6 @@
   <data name="Tenants.AddMember.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the add-member command result.</value>
   </data>
-  <data name="Tenants.AddMember.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit support is missing for this flow.</value>
-  </data>
   <data name="Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
     <value>Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.</value>
   </data>
@@ -2199,18 +2142,6 @@
   <data name="Tenants.ChangeRole.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the change-role command result.</value>
   </data>
-  <data name="Tenants.ChangeRole.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit support is missing for this flow.</value>
-  </data>
   <data name="Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
     <value>The requested role was already applied before this attempt; no new role change is asserted.</value>
   </data>
@@ -2306,18 +2237,6 @@
   </data>
   <data name="Tenants.Create.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify command result.</value>
-  </data>
-  <data name="Tenants.Create.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.Create.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending.</value>
-  </data>
-  <data name="Tenants.Create.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable.</value>
-  </data>
-  <data name="Tenants.Create.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit support is missing for this flow.</value>
   </data>
   <data name="Tenants.RemoveMember.Title" xml:space="preserve">
     <value>Remove tenant member</value>
@@ -2541,24 +2460,6 @@
   <data name="Tenants.RemoveMember.State.UnableToVerify" xml:space="preserve">
     <value>Unable to verify the remove-member command result.</value>
   </data>
-  <data name="Tenants.RemoveMember.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending; removal is confirmed, wait or refresh for support-safe proof.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed; retry status lookup or inspect audit for removal proof.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable; confirmed removal stands without support-safe proof.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditAvailable" xml:space="preserve">
-    <value>Audit evidence available; support-safe removal proof is ready.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is missing; continue read-only.</value>
-  </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Open the preview when current projection evidence is available.</value>
   </data>
@@ -2708,24 +2609,6 @@
   </data>
   <data name="Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure" xml:space="preserve">
     <value>Metadata projection proof could not be verified. Refresh status or continue read-only.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
-    <value>Audit evidence not started.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditPending" xml:space="preserve">
-    <value>Audit evidence pending; no matching command receipt is available yet.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditDelayed" xml:space="preserve">
-    <value>Audit evidence delayed; wait or inspect the audit trail.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Audit evidence unavailable; no proof or receipt is asserted.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditAvailable" xml:space="preserve">
-    <value>Audit evidence confirms this metadata update.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is unavailable for this attempt.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Idle" xml:space="preserve">
     <value>Open the form when current projection evidence is available.</value>
@@ -3337,32 +3220,8 @@
   <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
     <value>Copy audit event reference {0}</value>
   </data>
-  <data name="Tenants.Audit.Availability.Accessible.Delayed" xml:space="preserve">
-    <value>Audit evidence is delayed; retry status lookup or inspect audit before citing proof.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Available" xml:space="preserve">
-    <value>Audit evidence is available; support-safe proof may be inspected or copied.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
-    <value>Audit evidence support is missing; continue read-only or escalate with support-safe information.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation" xml:space="preserve">
-    <value>Audit evidence support is missing; continue read-only.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Pending" xml:space="preserve">
-    <value>Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable" xml:space="preserve">
-    <value>Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation" xml:space="preserve">
-    <value>Audit evidence is unavailable; continue read-only or retry status lookup.</value>
-  </data>
   <data name="Tenants.Audit.Availability.Action.ContinueReadOnly" xml:space="preserve">
     <value>Continue read-only</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Action.Escalate" xml:space="preserve">
-    <value>Escalate</value>
   </data>
   <data name="Tenants.Audit.Availability.Action.InspectAudit" xml:space="preserve">
     <value>Inspect audit</value>
@@ -3370,23 +3229,14 @@
   <data name="Tenants.Audit.Availability.Action.Refresh" xml:space="preserve">
     <value>Retry status lookup</value>
   </data>
-  <data name="Tenants.Audit.Availability.Action.Wait" xml:space="preserve">
-    <value>Wait</value>
-  </data>
   <data name="Tenants.Audit.Availability.ActionsLabel" xml:space="preserve">
     <value>Audit availability recovery actions</value>
   </data>
   <data name="Tenants.Audit.Availability.Reason.MissingSupport" xml:space="preserve">
-    <value>This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation" xml:space="preserve">
-    <value>This flow cannot verify audit proof from the available implementation support. Continue read-only.</value>
+    <value>In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.</value>
   </data>
   <data name="Tenants.Audit.Availability.Reason.Unavailable" xml:space="preserve">
-    <value>Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoEscalation" xml:space="preserve">
-    <value>Audit proof cannot be verified right now. Continue read-only or retry status lookup.</value>
+    <value>The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
     <value>Audit delayed</value>
@@ -3653,7 +3503,7 @@
     <value>another tenant surface</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
-    <value>Open audit evidence for {0} in tenant {1}</value>
+    <value>Open audit evidence for tenant {1} ({0})</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
     <value>Open audit evidence for user {0} in tenant {1}</value>
@@ -4075,30 +3925,6 @@
   <data name="Tenants.ChangeRole.Dismiss.Blocked" xml:space="preserve">
     <value>This role change is still in progress, so the form cannot be closed yet. Use Refresh to check the outcome.</value>
   </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoRecovery" xml:space="preserve">
-    <value>Audit proof cannot be verified right now, and no recovery action is available on this surface. The recorded outcome above is unchanged.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoRecovery" xml:space="preserve">
-    <value>Audit evidence is unavailable; no recovery action is available on this surface.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoRecovery" xml:space="preserve">
-    <value>This flow cannot verify audit proof from the available implementation support, and no recovery action is available on this surface. The recorded outcome above is unchanged.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoRecovery" xml:space="preserve">
-    <value>Audit evidence support is missing; no recovery action is available on this surface.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.RefreshOnly" xml:space="preserve">
-    <value>Audit proof cannot be verified right now. Retry the status lookup without including raw diagnostics, tokens, payloads, or personal data.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.RefreshOnly" xml:space="preserve">
-    <value>Audit evidence is unavailable; retry status lookup.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.RefreshOnly" xml:space="preserve">
-    <value>This flow cannot verify audit proof from the available implementation support. Retry the status lookup.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly" xml:space="preserve">
-    <value>Audit evidence support is missing; retry status lookup.</value>
-  </data>
   <data name="Tenants.HighImpact.Action.EnableTenant" xml:space="preserve"><value>Enable tenant</value></data>
   <data name="Tenants.HighImpact.Action.DisableTenant" xml:space="preserve"><value>Disable tenant</value></data>
   <data name="Tenants.HighImpact.Action.SetConfiguration" xml:space="preserve"><value>Set configuration</value></data>
@@ -4318,10 +4144,16 @@
   <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationRemoved" xml:space="preserve">
     <value>Tenant configuration removed</value>
   </data>
-  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Accessible" xml:space="preserve">
-    <value>Audit evidence is unavailable; retry the audit read or continue read-only.</value>
-  </data>
   <data name="Tenants.Audit.Receipt.Availability.Unavailable.Reason" xml:space="preserve">
-    <value>This audit read cannot verify the requested evidence. Retry the audit read or continue read-only; escalate with support-safe information if it persists.</value>
+    <value>This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Pending" xml:space="preserve">
+    <value>The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Delayed" xml:space="preserve">
+    <value>The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.RetryLimit" xml:space="preserve">
+    <value>Repeated retries left this state unchanged, so retrying is no longer offered here.</value>
   </data>
 </root>

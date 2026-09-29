@@ -487,6 +487,25 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void Unavailable_audit_read_escalates_once_from_the_page_never_again_from_its_receipt()
+    {
+        RegisterServices(SnapshotFor(TenantAuditSurfaceKind.Unavailable));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-not-loaded");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-audit-receipt'] [data-testid='tenants-audit-availability']");
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
+        cut.Find("[data-testid='tenants-audit-recovery-escalate']").GetAttribute("href").ShouldBe("/support/audit-incident");
+
+        // The page already escalates the failed read, so the receipt's shared control suppresses its own link.
+        cut.FindAll("[data-testid='tenants-audit-receipt-recovery-escalate']").ShouldBeEmpty();
+        cut.FindAll("[href='/support/audit-incident']").Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void Tenant_audit_page_receipt_reference_query_opens_loaded_row_without_extra_backend_query()
     {
         StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-safe-reference", AuditEventCategory.Access)]));
@@ -3064,22 +3083,12 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Receipt.State.Unauthorized"] = "Audit evidence is not available for the current authorization scope. The requested event could not be verified.",
             ["Tenants.Audit.Receipt.State.Unavailable"] = "Audit evidence is unavailable. Continue read-only or retry later.",
             ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
@@ -3119,6 +3128,12 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Correction.Command.SetGlobalAdministrator"] = "Set global administrator",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
     }
 

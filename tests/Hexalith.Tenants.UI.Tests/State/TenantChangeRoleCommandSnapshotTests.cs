@@ -25,7 +25,8 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         snapshot.MessageId.ShouldBeNull();
         snapshot.CorrelationId.ShouldBeNull();
         snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        // An already-applied role dispatched nothing, so no audit state is implied.
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
     [Fact]
@@ -155,7 +156,8 @@ public sealed class TenantChangeRoleCommandSnapshotTests
             .SignalRNudge();
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        // Nothing is stored yet, and a nudge never advances the audit dimension.
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.LastConfirmedMemberProjection.ShouldBeNull();
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
@@ -173,7 +175,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }
 

@@ -295,7 +295,8 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .SignalRNudge();
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        // The nudge may move the lifecycle, but never the audit dimension: no events are known stored.
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.LastConfirmedName.ShouldBe("Original");
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
 
@@ -347,7 +348,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     }
 
     [Theory]
-    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted)]
     [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed)]
     [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed)]
     public void Projection_evidence_cannot_convert_terminal_non_success_states_to_confirmed(

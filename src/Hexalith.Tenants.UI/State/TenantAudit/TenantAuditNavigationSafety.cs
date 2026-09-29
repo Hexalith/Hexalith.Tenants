@@ -204,6 +204,71 @@ public static partial class TenantAuditNavigationSafety
     public static bool IsSafeHint(string? value)
         => IsSafeIdentifier(value) && TenantAuditSupportSafety.SafeApprovedReference(value) is not null;
 
+    /// <summary>
+    /// Canonicalizes a configured audit recovery destination (permission request or escalation) to a safe
+    /// local path, or rejects it.
+    /// </summary>
+    /// <remarks>
+    /// The destination must be a rooted local path after up to three rounds of percent-decoding, with no
+    /// scheme, protocol-relative or backslash form, fragment, query string, control character, dot segment,
+    /// or segment that fails the approved-reference rule. Anything else yields <see langword="null"/>, so a
+    /// recovery link is never rendered as a dead or external link.
+    /// </remarks>
+    /// <param name="href">The configured destination.</param>
+    /// <returns>The canonical local path, or <see langword="null"/> when the destination is absent or unsafe.</returns>
+    public static string? SafeRecoveryHref(string? href)
+    {
+        string? canonical = CanonicalLocalHref(href);
+        return canonical is not null && !canonical.Contains('?', StringComparison.Ordinal)
+            ? canonical
+            : null;
+    }
+
+    private static string? CanonicalLocalHref(string? href)
+    {
+        if (string.IsNullOrWhiteSpace(href) || href.Length > 8192)
+        {
+            return null;
+        }
+
+        string canonical = href;
+        for (int attempt = 0; attempt < 3 && canonical.Contains('%', StringComparison.Ordinal); attempt++)
+        {
+            try
+            {
+                string decoded = Uri.UnescapeDataString(canonical);
+                if (string.Equals(decoded, canonical, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                canonical = decoded;
+            }
+            catch (UriFormatException)
+            {
+                return null;
+            }
+        }
+
+        if (!canonical.StartsWith('/')
+            || canonical.StartsWith("//", StringComparison.Ordinal)
+            || canonical.Contains('%', StringComparison.Ordinal)
+            || canonical.Contains('\\')
+            || canonical.Contains('#', StringComparison.Ordinal)
+            || canonical.Contains("://", StringComparison.OrdinalIgnoreCase)
+            || canonical.Any(char.IsControl))
+        {
+            return null;
+        }
+
+        string path = canonical.Split('?', '#')[0];
+        return path.Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Any(segment => segment is "." or ".."
+                || TenantAuditSupportSafety.SafeApprovedReference(segment) is null)
+            ? null
+            : canonical;
+    }
+
     private static bool IsApprovedPath(string path)
     {
         string[] parts = path.Split('/');

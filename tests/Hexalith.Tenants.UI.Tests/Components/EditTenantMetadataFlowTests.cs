@@ -259,7 +259,11 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldContain("Updated");
         cut.Find("[data-testid='tenants-edit-metadata-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("[data-testid='tenants-edit-metadata-audit']").TextContent.ShouldContain("Audit evidence pending");
+        // A changed-value confirmation has no attempt-matched Ready receipt: the projection is confirmed, but
+        // audit proof is reported as missing in-panel support rather than pending forever or available.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        cut.Find("[data-testid='tenants-edit-metadata-audit']").TextContent.ShouldContain("Missing implementation support");
+        cut.Find("[data-testid='tenants-edit-metadata-audit']").TextContent.ShouldNotContain("Audit available");
     }
 
     [Fact]
@@ -1449,33 +1453,17 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance"] = "Metadata projection matches the request, but update provenance could not be verified. Refresh status or continue read-only.",
             ["Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure"] = "Command status could not be verified. Retry status lookup or continue read-only.",
             ["Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure"] = "Metadata projection proof could not be verified. Refresh status or continue read-only.",
-            ["Tenants.EditMetadata.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.EditMetadata.Audit.AuditPending"] = "Audit evidence pending; no matching command receipt is available yet.",
-            ["Tenants.EditMetadata.Audit.AuditDelayed"] = "Audit evidence delayed; wait or inspect the audit trail.",
-            ["Tenants.EditMetadata.Audit.AuditUnavailable"] = "Audit evidence unavailable; no proof or receipt is asserted.",
-            ["Tenants.EditMetadata.Audit.AuditAvailable"] = "Audit evidence confirms this metadata update.",
-            ["Tenants.EditMetadata.Audit.MissingSupport"] = "Audit evidence support is unavailable for this attempt.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
@@ -1489,6 +1477,12 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.Recovery.Failed"] = "Retry after checking current projection evidence or escalate.",
             ["Tenants.EditMetadata.Recovery.Degraded"] = "Wait, retry status lookup, inspect audit when available, or escalate.",
             ["Tenants.EditMetadata.Recovery.UnableToVerify"] = "Refresh, retry status lookup, continue read-only, or escalate.",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
 
         public LocalizedString this[string name]

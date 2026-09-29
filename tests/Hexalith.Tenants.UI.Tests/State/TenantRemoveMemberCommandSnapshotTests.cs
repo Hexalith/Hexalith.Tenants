@@ -102,7 +102,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         alreadyApplied.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence");
         alreadyApplied.SafeMessage.ShouldBeNull();
-        alreadyApplied.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        alreadyApplied.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
 
@@ -142,7 +142,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .SignalRNudge();
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.LastConfirmedMemberProjection.ShouldNotBeNull().Members
             .ShouldContain(member => member.UserId == "literal-user");
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -157,7 +157,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.DuplicatePrevented);
         snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Failed);
     }
@@ -165,7 +165,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     [Theory]
     [InlineData(CommandStatus.PublishFailed, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed)]
     [InlineData(CommandStatus.TimedOut, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed)]
-    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(CommandStatus.Rejected, TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted)]
     public void Terminal_non_success_states_do_not_collapse_to_confirmed(
         CommandStatus status,
         TenantCommandLifecycleState expectedState,

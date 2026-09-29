@@ -228,7 +228,12 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         gateway.LastChangeRoleRequest.ShouldNotBeNull().NewRole.ShouldBe(TenantRole.TenantContributor);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         cut.Find("[data-testid='tenants-change-role-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("[data-testid='tenants-change-role-audit']").TextContent.ShouldContain("Audit evidence pending");
+        // Projection confirmation is not audit proof and this flow has no in-panel audit verification.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        cut.Find("[data-testid='tenants-change-role-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("missingsupport");
+        cut.Find("[data-testid='tenants-change-role-audit']").TextContent.ShouldContain("Missing implementation support");
+        cut.Find("[data-testid='tenants-change-role-audit']").TextContent.ShouldNotContain("Audit available");
         cut.Markup.ShouldNotContain("correlation-789", Case.Insensitive);
     }
 
@@ -419,6 +424,9 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
         cut.Markup.ShouldNotContain("bearer ", Case.Insensitive);
         cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
+        // A rejection stored nothing: no audit state is implied and the shared control stays hidden.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -765,39 +773,31 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             ["Tenants.ChangeRole.State.Failed"] = "Change-role command submission failed.",
             ["Tenants.ChangeRole.State.Degraded"] = "Change-role command result is degraded and needs review.",
             ["Tenants.ChangeRole.State.UnableToVerify"] = "Unable to verify the change-role command result.",
-            ["Tenants.ChangeRole.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.ChangeRole.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.ChangeRole.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.ChangeRole.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting"] = "The requested role was already applied before this attempt; no new role change is asserted.",
             ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline"] = "Role projection matched without a pre-submit baseline, so this attempt cannot be confirmed.",
             ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget"] = "The member projection no longer contains the target user.",
             ["Tenants.ChangeRole.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
 
         public LocalizedString this[string name]

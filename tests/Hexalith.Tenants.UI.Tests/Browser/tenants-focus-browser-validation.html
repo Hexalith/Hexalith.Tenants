@@ -3,8 +3,10 @@
 <head>
     <meta charset="utf-8">
     <title>Tenants focus module browser validation</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
     <link rel="stylesheet" href="./correction.css">
     <link rel="stylesheet" href="./receipt.css">
+    <link id="availability-stylesheet" rel="stylesheet" href="./availability.css">
     <link id="page-stylesheet" rel="stylesheet" href="./global-admins.css">
     <style>#background-surface { position: fixed; inset: 0; z-index: 1; }</style>
 </head>
@@ -36,6 +38,25 @@
         <div><h3>Audit evidence receipt</h3><p>Audit evidence is loading.</p></div>
         <button id="receipt-pair-close">Close receipt</button>
     </header>
+    <section id="availability-fixture" class="tenants-audit-availability tenants-audit-availability--unavailable"
+             data-testid="tenants-audit-availability" data-state="unavailable" aria-label="Audit indisponible">
+        <div id="availability-announcement" class="fluent-stack-vertical tenants-audit-availability__announcement"
+             style="justify-content: start; align-items: start; row-gap: 0.5rem; width: 100%;"
+             aria-live="assertive" aria-atomic="true">
+            <p id="availability-state" class="tenants-audit-availability__state" tabindex="-1">
+                <fluent-badge id="availability-badge" class="tenants-audit-availability__badge tenants-audit-availability__badge--unavailable" appearance="tint" color="severe" aria-label="Audit indisponible"><svg style="width: 20px;" focusable="false" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v12H4z"/></svg><span>Audit indisponible</span></fluent-badge>
+            </p>
+            <p class="tenants-audit-availability__reason">Le statut d’audit n’a pas pu être lu ni vérifié après l’envoi de la commande. Cela ne signifie pas que l’enregistrement n’existe pas, et aucune preuve n’est revendiquée.</p>
+        </div>
+        <div id="availability-actions" class="fluent-stack-horizontal tenants-audit-availability__actions"
+             style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"
+             aria-label="Actions de reprise de la disponibilité de l’audit">
+            <fluent-button class="tenants-audit-availability__action" appearance="primary" data-recovery-verb="refresh">Relancer la consultation du statut</fluent-button>
+            <fluent-button class="tenants-audit-availability__action" appearance="primary" data-recovery-verb="continuereadonly">Continuer en lecture seule</fluent-button>
+            <span class="tenants-audit-availability__action-shell" data-recovery-verb="inspectaudit"><fluent-anchor-button class="tenants-audit-entrypoint" appearance="outline" href="/tenants/tenant.alpha/audit">Preuves d'audit</fluent-anchor-button></span>
+            <fluent-anchor-button class="tenants-audit-availability__action" appearance="outline" data-recovery-verb="escalate" href="/support/audit-incident">Escalader sans diagnostics</fluent-anchor-button>
+        </div>
+    </section>
     <output id="validation-report">RUNNING</output>
     <script type="module">
         const cancelButtonId = "tenants-global-admin-remove-cancel-button";
@@ -43,6 +64,15 @@
         const modulePath = parameters.get("module") ?? "./tenantsFocus.js";
         const pageCssPath = parameters.get("css") ?? "./global-admins.css";
         const expectedViewport = parameters.get("viewport") ?? "narrow";
+        const availabilityCssPath = parameters.get("availabilityCss") ?? "./availability.css";
+        if (availabilityCssPath !== "./availability.css") {
+            const availabilityStylesheet = document.getElementById("availability-stylesheet");
+            await new Promise((resolve, reject) => {
+                availabilityStylesheet.addEventListener("load", resolve, { once: true });
+                availabilityStylesheet.addEventListener("error", reject, { once: true });
+                availabilityStylesheet.href = availabilityCssPath;
+            });
+        }
         if (pageCssPath !== "./global-admins.css") {
             const stylesheet = document.getElementById("page-stylesheet");
             await new Promise((resolve, reject) => {
@@ -243,6 +273,66 @@
                 throw new Error(`receipt-header-style: close left a trailing gutter; header=${pairHeaderBounds.right};close=${pairCloseBounds.right}`);
             }
             observations.push("receipt-header-two-children-flush-close");
+
+            // The shared audit availability control: at 390px every recovery stacks full-width with no
+            // horizontal scroll; on desktop the recoveries share one row. The live region never holds an
+            // action, and the state line takes programmatic focus when Refresh is withdrawn.
+            const availabilityCss = await (await fetch(availabilityCssPath)).text();
+            const availabilityScope = availabilityCss.match(/\.tenants-audit-availability\[([a-z0-9-]+)\]/)?.[1];
+            if (!availabilityScope) {
+                throw new Error("availability-style: compiled availability CSS scope missing");
+            }
+            const availability = document.getElementById("availability-fixture");
+            for (const element of [availability, ...availability.querySelectorAll("p, span")]) {
+                element.setAttribute(availabilityScope, "");
+            }
+            await document.fonts.ready;
+            // Each recovery is measured by its control; the Inspect-audit shell is measured by the entry point
+            // it hosts, which must itself stretch full width rather than only its wrapper.
+            const availabilityActions = Array.from(document.querySelectorAll("#availability-actions > *"))
+                .map(action => action.classList.contains("tenants-audit-availability__action-shell")
+                    ? action.querySelector(".tenants-audit-entrypoint")
+                    : action);
+            const actionsBounds = document.getElementById("availability-actions").getBoundingClientRect();
+            const actionBounds = availabilityActions.map(action => action.getBoundingClientRect());
+            const availabilityBounds = availability.getBoundingClientRect();
+            if (availabilityActions.length !== 4
+                || availabilityActions.some(action => !action)
+                || actionBounds.some(bounds => bounds.width <= 0 || bounds.height <= 0)
+                || availabilityBounds.right > window.innerWidth + 1
+                || document.documentElement.scrollWidth > window.innerWidth + 1) {
+                throw new Error(`availability-style: actions clipped or page scrolls horizontally; width=${window.innerWidth};scroll=${document.documentElement.scrollWidth};right=${availabilityBounds.right}`);
+            }
+            if (expectedViewport === "narrow") {
+                const stacked = actionBounds.every((bounds, index) => index === 0 || bounds.top >= actionBounds[index - 1].bottom - 1);
+                const fullWidth = actionBounds.every(bounds => Math.abs(bounds.width - actionsBounds.width) <= 1);
+                if (window.innerWidth > 767 || !stacked || !fullWidth) {
+                    throw new Error(`availability-style: narrow recoveries did not stack full-width; width=${window.innerWidth};tops=${actionBounds.map(bounds => bounds.top).join(",")};widths=${actionBounds.map(bounds => bounds.width).join(",")}`);
+                }
+                observations.push("availability-actions-narrow-stacked-full-width");
+            }
+            else {
+                if (window.innerWidth <= 767 || actionBounds.some(bounds => Math.abs(bounds.top - actionBounds[0].top) > 1)) {
+                    throw new Error(`availability-style: desktop recoveries did not share one row; tops=${actionBounds.map(bounds => bounds.top).join(",")}`);
+                }
+                observations.push("availability-actions-desktop-row");
+            }
+            const availabilityBadge = document.getElementById("availability-badge");
+            const badgeBounds = availabilityBadge.getBoundingClientRect();
+            if (badgeBounds.width <= 0 || badgeBounds.right > availabilityBounds.right + 1
+                || !availabilityBadge.querySelector("svg[aria-hidden='true']")
+                || !availabilityBadge.textContent.includes("Audit indisponible")) {
+                throw new Error("availability-style: badge must show its icon and full accented label inside the card");
+            }
+            const announcement = document.getElementById("availability-announcement");
+            if (announcement.querySelector("fluent-button, fluent-anchor-button, a, button")
+                || !announcement.contains(document.getElementById("availability-state"))) {
+                throw new Error("availability-live-region: announcement must hold only the state and its explanation");
+            }
+            const availabilityState = document.getElementById("availability-state");
+            availabilityState.focus();
+            assertActiveElement(availabilityState, "availability-state-line-programmatic-focus");
+            availabilityState.blur();
 
             const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];
             if (!scope) {

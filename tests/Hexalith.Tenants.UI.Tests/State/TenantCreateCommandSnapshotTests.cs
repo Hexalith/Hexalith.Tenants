@@ -32,7 +32,8 @@ public sealed class TenantCreateCommandSnapshotTests
             "projection-v2");
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedListEvidence.ShouldNotBeNull().TenantId.ShouldBe("Tenant.Mixed-01");
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        // Projection confirmation is not audit proof and this flow has no in-panel audit verification.
+        confirmed.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public sealed class TenantCreateCommandSnapshotTests
         // state ConfirmProjection trusts, or notification alone would stand in for command-status evidence.
         snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.ProjectionPending);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         snapshot.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
     }

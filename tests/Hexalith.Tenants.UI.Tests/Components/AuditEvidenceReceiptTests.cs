@@ -425,6 +425,35 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         closeCount.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void Receipt_escalates_only_when_its_host_does_not_already_escalate_the_failed_read(
+        bool hostEscalatesFailedRead,
+        int expectedEscalations)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<Hexalith.Tenants.UI.Services.Gateways.ITenantsBffComposition>(new EscalatingComposition());
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt,
+                TenantAuditReceipt.Unavailable(surfaceKind: TenantAuditSurfaceKind.Unavailable))
+            .Add(component => component.HostEscalatesFailedRead, hostEscalatesFailedRead)
+            .Add(component => component.OnRetry, () => { })
+            .Add(component => component.OnClose, () => { }));
+
+        cut.FindAll("[data-testid='tenants-audit-receipt-recovery-escalate']").Count.ShouldBe(expectedEscalations);
+        if (expectedEscalations > 0)
+        {
+            cut.Find("[data-testid='tenants-audit-receipt-recovery-escalate']").GetAttribute("href")
+                .ShouldBe("/support/audit-incident");
+        }
+
+        // The other recoveries of the failed read are unaffected by the suppression.
+        cut.Find("[data-testid='tenants-audit-receipt-recovery-refresh']");
+        cut.Find("[data-testid='tenants-audit-receipt-recovery-continuereadonly']");
+    }
+
     [Fact]
     public void Unavailable_receipt_retry_names_audit_read_and_has_stable_recovery_selector()
     {
@@ -459,11 +488,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
                 .Add(component => component.OnRetry, () => retries++));
 
             var availability = cut.Find("[data-testid='tenants-audit-availability']");
-            availability.GetAttribute("aria-label").ShouldBe(
-                "La preuve d’audit est indisponible ; réessayez la lecture de l’audit ou continuez en lecture seule.");
+            availability.GetAttribute("aria-label").ShouldBe("Audit indisponible");
             availability.QuerySelector(".tenants-audit-availability__reason")!.TextContent.ShouldBe(
-                "Cette lecture de l’audit ne peut pas vérifier la preuve demandée. Réessayez ou continuez en lecture seule ; "
-                + "escaladez avec des informations sûres pour l’assistance si le problème persiste.");
+                "Cette lecture de l’audit n’a pas pu vérifier la preuve demandée. Cela ne signifie pas que "
+                + "l’enregistrement n’existe pas, et le résultat enregistré reste inchangé.");
             var retry = cut.Find("[data-testid='tenants-audit-receipt-recovery-refresh']");
             retry.TextContent.Trim().ShouldBe("Réessayer la lecture de l’audit");
 
@@ -568,7 +596,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantCommandAuditState.AuditPending, "Wait", "polite")]
+    [InlineData(TenantCommandAuditState.AuditPending, "Inspect audit", "polite")]
     [InlineData(TenantCommandAuditState.AuditDelayed, "Inspect audit", "polite")]
     [InlineData(TenantCommandAuditState.AuditUnavailable, "Continue read-only", "assertive")]
     [InlineData(TenantCommandAuditState.MissingSupport, "Continue read-only", "assertive")]
@@ -588,8 +616,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldContain(expectedAction);
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
         cut.Find("[data-testid='tenants-audit-receipt']").HasAttribute("aria-live").ShouldBeFalse();
-        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
+        cut.Find("[data-testid='tenants-audit-availability-announcement']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
+        cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-audit-source").ShouldBe("audit-receipt");
         cut.FindAll("[data-recovery-verb='escalate']").ShouldBeEmpty();
+        cut.FindAll("[data-recovery-verb='wait']").ShouldBeEmpty();
     }
 
     [Theory]
@@ -658,6 +688,15 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             _ => Row(eventReference: value),
         };
 
+    private sealed class EscalatingComposition : Hexalith.Tenants.UI.Services.Gateways.ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => true;
+
+        public bool IsCommandSurfaceConnected => true;
+
+        public string? AuditEscalationRecoveryHref => "/support/audit-incident";
+    }
+
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
         internal const string DefaultSummary = "Actor: {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}";
@@ -698,22 +737,12 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Audit.Freshness.Current"] = "Current",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
@@ -723,8 +752,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Receipt.Action.Refresh"] = "Refresh",
             ["Tenants.Audit.Receipt.Action.RefreshAudit"] = "Retry audit read",
-            ["Tenants.Audit.Receipt.Availability.Unavailable.Accessible"] = "Audit evidence is unavailable; retry the audit read or continue read-only.",
-            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read cannot verify the requested evidence. Retry the audit read or continue read-only; escalate with support-safe information if it persists.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
             ["Tenants.Audit.Receipt.Action.Reset"] = "Reset audit filters",
             ["Tenants.Audit.Receipt.Action.Retry"] = "Retry",
             ["Tenants.Audit.Receipt.Action.Wait"] = "Wait for audit evidence",
@@ -769,6 +797,11 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
     }
 }

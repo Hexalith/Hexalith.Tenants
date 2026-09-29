@@ -157,6 +157,105 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Pending_audit_renders_the_shared_control_once_with_its_source_and_shared_label()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<(TenantSummary?, string?)>((null, null))));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
+        cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        AngleSharp.Dom.IElement audit = cut.Find("[data-testid='tenants-create-audit']");
+        AngleSharp.Dom.IElement control = audit.QuerySelector("[data-testid='tenants-audit-availability']").ShouldNotBeNull();
+        control.GetAttribute("data-state").ShouldBe("pending");
+        control.GetAttribute("data-audit-source").ShouldBe("create-tenant");
+
+        // The entry point names the state with the shared label and never repeats it as visible text.
+        AngleSharp.Dom.IElement entryPoint = audit.QuerySelector("[data-testid='tenants-audit-entrypoint']").ShouldNotBeNull();
+        entryPoint.GetAttribute("aria-label").ShouldBe("Open audit evidence for tenant Tenant.Mixed-01 (Audit pending)");
+        // The browser harness measures this inner control inside the recovery shell at 390px.
+        entryPoint.ClassList.ShouldContain("tenants-audit-entrypoint");
+        entryPoint.ParentElement.ShouldNotBeNull().ClassList.ShouldContain("tenants-audit-availability__action-shell");
+        entryPoint.TextContent.ShouldNotContain("Audit pending");
+        System.Text.RegularExpressions.Regex.Count(audit.TextContent, "Audit pending").ShouldBe(1);
+    }
+
+    [Fact]
+    public void Ambiguous_failure_without_a_correlation_id_offers_no_refresh_that_cannot_requery()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Ambiguous(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "Tenants.Commands.Unavailable.InvalidTrackingReference"),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        cut.Instance.Snapshot.CorrelationId.ShouldBeNull();
+        cut.Find("[data-testid='tenants-create-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
+
+        // Without a tracking handle the refresh cannot re-query anything; offering it would only exhaust the
+        // retry bound behind a misleading limit note.
+        cut.FindAll("[data-testid='tenants-create-audit'] [data-recovery-verb='refresh']").ShouldBeEmpty();
+        gateway.StatusCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Denied_audit_read_renders_no_inspect_audit_recovery()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadDenied")
+            .Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(child => child
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<(TenantSummary?, string?)>((null, null)))));
+        IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        cut.Find("[data-testid='tenants-create-audit'] [data-testid='tenants-audit-availability']");
+
+        // No fragment is passed when audit read is denied, so no empty Inspect-audit shell or test id renders.
+        cut.FindAll("[data-recovery-verb='inspectaudit']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-availability-recovery-inspectaudit']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-entrypoint']").ShouldBeEmpty();
+        cut.Find("[data-recovery-verb='refresh']");
+    }
+
+    [Fact]
     public void Projection_evidence_confirms_without_exposing_internal_correlation_id()
     {
         StubTenantCommandGateway gateway = new()
@@ -178,7 +277,12 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("[data-testid='tenants-create-audit']").TextContent.ShouldContain("Audit evidence pending");
+        // Projection confirmation is not audit proof and this flow has no in-panel audit verification.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        cut.Find("[data-testid='tenants-create-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("missingsupport");
+        cut.Find("[data-testid='tenants-create-audit']").TextContent.ShouldContain("Missing implementation support");
+        cut.Find("[data-testid='tenants-create-audit']").TextContent.ShouldNotContain("Audit available");
         cut.Markup.ShouldNotContain("correlation-123", Case.Insensitive);
     }
 
@@ -270,6 +374,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldContain("already exists");
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+
+        // A rejection stored nothing: the command dimension shows the outcome and no audit state is implied.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -337,6 +445,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldContain("already exists");
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -700,45 +810,29 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             ["Tenants.Create.State.Failed"] = "Command submission failed.",
             ["Tenants.Create.State.Degraded"] = "Command result is degraded and needs review.",
             ["Tenants.Create.State.UnableToVerify"] = "Unable to verify command result.",
-            ["Tenants.Create.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.Create.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.Create.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.Create.Audit.MissingSupport"] = "Audit support is missing for this flow.",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
             ["Tenants.Audit.EntryPoint.Unavailable.InvalidContext"] = "The audit context is invalid. Return to the originating page and select a current tenant.",
             ["Tenants.Audit.EntryPoint.Unavailable.Disconnected"] = "The audit read service is disconnected. Refresh when the connection returns.",
             ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope before opening audit evidence.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoRecovery"] = "Audit evidence support is missing; no recovery action is available on this surface.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly"] = "Audit evidence support is missing; retry status lookup.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoRecovery"] = "Audit evidence is unavailable; no recovery action is available on this surface.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.RefreshOnly"] = "Audit evidence is unavailable; retry status lookup.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoRecovery"] = "This flow cannot verify audit proof from the available implementation support, and no recovery action is available on this surface. The recorded outcome above is unchanged.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.RefreshOnly"] = "This flow cannot verify audit proof from the available implementation support. Retry the status lookup.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoRecovery"] = "Audit proof cannot be verified right now, and no recovery action is available on this surface. The recorded outcome above is unchanged.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.RefreshOnly"] = "Audit proof cannot be verified right now. Retry the status lookup without including raw diagnostics, tokens, payloads, or personal data.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
 
         public LocalizedString this[string name]

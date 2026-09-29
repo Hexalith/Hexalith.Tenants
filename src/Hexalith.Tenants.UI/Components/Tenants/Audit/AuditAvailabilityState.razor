@@ -1,66 +1,135 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
+@using Microsoft.JSInterop
+@implements IDisposable
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
 
 @if (Availability.ShouldRender)
 {
     <section class="tenants-audit-availability tenants-audit-availability--@StateCss"
              data-testid="tenants-audit-availability"
              data-state="@StateCss"
-             aria-label="@AccessibleLabel"
-             aria-live="@LiveRegion"
-             aria-atomic="true">
-        <p class="tenants-audit-availability__state" data-testid="@StateTestId">
-            <span class="tenants-audit-availability__icon" aria-hidden="true">@StateGlyph</span>
-            <span>@StateText</span>
-        </p>
-        @if (!string.IsNullOrWhiteSpace(ReasonText))
+             data-audit-source="@Source"
+             aria-label="@StateLabel">
+        @* The live region holds only the state and its explanation. Recovery controls, the retry-limit note,
+           and focus changes stay outside it, so re-rendering an identical state never re-announces. *@
+        <FluentStack Orientation="Orientation.Vertical"
+                     VerticalGap="0.5rem"
+                     Class="tenants-audit-availability__announcement"
+                     data-testid="tenants-audit-availability-announcement"
+                     aria-live="@LiveRegion"
+                     aria-atomic="true">
+            <p class="tenants-audit-availability__state"
+               data-testid="@StateTestId"
+               tabindex="-1"
+               aria-describedby="@(IsRetryLimitReached ? _retryLimitId : null)"
+               @ref="_stateLineElement">
+                <FluentBadge Appearance="BadgeAppearance.Tint"
+                             Color="@StateBadgeColor"
+                             IconStart="@StateIcon"
+                             Class="@($"tenants-audit-availability__badge tenants-audit-availability__badge--{StateCss}")"
+                             aria-label="@StateLabel"
+                             data-testid="tenants-audit-availability-badge">
+                    @StateLabel
+                </FluentBadge>
+            </p>
+            @if (!string.IsNullOrWhiteSpace(ExplanationText))
+            {
+                <p class="tenants-audit-availability__reason" data-testid="tenants-audit-availability-explanation">@ExplanationText</p>
+            }
+        </FluentStack>
+        @if (IsRetryLimitReached)
         {
-            <p class="tenants-audit-availability__reason">@ReasonText</p>
+            <p id="@_retryLimitId"
+               class="tenants-audit-availability__limit"
+               data-testid="tenants-audit-availability-retry-limit">
+                @Localizer["Tenants.Audit.Availability.RetryLimit"]
+            </p>
         }
         @if (RenderableRecoveryVerbs.Count > 0)
         {
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
-            @foreach (TenantAuditRecoveryVerb verb in RenderableRecoveryVerbs)
-            {
-                @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
+            <FluentStack Orientation="Orientation.Horizontal"
+                         HorizontalGap="0.5rem"
+                         Wrap="true"
+                         Class="tenants-audit-availability__actions"
+                         data-testid="tenants-audit-availability-actions"
+                         aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
+                @foreach (TenantAuditRecoveryVerb verb in RenderableRecoveryVerbs)
                 {
-                    <span class="tenants-audit-availability__action-shell">
-                        @InspectAuditAction
-                    </span>
+                    @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
+                    {
+                        <span class="tenants-audit-availability__action-shell"
+                              data-recovery-verb="@VerbCss(verb)"
+                              data-testid="@RecoveryTestId(verb)">
+                            @InspectAuditAction
+                        </span>
+                    }
+                    else if (verb is TenantAuditRecoveryVerb.Escalate)
+                    {
+                        <FluentAnchorButton Href="@EscalationHref"
+                                            Appearance="ButtonAppearance.Outline"
+                                            Class="tenants-audit-availability__action"
+                                            data-recovery-verb="@VerbCss(verb)"
+                                            data-testid="@RecoveryTestId(verb)">
+                            @Localizer["Tenants.Audit.Recovery.Action.Escalate"]
+                        </FluentAnchorButton>
+                    }
+                    else
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      Class="tenants-audit-availability__action"
+                                      data-recovery-verb="@VerbCss(verb)"
+                                      data-testid="@RecoveryTestId(verb)"
+                                      OnClick="() => InvokeRecoveryAsync(verb)">
+                            @Localizer[verb is TenantAuditRecoveryVerb.Refresh && RefreshLabelResourceKey is not null
+                                ? RefreshLabelResourceKey
+                                : $"Tenants.Audit.Availability.Action.{verb}"]
+                        </FluentButton>
+                    }
                 }
-                else
-                {
-                    <FluentButton Appearance="ButtonAppearance.Primary"
-                                  Class="tenants-audit-availability__action"
-                                  data-recovery-verb="@VerbCss(verb)"
-                                  data-testid="@(RecoveryTestIdPrefix is null ? null : $"{RecoveryTestIdPrefix}-{VerbCss(verb)}")"
-                                  OnClick="() => InvokeRecoveryAsync(verb)">
-                        @Localizer[verb is TenantAuditRecoveryVerb.Refresh && RefreshLabelResourceKey is not null
-                            ? RefreshLabelResourceKey
-                            : $"Tenants.Audit.Availability.Action.{verb}"]
-                    </FluentButton>
-                }
-            }
-        </FluentStack>
+            </FluentStack>
         }
     </section>
 }
 
 @code {
+    /// <summary>The default recovery test-id prefix; every rendered recovery carries <c>{prefix}-{verb}</c>.</summary>
+    public const string DefaultRecoveryTestIdPrefix = "tenants-audit-availability-recovery";
+
+    private readonly string _retryLimitId = $"tenants-audit-availability-limit-{Guid.NewGuid():N}";
+    private ElementReference _stateLineElement;
+    private TenantAuditAvailabilityState? _countedState;
+    private int _unchangedRefreshCount;
+    private bool _focusStateLinePending;
+    private bool _refreshInFlight;
+    private bool _disposed;
+
     [Parameter]
     public TenantCommandAuditState AuditState { get; set; } = TenantCommandAuditState.NotStarted;
+
+    /// <summary>Gets or sets the stable, culture-independent host surface rendered as <c>data-audit-source</c>.</summary>
+    [Parameter]
+    public string? Source { get; set; }
 
     [Parameter]
     public string StateTestId { get; set; } = "tenants-audit-availability-state";
 
     [Parameter]
-    public string? RecoveryTestIdPrefix { get; set; }
+    public string RecoveryTestIdPrefix { get; set; } = DefaultRecoveryTestIdPrefix;
 
     [Parameter]
     public string? RefreshLabelResourceKey { get; set; }
 
+    /// <summary>Gets or sets whether the state describes a failed audit read rather than a command's audit record.</summary>
     [Parameter]
     public bool IsReceiptAuditRead { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the host surface already offers escalation for the same failure, so this control
+    /// does not render a second escalation link.
+    /// </summary>
+    [Parameter]
+    public bool SuppressEscalation { get; set; }
 
     [Parameter]
     public RenderFragment? InspectAuditAction { get; set; }
@@ -83,9 +152,6 @@
     [Parameter]
     public EventCallback OnContinueReadOnly { get; set; }
 
-    [Parameter]
-    public EventCallback OnEscalate { get; set; }
-
     private TenantAuditAvailability Availability
         => TenantAuditAvailability.FromCommandAuditState(AuditState);
 
@@ -95,73 +161,85 @@
     private string LiveRegion
         => Availability.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
 
-    private string StateText
-        => Availability.State is null
-            ? string.Empty
-            : Localizer[$"Tenants.Audit.Availability.State.{Availability.State}"];
+    private string StateLabel
+        => Availability.StateLabelKey is { } key ? Localizer[key] : string.Empty;
 
-    private string AccessibleLabel
-        => Availability.State is null
-            ? string.Empty
-            : Localizer[IsReceiptAuditRead && Availability.State is TenantAuditAvailabilityState.Unavailable
-                ? "Tenants.Audit.Receipt.Availability.Unavailable.Accessible"
-                : $"Tenants.Audit.Availability.Accessible.{Availability.State}{RecoveryCopySuffix}"];
+    // Explanations describe the state only; they never name a recovery verb, because the rendered controls
+    // (and only the rendered controls) carry the recovery.
+    private string ExplanationText
+        => Availability.State is TenantAuditAvailabilityState.Unavailable && IsReceiptAuditRead
+            ? Localizer["Tenants.Audit.Receipt.Availability.Unavailable.Reason"]
+            : Availability.ExplanationKey is { } key ? Localizer[key] : string.Empty;
 
-    private string ReasonText
-        => Availability.State is TenantAuditAvailabilityState.Unavailable or TenantAuditAvailabilityState.MissingSupport
-            ? Localizer[IsReceiptAuditRead && Availability.State is TenantAuditAvailabilityState.Unavailable
-                ? "Tenants.Audit.Receipt.Availability.Unavailable.Reason"
-                : $"Tenants.Audit.Availability.Reason.{Availability.State}{RecoveryCopySuffix}"]
-            : string.Empty;
+    private BadgeColor StateBadgeColor
+        => Availability.State switch
+        {
+            TenantAuditAvailabilityState.Available => BadgeColor.Success,
+            TenantAuditAvailabilityState.Pending => BadgeColor.Informative,
+            TenantAuditAvailabilityState.Delayed => BadgeColor.Warning,
+            TenantAuditAvailabilityState.Unavailable => BadgeColor.Severe,
+            _ => BadgeColor.Subtle,
+        };
+
+    // Each state has its own glyph, so meaning survives forced colors where the badge fill is dropped.
+    private Icon StateIcon
+        => Availability.State switch
+        {
+            TenantAuditAvailabilityState.Available => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.DocumentCheckmark(),
+            TenantAuditAvailabilityState.Pending => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClipboardClock(),
+            TenantAuditAvailabilityState.Delayed => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockWarning(),
+            TenantAuditAvailabilityState.Unavailable => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.DocumentProhibited(),
+            _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockToolbox(),
+        };
+
+    private bool IsRetryLimitReached
+        => _unchangedRefreshCount >= TenantAuditAvailability.MaximumUnchangedRetries;
+
+    // Escalation goes only to the configured local destination; an absent, external, or otherwise unsafe
+    // configuration renders no escalation control at all.
+    private string? EscalationHref
+        => SuppressEscalation
+            ? null
+            : TenantAuditNavigationSafety.SafeRecoveryHref(
+                (Services.GetService(typeof(ITenantsBffComposition)) as ITenantsBffComposition)?.AuditEscalationRecoveryHref);
 
     private IReadOnlyList<TenantAuditRecoveryVerb> RenderableRecoveryVerbs
         => [.. Availability.RecoveryVerbs.Where(CanRenderRecovery)];
 
-    // Derived from what will actually render, not from OnEscalate alone. The old rule only compensated for a
-    // missing escalate delegate, so a surface that also lacked OnContinueReadOnly still announced "continue
-    // read-only" with no such control -- and MissingSupport, whose verbs are ContinueReadOnly + Escalate,
-    // announced a recovery while rendering no buttons at all.
-    private string RecoveryCopySuffix
+    protected override void OnParametersSet()
     {
-        get
+        // A state change is new evidence: the unchanged-retry count starts over.
+        TenantAuditAvailabilityState? state = Availability.State;
+        if (state != _countedState)
         {
-            // Only the two recovery-bearing states carry copy variants; Pending/Delayed/Available keep their
-            // base key. This also matches the old behaviour, which was scoped to these states implicitly
-            // because Escalate appears in no other verb set.
-            if (Availability.State is not (TenantAuditAvailabilityState.Unavailable
-                or TenantAuditAvailabilityState.MissingSupport))
-            {
-                return string.Empty;
-            }
-
-            IReadOnlyList<TenantAuditRecoveryVerb> renderable = RenderableRecoveryVerbs;
-            if (renderable.Count == 0)
-            {
-                return ".NoRecovery";
-            }
-
-            bool readOnlyOffered = Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.ContinueReadOnly);
-            if (readOnlyOffered && !renderable.Contains(TenantAuditRecoveryVerb.ContinueReadOnly))
-            {
-                return ".RefreshOnly";
-            }
-
-            return Availability.RecoveryVerbs.Contains(TenantAuditRecoveryVerb.Escalate) && !OnEscalate.HasDelegate
-                ? ".NoEscalation"
-                : string.Empty;
+            _countedState = state;
+            _unchangedRefreshCount = 0;
         }
     }
 
-    private string StateGlyph
-        => Availability.State switch
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusStateLinePending && Availability.ShouldRender)
         {
-            TenantAuditAvailabilityState.Pending => "...",
-            TenantAuditAvailabilityState.Delayed => "!",
-            TenantAuditAvailabilityState.Unavailable => "?",
-            TenantAuditAvailabilityState.Available => "\u2713",
-            TenantAuditAvailabilityState.MissingSupport => "?",
-            _ => string.Empty,
-        };
+            _focusStateLinePending = false;
+            try
+            {
+                await _stateLineElement.FocusAsync().ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+            catch (JSException)
+            {
+            }
+        }
+    }
+
+    public void Dispose()
+        => _disposed = true;
+
+    private string RecoveryTestId(TenantAuditRecoveryVerb verb)
+        => $"{RecoveryTestIdPrefix}-{VerbCss(verb)}";
 
     private static string VerbCss(TenantAuditRecoveryVerb verb)
         => verb.ToString().ToLowerInvariant();
@@ -169,13 +247,12 @@
     private bool CanRenderRecovery(TenantAuditRecoveryVerb verb)
         => verb switch
         {
-            // Wait has no handler (InvokeRecoveryAsync breaks on it), so rendering it as a FluentButton gave
-            // the operator a live, enabled control that did nothing. Waiting is conveyed by the state copy.
+            // Waiting is conveyed by the state explanation; a Wait button would be a live control that does nothing.
             TenantAuditRecoveryVerb.Wait => false,
-            TenantAuditRecoveryVerb.Refresh => OnRefresh.HasDelegate,
+            TenantAuditRecoveryVerb.Refresh => OnRefresh.HasDelegate && !IsRetryLimitReached,
             TenantAuditRecoveryVerb.InspectAudit => InspectAuditAction is not null || OnInspectAudit.HasDelegate,
             TenantAuditRecoveryVerb.ContinueReadOnly => OnContinueReadOnly.HasDelegate,
-            TenantAuditRecoveryVerb.Escalate => OnEscalate.HasDelegate,
+            TenantAuditRecoveryVerb.Escalate => EscalationHref is not null,
             _ => false,
         };
 
@@ -183,17 +260,8 @@
     {
         switch (verb)
         {
-            case TenantAuditRecoveryVerb.Wait:
-                break;
             case TenantAuditRecoveryVerb.Refresh:
-                long? probeVersion = AuditAuthorityRefreshVersion?.Invoke();
-                await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
-                if (AuditAuthorityRefresh is not null
-                    && (!OwnerRefreshIncludesAuditAuthority || probeVersion is null
-                        || AuditAuthorityRefreshVersion?.Invoke() == probeVersion))
-                {
-                    await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
-                }
+                await RefreshAsync().ConfigureAwait(false);
                 break;
             case TenantAuditRecoveryVerb.InspectAudit:
                 await InvokeAsync(() => OnInspectAudit.InvokeAsync()).ConfigureAwait(false);
@@ -201,11 +269,61 @@
             case TenantAuditRecoveryVerb.ContinueReadOnly:
                 await InvokeAsync(() => OnContinueReadOnly.InvokeAsync()).ConfigureAwait(false);
                 break;
-            case TenantAuditRecoveryVerb.Escalate:
-                await InvokeAsync(() => OnEscalate.InvokeAsync()).ConfigureAwait(false);
-                break;
             default:
                 break;
         }
+    }
+
+    private async Task RefreshAsync()
+    {
+        // A click while the host refresh is still running is the same recovery, not another retry: it is
+        // ignored rather than counted, and the focused button stays in place.
+        if (_refreshInFlight)
+        {
+            return;
+        }
+
+        _refreshInFlight = true;
+        TenantAuditAvailabilityState? stateBeforeRefresh = Availability.State;
+        try
+        {
+            long? probeVersion = AuditAuthorityRefreshVersion?.Invoke();
+            await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
+            if (AuditAuthorityRefresh is not null
+                && (!OwnerRefreshIncludesAuditAuthority || probeVersion is null
+                    || AuditAuthorityRefreshVersion?.Invoke() == probeVersion))
+            {
+                await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _refreshInFlight = false;
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // The host re-renders this control with the refreshed state before the callback completes; a
+            // different state already reset the count in OnParametersSet.
+            if (Availability.State == stateBeforeRefresh && _countedState == stateBeforeRefresh)
+            {
+                _unchangedRefreshCount++;
+            }
+
+            // Whenever the refresh leaves the control rendered without a Refresh control -- the retry bound,
+            // or a new state with no Refresh recovery -- focus lands on the state line (whose description
+            // carries the limit note when the bound was reached) instead of on the vanished button.
+            if (Availability.ShouldRender && !RenderableRecoveryVerbs.Contains(TenantAuditRecoveryVerb.Refresh))
+            {
+                _focusStateLinePending = true;
+            }
+
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 }

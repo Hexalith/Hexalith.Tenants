@@ -1038,21 +1038,6 @@
   <data name="Tenants.Lifecycle.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de la commande de cycle de vie.</value>
   </data>
-  <data name="Tenants.Lifecycle.Audit.NotStarted" xml:space="preserve">
-    <value>La preuve d'audit n'a pas commencé.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente ; aucun reçu n'est fabriqué.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardée ; vérifiez de nouveau plus tard.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible pour ce résultat.</value>
-  </data>
-  <data name="Tenants.Lifecycle.Audit.MissingSupport" xml:space="preserve">
-    <value>Support d'audit manquant pour cet état visible.</value>
-  </data>
   <data name="Tenants.Lifecycle.Recovery.Idle" xml:space="preserve">
     <value>Examinez la projection du locataire avant de démarrer une commande de cycle de vie.</value>
   </data>
@@ -1468,21 +1453,6 @@
   <data name="Tenants.Configuration.Set.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de la commande de configuration.</value>
   </data>
-  <data name="Tenants.Configuration.Set.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardée.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible.</value>
-  </data>
-  <data name="Tenants.Configuration.Set.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implémente pas la source de preuve.</value>
-  </data>
   <data name="Tenants.Configuration.Set.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez le formulaire lorsque la preuve de projection actuelle et la portée d'espace de noms sont disponibles.</value>
   </data>
@@ -1715,21 +1685,6 @@
   </data>
   <data name="Tenants.Configuration.Remove.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de suppression de configuration.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardée.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible.</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Audit.MissingSupport" xml:space="preserve">
-    <value>La preuve d'audit propre à la commande n'est pas disponible dans ce flux ; consultez séparément l'audit du tenant.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Idle" xml:space="preserve">
     <value>Choisissez une clé visible lorsque la preuve de projection courante et la portée d'espace de noms sont disponibles.</value>
@@ -2070,18 +2025,6 @@
   <data name="Tenants.AddMember.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de la commande d'ajout de membre.</value>
   </data>
-  <data name="Tenants.AddMember.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible.</value>
-  </data>
-  <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de l'audit manque pour ce flux.</value>
-  </data>
   <data name="Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance" xml:space="preserve">
     <value>La projection du membre correspondait déjà sans preuve que cette tentative l'ait fait avancer. Actualisez le statut ou continuez en lecture seule.</value>
   </data>
@@ -2199,18 +2142,6 @@
   <data name="Tenants.ChangeRole.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de la commande de changement de rôle.</value>
   </data>
-  <data name="Tenants.ChangeRole.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible.</value>
-  </data>
-  <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de l'audit manque pour ce flux.</value>
-  </data>
   <data name="Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting" xml:space="preserve">
     <value>Le rôle demandé était déjà appliqué avant cette tentative ; aucun nouveau changement de rôle n'est affirmé.</value>
   </data>
@@ -2306,18 +2237,6 @@
   </data>
   <data name="Tenants.Create.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat de la commande.</value>
-  </data>
-  <data name="Tenants.Create.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.Create.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente.</value>
-  </data>
-  <data name="Tenants.Create.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible.</value>
-  </data>
-  <data name="Tenants.Create.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de l'audit manque pour ce flux.</value>
   </data>
   <data name="Tenants.RemoveMember.Title" xml:space="preserve">
     <value>Retirer un membre du locataire</value>
@@ -2541,24 +2460,6 @@
   <data name="Tenants.RemoveMember.State.UnableToVerify" xml:space="preserve">
     <value>Impossible de vérifier le résultat du retrait de membre.</value>
   </data>
-  <data name="Tenants.RemoveMember.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non démarrée.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente ; le retrait est confirmé, attendez ou actualisez pour la preuve sûre pour le support.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardée ; réessayez le statut ou inspectez l'audit pour la preuve de retrait.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible ; le retrait confirmé reste valide sans preuve sûre pour le support.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.AuditAvailable" xml:space="preserve">
-    <value>Preuve d'audit disponible ; la preuve de retrait sûre pour le support est prête.</value>
-  </data>
-  <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit manque ; continuez en lecture seule.</value>
-  </data>
   <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez l'aperçu lorsque la preuve de projection actuelle est disponible.</value>
   </data>
@@ -2708,24 +2609,6 @@
   </data>
   <data name="Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure" xml:space="preserve">
     <value>La preuve de projection des metadonnees n'a pas pu etre verifiee. Actualisez le statut ou continuez en lecture seule.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
-    <value>Preuve d'audit non demarree.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditPending" xml:space="preserve">
-    <value>Preuve d'audit en attente ; aucun recu de commande correspondant n'est encore disponible.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditDelayed" xml:space="preserve">
-    <value>Preuve d'audit retardee ; attendez ou inspectez la piste d'audit.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditUnavailable" xml:space="preserve">
-    <value>Preuve d'audit indisponible ; aucune preuve ni aucun recu n'est affirme.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.AuditAvailable" xml:space="preserve">
-    <value>La preuve d'audit confirme cette mise a jour des metadonnees.</value>
-  </data>
-  <data name="Tenants.EditMetadata.Audit.MissingSupport" xml:space="preserve">
-    <value>La prise en charge de la preuve d'audit est indisponible pour cette tentative.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Idle" xml:space="preserve">
     <value>Ouvrez le formulaire lorsque la preuve de projection actuelle est disponible.</value>
@@ -3337,65 +3220,32 @@
   <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
     <value>Copier la reference d'evenement d'audit {0}</value>
   </data>
-  <data name="Tenants.Audit.Availability.Accessible.Delayed" xml:space="preserve">
-    <value>La preuve d'audit est retardee ; reessayez la verification de statut ou inspectez l'audit avant de citer une preuve.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Available" xml:space="preserve">
-    <value>La preuve d'audit est disponible ; une preuve sûre pour le support peut être inspectée ou copiée.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
-    <value>Le support de preuve d'audit manque ; continuez en lecture seule ou escaladez avec des informations sures pour le support.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation" xml:space="preserve">
-    <value>Le support de preuve d'audit manque ; continuez en lecture seule.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Pending" xml:space="preserve">
-    <value>La preuve d'audit est en attente ; attendez, actualisez le statut ou inspectez l'audit avant de citer une preuve.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable" xml:space="preserve">
-    <value>La preuve d'audit est indisponible ; continuez en lecture seule, reessayez la verification de statut ou escaladez avec des informations sures pour le support.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation" xml:space="preserve">
-    <value>La preuve d'audit est indisponible ; continuez en lecture seule ou reessayez la verification de statut.</value>
-  </data>
   <data name="Tenants.Audit.Availability.Action.ContinueReadOnly" xml:space="preserve">
     <value>Continuer en lecture seule</value>
   </data>
-  <data name="Tenants.Audit.Availability.Action.Escalate" xml:space="preserve">
-    <value>Escalader</value>
-  </data>
   <data name="Tenants.Audit.Availability.Action.InspectAudit" xml:space="preserve">
-    <value>Inspecter l'audit</value>
+    <value>Inspecter l’audit</value>
   </data>
   <data name="Tenants.Audit.Availability.Action.Refresh" xml:space="preserve">
-    <value>Reessayer la verification de statut</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Action.Wait" xml:space="preserve">
-    <value>Attendre</value>
+    <value>Relancer la consultation du statut</value>
   </data>
   <data name="Tenants.Audit.Availability.ActionsLabel" xml:space="preserve">
-    <value>Actions de reprise de disponibilite d'audit</value>
+    <value>Actions de reprise de la disponibilité de l’audit</value>
   </data>
   <data name="Tenants.Audit.Availability.Reason.MissingSupport" xml:space="preserve">
-    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support d'implementation disponible. Continuez en lecture seule ou escaladez uniquement avec la reference visible sure pour le support.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation" xml:space="preserve">
-    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support d'implementation disponible. Continuez en lecture seule.</value>
+    <value>La vérification d’audit intégrée au panneau n’est pas disponible pour cette commande ; ce panneau ne peut donc pas rattacher un enregistrement d’audit à la tentative. Le résultat enregistré ci-dessus reste inchangé.</value>
   </data>
   <data name="Tenants.Audit.Availability.Reason.Unavailable" xml:space="preserve">
-    <value>La preuve d'audit ne peut pas etre verifiee maintenant. Continuez en lecture seule, reessayez la verification de statut ou escaladez sans inclure de diagnostics bruts, jetons, charges utiles ou donnees personnelles.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoEscalation" xml:space="preserve">
-    <value>La preuve d'audit ne peut pas etre verifiee maintenant. Continuez en lecture seule ou reessayez la verification de statut.</value>
+    <value>Le statut d’audit n’a pas pu être lu ni vérifié après l’envoi de la commande. Cela ne signifie pas que l’enregistrement n’existe pas, et aucune preuve n’est revendiquée.</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
-    <value>Audit retarde</value>
+    <value>Audit retardé</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Available" xml:space="preserve">
     <value>Audit disponible</value>
   </data>
   <data name="Tenants.Audit.Availability.State.MissingSupport" xml:space="preserve">
-    <value>Support d'implementation manquant</value>
+    <value>Support d’implémentation manquant</value>
   </data>
   <data name="Tenants.Audit.Availability.State.Pending" xml:space="preserve">
     <value>Audit en attente</value>
@@ -3653,7 +3503,7 @@
     <value>une autre surface locataire</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
-    <value>Ouvrir les preuves d'audit pour {0} dans le locataire {1}</value>
+    <value>Ouvrir les preuves d'audit du locataire {1} ({0})</value>
   </data>
   <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
     <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>
@@ -4075,30 +3925,6 @@
   <data name="Tenants.ChangeRole.Dismiss.Blocked" xml:space="preserve">
     <value>Ce changement de role est toujours en cours, le formulaire ne peut donc pas encore etre ferme. Utilisez Actualiser pour verifier le resultat.</value>
   </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.NoRecovery" xml:space="preserve">
-    <value>La preuve d'audit ne peut pas etre verifiee pour le moment et aucune action de recuperation n'est disponible sur cette surface. Le resultat enregistre ci-dessus reste inchange.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.NoRecovery" xml:space="preserve">
-    <value>La preuve d'audit est indisponible ; aucune action de recuperation n'est disponible sur cette surface.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.NoRecovery" xml:space="preserve">
-    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support disponible et aucune action de recuperation n'est disponible sur cette surface. Le resultat enregistre ci-dessus reste inchange.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.NoRecovery" xml:space="preserve">
-    <value>Le support de preuve d'audit manque ; aucune action de recuperation n'est disponible sur cette surface.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.Unavailable.RefreshOnly" xml:space="preserve">
-    <value>La preuve d'audit ne peut pas etre verifiee pour le moment. Relancez la consultation du statut sans inclure de diagnostics bruts, de jetons, de charges utiles ou de donnees personnelles.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.Unavailable.RefreshOnly" xml:space="preserve">
-    <value>La preuve d'audit est indisponible ; relancez la consultation du statut.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Reason.MissingSupport.RefreshOnly" xml:space="preserve">
-    <value>Ce flux ne peut pas verifier la preuve d'audit avec le support disponible. Relancez la consultation du statut.</value>
-  </data>
-  <data name="Tenants.Audit.Availability.Accessible.MissingSupport.RefreshOnly" xml:space="preserve">
-    <value>Le support de preuve d'audit manque ; relancez la consultation du statut.</value>
-  </data>
   <data name="Tenants.HighImpact.Action.EnableTenant" xml:space="preserve"><value>Activer le locataire</value></data>
   <data name="Tenants.HighImpact.Action.DisableTenant" xml:space="preserve"><value>Désactiver le locataire</value></data>
   <data name="Tenants.HighImpact.Action.SetConfiguration" xml:space="preserve"><value>Définir la configuration</value></data>
@@ -4318,10 +4144,16 @@
   <data name="Tenants.Audit.Receipt.Outcome.TenantConfigurationRemoved" xml:space="preserve">
     <value>Configuration du locataire supprimée</value>
   </data>
-  <data name="Tenants.Audit.Receipt.Availability.Unavailable.Accessible" xml:space="preserve">
-    <value>La preuve d’audit est indisponible ; réessayez la lecture de l’audit ou continuez en lecture seule.</value>
-  </data>
   <data name="Tenants.Audit.Receipt.Availability.Unavailable.Reason" xml:space="preserve">
-    <value>Cette lecture de l’audit ne peut pas vérifier la preuve demandée. Réessayez ou continuez en lecture seule ; escaladez avec des informations sûres pour l’assistance si le problème persiste.</value>
+    <value>Cette lecture de l’audit n’a pas pu vérifier la preuve demandée. Cela ne signifie pas que l’enregistrement n’existe pas, et le résultat enregistré reste inchangé.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Pending" xml:space="preserve">
+    <value>Les événements de la commande sont enregistrés, mais son enregistrement d’audit n’est pas encore lisible. Il apparaît normalement sous peu, et aucune preuve n’est revendiquée d’ici là.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Delayed" xml:space="preserve">
+    <value>L’enregistrement d’audit met plus de temps que prévu à devenir lisible. Aucune preuve n’est revendiquée tant qu’il ne peut pas être lu.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.RetryLimit" xml:space="preserve">
+    <value>Les nouvelles tentatives n’ont pas modifié cet état ; il n’est plus proposé de réessayer ici.</value>
   </data>
 </root>

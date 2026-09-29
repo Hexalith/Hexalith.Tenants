@@ -1601,6 +1601,129 @@ public sealed class TenantsUiCompositionTests
         frenchAvailabilityValues.ShouldNotContain("audit_pending", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData("TenantsResources.resx")]
+    [InlineData("TenantsResources.fr.resx")]
+    public void Command_audit_entry_point_visible_label_is_contained_in_its_accessible_name(string resourceFile)
+    {
+        // WCAG 2.5.3 label in name: the visible label must be a literal (case-insensitive) substring of the
+        // accessible name, including the apostrophe code point.
+        Dictionary<string, string> resources = ReadResourceMap(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources", resourceFile));
+        string label = resources["Tenants.Audit.EntryPoint.Label"];
+        string accessibleName = resources["Tenants.Audit.EntryPoint.Accessible.Command"];
+
+        accessibleName.ShouldContain(label, Case.Insensitive);
+    }
+
+    [Fact]
+    public void Audit_availability_copy_is_one_shared_accented_set_whose_explanations_name_no_recovery()
+    {
+        string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
+        string englishPath = Path.Combine(resourceRoot, "TenantsResources.resx");
+        string frenchPath = Path.Combine(resourceRoot, "TenantsResources.fr.resx");
+        Dictionary<string, string> english = ReadResourceMap(englishPath);
+        Dictionary<string, string> french = ReadResourceMap(frenchPath);
+        string[] required =
+        [
+            "Tenants.Audit.Availability.State.Pending",
+            "Tenants.Audit.Availability.State.Delayed",
+            "Tenants.Audit.Availability.State.Unavailable",
+            "Tenants.Audit.Availability.State.Available",
+            "Tenants.Audit.Availability.State.MissingSupport",
+            "Tenants.Audit.Availability.Reason.Pending",
+            "Tenants.Audit.Availability.Reason.Delayed",
+            "Tenants.Audit.Availability.Reason.Unavailable",
+            "Tenants.Audit.Availability.Reason.MissingSupport",
+            "Tenants.Audit.Availability.Action.Refresh",
+            "Tenants.Audit.Availability.Action.InspectAudit",
+            "Tenants.Audit.Availability.Action.ContinueReadOnly",
+            "Tenants.Audit.Recovery.Action.Escalate",
+            "Tenants.Audit.Availability.ActionsLabel",
+            "Tenants.Audit.Availability.RetryLimit",
+            "Tenants.Audit.Receipt.Availability.Unavailable.Reason",
+        ];
+
+        foreach (string key in required)
+        {
+            english.ShouldContainKey(key);
+            french.ShouldContainKey(key);
+            english[key].ShouldNotBeNullOrWhiteSpace();
+            french[key].ShouldNotBeNullOrWhiteSpace();
+        }
+
+        // One shared control, one shared vocabulary: no recovery-copy variants and no flow-local duplicates.
+        string[] flowLocalPrefixes =
+        [
+            "Tenants.Create.Audit.", "Tenants.AddMember.Audit.", "Tenants.ChangeRole.Audit.", "Tenants.RemoveMember.Audit.",
+            "Tenants.EditMetadata.Audit.", "Tenants.Lifecycle.Audit.", "Tenants.Configuration.Set.Audit.",
+            "Tenants.Configuration.Remove.Audit.",
+        ];
+        foreach (string key in english.Keys.Concat(french.Keys))
+        {
+            key.ShouldNotStartWith("Tenants.Audit.Availability.Accessible.");
+            key.ShouldNotEndWith(".NoEscalation");
+            key.ShouldNotEndWith(".NoRecovery");
+            key.ShouldNotEndWith(".RefreshOnly");
+            flowLocalPrefixes.ShouldNotContain(prefix => key.StartsWith(prefix, StringComparison.Ordinal), key);
+        }
+
+        english.ShouldNotContainKey("Tenants.Audit.Availability.Action.Wait");
+        english.ShouldNotContainKey("Tenants.Audit.Availability.Action.Escalate");
+        french.ShouldNotContainKey("Tenants.Audit.Availability.Action.Escalate");
+        english.ShouldNotContainKey("Tenants.Audit.Receipt.Availability.Unavailable.Accessible");
+
+        // Explanations describe the state; only the rendered controls carry the recovery.
+        string[] explanationKeys =
+        [
+            "Tenants.Audit.Availability.Reason.Pending",
+            "Tenants.Audit.Availability.Reason.Delayed",
+            "Tenants.Audit.Availability.Reason.Unavailable",
+            "Tenants.Audit.Availability.Reason.MissingSupport",
+            "Tenants.Audit.Receipt.Availability.Unavailable.Reason",
+        ];
+        string[] englishVerbs = ["wait", "refresh", "retry", "inspect", "continue", "read-only", "escalat", "request permission"];
+        string[] frenchVerbs = ["attend", "actualis", "réessa", "reessa", "relanc", "inspect", "continu", "lecture seule", "escalad", "demander"];
+        foreach (string key in explanationKeys)
+        {
+            foreach (string verb in englishVerbs)
+            {
+                english[key].ShouldNotContain(verb, Case.Insensitive, $"{key} names a recovery");
+            }
+
+            foreach (string verb in frenchVerbs)
+            {
+                french[key].ShouldNotContain(verb, Case.Insensitive, $"{key} (fr) names a recovery");
+            }
+
+            english[key].ShouldNotContain("success", Case.Insensitive);
+        }
+
+        english["Tenants.Audit.Availability.Reason.MissingSupport"].ShouldContain("in-panel audit verification", Case.Insensitive);
+
+        // Delayed is reached from status timeouts, publish failures, retention expiry, and proof-read delays, so
+        // its explanation names no single cause.
+        foreach (string cause in new[] { "timed out", "timeout", "publication", "publish", "tracking window" })
+        {
+            english["Tenants.Audit.Availability.Reason.Delayed"].ShouldNotContain(cause, Case.Insensitive);
+        }
+
+        foreach (string cause in new[] { "expiré", "publication", "fenêtre de suivi" })
+        {
+            french["Tenants.Audit.Availability.Reason.Delayed"].ShouldNotContain(cause, Case.Insensitive);
+        }
+        french["Tenants.Audit.Availability.Reason.MissingSupport"].ShouldContain("vérification d’audit intégrée au panneau");
+
+        // The French availability set is written with its accents, never an ASCII-folded approximation.
+        french["Tenants.Audit.Availability.State.Delayed"].ShouldBe("Audit retardé");
+        french["Tenants.Audit.Availability.State.MissingSupport"].ShouldBe("Support d’implémentation manquant");
+        string frenchAvailability = string.Join('\n', ReadResourceValues(frenchPath, ["Tenants.Audit.Availability."]));
+        foreach (string folded in new[] { "retarde ", "implementation", "verifier", "verifiee", "reessayez", "disponibilite", "evenement", "resultat" })
+        {
+            frenchAvailability.ShouldNotContain(folded, Case.Insensitive);
+        }
+    }
+
     [Fact]
     public void Main_layout_composes_body_through_frontcomposer_shell()
     {
@@ -2004,6 +2127,16 @@ public sealed class TenantsUiCompositionTests
             .Where(static name => name is not null)
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
+
+    private static Dictionary<string, string> ReadResourceMap(string path)
+        => XDocument
+            .Load(path)
+            .Descendants("data")
+            .Where(static element => element.Attribute("name") is not null)
+            .ToDictionary(
+                static element => element.Attribute("name")!.Value,
+                static element => element.Element("value")?.Value ?? string.Empty,
+                StringComparer.Ordinal);
 
     private static IEnumerable<string> ReadResourceValues(string path, string[] prefixes)
         => XDocument

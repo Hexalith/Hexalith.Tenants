@@ -12,10 +12,6 @@
                         data-audit-source="@SourceKind"
                         aria-label="@AccessibleName">
         <span data-testid="@SourceTestId">@Label</span>
-        @if (!string.IsNullOrWhiteSpace(AvailabilityText))
-        {
-            <span class="tenants-audit-entrypoint__state">@AvailabilityText</span>
-        }
     </FluentAnchorButton>
 }
 else
@@ -28,10 +24,6 @@ else
                   aria-label="@AccessibleName"
                   aria-describedby="@_reasonId">
         <span data-testid="@SourceTestId">@Label</span>
-        @if (!string.IsNullOrWhiteSpace(AvailabilityText))
-        {
-            <span class="tenants-audit-entrypoint__state">@AvailabilityText</span>
-        }
     </FluentButton>
     <span id="@_reasonId" class="tenants-audit-entrypoint__reason" role="note" tabindex="0">@UnavailableText</span>
     @if ((OnRefresh.HasDelegate || AuditAuthorityRefresh is not null) && HasSafeContext)
@@ -89,9 +81,6 @@ else
 
     [Parameter]
     public bool AuthorityPending { get; set; }
-
-    [Parameter]
-    public string? AvailabilityText { get; set; }
 
     private bool HasTenantScope
         => TenantAuditNavigationSafety.IsSafeTenantId(TenantId);

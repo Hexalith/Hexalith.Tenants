@@ -19,6 +19,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Tests.Components;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -935,9 +936,11 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
+        // Events are stored, so the audit dimension is pending and the shared control hosts the entry point.
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot.Idle()
             .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), null, true)
-            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"));
+            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.EventsStored));
         TenantCreateAuditReturnState returnState = Services.GetRequiredService<TenantCreateAuditReturnState>();
         returnState.Remember(snapshot, "tenant.alpha", "Alpha", null);
         Services.GetRequiredService<NavigationManager>()

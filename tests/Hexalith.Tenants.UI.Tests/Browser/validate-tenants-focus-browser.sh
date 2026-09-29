@@ -7,10 +7,11 @@ harness_path="$script_dir/tenants-focus-browser-validation.html"
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
 correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
 receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
+availability_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/AuditAvailabilityState.razor.rz.scp.css"
 page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
 project_assets_path="$project_root/src/Hexalith.Tenants.UI/obj/project.assets.json"
 
-if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$receipt_css_path" || ! -f "$page_css_path" || ! -f "$project_assets_path" ]]; then
+if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$receipt_css_path" || ! -f "$availability_css_path" || ! -f "$page_css_path" || ! -f "$project_assets_path" ]]; then
     echo "Focus validator inputs are missing." >&2
     exit 1
 fi
@@ -77,8 +78,41 @@ cp -- "$harness_path" "$validation_tmp/index.html"
 cp -- "$focus_module_path" "$validation_tmp/tenantsFocus.js"
 cp -- "$correction_css_path" "$validation_tmp/correction.css"
 cp -- "$receipt_css_path" "$validation_tmp/receipt.css"
+cp -- "$availability_css_path" "$validation_tmp/availability.css"
+python3 - "$validation_tmp/availability.css" "$validation_tmp/availability-unstacked.css" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+marker = "@media (max-width: 767px)"
+start = source.find(marker)
+if start < 0 or "flex-direction: column !important;" not in source[start:]:
+    raise SystemExit("Could not isolate the narrow availability stacking block for the mutation check.")
+brace = source.index("{", start)
+depth = 0
+end = None
+for index in range(brace, len(source)):
+    if source[index] == "{":
+        depth += 1
+    elif source[index] == "}":
+        depth -= 1
+        if depth == 0:
+            end = index + 1
+            break
+if end is None:
+    raise SystemExit("Could not isolate the narrow availability stacking block for the mutation check.")
+Path(sys.argv[2]).write_text(source[:start] + source[end:], encoding="utf-8")
+PY
 cp -- "$page_css_path" "$validation_tmp/global-admins.css"
 cp -- "$fluent_module_path" "$validation_tmp/fluent-ui.js"
+# FluentStack's flex layout ships in the Fluent bundle stylesheet, not as an inline style, so the shared
+# availability fixture needs it to be production-equivalent.
+fluent_css_path="$(dirname -- "$fluent_module_path")/Microsoft.FluentUI.AspNetCore.Components.bundle.scp.css"
+if [[ ! -f "$fluent_css_path" ]]; then
+    echo "The restored Fluent UI bundle stylesheet is missing: $fluent_css_path" >&2
+    exit 1
+fi
+cp -- "$fluent_css_path" "$validation_tmp/fluent-ui.css"
 
 cp -- "$page_css_path" "$validation_tmp/global-admins-inflow.css"
 printf '\n.global-admins__remove-preview { position: static !important; }\n' >> "$validation_tmp/global-admins-inflow.css"
@@ -157,6 +191,7 @@ run_browser() {
     local css_name="${4:-global-admins.css}"
     local window_width="${5:-390}"
     local viewport="${6:-narrow}"
+    local availability_css_name="${7:-availability.css}"
     local window_size_argument="--window-size=${window_width},800"
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
@@ -171,7 +206,7 @@ run_browser() {
         --user-data-dir="$validation_tmp/$profile_name" \
         --virtual-time-budget=3000 \
         --dump-dom \
-        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}" >"$output_path" 2>"${output_path}.stderr"
+        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}" >"$output_path" 2>"${output_path}.stderr"
 }
 
 positive_output="$validation_tmp/shipped.html"
@@ -217,6 +252,18 @@ for style_mutation in inflow hidden; do
     fi
 done
 
+availability_mutation_output="$validation_tmp/availability-unstacked.html"
+run_browser "tenantsFocus.js" "profile-availability-unstacked" "$availability_mutation_output" "global-admins.css" 390 narrow "availability-unstacked.css"
+if grep -q 'data-validation-status="passed"' "$availability_mutation_output"; then
+    echo "Validator accepted availability recoveries that no longer stack at 390px." >&2
+    exit 1
+fi
+if ! grep -q 'data-validation-status="failed"' "$availability_mutation_output" \
+    || ! grep -q 'availability-style' "$availability_mutation_output"; then
+    echo "The unstacked availability mutation did not fail the computed-layout check." >&2
+    exit 1
+fi
+
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"
 desktop_report="$(grep -o '<output id="validation-report">[^<]*' "$desktop_output" | sed 's/.*>//')"
@@ -226,3 +273,4 @@ printf '%s\n' "Shipped module: $positive_report"
 printf '%s\n' "Shipped desktop: $desktop_report"
 printf '%s\n' "Return-true mutation: correctly rejected ($mutation_report)"
 printf '%s\n' "Removal-dialog in-flow and hidden CSS mutations: correctly rejected"
+printf '%s\n' "Unstacked availability recoveries at 390px: correctly rejected"

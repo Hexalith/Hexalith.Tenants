@@ -232,6 +232,81 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Rejected_submission_implies_no_audit_state()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, _) => TenantCommandSubmissionResult.Rejected(
+            "You are not authorized to set configuration for this tenant.",
+            "InsufficientPermissions");
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_failed_projection_read_after_events_are_stored_keeps_the_audit_record_pending()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(
+            CommandStatus.EventsStored,
+            HasVerifiedCommandIdentity: true));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
+            _ => throw new InvalidOperationException("Projection read failed."));
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+
+        // The projection read failed, so the command is unverified; the events-stored audit dimension stands.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessageKey
+            .ShouldBe("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh"));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        cut.Find("[data-testid='tenants-config-set-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("pending");
+    }
+
+    [Fact]
+    public async Task Retention_expiry_delays_audit_and_withdraws_refresh_for_the_released_attempt()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(
+            messageId,
+            "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        gateway.StatusAsync = _ => Task.FromResult(TenantCommandStatusResult.Pending("Status is propagating."));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue());
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.Find("[data-testid='tenants-config-set-audit'] [data-recovery-verb='refresh']");
+
+        await cut.InvokeAsync(() => cut.Instance.ExpireRetainedAttemptAsync(
+            cut.Instance.Snapshot.AttemptStartedAtUtc!.Value
+                + TenantSetConfigurationCommandSnapshot.MaximumRetainedAttemptDuration));
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.RetainsAttempt.ShouldBeFalse());
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.Find("[data-testid='tenants-config-set-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("delayed");
+        cut.FindAll("[data-testid='tenants-config-set-audit'] [data-recovery-verb='refresh']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Ambiguous_attempt_is_adopted_and_reconciled_after_remount_without_redispatch()
     {
         StubTenantCommandGateway gateway = RegisterServices();

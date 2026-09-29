@@ -4355,6 +4355,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         harness.ShouldContain("previewStyle.position !== \"fixed\"");
         harness.ShouldContain("preview.contains(previewCenter)");
         harness.ShouldContain("remove-dialog-computed-fixed-visible-bounded-foreground");
+        // The shared audit availability control: 390px stacking, desktop row, action-free live region, and a
+        // programmatically focusable state line, measured against the compiled scoped and Fluent bundle CSS.
+        harness.ShouldContain("availability-actions-narrow-stacked-full-width");
+        harness.ShouldContain("availability-actions-desktop-row");
+        harness.ShouldContain("availability-live-region");
+        harness.ShouldContain("availability-state-line-programmatic-focus");
+        harness.ShouldContain("class=\"fluent-stack-horizontal tenants-audit-availability__actions\"");
+        runner.ShouldContain("AuditAvailabilityState.razor.rz.scp.css");
+        runner.ShouldContain("Microsoft.FluentUI.AspNetCore.Components.bundle.scp.css");
+        runner.ShouldContain("availability-unstacked.css");
+        runner.ShouldContain("Validator accepted availability recoveries that no longer stack at 390px.");
         runner.ShouldContain("src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js");
         runner.ShouldContain("GlobalAdministratorCorrectionPanel.razor.rz.scp.css");
         runner.ShouldContain("GlobalAdministratorsPage.razor.rz.scp.css");

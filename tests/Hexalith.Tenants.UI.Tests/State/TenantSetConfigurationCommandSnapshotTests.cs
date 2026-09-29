@@ -61,7 +61,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         if (expectedState is TenantCommandLifecycleState.AlreadyApplied)
         {
             result.SafeMessageKey.ShouldBe("Tenants.Configuration.Set.AlreadyApplied.NoOp");
-            result.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+            result.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         }
     }
 
@@ -209,7 +209,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         snapshot.ToString().ShouldBe(
             "TenantSetConfigurationCommandSnapshot { State = Accepted, HasIntent = True, HasPreview = True, "
             + "HasTracking = True, HasCommandEventEvidence = False, CompletedWithoutEvents = False, "
-            + "AuditState = AuditPending }");
+            + "AuditState = NotStarted }");
     }
 
     private static TenantSetConfigurationCommandSnapshot Pending(

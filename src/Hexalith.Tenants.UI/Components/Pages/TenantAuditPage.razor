@@ -268,6 +268,7 @@
                               OnRetry="RefreshAsync"
                               OnReset="ResetFiltersAsync"
                               UseResetRecovery="@HasFilterValidation"
+                              HostEscalatesFailedRead="@EscalatesFailedRead"
                               OnClose="CloseReceiptAsync" />
     }
     </FluentStack>
@@ -459,10 +460,16 @@
     }
 
     private string? PermissionRecoveryHref
-        => SafeRecoveryHref(BffComposition.AuditPermissionRecoveryHref);
+        => TenantAuditNavigationSafety.SafeRecoveryHref(BffComposition.AuditPermissionRecoveryHref);
 
     private string? EscalationRecoveryHref
-        => SafeRecoveryHref(BffComposition.AuditEscalationRecoveryHref);
+        => TenantAuditNavigationSafety.SafeRecoveryHref(BffComposition.AuditEscalationRecoveryHref);
+
+    // Mirrors the page-level escalation link condition, so the receipt never offers a second link for the
+    // same failed read.
+    private bool EscalatesFailedRead
+        => _snapshot.Kind is TenantAuditSurfaceKind.Unavailable or TenantAuditSurfaceKind.Error
+            && EscalationRecoveryHref is not null;
 
     // Never echo an unsafe direct-route identifier into the heading or document title.
     private string TenantDisplayName
@@ -1954,59 +1961,6 @@
         }
 
         return result;
-    }
-
-    private static string? SafeRecoveryHref(string? href)
-    {
-        string? canonical = CanonicalLocalHref(href);
-        return canonical is not null && !canonical.Contains('?', StringComparison.Ordinal)
-            ? canonical
-            : null;
-    }
-
-    private static string? CanonicalLocalHref(string? href)
-    {
-        if (string.IsNullOrWhiteSpace(href) || href.Length > 8192)
-        {
-            return null;
-        }
-
-        string canonical = href;
-        for (int attempt = 0; attempt < 3 && canonical.Contains('%', StringComparison.Ordinal); attempt++)
-        {
-            try
-            {
-                string decoded = Uri.UnescapeDataString(canonical);
-                if (string.Equals(decoded, canonical, StringComparison.Ordinal))
-                {
-                    break;
-                }
-
-                canonical = decoded;
-            }
-            catch (UriFormatException)
-            {
-                return null;
-            }
-        }
-
-        if (!canonical.StartsWith("/", StringComparison.Ordinal)
-            || canonical.StartsWith("//", StringComparison.Ordinal)
-            || canonical.Contains('%', StringComparison.Ordinal)
-            || canonical.Contains('\\')
-            || canonical.Contains('#', StringComparison.Ordinal)
-            || canonical.Contains("://", StringComparison.OrdinalIgnoreCase)
-            || canonical.Any(char.IsControl))
-        {
-            return null;
-        }
-
-        string path = canonical.Split('?', '#')[0];
-        return path.Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Any(segment => segment is "." or ".."
-                || TenantAuditSupportSafety.SafeApprovedReference(segment) is null)
-            ? null
-            : canonical;
     }
 
     public async ValueTask DisposeAsync()

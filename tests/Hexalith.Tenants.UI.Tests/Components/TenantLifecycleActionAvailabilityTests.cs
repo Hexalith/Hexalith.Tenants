@@ -833,14 +833,15 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData("dispatch", 0, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout")]
-    [InlineData("status", 1, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout")]
-    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead")]
+    [InlineData("dispatch", 0, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
+    [InlineData("status", 1, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
+    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead", TenantCommandAuditState.AuditUnavailable)]
     public void Attempt_deadline_terminalizes_and_releases_activity_for_never_completing_io(
         string stage,
         int expectedStatusCalls,
         int expectedProofCalls,
-        string expectedSafeMessageKey)
+        string expectedSafeMessageKey,
+        TenantCommandAuditState expectedAuditState)
     {
         var neverSubmission = new TaskCompletionSource<TenantCommandSubmissionResult>(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -903,6 +904,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State
             .ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
+        // Dispatch and status timeouts delay the audit record; an unverifiable proof read leaves it unavailable.
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         activity.ShouldBe([true, false]);
         gateway.DisableSubmissions.ShouldBe(1);
         gateway.StatusCalls.ShouldBe(expectedStatusCalls);
@@ -1208,6 +1211,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessageKey
             .ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout"));
+        // Retention expiry delays the audit record; it is not an unavailable or unverifiable status.
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
         gateway.DisableSubmissions.ShouldBe(0);
         activity.ShouldBe([false]);
     }
@@ -1346,6 +1351,29 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.TrackingMismatch");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Fact]
+    public void Tracker_rejection_of_an_expired_attempt_is_a_timeout_with_a_delayed_audit_record()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = RenderLifecycleFlow();
+        TenantLifecycleCommandSnapshot expired = PendingLifecycleAttempt() with
+        {
+            AttemptStartedAtUtc = DateTimeOffset.UtcNow
+                - TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration
+                - TimeSpan.FromMinutes(1),
+        };
+        MethodInfo setSnapshot = typeof(TenantLifecycleCommandFlow)
+            .GetMethod("SetSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        cut.InvokeAsync(() => setSnapshot.Invoke(cut.Instance, [expired]));
+
+        // The tracker refuses the expired attempt: that is retention expiry, not a tracking mismatch.
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.StatusTimeout");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
     }
 
     [Fact]
@@ -2485,12 +2513,13 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantStatus.Active, TenantCommandLifecycleState.UnableToVerify, "Tenants.Lifecycle.UnableToVerify.StatusTimeout")]
-    [InlineData(TenantStatus.Disabled, TenantCommandLifecycleState.Confirmed, null)]
+    [InlineData(TenantStatus.Active, TenantCommandLifecycleState.UnableToVerify, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
+    [InlineData(TenantStatus.Disabled, TenantCommandLifecycleState.Confirmed, null, TenantCommandAuditState.MissingSupport)]
     public void Expired_event_evidence_gets_one_last_chance_projection_reconciliation(
         TenantStatus proofStatus,
         TenantCommandLifecycleState expectedState,
-        string? expectedSafeMessageKey)
+        string? expectedSafeMessageKey,
+        TenantCommandAuditState expectedAuditState)
     {
         var gateway = new StubTenantCommandGateway
         {
@@ -2544,6 +2573,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             cut.Instance.Snapshot.State.ShouldBe(expectedState);
             cut.Instance.Snapshot.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
         });
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         gateway.StatusCalls.ShouldBe(1);
         activity.ShouldBe([false]);
     }
@@ -2638,7 +2668,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.WaitForAssertion(() =>
             cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied));
-        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        // A rejected (already-set) command stored nothing: no audit state is implied and the control stays hidden.
+        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll("[data-testid='tenants-lifecycle-command-flow'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-lifecycle-command-flow'] [data-testid='tenants-lifecycle-state']").TextContent.ShouldContain("Already", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-command-flow'] [data-testid='tenants-lifecycle-safe-message']").TextContent.ShouldContain("already matches");
         cut.Find("[data-testid='tenants-lifecycle-command-flow'] [data-testid='tenants-lifecycle-confirmed-status']").TextContent.ShouldContain("Active");
@@ -3322,31 +3354,17 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.ProjectionLifecycle.Degraded"] = "Degraded",
             ["Tenants.ProjectionLifecycle.Unavailable"] = "Unavailable",
             ["Tenants.ProjectionLifecycle.LocalOnly"] = "Local only",
-            ["Tenants.Lifecycle.Audit.AuditPending"] = "Audit evidence pending; no receipt is fabricated.",
-            ["Tenants.Lifecycle.Audit.AuditUnavailable"] = "Audit evidence unavailable for this result.",
-            ["Tenants.Lifecycle.Audit.MissingSupport"] = "Audit support is missing for this visible state.",
-            ["Tenants.Lifecycle.Audit.NotStarted"] = "Audit evidence has not started.",
-            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit evidence is delayed; retry status lookup or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Audit evidence support is missing; continue read-only or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.MissingSupport.NoEscalation"] = "Audit evidence support is missing; continue read-only.",
-            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.",
-            ["Tenants.Audit.Availability.Accessible.Unavailable.NoEscalation"] = "Audit evidence is unavailable; continue read-only or retry status lookup.",
             ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
-            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
-            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
-            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.",
-            ["Tenants.Audit.Availability.Reason.MissingSupport.NoEscalation"] = "This flow cannot verify audit proof from the available implementation support. Continue read-only.",
-            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.",
-            ["Tenants.Audit.Availability.Reason.Unavailable.NoEscalation"] = "Audit proof cannot be verified right now. Continue read-only or retry status lookup.",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
             ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
             ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
             ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
-            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for tenant {1} ({0})",
             ["Tenants.Audit.EntryPoint.CommandReason"] = "Command-specific proof is not available here; open the tenant audit list and use the visible audit state.",
             ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
             ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required before audit evidence can be opened.",
@@ -3456,6 +3474,12 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.HighImpact.Freshness.Refreshing"] = "Refreshing with a current baseline",
             ["Tenants.HighImpact.Freshness.Aging"] = "Aging",
             ["Tenants.HighImpact.Freshness.Stale"] = "Stale",
+            ["Tenants.Audit.Availability.State.Available"] = "Audit available",
+            ["Tenants.Audit.Availability.Reason.Pending"] = "The command's events are stored, but its audit record is not readable yet. It normally appears shortly, and no proof is claimed until it does.",
+            ["Tenants.Audit.Availability.Reason.Delayed"] = "The audit record is taking longer than expected to become readable. No proof is claimed until it can be read.",
+            ["Tenants.Audit.Availability.RetryLimit"] = "Repeated retries left this state unchanged, so retrying is no longer offered here.",
+            ["Tenants.Audit.Receipt.Availability.Unavailable.Reason"] = "This audit read could not verify the requested evidence. This does not mean the record does not exist, and the recorded outcome is unchanged.",
+            ["Tenants.Audit.Recovery.Action.Escalate"] = "Escalate without diagnostics",
         };
     }
 }

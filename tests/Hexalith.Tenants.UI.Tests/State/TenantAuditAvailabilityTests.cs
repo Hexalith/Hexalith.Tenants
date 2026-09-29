@@ -41,10 +41,10 @@ public sealed class TenantAuditAvailabilityTests
 
     [Theory]
     [InlineData(TenantCommandAuditState.AuditPending, new[] { TenantAuditRecoveryVerb.Wait, TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.InspectAudit })]
-    [InlineData(TenantCommandAuditState.AuditDelayed, new[] { TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.InspectAudit })]
-    [InlineData(TenantCommandAuditState.AuditUnavailable, new[] { TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.Escalate })]
+    [InlineData(TenantCommandAuditState.AuditDelayed, new[] { TenantAuditRecoveryVerb.Wait, TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.InspectAudit, TenantAuditRecoveryVerb.Escalate })]
+    [InlineData(TenantCommandAuditState.AuditUnavailable, new[] { TenantAuditRecoveryVerb.Refresh, TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.InspectAudit, TenantAuditRecoveryVerb.Escalate })]
     [InlineData(TenantCommandAuditState.AuditAvailable, new[] { TenantAuditRecoveryVerb.InspectAudit, TenantAuditRecoveryVerb.ContinueReadOnly })]
-    [InlineData(TenantCommandAuditState.MissingSupport, new[] { TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.Escalate })]
+    [InlineData(TenantCommandAuditState.MissingSupport, new[] { TenantAuditRecoveryVerb.ContinueReadOnly, TenantAuditRecoveryVerb.InspectAudit, TenantAuditRecoveryVerb.Escalate })]
     public void Availability_maps_canonical_recovery_verbs(
         TenantCommandAuditState commandState,
         TenantAuditRecoveryVerb[] expectedVerbs)

@@ -1634,9 +1634,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         queryGateway.GetLifecycleProjectionProofAsync(Arg.Any<TenantLifecycleCommandRequest>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(active, ProjectionLifecycleState.Current, "tenant-sequence:41")));
         ConfigureAuthoritativeAuditCapability(queryGateway);
+        // Events are stored, so the audit dimension is pending and the shared control hosts the command
+        // audit entry point. Acceptance alone implies no audit state and renders no audit control.
         var commandGateway = new TrackingLifecycleCommandGateway
         {
-            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
         };
         Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
         Services.AddSingleton(queryGateway);
@@ -3851,7 +3853,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha renamed");
-        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        // Confirmed without an attempt-matched Ready receipt: proof is unsupported in-panel, never pending forever.
+        metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
         _ = gateway.DidNotReceive().GetTenantAuditAsync(
             Arg.Is<TenantAuditRequest>(request => request.From.HasValue),
@@ -7725,11 +7728,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.State.Failed"] = "Configuration removal submission failed.",
             ["Tenants.Configuration.Remove.State.Degraded"] = "Configuration removal result is degraded and needs review.",
             ["Tenants.Configuration.Remove.State.UnableToVerify"] = "Unable to verify the configuration removal result.",
-            ["Tenants.Configuration.Remove.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.Configuration.Remove.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.Configuration.Remove.Audit.AuditDelayed"] = "Audit evidence delayed.",
-            ["Tenants.Configuration.Remove.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.Configuration.Remove.Audit.MissingSupport"] = "Command-specific audit proof is not available in this flow; inspect tenant audit evidence separately.",
             ["Tenants.Configuration.Remove.Recovery.Idle"] = "Choose a visible key when current projection evidence and namespace scope are available.",
             ["Tenants.Configuration.Remove.Recovery.Previewed"] = "Confirm removal, cancel, or continue read-only.",
             ["Tenants.Configuration.Remove.Recovery.RequestSent"] = "Wait for command status and projection refresh.",
@@ -7780,10 +7778,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.AddMember.State.Failed"] = "Add-member command submission failed.",
             ["Tenants.AddMember.State.Degraded"] = "Add-member command result is degraded and needs review.",
             ["Tenants.AddMember.State.UnableToVerify"] = "Unable to verify the add-member command result.",
-            ["Tenants.AddMember.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.AddMember.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.AddMember.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.AddMember.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance"] = "Member projection already matched without provenance that this attempt advanced it. Refresh status or continue read-only.",
             ["Tenants.AddMember.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.ChangeRole.Title"] = "Change tenant member role",
@@ -7822,10 +7816,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.ChangeRole.State.Failed"] = "Change-role command submission failed.",
             ["Tenants.ChangeRole.State.Degraded"] = "Change-role command result is degraded and needs review.",
             ["Tenants.ChangeRole.State.UnableToVerify"] = "Unable to verify the change-role command result.",
-            ["Tenants.ChangeRole.Audit.NotStarted"] = "Audit evidence not started.",
-            ["Tenants.ChangeRole.Audit.AuditPending"] = "Audit evidence pending.",
-            ["Tenants.ChangeRole.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
-            ["Tenants.ChangeRole.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.ChangeRole.Confirm.AlreadyApplied.PreExisting"] = "The requested role was already applied before this attempt; no new role change is asserted.",
             ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingBaseline"] = "Role projection matched without a pre-submit baseline, so this attempt cannot be confirmed.",
             ["Tenants.ChangeRole.Confirm.UnableToVerify.MissingTarget"] = "The member projection no longer contains the target user.",
@@ -7881,7 +7871,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.RemoveMember.State.Previewed"] = "Consequence preview ready; no command has been submitted.",
             ["Tenants.RemoveMember.Recovery.Idle"] = "Open the preview when current projection evidence is available.",
             ["Tenants.RemoveMember.Recovery.Previewed"] = "Confirm deliberately, cancel, or continue read-only.",
-            ["Tenants.RemoveMember.Audit.NotStarted"] = "Audit evidence not started.",
             ["Tenants.Members.ActionSlotAccessible"] = "{0} is unavailable for {1}: {2}",
             ["Tenants.Members.Column.Actions"] = "Action availability",
             ["Tenants.Members.Column.Freshness"] = "Freshness",

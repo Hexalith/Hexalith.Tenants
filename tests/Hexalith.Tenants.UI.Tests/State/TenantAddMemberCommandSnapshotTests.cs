@@ -176,7 +176,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .SignalRNudge();
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.LastConfirmedMemberProjection.ShouldBeNull();
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
     }

@@ -3254,3 +3254,14 @@ Re-review range `f8223524..38da46a6`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
   summary: Return correction focus to the control that launched the panel, not the first matching reference in document order.
   evidence: `tenantsFocus.js` `focusCorrectionLauncher` searches `[data-correction-focus-reference]` and then `[data-receipt-focus-reference]` in document order. The grid renders before the receipt (`TenantAuditPage.razor:221`, `:265`), so a panel opened from the receipt's Start correction returns focus to the grid's matching button. The fallback added in `38da46a6` likewise prefers the grid's "View receipt" over the open receipt. A fix needs the launch origin threaded from `OpenCorrectionAsync` to the JS.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29)
+
+Review range `55f3dc63..working tree`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Confirm that a screen reader announces the first audit availability state when the shared control mounts.
+  evidence: Unverified (maybe-false); medium if true. The flows mount `AuditAvailabilityState` on the NotStarted → Pending/Unavailable transition, so its `aria-live` container is inserted together with its first content, the same pattern as the baseline control. Some screen readers skip content inserted with a new live region. The flows keep their own lifecycle live regions. Settle with an NVDA and browser check of a Create command reaching events-stored; if it is silent, keep the live container mounted empty while the state is NotStarted.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.
+  evidence: Strings such as `Tenants.EditMetadata.Recovery.Degraded`, `Tenants.Configuration.Set.Recovery.*`, `Tenants.Configuration.Remove.Recovery.*` and `Tenants.RemoveMember.Recovery.*` read "Wait, retry status lookup, inspect audit when available, or escalate." They render beside the control (for example `EditTenantMetadataFlow.razor:153`) whether or not Escalate, Inspect audit or Continue read-only exist. This flow lifecycle copy predates Story 5.4, which removed the same promise from the shared control.

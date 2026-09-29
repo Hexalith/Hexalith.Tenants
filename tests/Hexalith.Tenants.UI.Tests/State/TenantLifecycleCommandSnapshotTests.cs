@@ -27,7 +27,7 @@ public sealed class TenantLifecycleCommandSnapshotTests
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedStatus.ShouldBe(intendedStatus);
-        confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        confirmed.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
     }
 
     [Theory]
@@ -100,16 +100,16 @@ public sealed class TenantLifecycleCommandSnapshotTests
     }
 
     [Theory]
-    [InlineData(CommandStatus.Received, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
-    [InlineData(CommandStatus.Processing, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.Received, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Polite, null)]
+    [InlineData(CommandStatus.Processing, null, TenantCommandLifecycleState.Accepted, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Polite, null)]
     [InlineData(CommandStatus.EventsStored, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
     [InlineData(CommandStatus.EventsPublished, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
     [InlineData(CommandStatus.Completed, null, TenantCommandLifecycleState.ProjectionPending, TenantCommandAuditState.AuditPending, TenantCommandLiveRegionPoliteness.Polite, null)]
-    [InlineData(CommandStatus.Rejected, "InsufficientPermissions", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions")]
-    [InlineData(CommandStatus.Rejected, "TenantDisabled", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantDisabled")]
-    [InlineData(CommandStatus.Rejected, "TenantNotFound", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantNotFound")]
-    [InlineData(CommandStatus.Rejected, "TenantLifecycleStateAlreadySet", TenantCommandLifecycleState.AlreadyApplied, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet")]
-    [InlineData(CommandStatus.Rejected, "UnexpectedCode", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.AuditUnavailable, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected")]
+    [InlineData(CommandStatus.Rejected, "InsufficientPermissions", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions")]
+    [InlineData(CommandStatus.Rejected, "TenantDisabled", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantDisabled")]
+    [InlineData(CommandStatus.Rejected, "TenantNotFound", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantNotFound")]
+    [InlineData(CommandStatus.Rejected, "TenantLifecycleStateAlreadySet", TenantCommandLifecycleState.AlreadyApplied, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet")]
+    [InlineData(CommandStatus.Rejected, "UnexpectedCode", TenantCommandLifecycleState.Rejected, TenantCommandAuditState.NotStarted, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Rejected")]
     [InlineData(CommandStatus.PublishFailed, null, TenantCommandLifecycleState.Degraded, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.Degraded")]
     [InlineData(CommandStatus.TimedOut, null, TenantCommandLifecycleState.UnableToVerify, TenantCommandAuditState.AuditDelayed, TenantCommandLiveRegionPoliteness.Assertive, "Tenants.Lifecycle.Message.UnableToVerify")]
     public void Command_status_results_remain_distinct_before_projection_confirmation(

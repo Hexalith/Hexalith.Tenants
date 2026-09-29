@@ -88,10 +88,12 @@
         @if (ReceiptAuditState is not null)
         {
             <AuditAvailabilityState AuditState="@ReceiptAuditState.Value"
+                                    Source="audit-receipt"
                                     StateTestId="tenants-audit-receipt-state"
                                     RecoveryTestIdPrefix="tenants-audit-receipt-recovery"
                                     RefreshLabelResourceKey="Tenants.Audit.Receipt.Action.RefreshAudit"
                                     IsReceiptAuditRead="true"
+                                    SuppressEscalation="@HostEscalatesFailedRead"
                                     OnRefresh="OnRetry"
                                     OnInspectAudit="OnInspectAudit"
                                     OnContinueReadOnly="OnClose" />
@@ -157,6 +159,13 @@
 
     [Parameter]
     public EventCallback OnInspectAudit { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the host page already renders escalation for the failed audit read, so the
+    /// receipt's availability control does not offer a duplicate escalation link.
+    /// </summary>
+    [Parameter]
+    public bool HostEscalatesFailedRead { get; set; }
 
     [Parameter]
     public TenantCorrectionStartIntent? CorrectionIntent { get; set; }

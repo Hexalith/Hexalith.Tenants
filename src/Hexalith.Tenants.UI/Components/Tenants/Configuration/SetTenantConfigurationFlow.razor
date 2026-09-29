@@ -161,22 +161,9 @@
         <div data-testid="tenants-config-set-audit">
             @if (ShouldRenderAuditEntryPoint)
             {
-                <AuditAvailabilityState AuditState="@_snapshot.AuditState" OnRefresh="RefreshStatusAsync" OwnerRefreshIncludesAuditAuthority="true">
-                    <InspectAuditAction>
-                        @if (!AuditReadDenied)
-                        {
-                            <AuditEvidenceEntryPoint TenantId="@Context.TenantId" SourceKind="command-result"
-                                                     SourceTestId="tenants-command-audit-entrypoint"
-                                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Context.TenantId]"
-                                                     ReturnUrl="@CommandAuditReturnUrl" ReturnFocus="tenants-config-set-lifecycle"
-                                                     AvailabilityText="@AuditText"
-                                                     AuthorityPending="@AuditReadPending"
-                                                     UnavailableReason="@AuditReadUnavailableReason"
-                                                     IsAvailable="@AuditReadAvailable" />
-                        }
-                    </InspectAuditAction>
-                </AuditAvailabilityState>
+                <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        Source="set-configuration" OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))" OwnerRefreshIncludesAuditAuthority="true"
+                                        InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
         <p data-testid="tenants-config-set-recovery">@RecoveryText</p>
@@ -360,7 +347,28 @@
         _ => ">",
     };
     private string StateText => Localizer[$"Tenants.Configuration.Set.State.{LocalizedCommandState(_snapshot.State)}"];
-    private string AuditText => Localizer[$"Tenants.Configuration.Set.Audit.{LocalizedAuditState(_snapshot.AuditState)}"];
+    // The entry point names the audit state with the shared availability label, never a flow-local duplicate.
+    private string AuditStateLabel
+        => TenantAuditAvailability.StateLabelKeyFor(_snapshot.AuditState) is { } key ? Localizer[key] : string.Empty;
+
+    // Refresh is offered only while the attempt can actually be re-queried; a no-op control would only
+    // exhaust the retry bound behind a misleading limit note.
+    private bool CanRequeryAudit
+        => _snapshot.RetainsAttempt;
+
+    // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
+    private RenderFragment? CommandAuditEntryPoint
+        => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
+
+    private RenderFragment CommandAuditEntryPointTemplate
+        => @<AuditEvidenceEntryPoint TenantId="@Context.TenantId" SourceKind="command-result"
+                                     SourceTestId="tenants-command-audit-entrypoint"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, Context.TenantId]"
+                                     ReturnUrl="@CommandAuditReturnUrl" ReturnFocus="tenants-config-set-lifecycle"
+                                     AuthorityPending="@AuditReadPending"
+                                     UnavailableReason="@AuditReadUnavailableReason"
+                                     IsAvailable="@AuditReadAvailable" />;
     private bool ShouldRenderAuditEntryPoint => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
     private string? CommandAuditReturnUrl => DetailAuditReturnUrl;
     private string RecoveryText => Localizer[$"Tenants.Configuration.Set.Recovery.{LocalizedCommandState(_snapshot.State)}"];
@@ -666,7 +674,7 @@
                     SafeMessage = null,
                     SafeMessageKey = result.SafeMessageKey ?? SubmissionMessageKey(result.State),
                     RejectionCode = result.RejectionCode,
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    AuditState = TenantCommandAuditStates.FromSubmission(result),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 });
@@ -765,7 +773,7 @@
                     && _snapshot.State is (TenantCommandLifecycleState.Accepted
                         or TenantCommandLifecycleState.ProjectionPending))
                 {
-                    SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh"));
+                    SetSnapshot(ProjectionRefreshFailed());
                 }
                 return;
             }
@@ -785,7 +793,7 @@
                         && _snapshot.State is (TenantCommandLifecycleState.Accepted
                             or TenantCommandLifecycleState.ProjectionPending))
                     {
-                        SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh"));
+                        SetSnapshot(ProjectionRefreshFailed());
                     }
                     return;
                 }
@@ -795,7 +803,7 @@
                         && _snapshot.State is (TenantCommandLifecycleState.Accepted
                             or TenantCommandLifecycleState.ProjectionPending))
                     {
-                        SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh"));
+                        SetSnapshot(ProjectionRefreshFailed());
                     }
                     return;
                 }
@@ -830,7 +838,20 @@
         }
     }
 
-    private async Task AbandonAttemptAsync()
+    // A failed projection read is projection truth only: the command stays unverified, but the audit
+    // dimension keeps what command status established (as RemoveConfiguration's ProjectionVerificationFailed).
+    private TenantSetConfigurationCommandSnapshot ProjectionRefreshFailed()
+        => _snapshot.AmbiguousSubmission("Tenants.Configuration.Set.UnableToVerify.ProjectionRefresh") with
+        {
+            AuditState = _snapshot.AuditState,
+        };
+
+    private Task AbandonAttemptAsync()
+        => ReleaseAttemptAsync(retentionExpired: false);
+
+    // Operator abandonment and retention expiry release the attempt through the same path; only the audit
+    // dimension differs (unverifiable versus delayed).
+    private async Task ReleaseAttemptAsync(bool retentionExpired)
     {
         if (_isSubmitting)
         {
@@ -842,10 +863,17 @@
         _ = Interlocked.Increment(ref _attemptGeneration);
         _ = Interlocked.Increment(ref _previewGeneration);
         CancelExpirySchedule();
-        SetSnapshot(_snapshot.Abandon());
+        SetSnapshot(retentionExpired ? _snapshot.ExpireRetention() : _snapshot.Abandon());
         if (!string.IsNullOrWhiteSpace(messageId) && !string.IsNullOrWhiteSpace(tenantId))
             AttemptTracker?.Forget(tenantId, messageId);
         await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+
+        // Retention expiry arrives from a timer, not a UI event, so the released state is rendered explicitly
+        // (as the remove flow does); otherwise the delayed audit dimension would wait for an unrelated render.
+        if (!_disposed)
+        {
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
     }
 
     private bool TryBuildIntent(
@@ -1012,7 +1040,7 @@
     {
         if (!_isSubmitting && _snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(observedAtUtc))
         {
-            await AbandonAttemptAsync().ConfigureAwait(false);
+            await ReleaseAttemptAsync(retentionExpired: true).ConfigureAwait(false);
         }
     }
 
@@ -1139,9 +1167,6 @@
 
     private static string LocalizedCommandState(TenantCommandLifecycleState state)
         => Enum.IsDefined(state) ? state.ToString() : nameof(TenantCommandLifecycleState.UnableToVerify);
-
-    private static string LocalizedAuditState(TenantCommandAuditState state)
-        => Enum.IsDefined(state) ? state.ToString() : nameof(TenantCommandAuditState.AuditUnavailable);
 
     private static string SubmissionMessageKey(TenantCommandLifecycleState state)
         => state switch
