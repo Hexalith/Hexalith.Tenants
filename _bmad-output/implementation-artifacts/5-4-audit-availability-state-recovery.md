@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: review
+Status: in-progress
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -273,3 +273,38 @@ GPT-5 Codex
 - [Rejected][false] Story 5.4 implements correction start — Git attribution shows the correction block was introduced by the distinct `feat(story-5.5)` commit `eeb0a49d`, not Story 5.4.
 - [Rejected][false] Pending and delayed must render a Wait button — the approved Story 5.4 refinement explicitly removed the no-op Wait action and conveys waiting through state/explanation text.
 - [Rejected][medium] The story's recorded `baseline_commit` is invalid — `validate-story-gitlinks.py` fails because `a5ca6e3f…` is not a commit; the unambiguous parent is `a5ca6e38…`, but the workflow rejects findings whose only fix edits the spec under review.
+
+### Review Findings (2026-09-30 re-review of `d728ff46..82b13514`)
+
+Scope: the post-review hardening commit `82b13514` against `spec-5-4-understand-audit-availability-and-recovery-2.md`. Layers: Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor; none failed. Baseline evidence on a clean tree at `82b13514`: a `--no-incremental` Release UI-test build had 0 warnings and 0 errors, and the suite passed 3,570/3,570. Mutation evidence, with each mutation restored and the build redone with `--no-incremental` afterwards:
+- Reverting the refresh region to `d728ff46`, dropping the refresh `when (_disposed)` filters, or moving the gate reset off the dispatcher each still passes all 55 `AuditAvailabilityStateTests`.
+- Deleting the template `IsSafe` check still passes `Receipt_component_rejects_an_unsafe_localized_summary`.
+- Ignoring the outcome category fails 2 of 3 rows of the new outcome theory.
+- Making the focus catches unconditional fails `Live_focus_handoff_does_not_hide_non_teardown_failures`.
+
+- [ ] [Review][Patch] Make the refresh-teardown test fault the host refresh after disposal. It currently passes on the pre-patch code, so the six new refresh/finalize catches are unproven [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:349]
+- [ ] [Review][Patch] Pin the live-failure path of the refresh `when (_disposed)` filters and of the focus `ObjectDisposedException`/`TaskCanceledException` filters. A live host refresh that faults must surface, count no retry, and leave Refresh re-invocable [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:312]
+- [ ] [Review][Patch] Add a test that distinguishes the atomic dispatcher finalization from the old off-dispatcher gate reset. Hold the dispatcher, release the host task, click again, and assert one host call and one counted retry [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:340]
+- [ ] [Review][Patch] Isolate the template safety check in the unsafe-summary test (`"Actor: Bearer {actor} | …"` keeps the label structure) and add a positive control. `DirectReceipt(Ready)` with the default template must render exactly one copy button [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:214]
+- [ ] [Review][Patch] Restore the accents in the now-announced French receipt group name: `Actions de reprise du reçu d’audit` [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3257]
+- [ ] [Review][Patch] Mirror `role="group"` in the browser-harness availability fixture and pin `role` in the fixture-parity test [tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html:51]
+- [ ] [Review][Patch] Bound the refresh-teardown test's final await with a timeout, so a regression fails the test instead of hanging the run [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:368]
+- [ ] [Review][Patch] Assert that no receipt action group renders when a state has no actions, such as Loading [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:681]
+- [x] [Review][Defer] The legacy story's `baseline_commit` is not a commit, so the gitlink guard fails on this artifact, and the 2026-09-30 note that the story guard "reported no pointer changes" overstates it [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:3] — deferred: the fix edits this story's frontmatter and needs an owner decision. `a5ca6e3f…` does not resolve. The intended `a5ca6e38` (Story 5.3, 2026-06-06) predates the `references/` layout, so correcting it gives 7 "absent at baseline" failures. The PASS came from `spec-…-2.md` (`d728ff46`), and the primary spec's range (`55f3dc63..HEAD`) passes with all three bumps declared.
+- [x] [Review][Defer] The legacy story record is stale in several places [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:211] — deferred: the fix edits this story artifact's historical sections.
+  - The "Senior Developer Review (AI)" header still reads "Outcome: Approve (status → done)" while Status is `review`.
+  - The file:line anchors on the ticked 2026-09-30 patches are stale: `role="group"` is at `:56`, not `:51`, and the refresh logic spans `:287-376`, not `:299`.
+  - There are no 2026-09-30 Debug Log References with exact commands.
+  - The "three mutation rejections" are never named.
+
+#### Rejected (2026-09-30 re-review)
+
+- [Rejected][low] Refresh reads `AuditAuthorityRefresh`, `OwnerRefreshIncludesAuditAuthority`, and the host version probe off the dispatcher after `ConfigureAwait(false)`. This predates the diff (the lines are unchanged), and a harmful race needs a host re-render that reassigns a stable cascading delegate mid-refresh. The fix restructures the refresh continuation.
+- [Rejected][false] The `TaskCanceledException` catches are no-ops, miss `OperationCanceledException`, and could let cancellation crash the circuit. The renderer's error-handled task wrapper ignores canceled tasks for both event handlers and after-render, so no bad outcome occurs.
+- [Rejected][false] Delegate-absent receipt routing is untested, so Unauthorized could offer Refresh. Both production hosts wire `OnClose` (`RemoveTenantMemberFlow.razor:191`, `TenantAuditPage.razor:273`), so that fallthrough is unreachable. The reachable delegate-absent branch (Ready without inspect) is pinned by `RemoveTenantMemberFlowTests.Confirmed_removal_with_matching_audit_row_renders_wp2a_receipt`: a mutation letting Ready fall through failed exactly that test.
+- [Rejected][false] The unknown-outcome theory is too thin. A mutation that ignored the category failed 2 of its 3 rows, and `IsKnownOutcome` is an ordinal exact-match switch, so case and whitespace variants already hit `_ => false`.
+- [Rejected][false] The reflection-based focus teardown tests are unrealistic and fragile. They exercise the same filtered catches as the real race, removing the containment fails all 3 disposed rows, and a member rename fails loudly rather than passing vacuously.
+- [Rejected][false] Stale follow-up spec bookkeeping (`review_loop_iteration: 0`, the AppHost health note). The only fix edits the spec under review.
+- [Rejected][low] A host that unmounts the control during its own refresh and then throws a real `ObjectDisposedException`/`InvalidOperationException` has that exception swallowed, because `_disposed` is a lifetime proxy, not the exception's origin. This needs a host defect after the same refresh removed the control, and the fix splits host-task awaiting from dispatch awaiting.
+- [Rejected][false] A live focus `TaskCanceledException` (JS interop timeout) ends the circuit. A canceled after-render task is non-fatal to the renderer.
+- [Rejected][false] A concurrent session mutated `AuditAvailabilityState.razor` around 14:58. Those edits were this review's own mutation runs. They were restored, the tree is clean at `82b13514`, and the binaries were rebuilt with `--no-incremental`.
