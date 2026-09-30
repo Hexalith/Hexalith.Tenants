@@ -101,9 +101,12 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
             JSRuntimeInvocationHandler write = module.SetupVoid("writeText", expected).SetVoidResult();
             IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-                .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row())));
+                .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
+                .Add(component => component.OnInspectAudit, () => { }));
 
             cut.Find("[data-testid='tenants-audit-receipt-outcome'] dd").TextContent.ShouldBe("Utilisateur ajouté au locataire");
+            cut.Find(".audit-evidence-receipt__actions").GetAttribute("aria-label")
+                .ShouldBe("Actions de reprise du reçu d’audit");
             cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
             cut.WaitForAssertion(() => write.Invocations.Count.ShouldBe(1));
             write.Invocations.Single().Arguments[0].ShouldBe(expected);
@@ -209,9 +212,20 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
+    public void Ready_direct_receipt_with_the_default_summary_renders_one_copy_control()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference")));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldHaveSingleItem();
+        cut.FindAll("[data-testid='tenants-audit-receipt-copy-blocked']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Receipt_component_rejects_an_unsafe_localized_summary()
     {
-        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer("Bearer {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}"));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer("Actor: Bearer {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}"));
         TenantAuditReceipt receipt = DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference");
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, receipt));
@@ -221,6 +235,20 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Find("[data-testid='tenants-audit-receipt-outcome'] dd").TextContent.ShouldBe("User added to tenant");
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Receipt_component_checks_template_safety_across_summary_segments()
+    {
+        // Each completed segment is safe alone; only checking the whole template detects b-e-a-r + e-r.
+        string template = StubTenantsLocalizer.DefaultSummary
+            .Replace("{actor} | Target:", "{actor} b-e-a-r | e-r Target:", StringComparison.Ordinal);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer(template));
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, DirectReceipt(TenantAuditReceiptState.Ready, "event-safe-reference")));
+
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-copy-blocked']").GetAttribute("role").ShouldBe("alert");
     }
 
     // Template text glued to a placeholder can complete a blocked fragment with an individually safe value.
@@ -683,6 +711,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             IElement group = cut.Find(".audit-evidence-receipt__actions");
             group.GetAttribute("role").ShouldBe("group");
             group.GetAttribute("aria-label").ShouldBe("Audit receipt recovery actions");
+        }
+        else
+        {
+            cut.FindAll(".audit-evidence-receipt__actions").ShouldBeEmpty();
         }
 
         foreach (IElement action in actions)

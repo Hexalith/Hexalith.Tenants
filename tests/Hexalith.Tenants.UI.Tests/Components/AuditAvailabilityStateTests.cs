@@ -16,6 +16,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
@@ -345,8 +347,9 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         hostRefreshes.ShouldBe(3);
     }
 
-    [Fact]
-    public async Task Refresh_completion_after_renderer_teardown_is_non_fatal()
+    [Theory]
+    [MemberData(nameof(RendererTeardownFocusExceptions))]
+    public async Task Refresh_failure_after_renderer_teardown_is_non_fatal(Exception exception)
     {
         RegisterLocalizer();
         var refreshStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -359,13 +362,177 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
                 await refreshPending.Task.ConfigureAwait(false);
             })));
 
-        Task activation = cut.Find("[data-recovery-verb='refresh']").ClickAsync(new MouseEventArgs());
+        Task activation = cut.InvokeAsync(() => InvokeRefreshAsync(cut.Instance));
         await refreshStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         cut.Instance.Dispose();
         cut.Dispose();
-        refreshPending.SetResult();
+        refreshPending.SetException(exception);
 
-        await activation;
+        await activation.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task SuccessfulRefreshAfterDisposalCompletesWithoutCountingARetry()
+    {
+        RegisterLocalizer();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending)
+            .Add(component => component.OnRefresh, EventCallback.Factory.Create(this, () =>
+            {
+                started.SetResult();
+                return pending.Task;
+            })));
+
+        Task activation = cut.InvokeAsync(() => InvokeRefreshAsync(cut.Instance));
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        AuditAvailabilityState instance = cut.Instance;
+        instance.Dispose();
+        cut.Dispose();
+        pending.SetResult();
+
+        await activation.WaitAsync(TimeSpan.FromSeconds(5));
+        CapturedRefreshCount(instance).ShouldBe(0);
+    }
+
+    [Theory]
+    [MemberData(nameof(RendererTeardownFocusExceptions))]
+    public async Task FinalizationContainsDispatcherTeardownButPreservesLiveFailures(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        RegisterLocalizer();
+        foreach (bool disposed in new[] { false, true })
+        {
+            IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+                .Add(component => component.AuditState, TenantCommandAuditState.AuditPending));
+            if (disposed)
+            {
+                cut.Instance.Dispose();
+            }
+
+            // Fail the dispatcher itself, independently of host-task faults and successful dispatch after disposal.
+            Dispatcher failingDispatcher = Substitute.For<Dispatcher>();
+            failingDispatcher.InvokeAsync(Arg.Any<Action>()).Returns(_ => Task.FromException(exception));
+            System.Reflection.FieldInfo dispatcherField = Renderer.GetType()
+                .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Single(field => field.FieldType == typeof(Dispatcher));
+            object originalDispatcher = dispatcherField.GetValue(Renderer)!;
+            dispatcherField.SetValue(Renderer, failingDispatcher);
+            try
+            {
+                Func<Task> finalize = () => ((Task)typeof(AuditAvailabilityState)
+                    .GetMethod("FinalizeRefreshAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(cut.Instance, [TenantAuditAvailabilityState.Pending, true])!)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+                if (disposed)
+                {
+                    await finalize();
+                }
+                else
+                {
+                    Exception observed = exception switch
+                    {
+                        ObjectDisposedException => await Should.ThrowAsync<ObjectDisposedException>(finalize),
+                        TaskCanceledException => await Should.ThrowAsync<TaskCanceledException>(finalize),
+                        _ => await Should.ThrowAsync<InvalidOperationException>(finalize),
+                    };
+                    observed.GetType().ShouldBe(exception.GetType());
+                }
+
+                failingDispatcher.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(Dispatcher.InvokeAsync))
+                    .ShouldBe(1);
+            }
+            finally
+            {
+                dispatcherField.SetValue(Renderer, originalDispatcher);
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(RendererTeardownFocusExceptions))]
+    public async Task Live_refresh_failure_surfaces_without_counting_and_allows_retry(Exception exception)
+    {
+        RegisterLocalizer();
+        int hostRefreshes = 0;
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending)
+            .Add(component => component.OnRefresh, EventCallback.Factory.Create(this, () =>
+                ++hostRefreshes == 1 ? Task.FromException(exception) : Task.CompletedTask)));
+
+        Func<Task> refresh = () => cut.InvokeAsync(() => InvokeRefreshAsync(cut.Instance))
+            .WaitAsync(TimeSpan.FromSeconds(5));
+        Exception observed = exception switch
+        {
+            ObjectDisposedException => await Should.ThrowAsync<ObjectDisposedException>(refresh),
+            TaskCanceledException => await Should.ThrowAsync<TaskCanceledException>(refresh),
+            _ => await Should.ThrowAsync<InvalidOperationException>(refresh),
+        };
+        // Async cancellation propagates as a canceled task and may recreate the cancellation exception.
+        if (exception is not TaskCanceledException)
+        {
+            observed.ShouldBeSameAs(exception);
+        }
+        CapturedRefreshCount(cut.Instance).ShouldBe(0);
+        cut.FindAll("[data-recovery-verb='refresh']").ShouldHaveSingleItem();
+
+        await refresh();
+
+        hostRefreshes.ShouldBe(2);
+        CapturedRefreshCount(cut.Instance).ShouldBe(1);
+        cut.FindAll("[data-recovery-verb='refresh']").ShouldHaveSingleItem();
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Dispatcher_finalization_keeps_the_gate_closed_until_the_retry_is_counted()
+    {
+        RegisterLocalizer();
+        // Inline continuations make SetResult return only after finalization has been queued off dispatcher.
+        var pending = new TaskCompletionSource();
+        var refreshStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var dispatcherHeld = new ManualResetEventSlim();
+        using var clickAgain = new ManualResetEventSlim();
+        int hostRefreshes = 0;
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending)
+            .Add(component => component.OnRefresh, EventCallback.Factory.Create(this, () =>
+            {
+                hostRefreshes++;
+                refreshStarted.TrySetResult();
+                return hostRefreshes == 1 ? pending.Task : Task.CompletedTask;
+            })));
+
+        Task activation = cut.Find("[data-recovery-verb='refresh']").ClickAsync(new MouseEventArgs());
+        await refreshStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task blocker = Task.Run(() => Renderer.Dispatcher.InvokeAsync(() =>
+        {
+            dispatcherHeld.Set();
+            clickAgain.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            // This click runs on the held dispatcher before its queued finalization can release the gate.
+            cut.Find("[data-recovery-verb='refresh']").Click();
+        }));
+        try
+        {
+            dispatcherHeld.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            await Task.Run(pending.SetResult).WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            clickAgain.Set();
+            await blocker.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await activation.WaitAsync(TimeSpan.FromSeconds(5));
+        hostRefreshes.ShouldBe(1);
+        CapturedRefreshCount(cut.Instance).ShouldBe(1);
+
+        cut.Find("[data-recovery-verb='refresh']").Click();
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+        cut.Find("[data-recovery-verb='refresh']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-recovery-verb='refresh']").ShouldBeEmpty());
+        hostRefreshes.ShouldBe(3);
     }
 
     [Theory]
@@ -386,19 +553,30 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         await InvokeAfterRenderAsync(instance);
     }
 
-    [Fact]
-    public async Task Live_focus_handoff_does_not_hide_non_teardown_failures()
+    [Theory]
+    [MemberData(nameof(RendererTeardownFocusExceptions))]
+    public async Task Live_focus_handoff_does_not_hide_non_teardown_failures(Exception exception)
     {
         RegisterLocalizer();
         JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
-            .SetException(new InvalidOperationException("Live focus defect."));
+            .SetException(exception);
         IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
             .Add(component => component.AuditState, TenantCommandAuditState.AuditPending));
         typeof(AuditAvailabilityState)
             .GetField("_focusStateLinePending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .SetValue(cut.Instance, true);
 
-        _ = await Should.ThrowAsync<InvalidOperationException>(() => InvokeAfterRenderAsync(cut.Instance));
+        Func<Task> focus = () => InvokeAfterRenderAsync(cut.Instance).WaitAsync(TimeSpan.FromSeconds(5));
+        Exception observed = exception switch
+        {
+            ObjectDisposedException => await Should.ThrowAsync<ObjectDisposedException>(focus),
+            TaskCanceledException => await Should.ThrowAsync<TaskCanceledException>(focus),
+            _ => await Should.ThrowAsync<InvalidOperationException>(focus),
+        };
+        if (exception is not TaskCanceledException)
+        {
+            observed.ShouldBeSameAs(exception);
+        }
     }
 
     public static TheoryData<Exception> RendererTeardownFocusExceptions
@@ -413,6 +591,16 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         => (Task)typeof(AuditAvailabilityState)
             .GetMethod("OnAfterRenderAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .Invoke(instance, [false])!;
+
+    private static Task InvokeRefreshAsync(AuditAvailabilityState instance)
+        => (Task)typeof(AuditAvailabilityState)
+            .GetMethod("RefreshAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(instance, null)!;
+
+    private static int CapturedRefreshCount(AuditAvailabilityState instance)
+        => (int)typeof(AuditAvailabilityState)
+            .GetField("_unchangedRefreshCount", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(instance)!;
 
     [Theory]
     [InlineData(TenantCommandAuditState.MissingSupport)]
@@ -799,6 +987,7 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         IElement announcement = cut.Find("[data-testid='tenants-audit-availability-announcement']");
         IElement badge = cut.Find("[data-testid='tenants-audit-availability-badge']");
         IElement actions = cut.Find("[data-testid='tenants-audit-availability-actions']");
+        actions.GetAttribute("role").ShouldBe("group");
         IElement[] recoveries = [.. actions.Children];
         recoveries.Select(action => action.GetAttribute("data-recovery-verb"))
             .ShouldBe(["refresh", "continuereadonly", "inspectaudit", "escalate"]);
@@ -823,6 +1012,9 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         fixture.ShouldContain($"class=\"{badge.GetAttribute("class")}\"");
         fixture.ShouldContain($"color=\"{badge.GetAttribute("color")}\"");
         fixture.ShouldContain($"class=\"{actions.GetAttribute("class")}\"");
+        IElement fixtureActions = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(fixture)
+            .QuerySelector("#availability-actions")!;
+        fixtureActions.GetAttribute("role").ShouldBe(actions.GetAttribute("role"));
         fixture.ShouldContain("class=\"tenants-audit-availability__action-shell\"");
         fixture.ShouldContain("class=\"tenants-audit-entrypoint\"");
         foreach (IElement recovery in recoveries)
@@ -836,6 +1028,33 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         fixture.ShouldContain("Audit indisponible");
         fixture.ShouldNotContain("Support d’implémentation manquant");
         fixture.ShouldNotContain("missingsupport");
+    }
+
+    [Fact]
+    public void BrowserFixtureRecoveryNameMatchesProductionFrenchResources()
+    {
+        CultureInfo previousCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
+            Services.AddLocalization();
+            IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+                .Add(component => component.AuditState, TenantCommandAuditState.AuditUnavailable)
+                .Add(component => component.OnRefresh, () => { }));
+            string name = cut.Find("[data-testid='tenants-audit-availability-actions']")
+                .GetAttribute("aria-label")!;
+            name.ShouldNotBeNullOrWhiteSpace();
+            string harness = File.ReadAllText(Path.Combine(
+                ProjectRoot(), "tests", "Hexalith.Tenants.UI.Tests", "Browser", "tenants-focus-browser-validation.html"));
+            IElement fixtureActions = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(harness)
+                .QuerySelector("#availability-actions")!;
+
+            fixtureActions.GetAttribute("aria-label").ShouldBe(name);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previousCulture;
+        }
     }
 
     [Fact]

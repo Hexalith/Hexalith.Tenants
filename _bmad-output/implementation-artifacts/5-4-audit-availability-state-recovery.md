@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: in-progress
+Status: review
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -145,6 +145,7 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-09-30 re-review closure — exact Debug build, maintained MTP, mutation, browser, gitlink, and commitlint evidence is recorded in `story-5-4-re-review-verification-2026-09-30.md` and the current `spec-5-4-understand-audit-availability-and-recovery-3.md`.
 - 2026-06-06T17:53:58+02:00 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed.
 - 2026-06-06T17:53:58+02:00 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build` hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
 - 2026-06-06T17:53:58+02:00 - `./tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -parallel none` passed: 570 total, 0 failed.
@@ -154,6 +155,7 @@ GPT-5 Codex
 
 ### Completion Notes List
 
+- Closed the eight 2026-09-30 re-review patches with bounded disposed-host faults, live refresh/focus exception theories, deterministic dispatcher gating, isolated template safety and a copyable positive control, accented French group naming, browser group parity, and Loading group suppression. All six independent review findings were addressed, including successful disposed completion and separate finalization dispatcher faults. The final Debug source build passed with zero warnings/errors; maintained MTP passed 3,586/3,586; nine focused code/fixture mutations and the Chrome harness's independent mutations were rejected. The current follow-up gitlink guard passed with no pointer changes; the deferred legacy baseline remains unresolved. Current status is review.
 - Ultimate context engine analysis completed - comprehensive developer guide created.
 - Added a Tenants-owned audit availability model that maps `TenantCommandAuditState` into explicit pending, delayed, unavailable, and missing-support states with separate canonical recovery verbs.
 - Added reusable `AuditAvailabilityState` UI with visible labels, icon/shape, accessible labels, polite/assertive live-region behavior, stable `tenants-audit-availability` selector, focus-visible, forced-colors, reduced-motion, and responsive CSS.
@@ -165,10 +167,13 @@ GPT-5 Codex
 
 - _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
 - _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md
+- _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md
+- _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor.css
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor
+- src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor — Fluent UI 5.0.0 sort-event compatibility prerequisite.
 - src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor
 - src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor
 - src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
@@ -184,6 +189,9 @@ GPT-5 Codex
 - tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs
+- tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs — Fluent UI 5.0.0 sort-state assertion compatibility prerequisite.
+- tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs — Fluent UI 5.0.0 header-inclusive ARIA row counts.
+- tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html
 - tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs
@@ -199,6 +207,7 @@ GPT-5 Codex
 
 ### Change Log
 
+- 2026-09-30 - Closed all eight re-review patches and recorded current Debug/MTP, six mutation, Chrome, and follow-up gitlink evidence; corrected the existing Fluent UI 5.0.0 sort API and header-inclusive test expectations required for verification.
 - 2026-06-06T17:36:15+02:00 - Created Story 5.4 context and marked it ready for development.
 - 2026-06-06T17:53:58+02:00 - Implemented shared audit availability state recovery model/control, wired receipts and command flows, added localized EN/FR copy and focused tests, and marked story ready for review.
 - 2026-06-06 - Senior Developer Review (AI) completed: Approve. Added `tests/test-summary.md` to the File List (it carried a Story 5.4 evidence addendum but was undocumented). No code defects required fixes. Status moved review → done.
@@ -282,14 +291,14 @@ Scope: the post-review hardening commit `82b13514` against `spec-5-4-understand-
 - Ignoring the outcome category fails 2 of 3 rows of the new outcome theory.
 - Making the focus catches unconditional fails `Live_focus_handoff_does_not_hide_non_teardown_failures`.
 
-- [ ] [Review][Patch] Make the refresh-teardown test fault the host refresh after disposal. It currently passes on the pre-patch code, so the six new refresh/finalize catches are unproven [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:349]
-- [ ] [Review][Patch] Pin the live-failure path of the refresh `when (_disposed)` filters and of the focus `ObjectDisposedException`/`TaskCanceledException` filters. A live host refresh that faults must surface, count no retry, and leave Refresh re-invocable [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:312]
-- [ ] [Review][Patch] Add a test that distinguishes the atomic dispatcher finalization from the old off-dispatcher gate reset. Hold the dispatcher, release the host task, click again, and assert one host call and one counted retry [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:340]
-- [ ] [Review][Patch] Isolate the template safety check in the unsafe-summary test (`"Actor: Bearer {actor} | …"` keeps the label structure) and add a positive control. `DirectReceipt(Ready)` with the default template must render exactly one copy button [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:214]
-- [ ] [Review][Patch] Restore the accents in the now-announced French receipt group name: `Actions de reprise du reçu d’audit` [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3257]
-- [ ] [Review][Patch] Mirror `role="group"` in the browser-harness availability fixture and pin `role` in the fixture-parity test [tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html:51]
-- [ ] [Review][Patch] Bound the refresh-teardown test's final await with a timeout, so a regression fails the test instead of hanging the run [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:368]
-- [ ] [Review][Patch] Assert that no receipt action group renders when a state has no actions, such as Loading [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:681]
+- [x] [Review][Patch] Make the refresh-teardown test fault the host refresh after disposal. It currently passes on the pre-patch code, so the six new refresh/finalize catches are unproven [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:349]
+- [x] [Review][Patch] Pin the live-failure path of the refresh `when (_disposed)` filters and of the focus `ObjectDisposedException`/`TaskCanceledException` filters. A live host refresh that faults must surface, count no retry, and leave Refresh re-invocable [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:312]
+- [x] [Review][Patch] Add a test that distinguishes the atomic dispatcher finalization from the old off-dispatcher gate reset. Hold the dispatcher, release the host task, click again, and assert one host call and one counted retry [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:340]
+- [x] [Review][Patch] Isolate the template safety check in the unsafe-summary test (`"Actor: Bearer {actor} | …"` keeps the label structure) and add a positive control. `DirectReceipt(Ready)` with the default template must render exactly one copy button [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:214]
+- [x] [Review][Patch] Restore the accents in the now-announced French receipt group name: `Actions de reprise du reçu d’audit` [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3257]
+- [x] [Review][Patch] Mirror `role="group"` in the browser-harness availability fixture and pin `role` in the fixture-parity test [tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html:51]
+- [x] [Review][Patch] Bound the refresh-teardown test's final await with a timeout, so a regression fails the test instead of hanging the run [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:368]
+- [x] [Review][Patch] Assert that no receipt action group renders when a state has no actions, such as Loading [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:681]
 - [x] [Review][Defer] The legacy story's `baseline_commit` is not a commit, so the gitlink guard fails on this artifact, and the 2026-09-30 note that the story guard "reported no pointer changes" overstates it [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:3] — deferred: the fix edits this story's frontmatter and needs an owner decision. `a5ca6e3f…` does not resolve. The intended `a5ca6e38` (Story 5.3, 2026-06-06) predates the `references/` layout, so correcting it gives 7 "absent at baseline" failures. The PASS came from `spec-…-2.md` (`d728ff46`), and the primary spec's range (`55f3dc63..HEAD`) passes with all three bumps declared.
 - [x] [Review][Defer] The legacy story record is stale in several places [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:211] — deferred: the fix edits this story artifact's historical sections.
   - The "Senior Developer Review (AI)" header still reads "Outcome: Approve (status → done)" while Status is `review`.

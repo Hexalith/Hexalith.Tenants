@@ -167,7 +167,8 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
         GeneratedProjectionAssertions.AssertDataGridEnvelope(cut);
         GeneratedProjectionAssertions.AssertHeadersInOrder(cut, "Id", "Name", "Status");
-        cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("1");
+        // Fluent UI 5 includes the header in the ARIA row count.
+        cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2");
     }
 
     [Fact]
@@ -201,7 +202,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
         IRenderedComponent<TenantSummaryProjectionPage> cut = Render<TenantSummaryProjectionPage>();
 
-        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("1"));
+        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2"));
         cut.Find("fieldset").HasAttribute("disabled").ShouldBeTrue();
         cut.Markup.ShouldContain("Generated form preview");
     }
@@ -240,7 +241,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
         IRenderedComponent<TenantSummaryProjectionPage> cut = Render<TenantSummaryProjectionPage>();
 
-        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("1"));
+        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2"));
         cut.Markup.ShouldContain("stale");
     }
 
@@ -267,7 +268,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
         await InitializeStoreAsync();
 
         IRenderedComponent<TenantSummaryProjectionPage> cut = Render<TenantSummaryProjectionPage>();
-        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("1"));
+        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2"));
 
         authentication.PublishChange();
 

@@ -1645,14 +1645,15 @@
 
     private async Task OnTenantSortChanged(DataGridSortEventArgs<TenantListRow> args)
     {
-        string sortColumn = args.Column?.ColumnId switch
+        string? primaryColumnId = args.SortColumns.Count > 0 ? args.SortColumns[0].Column.ColumnId : null;
+        string sortColumn = primaryColumnId switch
         {
             "tenant-id" => TenantListSortColumns.Name,
             "tenant-status" => TenantListSortColumns.Status,
             _ => TenantListSortColumns.TenantId,
         };
         ApplyWorkspaceState(
-            CurrentWorkspaceState().WithSort(sortColumn, descending: args.SortByAscending is false),
+            CurrentWorkspaceState().WithSort(sortColumn, descending: args.SortColumns.Count > 0 && !args.SortColumns[0].Ascending),
             clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false);
