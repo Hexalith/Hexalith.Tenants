@@ -588,7 +588,12 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
 
-        cut.WaitForAssertion(() => grid.SortByAscending.ShouldBe(false));
+        cut.WaitForAssertion(() =>
+        {
+            DataGridSortColumn<TenantListRow> sort = grid.SortColumns.ShouldHaveSingleItem();
+            sort.Ascending.ShouldBe(false);
+            sort.Column.ColumnId.ShouldBe("tenant-id");
+        });
     }
 
     [Fact]
@@ -607,7 +612,38 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             FluentDataGrid<TenantListRow> updatedGrid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
             ReferenceEquals(updatedGrid, originalGrid).ShouldBeFalse();
-            updatedGrid.SortByAscending.ShouldBe(true);
+            updatedGrid.SortColumns.ShouldHaveSingleItem().Ascending.ShouldBe(true);
+            updatedGrid.SortColumns.ShouldHaveSingleItem().Column.ColumnId.ShouldBe("tenant-status");
+        });
+    }
+
+    [Fact]
+    public async Task ClearingDescendingSortRestoresCanonicalTenantIdOrderAndFirstPage()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.Arg<TenantListRequest>());
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+                nextCursor: "protected-page-two", hasMore: true));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?sort=name&desc=true");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => requests[^1].Cursor.ShouldBe("protected-page-two"));
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        await cut.InvokeAsync(() => grid.SetSortAsync([])).WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].SortColumn.ShouldBe(TenantListSortColumns.TenantId);
+            requests[^1].SortDescending.ShouldBeFalse();
+            requests[^1].Cursor.ShouldBeNull();
+            navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         });
     }
 

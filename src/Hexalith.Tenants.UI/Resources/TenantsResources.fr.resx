@@ -3254,7 +3254,7 @@
     <value>Audit indisponible</value>
   </data>
   <data name="Tenants.Audit.Receipt.ActionsLabel" xml:space="preserve">
-    <value>Actions de reprise du recu d'audit</value>
+    <value>Actions de reprise du reçu d’audit</value>
   </data>
   <data name="Tenants.Audit.Receipt.Action.ContinueReadOnly" xml:space="preserve">
     <value>Continuer en lecture seule</value>
