@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: done
+Status: in-progress
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -231,3 +231,41 @@ GPT-5 Codex
 ### Notes
 
 - `_bmad-output/story-automator/orchestration-1-20260605-153745.md` remains dirty as expected (pre-existing, unrelated) and was not touched, per the story's Previous Story Intelligence.
+
+### Review Findings
+
+- [ ] [Review][Patch] Finalize refresh gating and retry bookkeeping atomically on the renderer dispatcher [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:299]
+- [ ] [Review][Patch] Treat renderer teardown as non-fatal during refresh completion and focus hand-off [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:220]
+- [ ] [Review][Patch] Give both recovery-action stacks a semantic group role so their accessible names are exposed [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:51]
+- [ ] [Review][Patch] Repair the unsafe-summary test fixture so it reaches localized-template validation [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:651]
+- [ ] [Review][Patch] Cover unknown and category-mismatched audit outcomes through receipt derivation and downstream availability [tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs:166]
+- [ ] [Review][Patch] Cover receipt-local recovery routing and callbacks for every non-shared receipt state [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:624]
+- [x] [Review][Defer] Confirm that the first mounted availability state is announced by assistive technology [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:7] — deferred: unverified and medium if true; an NVDA/VoiceOver browser check of `NotStarted` to `Pending` or `Unavailable` is needed to determine whether inserting the live region with its first content is announced.
+- [x] [Review][Defer] Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:40] — deferred: pre-existing to the current Story 5.4 refinement; `TenantAuditRow.FromEntry` defaults lifecycle and provenance to `Unknown`, so this factory cannot produce `Ready`, and resolving that requires an API/authority decision.
+
+#### Rejected
+
+- [Rejected][low] Retry budget is keyed only to availability state — the approved contract defines the bound by unchanged state; carrying it across a rare same-state hand-off is low impact, while an evidence identity would add API/remount complexity.
+- [Rejected][low] Refresh has no separate busy announcement — the approved interaction ignores merged clicks while the host refresh owns progress; adding a second progress state is not warranted for this low-impact case.
+- [Rejected][false] Close can render without a callback — every production `AuditEvidenceReceipt` call site supplies `OnClose`; only isolated test renders omit it.
+- [Rejected][false] Start correction can render without a callback — the only production call site that supplies a correction intent also supplies `OnStartCorrection`; the other receipt host supplies no intent.
+- [Rejected][false] Receipt heading IDs collide — each production surface renders at most one receipt instance, and the two hosts are on distinct pages/flows.
+- [Rejected][false] Full receipt copy omits a proven command reference — no production receipt currently carries a non-null authoritative command reference; the former caller-controlled hint was intentionally removed as uncorrelated evidence.
+- [Rejected][false] Non-zero timestamp offsets are valid Ready evidence — the current receipt proof contract deliberately requires UTC input and has a focused test pinning non-UTC offsets to `Partial`.
+- [Rejected][false] Culture-specific calendars corrupt UTC labels — the application supports only `en` and `fr`, both Gregorian for this fixed format.
+- [Rejected][false] Receipt scope can disagree with tenant identity — the sole production row mapper derives both fields from the same authorized `TenantId`.
+- [Rejected][false] Receipt target can disagree with typed narrative — the sole production row mapper derives the target directly from that sanitized narrative and no production caller constructs rows independently.
+- [Rejected][false] Removed receipt members break consumers — the UI project is not a published package, and all in-repository callers compile against the current surface.
+- [Rejected][low] A new same-state receipt inherits the retry count — duplicate of the state-scoped retry-budget concern; the rare impact does not justify adding identity state to the shared component.
+- [Rejected][low] A never-completing host refresh strands the control — production refresh paths own their network/deadline policy; imposing a second generic timeout would add conflicting cancellation semantics.
+- [Rejected][false] Close without a delegate is an enabled no-op — duplicate; all production hosts provide the delegate.
+- [Rejected][false] Correction without a delegate is an enabled no-op — duplicate; the production correction host always provides the delegate.
+- [Rejected][false] Empty, filtered-empty, or unknown surfaces can certify a row — valid production snapshots cannot pair an empty surface with a row, and unknown enum values are not externally deserialized here.
+- [Rejected][false] An unknown command-audit enum becomes Ready — the enum is internal typed state, not untrusted input, and no current path can create an unknown value.
+- [Rejected][false] A mismatched narrative target can be Ready — duplicate; production mapping derives both together.
+- [Rejected][false] Receipt rendering loses target-type safety — production receipts receive a target already sanitized under its typed narrative policy before the component's defensive display check.
+- [Rejected][false] Correction reasons can expose raw localization keys — every current enum member has EN/FR resources and unknown enum values cannot arise from the typed correction evaluator.
+- [Rejected][false] Support-safe command references were improperly dropped — the current approved receipt contract forbids placing a caller-supplied command hint into proof without an authoritative row-to-command link.
+- [Rejected][false] Story 5.4 implements correction start — Git attribution shows the correction block was introduced by the distinct `feat(story-5.5)` commit `eeb0a49d`, not Story 5.4.
+- [Rejected][false] Pending and delayed must render a Wait button — the approved Story 5.4 refinement explicitly removed the no-op Wait action and conveys waiting through state/explanation text.
+- [Rejected][medium] The story's recorded `baseline_commit` is invalid — `validate-story-gitlinks.py` fails because `a5ca6e3f…` is not a commit; the unambiguous parent is `a5ca6e38…`, but the workflow rejects findings whose only fix edits the spec under review.

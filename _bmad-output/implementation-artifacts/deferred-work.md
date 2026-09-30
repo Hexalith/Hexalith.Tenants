@@ -3308,3 +3308,12 @@ Review range `1cdcc0a9..e077e65e` (delta only).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
   summary: Withhold the shared control's Continue read-only in the member flows while an owned attempt is still in flight.
   evidence: AddMember, ChangeRole and RemoveMember bind `OnContinueReadOnly="ContinueReadOnlyAsync"` unconditionally (`AddTenantMemberFlow.razor:111`, `ChangeTenantMemberRoleFlow.razor:132`, `RemoveTenantMemberFlow.razor:181`). Their own Continue read-only button is gated by `CanContinueReadOnly` (UnableToVerify or Degraded), but an ambiguous submission leaves `RequestSent` with `AuditUnavailable`, whose verb set includes Continue read-only. Clicking it resets to `Idle()`, drops the retry MessageId and releases the per-aggregate activity lease while the attempt may be in flight. This was pre-existing: the baseline `55f3dc63` had the same binding and the same Unavailable verb. Story 5.4 Review 4 (BH2) found it. The fix mirrors the Metadata, Lifecycle and configuration gate (`!IsOwnedCommandInFlight`).
+
+## Deferred from: code review of 5-4-audit-availability-state-recovery.md (2026-09-30)
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`
+  summary: Confirm that the first mounted availability state is announced by assistive technology.
+  evidence: Unverified and medium if true. `AuditAvailabilityState` inserts its `aria-live` container together with the first `Pending` or `Unavailable` content. Settle with an NVDA/VoiceOver browser check of a `NotStarted` transition; if silent, keep the live container mounted empty before the first state.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`
+  summary: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.
+  evidence: Pre-existing to the current Story 5.4 refinement. `TenantAuditRow.FromEntry` defaults lifecycle and provenance to `Unknown`, while receipt completeness requires `Current` and `ProjectionBacked`, so the public factory cannot produce `Ready`. Resolution requires deciding whether callers may supply authoritative metadata or whether the misleading factory should be retired.
