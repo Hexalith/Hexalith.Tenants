@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: in-progress
+Status: review
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -159,10 +159,12 @@ GPT-5 Codex
 - Added reusable `AuditAvailabilityState` UI with visible labels, icon/shape, accessible labels, polite/assertive live-region behavior, stable `tenants-audit-availability` selector, focus-visible, forced-colors, reduced-motion, and responsive CSS.
 - Refactored audit receipt and create/add/change/remove/lifecycle/configuration/metadata command surfaces to reuse the shared control while preserving command lifecycle/projection/audit separation and existing `AuditEvidenceEntryPoint` scoped links.
 - Added EN/FR shared availability resources and tests for mapping, component rendering, callbacks, resource parity, selector stability, support-safe copy, no false Success, and no machine-token leakage.
+- Completed the 2026-09-30 post-review hardening: renderer-dispatcher refresh finalization, teardown-safe focus/refresh completion, semantic recovery groups, and direct receipt safety/outcome/recovery-route coverage. Release build passed with 0 warnings/errors, all 3,570 UI tests passed, the Chrome 154 harness and three mutation rejections passed, and the story gitlink guard reported no pointer changes.
 
 ### File List
 
 - _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+- _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor.css
@@ -191,6 +193,7 @@ GPT-5 Codex
 - tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs
 - tests/Hexalith.Tenants.UI.Tests/State/TenantAuditAvailabilityTests.cs
+- tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs
 - tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs
 - tests/test-summary.md
 
@@ -199,6 +202,7 @@ GPT-5 Codex
 - 2026-06-06T17:36:15+02:00 - Created Story 5.4 context and marked it ready for development.
 - 2026-06-06T17:53:58+02:00 - Implemented shared audit availability state recovery model/control, wired receipts and command flows, added localized EN/FR copy and focused tests, and marked story ready for review.
 - 2026-06-06 - Senior Developer Review (AI) completed: Approve. Added `tests/test-summary.md` to the File List (it carried a Story 5.4 evidence addendum but was undocumented). No code defects required fixes. Status moved review → done.
+- 2026-09-30 - Completed the six reopened post-review hardening patches and verified the Release UI build, 3,570-test UI suite, Chrome accessibility/responsive harness, mutation guards, diff hygiene, and story gitlink declaration.
 
 ## Senior Developer Review (AI)
 
@@ -234,12 +238,12 @@ GPT-5 Codex
 
 ### Review Findings
 
-- [ ] [Review][Patch] Finalize refresh gating and retry bookkeeping atomically on the renderer dispatcher [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:299]
-- [ ] [Review][Patch] Treat renderer teardown as non-fatal during refresh completion and focus hand-off [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:220]
-- [ ] [Review][Patch] Give both recovery-action stacks a semantic group role so their accessible names are exposed [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:51]
-- [ ] [Review][Patch] Repair the unsafe-summary test fixture so it reaches localized-template validation [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:651]
-- [ ] [Review][Patch] Cover unknown and category-mismatched audit outcomes through receipt derivation and downstream availability [tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs:166]
-- [ ] [Review][Patch] Cover receipt-local recovery routing and callbacks for every non-shared receipt state [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:624]
+- [x] [Review][Patch] Finalize refresh gating and retry bookkeeping atomically on the renderer dispatcher [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:299]
+- [x] [Review][Patch] Treat renderer teardown as non-fatal during refresh completion and focus hand-off [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:220]
+- [x] [Review][Patch] Give both recovery-action stacks a semantic group role so their accessible names are exposed [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:51]
+- [x] [Review][Patch] Repair the unsafe-summary test fixture so it reaches localized-template validation [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:651]
+- [x] [Review][Patch] Cover unknown and category-mismatched audit outcomes through receipt derivation and downstream availability [tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs:166]
+- [x] [Review][Patch] Cover receipt-local recovery routing and callbacks for every non-shared receipt state [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:624]
 - [x] [Review][Defer] Confirm that the first mounted availability state is announced by assistive technology [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor:7] — deferred: unverified and medium if true; an NVDA/VoiceOver browser check of `NotStarted` to `Pending` or `Unavailable` is needed to determine whether inserting the live region with its first content is announced.
 - [x] [Review][Defer] Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed [src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:40] — deferred: pre-existing to the current Story 5.4 refinement; `TenantAuditRow.FromEntry` defaults lifecycle and provenance to `Unknown`, so this factory cannot produce `Ready`, and resolving that requires an API/authority decision.
 

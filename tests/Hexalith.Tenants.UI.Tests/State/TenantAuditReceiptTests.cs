@@ -175,6 +175,29 @@ public sealed class TenantAuditReceiptTests
         TenantAuditReceipt.FromRow(row with { Provenance = QueryResponseProvenance.Unknown }).State.ShouldBe(TenantAuditReceiptState.Partial);
     }
 
+    [Theory]
+    [InlineData("UnknownTenantEvent", AuditEventCategory.Access)]
+    [InlineData("UserAddedToTenant", AuditEventCategory.Administrative)]
+    [InlineData("TenantCreated", AuditEventCategory.Access)]
+    public void Unknown_or_category_mismatched_outcome_cannot_become_available(
+        string eventType,
+        AuditEventCategory category)
+    {
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row() with
+        {
+            EventType = eventType,
+            Category = category,
+            Outcome = eventType,
+        });
+
+        receipt.Outcome.ShouldBeEmpty();
+        receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantCommandAuditState auditState = TenantCommandAuditStates.FromConfirmationEvidence(receipt);
+        auditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        TenantAuditAvailability.FromCommandAuditState(auditState).State
+            .ShouldBe(TenantAuditAvailabilityState.MissingSupport);
+    }
+
     [Fact]
     public void Access_receipt_keeps_target_fallbacks_visible_but_requires_a_safe_typed_user_for_ready_evidence()
     {

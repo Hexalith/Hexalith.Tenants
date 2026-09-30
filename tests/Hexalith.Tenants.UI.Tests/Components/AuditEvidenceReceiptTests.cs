@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Xml.Linq;
 
+using AngleSharp.Dom;
+
 using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
@@ -215,6 +217,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.Receipt, receipt));
 
         cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-copy-blocked']").GetAttribute("role").ShouldBe("alert");
+        cut.Find("[data-testid='tenants-audit-receipt-outcome'] dd").TextContent.ShouldBe("User added to tenant");
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
@@ -639,6 +643,89 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
     }
 
+    [Theory]
+    [InlineData(TenantAuditReceiptState.Ready, "inspect,continue", 0, 1, 1)]
+    [InlineData(TenantAuditReceiptState.Partial, "refresh", 1, 0, 0)]
+    [InlineData(TenantAuditReceiptState.Loading, "", 0, 0, 0)]
+    [InlineData(TenantAuditReceiptState.Error, "refresh", 1, 0, 0)]
+    [InlineData(TenantAuditReceiptState.Stale, "refresh", 1, 0, 0)]
+    [InlineData(TenantAuditReceiptState.Degraded, "refresh", 1, 0, 0)]
+    [InlineData(TenantAuditReceiptState.Unauthorized, "continue", 0, 1, 0)]
+    [InlineData(TenantAuditReceiptState.InvalidCursor, "refresh", 1, 0, 0)]
+    [InlineData(TenantAuditReceiptState.InvalidReference, "inspect,refresh", 1, 0, 1)]
+    public void Every_receipt_local_state_routes_only_its_named_recoveries(
+        TenantAuditReceiptState state,
+        string expectedActions,
+        int expectedRetries,
+        int expectedCloses,
+        int expectedInspections)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        int retries = 0;
+        int closes = 0;
+        int inspections = 0;
+        int resets = 0;
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, DirectReceipt(state, "event-safe-reference"))
+            .Add(component => component.OnRetry, () => retries++)
+            .Add(component => component.OnClose, () => closes++)
+            .Add(component => component.OnInspectAudit, () => inspections++)
+            .Add(component => component.OnReset, () => resets++));
+
+        string[] expected = string.IsNullOrEmpty(expectedActions)
+            ? []
+            : expectedActions.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        IElement[] actions = [.. cut.FindAll("[data-testid^='tenants-audit-receipt-recovery-']")];
+        actions.Select(action => action.GetAttribute("data-testid")!["tenants-audit-receipt-recovery-".Length..])
+            .ShouldBe(expected);
+        if (actions.Length > 0)
+        {
+            IElement group = cut.Find(".audit-evidence-receipt__actions");
+            group.GetAttribute("role").ShouldBe("group");
+            group.GetAttribute("aria-label").ShouldBe("Audit receipt recovery actions");
+        }
+
+        foreach (IElement action in actions)
+        {
+            action.Click();
+        }
+
+        retries.ShouldBe(expectedRetries);
+        closes.ShouldBe(expectedCloses);
+        inspections.ShouldBe(expectedInspections);
+        resets.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Reset_override_replaces_receipt_local_recoveries_and_invokes_only_reset()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        int retries = 0;
+        int closes = 0;
+        int inspections = 0;
+        int resets = 0;
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, DirectReceipt(TenantAuditReceiptState.InvalidReference, "event-safe-reference"))
+            .Add(component => component.UseResetRecovery, true)
+            .Add(component => component.OnRetry, () => retries++)
+            .Add(component => component.OnClose, () => closes++)
+            .Add(component => component.OnInspectAudit, () => inspections++)
+            .Add(component => component.OnReset, () => resets++));
+
+        IElement reset = cut.Find("[data-testid='tenants-audit-receipt-recovery-reset']");
+        cut.FindAll("[data-testid^='tenants-audit-receipt-recovery-']").ShouldHaveSingleItem();
+        IElement group = cut.Find(".audit-evidence-receipt__actions");
+        group.GetAttribute("role").ShouldBe("group");
+        group.GetAttribute("aria-label").ShouldBe("Audit receipt recovery actions");
+
+        reset.Click();
+
+        resets.ShouldBe(1);
+        retries.ShouldBe(0);
+        closes.ShouldBe(0);
+        inspections.ShouldBe(0);
+    }
+
     private static TenantCorrectionStartContext Context(TenantAuditRow row, TenantRole? intendedRole = null)
         => new(
             TenantAuditReceipt.FromRow(row),
@@ -653,7 +740,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             "actor-user",
             "target-user",
             "tenant.alpha",
-            "UserAddedToTenant (Access)",
+            "UserAddedToTenant",
             DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
             ReadModelFreshnessState.Current,
             auditReference,
@@ -740,6 +827,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
             ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
             ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
+            ["Tenants.Audit.Receipt.ActionsLabel"] = "Audit receipt recovery actions",
             ["Tenants.Audit.Availability.Reason.MissingSupport"] = "In-panel audit verification is not available for this command, so this panel cannot match an audit record to the attempt. The recorded outcome above is unchanged.",
             ["Tenants.Audit.Availability.Reason.Unavailable"] = "The audit status could not be read or verified after the command was sent. This does not mean the record does not exist, and no proof is claimed.",
             ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",

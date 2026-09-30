@@ -11,6 +11,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -344,6 +345,75 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         hostRefreshes.ShouldBe(3);
     }
 
+    [Fact]
+    public async Task Refresh_completion_after_renderer_teardown_is_non_fatal()
+    {
+        RegisterLocalizer();
+        var refreshStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var refreshPending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending)
+            .Add(component => component.OnRefresh, EventCallback.Factory.Create(this, async () =>
+            {
+                refreshStarted.SetResult();
+                await refreshPending.Task.ConfigureAwait(false);
+            })));
+
+        Task activation = cut.Find("[data-recovery-verb='refresh']").ClickAsync(new MouseEventArgs());
+        await refreshStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Instance.Dispose();
+        cut.Dispose();
+        refreshPending.SetResult();
+
+        await activation;
+    }
+
+    [Theory]
+    [MemberData(nameof(RendererTeardownFocusExceptions))]
+    public async Task Disposed_focus_handoff_contains_renderer_teardown(Exception exception)
+    {
+        RegisterLocalizer();
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true).SetException(exception);
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending));
+        AuditAvailabilityState instance = cut.Instance;
+        typeof(AuditAvailabilityState)
+            .GetField("_focusStateLinePending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(instance, true);
+        instance.Dispose();
+        cut.Dispose();
+
+        await InvokeAfterRenderAsync(instance);
+    }
+
+    [Fact]
+    public async Task Live_focus_handoff_does_not_hide_non_teardown_failures()
+    {
+        RegisterLocalizer();
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
+            .SetException(new InvalidOperationException("Live focus defect."));
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending));
+        typeof(AuditAvailabilityState)
+            .GetField("_focusStateLinePending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, true);
+
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => InvokeAfterRenderAsync(cut.Instance));
+    }
+
+    public static TheoryData<Exception> RendererTeardownFocusExceptions
+        => new()
+        {
+            new ObjectDisposedException("renderer"),
+            new TaskCanceledException("Renderer focus was cancelled during teardown."),
+            new InvalidOperationException("Renderer is no longer interactive."),
+        };
+
+    private static Task InvokeAfterRenderAsync(AuditAvailabilityState instance)
+        => (Task)typeof(AuditAvailabilityState)
+            .GetMethod("OnAfterRenderAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(instance, [false])!;
+
     [Theory]
     [InlineData(TenantCommandAuditState.MissingSupport)]
     [InlineData(TenantCommandAuditState.AuditAvailable)]
@@ -624,6 +694,8 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-audit-availability-actions']").GetAttribute("aria-label")
             .ShouldBe("Audit availability recovery actions");
+        cut.Find("[data-testid='tenants-audit-availability-actions']").GetAttribute("role")
+            .ShouldBe("group");
         foreach (string verb in new[] { "refresh", "continuereadonly", "inspectaudit", "escalate" })
         {
             IElement action = cut.Find($"[data-recovery-verb='{verb}']");

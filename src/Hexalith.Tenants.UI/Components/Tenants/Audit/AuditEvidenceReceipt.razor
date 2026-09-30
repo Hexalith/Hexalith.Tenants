@@ -125,7 +125,7 @@
             }
             @if (ActionResourceKeys.Count > 0)
             {
-                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="audit-evidence-receipt__actions" role="group" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
                     @foreach (string action in ActionResourceKeys)
                     {
                         <FluentButton Appearance="ButtonAppearance.Outline"

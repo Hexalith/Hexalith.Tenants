@@ -53,6 +53,7 @@
                          Wrap="true"
                          Class="tenants-audit-availability__actions"
                          data-testid="tenants-audit-availability-actions"
+                         role="group"
                          aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
                 @foreach (TenantAuditRecoveryVerb verb in RenderableRecoveryVerbs)
                 {
@@ -232,6 +233,15 @@
             catch (JSException)
             {
             }
+            catch (ObjectDisposedException) when (_disposed)
+            {
+            }
+            catch (TaskCanceledException) when (_disposed)
+            {
+            }
+            catch (InvalidOperationException) when (_disposed)
+            {
+            }
         }
     }
 
@@ -285,6 +295,7 @@
 
         _refreshInFlight = true;
         TenantAuditAvailabilityState? stateBeforeRefresh = Availability.State;
+        bool refreshCompleted = false;
         try
         {
             long? probeVersion = AuditAuthorityRefreshVersion?.Invoke();
@@ -295,35 +306,72 @@
             {
                 await InvokeAsync(AuditAuthorityRefresh).ConfigureAwait(false);
             }
+
+            refreshCompleted = true;
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            // The renderer was torn down between the owner refresh and the authority refresh dispatch.
+        }
+        catch (TaskCanceledException) when (_disposed)
+        {
+            // Renderer shutdown cancelled a queued refresh callback.
+        }
+        catch (InvalidOperationException) when (_disposed)
+        {
+            // The renderer rejected a callback after the component left its interactive lifetime.
         }
         finally
         {
-            _refreshInFlight = false;
+            await FinalizeRefreshAsync(stateBeforeRefresh, refreshCompleted).ConfigureAwait(false);
         }
+    }
 
-        await InvokeAsync(() =>
+    private async Task FinalizeRefreshAsync(
+        TenantAuditAvailabilityState? stateBeforeRefresh,
+        bool refreshCompleted)
+    {
+        try
         {
-            if (_disposed)
+            // The gate, retry count, focus decision, and render request are one renderer-dispatcher transaction.
+            // A second click can never start after the gate opens but before the completed retry is counted.
+            await InvokeAsync(() =>
             {
-                return;
-            }
+                _refreshInFlight = false;
+                if (_disposed || !refreshCompleted)
+                {
+                    return;
+                }
 
-            // The host re-renders this control with the refreshed state before the callback completes; a
-            // different state already reset the count in OnParametersSet.
-            if (Availability.State == stateBeforeRefresh && _countedState == stateBeforeRefresh)
-            {
-                _unchangedRefreshCount++;
-            }
+                // The host re-renders this control with the refreshed state before the callback completes; a
+                // different state already reset the count in OnParametersSet.
+                if (Availability.State == stateBeforeRefresh && _countedState == stateBeforeRefresh)
+                {
+                    _unchangedRefreshCount++;
+                }
 
-            // Whenever the refresh leaves the control rendered without a Refresh control -- the retry bound,
-            // or a new state with no Refresh recovery -- focus lands on the state line (whose description
-            // carries the limit note when the bound was reached) instead of on the vanished button.
-            if (Availability.ShouldRender && !RenderableRecoveryVerbs.Contains(TenantAuditRecoveryVerb.Refresh))
-            {
-                _focusStateLinePending = true;
-            }
+                // Whenever the refresh leaves the control rendered without a Refresh control -- the retry bound,
+                // or a new state with no Refresh recovery -- focus lands on the state line (whose description
+                // carries the limit note when the bound was reached) instead of on the vanished button.
+                if (Availability.ShouldRender && !RenderableRecoveryVerbs.Contains(TenantAuditRecoveryVerb.Refresh))
+                {
+                    _focusStateLinePending = true;
+                }
 
-            StateHasChanged();
-        }).ConfigureAwait(false);
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            // The renderer was torn down after the host refresh completed; no visible state remains to update.
+        }
+        catch (TaskCanceledException) when (_disposed)
+        {
+            // Renderer shutdown cancelled the queued completion.
+        }
+        catch (InvalidOperationException) when (_disposed)
+        {
+            // The renderer is no longer interactive, so retry bookkeeping is no longer observable.
+        }
     }
 }
