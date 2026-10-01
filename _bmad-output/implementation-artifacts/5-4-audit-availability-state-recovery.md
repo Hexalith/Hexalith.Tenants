@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: in-progress
+Status: review
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -145,6 +145,7 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-10-01 remaining verification patches — exact Debug build, final 189-test focused run, descending-only and direction-toggle mutations, maintained MTP 3,589/3,589 run, formatting limitation, and follow-up gitlink evidence are recorded in the 2026-10-01 addendum to `story-5-4-re-review-verification-2026-09-30.md` and `spec-5-4-understand-audit-availability-and-recovery-4.md`.
 - 2026-09-30 re-review closure — exact Debug build, maintained MTP, mutation, browser, gitlink, and commitlint evidence is recorded in `story-5-4-re-review-verification-2026-09-30.md` and the current `spec-5-4-understand-audit-availability-and-recovery-3.md`.
 - 2026-06-06T17:53:58+02:00 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed.
 - 2026-06-06T17:53:58+02:00 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build` hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
@@ -155,6 +156,7 @@ GPT-5 Codex
 
 ### Completion Notes List
 
+- Closed the five remaining re-review patches and all five independent-review findings. Actual ascending Tenant/Status events now cover descending and already ascending starting states, distinct pages through page three, visible row order, and a complete cursor-history reset. Successful refresh teardown starts through the Refresh click and uses renderer-driven component disposal; live finalization exceptions retain identity; ARIA counts use a bounded populated-count wait. Final Debug source build passed with zero warnings/errors, focused tests passed 189/189, and maintained MTP passed 3,589/3,589 with zero failed/skipped. Descending-only and direction-toggle mutations were rejected, with original production source restored before final validation. The pre-existing formatter brace-policy conflict is recorded separately in deferred work; prior deferrals remain. Current status is review.
 - Closed the eight 2026-09-30 re-review patches with bounded disposed-host faults, live refresh/focus exception theories, deterministic dispatcher gating, isolated template safety and a copyable positive control, accented French group naming, browser group parity, and Loading group suppression. All six independent review findings were addressed, including successful disposed completion and separate finalization dispatcher faults. The final Debug source build passed with zero warnings/errors; maintained MTP passed 3,586/3,586; nine focused code/fixture mutations and the Chrome harness's independent mutations were rejected. The current follow-up gitlink guard passed with no pointer changes; the deferred legacy baseline remains unresolved. Current status is review.
 - Ultimate context engine analysis completed - comprehensive developer guide created.
 - Added a Tenants-owned audit availability model that maps `TenantCommandAuditState` into explicit pending, delayed, unavailable, and missing-support states with separate canonical recovery verbs.
@@ -166,8 +168,10 @@ GPT-5 Codex
 ### File List
 
 - _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+- _bmad-output/implementation-artifacts/deferred-work.md
 - _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md
 - _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md
+- _bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md
 - _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 - src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor
@@ -190,7 +194,7 @@ GPT-5 Codex
 - tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs — Fluent UI 5.0.0 sort-state assertion compatibility prerequisite.
-- tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs — Fluent UI 5.0.0 header-inclusive ARIA row counts.
+- tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs — settled data-row counts plus the header; both Fluent UI RC and stable use `TotalItemCount + 1`.
 - tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html
 - tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs
@@ -207,7 +211,8 @@ GPT-5 Codex
 
 ### Change Log
 
-- 2026-09-30 - Closed all eight re-review patches and recorded current Debug/MTP, six mutation, Chrome, and follow-up gitlink evidence; corrected the existing Fluent UI 5.0.0 sort API and header-inclusive test expectations required for verification.
+- 2026-10-01 - Closed the five remaining re-review patches and five independent-review findings with real ascending Tenant/Status sort events, distinct page-three/reset and visible-order coverage, renderer-driven Refresh-click disposal, live finalization exception identity, and bounded ARIA-count verification. Final Debug source build passed with zero warnings/errors; 189 focused tests and maintained MTP 3,589/3,589 passed. Descending-only and direction-toggle mutations were rejected; production source was restored before the final build. Recorded the pre-existing formatter brace-policy conflict separately and moved story/sprint status to review.
+- 2026-09-30 - Closed all eight re-review patches and recorded the final zero-warning/error Debug build, maintained MTP 3,586/3,586 run, nine mutation rejections, Chrome, and follow-up gitlink evidence; corrected the existing Fluent UI 5.0.0 sort API and ARIA test expectations for the populated item count (both RC and stable count data rows plus the header).
 - 2026-06-06T17:36:15+02:00 - Created Story 5.4 context and marked it ready for development.
 - 2026-06-06T17:53:58+02:00 - Implemented shared audit availability state recovery model/control, wired receipts and command flows, added localized EN/FR copy and focused tests, and marked story ready for review.
 - 2026-06-06 - Senior Developer Review (AI) completed: Approve. Added `tests/test-summary.md` to the File List (it carried a Story 5.4 evidence addendum but was undocumented). No code defects required fixes. Status moved review → done.
@@ -329,11 +334,11 @@ Scope: the verification-gap closure commit `6a608e73` (merged as `a4a1ce13`, PR 
   - Moving `_refreshInFlight = false` before the finalization dispatch fails `Dispatcher_finalization_keeps_the_gate_closed_until_the_retry_is_counted`, because the host is called twice.
 - **CI:** PR #49 was merged with `ci / build-and-test` and `validate-remove-focus-in-chromium` red, so no Tenants test tier ran in CI. The verification report doesn't mention CI.
 
-- [ ] [Review][Patch] Pin the sort direction and column for a non-empty ascending sort event, including the Status column. Dropping the `Ascending` read still passes the suite, because only descending and empty sorts reach `OnTenantSortChanged` [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1656]
-- [ ] [Review][Patch] Drive the successful post-disposal refresh through the real Refresh click (`ClickAsync`). Otherwise no teardown test covers click → `InvokeRecoveryAsync` → `RefreshAsync`, and the verification report's "original successful-disposal case is retained" is inaccurate [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:388]
-- [ ] [Review][Patch] Correct the `aria-rowcount` rationale here and in the verification report (line 42). `5.0.0-rc.5-26219.1` and `5.0.0` both render `TotalItemCount + 1`. What changed is that the item count is filled in by the time bUnit asserts, so the old `"1"` meant zero counted rows [tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs:170]
-- [ ] [Review][Patch] In the finalization theory, assert exception identity (`ShouldBeSameAs`), not just the type, for the live `ObjectDisposedException` and `InvalidOperationException` rows, as the verification report says it does [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:440]
-- [ ] [Review][Patch] Correct the new Change Log entry. It says "six mutation", while the Completion Notes and verification report record nine, and it leaves out the final 3,586/3,586 run [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:210]
+- [x] [Review][Patch] Pin the sort direction and column for a non-empty ascending sort event, including the Status column. Dropping the `Ascending` read still passes the suite, because only descending and empty sorts reach `OnTenantSortChanged` [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1656] — closed 2026-10-01: both real grid ascending events assert column/direction, canonical URL, and cursor/history reset; both reject the descending-only mutation.
+- [x] [Review][Patch] Drive the successful post-disposal refresh through the real Refresh click (`ClickAsync`). Otherwise no teardown test covers click → `InvokeRecoveryAsync` → `RefreshAsync`, and the verification report's "original successful-disposal case is retained" is inaccurate [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:388] — closed 2026-10-01: real Refresh click with bounded host completion after disposal and zero counted retries; historical report wording corrected.
+- [x] [Review][Patch] Correct the `aria-rowcount` rationale here and in the verification report (line 42). `5.0.0-rc.5-26219.1` and `5.0.0` both render `TotalItemCount + 1`. What changed is that the item count is filled in by the time bUnit asserts, so the old `"1"` meant zero counted rows [tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs:170] — closed 2026-10-01: test comment, File List, Change Log, and report now describe populated item-count timing.
+- [x] [Review][Patch] In the finalization theory, assert exception identity (`ShouldBeSameAs`), not just the type, for the live `ObjectDisposedException` and `InvalidOperationException` rows, as the verification report says it does [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:440] — closed 2026-10-01: non-cancellation rows assert identity; cancellation keeps exact-type verification.
+- [x] [Review][Patch] Correct the new Change Log entry. It says "six mutation", while the Completion Notes and verification report record nine, and it leaves out the final 3,586/3,586 run [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:210] — closed 2026-10-01: the historical entry records nine mutations and 3,586/3,586; today's 3,588/3,588 run is recorded separately.
 - [x] [Review][Defer] CI has not run the Tenants test tiers since at least 2026-09-29. `ci / build-and-test` fails at "Validate package consumer references" because the `Hexalith.Tenants.Server` nupkg dependency boundary includes `Hexalith.EventStore.ServiceDefaults`, so Tier 1 and Tier 2 report no counts. PR #49 was merged red (runs `36747901026` and `36747920099`) [src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj:6] — deferred: pre-existing (first failed in run `36590317356` at `e077e65e`); the cause is the source-referenced `Hexalith.EventStore.Server` graph at the bumped EventStore gitlink, not this diff
 - [x] [Review][Defer] `validate-remove-focus-in-chromium` aborts in CI (Chrome 153 core dump, exit 134) on every `main` push since at least 2026-09-29; it last passed on 2026-09-22 [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:200] — deferred: pre-existing. Local Chrome 154 passes. A runner sandbox restriction is suspected but unverified; settle it by capturing the `.stderr` output in the workflow
 - [x] [Review][Defer] The browser harness hardcodes `obj/Release` scoped-CSS inputs. Local Debug-only verification therefore needs an uncommitted `/tmp` copy, and the recorded Chrome evidence can't be reproduced from the repository [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:8] — deferred: pre-existing harness design

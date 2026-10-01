@@ -3346,3 +3346,7 @@ Review range `55fc6f91..a4a1ce13`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
   summary: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
   evidence: `5-4-audit-availability-state-recovery.md:3` `baseline_commit a5ca6e3f…` is not a commit. The spec-3 range (`55fc6f9..HEAD`, no pointer changes) and the primary spec range (`55f3dc6..HEAD`, Builds, EventStore and FrontComposer declared) both pass.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`
+  summary: Reconcile dotnet formatter same-line-brace expectations with the Hexalith baseline requirement for Allman braces.
+  evidence: The supplementary read-only dotnet format whitespace check on the three changed UI test files exited 2 with 299 WHITESPACE diagnostics before review amendments; it requested same-line braces for existing Allman blocks and four new blocks matching that required style. The exact command and result are in the 2026-10-01 addendum to story-5-4-re-review-verification-2026-09-30.md. A policy correction belongs in separate repository maintenance; no formatting configuration or build/test gate was weakened here.

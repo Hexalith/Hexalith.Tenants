@@ -617,6 +617,69 @@ public sealed class TenantListSurfaceTests : BunitContext
         });
     }
 
+    [Theory]
+    [InlineData("Tenant", "tenant-id", TenantListSortColumns.Name, true)]
+    [InlineData("Status", "tenant-status", TenantListSortColumns.Status, true)]
+    [InlineData("Status", "tenant-status", TenantListSortColumns.Status, false)]
+    public async Task AscendingSortSelectsTheRequestedColumnAndRestartsAtFirstPage(
+        string columnTitle,
+        string columnId,
+        string expectedSortColumn,
+        bool initiallyDescending)
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.Arg<TenantListRequest>();
+            requests.Add(request);
+            return Task.FromResult(request.Cursor switch
+            {
+                "protected-page-two" => ReadySnapshot(
+                    [Row("tenant.page-two", "Page two", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+                    nextCursor: "protected-page-three", hasMore: true),
+                "protected-page-three" => ReadySnapshot(
+                    [Row("tenant.page-three", "Page three", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]),
+                _ => ReadySnapshot(
+                    [
+                        Row("tenant.beta", "Beta", TenantStatus.Disabled, ReadModelFreshnessState.Current, TenantPendingState.None),
+                        Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
+                    ],
+                    nextCursor: "protected-page-two", hasMore: true),
+            });
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo(initiallyDescending ? "/tenants?sort=name&desc=true" : "/tenants?sort=name");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.page-two"));
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].Cursor.ShouldBe("protected-page-three");
+            cut.Markup.ShouldContain("tenant.page-three");
+        });
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        await cut.InvokeAsync(() => grid.SortByColumnAsync(columnTitle, DataGridSortDirection.Ascending))
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].SortColumn.ShouldBe(expectedSortColumn);
+            requests[^1].SortDescending.ShouldBeFalse();
+            requests[^1].Cursor.ShouldBeNull();
+            navigation.Uri.ShouldBe($"http://localhost/tenants/tenants?sort={expectedSortColumn}");
+            DataGridSortColumn<TenantListRow> sort = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance
+                .SortColumns.ShouldHaveSingleItem();
+            sort.Column.ColumnId.ShouldBe(columnId);
+            sort.Ascending.ShouldBeTrue();
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+            cut.FindAll("[data-testid='tenants-list-detail-link'] strong").Select(element => element.TextContent)
+                .ShouldBe(["tenant.alpha", "tenant.beta"]);
+            cut.Markup.ShouldNotContain("tenant.page-three");
+        });
+    }
+
     [Fact]
     public async Task ClearingDescendingSortRestoresCanonicalTenantIdOrderAndFirstPage()
     {
