@@ -449,7 +449,11 @@
             if (await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
                 await RefreshStatusAsync().ConfigureAwait(false);
         }
-        if (_focusOpenPending) { _focusOpenPending = false; await FocusSafelyAsync(_openElement).ConfigureAwait(false); }
+        if (_focusOpenPending)
+        {
+            _focusOpenPending = false;
+            await FocusSafelyAsync(CanOpen ? _openElement : _lifecycleElement).ConfigureAwait(false);
+        }
         if (_focusNamespacePending)
         {
             _focusNamespacePending = false;

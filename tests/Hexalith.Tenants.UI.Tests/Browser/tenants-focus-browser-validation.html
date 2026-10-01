@@ -64,6 +64,7 @@
         const modulePath = parameters.get("module") ?? "./tenantsFocus.js";
         const pageCssPath = parameters.get("css") ?? "./global-admins.css";
         const expectedViewport = parameters.get("viewport") ?? "narrow";
+        const expectForcedColors = parameters.get("forcedColors") === "active";
         const availabilityCssPath = parameters.get("availabilityCss") ?? "./availability.css";
         if (availabilityCssPath !== "./availability.css") {
             const availabilityStylesheet = document.getElementById("availability-stylesheet");
@@ -332,6 +333,39 @@
             const availabilityState = document.getElementById("availability-state");
             availabilityState.focus();
             assertActiveElement(availabilityState, "availability-state-line-programmatic-focus");
+            if (expectForcedColors) {
+                if (!window.matchMedia("(forced-colors: active)").matches) {
+                    throw new Error("availability-forced-colors: the requested media mode is not active");
+                }
+                const label = availabilityBadge.querySelector("span");
+                const icon = availabilityBadge.querySelector("svg");
+                const iconPath = icon?.querySelector("path");
+                const isVisible = element => {
+                    if (!element) return false;
+                    const bounds = element.getBoundingClientRect();
+                    if (bounds.width <= 0 || bounds.height <= 0) return false;
+                    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+                        const style = getComputedStyle(ancestor);
+                        if (style.display === "none" || style.visibility !== "visible" || Number(style.opacity) === 0) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+                if (!isVisible(availabilityBadge) || !isVisible(label) || !isVisible(icon) || !isVisible(iconPath)
+                    || label.textContent.trim() !== "Audit indisponible"
+                    || getComputedStyle(iconPath).fill === "none") {
+                    throw new Error("availability-forced-colors: badge text and its painted icon must remain visible");
+                }
+                const outline = getComputedStyle(availabilityState);
+                if (!availabilityState.matches(":focus-visible")
+                    || ["none", "hidden"].includes(outline.outlineStyle)
+                    || Number.parseFloat(outline.outlineWidth) < 1
+                    || ["transparent", "rgba(0, 0, 0, 0)"].includes(outline.outlineColor)) {
+                    throw new Error("availability-forced-colors: focused state must have a visible outline");
+                }
+                observations.push("availability-forced-colors-active-visible-text-icon-focus-outline");
+            }
             availabilityState.blur();
 
             const scope = correctionCss.match(/\.ga-correction-panel__mutation-initiation\[([a-z0-9-]+)\]/)?.[1];

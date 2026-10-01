@@ -192,6 +192,11 @@ run_browser() {
     local window_width="${5:-390}"
     local viewport="${6:-narrow}"
     local availability_css_name="${7:-availability.css}"
+    local forced_colors="${8:-none}"
+    local forced_color_arguments=()
+    if [[ "$forced_colors" == active ]]; then
+        forced_color_arguments+=(--force-high-contrast)
+    fi
     local window_size_argument="--window-size=${window_width},800"
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
@@ -202,11 +207,12 @@ run_browser() {
         --disable-gpu \
         --no-default-browser-check \
         --no-first-run \
+        "${forced_color_arguments[@]}" \
         "$window_size_argument" \
         --user-data-dir="$validation_tmp/$profile_name" \
         --virtual-time-budget=3000 \
         --dump-dom \
-        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}" >"$output_path" 2>"${output_path}.stderr"
+        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}" >"$output_path" 2>"${output_path}.stderr"
 }
 
 positive_output="$validation_tmp/shipped.html"
@@ -224,6 +230,16 @@ if ! grep -q 'data-validation-status="passed"' "$desktop_output"; then
     echo "Shipped desktop receipt header failed real-Chromium validation:" >&2
     grep -o '<output id="validation-report">[^<]*' "$desktop_output" >&2 || true
     sed -n '1,120p' "${desktop_output}.stderr" >&2
+    exit 1
+fi
+
+forced_colors_output="$validation_tmp/shipped-forced-colors.html"
+run_browser "tenantsFocus.js" "profile-shipped-forced-colors" "$forced_colors_output" "global-admins.css" 390 narrow "availability.css" active
+if ! grep -q 'data-validation-status="passed"' "$forced_colors_output" \
+    || ! grep -q 'availability-forced-colors-active-visible-text-icon-focus-outline' "$forced_colors_output"; then
+    echo "Shipped audit availability failed real-Chromium forced-colors validation:" >&2
+    grep -o '<output id="validation-report">[^<]*' "$forced_colors_output" >&2 || true
+    sed -n '1,120p' "${forced_colors_output}.stderr" >&2
     exit 1
 fi
 
@@ -267,10 +283,12 @@ fi
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"
 desktop_report="$(grep -o '<output id="validation-report">[^<]*' "$desktop_output" | sed 's/.*>//')"
+forced_colors_report="$(grep -o '<output id="validation-report">[^<]*' "$forced_colors_output" | sed 's/.*>//')"
 mutation_report="$(grep -o '<output id="validation-report">[^<]*' "$mutation_output" | sed 's/.*>//')"
 printf '%s\n' "Browser: $browser_version"
 printf '%s\n' "Shipped module: $positive_report"
 printf '%s\n' "Shipped desktop: $desktop_report"
+printf '%s\n' "Shipped forced colors: $forced_colors_report"
 printf '%s\n' "Return-true mutation: correctly rejected ($mutation_report)"
 printf '%s\n' "Removal-dialog in-flow and hidden CSS mutations: correctly rejected"
 printf '%s\n' "Unstacked availability recoveries at 390px: correctly rejected"

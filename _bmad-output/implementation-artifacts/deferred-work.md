@@ -3386,3 +3386,20 @@ Review range `55f3dc63..fa489329`, chunk 1 (`src` minus `State/` and `Services/`
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
   summary: Replace the source-text pin of the seven flows' denied-read Inspect-audit wiring with a rendered theory.
   evidence: `AuditAvailabilityStateTests.cs:924-966` asserts `=> AuditReadDenied ? null : CommandAuditEntryPointTemplate;` through `File.ReadAllText`. Only Create has rendered coverage (`CreateTenantFlowTests.cs:226-256`), and `RemoveTenantMemberFlowTests.cs:67-77` checks only that the entry point is absent, which an empty `[data-recovery-verb='inspectaudit']` shell would also pass. Add one theory across AddMember, ChangeRole, RemoveMember, Metadata, Lifecycle, Set configuration and Remove configuration that asserts no `inspectaudit` recovery renders when the audit read is denied.
+
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Let the existing browser validator consume the selected local build configuration instead of hardcoding Release CSS paths.
+  evidence: Build completion review BH8 verified that Release-only correction, receipt, and page paths already exist at baseline 55f3dc63b6ce10bb0afdf929d026fa07cffd9105. The local Debug acceptance lane needs a temporary adapter to consume fresh CSS; no build-selection policy was changed by Story 5.4.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Preserve and print Chromium stderr when the browser validator exits before its validation-result checks.
+  evidence: Build completion review BH9 traced the pre-existing set -e browser invocation and EXIT cleanup. A nonzero browser process exit bypasses stderr printing and the trap deletes the redirected diagnostic file. This behavior is present at baseline 55f3dc63b6ce10bb0afdf929d026fa07cffd9105.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Resolve or explicitly retire the legacy Story 5.4 artifact's non-resolving validation baseline.
+  evidence: Build completion review BH10 verified that python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md exits 1 because a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline is preserved; the current owning spec's canonical baseline passes its guard.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Split the fourteen pre-existing public command-model types into their own named C# files.
+  evidence: Build completion review BH11 compared TenantCreateCommandModels.cs with baseline 55f3dc63b6ce10bb0afdf929d026fa07cffd9105 and found all fourteen public types already present. The monolithic file remains contrary to the Hexalith one-type-per-file rule; Review 7's fixes did not edit that file.

@@ -17,6 +17,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -1685,6 +1686,42 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         gateway.DisableSubmissions.ShouldBe(1);
     }
 
+    /// <summary>
+    /// Verifies that audit refresh restores focus when a readable processing status unmounts its recovery control.
+    /// </summary>
+    [Fact]
+    public void AuditRefreshThatResolvesToNotStartedMovesFocusToTheLifecycleSection()
+    {
+        int statusCalls = 0;
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored-by-stub", "correlation-life"),
+            StatusProvider = (_, _) => Task.FromResult(++statusCalls == 1
+                ? TenantCommandStatusResult.RetryableFailure("Command status could not be read yet.")
+                : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = RenderLifecycleFlow();
+        const string audit = "[data-testid='tenants-lifecycle-audit']";
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        string lifecycleReferenceId = CapturedElementReferenceId(cut.Instance, "_lifecycleElement");
+        int focusCallsBeforeRefresh = FocusedElementIds().Count;
+
+        cut.Find($"{audit} [data-recovery-verb='refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.Instance.Snapshot.FocusTarget.ShouldNotBe(TenantCommandFocusTarget.Lifecycle);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty());
+        cut.WaitForAssertion(() => FocusedElementIds().Count.ShouldBeGreaterThan(focusCallsBeforeRefresh));
+        FocusedElementIds().Last().ShouldBe(lifecycleReferenceId);
+        gateway.StatusCalls.ShouldBe(2);
+        gateway.DisableSubmissions.ShouldBe(1);
+    }
+
     [Fact]
     public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_its_replay_and_never_exhaust_the_retry_limit()
     {
@@ -1717,9 +1754,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
         Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        merged.IsCompleted.ShouldBeFalse();
 
         // The merged click waits for the running lookup and its replay; nothing counted as an unchanged retry yet.
         cut.Find(refresh);
@@ -1727,10 +1765,22 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         releaseNudgeLookup.SetResult();
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
-        SpinWait.SpinUntil(() => Volatile.Read(ref statusCalls) == 3, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(3);
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
         gateway.DisableSubmissions.ShouldBe(1);
+
+        // The completed merged recovery used one retry. Two later recoveries must complete and consume the rest.
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(4);
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(5);
+        cut.FindAll(refresh).ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-retry-limit']");
     }
 
     [Fact]
@@ -1762,9 +1812,10 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         };
         Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await dispatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        merged.IsCompleted.ShouldBeFalse();
 
         // The click merged into the running re-dispatch waits for it; nothing counted as an unchanged retry yet.
         cut.Find(refresh);
@@ -1772,10 +1823,23 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         releaseDispatch.SetResult();
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.DisableSubmissions.ShouldBeGreaterThanOrEqualTo(2);
+
+        int dispatchesAfterMerged = gateway.DisableSubmissions;
+        // The gate must reopen after the merged click, and each completed recovery advances the retry budget.
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.DisableSubmissions.ShouldBe(dispatchesAfterMerged + 1);
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.DisableSubmissions.ShouldBe(dispatchesAfterMerged + 2);
+        cut.FindAll(refresh).ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-retry-limit']");
     }
 
     [Fact]

@@ -21,6 +21,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -588,8 +589,12 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.RemoveMemberCallCount.ShouldBe(3);
     }
 
-    [Fact]
-    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable()
+    [Theory]
+    [InlineData(true, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, TenantCommandAuditState.NotStarted)]
+    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable(
+        bool isRetry,
+        TenantCommandAuditState expectedAuditState)
     {
         StubTenantCommandGateway gateway = new()
         {
@@ -606,33 +611,41 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || ++acquisitions != 2)));
+            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || (isRetry && ++acquisitions != 2))));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
-        cut.Find("form").Submit();
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
-        // The failure was reported after the message was sent, so its status is unknown rather than "not started".
-        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        if (isRetry)
+        {
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        }
 
         // The retry reuses an identity that may already have reached the server; the refused lease blocks it
-        // before dispatch, and the audit dimension reports the unknown status instead of "not started".
+        // before dispatch. A first attempt refused before dispatch sent nothing, so no audit state is implied.
         cut.Find("form").Submit();
 
-        // The refused retry keeps the failed attempt it retried, identity included, with the in-flight refusal the
-        // flow assigns, which the failed attempt's message never matches.
+        TenantCommandLifecycleState expectedState = isRetry
+            ? TenantCommandLifecycleState.Failed
+            : TenantCommandLifecycleState.UnableToVerify;
         cut.WaitForAssertion(() =>
         {
-            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            cut.Instance.Snapshot.State.ShouldBe(expectedState);
             cut.Instance.Snapshot.SafeMessage.ShouldBe("A tenant command is already in progress.");
         });
-        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
-        gateway.RemoveMemberCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe(isRetry ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : null);
+        cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
+        cut.FindAll("[data-testid='tenants-remove-member-audit'] [data-testid='tenants-audit-availability']").Count
+            .ShouldBe(isRetry ? 1 : 0);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
 
-        // Once the lease is granted again, the next submit re-dispatches the same identity instead of minting one.
-        cut.Find("form").Submit();
-        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
-        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        if (isRetry)
+        {
+            // Once the lease is granted again, the next submit re-dispatches the same identity instead of minting one.
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+            gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        }
     }
 
     [Fact]
@@ -686,6 +699,44 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
         gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    /// <summary>
+    /// Verifies that audit refresh requires a retained message and correlation identity.
+    /// </summary>
+    /// <param name="requeryable">Whether the submission supplies enough identity to read status again.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RefreshIsOfferedOnlyWhileTheAttemptCanBeRequeried(bool requeryable)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = requeryable
+                ? TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")
+                : TenantCommandSubmissionResult.Failed("Submission failed before it could be verified.") with
+                {
+                    MessageId = "message-1",
+                },
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(requeryable
+            ? TenantCommandAuditState.AuditPending
+            : TenantCommandAuditState.AuditUnavailable));
+        cut.WaitForAssertion(
+            () => cut.FindAll("[data-testid='tenants-remove-member-audit'] [data-recovery-verb='refresh']").Count.ShouldBe(requeryable ? 1 : 0),
+            TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-remove-member-audit'] [data-testid='tenants-audit-availability']");
     }
 
     [Fact]
@@ -1578,9 +1629,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
         Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        merged.IsCompleted.ShouldBeFalse();
 
         // The merged click waits for the running lookup and its replay; nothing counted as an unchanged retry yet.
         cut.Find(refresh);
@@ -1588,9 +1640,21 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         releaseNudgeLookup.SetResult();
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
-        SpinWait.SpinUntil(() => Volatile.Read(ref statusReads) == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusReads).ShouldBe(2);
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        // The completed merged recovery used one retry. Two later recoveries must complete and consume the rest.
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusReads).ShouldBe(3);
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusReads).ShouldBe(4);
+        cut.FindAll(refresh).ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-retry-limit']");
     }
 
     private void RegisterServices(StubTenantCommandGateway gateway, ITenantQueryGateway? queryGateway = null)

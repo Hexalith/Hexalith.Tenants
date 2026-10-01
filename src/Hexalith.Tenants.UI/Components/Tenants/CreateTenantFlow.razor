@@ -279,11 +279,11 @@
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
 
     private RenderFragment CommandAuditEntryPointTemplate
-        => @<AuditEvidenceEntryPoint TenantId="@_tenantId"
+        => @<AuditEvidenceEntryPoint TenantId="@(_snapshot.Intent?.TenantId ?? _tenantId)"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
                                      Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"
-                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, _tenantId ?? string.Empty]"
+                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditStateLabel, _snapshot.Intent?.TenantId ?? _tenantId ?? string.Empty]"
                                      ReturnUrl="@(WorkspaceAuditReturnUrl ?? "/tenants")"
                                      ReturnFocus="tenants-create-lifecycle"
                                      AuthorityPending="@AuditReadPending"

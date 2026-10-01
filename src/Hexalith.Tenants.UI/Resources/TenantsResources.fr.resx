@@ -3263,7 +3263,7 @@
     <value>Escalader avec la reference</value>
   </data>
   <data name="Tenants.Audit.Receipt.Action.InspectAudit" xml:space="preserve">
-    <value>Inspecter l'audit</value>
+    <value>Inspecter l’audit</value>
   </data>
   <data name="Tenants.Audit.Receipt.Action.Refresh" xml:space="preserve">
     <value>Actualiser</value>

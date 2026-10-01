@@ -17,6 +17,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -689,9 +690,10 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        merged.IsCompleted.ShouldBeFalse();
 
         // The merged click waits for the running lookup and its replay; nothing counted as an unchanged retry yet.
         cut.Find(refresh);
@@ -699,9 +701,21 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         releaseNudgeLookup.SetResult();
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
-        SpinWait.SpinUntil(() => Volatile.Read(ref statusCalls) == 3, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(3);
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        // The completed merged recovery used one retry. Two later recoveries must complete and consume the rest.
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(4);
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(5);
+        cut.FindAll(refresh).ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-retry-limit']");
     }
 
     [Theory]

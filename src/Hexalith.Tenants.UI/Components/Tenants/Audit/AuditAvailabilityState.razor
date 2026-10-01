@@ -247,7 +247,7 @@
             catch (ObjectDisposedException) when (_disposed)
             {
             }
-            catch (TaskCanceledException) when (_disposed)
+            catch (TaskCanceledException)
             {
             }
             catch (InvalidOperationException) when (_disposed)

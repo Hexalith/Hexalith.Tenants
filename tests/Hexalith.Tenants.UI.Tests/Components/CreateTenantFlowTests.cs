@@ -288,6 +288,45 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("correlation-123", Case.Insensitive);
     }
 
+    /// <summary>
+    /// Verifies that editing the next tenant does not change the confirmed attempt's audit scope or accessible name.
+    /// </summary>
+    [Fact]
+    public void InspectAuditKeepsTheConfirmedAttemptScopeAfterTheTenantInputChanges()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
+        IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadAvailable")
+            .Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(child => child
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<(TenantSummary?, string?)>(
+                    (new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2")))));
+        IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.next");
+
+        AngleSharp.Dom.IElement entry = cut.Find("[data-testid='tenants-audit-entrypoint']");
+        string href = entry.GetAttribute("href").ShouldNotBeNull();
+        href.ShouldStartWith("/tenants/tenant.alpha/audit?");
+        entry.GetAttribute("aria-label").ShouldBe("Inspect audit for tenant tenant.alpha (Missing implementation support)");
+        href.ShouldNotContain("tenant.next");
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Missing_support_without_audit_read_or_escalation_still_offers_continue_read_only()
     {

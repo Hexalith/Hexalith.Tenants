@@ -3,6 +3,7 @@ using System.Globalization;
 using AngleSharp.Dom;
 
 using Bunit;
+using Bunit.Web.AngleSharp;
 
 using Hexalith.Tenants.UI.Components.Tenants.Audit;
 using Hexalith.Tenants.UI.Resources;
@@ -557,9 +558,13 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         await InvokeAfterRenderAsync(instance);
     }
 
+    /// <summary>
+    /// Verifies that a focus timeout is best effort while unrelated failures remain visible on a live component.
+    /// </summary>
+    /// <param name="exception">The failure returned by the focus interop call.</param>
     [Theory]
     [MemberData(nameof(RendererTeardownFocusExceptions))]
-    public async Task Live_focus_handoff_does_not_hide_non_teardown_failures(Exception exception)
+    public async Task LiveFocusHandoffContainsCancellationButPreservesOtherFailures(Exception exception)
     {
         RegisterLocalizer();
         JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", _ => true)
@@ -571,16 +576,22 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             .SetValue(cut.Instance, true);
 
         Func<Task> focus = () => InvokeAfterRenderAsync(cut.Instance).WaitAsync(TimeSpan.FromSeconds(5));
+        if (exception is TaskCanceledException)
+        {
+            // Interop can time out while the component is live. Focus is best effort and never ends the circuit.
+            await focus();
+            JSInterop.VerifyFocusAsyncInvoke().Arguments[0].ShouldBe(CapturedStateLineReference(cut.Instance));
+            CapturedRefreshCount(cut.Instance).ShouldBe(0);
+            cut.Find("[data-testid='tenants-audit-availability-state']");
+            return;
+        }
+
         Exception observed = exception switch
         {
             ObjectDisposedException => await Should.ThrowAsync<ObjectDisposedException>(focus),
-            TaskCanceledException => await Should.ThrowAsync<TaskCanceledException>(focus),
             _ => await Should.ThrowAsync<InvalidOperationException>(focus),
         };
-        if (exception is not TaskCanceledException)
-        {
-            observed.ShouldBeSameAs(exception);
-        }
+        observed.ShouldBeSameAs(exception);
     }
 
     public static TheoryData<Exception> RendererTeardownFocusExceptions
@@ -722,15 +733,30 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             announced.ShouldNotContain(actionLabel, Case.Insensitive);
         }
 
-        // Identical renders produce an identical render tree, so the renderer emits no DOM edit into the live
-        // region and nothing is re-announced.
+        // Keep the same live-region nodes, including text nodes; replacing them with identical markup would
+        // still cause assistive technology to see new announcement content.
         string announcedMarkup = announcement.OuterHtml;
         string markup = cut.Markup;
-        cut.Render(parameters => parameters.Add(component => component.AuditState, TenantCommandAuditState.AuditUnavailable));
-        cut.Render(parameters => parameters.Add(component => component.AuditState, TenantCommandAuditState.AuditUnavailable));
+        INode[] originalNodes = CaptureNodes(announcement);
+        for (int render = 0; render < 2; render++)
+        {
+            cut.Render(parameters => parameters.Add(component => component.AuditState, TenantCommandAuditState.AuditUnavailable));
+            INode[] currentNodes = CaptureNodes(cut.Find("[data-testid='tenants-audit-availability-announcement']"));
+            currentNodes.Length.ShouldBe(originalNodes.Length);
+            for (int node = 0; node < originalNodes.Length; node++)
+            {
+                currentNodes[node].ShouldBeSameAs(originalNodes[node]);
+            }
+        }
 
         cut.Find("[data-testid='tenants-audit-availability-announcement']").OuterHtml.ShouldBe(announcedMarkup);
         cut.Markup.ShouldBe(markup);
+
+        static INode[] CaptureNodes(INode node)
+        {
+            INode unwrapped = node is IElementWrapper<IElement> wrapper ? wrapper.WrappedElement : node;
+            return [unwrapped, .. unwrapped.ChildNodes.SelectMany(CaptureNodes)];
+        }
     }
 
     [Fact]

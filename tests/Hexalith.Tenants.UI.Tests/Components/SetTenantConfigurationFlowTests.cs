@@ -117,6 +117,57 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-set-namespace']").TagName.ShouldBe("FLUENT-TEXT-INPUT");
     }
 
+    /// <summary>
+    /// Verifies that both close paths return focus to a rendered launcher or the lifecycle section.
+    /// </summary>
+    /// <param name="continueReadOnly">Whether to close through the audit recovery instead of Cancel.</param>
+    /// <param name="launcherAvailable">Whether the host still permits rendering the Open launcher.</param>
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void ClosingTheEditorFocusesOpenWhenAvailableAndTheLifecycleSectionOtherwise(
+        bool continueReadOnly,
+        bool launcherAvailable)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(
+            CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+        int closeCount = 0;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
+            intent => Proof(intent, TenantConfigurationProjectionProofKind.SetConfirmed, "tenant-sequence:42"));
+        cut.Render(parameters => parameters.Add(p => p.OnCloseRequested, () => closeCount++));
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        if (!launcherAvailable)
+        {
+            cut.Render(parameters => parameters
+                .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
+                .Add(p => p.Freshness, ReadModelFreshnessState.Stale));
+        }
+
+        int focusCallsBeforeClose = FocusCalls().Count;
+        cut.Find(continueReadOnly
+            ? "[data-testid='tenants-config-set-audit'] [data-recovery-verb='continuereadonly']"
+            : "[data-testid='tenants-config-set-cancel']").Click();
+
+        cut.FindAll("[data-testid='tenants-config-set-key-suffix']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-set-open']").Count.ShouldBe(launcherAvailable ? 1 : 0);
+        cut.FindAll("[data-testid='tenants-config-set-audit'] [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => closeCount.ShouldBe(1));
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeClose));
+        string expectedReferenceId = ((ElementReference)typeof(SetTenantConfigurationFlow)
+            .GetField(launcherAvailable ? "_openElement" : "_lifecycleElement", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        FocusCalls().Last().ShouldBe(expectedReferenceId);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Global_administrator_open_focuses_the_required_namespace_before_the_key()
     {

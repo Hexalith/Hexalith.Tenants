@@ -283,7 +283,7 @@
 
     private RenderFragment CommandAuditEntryPointTemplate
         => @<AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
-                                     TargetUserId="@_userId"
+                                     TargetUserId="@(_snapshot.Intent?.UserId ?? _userId)"
                                      SourceKind="command-result"
                                      SourceTestId="tenants-command-audit-entrypoint"
                                      Label="@Localizer["Tenants.Audit.Availability.Action.InspectAudit"]"

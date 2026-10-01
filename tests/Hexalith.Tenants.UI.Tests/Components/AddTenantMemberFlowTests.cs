@@ -15,6 +15,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -152,6 +153,59 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-add-member-audit']").TextContent.ShouldContain("Missing implementation support");
         cut.Find("[data-testid='tenants-add-member-audit']").TextContent.ShouldNotContain("Audit available");
         cut.Markup.ShouldNotContain("correlation-456", Case.Insensitive);
+    }
+
+    /// <summary>
+    /// Verifies that editing the next user does not change the confirmed membership attempt's audit target.
+    /// </summary>
+    [Fact]
+    public void InspectAuditKeepsTheConfirmedAttemptTargetAfterTheUserInputChanges()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        RegisterServices(gateway);
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(true);
+        Services.AddSingleton(composition);
+        string liveProjectionVersion = "v1";
+        IRenderedComponent<CascadingValue<string>> wrapper = Render<CascadingValue<string>>(parameters => parameters
+            .Add(p => p.Name, "DetailAuditReturnUrl")
+            .Add(p => p.Value, "/tenants/tenant.alpha")
+            .AddChildContent<CascadingValue<bool>>(authority => authority
+                .Add(p => p.Name, "AuditReadAvailable")
+                .Add(p => p.Value, true)
+                .AddChildContent<AddTenantMemberFlow>(child => child
+                    .Add(p => p.Detail, Detail("tenant.alpha"))
+                    .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                    .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+                    .Add(p => p.ProjectionVersion, "v1")
+                    .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
+                    .Add(p => p.ProjectionEvidenceProvider, request =>
+                    {
+                        liveProjectionVersion = "v2";
+                        return Task.FromResult<TenantDetail?>(Detail(
+                            request.TenantId,
+                            [
+                                new TenantMember("owner-user", TenantRole.TenantOwner),
+                                new TenantMember(request.UserId, request.Role),
+                            ]));
+                    }))));
+        IRenderedComponent<AddTenantMemberFlow> cut = wrapper.FindComponent<AddTenantMemberFlow>();
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("attempt-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("next-user");
+
+        AngleSharp.Dom.IElement entry = cut.Find("[data-testid='tenants-audit-entrypoint']");
+        string href = entry.GetAttribute("href").ShouldNotBeNull();
+        href.ShouldContain("targetUserId=attempt-user");
+        href.ShouldNotContain("next-user");
+        gateway.AddMemberCallCount.ShouldBe(1);
     }
 
     [Fact]
@@ -595,9 +649,10 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
         Task nudge = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await nudgeLookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        merged.IsCompleted.ShouldBeFalse();
 
         // The merged click waits for the running lookup and its replay, so the repeated clicks are one pending
         // recovery: none of them counted as an unchanged retry while the lookup was still running.
@@ -606,9 +661,21 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         releaseNudgeLookup.SetResult();
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
-        SpinWait.SpinUntil(() => Volatile.Read(ref statusCalls) == 3, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(3);
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        // The completed merged recovery used one retry. Two later recoveries must complete and consume the rest.
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(4);
+        cut.Find(refresh);
+        cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
+
+        await cut.Find(refresh).ClickAsync(new MouseEventArgs()).WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(5);
+        cut.FindAll(refresh).ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-retry-limit']");
     }
 
     [Theory]

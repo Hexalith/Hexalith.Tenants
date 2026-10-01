@@ -107,6 +107,12 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             cut.Find("[data-testid='tenants-audit-receipt-outcome'] dd").TextContent.ShouldBe("Utilisateur ajouté au locataire");
             cut.Find(".audit-evidence-receipt__actions").GetAttribute("aria-label")
                 .ShouldBe("Actions de reprise du reçu d’audit");
+            const string inspectSelector = "[data-testid='tenants-audit-receipt-recovery-inspectaudit']";
+            cut.Find(inspectSelector).TextContent.Trim().ShouldBe("Inspecter l’audit");
+            IRenderedComponent<AuditEvidenceReceipt> unavailable = Render<AuditEvidenceReceipt>(parameters => parameters
+                .Add(component => component.Receipt, TenantAuditReceipt.Unavailable(surfaceKind: TenantAuditSurfaceKind.Unavailable))
+                .Add(component => component.OnInspectAudit, () => { }));
+            unavailable.Find(inspectSelector).TextContent.Trim().ShouldBe(cut.Find(inspectSelector).TextContent.Trim());
             cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
             cut.WaitForAssertion(() => write.Invocations.Count.ShouldBe(1));
             write.Invocations.Single().Arguments[0].ShouldBe(expected);
