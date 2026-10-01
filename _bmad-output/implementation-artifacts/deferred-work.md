@@ -3375,3 +3375,14 @@ Review range `c9cd9045..` working tree (the Review 5 patch closure).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
   summary: Unverified (would be medium): Create's projection reconcile may write UnableToVerify onto the panel that Continue read-only reset.
   evidence: The message-id guard covers only the status apply. If Continue read-only lands during the reconcile's `ProjectionEvidenceProvider` await, the next `_snapshot.Intent.TenantId` throws, and the catch arm writes an Assertive `UnableToVerify` from the Idle snapshot (`CreateTenantFlow.razor:590-609`). In the only host, `TenantsWorkspace.razor:188-189`, `OnProjectionRefreshRequested` re-renders the flow to AuditPending (no Continue read-only verb) before the reconcile reads, so the path looks unreachable there. To settle it, write a host-level test, or a bUnit test without the callback, that clicks Continue read-only during a held `ProjectionEvidenceProvider` and asserts the panel stays Idle.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 7)
+
+Review range `55f3dc63..fa489329`, chunk 1 (`src` minus `State/` and `Services/`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Give the audit availability badge `Shape="BadgeShape.Rounded"` and an `IconLabel`, as DESIGN.md's truth-state-badge anatomy requires, as part of the repo-wide badge alignment decision.
+  evidence: `AuditAvailabilityState.razor:27-34` sets neither, so the Fluent default shape applies. It follows `Components/Shared/TruthStateBadge.razor`, as the spec's Code Map directs, and no badge in the repo sets a shape (DESIGN.md:59-60, 178, 188). The visible text and `aria-label` already carry the state name, so this is visual conformance only. Decide it together with the open Review 2 Tint vs Filled deferral, so every badge changes at once.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Replace the source-text pin of the seven flows' denied-read Inspect-audit wiring with a rendered theory.
+  evidence: `AuditAvailabilityStateTests.cs:924-966` asserts `=> AuditReadDenied ? null : CommandAuditEntryPointTemplate;` through `File.ReadAllText`. Only Create has rendered coverage (`CreateTenantFlowTests.cs:226-256`), and `RemoveTenantMemberFlowTests.cs:67-77` checks only that the entry point is absent, which an empty `[data-recovery-verb='inspectaudit']` shell would also pass. Add one theory across AddMember, ChangeRole, RemoveMember, Metadata, Lifecycle, Set configuration and Remove configuration that asserts no `inspectaudit` recovery renders when the audit read is denied.
